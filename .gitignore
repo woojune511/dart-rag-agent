@@ -7,3 +7,4 @@ data/
 mlruns/
 chroma_db/
 .pytest_cache/
+*.json
