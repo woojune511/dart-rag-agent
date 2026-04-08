@@ -16,12 +16,15 @@ logger = logging.getLogger(__name__)
 
 DART_BASE_URL = "https://opendart.fss.or.kr/api"
 
+# 프로젝트 루트 기준 절대 경로 (실행 위치와 무관하게 동일한 경로 사용)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # 보고서 종류 코드 (DART pblntf_detail_ty 파라미터)
 REPORT_TYPE_CODE = {
-    "사업보고서": "11011",
-    "반기보고서": "11012",
-    "분기보고서(1분기)": "11013",
-    "분기보고서(3분기)": "11014",
+    "사업보고서": "A001",
+    "반기보고서": "A002",
+    "분기보고서(1분기)": "A003",
+    "분기보고서(3분기)": "A004",
 }
 
 
@@ -48,7 +51,7 @@ class DARTFetcher:
         - 복수 기업 × 복수 연도 일괄 수집
     """
 
-    def __init__(self, download_dir: str = "data/reports"):
+    def __init__(self, download_dir: str = None):
         self.api_key = os.environ.get("DART_API_KEY")
         if not self.api_key:
             raise ValueError(
@@ -56,6 +59,8 @@ class DARTFetcher:
                 ".env 파일에 DART_API_KEY=your_key 를 추가해주세요. "
                 "발급: https://opendart.fss.or.kr/intro/main.do"
             )
+        if download_dir is None:
+            download_dir = os.path.join(_PROJECT_ROOT, "data", "reports")
         self.download_dir = download_dir
         os.makedirs(self.download_dir, exist_ok=True)
         self._corp_code_cache: Optional[Dict[str, str]] = None  # 회사명 → corp_code
@@ -214,16 +219,21 @@ class DARTFetcher:
         resp.raise_for_status()
 
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+            all_files = zf.namelist()
+            logger.info(f"ZIP 내 파일 목록: {all_files}")
+
+            # HTML/HTM 우선, 없으면 XML도 시도
             htm_files = [
-                name for name in zf.namelist()
-                if name.lower().endswith((".htm", ".html"))
+                name for name in all_files
+                if name.lower().endswith((".htm", ".html", ".xml"))
+                and not name.lower().endswith("index.xml")  # 인덱스 파일 제외
             ]
 
             if not htm_files:
-                logger.warning(f"ZIP 내 HTML 파일 없음: rcept_no={report.rcept_no}")
+                logger.warning(f"ZIP 내 문서 파일 없음: rcept_no={report.rcept_no}, 파일={all_files}")
                 return report
 
-            # 가장 큰 HTM 파일 = 본문 (목차/커버 제외)
+            # 가장 큰 파일 = 본문 (목차/커버 제외)
             main_file = max(htm_files, key=lambda f: zf.getinfo(f).file_size)
             logger.info(f"본문 파일 선택: {main_file} ({zf.getinfo(main_file).file_size:,} bytes)")
 
@@ -289,5 +299,5 @@ if __name__ == "__main__":
     )
 
     for r in reports:
-        status = "✅" if r.file_path else "❌"
-        print(f"{status} {r.corp_name} {r.year}년 {r.report_type} → {r.file_path}")
+        status = "OK" if r.file_path else "FAIL"
+        print(f"[{status}] {r.corp_name} {r.year}년 {r.report_type} -> {r.file_path}")
