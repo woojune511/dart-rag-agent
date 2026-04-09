@@ -90,18 +90,30 @@ cd src && python -m processing.financial_parser
 
 ---
 
+### Phase 3 — LangGraph Financial Analysis Agent ✅
+**파일**: `src/agent/financial_graph.py`
+
+LangGraph 5-노드 파이프라인: `classify → extract → retrieve → analyze → cite`
+
+- `QueryClassification` (Pydantic): qa/comparison/trend/risk 분류 (Gemini structured output)
+- `EntityExtraction` (Pydantic): company, year, topic, section_filter 추출
+- `_retrieve`: 하이브리드 검색 + section/company/year 메타데이터 후처리 필터
+- `_analyze`: 쿼리 유형별 전용 프롬프트 (리스크 항목화, 표 비교, 연도별 트렌드 등)
+- `_format_citations`: 중복 제거 인용 목록
+
+공개 인터페이스:
+- `agent.ingest(chunks)` — DocumentChunk → ChromaDB (`data/chroma_dart/`, collection="dart_reports")
+- `agent.run(query)` → `{query, query_type, companies, years, answer, citations}`
+
+스모크 테스트: 삼성전자 2023 615청크 인덱싱 후 리스크 질의 정상 답변 확인
+
+```bash
+cd src && python -m agent.financial_graph
+```
+
+---
+
 ## 다음 단계
-
-### Phase 3 — Financial Analysis Agent (다음 작업)
-**신규 파일**: `src/agent/financial_graph.py`
-
-LangGraph 기반 멀티스텝 분석 Agent:
-```
-query_classifier → entity_extractor → retrieval → analyst → citation
-```
-- 쿼리 유형: 단순 QA / 기업 간 비교 / 시계열 트렌드 / 리스크 분석
-- 기존 `rag_chain.py`의 RAGAgent를 참고하되 프롬프트를 재무 도메인으로 교체
-- LLM: Google Gemini (`langchain_google_genai`)
 
 ### Phase 4 — 평가 파이프라인
 **신규 파일**: `src/ops/evaluator.py`
