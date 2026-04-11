@@ -160,3 +160,4 @@ DART_API_KEY=...     # 발급됨 (.env에 저장)
 - DART OpenAPI: https://opendart.fss.or.kr/intro/main.do
 - DART API 문서: https://opendart.fss.or.kr/guide/main.do
 - 상세 구현 계획: `PLAN.md` 참고
+- 기술 결정 & 문제 해결 로그: `DECISIONS.md` 참고 (문제 현상 → 원인 분석 → 해결 과정 → 결과 수치)
