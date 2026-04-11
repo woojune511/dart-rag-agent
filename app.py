@@ -1,0 +1,405 @@
+"""
+Streamlit UI — DART 공시 분석 AI Agent
+
+탭 구성:
+  Tab 1: 기업 데이터 수집 — DART 수집 + 파싱 + 인덱싱
+  Tab 2: 질문 분석         — 자연어 질문 → Agent → 답변 + 출처
+  Tab 3: 평가 대시보드     — 지표 시각화 + MLflow 실험 결과
+
+실행:
+    streamlit run app.py
+"""
+
+import json
+import logging
+import os
+import sys
+from pathlib import Path
+from typing import List
+
+import streamlit as st
+
+# src 경로 추가
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+logging.basicConfig(level=logging.WARNING)
+
+# --------------------------------------------------------------------------
+# 컴포넌트 싱글턴 (캐시 리소스 — 앱 전체에서 한 번만 초기화)
+# --------------------------------------------------------------------------
+
+@st.cache_resource(show_spinner="모델 및 DB 로딩 중...")
+def load_components():
+    from storage.vector_store import VectorStoreManager
+    from agent.financial_graph import FinancialAgent
+    from processing.financial_parser import FinancialParser
+    from ingestion.dart_fetcher import DARTFetcher
+    from ops.evaluator import RAGEvaluator
+
+    _PROJECT_ROOT = Path(__file__).resolve().parent
+    chroma_path   = str(_PROJECT_ROOT / "data" / "chroma_dart")
+    reports_dir   = str(_PROJECT_ROOT / "data" / "reports")
+
+    vsm     = VectorStoreManager(persist_directory=chroma_path, collection_name="dart_reports")
+    agent   = FinancialAgent(vsm, k=8)
+    parser  = FinancialParser(chunk_size=1500, chunk_overlap=200)
+    fetcher = DARTFetcher(download_dir=reports_dir)
+    evaluator = RAGEvaluator(agent)
+
+    return vsm, agent, parser, fetcher, evaluator
+
+
+# --------------------------------------------------------------------------
+# 페이지 설정
+# --------------------------------------------------------------------------
+
+st.set_page_config(
+    page_title="DART 공시 분석 AI",
+    page_icon="📊",
+    layout="wide",
+)
+
+st.title("📊 DART 공시 분석 AI Agent")
+st.caption("DART(전자공시시스템) 기반 기업 공시 문서를 분석하는 AI Agent")
+
+# --------------------------------------------------------------------------
+# 탭 구성
+# --------------------------------------------------------------------------
+
+tab1, tab2, tab3 = st.tabs(["📥 데이터 수집", "💬 질문 분석", "📈 평가 대시보드"])
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Tab 1: 기업 데이터 수집
+# ══════════════════════════════════════════════════════════════════════════
+
+with tab1:
+    st.subheader("기업 공시 문서 수집 및 인덱싱")
+    st.caption("DART에서 사업보고서를 다운로드하고 벡터 DB에 인덱싱합니다.")
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        company_input = st.text_input(
+            "기업명",
+            placeholder="예: 삼성전자, SK하이닉스, 네이버",
+            key="ingest_company",
+        )
+
+    with col2:
+        year_options = list(range(2024, 2019, -1))
+        selected_years = st.multiselect(
+            "연도",
+            options=year_options,
+            default=[2023],
+            key="ingest_years",
+        )
+
+    if st.button("🔄 수집 및 인덱싱", type="primary", disabled=not (company_input and selected_years)):
+        vsm, agent, parser, fetcher, evaluator = load_components()
+
+        with st.status(f"'{company_input}' {selected_years} 처리 중...", expanded=True) as status:
+            try:
+                st.write("📡 DART API에서 공시 목록 조회...")
+                reports = fetcher.fetch_company_reports(company_input, selected_years)
+
+                if not reports:
+                    status.update(label="공시 문서를 찾을 수 없습니다.", state="error")
+                    st.error(f"'{company_input}'의 {selected_years} 공시 문서를 찾을 수 없습니다.")
+                else:
+                    total_chunks = 0
+                    progress = st.progress(0)
+                    for i, report in enumerate(reports):
+                        if not report.file_path or not Path(report.file_path).exists():
+                            continue
+                        st.write(f"📄 파싱 중: {report.corp_name} {report.year} 사업보고서")
+                        meta = {
+                            "company":     report.corp_name,
+                            "stock_code":  report.stock_code or "unknown",
+                            "year":        report.year,
+                            "report_type": report.report_type,
+                            "rcept_no":    report.rcept_no,
+                        }
+                        chunks = parser.process_document(report.file_path, meta)
+                        if chunks:
+                            st.write(f"  → 인덱싱 중: {len(chunks)}개 청크")
+                            agent.ingest(chunks)
+                            total_chunks += len(chunks)
+                        progress.progress((i + 1) / len(reports))
+
+                    status.update(label=f"완료! {total_chunks}개 청크 인덱싱", state="complete")
+                    st.success(f"✅ {len(reports)}개 문서, 총 **{total_chunks}개 청크** 인덱싱 완료")
+
+            except Exception as e:
+                status.update(label="오류 발생", state="error")
+                st.error(f"오류: {e}")
+
+    # 현재 인덱싱 현황
+    st.divider()
+    st.subheader("현재 인덱싱 현황")
+
+    if st.button("🔍 현황 조회"):
+        vsm, *_ = load_components()
+        try:
+            data = vsm.vector_store.get(include=["metadatas"])
+            metadatas = data.get("metadatas") or []
+
+            if not metadatas:
+                st.info("인덱싱된 문서가 없습니다.")
+            else:
+                company_stats: dict = {}
+                for meta in metadatas:
+                    company = meta.get("company", "unknown")
+                    year    = meta.get("year")
+                    company_stats.setdefault(company, {"years": set(), "count": 0})
+                    company_stats[company]["count"] += 1
+                    if year:
+                        company_stats[company]["years"].add(int(year))
+
+                import pandas as pd
+                rows = [
+                    {
+                        "기업명": company,
+                        "연도": ", ".join(str(y) for y in sorted(info["years"])),
+                        "청크 수": info["count"],
+                    }
+                    for company, info in sorted(company_stats.items())
+                ]
+                df = pd.DataFrame(rows)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+                st.caption(f"총 {len(metadatas):,}개 청크 인덱싱됨")
+        except Exception as e:
+            st.error(f"조회 실패: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Tab 2: 질문 분석
+# ══════════════════════════════════════════════════════════════════════════
+
+with tab2:
+    st.subheader("자연어 질문 분석")
+    st.caption("질문을 입력하면 LangGraph 기반 AI Agent가 분석합니다.")
+
+    # 예시 질문
+    EXAMPLE_QUERIES = [
+        "삼성전자 2023년 반도체 사업의 주요 리스크 요인은 무엇인가요?",
+        "삼성전자 2023년 연결 매출액과 영업이익은 얼마인가요?",
+        "삼성전자의 주요 사업 부문 구성과 각 부문의 역할은?",
+        "삼성전자의 환율 변동 리스크 관리 방식을 설명해주세요.",
+        "삼성전자 2023년 연구개발 투자 규모와 주요 방향은?",
+    ]
+
+    selected_example = st.selectbox(
+        "예시 질문 선택 (또는 직접 입력)",
+        options=["직접 입력"] + EXAMPLE_QUERIES,
+        key="example_select",
+    )
+
+    if selected_example == "직접 입력":
+        question = st.text_area(
+            "질문 입력",
+            height=80,
+            placeholder="예: 삼성전자 2023년 주요 리스크는 무엇인가요?",
+            key="custom_question",
+        )
+    else:
+        question = selected_example
+        st.text_area("질문", value=question, height=80, disabled=True, key="shown_question")
+
+    if st.button("🔍 분석 실행", type="primary", disabled=not question):
+        _, agent, *_ = load_components()
+
+        with st.spinner("Agent 분석 중..."):
+            try:
+                result = agent.run(question)
+
+                # 쿼리 유형 배지
+                qtype_label = {
+                    "qa":         "📋 단순 QA",
+                    "comparison": "⚖️ 기업 비교",
+                    "trend":      "📈 트렌드 분석",
+                    "risk":       "⚠️ 리스크 분석",
+                }.get(result.get("query_type", ""), "🔍 분석")
+
+                col_a, col_b, col_c = st.columns(3)
+                col_a.metric("쿼리 유형", qtype_label)
+                col_b.metric("기업", ", ".join(result.get("companies", ["-"])))
+                col_c.metric("연도", ", ".join(str(y) for y in result.get("years", [])) or "-")
+
+                st.divider()
+                st.subheader("답변")
+                st.markdown(result.get("answer", "답변 없음"))
+
+                citations = result.get("citations", [])
+                if citations:
+                    with st.expander(f"📚 출처 ({len(citations)}건)", expanded=False):
+                        for i, cite in enumerate(citations, 1):
+                            st.markdown(f"**{i}.** {cite}")
+
+            except Exception as e:
+                st.error(f"분석 실패: {e}")
+
+    # 세션 히스토리 (간단)
+    if "history" not in st.session_state:
+        st.session_state.history = []
+
+    if st.button("🔍 분석 실행", key="run_btn2", disabled=True):
+        pass  # dummy — 실제 버튼은 위에 있음
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Tab 3: 평가 대시보드
+# ══════════════════════════════════════════════════════════════════════════
+
+with tab3:
+    st.subheader("RAG 평가 대시보드")
+    st.caption("Faithfulness / Answer Relevancy / Context Recall 지표와 MLflow 실험 결과를 확인합니다.")
+
+    _PROJECT_ROOT = Path(__file__).resolve().parent
+
+    col_run, col_cfg = st.columns([2, 1])
+
+    with col_cfg:
+        st.markdown("**평가 설정**")
+        n_questions = st.slider("평가 문항 수", min_value=1, max_value=20, value=3, step=1)
+        run_name_input = st.text_input("MLflow Run 이름", value="streamlit_eval")
+
+    with col_run:
+        st.markdown("**평가 실행**")
+        if st.button("▶️ 평가 시작", type="primary"):
+            _, agent, _, _, evaluator = load_components()
+            dataset = evaluator.load_dataset()
+            subset = dataset[:n_questions]
+
+            results_container = st.empty()
+            progress = st.progress(0)
+            per_results = []
+
+            with st.spinner(f"{n_questions}개 질문 평가 중..."):
+                for i, ex in enumerate(subset, 1):
+                    res = evaluator.evaluate_one(ex)
+                    per_results.append(res)
+                    progress.progress(i / n_questions)
+
+            # MLflow 로깅
+            import mlflow
+            mlflow.set_experiment(evaluator.experiment_name)
+            with mlflow.start_run(run_name=run_name_input):
+                mlflow.log_param("n_questions", n_questions)
+                import numpy as np
+                agg = {
+                    "faithfulness":     float(np.mean([r.faithfulness for r in per_results])),
+                    "answer_relevancy": float(np.mean([r.answer_relevancy for r in per_results])),
+                    "context_recall":   float(np.mean([r.context_recall for r in per_results])),
+                }
+                mlflow.log_metrics(agg)
+            st.session_state["eval_results"]  = per_results
+            st.session_state["eval_aggregate"] = agg
+            st.success("평가 완료! MLflow에 기록되었습니다.")
+
+    # 결과 표시
+    if "eval_aggregate" in st.session_state:
+        agg = st.session_state["eval_aggregate"]
+
+        st.divider()
+        st.subheader("집계 지표")
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Faithfulness",     f"{agg['faithfulness']:.3f}",     help="답변이 컨텍스트에 근거하는 정도 (LLM judge)")
+        c2.metric("Answer Relevancy", f"{agg['answer_relevancy']:.3f}", help="질문-답변 의미 유사도 (임베딩 코사인)")
+        c3.metric("Context Recall",   f"{agg['context_recall']:.3f}",   help="정답 키워드 검색 커버리지")
+        c4.metric("평균 점수",          f"{sum(agg.values())/3:.3f}")
+
+        # 레이더 차트
+        try:
+            import pandas as pd
+            import altair as alt
+
+            chart_data = pd.DataFrame({
+                "지표": ["Faithfulness", "Answer Relevancy", "Context Recall"],
+                "점수": [agg["faithfulness"], agg["answer_relevancy"], agg["context_recall"]],
+            })
+
+            bar = (
+                alt.Chart(chart_data)
+                .mark_bar()
+                .encode(
+                    x=alt.X("지표:N", sort=None),
+                    y=alt.Y("점수:Q", scale=alt.Scale(domain=[0, 1])),
+                    color=alt.Color(
+                        "지표:N",
+                        scale=alt.Scale(
+                            domain=["Faithfulness", "Answer Relevancy", "Context Recall"],
+                            range=["#4C78A8", "#F58518", "#54A24B"],
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=["지표", alt.Tooltip("점수:Q", format=".3f")],
+                )
+                .properties(width=400, height=280, title="RAG 평가 지표")
+            )
+            st.altair_chart(bar, use_container_width=False)
+        except Exception:
+            pass
+
+        # 문항별 결과 테이블
+        st.divider()
+        st.subheader("문항별 결과")
+        per = st.session_state["eval_results"]
+        import pandas as pd
+        df = pd.DataFrame([
+            {
+                "ID": r.id,
+                "질문": r.question[:45] + "..." if len(r.question) > 45 else r.question,
+                "Faithfulness": f"{r.faithfulness:.2f}",
+                "Relevancy":    f"{r.answer_relevancy:.2f}",
+                "Recall":       f"{r.context_recall:.2f}",
+                "Latency(s)":   f"{r.latency_sec:.1f}",
+                "오류": r.error or "",
+            }
+            for r in per
+        ])
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # MLflow 실험 이력
+    st.divider()
+    st.subheader("MLflow 실험 이력")
+    mlruns_path = _PROJECT_ROOT / "mlruns"
+
+    if st.button("📂 실험 이력 불러오기"):
+        try:
+            import mlflow
+            client = mlflow.tracking.MlflowClient(tracking_uri=str(mlruns_path))
+            experiments = client.search_experiments()
+            all_runs = []
+            for exp in experiments:
+                runs = client.search_runs(
+                    experiment_ids=[exp.experiment_id],
+                    order_by=["start_time DESC"],
+                    max_results=20,
+                )
+                for run in runs:
+                    m = run.data.metrics
+                    all_runs.append({
+                        "실험":           exp.name,
+                        "Run":            run.info.run_name or run.info.run_id[:8],
+                        "Faithfulness":   f"{m.get('agg_faithfulness', m.get('faithfulness', 0)):.3f}",
+                        "Relevancy":      f"{m.get('agg_answer_relevancy', m.get('answer_relevancy', 0)):.3f}",
+                        "Recall":         f"{m.get('agg_context_recall', m.get('context_recall', 0)):.3f}",
+                        "Avg Score":      f"{m.get('agg_avg_score', 0):.3f}",
+                        "시작 시각":       run.info.start_time,
+                    })
+
+            if all_runs:
+                import pandas as pd
+                df_runs = pd.DataFrame(all_runs)
+                st.dataframe(df_runs, use_container_width=True, hide_index=True)
+            else:
+                st.info("실험 이력이 없습니다. 평가를 먼저 실행하세요.")
+        except Exception as e:
+            st.error(f"MLflow 조회 실패: {e}")
+
+    st.caption("💡 상세 실험 비교: `mlflow ui --backend-store-uri mlruns/` 실행 후 http://localhost:5000 접속")
