@@ -327,7 +327,96 @@ if len(filtered) >= 2:
 
 ---
 
+---
+
+## Phase 4 — 평가 파이프라인
+
+### 결정 16: 3가지 지표 선정 및 구현 방식
+
+**배경**: RAG 품질 지표로는 RAGAS 라이브러리 사용이 일반적이나, 의존성 추가 없이 핵심 3지표만 직접 구현.
+
+| 지표 | 측정 대상 | 구현 방식 | 선택 이유 |
+|---|---|---|---|
+| Faithfulness | 답변이 컨텍스트에만 근거하는가 | LLM-as-judge (Gemini) | hallucination 감지의 핵심 지표 |
+| Answer Relevancy | 질문-답변 의미 유사도 | HuggingFace 임베딩 코사인 유사도 | 답변이 질문에서 벗어나는 경우 탐지 |
+| Context Recall | 정답의 핵심 키워드가 검색 컨텍스트에 포함되는가 | 한국어 토큰 recall (2글자 이상) | 검색 단계 품질 측정 |
+
+---
+
+### 문제 17 (버그): `retrieved_docs`가 `agent.run()` 반환값에 없음
+
+**현상**: 스모크 테스트 실행 시 `contexts=[]`로 faithfulness/recall 모두 계산 불가. 
+첫 실행 결과 F=0.000, C=0.000.
+
+**근본 원인**:
+`FinancialAgent.run()`이 반환하는 dict에 `retrieved_docs` 키가 없었음:
+```python
+# 기존 반환값
+return {
+    "query": ..., "query_type": ..., "answer": ..., "citations": ...
+}
+# retrieved_docs는 LangGraph 내부 state에만 존재, 반환 안 됨
+```
+
+**해결**: `financial_graph.py`의 `run()` 반환 dict에 `"retrieved_docs": final["retrieved_docs"]` 추가.
+
+---
+
+### 문제 18 (버그): Google Gemini 임베딩 API 오류
+
+**현상**: `answer_relevancy` 계산 시 404 에러:
+```
+models/text-embedding-004 is not found for API version v1beta
+```
+
+**근본 원인**:
+`langchain_google_genai.GoogleGenerativeAIEmbeddings`가 v1beta API를 사용하는데,
+`text-embedding-004`는 v1 API에서만 지원됨. 두 API 버전의 모델 지원 범위가 다름.
+
+**해결**: Google 임베딩 사용 포기. VectorStoreManager와 동일한 `HuggingFaceEmbeddings("all-MiniLM-L6-v2")` 재사용.
+- 장점: API 호출 비용/레이턴시 없음, 일관성 (검색-평가 동일 임베딩 공간)
+- 단점: 영어 최적화 모델이므로 한국어 의미 유사도 품질이 다국어 모델 대비 낮을 수 있음
+
+---
+
+### 문제 19: `retrieved_docs`가 `(doc, score)` 튜플 — 타입 불일치
+
+**현상**: contexts 추출 시 doc 객체를 직접 접근하려다 실패.
+
+**근본 원인**: `VectorStoreManager.search()`가 `List[Tuple[DocumentChunk, float]]` 반환.
+evaluator는 `DocumentChunk` 또는 `Document` 단독으로 가정.
+
+**해결**:
+```python
+for item in raw_docs:
+    doc = item[0] if isinstance(item, (tuple, list)) else item
+    text = doc.content if hasattr(doc, "content") else doc.page_content
+```
+
+---
+
+### 결정 20: 평가 데이터셋 설계 (20개 질문)
+
+**문제**: 평가셋 ground truth를 어떻게 작성할 것인가.
+
+**분석 및 트레이드오프**:
+- **옵션 A**: 일반 지식 기반 정답 작성 — 빠르지만 실제 문서와 불일치 가능 → Context Recall 낮아짐
+- **옵션 B**: 실제 파싱 결과에서 정답 추출 — 정확하지만 수동 작업 필요
+- **옵션 C**: LLM으로 문서에서 Q&A 자동 생성 — 빠르지만 너무 쉬운 질문 생성 위험
+
+**채택**: 옵션 A (빠른 MVP) + 단, Context Recall이 문서 내용 반영 여부를 간접적으로 측정함을 문서화.
+실제 운영 단계에서는 실제 문서 청크에서 질문-정답 쌍 추출 필요 (옵션 B로 전환 권장).
+
+**스모크 테스트 결과 (리스크 3문항)**:
+```
+Faithfulness    : 0.733  (LLM judge — 답변 신뢰도 양호)
+Answer Relevancy: 0.562  (임베딩 유사도 — 보통, 영어 모델 한계)
+Context Recall  : 0.167  (낮음 — ground truth가 문서 밖 키워드 포함 때문)
+평균 Latency    : ~23초/질문 (Gemini API 포함)
+```
+
+---
+
 ## 앞으로 기록할 항목
 
-- Phase 4: 평가 데이터셋 설계, 지표 선정 근거, MLflow 실험 설정
 - Phase 5: FastAPI 엔드포인트 설계, Streamlit UI 구성
