@@ -321,12 +321,13 @@ class FinancialAgent:
         }
         final = self.graph.invoke(initial)
         return {
-            "query":      final["query"],
-            "query_type": final["query_type"],
-            "companies":  final["companies"],
-            "years":      final["years"],
-            "answer":     final["answer"],
-            "citations":  final["citations"],
+            "query":         final["query"],
+            "query_type":    final["query_type"],
+            "companies":     final["companies"],
+            "years":         final["years"],
+            "answer":        final["answer"],
+            "citations":     final["citations"],
+            "retrieved_docs": final["retrieved_docs"],  # 평가 파이프라인에서 활용
         }
 
     def ingest(self, chunks: List) -> None:
