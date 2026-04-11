@@ -417,6 +417,66 @@ Context Recall  : 0.167  (낮음 — ground truth가 문서 밖 키워드 포함
 
 ---
 
-## 앞으로 기록할 항목
+---
 
-- Phase 5: FastAPI 엔드포인트 설계, Streamlit UI 구성
+## Phase 5 — FastAPI + Streamlit UI
+
+### 결정 21: FastAPI 컴포넌트 싱글턴 — Lifespan 패턴
+
+**문제**: FastAPI 요청마다 VectorStoreManager(HuggingFace 모델 로드 ~3초)를 초기화하면 레이턴시 폭증.
+
+**채택한 해결책**: `@asynccontextmanager lifespan`으로 앱 시작 시 한 번만 `init_components()` 호출, 모듈 수준 전역 변수로 보관:
+```python
+_vsm: Optional[VectorStoreManager] = None
+_agent: Optional[FinancialAgent] = None
+
+@asynccontextmanager
+async def lifespan(app):
+    init_components()
+    yield
+
+app = FastAPI(lifespan=lifespan)
+```
+요청 핸들러에서는 `_require(component, name)` 헬퍼로 None 체크 후 사용.
+
+---
+
+### 결정 22: Streamlit @st.cache_resource로 동일 패턴 구현
+
+**문제**: Streamlit은 매 상호작용마다 스크립트 전체를 재실행. 모델 로드가 반복됨.
+
+**채택한 해결책**: `@st.cache_resource(show_spinner="모델 및 DB 로딩 중...")`로 컴포넌트 초기화 함수 데코레이팅. 세션 간 캐시 공유로 최초 1회만 로드.
+
+---
+
+### 문제 23 (버그): DARTFetcher 파라미터명 불일치
+
+**현상**: `DARTFetcher(reports_dir=...)` 호출 시 `TypeError: unexpected keyword argument`.
+
+**근본 원인**: `DARTFetcher.__init__` 파라미터가 `download_dir`인데, router/app.py에 `reports_dir=`로 작성.
+
+**해결**: `download_dir=_REPORTS_DIR`로 수정. 동일하게 `report.local_path` → `report.file_path` (ReportMetadata 필드명 확인 후 수정).
+
+---
+
+### 결정 24: Streamlit에서 FastAPI 호출 방식 — 직접 Python 클래스 사용
+
+**대안 비교**:
+- **옵션 A (채택)**: Streamlit이 Python 클래스 직접 인스턴스화 (`@st.cache_resource`)
+- **옵션 B**: Streamlit → FastAPI HTTP 호출 (httpx/requests)
+
+**옵션 A 채택 이유**:
+- 두 서버(uvicorn + streamlit) 동시 실행 불필요
+- 네트워크 레이턴시 없음, 오류 처리 단순
+- FastAPI는 외부 REST 클라이언트를 위한 별도 인터페이스로 유지
+
+---
+
+### 결정 25: 4개 REST 엔드포인트 설계
+
+| 엔드포인트 | 설계 근거 |
+|---|---|
+| `POST /api/ingest` | 배경 처리 없이 동기식 — 수집 완료 후 응답 (청크 수 반환) |
+| `POST /api/query` | LangGraph invoke가 동기이므로 async def + 블로킹 OK |
+| `GET /api/companies` | ChromaDB `get(include=["metadatas"])`로 집계, 전체 스캔이지만 수백만 청크가 아니므로 허용 |
+| `GET /api/health` | `bm25_docs` 길이로 인덱싱 상태 확인 (`vector_store._collection.count()` 대신 공개 API 사용) |

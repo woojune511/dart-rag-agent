@@ -113,17 +113,47 @@ cd src && python -m agent.financial_graph
 
 ---
 
-## 다음 단계
+### Phase 4 — RAG 평가 파이프라인 ✅
+**파일**: `src/ops/evaluator.py`
 
-### Phase 4 — 평가 파이프라인
-**신규 파일**: `src/ops/evaluator.py`
-- 평가셋 20개 질문 + 수동 정답
-- Faithfulness / Answer Relevancy / Context Recall 지표
-- MLflow 실험 추적
+- `RAGEvaluator(agent)` 클래스
+  - `Faithfulness`: LLM-as-judge (Gemini, 0~1)
+  - `Answer Relevancy`: HuggingFace 임베딩 코사인 유사도
+  - `Context Recall`: 한국어 토큰 overlap (정답 vs 컨텍스트)
+- `EvalExample` / `EvalResult` 데이터클래스
+- 20개 평가 질문 (`data/eval/eval_dataset.json`, .gitignore로 제외)
+- MLflow: 문항별 step 지표 + 집계 지표 + JSON 아티팩트
+- 스모크 테스트 결과: F=0.733 / R=0.562 / C=0.167
 
-### Phase 5 — FastAPI + Streamlit UI
-**신규 파일**: `src/api/financial_router.py`
-- `POST /ingest`, `POST /query`, `GET /companies`
+```bash
+cd src && python -m ops.evaluator
+```
+
+---
+
+### Phase 5 — FastAPI REST API + Streamlit UI ✅
+**파일**: `main.py`, `app.py`, `src/api/financial_router.py`
+
+**FastAPI** (`uvicorn main:app --reload --port 8000`):
+- `POST /api/ingest` — DART 수집 → 파싱 → ChromaDB 인덱싱
+- `POST /api/query` — FinancialAgent 실행 → 답변 + 출처
+- `GET  /api/companies` — 인덱싱 기업·연도·청크 수 목록
+- `GET  /api/health` — 서버 상태
+- Swagger UI: http://localhost:8000/docs
+
+**Streamlit** (`streamlit run app.py`):
+- Tab 1: 기업 수집 (DART 수집 진행 상태 + 인덱싱 현황)
+- Tab 2: 질문 분석 (예시 질문 선택, 쿼리 유형 배지, 답변 + 출처)
+- Tab 3: 평가 대시보드 (지표 bar chart, 문항별 결과, MLflow 이력)
+
+---
+
+## 다음 단계 (선택적)
+
+- **평가셋 개선**: ground truth를 실제 문서 내용 기반으로 재작성 (Context Recall 향상)
+- **멀티기업 확장**: SK하이닉스, 네이버 등 추가 수집 후 비교 질의 테스트
+- **ChromaDB → LangChain-Chroma 마이그레이션**: LangChainDeprecationWarning 해소
+- **LangGraph 메모리**: SqliteSaver로 멀티턴 대화 지원
 
 ---
 
