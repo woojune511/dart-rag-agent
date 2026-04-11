@@ -4,6 +4,7 @@ DART XML 공시 문서 파서.
 DART ZIP에서 추출된 XML 파일을 파싱하여:
   - SECTION-N 태그 기준으로 섹션 분할 (<TITLE ATOC="Y"> 헤더 활용)
   - 섹션명 키워드 매핑으로 분류 레이블 부여
+  - 청크 내용 기반 동적 재분류 (모호한 레이블 보완)
   - RecursiveCharacterTextSplitter로 적정 크기 청킹
   - DocumentChunk(content, metadata) 리스트 반환 (vector_store.py 호환)
 
@@ -12,7 +13,7 @@ DART XML 구조:
 
 메타데이터 스키마:
   company, stock_code, year, report_type,
-  section, section_title, chunk_id, sub_chunk_idx, total_sub_chunks
+  section, section_title, chunk_id, sub_chunk_idx, total_sub_chunks, is_table
 """
 
 import re
@@ -57,6 +58,18 @@ _SECTION_LABELS: List[Tuple[str, List[str]]] = [
 
 _SECTION_TAGS = frozenset({"SECTION-1", "SECTION-2", "SECTION-3"})
 
+# 청크 내용 기반 동적 재분류 (모호한 레이블에만 적용)
+# 섹션 제목으로는 구분이 안 되는 대형 섹션(기타사업, 기타) 내부 청크를 세분화
+_CONTENT_RECLASSIFY: List[Tuple[str, List[str]]] = [
+    ("리스크",    ["위험관리", "위험요인", "리스크", "파생상품", "헤지", "hedge"]),
+    ("매출현황",  ["매출액", "수주", "판매실적", "매출 구성", "매출비중"]),
+    ("원재료",    ["원재료", "생산설비", "CAPA", "생산능력", "가동률"]),
+    ("연구개발",  ["연구개발", "R&D", "특허", "기술개발", "연구인력"]),
+    ("임원현황",  ["임원", "등기이사", "사외이사", "대표이사"]),
+    ("경영진단",  ["영업이익률", "매출총이익", "경영환경", "사업전략"]),
+    ("사업개요",  ["사업 개요", "주요 사업", "사업 부문", "글로벌"]),
+]
+
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -67,6 +80,20 @@ def _classify_section(title: str) -> str:
             if kw in title:
                 return label
     return "기타"
+
+
+def _reclassify_by_content(text: str, label: str) -> str:
+    """
+    모호한 섹션 레이블('기타사업', '기타')의 청크를 내용 키워드로 재분류.
+    다른 레이블은 그대로 유지.
+    """
+    if label not in ("기타사업", "기타"):
+        return label
+    for new_label, keywords in _CONTENT_RECLASSIFY:
+        for kw in keywords:
+            if kw in text:
+                return new_label
+    return label
 
 
 def _normalize(text: str) -> str:
@@ -92,11 +119,14 @@ class FinancialParser:
         )
     """
 
-    def __init__(self, chunk_size: int = 1500, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = 1500, chunk_overlap: int = 300):
+        self.chunk_size = chunk_size
+        # 문자 수준 폴백용 — 단일 P/TABLE 블록이 chunk_size 초과 시에만 사용
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", ". ", " ", ""],
+            # 한국어 문장 경계 우선: \n\n(문단) → "다.\n"/"습니다.\n"(문장) → \n → 음절
+            separators=["\n\n", "다.\n", "습니다.\n", "\n", ". ", " ", ""],
             length_function=len,
         )
 
@@ -104,46 +134,173 @@ class FinancialParser:
     # 내부 파싱 로직
     # ------------------------------------------------------------------
 
-    def _collect_text(self, section_elem) -> str:
+    def _format_table(self, table_elem) -> str:
         """
-        SECTION-N 원소에서 직접 속한 본문 텍스트만 수집.
-        하위 SECTION-N 원소의 내용은 제외 (별도 섹션으로 처리).
+        TABLE 원소를 파이프 구분 행 텍스트로 변환.
+          TR → "셀1 | 셀2 | 셀3"
+        각 행에 계정명·헤더가 포함되어 임베딩 검색 품질을 높임.
+        """
+        rows = []
+        for tr in table_elem.findall(".//TR"):
+            cells = [
+                _normalize("".join(cell.itertext()))
+                for cell in tr
+                if cell.tag in ("TD", "TH", "TU")
+            ]
+            cells = [c for c in cells if c]
+            if cells:
+                rows.append(" | ".join(cells))
+        return "\n".join(rows)
 
-        수집 대상:
-          - P 원소: itertext()로 인라인 포매팅(B, I, SPAN 등)까지 포함
-          - TD / TU 원소: P 자식이 없는 경우에만 (P를 포함하면 P 처리 시 중복)
+    def _collect_blocks(self, section_elem) -> List[Dict[str, str]]:
         """
-        texts: List[str] = []
+        SECTION-N에서 구조적 블록 목록 반환.
+        하위 SECTION-N은 제외 (별도 섹션으로 처리).
+
+        Returns:
+            [{"text": str, "type": "paragraph" | "table"}, ...]
+        """
+        blocks: List[Dict[str, str]] = []
+
+        def process(elem):
+            tag = elem.tag
+            if tag in _SECTION_TAGS:
+                return
+            if tag == "TABLE-GROUP":
+                for table in elem.findall("TABLE"):
+                    t = self._format_table(table)
+                    if t:
+                        blocks.append({"text": t, "type": "table"})
+                return
+            if tag == "TABLE":
+                t = self._format_table(elem)
+                if t:
+                    blocks.append({"text": t, "type": "table"})
+                return
+            if tag == "P":
+                text = _normalize("".join(elem.itertext()))
+                if text:
+                    blocks.append({"text": text, "type": "paragraph"})
+                return
+            for child in elem:
+                process(child)
+
         for child in section_elem:
-            if child.tag in _SECTION_TAGS:
-                continue  # 하위 섹션은 별도 항목
-            for elem in child.iter():
-                if elem.tag == "P":
-                    text = _normalize("".join(elem.itertext()))
-                    if text:
-                        texts.append(text)
-                elif elem.tag in ("TD", "TU"):
-                    # P 자식이 있으면 P 처리 시 커버됨
-                    if not any(c.tag == "P" for c in elem):
-                        text = _normalize("".join(elem.itertext()))
-                        if text:
-                            texts.append(text)
-        return "\n".join(texts)
+            process(child)
 
-    def _extract_sections(self, root) -> List[Tuple[str, str]]:
+        return blocks
+
+    def _collect_text(self, section_elem) -> str:
+        """parse_sections 표시용 — _collect_blocks 래핑."""
+        return "\n\n".join(b["text"] for b in self._collect_blocks(section_elem))
+
+    def _split_table_by_rows(self, table_text: str) -> List[str]:
         """
-        DART XML 트리에서 (섹션 제목, 본문 텍스트) 리스트 반환.
+        chunk_size를 초과하는 테이블을 행 단위로 분할.
+        첫 번째 행(헤더)은 각 청크에 반복 포함하여 계정명·컬럼 맥락 유지.
+        """
+        rows = table_text.split("\n")
+        if len(rows) <= 1:
+            return [table_text]
+
+        header = rows[0]
+        result: List[str] = []
+        current = [header]
+        current_len = len(header)
+
+        for row in rows[1:]:
+            if current_len + 1 + len(row) > self.chunk_size and len(current) > 1:
+                result.append("\n".join(current))
+                current = [header, row]
+                current_len = len(header) + 1 + len(row)
+            else:
+                current.append(row)
+                current_len += 1 + len(row)
+
+        if current:
+            result.append("\n".join(current))
+
+        return result
+
+    def _chunk_blocks(self, blocks: List[Dict[str, str]]) -> List[Tuple[str, bool]]:
+        """
+        구조 기반 2단계 청킹.
+
+        Level 1 — 구조 경계:
+          • paragraph + 소형 table(< chunk_size/2)을 chunk_size 한도까지 누적
+          • 대형 table(>= chunk_size/2)은 단독 청크 (경계에서 분리)
+
+        Level 2 — 문자 수준 폴백:
+          • 누적 블록이 chunk_size 초과 → RecursiveCharacterTextSplitter
+          • 대형 table이 chunk_size 초과 → 헤더 보존 행 단위 분할
+
+        소형 table을 인접 단락과 함께 누적하여 맥락을 보존하고,
+        지나치게 작은 단독 table 청크 생성을 방지.
+
+        Returns:
+            [(chunk_text, is_table), ...]
+        """
+        result: List[Tuple[str, bool]] = []
+        pending_texts: List[str] = []
+        pending_flags: List[bool] = []   # 각 블록의 is_table
+
+        standalone_threshold = self.chunk_size // 2
+
+        def flush_pending():
+            if not pending_texts:
+                return
+            merged = "\n\n".join(pending_texts)
+            # 누적 내용 중 테이블 비중이 절반 초과면 is_table=True
+            table_chars = sum(len(t) for t, f in zip(pending_texts, pending_flags) if f)
+            is_mostly_table = table_chars > len(merged) * 0.5
+            if len(merged) > self.chunk_size:
+                for sub in self.text_splitter.split_text(merged):
+                    if sub.strip():
+                        result.append((sub, is_mostly_table))
+            else:
+                result.append((merged, is_mostly_table))
+            pending_texts.clear()
+            pending_flags.clear()
+
+        for block in blocks:
+            text, btype = block["text"], block["type"]
+            is_table = btype == "table"
+
+            if is_table and len(text) >= standalone_threshold:
+                # 대형 테이블: 단독 청크
+                flush_pending()
+                if len(text) > self.chunk_size:
+                    for sub in self._split_table_by_rows(text):
+                        result.append((sub, True))
+                else:
+                    result.append((text, True))
+            else:
+                # 소형 테이블 또는 단락: 누적
+                projected = "\n\n".join(pending_texts + [text])
+                if len(projected) > self.chunk_size and pending_texts:
+                    flush_pending()
+                pending_texts.append(text)
+                pending_flags.append(is_table)
+
+        flush_pending()
+        return result
+
+    def _extract_sections(self, root) -> List[Tuple[str, List[Dict[str, str]]]]:
+        """
+        DART XML 트리에서 (섹션 제목, 블록 리스트) 반환.
 
         SECTION-1/2/3 원소 각각을 독립 섹션으로 취급.
         각 섹션의 직속 TITLE ATOC='Y' 를 제목으로 사용.
+
+        Returns:
+            [(section_title, [{"text": ..., "type": ...}, ...]), ...]
         """
-        sections: List[Tuple[str, str]] = []
+        sections: List[Tuple[str, List[Dict[str, str]]]] = []
 
         for section in root.iter():
             if section.tag not in _SECTION_TAGS:
                 continue
 
-            # 이 섹션의 직속 TITLE(ATOC='Y') 탐색
             title_elem = next(
                 (c for c in section if c.tag == "TITLE" and c.get("ATOC") == "Y"),
                 None,
@@ -155,9 +312,9 @@ class FinancialParser:
             if not title_text:
                 continue
 
-            body_text = self._collect_text(section)
-            if body_text:
-                sections.append((title_text, body_text))
+            blocks = self._collect_blocks(section)
+            if blocks:
+                sections.append((title_text, blocks))
 
         return sections
 
@@ -178,9 +335,7 @@ class FinancialParser:
     def parse_sections(self, file_path: str) -> List[Tuple[str, str, str]]:
         """
         DART XML 파일을 파싱하여 (섹션제목, 섹션분류, 본문텍스트) 리스트 반환.
-
-        Args:
-            file_path: 로컬 DART XML 파일 경로 (.html 확장자로 저장된 XML)
+        텍스트는 검사/표시용이며 청킹은 process_document가 담당.
 
         Returns:
             [(section_title, section_label, text), ...]
@@ -191,8 +346,8 @@ class FinancialParser:
 
         raw = self._extract_sections(root)
         result = [
-            (title, _classify_section(title), text)
-            for title, text in raw
+            (title, _classify_section(title), "\n\n".join(b["text"] for b in blocks))
+            for title, blocks in raw
         ]
         logger.info(f"섹션 추출: {len(result)}개 [{os.path.basename(file_path)}]")
         return result
@@ -205,6 +360,10 @@ class FinancialParser:
         """
         DART XML 파일 → DocumentChunk 리스트.
 
+        청킹 전략 (2단계):
+          1. 구조 경계: P 블록 누적 / TABLE 단독 / 크기 초과 시 flush
+          2. 문자 폴백: 단일 블록이 chunk_size 초과 시 RecursiveCharacterTextSplitter
+
         Args:
             file_path: 로컬 DART XML 파일 경로
             source_metadata: 청크 메타데이터에 추가할 필드.
@@ -213,32 +372,40 @@ class FinancialParser:
         Returns:
             List[DocumentChunk] — vector_store.py의 add_documents()에 전달 가능
         """
-        sections = self.parse_sections(file_path)
-        if not sections:
+        root = self._parse_xml(file_path)
+        if root is None:
             logger.warning(f"파싱 결과 없음: {file_path}")
+            return []
+
+        raw_sections = self._extract_sections(root)
+        if not raw_sections:
+            logger.warning(f"섹션 없음: {file_path}")
             return []
 
         chunks: List[DocumentChunk] = []
         chunk_id = 0
 
-        for section_title, section_label, section_text in sections:
-            sub_texts = self.text_splitter.split_text(section_text)
-            total = len(sub_texts)
+        for section_title, blocks in raw_sections:
+            section_label = _classify_section(section_title)
+            chunk_pairs = self._chunk_blocks(blocks)   # [(text, is_table), ...]
+            total = len(chunk_pairs)
 
-            for sub_idx, sub_text in enumerate(sub_texts):
+            for sub_idx, (sub_text, is_table) in enumerate(chunk_pairs):
+                refined_label = _reclassify_by_content(sub_text, section_label)
                 meta: Dict[str, Any] = {
                     **source_metadata,
-                    "section":          section_label,
+                    "section":          refined_label,
                     "section_title":    section_title,
                     "chunk_id":         chunk_id,
                     "sub_chunk_idx":    sub_idx,
                     "total_sub_chunks": total,
+                    "is_table":         is_table,
                 }
                 chunks.append(DocumentChunk(content=sub_text, metadata=meta))
                 chunk_id += 1
 
         logger.info(
-            f"청킹 완료: {len(chunks)}개 청크 / {len(sections)}개 섹션 "
+            f"청킹 완료: {len(chunks)}개 청크 / {len(raw_sections)}개 섹션 "
             f"[{os.path.basename(file_path)}]"
         )
         return chunks
