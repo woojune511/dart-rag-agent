@@ -27,6 +27,17 @@ REPORT_TYPE_CODE = {
     "분기보고서(3분기)": "A004",
 }
 
+# DART 등록명이 영문이거나 공식 법인명이 달라 자동 매칭이 안 되는 기업 별칭
+# "사용자 입력명" → "DART 실제 등록명 검색 키워드"
+_COMPANY_ALIASES: Dict[str, str] = {
+    "네이버": "NAVER",
+    "카카오뱅크": "카카오뱅크",
+    "카카오페이": "카카오페이",
+    "LG에너지솔루션": "LG에너지솔루션",
+    "크래프톤": "크래프톤",
+    "하이브": "HYBE",
+}
+
 
 class ReportMetadata(BaseModel):
     rcept_no: str           # 접수번호 (문서 고유 식별자)
@@ -102,21 +113,37 @@ class DARTFetcher:
     def get_corp_code(self, company_name: str) -> Optional[str]:
         """
         회사명으로 DART corp_code를 조회합니다.
-        정확한 이름이 없으면 부분 일치(포함 여부)로 폴백합니다.
+
+        조회 순서:
+          1. 정확 일치
+          2. 별칭(_COMPANY_ALIASES) 적용 후 정확/부분 일치
+          3. 입력명이 DB명에 포함 (예: "삼성전자" → "삼성전자주식회사")
+          4. DB명이 입력명에 포함 (역방향, 예: "NAVER" → "NAVER주식회사" 검색 실패 시 대비)
         """
         corp_map = self._load_corp_codes()
 
+        # 1. 정확 일치
         if company_name in corp_map:
             return corp_map[company_name]
 
-        # 부분 일치 폴백
-        candidates = {k: v for k, v in corp_map.items() if company_name in k}
+        # 2. 별칭 적용
+        search_name = _COMPANY_ALIASES.get(company_name, company_name)
+
+        # 3. 입력명(또는 별칭)이 DB명에 포함
+        candidates = {k: v for k, v in corp_map.items() if search_name in k}
         if candidates:
             best_name, best_code = next(iter(candidates.items()))
             logger.info(f"부분 일치: '{company_name}' → '{best_name}' (corp_code: {best_code})")
             return best_code
 
-        logger.warning(f"기업을 찾을 수 없음: '{company_name}'")
+        # 4. DB명이 입력명에 포함 (역방향)
+        candidates = {k: v for k, v in corp_map.items() if k in company_name}
+        if candidates:
+            best_name, best_code = next(iter(candidates.items()))
+            logger.info(f"역방향 일치: '{company_name}' → '{best_name}' (corp_code: {best_code})")
+            return best_code
+
+        logger.warning(f"기업을 찾을 수 없음: '{company_name}' (별칭 시도: '{search_name}')")
         return None
 
     # ------------------------------------------------------------------
@@ -140,13 +167,27 @@ class DARTFetcher:
         Returns:
             ReportMetadata 리스트
         """
-        pblntf_detail_ty = REPORT_TYPE_CODE.get(report_type, "11011")
+        pblntf_detail_ty = REPORT_TYPE_CODE.get(report_type, "A001")
+
+        # 사업보고서는 회계연도 종료(12/31) 후 다음 해 3월에 접수됨.
+        # 반기보고서는 6월 말 종료 → 8월 접수, 분기보고서는 각 분기 후 45일 내 접수.
+        # 접수일(bgn_de/end_de) 기준이므로 실제 사업연도보다 한 분기 이상 뒤를 조회해야 함.
+        if report_type == "사업보고서":
+            bgn_de = f"{year + 1}0101"   # 다음 해 1월부터
+            end_de = f"{year + 1}0630"   # 다음 해 6월까지 (일반적으로 3월 접수)
+        elif report_type == "반기보고서":
+            bgn_de = f"{year}0701"       # 당해 7월부터
+            end_de = f"{year}1031"       # 당해 10월까지
+        else:
+            # 분기보고서: 당해 연도 내 접수
+            bgn_de = f"{year}0101"
+            end_de = f"{year}1231"
 
         params = {
             "crtfc_key": self.api_key,
             "corp_code": corp_code,
-            "bgn_de": f"{year}0101",
-            "end_de": f"{year}1231",
+            "bgn_de": bgn_de,
+            "end_de": end_de,
             "pblntf_detail_ty": pblntf_detail_ty,
             "page_count": 10,
         }
