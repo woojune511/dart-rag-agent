@@ -144,23 +144,56 @@ class FinancialAgent:
         }
 
     def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """하이브리드 검색 + 메타데이터 후처리 필터링."""
+        """하이브리드 검색 + 메타데이터 필터링.
+
+        회사/연도 필터를 ChromaDB 쿼리 시점(where_filter)에 적용해
+        벡터 검색 단계부터 범위를 좁힌다.
+        BM25 결과는 post-filter로 동일 조건을 적용한다.
+        """
         query          = state["query"]
         companies      = state.get("companies", [])
         years          = state.get("years", [])
         section_filter = state.get("section_filter")
 
-        # 검색 쿼리에 기업명 prefix 추가해 관련도 향상
-        enriched = f"{' '.join(companies)} {query}" if companies else query
-        docs = self.vsm.search(enriched, k=self.k * 3)
+        # ── ChromaDB where 필터 구성 ──────────────────────────────────────
+        # 기업·연도를 벡터 검색 시점에 적용 → 다른 기업 청크가 상위에 올 가능성 차단
+        conditions: list = []
+        if companies:
+            if len(companies) == 1:
+                conditions.append({"company": companies[0]})
+            else:
+                conditions.append({"company": {"$in": companies}})
+        if years:
+            int_years = [int(y) for y in years]
+            if len(int_years) == 1:
+                conditions.append({"year": int_years[0]})
+            else:
+                conditions.append({"year": {"$in": int_years}})
 
-        # 섹션 필터 (결과가 너무 적으면 필터 해제)
+        if len(conditions) == 0:
+            where_filter = None
+        elif len(conditions) == 1:
+            where_filter = conditions[0]
+        else:
+            where_filter = {"$and": conditions}
+
+        # ── 검색 ─────────────────────────────────────────────────────────
+        enriched = f"{' '.join(companies)} {query}" if companies else query
+        docs = self.vsm.search(enriched, k=self.k * 3, where_filter=where_filter)
+        logger.info(
+            f"[retrieve] companies={companies}, years={years}, "
+            f"where={where_filter} → {len(docs)}개 후보"
+        )
+
+        # ── 섹션 필터 (post) ──────────────────────────────────────────────
         if section_filter:
             filtered = [(d, s) for d, s in docs if d.metadata.get("section") == section_filter]
             if len(filtered) >= 2:
                 docs = filtered
 
-        # 기업 필터
+        # ── BM25 포함 후보에 대한 안전망 post-filter (기업·연도) ──────────
+        # where_filter가 있더라도 BM25 경로는 ChromaDB 필터를 거치지 않으므로
+        # 여기서 한 번 더 정제한다.
         if companies:
             filtered = [
                 (d, s) for d, s in docs
@@ -168,15 +201,17 @@ class FinancialAgent:
             ]
             if len(filtered) >= 2:
                 docs = filtered
-
-        # 연도 필터
         if years:
-            filtered = [(d, s) for d, s in docs if d.metadata.get("year") in years]
+            int_years = [int(y) for y in years]
+            filtered = [
+                (d, s) for d, s in docs
+                if int(d.metadata.get("year", 0)) in int_years
+            ]
             if len(filtered) >= 2:
                 docs = filtered
 
         docs = docs[: self.k]
-        logger.info(f"[retrieve] {len(docs)}개 청크 반환")
+        logger.info(f"[retrieve] 최종 {len(docs)}개 청크 반환")
         return {"retrieved_docs": docs}
 
     def _analyze(self, state: FinancialAgentState) -> Dict[str, Any]:

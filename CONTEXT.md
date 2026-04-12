@@ -148,11 +148,38 @@ cd src && python -m ops.evaluator
 
 ---
 
+## Phase 5 이후 — 검색 품질 개선 및 UI 보완 ✅
+
+**파일**: `app.py`, `src/agent/financial_graph.py`, `src/api/financial_router.py`, `src/storage/vector_store.py`
+
+### 수정 내역
+
+**검색 정확도 개선**:
+- `VectorStoreManager.search(where_filter)` 파라미터 추가 — ChromaDB 쿼리 시점에 기업·연도 필터 적용
+- `_retrieve` 노드: company/year 조건 → ChromaDB `$and` where 조건으로 구성 후 전달
+- BM25 post-filter 연도 비교: `int()` 캐스팅으로 string/int 타입 불일치 해소
+
+**BM25 한국어 character bigram 토크나이저**:
+- 기존 스페이스 분리 → `_tokenize_ko()` 함수 (character bigram)
+- "매출액과" → `["매출", "출액", "액과"]`, corpus "매출액" → `["매출", "출액"]` → 자동 교집합
+- 추가 의존성 없음, konlpy 대비 경량
+
+**중복 인덱싱 방지**:
+- `VectorStoreManager.is_indexed(rcept_no)` 메서드 추가
+- app.py, financial_router.py에서 인덱싱 전 `rcept_no` 기준 존재 확인 → 있으면 skip
+
+**UI 개선** (`app.py`):
+- Tab 2: 검색된 청크 원문 expander 추가 (`page_content` 우선, `content` 폴백)
+- Tab 2: 더미 버튼 및 미사용 session history 코드 제거
+- "인식된 기업 / 인식된 연도" 메트릭에 tooltip 추가 (필터 미적용 여부 즉시 확인)
+
+---
+
 ## 다음 단계 (선택적)
 
 - **평가셋 개선**: ground truth를 실제 문서 내용 기반으로 재작성 (Context Recall 향상)
 - **멀티기업 확장**: SK하이닉스, 네이버 등 추가 수집 후 비교 질의 테스트
-- **ChromaDB → LangChain-Chroma 마이그레이션**: LangChainDeprecationWarning 해소
+- **한국어 임베딩 모델**: `paraphrase-multilingual-MiniLM-L12-v2` 또는 `jhgan/ko-sroberta-multitask`로 교체 시 벡터 검색 품질 근본 개선 (전체 재인덱싱 필요)
 - **LangGraph 메모리**: SqliteSaver로 멀티턴 대화 지원
 
 ---

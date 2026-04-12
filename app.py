@@ -111,9 +111,15 @@ with tab1:
                     st.error(f"'{company_input}'의 {selected_years} 공시 문서를 찾을 수 없습니다.")
                 else:
                     total_chunks = 0
+                    skipped = 0
                     progress = st.progress(0)
                     for i, report in enumerate(reports):
                         if not report.file_path or not Path(report.file_path).exists():
+                            continue
+                        if vsm.is_indexed(report.rcept_no):
+                            st.write(f"⏭️ 이미 인덱싱됨: {report.corp_name} {report.year} 사업보고서 — 건너뜀")
+                            skipped += 1
+                            progress.progress((i + 1) / len(reports))
                             continue
                         st.write(f"📄 파싱 중: {report.corp_name} {report.year} 사업보고서")
                         meta = {
@@ -130,8 +136,13 @@ with tab1:
                             total_chunks += len(chunks)
                         progress.progress((i + 1) / len(reports))
 
-                    status.update(label=f"완료! {total_chunks}개 청크 인덱싱", state="complete")
-                    st.success(f"✅ {len(reports)}개 문서, 총 **{total_chunks}개 청크** 인덱싱 완료")
+                    if total_chunks == 0 and skipped > 0:
+                        status.update(label="이미 모두 인덱싱된 문서입니다.", state="complete")
+                        st.info(f"ℹ️ {skipped}개 문서가 이미 인덱싱되어 있어 건너뛰었습니다.")
+                    else:
+                        skip_msg = f" ({skipped}개 기존 건너뜀)" if skipped else ""
+                        status.update(label=f"완료! {total_chunks}개 청크 인덱싱{skip_msg}", state="complete")
+                        st.success(f"✅ **{total_chunks}개 청크** 인덱싱 완료{skip_msg}")
 
             except Exception as e:
                 status.update(label="오류 발생", state="error")
@@ -226,8 +237,18 @@ with tab2:
 
                 col_a, col_b, col_c = st.columns(3)
                 col_a.metric("쿼리 유형", qtype_label)
-                col_b.metric("기업", ", ".join(result.get("companies", ["-"])))
-                col_c.metric("연도", ", ".join(str(y) for y in result.get("years", [])) or "-")
+                extracted_companies = result.get("companies", [])
+                extracted_years     = result.get("years", [])
+                col_b.metric(
+                    "인식된 기업",
+                    ", ".join(extracted_companies) if extracted_companies else "—",
+                    help="Agent가 질문에서 추출한 기업명. 비어있으면 필터 미적용.",
+                )
+                col_c.metric(
+                    "인식된 연도",
+                    ", ".join(str(y) for y in extracted_years) if extracted_years else "—",
+                    help="Agent가 질문에서 추출한 연도. 비어있으면 필터 미적용.",
+                )
 
                 st.divider()
                 st.subheader("답변")
@@ -239,15 +260,33 @@ with tab2:
                         for i, cite in enumerate(citations, 1):
                             st.markdown(f"**{i}.** {cite}")
 
+                retrieved_docs = result.get("retrieved_docs", [])
+                if retrieved_docs:
+                    with st.expander(f"🔎 검색된 청크 ({len(retrieved_docs)}개) — 클릭하여 검색 결과 원문 확인", expanded=False):
+                        for i, item in enumerate(retrieved_docs, 1):
+                            doc, score = (item[0], item[1]) if isinstance(item, (tuple, list)) else (item, None)
+                            meta = getattr(doc, "metadata", {}) or {}
+                            section  = meta.get("section_label", meta.get("section", "—"))
+                            chunk_tp = meta.get("chunk_type", "—")
+                            company  = meta.get("company", "—")
+                            year     = meta.get("year", "—")
+                            score_str = f"{score:.4f}" if score is not None else "—"
+                            st.markdown(
+                                f"**#{i}** &nbsp; `{company} {year}` &nbsp; 섹션: `{section}` &nbsp; "
+                                f"유형: `{chunk_tp}` &nbsp; 점수: `{score_str}`"
+                            )
+                            st.text_area(
+                                label=f"청크 #{i} 내용",
+                                value=getattr(doc, "page_content", None) or getattr(doc, "content", ""),
+                                height=150,
+                                disabled=True,
+                                key=f"chunk_text_{i}",
+                                label_visibility="collapsed",
+                            )
+                            st.divider()
+
             except Exception as e:
                 st.error(f"분석 실패: {e}")
-
-    # 세션 히스토리 (간단)
-    if "history" not in st.session_state:
-        st.session_state.history = []
-
-    if st.button("🔍 분석 실행", key="run_btn2", disabled=True):
-        pass  # dummy — 실제 버튼은 위에 있음
 
 
 # ══════════════════════════════════════════════════════════════════════════

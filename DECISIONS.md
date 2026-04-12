@@ -516,3 +516,83 @@ _COMPANY_ALIASES = {"네이버": "NAVER", "하이브": "HYBE", ...}
 | `POST /api/query` | LangGraph invoke가 동기이므로 async def + 블로킹 OK |
 | `GET /api/companies` | ChromaDB `get(include=["metadatas"])`로 집계, 전체 스캔이지만 수백만 청크가 아니므로 허용 |
 | `GET /api/health` | `bm25_docs` 길이로 인덱싱 상태 확인 (`vector_store._collection.count()` 대신 공개 API 사용) |
+
+---
+
+---
+
+## Phase 5 이후 — 검색 품질 개선 및 UI 보완
+
+### 문제 27 (버그): 삼성전자 질문에 NAVER 청크 반환
+
+**현상**: DB에 삼성전자 2023 데이터 확인 후 삼성전자 관련 질문 → LLM이 "제공된 공시 문서는 NAVER의 2024년 사업보고서에 대한 내용이며, 삼성전자 정보는 포함되어 있지 않습니다."라고 답변.
+
+**근본 원인 A — 벡터 검색 단계에서 기업 필터 미적용**:
+기존 구현은 k×3개 후보를 검색한 뒤 Python post-filter를 적용하는 방식.
+`all-MiniLM-L6-v2`는 영어 전용 모델이라 한국어 텍스트 임베딩이 기업·주제별로 분리되지 않음.
+→ 삼성전자 질문인데 NAVER 청크가 상위 랭크 → 삼성전자 청크가 top-24 내에 2개 미만 → company filter 폴백 → NAVER 청크로 그대로 답변.
+
+**근본 원인 B — 연도 타입 불일치**:
+ChromaDB 메타데이터 `year`가 integer로 저장되지만, 일부 상황에서 string 반환 가능.
+기존 post-filter: `d.metadata.get("year") in years` — `"2023" in [2023]` = **False** → year filter 전체 폴백.
+
+**해결**:
+1. `VectorStoreManager.search()`에 `where_filter: dict` 파라미터 추가
+2. ChromaDB `similarity_search_with_score(filter=where_filter)` 로 벡터 검색 시점에 회사·연도 필터 적용
+3. `_retrieve` 노드에서 company/year → `$and` 조건 구성 후 전달
+4. BM25 결과는 where_filter 미지원이므로 post-filter는 유지하되 `int()` 캐스팅으로 타입 불일치 해소
+
+```python
+# _retrieve 내 where_filter 구성
+conditions = []
+if companies:
+    conditions.append({"company": companies[0]})
+if years:
+    conditions.append({"year": int(years[0])})
+where_filter = {"$and": conditions} if len(conditions) > 1 else (conditions[0] if conditions else None)
+
+docs = self.vsm.search(enriched, k=self.k * 3, where_filter=where_filter)
+```
+
+---
+
+### 결정 28: BM25 한국어 character bigram 토크나이저
+
+**문제**: 기존 스페이스 분리(`split(" ")`) 방식으로는 "매출액과" ≠ "매출액" (조사 결합형 불일치) → BM25가 핵심 재무 용어를 찾지 못함.
+
+**분석**:
+- "매출액과" → `["매출액과"]` → corpus의 `"매출액"` 과 매칭 불가
+- 한국어 교착어 특성상 조사·어미가 어근에 결합 ("영업이익은", "매출액을", "사업보고서의")
+- konlpy(형태소 분석기): Java 의존성, 설치 복잡, 포트폴리오 환경에 부적합
+
+**대안 비교**:
+
+| 방식 | 품질 | 의존성 |
+|---|---|---|
+| 스페이스 분리 | 낮음 (조사 불일치) | 없음 |
+| 조사 제거 규칙 | 중간 (규칙 누락 위험) | 없음 |
+| **character bigram (채택)** | **높음 (자동 교집합)** | **없음** |
+| konlpy 형태소 | 매우 높음 | Java 필요 |
+
+**채택: character bigram**
+```
+"매출액과" → ["매출", "출액", "액과"]
+"매출액"   → ["매출", "출액"]
+→ 교집합: {"매출", "출액"} → BM25 스코어 증가
+```
+영문·숫자 토큰은 단어 단위 그대로 유지.
+
+**연산 비용**: 573청크 기준 토큰 수 ~38K(기존) → ~750K(bigram). BM25 인덱스 빌드 <0.5초, 쿼리 수 ms → 허용 가능. 3만 청크(5기업×5년) 기준 빌드 수초, 쿼리 ms 유지.
+
+---
+
+### 결정 29: rcept_no 기반 중복 인덱싱 방지
+
+**문제**: 이미 인덱싱된 보고서에 대해 수집 버튼을 다시 클릭하면 동일 청크가 ChromaDB에 중복 추가됨 → 검색 결과에 중복 청크 등장, 지표 왜곡.
+
+**채택한 해결책**:
+- `VectorStoreManager.is_indexed(rcept_no: str) -> bool` 메서드 추가
+  - `vector_store.get(where={"rcept_no": rcept_no}, limit=1)` 으로 1건 존재 여부만 확인
+- app.py, financial_router.py 인덱싱 루프 내 `is_indexed()` 호출 → 존재 시 skip
+
+**rcept_no 선택 이유**: DART 접수번호는 문서별 고유 식별자로 보장됨. company+year 조합보다 정밀 (동일 기업·연도에 정정 보고서가 존재할 수 있음).
