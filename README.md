@@ -144,6 +144,34 @@ mlflow ui --backend-store-uri mlruns/
 # → http://localhost:5000
 ```
 
+## 검색 파이프라인
+
+### Hybrid Search 구조
+```
+질문
+ ├─ [Dense] ChromaDB similarity_search (where_filter 기업·연도 적용)
+ └─ [Sparse] BM25 (character bigram 토크나이저) → post-filter
+      ↓
+    RRF (Reciprocal Rank Fusion)
+      ↓
+    최종 k개 청크
+```
+
+### BM25 한국어 character bigram 토크나이저
+단순 스페이스 분리(`split(" ")`) 대신 문자 bigram을 사용해 한국어 조사 결합형을 처리한다.
+
+```
+"매출액과" → ["매출", "출액", "액과"]
+"매출액"   → ["매출", "출액"]          ← 교집합 발생 → BM25 매칭 성공
+```
+konlpy 등 형태소 분석기 의존성 없이 동일 효과.
+
+### 회사·연도 필터 적용 시점
+`all-MiniLM-L6-v2`가 영어 전용 모델이라 한국어 임베딩이 기업별로 분리되지 않는 한계가 있다.
+이를 보완하기 위해 ChromaDB 쿼리 **시점**에 `where_filter`를 적용, 벡터 검색 단계부터 다른 기업 청크를 배제한다.
+
+---
+
 ## 청킹 전략
 
 DART XML의 문서 구조를 그대로 활용하는 2-level 청킹을 사용한다.

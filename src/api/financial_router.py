@@ -181,10 +181,17 @@ async def ingest(req: IngestRequest):
             detail=f"'{req.company}'의 {req.years} 공시 문서를 찾을 수 없습니다.",
         )
 
+    vsm = _require(_vsm, "VectorStoreManager")
     total_chunks = 0
+    skipped = 0
     for report in reports:
         if not report.file_path or not Path(report.file_path).exists():
             logger.warning(f"파일 없음 건너뜀: {report}")
+            continue
+
+        if vsm.is_indexed(report.rcept_no):
+            logger.info(f"이미 인덱싱됨 건너뜀: {report.corp_name} {report.year} ({report.rcept_no})")
+            skipped += 1
             continue
 
         meta = {
@@ -200,15 +207,21 @@ async def ingest(req: IngestRequest):
             total_chunks += len(chunks)
             logger.info(f"인덱싱: {report.corp_name} {report.year} → {len(chunks)}청크")
 
-    if total_chunks == 0:
+    if total_chunks == 0 and skipped == 0:
         raise HTTPException(status_code=422, detail="파싱된 청크가 없습니다. 파일 형식을 확인하세요.")
+
+    msg = f"'{req.company}' {req.years} 처리 완료"
+    if total_chunks:
+        msg += f" — {total_chunks}청크 신규 인덱싱"
+    if skipped:
+        msg += f" — {skipped}건 이미 존재하여 건너뜀"
 
     return IngestResponse(
         company=req.company,
         years=req.years,
         files_fetched=len(reports),
         chunks_added=total_chunks,
-        message=f"'{req.company}' {req.years} 인덱싱 완료 ({total_chunks}청크)",
+        message=msg,
     )
 
 
