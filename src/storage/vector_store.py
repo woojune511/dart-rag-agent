@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import re
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from langchain_community.vectorstores import Chroma
@@ -92,6 +94,10 @@ class VectorStoreManager:
         self.bm25_metadatas: List[dict] = []
         self._init_bm25()
 
+        # Parent chunk store — persisted as JSON alongside the ChromaDB directory
+        self._parents_path = Path(self.persist_directory) / "parents.json"
+        self._parents: Dict[str, str] = self._load_parents()
+
     def _init_bm25(self):
         try:
             docs = self.vector_store.get()
@@ -109,6 +115,47 @@ class VectorStoreManager:
                 self.bm25_metadatas = []
         except Exception as e:
             logger.warning("Could not initialize BM25: %s", e)
+
+    # ------------------------------------------------------------------
+    # Parent chunk storage
+    # ------------------------------------------------------------------
+
+    def _load_parents(self) -> Dict[str, str]:
+        if self._parents_path.exists():
+            try:
+                return json.loads(self._parents_path.read_text(encoding="utf-8"))
+            except Exception as e:
+                logger.warning("Failed to load parents.json: %s", e)
+        return {}
+
+    def _save_parents(self) -> None:
+        try:
+            self._parents_path.write_text(
+                json.dumps(self._parents, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except Exception as e:
+            logger.warning("Failed to save parents.json: %s", e)
+
+    def add_parents(self, parents: Dict[str, str]) -> None:
+        """부모 청크 딕셔너리를 저장 (기존 항목에 병합)."""
+        self._parents.update(parents)
+        self._save_parents()
+        logger.info("Stored %s parent chunks (total=%s).", len(parents), len(self._parents))
+
+    def get_parent(self, parent_id: str) -> Optional[str]:
+        """parent_id에 해당하는 섹션 전체 텍스트 반환. 없으면 None."""
+        return self._parents.get(parent_id)
+
+    def delete_parents_for_rcept(self, rcept_no: str) -> None:
+        """특정 접수번호의 부모 청크를 모두 삭제."""
+        prefix = f"{rcept_no}::"
+        before = len(self._parents)
+        self._parents = {k: v for k, v in self._parents.items() if not k.startswith(prefix)}
+        self._save_parents()
+        logger.info("Deleted %s parent chunks for rcept_no=%s.", before - len(self._parents), rcept_no)
+
+    # ------------------------------------------------------------------
 
     def is_indexed(self, rcept_no: str) -> bool:
         """Return whether the filing is already indexed."""

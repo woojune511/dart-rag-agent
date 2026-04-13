@@ -361,6 +361,8 @@ class FinancialParser:
             for sub_chunk_idx, chunk_block in enumerate(chunk_blocks):
                 refined_label = _reclassify_by_content(chunk_block["text"], section_label)
                 block_type = chunk_block["block_type"]
+                rcept_no = source_metadata.get("rcept_no", "unknown")
+                parent_id = f"{rcept_no}::{section['path']}"
                 metadata: Dict[str, Any] = {
                     **source_metadata,
                     "section": refined_label,
@@ -372,6 +374,7 @@ class FinancialParser:
                     "is_table": block_type == "table",
                     "block_type": block_type,
                     "table_context": chunk_block.get("table_context"),
+                    "parent_id": parent_id,
                 }
                 metadata["chunk_uid"] = self._make_chunk_uid(metadata, chunk_id, sub_chunk_idx)
                 chunks.append(DocumentChunk(content=chunk_block["text"], metadata=metadata))
@@ -384,6 +387,27 @@ class FinancialParser:
             os.path.basename(file_path),
         )
         return chunks
+
+    @staticmethod
+    def build_parents(chunks: List[DocumentChunk], max_parent_len: int = 6000) -> Dict[str, str]:
+        """청크 리스트에서 parent_id → 섹션 전체 텍스트 딕셔너리 생성.
+
+        동일 parent_id(= rcept_no + section_path)를 공유하는 청크를 합쳐
+        LLM에 전달할 넓은 컨텍스트 단위로 만든다.
+        max_parent_len을 초과하면 앞부분만 보존한다.
+        """
+        from collections import defaultdict
+        groups: Dict[str, List[str]] = defaultdict(list)
+        for chunk in chunks:
+            pid = chunk.metadata.get("parent_id")
+            if pid:
+                groups[pid].append(chunk.content)
+
+        parents: Dict[str, str] = {}
+        for pid, texts in groups.items():
+            full = "\n\n".join(texts)
+            parents[pid] = full[:max_parent_len] if len(full) > max_parent_len else full
+        return parents
 
 
 if __name__ == "__main__":

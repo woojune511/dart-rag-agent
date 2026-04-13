@@ -229,20 +229,44 @@ class FinancialAgent:
         return {"retrieved_docs": docs}
 
     def _format_context(self, docs) -> str:
+        """검색된 자식 청크를 부모 청크(섹션 전체)로 확장해 LLM 컨텍스트 구성.
+
+        부모 청크가 있으면 부모 텍스트를 사용한다(더 넓은 맥락).
+        없으면 자식 청크 텍스트를 그대로 사용한다.
+        동일 parent_id가 여러 청크에서 반환될 경우 부모는 한 번만 포함한다.
+        """
         parts = []
+        seen_parents: set = set()
+
         for doc, score in docs:
             metadata = doc.metadata or {}
+            company      = metadata.get("company", "?")
+            year         = metadata.get("year", "?")
+            report_type  = metadata.get("report_type", "?")
+            section_path = metadata.get("section_path", metadata.get("section", "?"))
+            parent_id    = metadata.get("parent_id")
+
             header = (
-                f"[{metadata.get('chunk_uid', '?')}] "
-                f"[{metadata.get('company', '?')} | {metadata.get('year', '?')} | "
-                f"{metadata.get('report_type', '?')} | {metadata.get('section_path', metadata.get('section', '?'))} | "
-                f"{metadata.get('block_type', '?')} | score={score:.3f}]"
+                f"[{company} | {year} | {report_type} | {section_path} | score={score:.3f}]"
             )
+
+            # 부모 청크 우선 사용
+            if parent_id and parent_id not in seen_parents:
+                parent_text = self.vsm.get_parent(parent_id)
+                if parent_text:
+                    seen_parents.add(parent_id)
+                    parts.append(f"{header}\n{parent_text}")
+                    continue
+
+            # 부모가 없거나 이미 포함된 parent_id → 자식 청크 사용
+            if parent_id in seen_parents:
+                # 이미 이 섹션의 부모를 포함했으므로 중복 제외
+                continue
+
             table_context = metadata.get("table_context")
-            if table_context:
-                parts.append(f"{header}\n[table_context] {table_context}\n{doc.page_content}")
-            else:
-                parts.append(f"{header}\n{doc.page_content}")
+            body = f"[table_context] {table_context}\n{doc.page_content}" if table_context else doc.page_content
+            parts.append(f"{header}\n{body}")
+
         return "\n\n---\n\n".join(parts)
 
     def _extract_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -430,6 +454,88 @@ coverage: {coverage}
         metadatas = [chunk.metadata for chunk in chunks]
         self.vsm.add_documents(texts, metadatas)
         logger.info("[ingest] indexed %s chunks", len(chunks))
+
+    # ------------------------------------------------------------------
+    # Contextual Retrieval + Parent-child ingest
+    # ------------------------------------------------------------------
+
+    def _generate_context(self, text: str, metadata: dict) -> str:
+        """청크 1개에 대해 LLM으로 1문장 컨텍스트 설명 생성.
+
+        생성된 컨텍스트는 청크 텍스트 앞에 붙여 인덱싱함으로써
+        BM25·벡터 검색 양쪽에서 섹션/주제 신호를 강화한다.
+        """
+        company      = metadata.get("company", "?")
+        year         = metadata.get("year", "?")
+        section_path = metadata.get("section_path", metadata.get("section", "?"))
+        block_type   = "표" if metadata.get("block_type") == "table" else "단락"
+        preview      = re.sub(r"\s+", " ", text[:400]).strip()
+
+        prompt = (
+            f"다음은 {company} {year}년 사업보고서의 [{section_path}] 섹션에서 발췌한 {block_type}입니다.\n"
+            f"이 내용이 전체 문서 맥락에서 어떤 정보를 담고 있는지 한국어로 한 문장(50자 이내)으로만 설명하세요.\n\n"
+            f"내용:\n{preview}"
+        )
+        try:
+            response = self.llm.invoke(prompt)
+            return response.content.strip()
+        except Exception as e:
+            logger.warning("Context generation failed: %s", e)
+            return f"{company} {year}년 사업보고서 / {section_path} / {block_type}"
+
+    def contextual_ingest(
+        self,
+        chunks: List,
+        on_progress=None,
+        max_workers: int = 3,
+    ) -> None:
+        """Contextual Retrieval + Parent-child 방식으로 청크를 인덱싱한다.
+
+        1. 섹션 단위 부모 청크를 생성해 VectorStoreManager에 저장
+        2. 각 자식 청크에 대해 LLM으로 컨텍스트 문장 생성 (병렬 처리)
+        3. '컨텍스트 + 원문'을 ChromaDB·BM25에 인덱싱
+
+        Args:
+            chunks:       FinancialParser.process_document() 반환값
+            on_progress:  진행 콜백 (completed: int, total: int) → None
+            max_workers:  LLM 병렬 호출 수 (기본 3, API rate limit 고려)
+        """
+        if not chunks:
+            logger.warning("[contextual_ingest] chunks are empty.")
+            return
+
+        from processing.financial_parser import FinancialParser
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # 1) 부모 청크 저장
+        parents = FinancialParser.build_parents(chunks)
+        self.vsm.add_parents(parents)
+        logger.info("[contextual_ingest] stored %s parent chunks", len(parents))
+
+        # 2) 병렬 컨텍스트 생성
+        total = len(chunks)
+        contexts: Dict[int, str] = {}
+
+        def _gen(idx_chunk):
+            idx, chunk = idx_chunk
+            ctx = self._generate_context(chunk.content, chunk.metadata)
+            return idx, ctx
+
+        completed_count = 0
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_gen, (i, c)): i for i, c in enumerate(chunks)}
+            for future in as_completed(futures):
+                idx, ctx = future.result()
+                contexts[idx] = ctx
+                completed_count += 1
+                if on_progress:
+                    on_progress(completed_count, total)
+
+        # 3) 컨텍스트 prefix를 붙여 인덱싱
+        texts     = [f"{contexts[i]}\n\n{chunks[i].content}" for i in range(total)]
+        metadatas = [chunk.metadata for chunk in chunks]
+        self.vsm.add_documents(texts, metadatas)
+        logger.info("[contextual_ingest] indexed %s contextualized chunks", total)
 
 
 if __name__ == "__main__":

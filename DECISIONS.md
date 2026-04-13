@@ -760,3 +760,50 @@ classify → extract → retrieve → evidence → analyze → cite
 재인덱싱 후 섹션 분포: `감사의견: 6`, `리스크: 4` (기존: 리스크 5개 중 1개가 감사제도)
 
 **결과**: 8개 청크 반환, `경영진단`·`기타사업` 섹션이 상위 랭크 → 반도체 파운드리 침체, 거시경제 불확실성, 지정학 리스크 등 실제 답변 정상 생성.
+
+---
+
+## Phase 5 — 청킹 전략 고도화: Parent-Child + Contextual Retrieval
+
+### 결정 38: 청킹 전략을 Parent-Child + Contextual Retrieval로 전환
+
+**문제**: 기존 구조 기반 청킹(rule-based section 분류)의 한계:
+
+1. DART 법정 섹션 구조(예: "경영진단", "리스크")와 실제 콘텐츠 토픽이 일치하지 않음.
+   - "반도체 리스크" 관련 내용이 `리스크` 섹션이 아닌 `경영진단`에 기술되어 있음.
+2. 1500자 자식 청크는 벡터 검색 정밀도를 위해 작게 유지하나, LLM 컨텍스트로는 맥락이 부족함.
+3. BM25/벡터 모두 "반도체 파운드리 침체" 같은 토픽 표현이 청크에 없어 matching이 실패하는 경우 존재.
+
+**분석**:
+
+- **Parent-child chunking**: 자식 청크(~1500자)로 검색하되, LLM 답변 생성 시에는 해당 섹션 전체(부모 청크, 최대 6000자)를 전달. 검색 정밀도와 LLM 컨텍스트 풍부도를 동시에 확보.
+- **Contextual Retrieval (Anthropic, 2024)**: 인덱싱 시점에 LLM이 각 청크에 대해 1문장 컨텍스트 설명을 생성하여 청크 텍스트 앞에 prepend. BM25/벡터 검색 시 "어디에서 온 어떤 내용인지"가 포함되어 매칭 정확도 향상.
+- 두 기법은 서로 독립적이며 동시 적용 가능.
+
+**채택한 해결책**:
+
+4개 파일에 걸쳐 구현:
+
+1. **`financial_parser.py`**:
+   - `process_document()` 출력 메타데이터에 `parent_id = f"{rcept_no}::{section_path}"` 추가
+   - `build_parents(chunks, max_parent_len=6000)` 정적 메서드 추가: 같은 `parent_id` 자식들을 합쳐 섹션 전체 텍스트 딕셔너리 반환
+
+2. **`vector_store.py`**:
+   - `parents.json`을 ChromaDB 디렉터리 옆에 JSON으로 영속 저장
+   - `add_parents()`, `get_parent()`, `delete_parents_for_rcept()` 메서드 추가
+
+3. **`financial_graph.py`**:
+   - `_generate_context(text, metadata) → str`: LLM으로 청크당 50자 이내 한국어 컨텍스트 생성, 실패 시 rule-based fallback
+   - `contextual_ingest(chunks, on_progress, max_workers=3)`: 부모 저장 → ThreadPoolExecutor로 병렬 컨텍스트 생성 → `컨텍스트\n\n청크원문` 형태로 인덱싱
+   - `_format_context()`: `vsm.get_parent(parent_id)`로 부모(섹션 전체) 텍스트를 LLM 컨텍스트에 사용, `seen_parents` set으로 중복 섹션 제거
+
+4. **`app.py`**:
+   - `agent.ingest()` → `agent.contextual_ingest()` 교체
+   - LLM 컨텍스트 생성 진행 상황을 Streamlit progress bar로 표시 (예: "LLM 컨텍스트 생성 중... 150/409")
+
+**결과**:
+
+- 인덱싱 시 청크마다 LLM 1-sentence 컨텍스트가 prepend되어 BM25·벡터 매칭 정확도 향상 기대
+- LLM 답변 생성 시 1500자 자식 청크 대신 최대 6000자 부모(섹션 전체) 사용 → 맥락 손실 감소
+- 삼성전자 2023 기준 약 409번의 병렬 LLM 호출 (max_workers=3, 예상 1~3분)
+- 삭제 후 재인덱싱 및 실측 검증 필요
