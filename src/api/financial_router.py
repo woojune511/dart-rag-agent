@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ingestion.dart_fetcher import DARTFetcher
 from processing.financial_parser import FinancialParser
-from storage.vector_store import VectorStoreManager
+from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
 from agent.financial_graph import FinancialAgent
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ _fetcher: Optional[DARTFetcher]        = None
 def init_components() -> None:
     """애플리케이션 시작 시 한 번만 호출. 모든 컴포넌트를 초기화."""
     global _vsm, _agent, _parser, _fetcher
-    _vsm     = VectorStoreManager(persist_directory=_CHROMA_PATH, collection_name="dart_reports")
+    _vsm     = VectorStoreManager(persist_directory=_CHROMA_PATH, collection_name=DEFAULT_COLLECTION_NAME)
     _agent   = FinancialAgent(_vsm, k=8)
     _parser  = FinancialParser(chunk_size=1500, chunk_overlap=200)
     _fetcher = DARTFetcher(download_dir=_REPORTS_DIR)

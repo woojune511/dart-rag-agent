@@ -596,3 +596,134 @@ docs = self.vsm.search(enriched, k=self.k * 3, where_filter=where_filter)
 - app.py, financial_router.py 인덱싱 루프 내 `is_indexed()` 호출 → 존재 시 skip
 
 **rcept_no 선택 이유**: DART 접수번호는 문서별 고유 식별자로 보장됨. company+year 조합보다 정밀 (동일 기업·연도에 정정 보고서가 존재할 수 있음).
+
+---
+
+## Phase 6 — 단일 기업 정확도 향상 스프린트
+
+### 결정 30: 기본 임베딩 모델을 다국어 모델로 교체
+
+**문제**: 기존 `all-MiniLM-L6-v2`는 영어 중심 모델이라 한국어 공시 문서에서 기업/주제 구분력이 약했고, retrieval contamination이 반복됨.
+
+**채택한 해결책**:
+
+- 기본 임베딩 모델을 `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`로 변경
+- 컬렉션 이름도 `dart_reports_v2`로 올려 이전 인덱스와 분리
+
+**결과**:
+
+- 새 인덱스는 다국어 임베딩 기준으로 일관되게 재생성 가능
+- 검색 품질 개선 작업의 기준선을 명확히 분리
+
+---
+
+### 결정 31: 하이브리드 검색 dedup 기준을 raw text에서 `chunk_uid`로 변경
+
+**문제**: 기존 RRF 병합이 `page_content` 문자열을 key로 사용해, 서로 다른 기업/연도 청크가 동일 본문이면 하나로 합쳐질 수 있었음.
+
+**채택한 해결책**:
+
+- 파서가 모든 청크에 `chunk_uid`를 부여
+- hybrid fusion 시 merge key를 `chunk_uid`로 사용
+
+**결과**:
+
+- 반복 표 헤더나 boilerplate 문구가 있어도 출처가 섞이지 않음
+- 인용과 retrieval 디버깅이 더 안정적이 됨
+
+---
+
+### 결정 32: strict metadata filtering은 non-empty면 유지
+
+**문제**: 기존 로직은 회사/연도/섹션 필터 결과가 1개만 남으면 필터를 버리고 원본 후보군으로 되돌아갔음.
+
+**채택한 해결책**:
+
+- 필터 결과가 1개 이상이면 그대로 유지
+- 필터 결과가 0개일 때만 더 넓은 후보군으로 fallback
+
+**결과**:
+
+- 단일 기업 질의에서 다른 기업 청크가 다시 섞이는 현상 제거
+- review findings의 핵심 오염 케이스를 구조적으로 차단
+
+---
+
+### 결정 33: 청크 메타데이터를 retrieval/debug 친화적으로 확장
+
+**문제**: 기존 메타데이터는 출처 확인에는 충분했지만, 검색 오동작 디버깅과 표 문맥 보존에는 부족했음.
+
+**채택한 해결책**:
+
+추가 메타데이터:
+
+- `chunk_uid`
+- `block_type`
+- `section_path`
+- `table_context`
+
+**결과**:
+
+- UI에서 검색된 청크의 성격을 더 쉽게 파악 가능
+- 표가 단독 청크여도 직전 문맥을 함께 볼 수 있게 됨
+
+---
+
+### 결정 34: answer generation을 evidence-first로 재구성
+
+**문제**: 기존 `retrieve → analyze` 흐름은 LLM이 retrieved context 전체를 평탄하게 읽으면서, 약한 근거를 과하게 일반화할 여지가 있었음.
+
+**채택한 해결책**:
+
+그래프를 다음과 같이 확장:
+
+```text
+classify → extract → retrieve → evidence → analyze → cite
+```
+
+- 상위 청크에서 먼저 concise evidence bullet 추출
+- 최종 답변은 evidence bullet만 사용해 생성
+- 근거 부족 또는 충돌 시 이를 답변에 명시
+
+**결과**:
+
+- 답변 생성 과정이 더 추적 가능해짐
+- 근거와 최종 서술의 연결이 명확해짐
+
+---
+
+### 결정 35: 평가를 answer-only에서 retrieval-aware로 확장
+
+**문제**: Faithfulness, Relevancy, Recall만으로는 retrieval 실패와 synthesis 실패를 분리해서 보기 어려웠음.
+
+**채택한 해결책**:
+
+기존 지표에 더해 다음을 추가:
+
+- `retrieval_hit_at_k`
+- `section_match_rate`
+- `citation_coverage`
+
+또한 단일 기업 정확도 확인용 curated eval slice 빌더를 추가.
+
+**결과**:
+
+- 검색과 답변 품질을 분리해 추적 가능
+- MLflow에서 retrieval 회귀를 더 빨리 포착 가능
+
+---
+
+### 결정 36: Streamlit 디버그 패널을 retrieval 메타데이터 중심으로 보강
+
+**문제**: 검색 결과를 봐도 청크가 문단인지 표인지, 어느 섹션 계층에 속하는지 바로 알기 어려웠음.
+
+**채택한 해결책**:
+
+- `block_type`, `section_path`, `table_context`를 UI에 노출
+- 평가 탭도 retrieval 지표를 함께 시각화
+- 연도 선택 범위를 고정값에서 최신 연도 기준 동적으로 확장
+
+**결과**:
+
+- 사용 중 retrieval 문제를 더 빨리 눈으로 확인 가능
+- 평가 화면이 answer-only 대시보드에서 retrieval-aware 대시보드로 확장됨
