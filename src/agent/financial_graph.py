@@ -1,18 +1,10 @@
 """
-LangGraph 기반 재무공시 분석 AI Agent.
-
-파이프라인:
-  query_classifier → entity_extractor → retrieval → analyst → citation_formatter
-
-지원 쿼리 유형:
-  - qa:         단순 사실 질문  ("삼성전자 2023년 영업이익은?")
-  - comparison: 기업 간 비교    ("삼성전자 vs SK하이닉스 부채비율 비교")
-  - trend:      시계열 트렌드   ("삼성전자 최근 3년 매출 트렌드")
-  - risk:       리스크 분석     ("삼성전자의 주요 리스크 요인은?")
+LangGraph-based DART financial analysis agent.
 """
 
-import os
 import logging
+import os
+import re
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from dotenv import load_dotenv
@@ -25,238 +17,331 @@ from pydantic import BaseModel, Field
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# --------------------------------------------------------------------------
-# 그래프 상태
-# --------------------------------------------------------------------------
+
+def _tokenize_terms(text: str) -> set[str]:
+    tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
+    return {token.lower() for token in tokens if len(token) >= 2}
+
 
 class FinancialAgentState(TypedDict):
-    query:          str
-    query_type:     str            # "qa" | "comparison" | "trend" | "risk"
-    companies:      List[str]      # 추출된 기업명
-    years:          List[int]      # 추출된 연도
-    topic:          str            # 핵심 주제 키워드
-    section_filter: Optional[str]  # 우선 검색할 섹션 레이블
-    retrieved_docs: List           # (Document, score) 튜플
-    answer:         str
-    citations:      List[str]
+    query: str
+    query_type: str
+    companies: List[str]
+    years: List[int]
+    topic: str
+    section_filter: Optional[str]
+    retrieved_docs: List
+    evidence_bullets: List[str]
+    evidence_status: str
+    answer: str
+    citations: List[str]
 
-
-# --------------------------------------------------------------------------
-# 구조화 출력 스키마
-# --------------------------------------------------------------------------
 
 class QueryClassification(BaseModel):
     query_type: Literal["qa", "comparison", "trend", "risk"] = Field(
         description=(
-            "qa=단순 사실 질문, "
-            "comparison=기업 간 수치·전략 비교, "
-            "trend=시계열 변화, "
+            "qa=단일 기업 중심의 사실/설명 질의, "
+            "comparison=기업 또는 항목 간 비교, "
+            "trend=시계열 변화 분석, "
             "risk=리스크 요인 분석"
         )
     )
 
 
 class EntityExtraction(BaseModel):
-    companies: List[str] = Field(description="언급된 기업명 목록 (한글, 없으면 빈 리스트)")
-    years: List[int] = Field(description="언급된 연도 목록 (없으면 빈 리스트)")
-    topic: str = Field(description="질문의 핵심 주제 (영업이익, 부채비율, 리스크 등)")
+    companies: List[str] = Field(default_factory=list, description="질문에 등장한 기업명 목록")
+    years: List[int] = Field(default_factory=list, description="질문에 등장한 연도 목록")
+    topic: str = Field(description="질문의 핵심 분석 주제")
     section_filter: Optional[str] = Field(
         default=None,
         description=(
-            "관련 섹션 레이블 1개. 선택지: "
-            "리스크 / 재무제표 / 연결재무제표 / 요약재무 / 재무주석 / "
-            "사업개요 / 주요제품 / 원재료 / 매출현황 / 연구개발 / "
-            "경영진단 / 임원현황 / 이사회 / 주주현황 / 계열회사. "
-            "없으면 null"
+            "관련 섹션 레이블 하나. 예: 리스크, 재무제표, 연결재무제표, 요약재무, 재무주석, "
+            "사업개요, 주요제품, 원재료, 매출현황, 연구개발, 경영진단, 임원현황, 이사회, 주주현황, 계열회사"
         ),
     )
 
 
-# --------------------------------------------------------------------------
-# Agent
-# --------------------------------------------------------------------------
+class EvidenceItem(BaseModel):
+    source_anchor: str = Field(description="근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]")
+    claim: str = Field(description="질문에 직접적으로 도움이 되는 근거 진술")
+    support_level: Literal["direct", "partial", "context"] = Field(
+        description="direct=직접 근거, partial=부분 근거, context=배경 설명"
+    )
+
+
+class EvidenceExtraction(BaseModel):
+    coverage: Literal["sufficient", "sparse", "conflicting", "missing"]
+    evidence: List[EvidenceItem] = Field(default_factory=list)
+
 
 class FinancialAgent:
-    """
-    DART 공시 분석 LangGraph Agent.
-
-    Usage:
-        from storage.vector_store import VectorStoreManager
-        from agent.financial_graph import FinancialAgent
-
-        vsm = VectorStoreManager(collection_name="dart_reports")
-        agent = FinancialAgent(vsm)
-
-        # 인덱싱
-        agent.ingest(chunks)  # List[DocumentChunk]
-
-        # 질의
-        result = agent.run("삼성전자 2023년 주요 리스크 요인은?")
-        print(result["answer"])
-        print(result["citations"])
-    """
-
     def __init__(self, vector_store_manager, k: int = 8):
         self.vsm = vector_store_manager
         self.k = k
 
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
+            raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         self.graph = self._build_graph()
 
-    # ------------------------------------------------------------------
-    # 노드 함수
-    # ------------------------------------------------------------------
-
     def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """쿼리 유형 분류 (qa / comparison / trend / risk)."""
         structured_llm = self.llm.with_structured_output(QueryClassification)
         prompt = ChatPromptTemplate.from_template(
-            "다음 금융 공시 관련 질문의 유형을 분류하세요.\n\n질문: {query}"
+            "다음 기업 공시 질문의 유형을 분류하세요.\n\n질문: {query}"
         )
-        result: QueryClassification = (prompt | structured_llm).invoke(
-            {"query": state["query"]}
-        )
-        logger.info(f"[classify] query_type={result.query_type}")
+        result: QueryClassification = (prompt | structured_llm).invoke({"query": state["query"]})
+        logger.info("[classify] query_type=%s", result.query_type)
         return {"query_type": result.query_type}
 
     def _extract_entities(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """기업명, 연도, 핵심 주제, 관련 섹션 추출."""
         structured_llm = self.llm.with_structured_output(EntityExtraction)
         prompt = ChatPromptTemplate.from_template(
             "다음 질문에서 기업명, 연도, 핵심 주제, 관련 섹션을 추출하세요.\n\n질문: {query}"
         )
-        result: EntityExtraction = (prompt | structured_llm).invoke(
-            {"query": state["query"]}
-        )
+        result: EntityExtraction = (prompt | structured_llm).invoke({"query": state["query"]})
         logger.info(
-            f"[extract] companies={result.companies}, years={result.years}, "
-            f"topic={result.topic}, section_filter={result.section_filter}"
+            "[extract] companies=%s years=%s topic=%s section_filter=%s",
+            result.companies,
+            result.years,
+            result.topic,
+            result.section_filter,
         )
         return {
-            "companies":      result.companies,
-            "years":          result.years,
-            "topic":          result.topic,
+            "companies": result.companies,
+            "years": result.years,
+            "topic": result.topic,
             "section_filter": result.section_filter,
         }
 
-    def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """하이브리드 검색 + 메타데이터 필터링.
+    def _apply_strict_filter(self, docs, predicate):
+        filtered = [item for item in docs if predicate(item[0])]
+        return filtered if filtered else docs
 
-        회사/연도 필터를 ChromaDB 쿼리 시점(where_filter)에 적용해
-        벡터 검색 단계부터 범위를 좁힌다.
-        BM25 결과는 post-filter로 동일 조건을 적용한다.
-        """
-        query          = state["query"]
-        companies      = state.get("companies", [])
-        years          = state.get("years", [])
+    def _rerank_docs(self, docs, state: FinancialAgentState):
+        companies = {company.lower() for company in state.get("companies", [])}
+        years = {int(year) for year in state.get("years", [])}
+        topic_terms = _tokenize_terms(state.get("topic") or state["query"])
+        section_filter = (state.get("section_filter") or "").strip()
+
+        reranked = []
+        for doc, score in docs:
+            metadata = doc.metadata or {}
+            company = str(metadata.get("company", "")).lower()
+            year = metadata.get("year")
+            section = str(metadata.get("section", ""))
+            section_path = str(metadata.get("section_path", section))
+            document_terms = _tokenize_terms(
+                " ".join(
+                    [
+                        doc.page_content,
+                        section,
+                        section_path,
+                        str(metadata.get("table_context") or ""),
+                    ]
+                )
+            )
+
+            boosted = float(score)
+            if companies:
+                if company in companies:
+                    boosted += 0.35
+                elif any(target in company or company in target for target in companies):
+                    boosted += 0.20
+            if years and year in years:
+                boosted += 0.25
+            if section_filter and (section == section_filter or section_filter in section_path):
+                boosted += 0.20
+            if topic_terms and document_terms:
+                overlap = len(topic_terms & document_terms) / max(len(topic_terms), 1)
+                boosted += min(overlap, 0.20)
+
+            reranked.append((doc, boosted))
+
+        reranked.sort(key=lambda item: item[1], reverse=True)
+        return reranked
+
+    def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
+        query = state["query"]
+        companies = state.get("companies", [])
+        years = state.get("years", [])
         section_filter = state.get("section_filter")
 
-        # ── ChromaDB where 필터 구성 ──────────────────────────────────────
-        # 기업·연도를 벡터 검색 시점에 적용 → 다른 기업 청크가 상위에 올 가능성 차단
-        conditions: list = []
+        conditions = []
         if companies:
             if len(companies) == 1:
                 conditions.append({"company": companies[0]})
             else:
                 conditions.append({"company": {"$in": companies}})
         if years:
-            int_years = [int(y) for y in years]
+            int_years = [int(year) for year in years]
             if len(int_years) == 1:
                 conditions.append({"year": int_years[0]})
             else:
                 conditions.append({"year": {"$in": int_years}})
 
-        if len(conditions) == 0:
+        if not conditions:
             where_filter = None
         elif len(conditions) == 1:
             where_filter = conditions[0]
         else:
             where_filter = {"$and": conditions}
 
-        # ── 검색 ─────────────────────────────────────────────────────────
-        enriched = f"{' '.join(companies)} {query}" if companies else query
-        docs = self.vsm.search(enriched, k=self.k * 3, where_filter=where_filter)
+        enriched_query = f"{' '.join(companies)} {query}" if companies else query
+        docs = self.vsm.search(enriched_query, k=self.k * 4, where_filter=where_filter)
+
         logger.info(
-            f"[retrieve] companies={companies}, years={years}, "
-            f"where={where_filter} → {len(docs)}개 후보"
+            "[retrieve] companies=%s years=%s topic=%s where=%s -> %s candidates",
+            companies,
+            years,
+            state.get("topic"),
+            where_filter,
+            len(docs),
         )
 
-        # ── 섹션 필터 (post) ──────────────────────────────────────────────
         if section_filter:
-            filtered = [(d, s) for d, s in docs if d.metadata.get("section") == section_filter]
-            if len(filtered) >= 2:
-                docs = filtered
+            docs = self._apply_strict_filter(
+                docs,
+                lambda doc: doc.metadata.get("section") == section_filter
+                or section_filter in str(doc.metadata.get("section_path", "")),
+            )
 
-        # ── BM25 포함 후보에 대한 안전망 post-filter (기업·연도) ──────────
-        # where_filter가 있더라도 BM25 경로는 ChromaDB 필터를 거치지 않으므로
-        # 여기서 한 번 더 정제한다.
         if companies:
-            filtered = [
-                (d, s) for d, s in docs
-                if any(c in d.metadata.get("company", "") for c in companies)
-            ]
-            if len(filtered) >= 2:
-                docs = filtered
-        if years:
-            int_years = [int(y) for y in years]
-            filtered = [
-                (d, s) for d, s in docs
-                if int(d.metadata.get("year", 0)) in int_years
-            ]
-            if len(filtered) >= 2:
-                docs = filtered
+            lowered_companies = {company.lower() for company in companies}
+            docs = self._apply_strict_filter(
+                docs,
+                lambda doc: (
+                    str(doc.metadata.get("company", "")).lower() in lowered_companies
+                    or any(
+                        target in str(doc.metadata.get("company", "")).lower()
+                        or str(doc.metadata.get("company", "")).lower() in target
+                        for target in lowered_companies
+                    )
+                ),
+            )
 
-        docs = docs[: self.k]
-        logger.info(f"[retrieve] 최종 {len(docs)}개 청크 반환")
+        if years:
+            valid_years = {int(year) for year in years}
+            docs = self._apply_strict_filter(
+                docs,
+                lambda doc: int(doc.metadata.get("year", 0)) in valid_years,
+            )
+
+        docs = self._rerank_docs(docs, state)[: self.k]
+        logger.info("[retrieve] final %s chunks returned", len(docs))
         return {"retrieved_docs": docs}
 
-    def _analyze(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """컨텍스트 기반 LLM 분석 답변 생성."""
+    def _format_context(self, docs) -> str:
+        parts = []
+        for doc, score in docs:
+            metadata = doc.metadata or {}
+            header = (
+                f"[{metadata.get('chunk_uid', '?')}] "
+                f"[{metadata.get('company', '?')} | {metadata.get('year', '?')} | "
+                f"{metadata.get('report_type', '?')} | {metadata.get('section_path', metadata.get('section', '?'))} | "
+                f"{metadata.get('block_type', '?')} | score={score:.3f}]"
+            )
+            table_context = metadata.get("table_context")
+            if table_context:
+                parts.append(f"{header}\n[table_context] {table_context}\n{doc.page_content}")
+            else:
+                parts.append(f"{header}\n{doc.page_content}")
+        return "\n\n---\n\n".join(parts)
+
+    def _extract_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         docs = state.get("retrieved_docs", [])
         if not docs:
-            return {
-                "answer": (
-                    "관련 공시 문서를 찾지 못했습니다. "
-                    "먼저 `agent.ingest(chunks)`로 보고서를 인덱싱하세요."
-                )
-            }
+            return {"evidence_bullets": [], "evidence_status": "missing"}
 
-        instructions = {
-            "qa": (
-                "제공된 공시 문서를 바탕으로 질문에 정확하게 답하세요. "
-                "수치는 반드시 단위와 출처 연도를 함께 명시하세요."
-            ),
-            "comparison": (
-                "두 기업 이상의 수치·전략을 항목별로 구조적으로 비교하세요. "
-                "가능하면 표 형식을 활용하세요."
-            ),
-            "trend": (
-                "시간 흐름에 따른 변화를 연도별로 정리하고 "
-                "트렌드의 원인과 의미를 해석하세요."
-            ),
-            "risk": (
-                "주요 리스크 요인을 항목별로 나열하고, "
-                "각 리스크의 배경과 잠재적 영향을 설명하세요."
-            ),
-        }
-        instruction = instructions.get(state.get("query_type", "qa"), instructions["qa"])
-        context = self._format_context(docs)
-
+        structured_llm = self.llm.with_structured_output(EvidenceExtraction)
         prompt = ChatPromptTemplate.from_template(
-            """당신은 한국 기업 공시(DART) 분석 전문가입니다.
-{instruction}
+            """당신은 기업 공시 분석 보조자입니다.
+질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.
 
 규칙:
-- 제공된 컨텍스트 문서만 사용하세요.
-- 컨텍스트에 없는 정보는 "공시 문서에서 확인되지 않습니다"라고 명시하세요.
-- 각 주요 주장에는 [기업명/연도/섹션] 형식으로 인용을 달아주세요.
+- 제공된 컨텍스트 밖의 정보를 추가하지 마세요.
+- 각 근거는 반드시 출처 앵커를 포함하세요.
+- 숫자, 기간, 조건이 보이면 그대로 유지하세요.
+- 근거가 부족하면 coverage를 sparse로, 서로 충돌하면 conflicting으로 설정하세요.
+- 아예 답할 근거가 없으면 coverage를 missing으로 두고 evidence는 비우세요.
+
+질문: {query}
+핵심 주제: {topic}
 
 컨텍스트:
 {context}
+"""
+        )
+
+        try:
+            result: EvidenceExtraction = (prompt | structured_llm).invoke(
+                {
+                    "query": state["query"],
+                    "topic": state.get("topic") or state["query"],
+                    "context": self._format_context(docs[: min(6, len(docs))]),
+                }
+            )
+            evidence_bullets = [
+                f"- {item.source_anchor} {item.claim} ({item.support_level})"
+                for item in result.evidence
+            ]
+            logger.info("[evidence] coverage=%s bullets=%s", result.coverage, len(evidence_bullets))
+            return {"evidence_bullets": evidence_bullets, "evidence_status": result.coverage}
+        except Exception as exc:
+            logger.warning("Evidence extraction failed, using deterministic fallback: %s", exc)
+            fallback = []
+            for doc, _score in docs[: min(4, len(docs))]:
+                metadata = doc.metadata or {}
+                anchor = (
+                    f"[{metadata.get('company', '?')} | {metadata.get('year', '?')} | "
+                    f"{metadata.get('section_path', metadata.get('section', '?'))}]"
+                )
+                snippet = re.sub(r"\s+", " ", doc.page_content).strip()[:220]
+                fallback.append(f"- {anchor} {snippet}")
+            return {
+                "evidence_bullets": fallback,
+                "evidence_status": "sparse" if fallback else "missing",
+            }
+
+    def _analyze(self, state: FinancialAgentState) -> Dict[str, Any]:
+        evidence_bullets = state.get("evidence_bullets", [])
+        if not evidence_bullets:
+            return {
+                "answer": (
+                    "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. "
+                    "공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다."
+                )
+            }
+
+        coverage = state.get("evidence_status", "sparse")
+        instructions = {
+            "qa": "근거를 바탕으로 핵심 사실을 정확하게 설명하세요.",
+            "comparison": "근거를 항목별로 정리해 비교하세요.",
+            "trend": "근거를 시간 흐름에 따라 정리하고 변화 원인을 설명하세요.",
+            "risk": "주요 리스크를 항목별로 정리하고 배경과 잠재 영향을 설명하세요.",
+        }
+        instruction = instructions.get(state.get("query_type", "qa"), instructions["qa"])
+        evidence_text = "\n".join(evidence_bullets)
+
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 한국 기업 공시(DART) 분석 전문가입니다.
+아래 근거 목록만 사용해 답변을 작성하세요.
+
+답변 규칙:
+- 제공된 근거 밖의 내용은 쓰지 마세요.
+- 핵심 주장마다 근거 앵커를 자연스럽게 반영하세요.
+- coverage 상태가 sparse이면 "현재 공시 근거가 제한적이다"는 점을 분명히 밝히세요.
+- coverage 상태가 conflicting이면 공시 근거가 상충한다고 명시하세요.
+- 질문에 필요한 정보가 충분하지 않으면 "공시 문서에서 확인되지 않는다"는 식으로 답하세요.
+
+질문 유형 지침:
+{instruction}
+
+coverage: {coverage}
+
+근거 목록:
+{evidence}
 
 질문: {query}
 
@@ -265,190 +350,141 @@ class FinancialAgent:
 
         chain = prompt | self.llm | StrOutputParser()
         answer = chain.invoke(
-            {"instruction": instruction, "context": context, "query": state["query"]}
+            {
+                "instruction": instruction,
+                "coverage": coverage,
+                "evidence": evidence_text,
+                "query": state["query"],
+            }
         )
-        logger.info("[analyze] 답변 생성 완료")
+        logger.info("[analyze] answer generated")
         return {"answer": answer}
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """검색된 청크에서 중복 제거한 인용 출처 목록 생성."""
-        seen: set = set()
+        seen = set()
         citations: List[str] = []
         for doc, score in state.get("retrieved_docs", []):
-            m = doc.metadata
-            key = (m.get("company"), m.get("year"), m.get("section_title"))
-            if key not in seen:
-                seen.add(key)
-                citations.append(
-                    f"[{m.get('company', '?')}] {m.get('year', '?')}년 "
-                    f"{m.get('report_type', '?')} — "
-                    f"{m.get('section_title', m.get('section', '?'))} "
-                    f"(관련도: {score:.3f})"
-                )
+            metadata = doc.metadata or {}
+            key = (
+                metadata.get("company"),
+                metadata.get("year"),
+                metadata.get("section_path"),
+                metadata.get("chunk_uid"),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            citations.append(
+                f"[{metadata.get('company', '?')}] {metadata.get('year', '?')}년 "
+                f"{metadata.get('report_type', '?')} / {metadata.get('section_path', metadata.get('section', '?'))} "
+                f"/ {metadata.get('block_type', '?')} (score: {score:.3f})"
+            )
         return {"citations": citations}
 
-    # ------------------------------------------------------------------
-    # 헬퍼
-    # ------------------------------------------------------------------
-
-    def _format_context(self, docs) -> str:
-        parts = []
-        for doc, score in docs:
-            m = doc.metadata
-            header = (
-                f"[{m.get('company', '?')} | {m.get('year', '?')}년 | "
-                f"{m.get('report_type', '?')} | "
-                f"{m.get('section_title', m.get('section', '?'))}]"
-            )
-            parts.append(f"{header}\n{doc.page_content}")
-        return "\n\n---\n\n".join(parts)
-
-    # ------------------------------------------------------------------
-    # 그래프 구성
-    # ------------------------------------------------------------------
-
     def _build_graph(self):
-        g = StateGraph(FinancialAgentState)
+        graph = StateGraph(FinancialAgentState)
 
-        g.add_node("classify", self._classify_query)
-        g.add_node("extract",  self._extract_entities)
-        g.add_node("retrieve", self._retrieve)
-        g.add_node("analyze",  self._analyze)
-        g.add_node("cite",     self._format_citations)
+        graph.add_node("classify", self._classify_query)
+        graph.add_node("extract", self._extract_entities)
+        graph.add_node("retrieve", self._retrieve)
+        graph.add_node("evidence", self._extract_evidence)
+        graph.add_node("analyze", self._analyze)
+        graph.add_node("cite", self._format_citations)
 
-        g.set_entry_point("classify")
-        g.add_edge("classify", "extract")
-        g.add_edge("extract",  "retrieve")
-        g.add_edge("retrieve", "analyze")
-        g.add_edge("analyze",  "cite")
-        g.add_edge("cite",     END)
+        graph.set_entry_point("classify")
+        graph.add_edge("classify", "extract")
+        graph.add_edge("extract", "retrieve")
+        graph.add_edge("retrieve", "evidence")
+        graph.add_edge("evidence", "analyze")
+        graph.add_edge("analyze", "cite")
+        graph.add_edge("cite", END)
 
-        return g.compile()
-
-    # ------------------------------------------------------------------
-    # 공개 인터페이스
-    # ------------------------------------------------------------------
+        return graph.compile()
 
     def run(self, query: str) -> Dict[str, Any]:
-        """
-        질문 → 분석 결과 반환.
-
-        Returns:
-            {
-                "query":      str,
-                "query_type": str,
-                "companies":  List[str],
-                "years":      List[int],
-                "answer":     str,
-                "citations":  List[str],
-            }
-        """
         initial: FinancialAgentState = {
-            "query":          query,
-            "query_type":     "",
-            "companies":      [],
-            "years":          [],
-            "topic":          "",
+            "query": query,
+            "query_type": "",
+            "companies": [],
+            "years": [],
+            "topic": "",
             "section_filter": None,
             "retrieved_docs": [],
-            "answer":         "",
-            "citations":      [],
+            "evidence_bullets": [],
+            "evidence_status": "missing",
+            "answer": "",
+            "citations": [],
         }
         final = self.graph.invoke(initial)
         return {
-            "query":         final["query"],
-            "query_type":    final["query_type"],
-            "companies":     final["companies"],
-            "years":         final["years"],
-            "answer":        final["answer"],
-            "citations":     final["citations"],
-            "retrieved_docs": final["retrieved_docs"],  # 평가 파이프라인에서 활용
+            "query": final["query"],
+            "query_type": final["query_type"],
+            "companies": final["companies"],
+            "years": final["years"],
+            "answer": final["answer"],
+            "citations": final["citations"],
+            "retrieved_docs": final["retrieved_docs"],
         }
 
     def ingest(self, chunks: List) -> None:
-        """
-        DocumentChunk 리스트를 벡터 스토어에 인덱싱.
-
-        Args:
-            chunks: FinancialParser.process_document() 반환값
-        """
         if not chunks:
-            logger.warning("[ingest] 청크가 비어있습니다.")
+            logger.warning("[ingest] chunks are empty.")
             return
-        texts     = [c.content  for c in chunks]
-        metadatas = [c.metadata for c in chunks]
+        texts = [chunk.content for chunk in chunks]
+        metadatas = [chunk.metadata for chunk in chunks]
         self.vsm.add_documents(texts, metadatas)
-        logger.info(f"[ingest] {len(chunks)}개 청크 인덱싱 완료")
+        logger.info("[ingest] indexed %s chunks", len(chunks))
 
-
-# --------------------------------------------------------------------------
-# 스모크 테스트  (파이프라인 전체: 파싱 → 인덱싱 → 질의)
-# --------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import sys
     import os
+    import sys
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     logging.basicConfig(level=logging.INFO)
 
     from processing.financial_parser import FinancialParser
-    from storage.vector_store import VectorStoreManager
+    from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
 
-    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    reports_dir   = os.path.join(_PROJECT_ROOT, "data", "reports")
-    chroma_dir    = os.path.join(_PROJECT_ROOT, "data", "chroma_dart")
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    reports_dir = os.path.join(project_root, "data", "reports")
+    chroma_dir = os.path.join(project_root, "data", "chroma_dart")
 
-    # 1) 보고서 파일 탐색
     target = None
-    for root_d, _, files in os.walk(reports_dir):
-        for f in files:
-            if f.endswith(".html"):
-                target = os.path.join(root_d, f)
+    for root_dir, _dirs, files in os.walk(reports_dir):
+        for filename in files:
+            if filename.endswith(".html"):
+                target = os.path.join(root_dir, filename)
                 break
         if target:
             break
 
     if not target:
-        print("[SKIP] data/reports/ 에 .html 파일 없음. dart_fetcher.py를 먼저 실행하세요.")
+        print("[SKIP] data/reports/ 아래에 .html 파일이 없습니다. dart_fetcher.py를 먼저 실행하세요.")
         sys.exit(0)
 
-    print(f"\n=== 스모크 테스트: {os.path.basename(target)} ===\n")
-
-    # 2) 파싱
     parser = FinancialParser()
-    meta   = {
-        "company":     "삼성전자",
-        "stock_code":  "005930",
-        "year":        2023,
+    metadata = {
+        "company": "삼성전자",
+        "stock_code": "005930",
+        "year": 2023,
         "report_type": "사업보고서",
-        "rcept_no":    "20230307000542",
+        "rcept_no": "20230307000542",
     }
-    chunks = parser.process_document(target, meta)
-    print(f"[1] 파싱 완료: {len(chunks)}개 청크")
+    chunks = parser.process_document(target, metadata)
+    print(f"[1] parsed {len(chunks)} chunks")
 
-    # 3) 인덱싱
-    vsm   = VectorStoreManager(
-        persist_directory=chroma_dir,
-        collection_name="dart_reports",
-    )
+    vsm = VectorStoreManager(persist_directory=chroma_dir, collection_name=DEFAULT_COLLECTION_NAME)
     agent = FinancialAgent(vsm)
     agent.ingest(chunks)
-    print(f"[2] 인덱싱 완료")
+    print("[2] indexing complete")
 
-    # 4) 질의 테스트
-    test_queries = [
-        "삼성전자의 주요 리스크 요인은 무엇인가요?",
-        "삼성전자 2023년 사업의 개요를 설명해주세요.",
-    ]
-
-    for q in test_queries:
-        print(f"\n{'='*60}")
-        print(f"Q: {q}")
-        result = agent.run(q)
-        print(f"유형: {result['query_type']}")
-        print(f"기업: {result['companies']}  연도: {result['years']}")
-        print(f"\nA: {result['answer'][:500]}...")
-        print(f"\n[인용 출처]")
-        for c in result["citations"]:
-            print(f"  - {c}")
+    for question in [
+        "삼성전자의 주요 리스크 요인을 알려줘.",
+        "삼성전자 2023년 매출과 영업이익은?",
+    ]:
+        result = agent.run(question)
+        print(f"\nQ: {question}")
+        print(f"type: {result['query_type']} | companies: {result['companies']} | years: {result['years']}")
+        print(result["answer"][:500])
+        print(result["citations"][:3])

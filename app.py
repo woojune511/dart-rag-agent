@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -33,7 +34,7 @@ logging.basicConfig(level=logging.WARNING)
 
 @st.cache_resource(show_spinner="모델 및 DB 로딩 중...")
 def load_components():
-    from storage.vector_store import VectorStoreManager
+    from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
     from agent.financial_graph import FinancialAgent
     from processing.financial_parser import FinancialParser
     from ingestion.dart_fetcher import DARTFetcher
@@ -43,7 +44,7 @@ def load_components():
     chroma_path   = str(_PROJECT_ROOT / "data" / "chroma_dart")
     reports_dir   = str(_PROJECT_ROOT / "data" / "reports")
 
-    vsm     = VectorStoreManager(persist_directory=chroma_path, collection_name="dart_reports")
+    vsm     = VectorStoreManager(persist_directory=chroma_path, collection_name=DEFAULT_COLLECTION_NAME)
     agent   = FinancialAgent(vsm, k=8)
     parser  = FinancialParser(chunk_size=1500, chunk_overlap=200)
     fetcher = DARTFetcher(download_dir=reports_dir)
@@ -90,7 +91,8 @@ with tab1:
         )
 
     with col2:
-        year_options = list(range(2024, 2019, -1))
+        current_year = max(2026, datetime.now().year)
+        year_options = list(range(current_year, current_year - 6, -1))
         selected_years = st.multiselect(
             "연도",
             options=year_options,
@@ -266,8 +268,8 @@ with tab2:
                         for i, item in enumerate(retrieved_docs, 1):
                             doc, score = (item[0], item[1]) if isinstance(item, (tuple, list)) else (item, None)
                             meta = getattr(doc, "metadata", {}) or {}
-                            section  = meta.get("section_label", meta.get("section", "—"))
-                            chunk_tp = meta.get("chunk_type", "—")
+                            section  = meta.get("section_path", meta.get("section", "—"))
+                            chunk_tp = meta.get("block_type", "—")
                             company  = meta.get("company", "—")
                             year     = meta.get("year", "—")
                             score_str = f"{score:.4f}" if score is not None else "—"
@@ -275,6 +277,8 @@ with tab2:
                                 f"**#{i}** &nbsp; `{company} {year}` &nbsp; 섹션: `{section}` &nbsp; "
                                 f"유형: `{chunk_tp}` &nbsp; 점수: `{score_str}`"
                             )
+                            if meta.get("table_context"):
+                                st.caption(f"Table context: {meta['table_context']}")
                             st.text_area(
                                 label=f"청크 #{i} 내용",
                                 value=getattr(doc, "page_content", None) or getattr(doc, "content", ""),
@@ -311,32 +315,17 @@ with tab3:
         if st.button("▶️ 평가 시작", type="primary"):
             _, agent, _, _, evaluator = load_components()
             dataset = evaluator.load_dataset()
-            subset = dataset[:n_questions]
+            subset = evaluator.build_single_company_eval_slice(dataset, max_questions=n_questions)
 
-            results_container = st.empty()
-            progress = st.progress(0)
-            per_results = []
+            with st.spinner(f"{len(subset)}개 질문 평가 중..."):
+                results = evaluator.run(
+                    examples=subset,
+                    run_name=run_name_input,
+                    params={"n_questions": len(subset), "mode": "single_company_accuracy"},
+                )
 
-            with st.spinner(f"{n_questions}개 질문 평가 중..."):
-                for i, ex in enumerate(subset, 1):
-                    res = evaluator.evaluate_one(ex)
-                    per_results.append(res)
-                    progress.progress(i / n_questions)
-
-            # MLflow 로깅
-            import mlflow
-            mlflow.set_experiment(evaluator.experiment_name)
-            with mlflow.start_run(run_name=run_name_input):
-                mlflow.log_param("n_questions", n_questions)
-                import numpy as np
-                agg = {
-                    "faithfulness":     float(np.mean([r.faithfulness for r in per_results])),
-                    "answer_relevancy": float(np.mean([r.answer_relevancy for r in per_results])),
-                    "context_recall":   float(np.mean([r.context_recall for r in per_results])),
-                }
-                mlflow.log_metrics(agg)
-            st.session_state["eval_results"]  = per_results
-            st.session_state["eval_aggregate"] = agg
+            st.session_state["eval_results"] = results["per_question"]
+            st.session_state["eval_aggregate"] = results["aggregate"]
             st.success("평가 완료! MLflow에 기록되었습니다.")
 
     # 결과 표시
@@ -346,11 +335,17 @@ with tab3:
         st.divider()
         st.subheader("집계 지표")
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Faithfulness",     f"{agg['faithfulness']:.3f}",     help="답변이 컨텍스트에 근거하는 정도 (LLM judge)")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Faithfulness", f"{agg['faithfulness']:.3f}", help="답변이 컨텍스트에 근거하는 정도 (LLM judge)")
         c2.metric("Answer Relevancy", f"{agg['answer_relevancy']:.3f}", help="질문-답변 의미 유사도 (임베딩 코사인)")
-        c3.metric("Context Recall",   f"{agg['context_recall']:.3f}",   help="정답 키워드 검색 커버리지")
-        c4.metric("평균 점수",          f"{sum(agg.values())/3:.3f}")
+        c3.metric("Context Recall", f"{agg['context_recall']:.3f}", help="정답 키워드 검색 커버리지")
+
+        c4, c5, c6 = st.columns(3)
+        c4.metric("Retrieval Hit@k", f"{agg['retrieval_hit_at_k']:.3f}", help="기대 회사/연도/섹션이 검색 결과에 포함되는 비율")
+        c5.metric("Section Match", f"{agg['section_match_rate']:.3f}", help="검색 청크 중 기대 섹션 비율")
+        c6.metric("Citation Coverage", f"{agg['citation_coverage']:.3f}", help="최종 인용이 기대 회사/연도/섹션을 얼마나 덮는지")
+
+        st.metric("평균 점수", f"{agg['avg_score']:.3f}")
 
         # 레이더 차트
         try:
@@ -358,8 +353,22 @@ with tab3:
             import altair as alt
 
             chart_data = pd.DataFrame({
-                "지표": ["Faithfulness", "Answer Relevancy", "Context Recall"],
-                "점수": [agg["faithfulness"], agg["answer_relevancy"], agg["context_recall"]],
+                "지표": [
+                    "Faithfulness",
+                    "Answer Relevancy",
+                    "Context Recall",
+                    "Retrieval Hit@k",
+                    "Section Match",
+                    "Citation Coverage",
+                ],
+                "점수": [
+                    agg["faithfulness"],
+                    agg["answer_relevancy"],
+                    agg["context_recall"],
+                    agg["retrieval_hit_at_k"],
+                    agg["section_match_rate"],
+                    agg["citation_coverage"],
+                ],
             })
 
             bar = (
@@ -371,8 +380,15 @@ with tab3:
                     color=alt.Color(
                         "지표:N",
                         scale=alt.Scale(
-                            domain=["Faithfulness", "Answer Relevancy", "Context Recall"],
-                            range=["#4C78A8", "#F58518", "#54A24B"],
+                            domain=[
+                                "Faithfulness",
+                                "Answer Relevancy",
+                                "Context Recall",
+                                "Retrieval Hit@k",
+                                "Section Match",
+                                "Citation Coverage",
+                            ],
+                            range=["#4C78A8", "#F58518", "#54A24B", "#E45756", "#72B7B2", "#B279A2"],
                         ),
                         legend=None,
                     ),
@@ -396,6 +412,9 @@ with tab3:
                 "Faithfulness": f"{r.faithfulness:.2f}",
                 "Relevancy":    f"{r.answer_relevancy:.2f}",
                 "Recall":       f"{r.context_recall:.2f}",
+                "Hit@k":        f"{r.retrieval_hit_at_k:.2f}",
+                "Section":      f"{r.section_match_rate:.2f}",
+                "Citation":     f"{r.citation_coverage:.2f}",
                 "Latency(s)":   f"{r.latency_sec:.1f}",
                 "오류": r.error or "",
             }
