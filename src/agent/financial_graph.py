@@ -200,12 +200,8 @@ class FinancialAgent:
             len(docs),
         )
 
-        if section_filter:
-            docs = self._apply_strict_filter(
-                docs,
-                lambda doc: doc.metadata.get("section") == section_filter
-                or section_filter in str(doc.metadata.get("section_path", "")),
-            )
+        # section_filter는 _rerank_docs에서 +0.20 부스트로만 반영.
+        # hard filter로 쓰면 LLM이 wrong section을 추출했을 때 관련 청크가 전부 제외됨.
 
         if companies:
             lowered_companies = {company.lower() for company in companies}
