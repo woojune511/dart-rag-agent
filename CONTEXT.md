@@ -144,16 +144,14 @@ DART_API_KEY=...
 - 주요 Python 파일 `py_compile` 통과
 - synthetic DART XML로 parser 스모크 테스트 통과
 - `chunk_uid`, `block_type`, `section_path`, `table_context` 생성 확인
-
-미완료:
-
-- 실제 DART + Gemini를 붙인 end-to-end 질의 검증
-- 새 컬렉션 `dart_reports_v2` 기준 재인덱싱 후 품질 측정
+- 삼성전자 2023 `dart_reports_v2` 재인덱싱 완료 (409청크)
+- "반도체 사업의 주요 리스크" end-to-end 질의 검증 완료 — 8청크 반환, 정상 답변 생성
+- 파서 오분류(감사제도→리스크) 수정 및 반영 확인
 
 잔여 리스크:
 
 - Python 3.14 환경에서 `langchain_core`의 Pydantic v1 관련 경고가 남아 있음
-- 기존 `dart_reports` 컬렉션 데이터가 있어도 새 기본값 `dart_reports_v2`에는 재인덱싱이 필요
+- NAVER 2024 데이터는 `dart_reports_v2`에 미인덱싱 상태 (멀티기업 테스트 필요 시 재수집 필요)
 
 ---
 
@@ -161,9 +159,8 @@ DART_API_KEY=...
 
 ### 우선순위 높음
 
-- 실제 기업 1개를 `dart_reports_v2`로 재인덱싱
-- Streamlit 또는 API에서 단일 기업 질의를 end-to-end로 검증
-- 평가 탭에서 retrieval 지표가 기대대로 찍히는지 확인
+- 추가 기업 인덱싱 후 멀티기업 비교 질의 검증
+- 평가 탭에서 retrieval 지표(retrieval_hit_at_k, section_match_rate 등) 실측 확인
 
 ### 다음 확장 후보
 
