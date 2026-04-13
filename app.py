@@ -133,8 +133,14 @@ with tab1:
                         }
                         chunks = parser.process_document(report.file_path, meta)
                         if chunks:
-                            st.write(f"  → 인덱싱 중: {len(chunks)}개 청크")
-                            agent.ingest(chunks)
+                            st.write(f"  → LLM 컨텍스트 생성 및 인덱싱 중: {len(chunks)}개 청크")
+                            ctx_progress = st.progress(0, text="LLM 컨텍스트 생성 중... (0/{})".format(len(chunks)))
+
+                            def _on_ctx_progress(done, total, _pb=ctx_progress):
+                                _pb.progress(done / total, text=f"LLM 컨텍스트 생성 중... ({done}/{total})")
+
+                            agent.contextual_ingest(chunks, on_progress=_on_ctx_progress)
+                            ctx_progress.empty()
                             total_chunks += len(chunks)
                         progress.progress((i + 1) / len(reports))
 
