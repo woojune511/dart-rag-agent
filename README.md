@@ -69,6 +69,9 @@ dart-rag-agent/
 │   ├── chroma_dart/              ChromaDB 영속 저장소
 │   └── eval/                     평가 데이터
 ├── app.py                        Streamlit UI
+├── benchmarks/                   실험 설정, 평가셋 템플릿, 결과 출력 경로
+├── docs/
+│   └── benchmarking.md           정확도 / 속도 / 비용 비교 가이드
 ├── main.py                       FastAPI 진입점
 ├── CONTEXT.md                    다음 세션 인수인계 문서
 ├── DECISIONS.md                  기술 결정 로그
@@ -257,6 +260,22 @@ python -m ops.evaluator
 ```bash
 mlflow ui --backend-store-uri mlruns/
 ```
+
+## 벤치마크 실험
+
+정확도, 속도, API 비용 trade-off를 반복 가능하게 비교하려면 아래 실험 러너를 사용합니다.
+
+```bash
+python -m src.ops.benchmark_runner --config benchmarks/experiment_matrix.sample.json
+```
+
+산출물:
+
+- `benchmarks/results/latest/results.json`
+- `benchmarks/results/latest/summary.csv`
+- `benchmarks/results/latest/summary.md`
+
+자세한 방법론과 해석 가이드는 [docs/benchmarking.md](docs/benchmarking.md)를 참고하세요.
 
 ## 참고 문서
 

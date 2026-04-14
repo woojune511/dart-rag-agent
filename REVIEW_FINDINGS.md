@@ -1,39 +1,73 @@
 # Review Findings
 
+> 특정 시점의 코드 리뷰 결과를 보관하는 문서입니다. 현재 상태와 1:1로 일치하지 않을 수 있으므로, 해결 여부를 함께 표시합니다.
+
+---
+
+## Snapshot
+
+- Review type: static code review
+- Scope: `app.py`, `main.py`, `src/api/financial_router.py`, `src/agent/financial_graph.py`, `src/storage/vector_store.py`, `src/processing/financial_parser.py`
+- Method: code inspection + `py_compile`
+- Excluded: DART / Gemini / ChromaDB / MLflow end-to-end execution
+
+---
+
 ## Findings
 
-### High
+### 1. Metadata post-filters were skipped when only one chunk survived
 
-- Metadata post-filters are skipped when they narrow results down to a single chunk.
-  - References: [src/agent/financial_graph.py](src/agent/financial_graph.py) lines 189-211
-  - Detail: `section_filter`, `company`, and `year` post-filters are only applied when `len(filtered) >= 2`.
-  - Impact: A query that correctly narrows to one matching chunk can still keep broader pre-filter results, which can surface chunks from the wrong company or year in the final answer.
-  - Repro note: This is likely when a narrowly scoped question such as a single-company, single-year query matches only one surviving chunk after filtering.
+- Severity: High
+- Status: Resolved
+- Original impact:
+  - single-company, single-year 질문에서도 broader candidate가 다시 섞일 수 있었음
+- Resolution:
+  - strict metadata filter가 non-empty면 유지되도록 수정
 
-### Medium
+### 2. Streamlit year selection lagged behind the current calendar
 
-- Streamlit year selection is hard-coded and already lags behind the current calendar.
-  - References: [app.py](app.py) line 93
-  - Detail: The UI offers `range(2024, 2019, -1)`, so newer filing years cannot be selected from the app even though the backend accepts arbitrary years.
-  - Impact: Users can believe the system does not support newer filings when the limitation is only in the UI.
-  - Repro note: On April 13, 2026, the UI cannot select 2025 business reports or 2026 periodic filings.
+- Severity: Medium
+- Status: Resolved
+- Original impact:
+  - UI에서 최신 연도를 선택할 수 없어 backend capability가 가려졌음
+- Resolution:
+  - 연도 선택 범위를 최신 연도 기준으로 확장
 
-- Hybrid search fuses results by raw `page_content`, which can collapse distinct chunks with identical text.
-  - References: [src/storage/vector_store.py](src/storage/vector_store.py) lines 124-141
-  - Detail: RRF uses `doc.page_content` as the merge key, so repeated table headers or boilerplate text from different companies or years are treated as the same result.
-  - Impact: Metadata can be overwritten during fusion, leading to incorrect citations or suppressed sources.
-  - Repro note: This is most plausible for repeated disclosure boilerplate or common table fragments across filings.
+### 3. Hybrid fusion used raw `page_content` as the merge key
 
-### Low
+- Severity: Medium
+- Status: Resolved
+- Original impact:
+  - 반복 boilerplate나 표 헤더가 다른 청크를 같은 결과로 합칠 수 있었음
+- Resolution:
+  - merge key를 `chunk_uid` 기준으로 변경
 
-- The Streamlit “유형” field for retrieved chunks is not backed by parser metadata.
-  - References: [app.py](app.py) lines 269-276, [src/processing/financial_parser.py](src/processing/financial_parser.py) lines 395-403
-  - Detail: The UI looks for `chunk_type`, but the parser stores `is_table` instead.
-  - Impact: The retrieved chunk inspector shows `—` for type, which makes the debug view less informative.
-  - Repro note: This should occur consistently for all retrieved chunks unless another producer injects `chunk_type`.
+### 4. Retrieved chunk type field in Streamlit was not backed by parser metadata
 
-## Verification Scope
+- Severity: Low
+- Status: Partially resolved
+- Original impact:
+  - retrieval debug panel에서 chunk type 가시성이 낮았음
+- Current note:
+  - parser에는 `block_type` 메타데이터가 존재
+  - UI가 현재 필드명을 일관되게 쓰는지는 다시 확인 가치가 있음
 
-- Static review covered the active app path centered on `app.py`, `main.py`, `src/api/financial_router.py`, `src/agent/financial_graph.py`, `src/storage/vector_store.py`, and `src/processing/financial_parser.py`.
-- Major Python files also passed `py_compile`, so the findings above describe behavioral and integration risks rather than syntax errors.
-- End-to-end calls against DART, Gemini, ChromaDB, or MLflow were not executed as part of this review.
+---
+
+## Lessons
+
+이 리뷰에서 가장 중요했던 포인트는 단순 버그 나열보다, retrieval contamination의 구조적 원인을 찾았다는 점입니다.
+
+특히 아래 세 가지가 이후 설계 변경으로 이어졌습니다.
+
+- strict metadata filtering 보강
+- `chunk_uid` 기반 fusion
+- richer metadata와 retrieval debug 강화
+
+---
+
+## How To Use This Document
+
+- 현재 코드 상태를 설명하는 문서로 쓰지 않음
+- 과거 리뷰에서 어떤 문제가 있었고, 그것이 어떤 설계 변경으로 이어졌는지 추적하는 아카이브로 사용
+- 현재 상태는 `README.md`, `CONTEXT.md`, `DECISIONS.md`를 우선 참고
