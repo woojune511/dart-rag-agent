@@ -1,809 +1,426 @@
-# 기술적 결정 & 문제 해결 로그
+# 기술 결정 & 문제 해결 로그
 
-> 각 Phase에서 발생한 문제, 근본 원인 분석, 시도한 해결책, 채택한 해결책, 결과를 기록.
-> 실패한 시도도 포함하여 의사결정 맥락을 보존.
-
----
-
-## Phase 1 — DART 데이터 수집 레이어
-
-### 결정 1: DART 문서 포맷 — ZIP 압축 해제 후 HTML 저장
-
-**문제**: DART Open API의 `document.zip` 엔드포인트가 실제 문서를 무슨 포맷으로 반환하는지 불명확했음.
-
-**분석**:
-- DART API 문서에는 "PDF 또는 HTML" 형식이라고만 명시
-- 실제 다운로드해보니 ZIP 내부에 `.html` 확장자 파일이 존재
-- 그러나 해당 파일은 표준 HTML이 아닌 **DART 독자 XML 포맷** (SECTION-1, SECTION-2, TABLE-GROUP 등 비표준 태그)
-
-**채택한 해결책**: `.html` 확장자 그대로 저장, 파싱은 lxml XML 파서 사용 (Phase 2에서 처리)
-
-**결과**: `data/reports/삼성전자/2023_사업보고서_{rcept_no}.html` 형태로 저장 성공 (4.4MB)
+> 주요 설계 결정, 성능 튜닝, 문제 해결 과정을 추적하기 위한 문서입니다.
 
 ---
 
-### 결정 2: 기업 코드 조회 — 부분 일치 폴백
+## 결정 1: DART 문서는 ZIP 내부 XML 기반 HTML로 파싱한다
 
-**문제**: DART API의 기업 코드 조회는 정확한 법인명을 요구하지만, 사용자는 "삼성전자"처럼 줄인 이름을 입력함.
+문제:
 
-**분석**:
-- `get_corp_code("삼성전자")` 호출 시 "삼성전자주식회사"와 매칭되지 않는 경우 발생
-- DART의 corp_code 전체 목록이 ZIP으로 제공됨 (`corpCode.xml`)
+- DART `document.zip` 응답 형식이 문서만 보고는 불명확했다.
 
-**채택한 해결책**:
-1. 전체 법인 목록 `corpCode.xml`을 캐싱
-2. 정확 일치 → 없으면 부분 일치 폴백 (`company_name in corp_name`)
-3. 복수 매칭 시 첫 번째 결과 반환
+결정:
 
-**결과**: "삼성전자" → "삼성전자주식회사" 정상 매칭
+- ZIP 내부 파일을 그대로 저장한 뒤 `lxml`로 XML 파싱한다.
 
----
+결과:
 
-## Phase 2 — DART XML 파서
-
-### 결정 3: lxml XMLParser(recover=True) 사용
-
-**문제**: DART XML 파일이 표준 XML 명세를 위반하는 경우 존재 (미닫힌 태그, 인코딩 오류).
-
-**분석**:
-- Python 기본 `xml.etree.ElementTree`로 파싱 시 `ParseError` 발생
-- DART 문서는 비표준 태그(SECTION-1, TABLE-GROUP 등)와 HTML 엔티티가 혼재
-
-**채택한 해결책**: `lxml.etree.XMLParser(recover=True, encoding="utf-8", huge_tree=True)`
-- `recover=True`: 비표준 구조 복구
-- `huge_tree=True`: 4MB 이상 대용량 파일 파싱 허용
-
-**결과**: 4.4MB 삼성전자 사업보고서 정상 파싱
+- DART 고유 태그 구조를 보존한 채 SECTION / TABLE 기반 파싱이 가능해졌다.
 
 ---
 
-### 결정 4: SECTION-N 태그를 섹션 경계로 사용
+## 결정 2: corp code는 정확 일치 우선, 필요 시 부분 일치와 alias를 사용한다
 
-**문제**: DART XML 구조에서 섹션을 어떻게 분리할 것인가.
+문제:
 
-**분석**:
-- DART XML 계층: `BODY > SECTION-1 > [SECTION-2 > SECTION-3]`
-- 각 SECTION-N에는 `<TITLE ATOC="Y">` 헤더 태그가 존재
-- 목차 항목(ATOC="Y")이 섹션 제목으로 사용됨
+- 사용자는 "삼성전자", "네이버"처럼 입력하지만 DART 등록명은 더 길거나 영문일 수 있다.
 
-**채택한 해결책**:
-- `root.iter()`로 모든 SECTION-1/2/3 탐색
-- 각 SECTION-N의 직속 자식 중 `TITLE ATOC="Y"` 찾아 섹션 제목으로 사용
-- SECTION-N 내 하위 SECTION-N은 별도 섹션으로 처리 (재귀 제외)
+결정:
 
-**결과**: 삼성전자 2023 사업보고서 → 40개 섹션 추출
+- `corpCode.xml` 전체를 캐시하고
+- 정확 일치 -> alias -> 부분 일치 순으로 corp code를 찾는다.
 
----
+결과:
 
-### 문제 5 (버그): `id()` 기반 하위 섹션 건너뛰기 실패
-
-**현상**: 초기 구현에서 `_extract_sections` 함수가 0개 섹션을 반환.
-
-**근본 원인**:
-```python
-# 잘못된 코드
-skip_descendants: set = set()
-for section in root.iter():
-    if id(section) in skip_descendants:  # 항상 False!
-        continue
-    ...
-    for desc in section.iter():
-        skip_descendants.add(id(desc))  # lxml이 프록시 ID를 재사용함
-```
-lxml은 XML 원소를 Python 객체로 접근할 때마다 새 프록시를 생성하고 `id()`가 달라짐. 즉 추가한 ID가 다음 iteration에서 매칭되지 않음.
-
-**실패한 해결책**: `id()` 대신 `element.getroottree().getpath(element)` 시도 — 성능 저하 심각.
-
-**채택한 해결책**: `id()` 방식 전면 폐기. 대신 `_collect_blocks` 재귀 함수에서 SECTION-N 태그를 만나면 즉시 `return` 처리:
-```python
-def process(elem):
-    if elem.tag in _SECTION_TAGS:
-        return   # 하위 섹션은 별도로 처리되므로 건너뜀
-    ...
-    for child in elem:
-        process(child)
-```
-
-**결과**: 섹션 0개 → 40개 정상 추출
+- `NAVER`, `HYBE` 같은 표기 차이를 흡수할 수 있게 됐다.
 
 ---
 
-### 문제 6: LIBRARY 태그로 인한 "II. 사업의 내용" 콘텐츠 누락
+## 결정 3: DART XML은 `lxml XMLParser(recover=True)`로 파싱한다
 
-**현상**: 리팩토링 후 "II. 사업의 내용" SECTION-1 직속 블록이 0개. 원래는 34,509자 존재.
+문제:
 
-**근본 원인**:
-DART XML에서 SECTION-1의 자식 SECTION-2들이 `<LIBRARY>` 태그로 감싸여 있음:
-```xml
-<SECTION-1>
-  <TITLE ATOC="Y">II. 사업의 내용</TITLE>
-  <LIBRARY>           ← 이 태그 안에 SECTION-2들이 있음
-    <SECTION-2>...</SECTION-2>
-    <SECTION-2>...</SECTION-2>
-  </LIBRARY>
-</SECTION-1>
-```
-구 코드는 `child.iter()`로 LIBRARY를 투과하여 SECTION-2 내용까지 가져왔음 (의도치 않은 동작).
-신 코드는 `process()` 재귀에서 LIBRARY를 만나면 자식을 순회하여 SECTION-N만 건너뜀 → 사실상 SECTION-2 콘텐츠가 올바르게 분리됨.
+- 실제 DART XML은 비표준 태그와 복구 가능한 XML 오류를 포함한다.
 
-**결론**: 이것은 버그가 아니라 올바른 수정. "II. 사업의 내용"의 실제 콘텐츠는 하위 SECTION-2/3에 있으며, 각각 독립 섹션으로 처리됨.
+결정:
+
+- `lxml.etree.XMLParser(recover=True, huge_tree=True)`를 사용한다.
+
+결과:
+
+- 대용량 사업보고서도 안정적으로 파싱할 수 있게 됐다.
 
 ---
 
-### 결정 7: 섹션 분류 — 22개 키워드 매핑 테이블
+## 결정 4: 섹션 경계는 `SECTION-1/2/3`과 `TITLE ATOC="Y"` 기준으로 잡는다
 
-**문제**: DART 섹션 제목은 보고서마다 표현이 다양함 ("5. 위험관리 및 파생거래", "리스크 관리" 등).
+문제:
 
-**분석**:
-- 기업별/연도별로 섹션 명칭 변동 존재
-- ML 분류기는 데이터 부족으로 불가
-- 규칙 기반 키워드 매칭이 현실적
+- 공시 문서의 논리 섹션 경계를 어디에 둘지 필요했다.
 
-**채택한 해결책**: 22개 레이블 × 키워드 목록 (`_SECTION_LABELS`), 순서 우선 매칭 (더 구체적인 키워드가 앞)
+결정:
 
-**결과**: 삼성전자 2023 → 40개 섹션, 대부분 정확히 분류됨.
-한계: "기타 참고사항" 같은 대형 복합 섹션은 단일 레이블으로 묶임.
+- `SECTION-1/2/3`를 순회하면서 직접 자식 `TITLE ATOC="Y"`를 읽어 섹션을 구성한다.
 
----
+결과:
 
-### 결정 8: 콘텐츠 기반 동적 재분류
-
-**문제**: "기타 참고사항" 섹션(16개 청크) 안에 리스크, 연구개발, 매출현황 등 다양한 주제가 혼재.
-
-**분석**:
-- 섹션 제목만으로는 세분화 불가
-- 청크 텍스트에 키워드 스캔하면 올바른 레이블 부여 가능
-- 모든 섹션에 적용하면 오분류 위험 (예: 재무제표 안의 "리스크" 언급 → 오분류)
-
-**채택한 해결책**: "기타사업", "기타" 레이블에만 `_reclassify_by_content()` 적용
-```python
-if label not in ("기타사업", "기타"):
-    return label   # 명확한 섹션은 그대로 유지
-```
-
-**결과**: 기존 "기타사업" 16청크 중 11개가 구체적 레이블(사업개요, 연구개발, 리스크, 매출현황)로 재분류
+- DART 문서 구조와 거의 같은 단위로 파싱할 수 있게 됐다.
 
 ---
 
-### 결정 9: 테이블 파이프 포맷 변환
+## 결정 5: 섹션 추출은 `id()` 기반 skip이 아니라 재귀 중단 방식으로 처리한다
 
-**문제**: 재무제표 테이블을 어떻게 텍스트화할 것인가. 단순 텍스트 이어붙이기 시 계정명과 수치가 분리됨.
+문제:
 
-**분석**:
-```
-# 나쁜 예 (셀을 그냥 이어붙임)
-"매출액 제54기 제53기 300조원 256조원"
-# → 임베딩에서 "매출액"과 "300조원"의 연관성 약함
+- 초기 구현에서 lxml element proxy 특성 때문에 `id()` 기반 descendant skip이 실패했다.
 
-# 좋은 예 (행 단위 파이프 구분)
-"매출액 | 제54기 | 제53기
-300조원 | 256조원"
-```
-파이프 포맷이 행 내 계정명-수치 관계를 보존하여 BM25·임베딩 검색 품질 향상.
+결정:
 
-**채택한 해결책**:
-```python
-def _format_table(self, table_elem) -> str:
-    rows = []
-    for tr in table_elem.findall(".//TR"):
-        cells = [_normalize("".join(cell.itertext())) for cell in tr if cell.tag in ("TD","TH","TU")]
-        rows.append(" | ".join(c for c in cells if c))
-    return "\n".join(rows)
-```
+- 하위 `SECTION-*`를 만나면 그 지점에서 재귀를 중단하도록 바꿨다.
+
+결과:
+
+- 섹션이 0개로 나오는 문제를 제거했다.
 
 ---
 
-## Phase 2 — 청킹 전략 개선 (주요 리팩토링)
+## 결정 6: 섹션 라벨은 rule-based keyword mapping으로 분류한다
 
-### 문제 10: 순수 RecursiveCharacterTextSplitter의 구조 무시
+문제:
 
-**현상**: 초기 구현에서 전체 섹션 텍스트를 하나로 합친 후 `RecursiveCharacterTextSplitter`로 분할.
+- 공시 문서의 섹션 제목은 기업마다 표현이 달라 단순 exact match가 어렵다.
 
-**근본 문제**:
-1. **단락 경계 무시**: 1500자 한도에서 문장 중간에 잘림 (한국어 `"다."` 경계 우선 적용해도 불완전)
-2. **표가 분할됨**: 재무제표 한 표가 두 청크에 걸쳐 저장 → "매출액"과 해당 금액이 다른 청크에 존재
-3. **매우 작은 표가 단독 청크**: 1~2행짜리 참조 표도 단독 청크 → 과도한 청크 수 (615개 → 1,668개)
+결정:
 
-**사용자 지적**: "document structure-based chunking을 일단 하고 그 안에서 recursive character level chunking을 써야 할 것 같음"
+- 규칙 기반 키워드 매핑 테이블을 두고
+- 명확하지 않은 경우에만 내용 기반 재분류를 사용한다.
 
----
+결과:
 
-### 해결 시도 1 (채택): 2단계 구조 기반 청킹 — Level 1 ALL-TABLE-STANDALONE
-
-**설계**:
-- Level 1: P 태그(단락) 블록을 chunk_size까지 누적, TABLE 블록은 항상 단독 청크
-- Level 2: 누적 단락이 chunk_size 초과 시 RecursiveCharacterTextSplitter 폴백
-
-**구현**: `_collect_blocks()` (P/TABLE 분리 수집) + `_chunk_blocks()` (누적 로직)
-
-**결과 (문제)**:
-```
-청크 수: 1,668개 (615개 대비 2.7배 증가)
-평균: 377자 / 중앙값: 98자
-is_table 청크: 1,244개 (74.6%)
-```
-→ 소형 테이블(1~3행, 50~200자)이 모두 단독 청크가 되어 오히려 악화.
+- 사업개요, 리스크, 연구개발, 재무제표 등 주요 라벨을 안정적으로 분류할 수 있게 됐다.
 
 ---
 
-### 해결 시도 2 (채택): 2단계 구조 기반 청킹 — 대형 테이블만 단독
+## 결정 7: 청킹은 구조 우선, 문자 단위 재분할은 fallback으로만 사용한다
 
-**근본 원인 재분석**: 모든 TABLE을 단독 처리하는 것이 문제. 재무 공시에는 소형 참조 표가 매우 많음.
+문제:
 
-**핵심 기준**: `standalone_threshold = chunk_size // 2 = 750자`
-- 750자 이상 테이블 → 단독 청크 (재무제표 본표)
-- 750자 미만 테이블 → 인접 단락과 함께 누적 (소형 참조 표)
+- 문서 전체를 바로 문자 단위 split하면 문단/표 경계를 잃고 너무 작은 청크가 많아진다.
 
-```python
-if is_table and len(text) >= standalone_threshold:
-    flush_pending()          # 대형 테이블: 단독 청크
-    result.append((text, True))
-else:
-    pending_texts.append(text)   # 소형 테이블 + 단락: 함께 누적
-    pending_flags.append(is_table)
-```
+결정:
 
-누적 블록의 is_table 판정: 테이블 문자 비중 > 50% 이면 True.
+- 먼저 구조 기반으로 블록을 묶고
+- 단일 블록이 너무 길 때만 `RecursiveCharacterTextSplitter`를 적용한다.
 
-**결과 (개선)**:
-```
-청크 수: 573개  ← 합리적 (원래 615, 중간 1,668)
-평균: 1,102자 / 중앙값: 1,345자  ← chunk_size=1500에 근접
-최소: 9자 / 최대: 2,306자
-is_table 청크: 451개 (78.7%)
-1,000자 이상: 69.5%
-50자 미만: 30개 (5.2%, XML 서브헤더 P 태그들, 불가피)
-```
+결과:
 
-**대형 테이블 행 분할**: `_split_table_by_rows()` — 헤더 행(첫 행)을 각 서브청크에 반복 포함하여 계정명 컨텍스트 유지
+- 문서 구조를 보존하면서도 과도한 fragmentation을 줄였다.
 
 ---
 
-### 결정 11: chunk_size=1500, chunk_overlap=200 파라미터
+## 결정 8: 작은 표는 문단과 함께, 큰 표는 standalone 청크로 처리한다
 
-**근거**:
-- DART 재무 공시의 단락(P 태그) 평균 200~400자
-- 1,500자면 3~7개 단락 포함 → 충분한 컨텍스트
-- overlap=200자: 단락 경계를 문자 수준에서 일부 공유 (구조 분할이 주이므로 overlap 역할 제한적)
+문제:
 
----
+- 모든 표를 독립 청크로 두면 참조 표가 지나치게 많아지고 의미가 잘게 끊긴다.
 
-## Phase 3 — LangGraph Financial Analysis Agent
+결정:
 
-### 결정 12: 5-노드 선형 파이프라인
+- threshold 미만 표는 인접 문단과 같이 누적하고
+- 큰 표만 standalone 처리한다.
 
-**설계 근거**:
-```
-classify → extract → retrieve → analyze → cite → END
-```
-- 분기 없는 선형 구조: 구현 단순, 디버깅 용이
-- 각 노드 단일 책임 원칙 유지
-- 향후 `comparison` 타입에서 병렬 retrieve 분기 추가 가능한 구조 예비
+결과:
 
-**대안**: classify 결과에 따른 조건부 분기
-- 거부 이유: 현재 쿼리 유형별 차이는 `_analyze`의 프롬프트 변경으로 충분히 처리 가능
+- 표 검색성과 문맥 보존의 균형을 잡을 수 있게 됐다.
 
 ---
 
-### 결정 13: Gemini Structured Output으로 엔티티 추출
+## 결정 9: BM25는 한국어용 character bigram 토크나이저를 사용한다
 
-**문제**: 쿼리에서 기업명·연도·섹션 필터를 정확히 추출해야 메타데이터 필터링이 가능.
+문제:
 
-**채택한 해결책**: `llm.with_structured_output(EntityExtraction)` (Gemini function calling 기반)
-```python
-class EntityExtraction(BaseModel):
-    companies: List[str]
-    years: List[int]
-    topic: str
-    section_filter: Optional[str]  # 15개 섹션 레이블 중 하나 or null
-```
-Pydantic 스키마가 Gemini에게 자동으로 JSON Schema로 전달 → 타입 안전한 구조화 출력
+- 공백 기반 토크나이징만으로는 조사 결합 표현을 잘 찾지 못한다.
 
----
+결정:
 
-### 결정 14: 메타데이터 후처리 필터링 (검색 후 필터)
+- 한국어 질의/본문에는 character bigram 토크나이저를 사용한다.
 
-**문제**: ChromaDB의 `where` 필터는 AND 조건만 지원, 복합 필터(기업 OR 조건 등) 불가.
+결과:
 
-**채택한 해결책**: k\*3개 먼저 검색 후 Python으로 후처리 필터링
-```python
-docs = vsm.search(enriched, k=self.k * 3)  # 오버샘플링
-# 필터 후 결과가 2개 이상일 때만 적용 (너무 적으면 필터 해제)
-if len(filtered) >= 2:
-    docs = filtered
-```
-필터 순서: section_filter → company → year (구체적 → 일반 순)
+- "매출액은", "영업이익이" 같은 표현에서도 lexical 검색 성능이 개선됐다.
 
 ---
 
-### 결정 15: 쿼리 유형별 전용 프롬프트
+## 결정 10: FastAPI와 Streamlit은 동일한 코어 컴포넌트를 공유한다
 
-| 유형 | 프롬프트 핵심 지시 |
-|---|---|
-| qa | 수치는 단위·출처 연도 함께 명시 |
-| comparison | 항목별 표 형식 비교 |
-| trend | 연도별 정리 + 원인·의미 해석 |
-| risk | 항목별 나열 + 배경·잠재 영향 |
+문제:
 
----
+- 별도 코드 경로가 많아질수록 검증과 유지보수가 어려워진다.
 
----
+결정:
 
-## Phase 4 — 평가 파이프라인
+- parser / vector store / agent 초기화 로직을 최대한 공통화한다.
 
-### 결정 16: 3가지 지표 선정 및 구현 방식
+결과:
 
-**배경**: RAG 품질 지표로는 RAGAS 라이브러리 사용이 일반적이나, 의존성 추가 없이 핵심 3지표만 직접 구현.
-
-| 지표 | 측정 대상 | 구현 방식 | 선택 이유 |
-|---|---|---|---|
-| Faithfulness | 답변이 컨텍스트에만 근거하는가 | LLM-as-judge (Gemini) | hallucination 감지의 핵심 지표 |
-| Answer Relevancy | 질문-답변 의미 유사도 | HuggingFace 임베딩 코사인 유사도 | 답변이 질문에서 벗어나는 경우 탐지 |
-| Context Recall | 정답의 핵심 키워드가 검색 컨텍스트에 포함되는가 | 한국어 토큰 recall (2글자 이상) | 검색 단계 품질 측정 |
+- UI/API 동작 차이를 줄이고 수정 반영 범위를 좁힐 수 있게 됐다.
 
 ---
 
-### 문제 17 (버그): `retrieved_docs`가 `agent.run()` 반환값에 없음
+## 결정 11: single-company 정확도 개선은 retrieval 보강부터 처리한다
 
-**현상**: 스모크 테스트 실행 시 `contexts=[]`로 faithfulness/recall 모두 계산 불가. 
-첫 실행 결과 F=0.000, C=0.000.
+문제:
 
-**근본 원인**:
-`FinancialAgent.run()`이 반환하는 dict에 `retrieved_docs` 키가 없었음:
-```python
-# 기존 반환값
-return {
-    "query": ..., "query_type": ..., "answer": ..., "citations": ...
-}
-# retrieved_docs는 LangGraph 내부 state에만 존재, 반환 안 됨
-```
+- 답변 오류의 상당수가 reasoning보다 retrieval contamination에서 시작됐다.
 
-**해결**: `financial_graph.py`의 `run()` 반환 dict에 `"retrieved_docs": final["retrieved_docs"]` 추가.
+결정:
+
+- 임베딩 교체, strict filter, `chunk_uid` dedup, rerank, evidence-first reasoning을 우선 도입한다.
+
+결과:
+
+- 단일 기업 질의의 오염도가 눈에 띄게 낮아졌다.
 
 ---
 
-### 문제 18 (버그): Google Gemini 임베딩 API 오류
+## 결정 12: 임베딩 기본값은 다국어 모델 `paraphrase-multilingual-MiniLM-L12-v2`를 사용한다
 
-**현상**: `answer_relevancy` 계산 시 404 에러:
-```
-models/text-embedding-004 is not found for API version v1beta
-```
+문제:
 
-**근본 원인**:
-`langchain_google_genai.GoogleGenerativeAIEmbeddings`가 v1beta API를 사용하는데,
-`text-embedding-004`는 v1 API에서만 지원됨. 두 API 버전의 모델 지원 범위가 다름.
+- 기존 영문 중심 임베딩은 한국어 공시 문서 retrieval에 한계가 있었다.
 
-**해결**: Google 임베딩 사용 포기. VectorStoreManager와 동일한 `HuggingFaceEmbeddings("all-MiniLM-L6-v2")` 재사용.
-- 장점: API 호출 비용/레이턴시 없음, 일관성 (검색-평가 동일 임베딩 공간)
-- 단점: 영어 최적화 모델이므로 한국어 의미 유사도 품질이 다국어 모델 대비 낮을 수 있음
+결정:
 
----
+- 기본 임베딩을 multilingual sentence-transformers 모델로 교체한다.
 
-### 문제 19: `retrieved_docs`가 `(doc, score)` 튜플 — 타입 불일치
+결과:
 
-**현상**: contexts 추출 시 doc 객체를 직접 접근하려다 실패.
-
-**근본 원인**: `VectorStoreManager.search()`가 `List[Tuple[DocumentChunk, float]]` 반환.
-evaluator는 `DocumentChunk` 또는 `Document` 단독으로 가정.
-
-**해결**:
-```python
-for item in raw_docs:
-    doc = item[0] if isinstance(item, (tuple, list)) else item
-    text = doc.content if hasattr(doc, "content") else doc.page_content
-```
+- 한국어 질의와 한국어 공시 문서 사이 semantic match가 개선됐다.
 
 ---
 
-### 결정 20: 평가 데이터셋 설계 (20개 질문)
+## 결정 13: 컬렉션은 `dart_reports_v2`로 분리한다
 
-**문제**: 평가셋 ground truth를 어떻게 작성할 것인가.
+문제:
 
-**분석 및 트레이드오프**:
-- **옵션 A**: 일반 지식 기반 정답 작성 — 빠르지만 실제 문서와 불일치 가능 → Context Recall 낮아짐
-- **옵션 B**: 실제 파싱 결과에서 정답 추출 — 정확하지만 수동 작업 필요
-- **옵션 C**: LLM으로 문서에서 Q&A 자동 생성 — 빠르지만 너무 쉬운 질문 생성 위험
+- 임베딩 모델이 바뀐 상태에서 기존 인덱스와 혼용하면 검색 결과가 불안정해진다.
 
-**채택**: 옵션 A (빠른 MVP) + 단, Context Recall이 문서 내용 반영 여부를 간접적으로 측정함을 문서화.
-실제 운영 단계에서는 실제 문서 청크에서 질문-정답 쌍 추출 필요 (옵션 B로 전환 권장).
+결정:
 
-**스모크 테스트 결과 (리스크 3문항)**:
-```
-Faithfulness    : 0.733  (LLM judge — 답변 신뢰도 양호)
-Answer Relevancy: 0.562  (임베딩 유사도 — 보통, 영어 모델 한계)
-Context Recall  : 0.167  (낮음 — ground truth가 문서 밖 키워드 포함 때문)
-평균 Latency    : ~23초/질문 (Gemini API 포함)
-```
+- Chroma 컬렉션을 `dart_reports_v2`로 분리하고 재인덱싱 기준을 명확히 한다.
+
+결과:
+
+- 새 retrieval 실험과 기존 인덱스를 혼동하지 않게 됐다.
 
 ---
 
----
+## 결정 14: hybrid dedup과 RRF merge key는 raw text가 아니라 `chunk_uid`를 사용한다
 
-## Phase 5 — FastAPI + Streamlit UI
+문제:
 
-### 결정 21: FastAPI 컴포넌트 싱글턴 — Lifespan 패턴
+- 서로 다른 기업/연도 문서라도 boilerplate 텍스트가 같으면 동일 청크처럼 합쳐질 수 있었다.
 
-**문제**: FastAPI 요청마다 VectorStoreManager(HuggingFace 모델 로드 ~3초)를 초기화하면 레이턴시 폭증.
+결정:
 
-**채택한 해결책**: `@asynccontextmanager lifespan`으로 앱 시작 시 한 번만 `init_components()` 호출, 모듈 수준 전역 변수로 보관:
-```python
-_vsm: Optional[VectorStoreManager] = None
-_agent: Optional[FinancialAgent] = None
+- parser에서 안정적인 `chunk_uid`를 부여하고 merge key로 사용한다.
 
-@asynccontextmanager
-async def lifespan(app):
-    init_components()
-    yield
+결과:
 
-app = FastAPI(lifespan=lifespan)
-```
-요청 핸들러에서는 `_require(component, name)` 헬퍼로 None 체크 후 사용.
+- 반복 문구 때문에 출처가 섞이는 문제를 줄였다.
 
 ---
 
-### 결정 22: Streamlit @st.cache_resource로 동일 패턴 구현
+## 결정 15: strict metadata filter는 결과가 non-empty면 유지한다
 
-**문제**: Streamlit은 매 상호작용마다 스크립트 전체를 재실행. 모델 로드가 반복됨.
+문제:
 
-**채택한 해결책**: `@st.cache_resource(show_spinner="모델 및 DB 로딩 중...")`로 컴포넌트 초기화 함수 데코레이팅. 세션 간 캐시 공유로 최초 1회만 로드.
+- 기존 로직은 필터 결과가 1개면 오히려 필터를 버려 잘못된 청크가 다시 섞였다.
 
----
+결정:
 
-### 문제 23 (버그): DARTFetcher 파라미터명 불일치
+- filter 결과가 1개 이상이면 그대로 유지하고
+- 0개일 때만 fallback한다.
 
-**현상**: `DARTFetcher(reports_dir=...)` 호출 시 `TypeError: unexpected keyword argument`.
+결과:
 
-**근본 원인**: `DARTFetcher.__init__` 파라미터가 `download_dir`인데, router/app.py에 `reports_dir=`로 작성.
-
-**해결**: `download_dir=_REPORTS_DIR`로 수정. 동일하게 `report.local_path` → `report.file_path` (ReportMetadata 필드명 확인 후 수정).
-
----
-
-### 결정 24: Streamlit에서 FastAPI 호출 방식 — 직접 Python 클래스 사용
-
-**대안 비교**:
-- **옵션 A (채택)**: Streamlit이 Python 클래스 직접 인스턴스화 (`@st.cache_resource`)
-- **옵션 B**: Streamlit → FastAPI HTTP 호출 (httpx/requests)
-
-**옵션 A 채택 이유**:
-- 두 서버(uvicorn + streamlit) 동시 실행 불필요
-- 네트워크 레이턴시 없음, 오류 처리 단순
-- FastAPI는 외부 REST 클라이언트를 위한 별도 인터페이스로 유지
+- single-company wrong-document contamination을 구조적으로 줄였다.
 
 ---
 
-### 문제 26 (버그): 2024년 사업보고서 조회 결과 없음
+## 결정 16: answer synthesis는 evidence-first로 구성한다
 
-**현상**: Streamlit Tab 1에서 네이버 2024년 선택 → "공시 문서를 찾을 수 없습니다."
+문제:
 
-**근본 원인 A — 날짜 범위 오류**:
-DART `list.json`의 `bgn_de`/`end_de`는 **접수일** 기준. N년 사업보고서는 N+1년 3월에 접수됨.
-기존 코드: `bgn_de=20240101&end_de=20241231` → 2024년에 접수된 문서만 검색 (=2023년도 보고서).
-2024년도 사업보고서는 2025년 3월 접수이므로 영원히 찾을 수 없었음.
+- retrieval 결과 전체를 바로 요약하면 약한 근거가 과잉 일반화될 수 있다.
 
-```python
-# 수정: 사업보고서는 다음 해 접수일 범위로 조회
-if report_type == "사업보고서":
-    bgn_de = f"{year + 1}0101"   # 2025-01-01
-    end_de = f"{year + 1}0630"   # 2025-06-30
-```
+결정:
 
-**검증**: NAVER 2024 사업보고서 접수일 2025-03-18 정상 조회.
+- `retrieve -> evidence -> analyze -> cite` 흐름을 사용한다.
 
-**근본 원인 B — 기업명 한글↔영문 불일치**:
-"네이버" → DART 등록명 "NAVER주식회사" (영문).
-기존 부분 일치: `"네이버" in "NAVER주식회사"` = **False** (한글 vs 영문).
+결과:
 
-```python
-# 수정: 별칭 딕셔너리 + 4단계 폴백
-_COMPANY_ALIASES = {"네이버": "NAVER", "하이브": "HYBE", ...}
-
-# get_corp_code() 조회 순서:
-# 1. 정확 일치
-# 2. 별칭 적용 후 부분 일치 ("네이버" → "NAVER" 검색)
-# 3. 역방향 부분 일치 (DB명이 입력명에 포함)
-```
-
-**검증**: "네이버" → corp_code 00266961 정상 조회.
+- 최종 답변과 근거의 연결이 더 명확해졌다.
 
 ---
 
-### 결정 25: 4개 REST 엔드포인트 설계
+## 결정 17: 평가 지표는 answer-only가 아니라 retrieval-aware로 확장한다
 
-| 엔드포인트 | 설계 근거 |
-|---|---|
-| `POST /api/ingest` | 배경 처리 없이 동기식 — 수집 완료 후 응답 (청크 수 반환) |
-| `POST /api/query` | LangGraph invoke가 동기이므로 async def + 블로킹 OK |
-| `GET /api/companies` | ChromaDB `get(include=["metadatas"])`로 집계, 전체 스캔이지만 수백만 청크가 아니므로 허용 |
-| `GET /api/health` | `bm25_docs` 길이로 인덱싱 상태 확인 (`vector_store._collection.count()` 대신 공개 API 사용) |
+문제:
 
----
+- faithfulness / relevancy만으로는 retrieval 실패와 synthesis 실패를 분리하기 어렵다.
 
----
+결정:
 
-## Phase 5 이후 — 검색 품질 개선 및 UI 보완
+- `retrieval_hit_at_k`, `section_match_rate`, `citation_coverage`를 추가한다.
 
-### 문제 27 (버그): 삼성전자 질문에 NAVER 청크 반환
+결과:
 
-**현상**: DB에 삼성전자 2023 데이터 확인 후 삼성전자 관련 질문 → LLM이 "제공된 공시 문서는 NAVER의 2024년 사업보고서에 대한 내용이며, 삼성전자 정보는 포함되어 있지 않습니다."라고 답변.
-
-**근본 원인 A — 벡터 검색 단계에서 기업 필터 미적용**:
-기존 구현은 k×3개 후보를 검색한 뒤 Python post-filter를 적용하는 방식.
-`all-MiniLM-L6-v2`는 영어 전용 모델이라 한국어 텍스트 임베딩이 기업·주제별로 분리되지 않음.
-→ 삼성전자 질문인데 NAVER 청크가 상위 랭크 → 삼성전자 청크가 top-24 내에 2개 미만 → company filter 폴백 → NAVER 청크로 그대로 답변.
-
-**근본 원인 B — 연도 타입 불일치**:
-ChromaDB 메타데이터 `year`가 integer로 저장되지만, 일부 상황에서 string 반환 가능.
-기존 post-filter: `d.metadata.get("year") in years` — `"2023" in [2023]` = **False** → year filter 전체 폴백.
-
-**해결**:
-1. `VectorStoreManager.search()`에 `where_filter: dict` 파라미터 추가
-2. ChromaDB `similarity_search_with_score(filter=where_filter)` 로 벡터 검색 시점에 회사·연도 필터 적용
-3. `_retrieve` 노드에서 company/year → `$and` 조건 구성 후 전달
-4. BM25 결과는 where_filter 미지원이므로 post-filter는 유지하되 `int()` 캐스팅으로 타입 불일치 해소
-
-```python
-# _retrieve 내 where_filter 구성
-conditions = []
-if companies:
-    conditions.append({"company": companies[0]})
-if years:
-    conditions.append({"year": int(years[0])})
-where_filter = {"$and": conditions} if len(conditions) > 1 else (conditions[0] if conditions else None)
-
-docs = self.vsm.search(enriched, k=self.k * 3, where_filter=where_filter)
-```
+- 검색 품질과 답변 품질을 나눠서 볼 수 있게 됐다.
 
 ---
 
-### 결정 28: BM25 한국어 character bigram 토크나이저
+## 결정 18: parent-child chunking을 도입한다
 
-**문제**: 기존 스페이스 분리(`split(" ")`) 방식으로는 "매출액과" ≠ "매출액" (조사 결합형 불일치) → BM25가 핵심 재무 용어를 찾지 못함.
+문제:
 
-**분석**:
-- "매출액과" → `["매출액과"]` → corpus의 `"매출액"` 과 매칭 불가
-- 한국어 교착어 특성상 조사·어미가 어근에 결합 ("영업이익은", "매출액을", "사업보고서의")
-- konlpy(형태소 분석기): Java 의존성, 설치 복잡, 포트폴리오 환경에 부적합
+- 작은 청크는 검색에는 유리하지만 답변에 필요한 문맥이 부족했다.
 
-**대안 비교**:
+결정:
 
-| 방식 | 품질 | 의존성 |
-|---|---|---|
-| 스페이스 분리 | 낮음 (조사 불일치) | 없음 |
-| 조사 제거 규칙 | 중간 (규칙 누락 위험) | 없음 |
-| **character bigram (채택)** | **높음 (자동 교집합)** | **없음** |
-| konlpy 형태소 | 매우 높음 | Java 필요 |
+- 검색은 자식 청크로 수행하고
+- 같은 섹션 자식 청크를 묶은 부모 텍스트를 답변 컨텍스트로 사용한다.
 
-**채택: character bigram**
-```
-"매출액과" → ["매출", "출액", "액과"]
-"매출액"   → ["매출", "출액"]
-→ 교집합: {"매출", "출액"} → BM25 스코어 증가
-```
-영문·숫자 토큰은 단어 단위 그대로 유지.
+결과:
 
-**연산 비용**: 573청크 기준 토큰 수 ~38K(기존) → ~750K(bigram). BM25 인덱스 빌드 <0.5초, 쿼리 수 ms → 허용 가능. 3만 청크(5기업×5년) 기준 빌드 수초, 쿼리 ms 유지.
+- retrieval granularity와 reasoning context를 분리할 수 있게 됐다.
 
 ---
 
-### 결정 29: rcept_no 기반 중복 인덱싱 방지
+## 결정 19: contextual retrieval을 도입한다
 
-**문제**: 이미 인덱싱된 보고서에 대해 수집 버튼을 다시 클릭하면 동일 청크가 ChromaDB에 중복 추가됨 → 검색 결과에 중복 청크 등장, 지표 왜곡.
+문제:
 
-**채택한 해결책**:
-- `VectorStoreManager.is_indexed(rcept_no: str) -> bool` 메서드 추가
-  - `vector_store.get(where={"rcept_no": rcept_no}, limit=1)` 으로 1건 존재 여부만 확인
-- app.py, financial_router.py 인덱싱 루프 내 `is_indexed()` 호출 → 존재 시 skip
+- 일부 청크는 원문만으로는 문서 내 위치나 역할이 드러나지 않아 검색 매칭이 약했다.
 
-**rcept_no 선택 이유**: DART 접수번호는 문서별 고유 식별자로 보장됨. company+year 조합보다 정밀 (동일 기업·연도에 정정 보고서가 존재할 수 있음).
+결정:
 
----
+- 자식 청크마다 LLM이 1문장 컨텍스트를 생성해 인덱싱 텍스트 앞에 prepend한다.
 
-## Phase 6 — 단일 기업 정확도 향상 스프린트
+결과:
 
-### 결정 30: 기본 임베딩 모델을 다국어 모델로 교체
-
-**문제**: 기존 `all-MiniLM-L6-v2`는 영어 중심 모델이라 한국어 공시 문서에서 기업/주제 구분력이 약했고, retrieval contamination이 반복됨.
-
-**채택한 해결책**:
-
-- 기본 임베딩 모델을 `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`로 변경
-- 컬렉션 이름도 `dart_reports_v2`로 올려 이전 인덱스와 분리
-
-**결과**:
-
-- 새 인덱스는 다국어 임베딩 기준으로 일관되게 재생성 가능
-- 검색 품질 개선 작업의 기준선을 명확히 분리
+- BM25와 dense retrieval 모두에서 문맥 인지가 강화됐다.
 
 ---
 
-### 결정 31: 하이브리드 검색 dedup 기준을 raw text에서 `chunk_uid`로 변경
+## 결정 20: contextual ingest는 순차 호출 대신 `llm.batch()` 병렬 처리로 전환한다
 
-**문제**: 기존 RRF 병합이 `page_content` 문자열을 key로 사용해, 서로 다른 기업/연도 청크가 동일 본문이면 하나로 합쳐질 수 있었음.
+문제:
 
-**채택한 해결책**:
+- 문서 하나를 통으로 인덱싱할 때 청크 수만큼 LLM을 순차 호출해 시간이 지나치게 오래 걸렸다.
 
-- 파서가 모든 청크에 `chunk_uid`를 부여
-- hybrid fusion 시 merge key를 `chunk_uid`로 사용
+결정:
 
-**결과**:
+- `contextual_ingest()` 내부를 `llm.batch(..., config={"max_concurrency": ...})` 기반 병렬 처리로 전환한다.
+- 병렬도는 `CONTEXTUAL_INGEST_MAX_WORKERS` 환경변수로 제어한다.
+- app/API는 같은 설정을 사용한다.
 
-- 반복 표 헤더나 boilerplate 문구가 있어도 출처가 섞이지 않음
-- 인용과 retrieval 디버깅이 더 안정적이 됨
+결과:
 
----
-
-### 결정 32: strict metadata filtering은 non-empty면 유지
-
-**문제**: 기존 로직은 회사/연도/섹션 필터 결과가 1개만 남으면 필터를 버리고 원본 후보군으로 되돌아갔음.
-
-**채택한 해결책**:
-
-- 필터 결과가 1개 이상이면 그대로 유지
-- 필터 결과가 0개일 때만 더 넓은 후보군으로 fallback
-
-**결과**:
-
-- 단일 기업 질의에서 다른 기업 청크가 다시 섞이는 현상 제거
-- review findings의 핵심 오염 케이스를 구조적으로 차단
+- 순차 처리 대비 contextual ingest의 체감 속도가 크게 개선됐다.
 
 ---
 
-### 결정 33: 청크 메타데이터를 retrieval/debug 친화적으로 확장
+## 결정 21: larger chunk 실험은 moderate tuning으로 제한한다
 
-**문제**: 기존 메타데이터는 출처 확인에는 충분했지만, 검색 오동작 디버깅과 표 문맥 보존에는 부족했음.
+문제:
 
-**채택한 해결책**:
+- LLM 성능과 context window가 좋아진 만큼 청크 수를 줄여 ingest 시간을 단축할 여지가 있었다.
 
-추가 메타데이터:
+결정:
 
-- `chunk_uid`
-- `block_type`
-- `section_path`
-- `table_context`
+- chunking 알고리즘 자체를 바꾸지 않고
+- moderate chunk size expansion만 시험한다.
 
-**결과**:
+실험 결과:
 
-- UI에서 검색된 청크의 성격을 더 쉽게 파악 가능
-- 표가 단독 청크여도 직전 문맥을 함께 볼 수 있게 됨
+| 설정 | 청크 수 | contextual ingest | 판단 |
+|---|---:|---:|---|
+| `1500 / 200` | `502` | `1013.569초` | 기준선 |
+| `2800 / 350` | `266` | `292.289초` | 속도 우수, 리스크 질의 품질 회귀 |
+| `2500 / 320` | `300` | `584.25초` | 최종 채택 |
 
----
+결과:
 
-### 결정 34: answer generation을 evidence-first로 재구성
-
-**문제**: 기존 `retrieve → analyze` 흐름은 LLM이 retrieved context 전체를 평탄하게 읽으면서, 약한 근거를 과하게 일반화할 여지가 있었음.
-
-**채택한 해결책**:
-
-그래프를 다음과 같이 확장:
-
-```text
-classify → extract → retrieve → evidence → analyze → cite
-```
-
-- 상위 청크에서 먼저 concise evidence bullet 추출
-- 최종 답변은 evidence bullet만 사용해 생성
-- 근거 부족 또는 충돌 시 이를 답변에 명시
-
-**결과**:
-
-- 답변 생성 과정이 더 추적 가능해짐
-- 근거와 최종 서술의 연결이 명확해짐
+- 너무 큰 청크는 검색 품질을 해칠 수 있다는 점을 확인했다.
+- `2500 / 320`이 속도와 품질의 균형이 가장 좋았다.
 
 ---
 
-### 결정 35: 평가를 answer-only에서 retrieval-aware로 확장
+## 결정 22: 파서 기본 청크 설정은 `2500 / 320`으로 올린다
 
-**문제**: Faithfulness, Relevancy, Recall만으로는 retrieval 실패와 synthesis 실패를 분리해서 보기 어려웠음.
+문제:
 
-**채택한 해결책**:
+- `1500 / 200` 기준은 정확도는 괜찮았지만 contextual ingest LLM 호출 수가 너무 많았다.
 
-기존 지표에 더해 다음을 추가:
+결정:
 
-- `retrieval_hit_at_k`
-- `section_match_rate`
-- `citation_coverage`
+- `FinancialParser` 기본값을 `chunk_size=2500`, `chunk_overlap=320`으로 변경한다.
+- app/API도 같은 기본값을 사용하도록 맞춘다.
 
-또한 단일 기업 정확도 확인용 curated eval slice 빌더를 추가.
+결과:
 
-**결과**:
-
-- 검색과 답변 품질을 분리해 추적 가능
-- MLflow에서 retrieval 회귀를 더 빨리 포착 가능
+- 자식 청크 수가 줄어들고 ingest 시간이 유의미하게 감소했다.
 
 ---
 
-### 결정 36: Streamlit 디버그 패널을 retrieval 메타데이터 중심으로 보강
+## 결정 23: larger chunk에서도 retrieval 신호를 보강하기 위해 deterministic metadata prefix를 추가한다
 
-**문제**: 검색 결과를 봐도 청크가 문단인지 표인지, 어느 섹션 계층에 속하는지 바로 알기 어려웠음.
+문제:
 
-**채택한 해결책**:
+- 청크가 커질수록 섹션/문서 정체성이 본문 속에 묻혀 특정 질의에서 retrieval 품질이 흔들릴 수 있었다.
 
-- `block_type`, `section_path`, `table_context`를 UI에 노출
-- 평가 탭도 retrieval 지표를 함께 시각화
-- 연도 선택 범위를 고정값에서 최신 연도 기준 동적으로 확장
+결정:
 
-**결과**:
+- contextual ingest 시 생성되는 인덱싱 텍스트 앞에 다음 메타데이터 라인을 추가한다.
+  - 회사 / 연도 / 보고서
+  - 섹션 breadcrumb
+  - section label / block type
 
-- 사용 중 retrieval 문제를 더 빨리 눈으로 확인 가능
-- 평가 화면이 answer-only 대시보드에서 retrieval-aware 대시보드로 확장됨
+결과:
 
----
-
----
-
-## 검색 품질 버그 수정 (재인덱싱 포함)
-
-### 문제 37 (버그): section_filter hard filter로 인한 단일 오분류 청크만 반환
-
-**현상**: "삼성전자 2023년 반도체 사업의 주요 리스크 요인은 무엇인가요?" 질문 → 청크 1개만 반환 (감사제도 섹션), "근거를 찾지 못했습니다" 답변.
-
-**근본 원인 A — 파서 오분류**:
-`_SECTION_LABELS`에 "감사제도" 키워드가 없어 섹션 제목 기반 분류 시 "기타"로 떨어짐.
-이후 `_reclassify_by_content()`가 감사제도 텍스트 내 "위험" 관련 단어를 감지해 "리스크"로 재분류.
-
-```python
-# 수정: 감사의견 레이블에 키워드 추가
-("감사의견", ["감사의견", "내부감사", "내부통제", "감사제도", "감사위원"]),
-```
-
-**근본 원인 B — section_filter hard filter 과도한 제한**:
-`section_filter`를 `_apply_strict_filter()`로 hard 적용하면, LLM이 올바르게 "리스크"를 추출해도 top-32 후보 안에 해당 섹션 청크가 거의 없으면 오분류된 1개 청크만 살아남음.
-"반도체 사업 리스크"는 실제로 `경영진단` / `기타사업` 섹션에 기술되어 있어, `section_filter="리스크"` hard 필터가 관련 청크를 모두 배제.
-
-```python
-# 수정: section_filter hard filter 제거, rerank boost(+0.20)로만 soft 반영
-# _rerank_docs()에 이미 section 일치 시 +0.20 부스트 존재
-```
-
-**재인덱싱**: 파서 오분류 수정을 DB에 반영하기 위해 기존 409개 청크 삭제 후 재파싱·재인덱싱.
-재인덱싱 후 섹션 분포: `감사의견: 6`, `리스크: 4` (기존: 리스크 5개 중 1개가 감사제도)
-
-**결과**: 8개 청크 반환, `경영진단`·`기타사업` 섹션이 상위 랭크 → 반도체 파운드리 침체, 거시경제 불확실성, 지정학 리스크 등 실제 답변 정상 생성.
+- 큰 청크에서도 회사/연도/섹션 신호가 검색 입력에 명시적으로 남게 됐다.
 
 ---
 
-## Phase 5 — 청킹 전략 고도화: Parent-Child + Contextual Retrieval
+## 결정 24: `2800 / 350`은 채택하지 않는다
 
-### 결정 38: 청킹 전략을 Parent-Child + Contextual Retrieval로 전환
+문제:
 
-**문제**: 기존 구조 기반 청킹(rule-based section 분류)의 한계:
+- `2800 / 350`은 ingest 속도는 좋았지만 리스크 질의에서 관련 섹션이 약해지고 답변 품질이 불안정했다.
 
-1. DART 법정 섹션 구조(예: "경영진단", "리스크")와 실제 콘텐츠 토픽이 일치하지 않음.
-   - "반도체 리스크" 관련 내용이 `리스크` 섹션이 아닌 `경영진단`에 기술되어 있음.
-2. 1500자 자식 청크는 벡터 검색 정밀도를 위해 작게 유지하나, LLM 컨텍스트로는 맥락이 부족함.
-3. BM25/벡터 모두 "반도체 파운드리 침체" 같은 토픽 표현이 청크에 없어 matching이 실패하는 경우 존재.
+결정:
 
-**분석**:
+- 속도만으로 채택하지 않고 품질 회귀가 없는 `2500 / 320`을 최종안으로 선택한다.
 
-- **Parent-child chunking**: 자식 청크(~1500자)로 검색하되, LLM 답변 생성 시에는 해당 섹션 전체(부모 청크, 최대 6000자)를 전달. 검색 정밀도와 LLM 컨텍스트 풍부도를 동시에 확보.
-- **Contextual Retrieval (Anthropic, 2024)**: 인덱싱 시점에 LLM이 각 청크에 대해 1문장 컨텍스트 설명을 생성하여 청크 텍스트 앞에 prepend. BM25/벡터 검색 시 "어디에서 온 어떤 내용인지"가 포함되어 매칭 정확도 향상.
-- 두 기법은 서로 독립적이며 동시 적용 가능.
+결과:
 
-**채택한 해결책**:
+- 사업 질의와 리스크 질의 모두 smoke 수준에서 다시 안정화됐다.
 
-4개 파일에 걸쳐 구현:
+---
 
-1. **`financial_parser.py`**:
-   - `process_document()` 출력 메타데이터에 `parent_id = f"{rcept_no}::{section_path}"` 추가
-   - `build_parents(chunks, max_parent_len=6000)` 정적 메서드 추가: 같은 `parent_id` 자식들을 합쳐 섹션 전체 텍스트 딕셔너리 반환
+## 현재 운영 메모
 
-2. **`vector_store.py`**:
-   - `parents.json`을 ChromaDB 디렉터리 옆에 JSON으로 영속 저장
-   - `add_parents()`, `get_parent()`, `delete_parents_for_rcept()` 메서드 추가
+- Python 3.14 환경에서 `langchain_core`의 Pydantic v1 경고가 남아 있다.
+- `langchain_community.vectorstores.Chroma` deprecation 경고가 남아 있다.
+- Hugging Face 모델 캐시 `.hf_cache/`가 로컬에 생성된다.
 
-3. **`financial_graph.py`**:
-   - `_generate_context(text, metadata) → str`: LLM으로 청크당 50자 이내 한국어 컨텍스트 생성, 실패 시 rule-based fallback
-   - `contextual_ingest(chunks, on_progress, max_workers=3)`: 부모 저장 → ThreadPoolExecutor로 병렬 컨텍스트 생성 → `컨텍스트\n\n청크원문` 형태로 인덱싱
-   - `_format_context()`: `vsm.get_parent(parent_id)`로 부모(섹션 전체) 텍스트를 LLM 컨텍스트에 사용, `seen_parents` set으로 중복 섹션 제거
+---
 
-4. **`app.py`**:
-   - `agent.ingest()` → `agent.contextual_ingest()` 교체
-   - LLM 컨텍스트 생성 진행 상황을 Streamlit progress bar로 표시 (예: "LLM 컨텍스트 생성 중... 150/409")
+## 다음 검토 포인트
 
-**결과**:
-
-- 인덱싱 시 청크마다 LLM 1-sentence 컨텍스트가 prepend되어 BM25·벡터 매칭 정확도 향상 기대
-- LLM 답변 생성 시 1500자 자식 청크 대신 최대 6000자 부모(섹션 전체) 사용 → 맥락 손실 감소
-- 삼성전자 2023 기준 약 409번의 병렬 LLM 호출 (max_workers=3, 예상 1~3분)
-- 삭제 후 재인덱싱 및 실측 검증 필요
+- contextual ingest 결과를 `chunk_uid` 기준으로 캐시할지
+- `table_context` 이름을 preview 의미로 바꿀지
+- larger chunk 설정이 multi-company 질의에서도 안정적인지
+- parent chunk 길이 `6000`이 최적값인지

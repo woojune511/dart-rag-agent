@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SECTION_TAGS = frozenset({"SECTION-1", "SECTION-2", "SECTION-3"})
+DEFAULT_CHUNK_SIZE = 2500
+DEFAULT_CHUNK_OVERLAP = 320
 
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
@@ -93,7 +95,7 @@ def _reclassify_by_content(text: str, label: str) -> str:
 
 
 class FinancialParser:
-    def __init__(self, chunk_size: int = 1500, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -432,7 +434,7 @@ if __name__ == "__main__":
 
     print(f"\n--- FinancialParser smoke test: {os.path.basename(target)} ---\n")
 
-    parser = FinancialParser(chunk_size=1500, chunk_overlap=200)
+    parser = FinancialParser(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
     sections = parser.parse_sections(target)
     print(f"Total sections: {len(sections)}")
 

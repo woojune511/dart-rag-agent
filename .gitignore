@@ -9,3 +9,8 @@ chroma_db/
 .pytest_cache/
 *.json
 archive/
+
+# Embedding / Hugging Face model caches
+.hf_cache/
+.cache/huggingface/
+.cache/torch/sentence_transformers/

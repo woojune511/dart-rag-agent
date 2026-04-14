@@ -24,7 +24,11 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ingestion.dart_fetcher import DARTFetcher
-from processing.financial_parser import FinancialParser
+from processing.financial_parser import (
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_SIZE,
+    FinancialParser,
+)
 from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
 from agent.financial_graph import FinancialAgent
 
@@ -33,6 +37,7 @@ logger = logging.getLogger(__name__)
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _CHROMA_PATH   = str(_PROJECT_ROOT / "data" / "chroma_dart")
 _REPORTS_DIR   = str(_PROJECT_ROOT / "data" / "reports")
+_CONTEXT_MAX_WORKERS = int(os.environ.get("CONTEXTUAL_INGEST_MAX_WORKERS", "8"))
 
 router = APIRouter(prefix="/api", tags=["financial"])
 
@@ -52,7 +57,7 @@ def init_components() -> None:
     global _vsm, _agent, _parser, _fetcher
     _vsm     = VectorStoreManager(persist_directory=_CHROMA_PATH, collection_name=DEFAULT_COLLECTION_NAME)
     _agent   = FinancialAgent(_vsm, k=8)
-    _parser  = FinancialParser(chunk_size=1500, chunk_overlap=200)
+    _parser  = FinancialParser(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
     _fetcher = DARTFetcher(download_dir=_REPORTS_DIR)
     logger.info("컴포넌트 초기화 완료")
 
@@ -203,7 +208,7 @@ async def ingest(req: IngestRequest):
         }
         chunks = parser.process_document(report.file_path, meta)
         if chunks:
-            agent.ingest(chunks)
+            agent.contextual_ingest(chunks, max_workers=_CONTEXT_MAX_WORKERS)
             total_chunks += len(chunks)
             logger.info(f"인덱싱: {report.corp_name} {report.year} → {len(chunks)}청크")
 
