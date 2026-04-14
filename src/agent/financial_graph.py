@@ -17,6 +17,9 @@ from pydantic import BaseModel, Field
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+DEFAULT_CONTEXT_MAX_WORKERS = max(4, min(12, (os.cpu_count() or 4) * 2))
+DEFAULT_CONTEXT_BATCH_SIZE = max(8, DEFAULT_CONTEXT_MAX_WORKERS * 2)
+
 
 def _tokenize_terms(text: str) -> set[str]:
     tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
@@ -483,11 +486,62 @@ coverage: {coverage}
             logger.warning("Context generation failed: %s", e)
             return f"{company} {year}년 사업보고서 / {section_path} / {block_type}"
 
+    def _fallback_context(self, metadata: dict) -> str:
+        company = metadata.get("company", "?")
+        year = metadata.get("year", "?")
+        section_path = metadata.get("section_path", metadata.get("section", "?"))
+        block_type = "표" if metadata.get("block_type") == "table" else "단락"
+        return f"{company} {year}년 사업보고서 / {section_path} / {block_type}"
+
+    def _build_context_prompt(self, text: str, metadata: dict) -> str:
+        company = metadata.get("company", "?")
+        year = metadata.get("year", "?")
+        section_path = metadata.get("section_path", metadata.get("section", "?"))
+        block_type = "표" if metadata.get("block_type") == "table" else "단락"
+        preview = re.sub(r"\s+", " ", text[:400]).strip()
+        return (
+            f"다음은 {company} {year}년 사업보고서의 [{section_path}] 섹션에서 발췌한 {block_type}입니다.\n"
+            f"이 내용이 전체 문서 맥락에서 어떤 정보를 담고 있는지 한국어로 한 문장(50자 이내)으로만 설명하세요.\n\n"
+            f"내용:\n{preview}"
+        )
+
+    def _build_index_prefix(self, metadata: dict, context: str) -> str:
+        company = metadata.get("company", "?")
+        year = metadata.get("year", "?")
+        report_type = metadata.get("report_type", "?")
+        section = metadata.get("section", "?")
+        section_path = metadata.get("section_path", section)
+        block_type = "표" if metadata.get("block_type") == "table" else "단락"
+        return "\n".join(
+            [
+                context.strip(),
+                f"{company} {year} {report_type}",
+                f"섹션: {section_path}",
+                f"분류: {section} / {block_type}",
+            ]
+        )
+
+    def _resolve_context_workers(self, max_workers: Optional[int], total: int) -> int:
+        if total <= 0:
+            return 1
+
+        configured = max_workers or int(
+            os.environ.get("CONTEXTUAL_INGEST_MAX_WORKERS", DEFAULT_CONTEXT_MAX_WORKERS)
+        )
+        return max(1, min(configured, total))
+
+    def _resolve_context_batch_size(self, batch_size: Optional[int], workers: int) -> int:
+        configured = batch_size or int(
+            os.environ.get("CONTEXTUAL_INGEST_BATCH_SIZE", DEFAULT_CONTEXT_BATCH_SIZE)
+        )
+        return max(workers, configured)
+
     def contextual_ingest(
         self,
         chunks: List,
         on_progress=None,
-        max_workers: int = 3,
+        max_workers: Optional[int] = None,
+        batch_size: Optional[int] = None,
     ) -> None:
         """Contextual Retrieval + Parent-child 방식으로 청크를 인덱싱한다.
 
@@ -498,41 +552,64 @@ coverage: {coverage}
         Args:
             chunks:       FinancialParser.process_document() 반환값
             on_progress:  진행 콜백 (completed: int, total: int) → None
-            max_workers:  LLM 병렬 호출 수 (기본 3, API rate limit 고려)
+            max_workers:  LLM 병렬 호출 수
+            batch_size:   한 번에 LLM.batch()로 보내는 요청 수
         """
         if not chunks:
             logger.warning("[contextual_ingest] chunks are empty.")
             return
 
         from processing.financial_parser import FinancialParser
-        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         # 1) 부모 청크 저장
         parents = FinancialParser.build_parents(chunks)
         self.vsm.add_parents(parents)
         logger.info("[contextual_ingest] stored %s parent chunks", len(parents))
 
-        # 2) 병렬 컨텍스트 생성
+        # 2) 배치 병렬 컨텍스트 생성
         total = len(chunks)
         contexts: Dict[int, str] = {}
-
-        def _gen(idx_chunk):
-            idx, chunk = idx_chunk
-            ctx = self._generate_context(chunk.content, chunk.metadata)
-            return idx, ctx
-
+        workers = self._resolve_context_workers(max_workers, total)
+        request_batch_size = self._resolve_context_batch_size(batch_size, workers)
         completed_count = 0
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(_gen, (i, c)): i for i, c in enumerate(chunks)}
-            for future in as_completed(futures):
-                idx, ctx = future.result()
-                contexts[idx] = ctx
+
+        logger.info(
+            "[contextual_ingest] generating contexts with max_workers=%s batch_size=%s",
+            workers,
+            request_batch_size,
+        )
+
+        for start in range(0, total, request_batch_size):
+            batch_items = list(enumerate(chunks[start : start + request_batch_size], start=start))
+            prompts = [self._build_context_prompt(chunk.content, chunk.metadata) for _, chunk in batch_items]
+
+            try:
+                responses = self.llm.batch(
+                    prompts,
+                    config={"max_concurrency": workers},
+                    return_exceptions=True,
+                )
+            except Exception as exc:
+                logger.warning("Context batch generation failed, falling back to per-item mode: %s", exc)
+                responses = [exc] * len(batch_items)
+
+            for (idx, chunk), response in zip(batch_items, responses):
+                if isinstance(response, Exception):
+                    logger.warning("Context generation failed for chunk %s: %s", idx, response)
+                    contexts[idx] = self._fallback_context(chunk.metadata)
+                else:
+                    content = getattr(response, "content", "") or ""
+                    contexts[idx] = content.strip() or self._fallback_context(chunk.metadata)
+
                 completed_count += 1
                 if on_progress:
                     on_progress(completed_count, total)
 
         # 3) 컨텍스트 prefix를 붙여 인덱싱
-        texts     = [f"{contexts[i]}\n\n{chunks[i].content}" for i in range(total)]
+        texts = [
+            f"{self._build_index_prefix(chunks[i].metadata, contexts[i])}\n\n{chunks[i].content}"
+            for i in range(total)
+        ]
         metadatas = [chunk.metadata for chunk in chunks]
         self.vsm.add_documents(texts, metadatas)
         logger.info("[contextual_ingest] indexed %s contextualized chunks", total)

@@ -27,6 +27,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(level=logging.WARNING)
+CONTEXT_MAX_WORKERS = int(os.environ.get("CONTEXTUAL_INGEST_MAX_WORKERS", "8"))
 
 # --------------------------------------------------------------------------
 # 컴포넌트 싱글턴 (캐시 리소스 — 앱 전체에서 한 번만 초기화)
@@ -36,7 +37,11 @@ logging.basicConfig(level=logging.WARNING)
 def load_components():
     from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
     from agent.financial_graph import FinancialAgent
-    from processing.financial_parser import FinancialParser
+    from processing.financial_parser import (
+        DEFAULT_CHUNK_OVERLAP,
+        DEFAULT_CHUNK_SIZE,
+        FinancialParser,
+    )
     from ingestion.dart_fetcher import DARTFetcher
     from ops.evaluator import RAGEvaluator
 
@@ -46,7 +51,7 @@ def load_components():
 
     vsm     = VectorStoreManager(persist_directory=chroma_path, collection_name=DEFAULT_COLLECTION_NAME)
     agent   = FinancialAgent(vsm, k=8)
-    parser  = FinancialParser(chunk_size=1500, chunk_overlap=200)
+    parser  = FinancialParser(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
     fetcher = DARTFetcher(download_dir=reports_dir)
     evaluator = RAGEvaluator(agent)
 
@@ -133,13 +138,17 @@ with tab1:
                         }
                         chunks = parser.process_document(report.file_path, meta)
                         if chunks:
-                            st.write(f"  → LLM 컨텍스트 생성 및 인덱싱 중: {len(chunks)}개 청크")
+                            st.write(f"  → LLM 컨텍스트 생성 및 인덱싱 중: {len(chunks)}개 청크 (병렬 {CONTEXT_MAX_WORKERS}개)")
                             ctx_progress = st.progress(0, text="LLM 컨텍스트 생성 중... (0/{})".format(len(chunks)))
 
                             def _on_ctx_progress(done, total, _pb=ctx_progress):
                                 _pb.progress(done / total, text=f"LLM 컨텍스트 생성 중... ({done}/{total})")
 
-                            agent.contextual_ingest(chunks, on_progress=_on_ctx_progress)
+                            agent.contextual_ingest(
+                                chunks,
+                                on_progress=_on_ctx_progress,
+                                max_workers=CONTEXT_MAX_WORKERS,
+                            )
                             ctx_progress.empty()
                             total_chunks += len(chunks)
                         progress.progress((i + 1) / len(reports))
