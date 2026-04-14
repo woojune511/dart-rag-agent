@@ -24,7 +24,7 @@ class RAGAgent:
     def __init__(self, vector_store_manager): # Assumes VectorStoreManager
         self.vector_store_manager = vector_store_manager
         
-        # Portfolio-friendly fallback for API key
+        # Fallback for API key
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             logger.warning("GOOGLE_API_KEY is not set. The LLM will operate in mock mode for testing.")
