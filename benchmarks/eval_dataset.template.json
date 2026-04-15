@@ -1,0 +1,47 @@
+[
+  {
+    "id": "numeric_fact_001",
+    "question": "삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+    "ground_truth": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며, 전년 대비 16.2% 증가했다.",
+    "company": "삼성전자",
+    "year": 2024,
+    "section": "매출현황",
+    "category": "numeric_fact"
+  },
+  {
+    "id": "business_overview_001",
+    "question": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+    "ground_truth": "삼성전자는 DX 부문에서 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산·판매하고, DS 부문에서 DRAM, NAND Flash, 모바일 AP 등을 생산·판매하며, SDC는 스마트폰용 OLED 패널, Harman은 디지털 콕핏·카오디오·소비자 오디오 제품 사업을 영위한다.",
+    "company": "삼성전자",
+    "year": 2024,
+    "section": "사업개요",
+    "category": "business_overview"
+  },
+  {
+    "id": "risk_analysis_001",
+    "question": "삼성전자 2024 사업보고서에서 주요 리스크는 무엇인가요?",
+    "ground_truth": "사업보고서의 위험관리 및 파생거래 항목에는 시장위험 중 환율변동위험, 신용위험, 유동성위험이 핵심 재무위험으로 제시되며, 자금수지 점검과 환헤지, 지역금융센터 운영 등을 통해 대응한다고 설명한다.",
+    "company": "삼성전자",
+    "year": 2024,
+    "section": "리스크",
+    "category": "risk_analysis"
+  },
+  {
+    "id": "r_and_d_001",
+    "question": "삼성전자 2024 사업보고서에서 연구개발 투자 방향은 어떻게 설명되나요?",
+    "ground_truth": "연구개발 항목에서는 Galaxy Z Fold6·Z Flip6·S24 시리즈, AI 가전, 5G 기지국, LPDDR5X, HBM 등 주요 제품과 기술 개발 성과를 제시하며, 모바일·네트워크·메모리·디스플레이 등 핵심 사업에서 고성능·AI 중심 기술 경쟁력을 강화하는 방향으로 설명한다.",
+    "company": "삼성전자",
+    "year": 2024,
+    "section": "연구개발",
+    "category": "r_and_d_investment"
+  },
+  {
+    "id": "missing_info_001",
+    "question": "삼성전자 2024 사업보고서에서 북미 지역 신규 공장 착공 날짜가 명시되어 있나요?",
+    "ground_truth": "제공된 사업보고서 본문에서 북미 지역 신규 공장의 구체적인 착공 날짜는 확인되지 않으므로, 문서에 명시된 정보를 찾지 못했다고 답해야 한다.",
+    "company": "삼성전자",
+    "year": 2024,
+    "section": "사업개요",
+    "category": "missing_information"
+  }
+]

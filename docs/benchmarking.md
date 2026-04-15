@@ -1,79 +1,222 @@
 # Benchmarking Guide
 
-이 문서는 DART RAG 시스템의 정확도, 속도, API 비용을 함께 비교하기 위한 실험 가이드입니다.
+이 문서는 DART 공시 RAG 시스템에서 정확도, 처리 속도, API 비용 사이의 trade-off를 비교하기 위한 benchmark 가이드다.
 
 ---
 
-## 1. 목적
+## 목적
 
-이 프로젝트에서 중요한 것은 단순히 “가장 높은 점수”를 찾는 것이 아닙니다.
-
-실제 목표는 아래 세 항목 사이의 균형점을 찾는 것입니다.
+benchmark의 목표는 단순히 가장 높은 점수 하나를 찾는 것이 아니다. 아래 세 축을 함께 비교해, 품질 하한선을 넘기면서도 운영 가능한 기본값을 찾는 것이 목적이다.
 
 - retrieval 정확도
 - answer 품질
-- 처리 시간과 API 비용
+- ingest 시간과 API 비용
 
-특히 현재 병목은 `contextual_ingest()`이므로, 인덱싱 단계의 trade-off를 정량적으로 보여주는 것이 중요합니다.
+현재 가장 큰 병목은 `contextual_ingest()`의 LLM 호출이다. 그래서 실험도 "저비용 후보를 먼저 screening하고, 통과안만 정식 평가로 올리는 구조"로 설계한다.
 
 ---
 
-## 2. 무엇을 측정하는가
+## Ingest 모드
 
-### 정확도
+### `plain`
 
-- `faithfulness`
-- `answer_relevancy`
-- `context_recall`
+- child chunk 원문만 인덱싱
+- LLM contextualization 없음
+- API calls 0
+
+가장 저렴한 baseline이다. 대신 리스크 질의처럼 문맥 신호가 약한 경우 retrieval miss가 발생할 수 있다.
+
+### `contextual_all`
+
+- 모든 child chunk에 대해 LLM 1문장 context 생성
+- `context + metadata prefix + child chunk`를 인덱싱
+
+현재 품질 기준선이다. 비용과 시간이 가장 큰 편이다.
+
+### `contextual_parent_only`
+
+- 같은 `parent_id`를 공유하는 parent section마다 1회만 context 생성
+- 각 child chunk는 `parent context + metadata prefix + child chunk` 형태로 인덱싱
+
+호출 수를 child chunk 수에서 parent section 수 수준으로 줄이기 위한 후보다.
+
+### `contextual_selective`
+
+- retrieval에 취약한 chunk만 context 생성
+- 초기 selector 규칙:
+  - `block_type == table`
+  - 짧은 chunk
+  - 특정 section:
+    - `리스크`
+    - `연구개발`
+    - `매출현황`
+    - `사업개요`
+    - `경영진단`
+
+비용을 줄이면서도 retrieval signal을 유지하려는 후보다.
+
+---
+
+## 2단계 평가 구조
+
+### 1차 Screening
+
+목적:
+
+- 저비용 후보를 빠르게 탈락시키기
+
+측정 지표:
+
+- `parse.elapsed_sec`
+- `ingest.elapsed_sec`
+- `api_calls`
+- `prompt_tokens`
+- `output_tokens`
+- `estimated_ingest_cost_usd`
+- smoke query latency
 - `retrieval_hit_at_k`
 - `section_match_rate`
 - `citation_coverage`
 
+이 단계에서는 비용이 큰 아래 지표를 계산하지 않는다.
+
+- `faithfulness`
+- `answer_relevancy`
+- `context_recall`
+
+### 2차 Full Evaluation
+
+목적:
+
+- screening을 통과한 상위 후보만 정식 품질 비교
+
+추가 지표:
+
+- `faithfulness`
+- `answer_relevancy`
+- `context_recall`
+
+정식 평가는 MLflow에도 기록한다.
+
+---
+
+## 지표 정의
+
 ### 속도
 
 - `parse.elapsed_sec`
+  - `FinancialParser.process_document()` 실행 시간
 - `ingest.elapsed_sec`
-- smoke query 평균 latency
+  - 인덱싱 완료까지 전체 시간
+  - contextual mode는 LLM context 생성 시간 포함
+- `smoke query latency`
+  - `agent.run()` end-to-end 시간
 
 ### 비용
 
-- `ingest.api_calls`
-- `ingest.prompt_tokens`
-- `ingest.output_tokens`
+- `api_calls`
+  - 실제 context 생성 대상 수
+  - `contextual_all`: child chunk 수
+  - `contextual_parent_only`: parent section 수
+  - `contextual_selective`: 선택된 chunk 수
+- `prompt_tokens`, `output_tokens`
+  - contextual ingest 응답 usage metadata 합계
 - `estimated_ingest_cost_usd`
+  - config의 백만 토큰당 단가 기준 추정치
+
+### Retrieval / Answer 품질
+
+- `retrieval_hit_at_k`
+  - 기대 `company + year + section`을 만족하는 문서가 top-k 안에 하나라도 있으면 `1.0`
+- `section_match_rate`
+  - retrieved docs 중 기대 section과 일치하는 비율
+- `citation_coverage`
+  - citation 문자열 안에 기대 `company`, `year`, `section`이 얼마나 반영됐는지 비율
+- `faithfulness`
+  - 답변과 retrieved context를 LLM judge로 비교한 점수
+- `answer_relevancy`
+  - 질문과 답변 embedding cosine similarity
+- `context_recall`
+  - ground truth 문장 토큰이 retrieved context 토큰과 50% 이상 겹치는 문장 비율
 
 ---
 
-## 3. 실험 축
+## Screening 통과 기준
 
-우선순위가 높은 실험 축은 아래와 같습니다.
+아래 중 하나라도 깨지면 탈락이다.
 
-1. chunk size
-2. overlap
-3. contextual ingest 사용 여부
-4. contextual ingest 병렬도
-5. batch size
-6. metadata prefix on/off
-7. cache on/off
+- risk smoke query가 근거를 찾지 못했다고 실패
+- wrong-company contamination 발생
+- citation이 다른 회사나 연도를 가리킴
+- risk 또는 business query에서 `retrieval_hit_at_k == 0`
+- missing-information query에서 근거 없는 단정 답변 생성
 
-권장 시작점:
+정량 기준:
 
-- `plain_1500_200`
+- baseline 대비 `retrieval_hit_at_k` 하락 폭이 `0.10` 초과면 탈락
+- baseline 대비 `section_match_rate` 하락 폭이 `0.15` 초과면 탈락
+
+현재 baseline은 `contextual_all_2500_320`이다.
+
+---
+
+## 병렬 실행 정책
+
+- `screening.parallel_experiments`
+  - screening 실험을 동시에 몇 개까지 실행할지 결정
+  - 기본값은 `2`
+
+실험 간 병렬화는 screening 단계에만 적용한다. full evaluation은 해석 일관성과 안정성을 위해 순차로 유지한다.
+
+---
+
+## 현재 기본 실험 매트릭스
+
+1차 screening:
+
+- `plain_2500_320`
+- `contextual_all_2500_320`
+- `contextual_parent_only_2500_320`
+- `contextual_selective_2500_320`
 - `contextual_1500_200`
-- `contextual_2500_320`
-- `contextual_2800_350`
+
+2차 full evaluation:
+
+- screening 통과안
+- legacy reference인 `contextual_1500_200`
 
 ---
 
-## 4. 실행 방법
+## 현재 로컬 benchmark 결과
 
-### 준비
+기준 문서:
 
-1. `benchmarks/experiment_matrix.sample.json`을 복사해 실제 보고서 경로를 채웁니다.
-2. 필요하면 `benchmarks/eval_dataset.template.json`을 실제 평가셋으로 바꿉니다.
-3. pricing 정보가 있으면 config에 넣어 비용도 함께 계산합니다.
+- 삼성전자 2024 사업보고서
 
-### 실행
+요약:
+
+| Experiment | Pass | Ingest (s) | API Calls | Hit@k | Section Match | Notes |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `plain_2500_320` | No | 19.183 | 0 | 0.800 | 0.125 | 저렴하지만 risk retrieval miss |
+| `contextual_all_2500_320` | Yes | 558.723 | 300 | 1.000 | 0.250 | 현재 baseline |
+| `contextual_parent_only_2500_320` | No | 67.964 | 40 | 0.800 | 0.175 | numeric fact miss |
+| `contextual_selective_2500_320` | No | 331.002 | 289 | 0.800 | 0.150 | business overview miss, 비용 절감도 제한적 |
+| `contextual_1500_200` | No | 774.632 | 502 | 0.800 | 0.225 | 더 느리고 business overview miss |
+
+full evaluation:
+
+- `contextual_all_2500_320`
+  - `faithfulness = 0.400`
+  - `answer_relevancy = 0.651`
+  - `context_recall = 0.500`
+- `contextual_1500_200`
+  - `faithfulness = 0.640`
+  - `answer_relevancy = 0.500`
+  - `context_recall = 0.300`
+
+---
+
+## 실행 방법
 
 프로젝트 루트에서:
 
@@ -81,7 +224,7 @@
 python -m src.ops.benchmark_runner --config benchmarks/experiment_matrix.sample.json
 ```
 
-또는 `src` 디렉터리 기준:
+또는 `src` 디렉터리 기준으로:
 
 ```bash
 python -m ops.benchmark_runner --config ..\benchmarks\experiment_matrix.sample.json
@@ -89,52 +232,32 @@ python -m ops.benchmark_runner --config ..\benchmarks\experiment_matrix.sample.j
 
 ---
 
-## 5. 산출물
+## 결과 자산
 
 기본 출력 경로:
 
-- `benchmarks/results/latest/results.json`
-- `benchmarks/results/latest/summary.csv`
-- `benchmarks/results/latest/summary.md`
+- `benchmarks/results/<run_name>/results.json`
+- `benchmarks/results/<run_name>/summary.csv`
+- `benchmarks/results/<run_name>/summary.md`
 
-각 파일 역할:
+역할:
 
-- `results.json`: 전체 실험 원본 결과
-- `summary.csv`: 표 비교용
-- `summary.md`: 문서와 보고서에 바로 인용 가능한 요약
-
----
-
-## 6. 해석 방법
-
-가장 좋은 설정은 항상 가장 빠른 설정도, 가장 높은 faithfulness를 가진 설정도 아닙니다.
-
-예를 들어:
-
-- chunk를 키우면 ingest 시간은 줄어들 수 있습니다.
-- 하지만 risk 질문에서 retrieval 품질이 약해질 수 있습니다.
-- 반대로 작은 chunk는 품질이 좋아도 API 비용과 시간이 너무 커질 수 있습니다.
-
-따라서 최종 설정은 아래 질문으로 고릅니다.
-
-- retrieval 품질이 무너지지 않는가
-- 처리 시간이 의미 있게 줄어드는가
-- 비용 증가가 감당 가능한가
-- 기존 실패 사례가 다시 발생하지 않는가
+- `results.json`
+  - screening과 full evaluation의 원본 결과
+- `summary.csv`
+  - 실험별 수치 비교용 표
+- `summary.md`
+  - 문서와 발표에 바로 사용할 수 있는 요약
 
 ---
 
-## 7. 보고서에 남길 포인트
+## 해석 원칙
 
-실험 결과를 문서화할 때는 단순 최고 점수보다 아래 내용을 같이 남기는 것이 중요합니다.
+가장 좋은 설정은 무조건 가장 빠른 설정도, 무조건 가장 높은 점수의 설정도 아니다. 아래 질문에 동시에 답할 수 있어야 한다.
 
-- baseline 대비 무엇이 얼마나 변했는지
-- 속도 개선이 어떤 품질 회귀를 만들었는지
-- 왜 최종안이 채택됐는지
-- 남은 한계가 무엇인지
+- retrieval 품질이 무너지지 않았는가
+- risk 질의가 안정적으로 유지되는가
+- ingest 시간과 API 비용이 의미 있게 줄었는가
+- 실패 패턴을 재현 가능하게 설명할 수 있는가
 
-추천 문장 예시:
-
-- "`2800 / 350`은 가장 빨랐지만 리스크 질의 품질이 흔들렸다."
-- "`2500 / 320`은 ingest 시간을 줄이면서도 리스크 질의를 안정적으로 유지했다."
-- "병렬화만으로는 부족했고, API 호출 수 자체를 줄이는 chunk tuning이 함께 필요했다."
+현재까지의 결론은 "비용을 줄이는 시도는 가능하지만, 품질 하한선을 유지하는 후보는 아직 `contextual_all_2500_320`뿐"이라는 점이다.
