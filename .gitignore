@@ -7,10 +7,14 @@ data/
 mlruns/
 chroma_db/
 .pytest_cache/
-*.json
 archive/
 
 # Embedding / Hugging Face model caches
 .hf_cache/
 .cache/huggingface/
 .cache/torch/sentence_transformers/
+
+# Local benchmark configs / generated artifacts
+benchmarks/experiment_matrix.local.json
+benchmarks/results/**/stores/
+mlflow.db
