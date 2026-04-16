@@ -8,7 +8,7 @@ import json
 import logging
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -26,6 +26,14 @@ _DEFAULT_DATASET = _PROJECT_ROOT / "data" / "eval" / "eval_dataset.json"
 
 
 @dataclass
+class EvalEvidence:
+    section_path: str
+    quote: str
+    quote_type: str = "verbatim"
+    why_it_supports_answer: str = ""
+
+
+@dataclass
 class EvalExample:
     id: str
     question: str
@@ -34,6 +42,29 @@ class EvalExample:
     year: int
     section: str
     category: Optional[str] = None
+    answer_key: str = ""
+    expected_sections: List[str] = field(default_factory=list)
+    evidence: List[EvalEvidence] = field(default_factory=list)
+    missing_info_policy: Optional[str] = None
+
+    @property
+    def canonical_answer_key(self) -> str:
+        return self.answer_key or self.ground_truth
+
+    @property
+    def canonical_expected_sections(self) -> List[str]:
+        sections: List[str] = []
+        for value in self.expected_sections + ([self.section] if self.section else []):
+            cleaned = str(value or "").strip()
+            if cleaned and cleaned not in sections:
+                sections.append(cleaned)
+        return sections
+
+    @property
+    def recall_reference_text(self) -> str:
+        if self.evidence:
+            return "\n".join(evidence.quote for evidence in self.evidence if evidence.quote)
+        return self.ground_truth
 
 
 @dataclass
@@ -42,15 +73,22 @@ class EvalResult:
     question: str
     answer: str
     ground_truth: str
+    answer_key: str
+    expected_sections: List[str]
+    evidence: List[Dict[str, str]]
     faithfulness: float
     answer_relevancy: float
     context_recall: float
     retrieval_hit_at_k: float
     section_match_rate: float
     citation_coverage: float
+    missing_info_compliance: Optional[float]
     retrieved_count: int
     query_type: str
     latency_sec: float
+    citations: List[str] = field(default_factory=list)
+    retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
+    missing_info_policy: Optional[str] = None
     error: Optional[str] = None
 
     @property
@@ -97,6 +135,61 @@ def _contains_section(metadata: Dict[str, Any], expected_section: str) -> bool:
     return expected_section == section or expected_section in section_path
 
 
+def _extract_retrieved_metadata(retrieved_docs: List[Any]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for item in retrieved_docs:
+        doc = item[0] if isinstance(item, (tuple, list)) else item
+        metadata = getattr(doc, "metadata", {}) or {}
+        rows.append(
+            {
+                "company": metadata.get("company"),
+                "year": metadata.get("year"),
+                "section": metadata.get("section"),
+                "section_path": metadata.get("section_path"),
+            }
+        )
+    return rows
+
+
+def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
+    expected_sections = item.get("expected_sections") or []
+    if not isinstance(expected_sections, list):
+        expected_sections = [expected_sections]
+    evidence_rows = item.get("evidence") or []
+    evidence = [
+        EvalEvidence(
+            section_path=str(row.get("section_path", "")),
+            quote=str(row.get("quote", "")),
+            quote_type=str(row.get("quote_type", "verbatim") or "verbatim"),
+            why_it_supports_answer=str(row.get("why_it_supports_answer", "")),
+        )
+        for row in evidence_rows
+        if isinstance(row, dict)
+    ]
+    ground_truth = str(item.get("ground_truth") or item.get("answer_key") or "")
+    answer_key = str(item.get("answer_key") or ground_truth)
+    section = str(item.get("section") or (expected_sections[0] if expected_sections else ""))
+    return EvalExample(
+        id=item["id"],
+        question=item["question"],
+        ground_truth=ground_truth,
+        company=item["company"],
+        year=item["year"],
+        section=section,
+        category=item.get("category"),
+        answer_key=answer_key,
+        expected_sections=[str(section_value) for section_value in expected_sections if str(section_value).strip()],
+        evidence=evidence,
+        missing_info_policy=item.get("missing_info_policy"),
+    )
+
+
+def load_eval_examples_from_path(dataset_path: str | Path) -> List[EvalExample]:
+    with open(dataset_path, encoding="utf-8") as file:
+        data = json.load(file)
+    return [_example_from_dict(item) for item in data]
+
+
 def _compute_faithfulness(llm: ChatGoogleGenerativeAI, answer: str, contexts: List[str]) -> float:
     if not answer or not contexts:
         return 0.0
@@ -131,12 +224,13 @@ def _compute_answer_relevancy(
         return 0.5
 
 
-def _compute_context_recall(ground_truth: str, contexts: List[str]) -> float:
-    if not ground_truth or not contexts:
+def _compute_context_recall(example: EvalExample, contexts: List[str]) -> float:
+    reference_text = example.recall_reference_text
+    if not reference_text or not contexts:
         return 0.0
 
     context_tokens = _tokenize_ko(" ".join(contexts))
-    sentences = re.split(r"[.\n!?]", ground_truth)
+    sentences = re.split(r"[.\n!?]", reference_text)
     sentences = [sentence.strip() for sentence in sentences if len(sentence.strip()) >= 6]
     if not sentences:
         return 0.0
@@ -155,12 +249,17 @@ def _compute_context_recall(ground_truth: str, contexts: List[str]) -> float:
 
 def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any]) -> float:
     expected_company = example.company.lower()
+    expected_sections = example.canonical_expected_sections
     for item in retrieved_docs:
         doc = item[0] if isinstance(item, (tuple, list)) else item
         metadata = getattr(doc, "metadata", {}) or {}
         company = str(metadata.get("company", "")).lower()
         year = int(metadata.get("year", 0) or 0)
-        if company == expected_company and year == int(example.year) and _contains_section(metadata, example.section):
+        if (
+            company == expected_company
+            and year == int(example.year)
+            and any(_contains_section(metadata, expected_section) for expected_section in expected_sections)
+        ):
             return 1.0
     return 0.0
 
@@ -168,11 +267,12 @@ def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any])
 def _compute_section_match_rate(example: EvalExample, retrieved_docs: List[Any]) -> float:
     if not retrieved_docs:
         return 0.0
+    expected_sections = example.canonical_expected_sections
     matched = 0
     for item in retrieved_docs:
         doc = item[0] if isinstance(item, (tuple, list)) else item
         metadata = getattr(doc, "metadata", {}) or {}
-        if _contains_section(metadata, example.section):
+        if any(_contains_section(metadata, expected_section) for expected_section in expected_sections):
             matched += 1
     return matched / len(retrieved_docs)
 
@@ -182,12 +282,30 @@ def _compute_citation_coverage(example: EvalExample, citations: List[str]) -> fl
         return 0.0
 
     citation_blob = " ".join(citations).lower()
+    expected_sections = example.canonical_expected_sections
     checks = [
         example.company.lower() in citation_blob,
         str(example.year) in citation_blob,
-        example.section.lower() in citation_blob,
+        any(expected_section.lower() in citation_blob for expected_section in expected_sections),
     ]
     return sum(1.0 for matched in checks if matched) / len(checks)
+
+
+def _compute_missing_info_compliance(example: EvalExample, answer: str) -> Optional[float]:
+    category = (example.category or "").lower()
+    if category != "missing_information":
+        return None
+    lowered = (answer or "").lower()
+    if not lowered.strip():
+        return 0.0
+    if any(marker in lowered for marker in ("없", "찾지 못", "확인되지", "명시되지", "어렵")):
+        return 1.0
+    if example.missing_info_policy:
+        policy_tokens = _tokenize_ko(example.missing_info_policy)
+        answer_tokens = _tokenize_ko(answer)
+        if policy_tokens and len(policy_tokens & answer_tokens) / len(policy_tokens) >= 0.25:
+            return 1.0
+    return 0.0
 
 
 class RAGEvaluator:
@@ -204,20 +322,7 @@ class RAGEvaluator:
         self._embeddings = HuggingFaceEmbeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
     def load_dataset(self) -> List[EvalExample]:
-        with open(self._dataset_path, encoding="utf-8") as file:
-            data = json.load(file)
-        return [
-            EvalExample(
-                id=item["id"],
-                question=item["question"],
-                ground_truth=item["ground_truth"],
-                company=item["company"],
-                year=item["year"],
-                section=item["section"],
-                category=item.get("category"),
-            )
-            for item in data
-        ]
+        return load_eval_examples_from_path(self._dataset_path)
 
     def build_single_company_eval_slice(
         self,
@@ -304,25 +409,41 @@ class RAGEvaluator:
 
         faithfulness = _compute_faithfulness(self._llm, answer, contexts)
         answer_relevancy = _compute_answer_relevancy(self._embeddings, example.question, answer)
-        context_recall = _compute_context_recall(example.ground_truth, contexts)
+        context_recall = _compute_context_recall(example, contexts)
         retrieval_hit_at_k = _compute_retrieval_hit_at_k(example, retrieved_docs)
         section_match_rate = _compute_section_match_rate(example, retrieved_docs)
         citation_coverage = _compute_citation_coverage(example, citations)
+        missing_info_compliance = _compute_missing_info_compliance(example, answer)
 
         return EvalResult(
             id=example.id,
             question=example.question,
             answer=answer,
             ground_truth=example.ground_truth,
+            answer_key=example.canonical_answer_key,
+            expected_sections=example.canonical_expected_sections,
+            evidence=[
+                {
+                    "section_path": evidence.section_path,
+                    "quote": evidence.quote,
+                    "quote_type": evidence.quote_type,
+                    "why_it_supports_answer": evidence.why_it_supports_answer,
+                }
+                for evidence in example.evidence
+            ],
             faithfulness=faithfulness,
             answer_relevancy=answer_relevancy,
             context_recall=context_recall,
             retrieval_hit_at_k=retrieval_hit_at_k,
             section_match_rate=section_match_rate,
             citation_coverage=citation_coverage,
+            missing_info_compliance=missing_info_compliance,
             retrieved_count=len(contexts),
             query_type=query_type,
             latency_sec=latency,
+            citations=citations,
+            retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),
+            missing_info_policy=example.missing_info_policy,
             error=error,
         )
 
@@ -388,6 +509,7 @@ class RAGEvaluator:
                         {
                             "id": result.id,
                             "question": result.question,
+                            "answer_key": result.answer_key,
                             "answer": result.answer[:500],
                             "faithfulness": result.faithfulness,
                             "answer_relevancy": result.answer_relevancy,
@@ -395,6 +517,7 @@ class RAGEvaluator:
                             "retrieval_hit_at_k": result.retrieval_hit_at_k,
                             "section_match_rate": result.section_match_rate,
                             "citation_coverage": result.citation_coverage,
+                            "missing_info_compliance": result.missing_info_compliance,
                             "latency_sec": result.latency_sec,
                             "query_type": result.query_type,
                             "error": result.error,

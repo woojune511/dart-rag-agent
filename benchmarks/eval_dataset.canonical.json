@@ -1,0 +1,244 @@
+[
+  {
+    "id": "numeric_fact_001",
+    "question": "삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+    "category": "numeric_fact",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["매출현황", "재무제표", "요약재무"],
+    "answer_key": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "2024년 매출은 300조 8,709억원으로 전년 동기 대비 16.2% 증가하였습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "질문이 묻는 2024년 연결 기준 매출액과 전년 대비 증감률을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_001",
+    "question": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+    "category": "business_overview",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["사업개요"],
+    "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+        "quote": "사업별로 보면, Set 사업은 DX(Device eXperience) 부문이 TV를 비롯하여 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산ㆍ판매하며, 부품 사업은 DS(Device Solutions) 부문에서 DRAM, NAND Flash, 모바일AP 등의 제품을 생산ㆍ판매하고, SDC가 스마트폰용 OLED 패널 등을 생산ㆍ판매하고 있습니다. 또한, Harman에서는 디지털 콕핏(Digital Cockpit), 카오디오 등 전장제품과 포터블/사운드바 스피커 등 소비자오디오 제품 등을 생산ㆍ판매하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "주요 사업부와 각 사업부가 생산·판매하는 대표 제품군을 직접 설명한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_002",
+    "question": "삼성전자 2024 사업보고서에서 주요 사업부별 매출 비중은 어떻게 설명되나요?",
+    "category": "business_overview",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["주요 제품 및 서비스", "매출현황"],
+    "answer_key": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
+        "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 660억원(36.9%)이며, SDC가 29조 1,578억원(9.7%), Harman은 14조 2,749억원(4.7%)입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "사업부별 매출액과 비중을 한 문장으로 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_003",
+    "question": "삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?",
+    "category": "business_overview",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["사업개요"],
+    "answer_key": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+        "quote": "당사는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄 및 DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "글로벌 전자 기업으로서의 구성과 종속기업 수를 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "risk_analysis_001",
+    "question": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+    "category": "risk_analysis",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["위험관리 및 파생거래"],
+    "answer_key": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "당사는 영업활동에서 파생되는 시장위험, 신용위험, 유동성위험 등을 최소화하는데 중점을 두고 재무위험을 관리하고 있으며, 이를 위해 각각의 위험요인에 대해 면밀하게 모니터링 및 대응하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "핵심 재무위험의 큰 범주를 직접 나열한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "당사는 글로벌 영업활동을 수행함에 따라 기능통화와 다른 통화로도 거래를 하고 있어 환율변동위험에 노출되어 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "시장위험 중 환율변동위험을 구체적으로 설명한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "신용위험은 통상적인 거래 및 투자 활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "신용위험의 정의와 발생 상황을 직접 설명한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "유동성위험이란 당사가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "유동성위험을 별도 리스크 항목으로 정의한다."
+      }
+    ]
+  },
+  {
+    "id": "risk_analysis_002",
+    "question": "삼성전자 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+    "category": "risk_analysis",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["위험관리 및 파생거래"],
+    "answer_key": "삼성전자는 지역금융센터를 통해 환율변동을 모니터링하고 환거래를 대행하며, 기능통화 일치와 선물환 등으로 환위험을 줄인다. 유동성 측면에서는 주기적인 자금수지 예측과 Cash Pooling으로 대응한다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "해외 주요 권역별로 지역금융센터(미국, 영국, 싱가포르, 중국, 브라질, 러시아)에서 환율변동 모니터링 및 환거래 대행을 통해 환율변동위험을 관리하고 있으며, 권역내 자금을 통합운용하여 유동성위험에 대응하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "환율변동위험과 유동성위험 대응의 운영 조직과 기본 방식을 동시에 설명한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "당사는 통화별 자산과 부채규모를 일치하는 수준으로 유지하여 환율변동 영향을 최소화하는데 주력하고 있습니다. 이를 위해 수출입 등의 경상거래 및 예금, 차입 등의 금융거래 발생시 기능통화로 거래하거나 입금 및 지출 통화를 일치시킴으로써 환포지션 발생을 최대한 억제하고 있으나, 일부 발생된 환포지션은 채권매각, 선물환 등을 활용하여 환변동영향을 축소하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "환율변동위험에 대한 구체적인 실무 대응 방법을 설명한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "당사는 권역별로 Cash Pooling을 구축하여 권역 내 개별 법인의 자금이 부족한 경우에도 유동성위험에 효율적으로 대응하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "유동성위험 대응의 핵심 도구로 Cash Pooling을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "r_and_d_investment_001",
+    "question": "삼성전자 2024 사업보고서에서 연구개발비용은 얼마이며 어떻게 회계처리되나요?",
+    "category": "r_and_d_investment",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["주요계약 및 연구개발활동"],
+    "answer_key": "2024년 연구개발비용은 35조 215억원이며, 정부보조금 차감 또는 자산화된 금액을 제외한 34조 9,981억원을 당기비용으로 회계처리했다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "2024년(제56기) 당사의 연구개발비용은 35조 215억원이며, 이 중 정부보조금으로 차감되거나 자산화된 연구개발비를 제외하고 34조 9,981억원을 당기비용으로 회계처리하였습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "질문이 묻는 연구개발비 총액과 회계처리 방식을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "r_and_d_investment_002",
+    "question": "삼성전자 2024 사업보고서에서 제시한 2024년 연구개발 성과 예시는 무엇인가요?",
+    "category": "r_and_d_investment",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["주요계약 및 연구개발활동", "연구개발실적(상세)"],
+    "answer_key": "보고서는 2024년 연구개발 성과 예시로 Galaxy Z Fold6·Z Flip6 출시, Galaxy S24 시리즈 출시, AI 기반 5G 기지국 품질 최적화 기술 실증, 업계 최고 속도 LPDDR5X 동작 검증, 업계 최초 36GB HBM3E 12H D램 개발 등을 제시한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "ㆍGalaxy Z Fold6 출시ㆍGalaxy Z Flip6 출시",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "폴더블 스마트폰 관련 대표 성과 예시를 제시한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "ㆍGalaxy S24ㆍS24+ㆍS24 Ultra 출시",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "스마트폰 flagship 라인업 성과 예시를 제시한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "ㆍ업계 최초 vRAN 기반 5G RedCap Energy-saving 기술 기능시험 완료ㆍAI 기반 5G 기지국 품질 최적화 기술(AI-RAN Parameter Recommender) 실증 완료",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "네트워크 장비/AI 기반 기술 성과를 보여준다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "ㆍ업계 최고 속도 LPDDR5X 동작 검증 성공",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "메모리 분야의 성과 예시를 보여준다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "ㆍ업계 최초 36GB HBM3E 12H D램 개발",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "HBM 계열 차세대 메모리 개발 성과를 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "investment_001",
+    "question": "삼성전자 2024 사업보고서에서 시설투자 규모와 방향은 어떻게 설명되나요?",
+    "category": "r_and_d_investment",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["원재료 및 생산설비"],
+    "answer_key": "2024년 시설투자는 53.6조원이며, DS 부문과 SDC의 첨단공정 증설·전환 및 인프라 투자를 중심으로 집행됐다. 메모리 차세대 기술 경쟁력 강화와 시스템 반도체 Advanced 노드 CAPA 확보를 위한 투자 방향도 함께 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+        "quote": "2024년 DS 부문 및 SDC 등의 첨단공정 증설ㆍ전환과 인프라 투자를 중심으로 53.6조원의 시설투자가 이루어졌습니다. 당사는 메모리 차세대 기술 경쟁력 강화 및 중장기 수요 대비를 위한 투자를 지속 추진하였고, 시스템 반도체는 Advanced 노드 CAPA 확보를 위한 투자도 진행 중입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "시설투자 총액과 투자 대상, 투자 방향을 직접 설명한다."
+      }
+    ]
+  },
+  {
+    "id": "customers_001",
+    "question": "삼성전자 2024 사업보고서에서 주요 매출처와 5대 매출처 비중은 어떻게 제시되나요?",
+    "category": "business_overview",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["매출 및 수주상황"],
+    "answer_key": "주요 매출처로는 Apple, Deutsche Telekom, Hong Kong Techtronics, Supreme Electronics, Verizon 등이 제시되며, 주요 5대 매출처 비중은 전체 매출 대비 약 14% 수준이라고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "2024년 당사의 주요 매출처로는 Apple, Deutsche Telekom, Hong Kong Techtronics, Supreme Electronics, Verizon 등(알파벳순) 입니다. 당사의 주요 5대 매출처에 대한 매출비중은 전체 매출액 대비 약 14% 수준입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "질문이 묻는 주요 고객사와 5대 매출처 비중을 직접 제공한다."
+      }
+    ]
+  },
+  {
+    "id": "missing_information_001",
+    "question": "삼성전자 2024 사업보고서에서 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시하나요?",
+    "category": "missing_information",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["매출 및 수주상황"],
+    "answer_key": "아니오. 보고서는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 없다고 명시한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "2024년말 현재 당사 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래는 없습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "장기공급계약 수주거래의 부재를 명시적으로 말한다."
+      }
+    ],
+    "missing_info_policy": "답변은 '없다', '없습니다', '장기공급계약 수주거래는 없다'처럼 부재를 명시해야 한다."
+  }
+]

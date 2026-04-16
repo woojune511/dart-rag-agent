@@ -1,60 +1,33 @@
 {
   "defaults": {
-    "report_path": "C:/ABSOLUTE/PATH/TO/report.html",
-    "metadata": {
-      "company": "삼성전자",
-      "stock_code": "005930",
-      "year": 2024,
-      "report_type": "사업보고서",
-      "rcept_no": "20250311001085"
-    },
     "k": 8,
     "ingest_mode": "contextual_all",
     "max_workers": 8,
     "batch_size": 16,
-    "eval_dataset_path": "benchmarks/eval_dataset.template.json",
-    "eval_mode": "single_company_slice",
-    "eval_limit": 5,
-    "smoke_queries": [
-      {
-        "query": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
-        "category": "business_overview",
-        "expected_company": "삼성전자",
-        "expected_year": 2024
-      },
-      {
-        "query": "삼성전자 2024 사업보고서에서 주요 리스크로 언급된 내용은 무엇인가요?",
-        "category": "risk_analysis",
-        "expected_company": "삼성전자",
-        "expected_year": 2024
-      },
-      {
-        "query": "삼성전자 2024 사업보고서에서 연구개발비 규모는 어느 정도인가요?",
-        "category": "numeric_fact",
-        "expected_company": "삼성전자",
-        "expected_year": 2024
-      },
-      {
-        "query": "삼성전자 2024 사업보고서에서 비트코인 보유량이 명시되어 있나요?",
-        "category": "missing_information",
-        "expected_company": "삼성전자",
-        "expected_year": 2024
-      }
-    ],
+    "eval_mode": "all_filtered",
+    "eval_limit": 0,
     "pricing": {
-      "input_per_million_tokens_usd": 0.0,
-      "output_per_million_tokens_usd": 0.0
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
     },
-    "selective_short_text_threshold": 900,
-    "selective_sections": [
-      "리스크",
-      "연구개발",
+    "parent_hybrid_short_text_threshold": 700,
+    "parent_hybrid_sections": [
       "매출현황",
+      "재무제표",
+      "연구개발",
+      "리스크",
+      "사업개요"
+    ],
+    "selective_v2_short_text_threshold": 700,
+    "selective_v2_short_table_threshold": 1600,
+    "selective_v2_sections": [
       "사업개요",
-      "경영진단"
+      "위험관리 및 파생거래",
+      "매출 및 수주상황",
+      "연구개발"
     ],
     "reset_store": true,
-    "mlflow_experiment_name": "dart_rag_benchmark"
+    "mlflow_experiment_name": "dart_rag_benchmark_generalization"
   },
   "screening": {
     "baseline_experiment_id": "contextual_all_2500_320",
@@ -62,22 +35,161 @@
     "retrieval_hit_drop_threshold": 0.1,
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 3,
-    "always_include_full_eval_ids": [
-      "contextual_1500_200"
-    ]
+    "always_include_full_eval_ids": [],
+    "section_aliases": {
+      "numeric_fact": [
+        "매출현황",
+        "재무제표",
+        "요약재무"
+      ]
+    }
   },
   "full_evaluation": {
     "enabled": true,
-    "eval_mode": "single_company_slice",
-    "eval_limit": 5
+    "eval_mode": "all_filtered",
+    "eval_limit": 0
   },
-  "experiments": [
+  "company_runs": [
     {
-      "id": "plain_2500_320",
-      "chunk_size": 2500,
-      "chunk_overlap": 320,
-      "ingest_mode": "plain"
+      "id": "samsung_2024",
+      "defaults": {
+        "report_path": "data/reports/삼성전자/2024_사업보고서_20250311001085.html",
+        "metadata": {
+          "company": "삼성전자",
+          "stock_code": "005930",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250311001085"
+        },
+        "eval_dataset_path": "benchmarks/eval_dataset.canonical.json",
+        "smoke_queries": [
+          {
+            "query": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "삼성전자",
+            "expected_year": 2024
+          },
+          {
+            "query": "삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "삼성전자",
+            "expected_year": 2024
+          },
+          {
+            "query": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "삼성전자",
+            "expected_year": 2024
+          },
+          {
+            "query": "삼성전자 2024 사업보고서에서 연구개발비용은 얼마이며 어떻게 회계처리되나요?",
+            "category": "r_and_d_investment",
+            "expected_company": "삼성전자",
+            "expected_year": 2024
+          },
+          {
+            "query": "삼성전자 2024 사업보고서에서 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "삼성전자",
+            "expected_year": 2024
+          }
+        ]
+      }
     },
+    {
+      "id": "skhynix_2024",
+      "defaults": {
+        "report_path": "data/reports/SK하이닉스/2024_사업보고서_20250319000665.html",
+        "metadata": {
+          "company": "SK하이닉스",
+          "stock_code": "000660",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250319000665"
+        },
+        "eval_dataset_path": "benchmarks/eval_dataset.skhynix_2024.canonical.json",
+        "smoke_queries": [
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          }
+        ]
+      }
+    },
+    {
+      "id": "naver_2024",
+      "defaults": {
+        "report_path": "data/reports/NAVER/2024_사업보고서_20250318000645.html",
+        "metadata": {
+          "company": "NAVER",
+          "stock_code": "035420",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250318000645"
+        },
+        "eval_dataset_path": "benchmarks/eval_dataset.naver_2024.canonical.json",
+        "smoke_queries": [
+          {
+            "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          }
+        ]
+      }
+    }
+  ],
+  "experiments": [
     {
       "id": "contextual_all_2500_320",
       "chunk_size": 2500,
@@ -91,22 +203,16 @@
       "ingest_mode": "contextual_parent_only"
     },
     {
-      "id": "contextual_selective_2500_320",
+      "id": "contextual_parent_hybrid_2500_320",
       "chunk_size": 2500,
       "chunk_overlap": 320,
-      "ingest_mode": "contextual_selective"
+      "ingest_mode": "contextual_parent_hybrid"
     },
     {
-      "id": "contextual_1500_200",
-      "chunk_size": 1500,
-      "chunk_overlap": 200,
-      "ingest_mode": "contextual_all"
-    },
-    {
-      "id": "contextual_2800_350",
-      "chunk_size": 2800,
-      "chunk_overlap": 350,
-      "ingest_mode": "contextual_all"
+      "id": "contextual_selective_v2_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "contextual_selective_v2"
     }
   ]
 }

@@ -1,12 +1,10 @@
 # 실행 계획
 
-> 이 문서는 다음 실험과 확장 우선순위를 정리한 계획서다. 현재 상태는 `CONTEXT.md`, 중요한 설계 판단은 `DECISIONS.md`를 참고한다.
-
----
+이 문서는 다음 스프린트의 우선순위와 성공 조건을 정리한 계획서다.
 
 ## 현재 기준선
 
-현재 기본값:
+현재 기본 baseline:
 
 - `chunk_size = 2500`
 - `chunk_overlap = 320`
@@ -14,134 +12,82 @@
 - retrieval = dense + BM25 + RRF
 - reasoning = evidence-first
 
-현재 확인된 사실:
+현재까지 확인된 사실:
 
-- contextual ingest가 여전히 가장 큰 시간과 비용 병목이다.
-- `contextual_all_2500_320`만 screening을 통과했다.
-- `plain`, `parent_only`, `selective`는 모두 다른 실패 양상을 보였다.
+- 삼성전자 기준으로 `contextual_parent_only_2500_320`가 screening을 통과한 적이 있다
+- `plain`은 risk retrieval miss가 반복됐다
+- `contextual_selective_v2`는 business overview miss 가능성이 남아 있다
+- `contextual_parent_hybrid`는 품질은 보완할 수 있지만 비용 이점이 약할 수 있다
 
----
+추가로 확인된 평가 한계:
 
-## 다음 목표
+- 기존 `ground_truth` 한 줄만으로는 도메인 비전문가가 정답 타당성을 검수하기 어렵다
+- retrieval 지표보다 answer-level 지표의 신뢰도를 설명하기 어려웠다
 
-다음 단계의 목표는 단순히 더 빠른 설정을 찾는 것이 아니라, 아래 조건을 동시에 만족하는 저비용 후보를 찾는 것이다.
+## 이번 스프린트 목표
 
-- retrieval 품질 하한선 유지
-- risk 질문 실패 방지
-- wrong-company contamination 재발 방지
-- ingest 시간 또는 API 비용의 의미 있는 감소
+이번 스프린트는 운영 기본값을 바꾸는 단계가 아니다.  
+대신 **삼성전자 / SK하이닉스 / NAVER 3개 기업에서 screening quality floor를 재현하는 후보를 확인하고, 그 결과로 기본값 후보를 선택할 수 있게 만드는 것**이 목표다.
 
----
+핵심 질문:
 
-## 우선순위 실험
+- `contextual_parent_only`가 삼성전자 외 기업에서도 통과하는가
+- `contextual_selective_v2`가 특정 기업에서 반복적으로 실패하는 질문 유형이 있는가
+- 같은 후보가 최소 2개 기업에서 통과하는가
+- baseline 대비 API calls / ingest 시간이 얼마나 줄어드는가
+- reviewer artifact만으로 기업별 정답 근거를 추적할 수 있는가
 
-### 1. `contextual_parent_only`의 hybrid 변형 실험
+## 우선순위 작업
 
-목표:
+### 1. 일반화 benchmark matrix 구성
 
-- parent-only의 큰 비용 절감 효과는 살리고, 숫자/표 중심 질의에서 child-level precision 손실을 줄인다.
-
-아이디어:
-
-- 기본은 parent context 사용
-- 예외적으로 아래 chunk는 child contextualization 유지
-  - `block_type == table`
-  - `매출현황`
-  - `재무제표`
-  - `연구개발`
-  - `리스크`
-
-성공 기준:
-
-- API calls가 `contextual_all_2500_320`보다 유의미하게 감소
-- numeric fact miss가 재현되지 않을 것
-
-### 2. `contextual_selective_v2` 실험
+- 대상 기업:
+  - `삼성전자`
+  - `SK하이닉스`
+  - `NAVER`
+- 비교 후보:
+  - `contextual_all_2500_320`
+  - `contextual_parent_only_2500_320`
+  - `contextual_parent_hybrid_2500_320`
+  - `contextual_selective_v2_2500_320`
 
 목표:
 
-- 지금 selector는 너무 넓고도 business overview retrieval을 놓친다.
+- 기업별 screening 결과와 cross-company aggregate를 함께 남기기
+- 후보별 pass count와 비용 절감률을 직접 비교할 수 있게 만들기
 
-개선 방향:
+### 2. 기업별 canonical eval dataset 확장
 
-- 반드시 contextualize할 section과 block을 더 좁고 명확하게 정의
-- 대표 paragraph와 table만 선택하고, 나머지는 plain 유지
-
-예상 포함 후보:
-
-- `사업개요`
-- `위험관리 및 파생거래`
-- `연구개발`
-- `매출 및 수주상황`
-- 짧은 표, 표 중심 chunk
-
-성공 기준:
-
-- contextualized chunk 수가 현재 selective보다 확실히 줄어들 것
-- business overview miss가 없어질 것
-
-### 3. retrieval 평가 기준 보강
+- 삼성전자 canonical dataset 유지
+- `SK하이닉스`, `NAVER`용 canonical dataset 추가
+- 각 기업당 최소 8문항 이상 확보
+- 형식:
+  - `answer_key`
+  - `expected_sections`
+  - `evidence`
+  - `missing_info_policy`
 
 목표:
 
-- 현재 `section_match_rate`는 baseline도 낮아, "정답 섹션 1개는 찾지만 top-k가 많이 섞이는" 현상을 충분히 설명하지 못한다.
+- 도메인 지식 없이도 질문별 정답 근거를 검수 가능하게 만들기
+- 제조업 / 플랫폼 기업 간 섹션 차이를 평가 데이터에 반영하기
 
-후보 작업:
+### 3. 평가 보강
 
-- 허용 가능한 section alias 정의
-- 숫자 질의에서 `매출현황`, `재무제표`, `요약재무`를 동급으로 볼지 기준 정리
-- contamination을 별도 지표로 분리
-
-### 4. benchmark coverage 확장
-
-목표:
-
-- 삼성전자 한 문서에서 유효했던 기본값이 다른 기업에도 유지되는지 확인한다.
-
-후보 기업:
-
-- SK하이닉스
-- NAVER
-- LG전자
-
-성공 기준:
-
-- 최소 2개 기업에서 동일한 실험 매트릭스를 다시 실행
-- 같은 실패 패턴이 반복되는지 확인
-
----
-
-## 유지할 실험 축
-
-앞으로도 아래 축은 유지한다.
-
-### Chunking
-
-- `1500 / 200`
-- `2500 / 320`
-- 필요 시 `2800 / 350`을 speed reference로만 사용
-
-### Ingest mode
-
-- `plain`
-- `contextual_all`
-- `contextual_parent_only`
-- `contextual_selective`
-- 향후 `contextual_parent_hybrid`
-- 향후 `contextual_selective_v2`
-
-### Parallelism
-
-- `screening.parallel_experiments = 1`
-- `screening.parallel_experiments = 2`
-- `screening.parallel_experiments = 3`
-
-### Cost controls
-
-- metadata prefix on/off
-- cache on/off
-
----
+- screening cutoff는 그대로 유지:
+  - `retrieval_hit_drop_threshold = 0.10`
+  - `section_match_drop_threshold = 0.15`
+- critical category는 `risk / business / numeric`로 본다
+- 산출물:
+  - 기업별 `results.json`, `summary.csv`, `summary.md`, `review.csv`, `review.md`
+  - 전체 `cross_company_summary.csv`, `cross_company_summary.md`
+- 승자 선정 우선순위를 문서화:
+  1. pass count
+  2. critical miss 여부
+  3. API calls 감소율
+  4. ingest 시간 감소율
+  5. full eval의 `faithfulness`, `context_recall`
+  6. reviewer artifact 정성 검토
 
 ## 측정 항목
 
@@ -150,49 +96,49 @@
 - `retrieval_hit_at_k`
 - `section_match_rate`
 - `citation_coverage`
+- `contamination_rate`
+- reviewer artifact에서 질문별 정답 근거 추적 가능 여부
+
+### 속도 / 비용
+
+- `ingest.elapsed_sec`
+- `api_calls`
+- `parent_context_calls`
+- `child_context_calls`
+- `prompt_tokens`
+- `output_tokens`
+
+### 정식 평가
+
 - `faithfulness`
 - `answer_relevancy`
 - `context_recall`
 
-### 속도
-
-- `parse.elapsed_sec`
-- `ingest.elapsed_sec`
-- smoke query latency
-
-### 비용
-
-- `api_calls`
-- `prompt_tokens`
-- `output_tokens`
-- `estimated_ingest_cost_usd`
-
-### 안정성
-
-- wrong-company contamination
-- risk query failure
-- missing-information hallucination
-
----
-
-## 문서화 산출물
-
-실험이 끝나면 아래 자산을 유지한다.
-
-- `benchmarks/results/.../results.json`
-- `benchmarks/results/.../summary.csv`
-- `benchmarks/results/.../summary.md`
-- `docs/benchmarking.md`
-- 필요 시 `DECISIONS.md`의 핵심 비교 요약
-
----
-
 ## 성공 조건
 
-다음 단계의 성공은 아래를 모두 만족하는 후보를 찾는 것이다.
+아래를 모두 만족하는 기본값 후보 1개 이상 확보:
 
-- screening quality floor 통과
-- risk/business 핵심 질의에서 hit@k 유지
+- 동일 후보가 3개 기업 중 최소 2개 기업에서 screening 통과
+- risk/business/numeric 질의에서 `retrieval_hit_at_k == 0` 없음
 - contamination 없음
-- baseline 대비 ingest 시간 또는 API cost가 의미 있게 감소
-- 결과를 수치와 사례로 문서화할 수 있을 것
+- baseline 대비 다음 중 하나 이상 달성
+  - `api_calls` 40% 이상 감소
+  - `ingest.elapsed_sec` 30% 이상 감소
+- cross-company summary와 reviewer artifact만으로 선택 근거를 설명 가능
+
+## 다음 단계
+
+이번 스프린트의 실제 결과는 다음과 같다.
+
+- `삼성전자`: `contextual_parent_hybrid_2500_320`만 통과
+- `SK하이닉스`: `contextual_all_2500_320`만 통과
+- `NAVER`: 통과 후보 없음
+- 따라서 "같은 후보가 최소 2개 기업에서 통과" 조건은 아직 충족되지 않았다
+
+지금 기준 다음 우선순위는 아래다.
+
+1. NAVER 문서의 `section_path` 이상 징후를 parser / section extraction 수준에서 먼저 수정
+2. 숫자 질의 section alias를 `연결재무제표`, `연결재무제표 주석`까지 확장할지 검토
+3. "근거를 찾지 못했다" 응답이 과대평가되는 judge / evaluation 로직 보정
+4. 그 다음에 generalization benchmark를 재실행
+5. 재실행 결과를 기준으로 기본값 후보 shortlist를 다시 확정

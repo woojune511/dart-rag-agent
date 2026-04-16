@@ -1,0 +1,198 @@
+[
+  {
+    "id": "numeric_fact_001",
+    "question": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+    "category": "numeric_fact",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["매출 및 수주상황", "사업의 개요", "재무상태 및 영업실적"],
+    "answer_key": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "영업수익 10,737,719",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "매출 및 수주상황 표에서 2024년 영업수익 총액을 직접 제시한다."
+      },
+      {
+        "section_path": "V. 재무상태 및 영업실적 > 2. 개요",
+        "quote": "2024년 연결 영업수익은 전년 대비 11% 성장한 10조 7,377억 원",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "경영진단 파트에서도 같은 금액을 요약 설명한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_001",
+    "question": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+    "category": "business_overview",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["사업의 개요", "주요제품 및 서비스"],
+    "answer_key": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+        "quote": "네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)'를 기반으로 광고, 커머스 사업을 통해 매출을 창출하고 있습니다. 아울러 올인원 디지털 금융 플랫폼인 핀테크와 웹툰, 스노우 등의 콘텐츠 서비스, 기업용 솔루션을 제공하는 클라우드 등 다각화된 사업 포트폴리오를 기반으로 안정적인 성장을 이어가고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "주요 사업 축을 한 문단에서 직접 요약한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_002",
+    "question": "NAVER 2024 사업보고서에서 서비스별 영업수익 구성은 어떻게 제시되나요?",
+    "category": "business_overview",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["매출 및 수주상황", "사업의 개요"],
+    "answer_key": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "영업수익 10,737,719 / 서치플랫폼 3,946,166 / 커머스 2,922,977 / 핀테크 1,508,407 / 콘텐츠 1,796,421 / 클라우드 563,748",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "서비스별 영업수익 표의 핵심 수치를 한 줄로 정리한 것이다."
+      }
+    ]
+  },
+  {
+    "id": "risk_analysis_001",
+    "question": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+    "category": "risk_analysis",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["위험관리 및 파생거래"],
+    "answer_key": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "연결회사는 여러 활동으로 인하여 시장위험(외환위험, 가격위험, 이자율위험), 신용위험 및 유동성위험과 같은 다양한 재무위험에 노출되어 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "리스크 범주를 직접 열거한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "연결회사는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험, 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "환율변동위험의 주요 통화를 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "risk_analysis_002",
+    "question": "NAVER 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+    "category": "risk_analysis",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["위험관리 및 파생거래", "환율변동 영향"],
+    "answer_key": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "V. 재무상태 및 영업실적 > 마. 환율변동 영향",
+        "quote": "당사는 효율적인 환율변동위험관리를 위해 당사의 환위험을 주기적으로 모니터링 및 평가하고 있으며, 헷지 용도 외의 외환거래는 금지하고 있습니다. 내부적 관리기법으로 현금흐름을 감안한 외화자금 입출금 Matching 혹은 환율전망에 따른 Leading/Lagging을 활용하거나, 외부적 관리기법으로 통화 변동성 및 매크로 분석에 따른 통화선물 및 옵션 등 위험회피 목적의 파생금융상품 거래를 사용하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "환율변동위험 대응 방식을 가장 구체적으로 설명한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "연결회사는 영업 자금 수요를 충족시키기 위해 차입금 한도나 약정을 위반하는 일이 없도록 유동성에 대한 예측을 항시 모니터링하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "유동성위험 대응의 핵심 원칙을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "r_and_d_investment_001",
+    "question": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+    "category": "r_and_d_investment",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["주요계약 및 연구개발활동", "연구개발비에 대한 공시"],
+    "answer_key": "2024년 NAVER의 연결 기준 연구개발비용은 1,857,936백만원이고, 영업수익 대비 비율은 17.3%이다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "연구개발비용 계 1,857,936 / 연구개발비/영업수익 비율 17.3%",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "연구개발비 총액과 비율을 표에서 직접 확인할 수 있다."
+      }
+    ]
+  },
+  {
+    "id": "r_and_d_investment_002",
+    "question": "NAVER 2024 사업보고서에서 AI·클라우드 관련 연구개발 성과 예시는 무엇인가요?",
+    "category": "r_and_d_investment",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["연구개발실적", "주요계약 및 연구개발활동"],
+    "answer_key": "보고서는 AI·클라우드 관련 연구개발 성과 예시로 CLOVA for Writing, AiCall, NSML, CLOps, 초대규모 AI 고도화 연구, 창의적 멀티미디어 생성 AI 연구 등을 제시한다.",
+    "evidence": [
+      {
+        "section_path": "XII. 상세표 > 4. 연구개발실적",
+        "quote": "CLOVA for Writing / HyperClova와 함께 AI 기반 스마트에디터 글쓰기 사용성 개선 기능 개발",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "생성형 AI 기반 편집 기능 사례를 보여준다."
+      },
+      {
+        "section_path": "XII. 상세표 > 4. 연구개발실적",
+        "quote": "AiCall: AI기반의 ARS 기술 / 식당 예약, 콜센터 등 특정 도메인에서 인간과 같은 수준의 전화 응답이 가능한 AI ARS 기술 및 서비스 개발",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "서비스형 AI 연구개발 사례를 보여준다."
+      },
+      {
+        "section_path": "XII. 상세표 > 4. 연구개발실적",
+        "quote": "NSML: AI 기술 연구개발 플랫폼 / ML·AI 모델 연구개발을 위한 GPU Farm기반 데이터·리더보드 플랫폼",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "AI 모델 연구개발 플랫폼 사례를 제시한다."
+      },
+      {
+        "section_path": "XII. 상세표 > 4. 연구개발실적",
+        "quote": "CLOps: AI 모델 서비스 플랫폼 / ML·AI 모델을 안정적으로 서비스하기 위한 클라우드 플랫폼",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "AI 모델 운영 플랫폼 사례를 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "investment_001",
+    "question": "NAVER 2024 사업보고서에서 시설투자 규모와 방향은 어떻게 설명되나요?",
+    "category": "r_and_d_investment",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["원재료 및 생산설비", "시설투자(CapEx)"],
+    "answer_key": "NAVER는 춘천 및 클라우드 데이터센터, 업무공간 추가 확보, 서버 등에 투자하고 있으며 2024년 CapEx는 580.3십억원으로 제시한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+        "quote": "당사는 현재 춘천 및 클라우드 데이터센터, 업무공간 추가 확보 등을 위한 토지 및 건물과 서버 등에 투자하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "시설투자의 방향과 대상 자산을 직접 설명한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+        "quote": "CapEx 580.3",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "2024년 CapEx 금액을 직접 보여준다."
+      }
+    ]
+  },
+  {
+    "id": "missing_information_001",
+    "question": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+    "category": "missing_information",
+    "company": "NAVER",
+    "year": 2024,
+    "expected_sections": ["재무상태 및 영업실적"],
+    "answer_key": "아니오. 보고서는 신규사업 및 중단사업에 대해 해당사항이 없다고 명시한다.",
+    "evidence": [
+      {
+        "section_path": "V. 재무상태 및 영업실적 > 2. 개요",
+        "quote": "다. 신규사업 및 중단사업 해당사항 없습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "부재를 명시적으로 선언한다."
+      }
+    ],
+    "missing_info_policy": "답변은 '없다', '없습니다', '해당사항 없습니다'처럼 신규사업 및 중단사업의 부재를 명시해야 한다."
+  }
+]
