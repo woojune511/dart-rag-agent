@@ -1,0 +1,191 @@
+[
+  {
+    "id": "numeric_fact_001",
+    "question": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+    "category": "numeric_fact",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["사업의 개요", "매출 및 수주상황", "재무상태 및 영업실적"],
+    "answer_key": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+        "quote": "당사의 연결 기준 매출액은 2024년(제77기) 66조 1,930억원",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "사업 개요에서 2024년 연결 기준 매출액을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_001",
+    "question": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+    "category": "business_overview",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["사업의 개요"],
+    "answer_key": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+        "quote": "당사 및 당사의 종속기업의 주력 제품은 DRAM 및 NAND를 중심으로 하는 메모리 반도체이며, Foundry 사업도 병행하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "회사의 핵심 사업과 주력 제품군을 직접 설명한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_002",
+    "question": "SK하이닉스 2024 사업보고서에서 제품군별 매출 비중은 어떻게 설명되나요?",
+    "category": "business_overview",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["재무상태 및 영업실적", "매출 및 수주상황"],
+    "answer_key": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "V. 재무상태 및 영업실적",
+        "quote": "제품군별로는 전체 매출 중 DRAM과 NAND가 각각 68%와 29% 비중을 차지하였으며, 그 외 기타 매출은 3%를 차지하였습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "제품군별 매출 비중을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "business_overview_003",
+    "question": "SK하이닉스 2024 사업보고서에서 주요 고객군은 어떻게 설명되나요?",
+    "category": "business_overview",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["매출 및 수주상황"],
+    "answer_key": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "DRAM의 경우 글로벌 Server 공급 업체 및 Computing 관련 전자 업체에 제품을 공급하고 있습니다. NAND Flash는 IT 컨슈머 제품 전체에 걸쳐 그 수요처가 다양하기 때문에, 세계적인 모바일 디바이스 및 IT 제품 제조업체, 그리고 SSD와 같은 대용량 저장장치와 메모리 카드 생산 업체 등을 고객으로 확보하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "제품군별 주요 고객군을 직접 설명한다."
+      }
+    ]
+  },
+  {
+    "id": "risk_analysis_001",
+    "question": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+    "category": "risk_analysis",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["위험관리 및 파생거래"],
+    "answer_key": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "연결회사는 시장위험(환율변동위험, 이자율위험 및 가격위험), 신용위험 및 유동성위험과 같은 다양한 금융위험에 노출되어 있습니다. 연결회사의 전반적인 위험관리 정책은 금융시장의 예측불가능성에 초점을 맞추고 있으며 재무성과에 잠재적으로 불리할 수 있는 효과를 최소화하는데 중점을 두고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "핵심 금융위험의 범주와 위험관리 목표를 직접 설명한다."
+      }
+    ]
+  },
+  {
+    "id": "risk_analysis_002",
+    "question": "SK하이닉스 2024 사업보고서에서 신용위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+    "category": "risk_analysis",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["위험관리 및 파생거래", "재무상태 및 영업실적"],
+    "answer_key": "SK하이닉스는 고객과 거래상대방의 재무신용도를 주기적으로 평가하고 신용한도를 설정하며, 필요시 담보와 신용보험을 활용한다고 설명한다. 유동성 측면에서는 만기 기간별 전략과 계획을 통해 금융부채 만기를 관리한다고 설명한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+        "quote": "신용위험은 연결회사의 통상적인 거래 및 투자활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다. 이러한 신용위험을 관리하기 위하여 연결회사는 주기적으로 고객과 거래상대방의 재무상태와 과거 경험 및 기타 요소들을 고려하여 재무신용도를 평가하고 있으며 고객과 거래상대방 각각에 대한 신용한도를 설정하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "신용위험 대응 방식을 직접 설명한다."
+      },
+      {
+        "section_path": "V. 재무상태 및 영업실적",
+        "quote": "당사는 만기 기간별 분류에 기반한 유동성 전략 및 계획을 통하여 유동성 위험을 관리하고 있습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "유동성위험 관리 방식의 핵심 원칙을 직접 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "r_and_d_investment_001",
+    "question": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+    "category": "r_and_d_investment",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["주요계약 및 연구개발활동"],
+    "answer_key": "2024년 SK하이닉스의 연구개발비용 합계는 4,954,447백만원이며, 매출 대비 비율은 7.5%이다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "연구개발비용 합계 4,954,447 / 연구개발비 / 매출액 비율 7.5%",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "연구개발비 총액과 매출 대비 비율을 표에서 직접 확인할 수 있다."
+      }
+    ]
+  },
+  {
+    "id": "r_and_d_investment_002",
+    "question": "SK하이닉스 2024 사업보고서에서 2024년 연구개발·제품 성과 예시는 무엇인가요?",
+    "category": "r_and_d_investment",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["주요계약 및 연구개발활동"],
+    "answer_key": "보고서는 2024년 성과 예시로 HBM3E 세계 최초 양산, 세계 최초 12단 적층 HBM3E 양산, 세계 최고층 321단 4D NAND 양산 등을 제시한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "초고성능 AI 메모리 HBM3E 세계 최초로 양산",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "2024년 대표 성과로 HBM3E 양산을 직접 제시한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "세계 최초 12단 적층 HBM3E 양산",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "HBM3E 고적층 제품 양산 성과를 제시한다."
+      },
+      {
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "quote": "세계 최고층 321단 4D NAND 양산",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "NAND 분야의 대표 성과를 제시한다."
+      }
+    ]
+  },
+  {
+    "id": "investment_001",
+    "question": "SK하이닉스 2024 사업보고서에서 2024년 연간 투자집행 규모는 얼마인가요?",
+    "category": "r_and_d_investment",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["원재료 및 생산설비"],
+    "answer_key": "2024년 연간 누적 투자집행 실적 합계는 17,956십억원이다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+        "quote": "2024.01.01~2024.12.31 17,956 / 합 계 17,956",
+        "quote_type": "normalized",
+        "why_it_supports_answer": "연간 누적 투자집행 실적 합계를 표에서 직접 확인할 수 있다."
+      }
+    ]
+  },
+  {
+    "id": "missing_information_001",
+    "question": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+    "category": "missing_information",
+    "company": "SK하이닉스",
+    "year": 2024,
+    "expected_sections": ["매출 및 수주상황"],
+    "answer_key": "아니오. 보고서는 장기공급 계약에 따른 수주 현황이 없다고 명시한다.",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "당사는 주요 고객사들과 월별/분기별 상호 합의에 따른 공급 물량 및 가격을 결정하고 있으며, 장기공급 계약에 따른 수주 현황은 없습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "장기공급 계약 수주 현황의 부재를 명시적으로 설명한다."
+      }
+    ],
+    "missing_info_policy": "답변은 '없다', '없습니다', '장기공급 계약에 따른 수주 현황은 없다'처럼 부재를 명시해야 한다."
+  }
+]
