@@ -33,6 +33,16 @@
   - `screening.parallel_experiments`
 - benchmark 질문셋 / 평가셋 JSON 추적 가능하도록 `.gitignore` 범위 축소
 - `eval_dataset.template.json`을 실제 삼성전자 2024 사업보고서 기준으로 보강
+- `dev_fast` / `release_generalization` 실행 프로파일 추가
+- 회사별 job 실행 + partial summary 지원
+- `Hybrid Cache` 도입
+  - `stores/...` 재사용
+  - `context_cache/...` 재사용
+- NAVER `section_path` heading level 정규화 반영
+- numeric section alias 확장
+  - `연결재무제표`
+  - `연결재무제표 주석`
+- full abstention 패턴만 answerable query 페널티로 취급하도록 평가 보정
 
 ## 최신 benchmark 메모
 
@@ -56,6 +66,28 @@
 - `contextual_1500_200`
   - 가장 느리고 business overview miss 발생
 
+### Fast profile 검증
+
+기준 run:
+
+- `benchmarks/results/dev_fast_cache_check_2026-04-17`
+
+검증 내용:
+
+- `dev_fast`로 삼성전자 1회사 screening-only 2회 연속 실행
+- 1차 run 약 `13분 16초`
+- 2차 run 약 `5분 27초`
+- 2차 run에서 모든 후보가:
+  - `cache.cache_hit = true`
+  - `cache.cache_level = store`
+  - `ingest.api_calls = 0`
+  - `ingest.elapsed_sec = 0.0`
+
+해석:
+
+- 동일 설정 재실행 시 contextual ingest API 비용은 재발생하지 않음
+- 반복 실험의 주 병목은 이제 ingest보다 query / screening 단계에 가까움
+
 ## 현재 해석
 
 지금 병목은 parser가 아니라 contextual ingest입니다.  
@@ -69,6 +101,9 @@
   - selector를 훨씬 더 공격적으로 줄이고 핵심 섹션만 유지
 - 평가셋 보강
   - 숫자 질의의 허용 section 범위 재검토
+- query/screening 비용 절감
+  - smoke 질문 수 재조정
+  - screening slice 축소 또는 category별 샘플링 재검토
 
 ## 현재 작업 트리에서 중요 포인트
 
@@ -80,7 +115,7 @@
 
 ## 다음 세션 우선순위
 
-1. `parent_only hybrid` 실험안 추가
-2. `selective_v2` selector 설계
+1. `dev_fast` 기준으로 query/screening 비용 추가 절감
+2. `parent_only hybrid` 보완 또는 `selective_v2` 재설계
 3. screening 기준과 eval dataset의 섹션 기대치 재검토
-4. 다른 기업 1건 추가 검증
+4. release profile을 회사별 partial run으로 다시 검증

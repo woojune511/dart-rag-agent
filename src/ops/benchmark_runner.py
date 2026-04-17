@@ -8,6 +8,7 @@ import argparse
 from collections import Counter
 import concurrent.futures
 import csv
+import hashlib
 import json
 import logging
 import shutil
@@ -37,11 +38,27 @@ RISK_CATEGORIES = {"risk", "risk_analysis"}
 BUSINESS_CATEGORIES = {"business", "business_overview"}
 NUMERIC_CATEGORIES = {"numeric", "numeric_fact"}
 MISSING_INFO_CATEGORIES = {"missing_information", "missing"}
-DEFAULT_NUMERIC_SECTION_ALIASES = ["매출현황", "재무제표", "요약재무"]
+DEFAULT_NUMERIC_SECTION_ALIASES = ["매출현황", "재무제표", "요약재무", "연결재무제표", "연결재무제표 주석"]
 DEFAULT_PARENT_HYBRID_SECTIONS = ["매출현황", "재무제표", "연구개발", "리스크", "사업개요"]
 DEFAULT_SELECTIVE_V2_SECTIONS = ["사업개요", "위험관리 및 파생거래", "매출 및 수주상황", "연구개발"]
-MISSING_INFO_MARKERS = ("없", "찾지 못", "확인되지", "명시되지", "어렵")
+MISSING_INFO_MARKERS = (
+    "없",
+    "찾지 못",
+    "근거를 찾지 못",
+    "답할 수 있는 근거를 찾지 못",
+    "확인되지",
+    "확인할 수 없",
+    "명시되지",
+    "어렵",
+)
+ABSTENTION_MARKERS = (
+    "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다",
+    "질문에 직접 답할 수 있는 근거를 찾지 못했습니다",
+    "공시 문서에 정보가 없거나",
+    "현재 검색 결과만으로는 확인하기 어렵습니다",
+)
 RISK_FAILURE_MARKERS = ("찾지 못", "확인하기 어렵", "확인할 수 없", "명시되지")
+BENCHMARK_CACHE_SCHEMA_VERSION = 1
 
 
 def _load_json(path: Path) -> Any:
@@ -53,6 +70,17 @@ def _write_json(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
+
+
+def _hash_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as file:
+        while True:
+            chunk = file.read(8192)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
@@ -105,6 +133,126 @@ def _build_recorded_settings(
         "screening": _sanitize_settings(screening_config),
         "full_evaluation": _sanitize_settings(full_eval_config),
     }
+
+
+def _build_cache_signature(config: Dict[str, Any]) -> Dict[str, Any]:
+    parser_path = PROJECT_ROOT / "src" / "processing" / "financial_parser.py"
+    runner_path = PROJECT_ROOT / "src" / "ops" / "benchmark_runner.py"
+    metadata = config.get("metadata", {})
+    return {
+        "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
+        "company": metadata.get("company"),
+        "year": metadata.get("year"),
+        "report_type": metadata.get("report_type"),
+        "rcept_no": metadata.get("rcept_no"),
+        "chunk_size": config.get("chunk_size"),
+        "chunk_overlap": config.get("chunk_overlap"),
+        "ingest_mode": config.get("ingest_mode"),
+        "k": config.get("k", 8),
+        "parser_signature": _hash_file(parser_path),
+        "runner_signature": _hash_file(runner_path),
+        "parent_hybrid_short_text_threshold": config.get("parent_hybrid_short_text_threshold"),
+        "parent_hybrid_sections": list(config.get("parent_hybrid_sections", [])),
+        "selective_short_text_threshold": config.get("selective_short_text_threshold"),
+        "selective_sections": list(config.get("selective_sections", [])),
+        "selective_v2_short_text_threshold": config.get("selective_v2_short_text_threshold"),
+        "selective_v2_short_table_threshold": config.get("selective_v2_short_table_threshold"),
+        "selective_v2_sections": list(config.get("selective_v2_sections", [])),
+    }
+
+
+def _cache_meta_path(persist_dir: Path) -> Path:
+    return persist_dir / "benchmark_cache_meta.json"
+
+
+def _context_cache_path(output_root: Path, experiment_id: str) -> Path:
+    return output_root / "context_cache" / f"{_slugify(experiment_id)}.json"
+
+
+def _load_cache_meta(persist_dir: Path) -> Dict[str, Any]:
+    path = _cache_meta_path(persist_dir)
+    if not path.exists():
+        return {}
+    try:
+        return _load_json(path)
+    except Exception:
+        logger.warning("Failed to load benchmark cache metadata: %s", path)
+        return {}
+
+
+def _write_cache_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
+    _write_json(_cache_meta_path(persist_dir), payload)
+
+
+def _load_context_cache(output_root: Path, experiment_id: str) -> Dict[str, Any]:
+    path = _context_cache_path(output_root, experiment_id)
+    if not path.exists():
+        return {}
+    try:
+        return _load_json(path)
+    except Exception:
+        logger.warning("Failed to load benchmark context cache: %s", path)
+        return {}
+
+
+def _write_context_cache(output_root: Path, experiment_id: str, payload: Dict[str, Any]) -> None:
+    _write_json(_context_cache_path(output_root, experiment_id), payload)
+
+
+def _cache_meta_matches(cache_meta: Dict[str, Any], signature: Dict[str, Any]) -> bool:
+    return bool(cache_meta) and cache_meta.get("signature") == signature
+
+
+def _build_cache_hit_ingest_metrics(source_metrics: Dict[str, Any]) -> Dict[str, Any]:
+    metrics = dict(source_metrics or {})
+    metrics["cache_hit"] = True
+    metrics["elapsed_sec"] = 0.0
+    metrics["api_calls"] = 0
+    metrics["prompt_tokens"] = 0
+    metrics["output_tokens"] = 0
+    metrics["total_tokens"] = 0
+    metrics["fallback_count"] = 0
+    metrics["cached_source_api_calls"] = int((source_metrics or {}).get("api_calls", 0) or 0)
+    metrics["cached_source_prompt_tokens"] = int((source_metrics or {}).get("prompt_tokens", 0) or 0)
+    metrics["cached_source_output_tokens"] = int((source_metrics or {}).get("output_tokens", 0) or 0)
+    return metrics
+
+
+def _build_context_cache_restore_metrics(source_metrics: Dict[str, Any], elapsed_sec: float) -> Dict[str, Any]:
+    metrics = dict(source_metrics or {})
+    metrics["cache_hit"] = True
+    metrics["api_calls"] = 0
+    metrics["prompt_tokens"] = 0
+    metrics["output_tokens"] = 0
+    metrics["total_tokens"] = 0
+    metrics["fallback_count"] = 0
+    metrics["elapsed_sec"] = elapsed_sec
+    metrics["cached_source_api_calls"] = int((source_metrics or {}).get("api_calls", 0) or 0)
+    metrics["cached_source_prompt_tokens"] = int((source_metrics or {}).get("prompt_tokens", 0) or 0)
+    metrics["cached_source_output_tokens"] = int((source_metrics or {}).get("output_tokens", 0) or 0)
+    return metrics
+
+
+def _restore_store_from_context_cache(vsm: VectorStoreManager, context_cache: Dict[str, Any]) -> Dict[str, Any]:
+    artifacts = dict(context_cache.get("artifacts", {}) or {})
+    parents = dict(artifacts.get("parents", {}) or {})
+    texts = list(artifacts.get("texts", []) or [])
+    metadatas = list(artifacts.get("metadatas", []) or [])
+    if parents:
+        vsm.add_parents(parents)
+    if texts:
+        vsm.add_documents(texts, metadatas)
+    return {
+        "stored_parent_chunks": len(parents),
+        "restored_documents": len(texts),
+    }
+
+
+def _resolve_boolean_config(config: Dict[str, Any], key: str, default: bool) -> bool:
+    value = config.get(key)
+    if value is None:
+        return default
+    return bool(value)
 
 
 def _load_eval_dataset(dataset_path: Path) -> List[EvalExample]:
@@ -496,6 +644,11 @@ def _contains_missing_language(text: str) -> bool:
     return any(marker in lowered for marker in MISSING_INFO_MARKERS)
 
 
+def _looks_like_full_abstention_answer(text: str) -> bool:
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in ABSTENTION_MARKERS)
+
+
 def _looks_like_risk_failure(text: str) -> bool:
     lowered = (text or "").lower()
     return not lowered.strip() or any(marker in lowered for marker in RISK_FAILURE_MARKERS)
@@ -537,6 +690,8 @@ def _screen_failure_reasons(
             reasons.append(f"smoke query error: {row['query']}: {row['error']}")
         if category in RISK_CATEGORIES and _looks_like_risk_failure(row.get("answer", "")):
             reasons.append(f"risk smoke query failed: {row['query']}")
+        if category not in MISSING_INFO_CATEGORIES and _looks_like_full_abstention_answer(row.get("answer", "")):
+            reasons.append(f"answerable smoke query abstained: {row['query']}")
         if category in MISSING_INFO_CATEGORIES and not _contains_missing_language(row.get("answer", "")):
             reasons.append(f"missing-information smoke query hallucinated: {row['query']}")
         if _has_wrong_company_contamination(row.get("expected_company"), row.get("retrieved_metadata", [])):
@@ -909,6 +1064,7 @@ def _benchmark_parent_only_ingest(
     on_progress=None,
     max_workers: Optional[int] = None,
     batch_size: Optional[int] = None,
+    return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
     parents = _store_parent_chunks(agent, chunks)
@@ -942,9 +1098,10 @@ def _benchmark_parent_only_ingest(
     for idx, chunk in enumerate(chunks):
         parent_id = str((chunk.metadata or {}).get("parent_id") or f"chunk-{idx}")
         texts.append(_build_index_text(chunk.metadata, chunk.content, contexts.get(parent_id)))
-    agent.vsm.add_documents(texts, [chunk.metadata for chunk in chunks])
+    metadatas = [chunk.metadata for chunk in chunks]
+    agent.vsm.add_documents(texts, metadatas)
 
-    return {
+    result = {
         "mode": "contextual_parent_only",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -955,6 +1112,13 @@ def _benchmark_parent_only_ingest(
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
     }
+    if return_artifacts:
+        result["artifacts"] = {
+            "texts": texts,
+            "metadatas": metadatas,
+            "parents": parents,
+        }
+    return result
 
 
 def _benchmark_parent_hybrid_ingest(
@@ -966,6 +1130,7 @@ def _benchmark_parent_hybrid_ingest(
     batch_size: Optional[int] = None,
     short_text_threshold: int = 700,
     targeted_sections: Optional[List[str]] = None,
+    return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
     parents = _store_parent_chunks(agent, chunks)
@@ -1030,9 +1195,10 @@ def _benchmark_parent_hybrid_ingest(
             context_parts.append(child_contexts[idx])
         context = "\n".join(part.strip() for part in context_parts if part and part.strip())
         texts.append(_build_index_text(chunk.metadata, chunk.content, context or None))
-    agent.vsm.add_documents(texts, [chunk.metadata for chunk in chunks])
+    metadatas = [chunk.metadata for chunk in chunks]
+    agent.vsm.add_documents(texts, metadatas)
 
-    return {
+    result = {
         "mode": "contextual_parent_hybrid",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1051,6 +1217,13 @@ def _benchmark_parent_hybrid_ingest(
         "batch_size": max(parent_metrics.get("batch_size", 0), child_metrics.get("batch_size", 0)),
         "elapsed_sec": time.perf_counter() - started_at,
     }
+    if return_artifacts:
+        result["artifacts"] = {
+            "texts": texts,
+            "metadatas": metadatas,
+            "parents": parents,
+        }
+    return result
 
 
 def _benchmark_selective_ingest(
@@ -1062,6 +1235,7 @@ def _benchmark_selective_ingest(
     batch_size: Optional[int] = None,
     short_text_threshold: int = 900,
     targeted_sections: Optional[List[str]] = None,
+    return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
     parents = _store_parent_chunks(agent, chunks)
@@ -1090,9 +1264,10 @@ def _benchmark_selective_ingest(
         _build_index_text(chunk.metadata, chunk.content, contexts.get(idx))
         for idx, chunk in enumerate(chunks)
     ]
-    agent.vsm.add_documents(texts, [chunk.metadata for chunk in chunks])
+    metadatas = [chunk.metadata for chunk in chunks]
+    agent.vsm.add_documents(texts, metadatas)
 
-    return {
+    result = {
         "mode": "contextual_selective",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1103,6 +1278,13 @@ def _benchmark_selective_ingest(
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
     }
+    if return_artifacts:
+        result["artifacts"] = {
+            "texts": texts,
+            "metadatas": metadatas,
+            "parents": parents,
+        }
+    return result
 
 
 def _benchmark_selective_v2_ingest(
@@ -1115,6 +1297,7 @@ def _benchmark_selective_v2_ingest(
     short_text_threshold: int = 700,
     targeted_sections: Optional[List[str]] = None,
     short_table_threshold: int = 1600,
+    return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
     parents = _store_parent_chunks(agent, chunks)
@@ -1144,9 +1327,10 @@ def _benchmark_selective_v2_ingest(
         _build_index_text(chunk.metadata, chunk.content, contexts.get(idx))
         for idx, chunk in enumerate(chunks)
     ]
-    agent.vsm.add_documents(texts, [chunk.metadata for chunk in chunks])
+    metadatas = [chunk.metadata for chunk in chunks]
+    agent.vsm.add_documents(texts, metadatas)
 
-    return {
+    result = {
         "mode": "contextual_selective_v2",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1157,6 +1341,13 @@ def _benchmark_selective_v2_ingest(
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
     }
+    if return_artifacts:
+        result["artifacts"] = {
+            "texts": texts,
+            "metadatas": metadatas,
+            "parents": parents,
+        }
+    return result
 
 
 def _normalise_smoke_queries(raw_queries: List[Any]) -> List[Dict[str, Any]]:
@@ -1484,6 +1675,45 @@ def _company_output_subdir(company_run: Dict[str, Any], defaults: Dict[str, Any]
     return "-".join(part for part in parts if part)
 
 
+def _filter_experiments_by_candidate_ids(
+    experiments: List[Dict[str, Any]],
+    candidate_ids: List[str],
+) -> List[Dict[str, Any]]:
+    if not candidate_ids:
+        return experiments
+    requested = [candidate_id for candidate_id in candidate_ids if candidate_id]
+    requested_set = set(requested)
+    filtered = [experiment for experiment in experiments if str(experiment.get("id")) in requested_set]
+    missing = [candidate_id for candidate_id in requested if candidate_id not in {str(exp.get("id")) for exp in filtered}]
+    if missing:
+        raise ValueError(f"Unknown candidate_ids requested: {missing}")
+    return filtered
+
+
+def _load_completed_company_bundle(
+    *,
+    output_root: Path,
+    company_run: Dict[str, Any],
+    defaults: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    company_id = str(company_run.get("id") or _company_output_subdir(company_run, defaults))
+    company_label = _company_run_label(company_run, defaults)
+    company_output_dir = output_root / _company_output_subdir(company_run, defaults)
+    result_path = company_output_dir / "results.json"
+    if not result_path.exists():
+        return None
+
+    data = _load_json(result_path)
+    return {
+        "company_id": company_id,
+        "company_label": company_label,
+        "output_dir": str(company_output_dir),
+        "full_eval_candidates": data.get("full_eval_candidates", []),
+        "results": data.get("results", []),
+        "recorded_matrix": data.get("recorded_matrix", {}),
+    }
+
+
 def _mean_or_none(values: List[float | None]) -> float | None:
     filtered = [float(value) for value in values if value is not None]
     return float(mean(filtered)) if filtered else None
@@ -1777,19 +2007,79 @@ def _write_benchmark_outputs(
     (output_dir / "review.md").write_text(_render_review_markdown(results), encoding="utf-8")
 
 
-def _run_ingest(agent: FinancialAgent, chunks: List[Any], config: Dict[str, Any]) -> Dict[str, Any]:
+def _write_multi_company_outputs(
+    *,
+    output_dir: Path,
+    config_path: Path,
+    defaults: Dict[str, Any],
+    experiments: List[Dict[str, Any]],
+    company_runs: List[Dict[str, Any]],
+    screening_config: Dict[str, Any],
+    full_eval_config: Dict[str, Any],
+    company_bundles: List[Dict[str, Any]],
+) -> None:
+    cross_company_rows = _build_cross_company_rows(company_bundles)
+    winner_ranking = _build_winner_ranking(cross_company_rows)
+    completed_company_ids = [bundle["company_id"] for bundle in company_bundles]
+    all_company_ids = [str(company_run.get("id") or _company_output_subdir(company_run, defaults)) for company_run in company_runs]
+    pending_company_ids = [company_id for company_id in all_company_ids if company_id not in completed_company_ids]
+    run_status = "completed" if not pending_company_ids else "partial"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _write_cross_company_summary_csv(output_dir / "cross_company_summary.csv", cross_company_rows)
+    (output_dir / "cross_company_summary.md").write_text(
+        _render_cross_company_summary_markdown(cross_company_rows, winner_ranking),
+        encoding="utf-8",
+    )
+    _write_json(
+        output_dir / "results.json",
+        {
+            "config_path": str(config_path),
+            "mode": "multi_company",
+            "run_status": run_status,
+            "completed_companies": completed_company_ids,
+            "pending_companies": pending_company_ids,
+            "recorded_matrix": {
+                "defaults": _sanitize_settings(defaults),
+                "screening": _sanitize_settings(screening_config),
+                "full_evaluation": _sanitize_settings(full_eval_config),
+                "experiments": [_sanitize_settings(experiment) for experiment in experiments],
+                "company_runs": [_sanitize_settings(company_run) for company_run in company_runs],
+            },
+            "company_runs": company_bundles,
+            "cross_company_summary": cross_company_rows,
+            "winner_ranking": winner_ranking,
+        },
+    )
+
+
+def _run_ingest(
+    agent: FinancialAgent,
+    chunks: List[Any],
+    config: Dict[str, Any],
+    *,
+    return_artifacts: bool = False,
+) -> Dict[str, Any]:
     ingest_mode = str(config.get("ingest_mode", "contextual_all"))
     max_workers = int(config.get("max_workers", DEFAULT_CONTEXT_MAX_WORKERS))
     batch_size = int(config.get("batch_size", DEFAULT_CONTEXT_BATCH_SIZE))
     if ingest_mode == "plain":
         started_at = time.perf_counter()
         agent.ingest(chunks)
-        return _build_plain_ingest_metrics(len(chunks), time.perf_counter() - started_at)
+        metrics = _build_plain_ingest_metrics(len(chunks), time.perf_counter() - started_at)
+        if return_artifacts:
+            metrics["artifacts"] = {
+                "texts": [chunk.content for chunk in chunks],
+                "metadatas": [chunk.metadata for chunk in chunks],
+                "parents": {},
+            }
+        return metrics
     if ingest_mode in {"contextual", "contextual_all"}:
         metrics = agent.benchmark_contextual_ingest(
             chunks,
             max_workers=max_workers,
             batch_size=batch_size,
+            return_artifacts=return_artifacts,
         )
         metrics["mode"] = "contextual_all"
         metrics.setdefault("contextualized_chunks", len(chunks))
@@ -1800,6 +2090,7 @@ def _run_ingest(agent: FinancialAgent, chunks: List[Any], config: Dict[str, Any]
             chunks,
             max_workers=max_workers,
             batch_size=batch_size,
+            return_artifacts=return_artifacts,
         )
     if ingest_mode == "contextual_parent_hybrid":
         return _benchmark_parent_hybrid_ingest(
@@ -1809,6 +2100,7 @@ def _run_ingest(agent: FinancialAgent, chunks: List[Any], config: Dict[str, Any]
             batch_size=batch_size,
             short_text_threshold=int(config.get("parent_hybrid_short_text_threshold", 700)),
             targeted_sections=list(config.get("parent_hybrid_sections", [])),
+            return_artifacts=return_artifacts,
         )
     if ingest_mode == "contextual_selective":
         return _benchmark_selective_ingest(
@@ -1818,6 +2110,7 @@ def _run_ingest(agent: FinancialAgent, chunks: List[Any], config: Dict[str, Any]
             batch_size=batch_size,
             short_text_threshold=int(config.get("selective_short_text_threshold", 900)),
             targeted_sections=list(config.get("selective_sections", [])),
+            return_artifacts=return_artifacts,
         )
     if ingest_mode == "contextual_selective_v2":
         return _benchmark_selective_v2_ingest(
@@ -1828,6 +2121,7 @@ def _run_ingest(agent: FinancialAgent, chunks: List[Any], config: Dict[str, Any]
             short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
             targeted_sections=list(config.get("selective_v2_sections", [])),
             short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
+            return_artifacts=return_artifacts,
         )
     raise ValueError(f"Unsupported ingest_mode: {ingest_mode}")
 
@@ -1845,24 +2139,126 @@ def run_screening_experiment(
 
     metadata = dict(config["metadata"])
     persist_dir = output_root / "stores" / _slugify(experiment_id)
-    if config.get("reset_store", True) and persist_dir.exists():
-        shutil.rmtree(persist_dir)
+    context_cache_path = _context_cache_path(output_root, experiment_id)
+    force_reindex = _resolve_boolean_config(config, "force_reindex", False)
+    reuse_store = _resolve_boolean_config(config, "reuse_store", True)
+    reuse_context_cache = _resolve_boolean_config(config, "reuse_context_cache", True)
 
     collection_name = config.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
-    parser = FinancialParser(
-        chunk_size=int(config.get("chunk_size", DEFAULT_CHUNK_SIZE)),
-        chunk_overlap=int(config.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
-    )
-    parse_started = time.perf_counter()
-    chunks = parser.process_document(str(report_path), metadata)
-    parse_elapsed = time.perf_counter() - parse_started
+    cache_signature = _build_cache_signature(config)
+    cache_meta = _load_cache_meta(persist_dir) if persist_dir.exists() else {}
+    context_cache = _load_context_cache(output_root, experiment_id)
+
+    store_matches = _cache_meta_matches(cache_meta, cache_signature)
+    context_matches = _cache_meta_matches(context_cache, cache_signature)
+
+    if force_reindex:
+        if persist_dir.exists():
+            shutil.rmtree(persist_dir)
+        if context_cache_path.exists():
+            context_cache_path.unlink()
+    elif persist_dir.exists() and (not reuse_store or not store_matches):
+        shutil.rmtree(persist_dir)
+        cache_meta = {}
 
     vsm = VectorStoreManager(
         persist_directory=str(persist_dir),
         collection_name=collection_name,
     )
     agent = FinancialAgent(vsm, k=int(config.get("k", 8)))
-    ingest_metrics = _run_ingest(agent, chunks, config)
+
+    store_cache_hit = (
+        reuse_store
+        and not force_reindex
+        and store_matches
+        and vsm.is_indexed(str(metadata.get("rcept_no", "")))
+    )
+
+    context_cache_hit = False
+    cache_level = "none"
+
+    if store_cache_hit:
+        parse_info = cache_meta.get("parse", {})
+        parse_elapsed = float(parse_info.get("elapsed_sec", 0.0) or 0.0)
+        chunk_count = int(parse_info.get("chunk_count", 0) or 0)
+        ingest_metrics = _build_cache_hit_ingest_metrics(cache_meta.get("ingest", {}))
+        cache_level = "store"
+    elif reuse_context_cache and not force_reindex and context_matches:
+        restore_started = time.perf_counter()
+        restore_info = _restore_store_from_context_cache(vsm, context_cache)
+        restore_elapsed = time.perf_counter() - restore_started
+        parse_info = context_cache.get("parse", {})
+        parse_elapsed = float(parse_info.get("elapsed_sec", 0.0) or 0.0)
+        chunk_count = int(parse_info.get("chunk_count", 0) or 0)
+        ingest_metrics = _build_context_cache_restore_metrics(context_cache.get("ingest", {}), restore_elapsed)
+        ingest_metrics["stored_parent_chunks"] = restore_info.get(
+            "stored_parent_chunks",
+            int(ingest_metrics.get("stored_parent_chunks", 0) or 0),
+        )
+        context_cache_hit = True
+        cache_level = "context"
+        _write_cache_meta(
+            persist_dir,
+            {
+                "signature": cache_signature,
+                "parse": {
+                    "elapsed_sec": parse_elapsed,
+                    "chunk_count": chunk_count,
+                },
+                "ingest": {
+                    **(context_cache.get("ingest", {}) or {}),
+                    "elapsed_sec": float((context_cache.get("ingest", {}) or {}).get("elapsed_sec", 0.0) or 0.0),
+                },
+                "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+            },
+        )
+    else:
+        parser = FinancialParser(
+            chunk_size=int(config.get("chunk_size", DEFAULT_CHUNK_SIZE)),
+            chunk_overlap=int(config.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
+        )
+        parse_started = time.perf_counter()
+        chunks = parser.process_document(str(report_path), metadata)
+        parse_elapsed = time.perf_counter() - parse_started
+        chunk_count = len(chunks)
+        ingest_metrics = _run_ingest(agent, chunks, config, return_artifacts=True)
+        artifacts = dict(ingest_metrics.pop("artifacts", {}) or {})
+        _write_cache_meta(
+            persist_dir,
+            {
+                "signature": cache_signature,
+                "parse": {
+                    "elapsed_sec": parse_elapsed,
+                    "chunk_count": chunk_count,
+                },
+                "ingest": {
+                    **ingest_metrics,
+                    "elapsed_sec": float(ingest_metrics.get("elapsed_sec", 0.0) or 0.0),
+                },
+                "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+            },
+        )
+        _write_context_cache(
+            output_root,
+            experiment_id,
+            {
+                "signature": cache_signature,
+                "parse": {
+                    "elapsed_sec": parse_elapsed,
+                    "chunk_count": chunk_count,
+                },
+                "ingest": {
+                    **ingest_metrics,
+                    "elapsed_sec": float(ingest_metrics.get("elapsed_sec", 0.0) or 0.0),
+                },
+                "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+                "artifacts": artifacts,
+            },
+        )
+
     smoke = _run_smoke_queries(agent, list(config.get("smoke_queries", [])))
     screening_examples = _select_eval_examples(config, metadata)
     screening_eval = _run_screening_eval(agent, screening_examples, screening_config) if screening_examples else {}
@@ -1896,9 +2292,17 @@ def run_screening_experiment(
         },
         "parse": {
             "elapsed_sec": parse_elapsed,
-            "chunk_count": len(chunks),
+            "chunk_count": chunk_count,
         },
         "ingest": ingest_metrics,
+        "cache": {
+            "cache_hit": store_cache_hit or context_cache_hit,
+            "cache_level": cache_level,
+            "force_reindex": force_reindex,
+            "reuse_store": reuse_store,
+            "reuse_context_cache": reuse_context_cache,
+            "signature": cache_signature,
+        },
         "estimated_ingest_cost_usd": estimated_cost,
         "smoke": smoke,
         "screening_eval": screening_eval,
@@ -2069,6 +2473,11 @@ def _run_company_bundle(
     company_label = _company_run_label(company_run, global_defaults)
     company_output_dir = output_root / _company_output_subdir(company_run, global_defaults)
 
+    candidate_ids = list(company_run.get("candidate_ids") or global_defaults.get("candidate_ids") or [])
+    experiments = _filter_experiments_by_candidate_ids(list(experiments), candidate_ids)
+    if not experiments:
+        raise ValueError(f"No experiments left after candidate_ids filter for company_run={company_id}")
+
     merged_experiments: List[Dict[str, Any]] = []
     merged_by_id: Dict[str, Dict[str, Any]] = {}
     for experiment in experiments:
@@ -2145,6 +2554,12 @@ def main() -> None:
         default=str(PROJECT_ROOT / "benchmarks" / "results" / "latest"),
         help="Directory where JSON/CSV/Markdown summaries will be written.",
     )
+    parser.add_argument(
+        "--company-run-id",
+        action="append",
+        default=[],
+        help="Optional company_run id to execute. Repeat to run multiple companies as separate jobs.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -2153,7 +2568,10 @@ def main() -> None:
     output_dir = _normalise_path(args.output_dir)
     matrix = _load_json(config_path)
     defaults = matrix.get("defaults", {})
-    experiments = matrix.get("experiments", [])
+    experiments = _filter_experiments_by_candidate_ids(
+        matrix.get("experiments", []),
+        list(matrix.get("candidate_ids") or defaults.get("candidate_ids") or []),
+    )
     company_runs = matrix.get("company_runs", [])
     screening_config = matrix.get("screening", {})
     full_eval_config = matrix.get("full_evaluation", {})
@@ -2161,8 +2579,19 @@ def main() -> None:
         raise ValueError("No experiments found in benchmark config.")
 
     if company_runs:
+        requested_company_ids = set(args.company_run_id or [])
+        selected_company_runs = [
+            company_run
+            for company_run in company_runs
+            if not requested_company_ids or str(company_run.get("id")) in requested_company_ids
+        ]
+        if requested_company_ids and len(selected_company_runs) != len(requested_company_ids):
+            found_ids = {str(company_run.get("id")) for company_run in selected_company_runs}
+            missing_ids = sorted(requested_company_ids - found_ids)
+            raise ValueError(f"Unknown company_run ids requested: {missing_ids}")
+
         company_bundles: List[Dict[str, Any]] = []
-        for company_run in company_runs:
+        for company_run in selected_company_runs:
             logger.info("Running company benchmark: %s", company_run.get("id") or company_run.get("defaults", {}))
             company_bundles.append(
                 _run_company_bundle(
@@ -2176,30 +2605,25 @@ def main() -> None:
                 )
             )
 
-        cross_company_rows = _build_cross_company_rows(company_bundles)
-        winner_ranking = _build_winner_ranking(cross_company_rows)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        _write_cross_company_summary_csv(output_dir / "cross_company_summary.csv", cross_company_rows)
-        (output_dir / "cross_company_summary.md").write_text(
-            _render_cross_company_summary_markdown(cross_company_rows, winner_ranking),
-            encoding="utf-8",
-        )
-        _write_json(
-            output_dir / "results.json",
-            {
-                "config_path": str(config_path),
-                "mode": "multi_company",
-                "recorded_matrix": {
-                    "defaults": _sanitize_settings(defaults),
-                    "screening": _sanitize_settings(screening_config),
-                    "full_evaluation": _sanitize_settings(full_eval_config),
-                    "experiments": [_sanitize_settings(experiment) for experiment in experiments],
-                    "company_runs": [_sanitize_settings(company_run) for company_run in company_runs],
-                },
-                "company_runs": company_bundles,
-                "cross_company_summary": cross_company_rows,
-                "winner_ranking": winner_ranking,
-            },
+        completed_bundles: List[Dict[str, Any]] = []
+        for company_run in company_runs:
+            bundle = _load_completed_company_bundle(
+                output_root=output_dir,
+                company_run=company_run,
+                defaults=defaults,
+            )
+            if bundle is not None:
+                completed_bundles.append(bundle)
+
+        _write_multi_company_outputs(
+            output_dir=output_dir,
+            config_path=config_path,
+            defaults=defaults,
+            experiments=experiments,
+            company_runs=company_runs,
+            screening_config=screening_config,
+            full_eval_config=full_eval_config,
+            company_bundles=completed_bundles,
         )
         logger.info("Wrote multi-company benchmark outputs to %s", output_dir)
         return

@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SECTION_TAGS = frozenset({"SECTION-1", "SECTION-2", "SECTION-3"})
+_ROMAN_HEADING_RE = re.compile(r"^[IVXLCDM]+\.\s")
+_NUMERIC_HEADING_RE = re.compile(r"^\d+\.\s")
+_SUBNUMERIC_HEADING_RE = re.compile(r"^\d+(?:-\d+)+\.\s")
+_SPECIAL_HEADING_RE = re.compile(r"^【.+】$")
 DEFAULT_CHUNK_SIZE = 2500
 DEFAULT_CHUNK_OVERLAP = 320
 
@@ -82,6 +86,41 @@ def _classify_section(title: str) -> str:
             if kw in title:
                 return label
     return "기타"
+
+
+def _infer_heading_level(title: str) -> int:
+    if _ROMAN_HEADING_RE.match(title) or _SPECIAL_HEADING_RE.match(title):
+        return 1
+    if _SUBNUMERIC_HEADING_RE.match(title):
+        return 3
+    if _NUMERIC_HEADING_RE.match(title):
+        return 2
+    return 2
+
+
+def _sanitize_path_titles(path_titles: List[str]) -> List[str]:
+    sanitized: List[str] = []
+    levels: List[int] = []
+
+    for raw_title in path_titles:
+        title = _normalize(raw_title)
+        if not title:
+            continue
+
+        level = _infer_heading_level(title)
+        if level == 1:
+            sanitized = [title]
+            levels = [level]
+            continue
+
+        while levels and levels[-1] >= level:
+            levels.pop()
+            sanitized.pop()
+
+        sanitized.append(title)
+        levels.append(level)
+
+    return sanitized
 
 
 def _reclassify_by_content(text: str, label: str) -> str:
@@ -271,7 +310,7 @@ class FinancialParser:
             if ancestor_title:
                 path_titles.append(ancestor_title)
         path_titles.append(title_text)
-        return path_titles
+        return _sanitize_path_titles(path_titles)
 
     def _extract_sections(self, root) -> List[Dict[str, Any]]:
         sections: List[Dict[str, Any]] = []

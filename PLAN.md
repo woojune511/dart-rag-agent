@@ -18,6 +18,7 @@
 - `plain`은 risk retrieval miss가 반복됐다
 - `contextual_selective_v2`는 business overview miss 가능성이 남아 있다
 - `contextual_parent_hybrid`는 품질은 보완할 수 있지만 비용 이점이 약할 수 있다
+- 3기업을 한 번에 도는 monolithic run은 timeout과 비용 리스크가 커서 기본 루프로 부적합하다
 
 추가로 확인된 평가 한계:
 
@@ -28,6 +29,12 @@
 
 이번 스프린트는 운영 기본값을 바꾸는 단계가 아니다.  
 대신 **삼성전자 / SK하이닉스 / NAVER 3개 기업에서 screening quality floor를 재현하는 후보를 확인하고, 그 결과로 기본값 후보를 선택할 수 있게 만드는 것**이 목표다.
+
+기본 운영 방식:
+
+- 평소에는 `benchmarks/profiles/dev_fast.json`으로 단일 기업 + screening only
+- shortlist 검증 때만 `benchmarks/profiles/release_generalization.json`으로 3기업 run
+- release run도 회사별 job으로 분리 실행하고 partial summary를 허용
 
 핵심 질문:
 
@@ -55,6 +62,14 @@
 
 - 기업별 screening 결과와 cross-company aggregate를 함께 남기기
 - 후보별 pass count와 비용 절감률을 직접 비교할 수 있게 만들기
+- 회사별 개별 실행 결과를 root partial summary로 합칠 수 있게 만들기
+
+### 1-1. Cost-efficient workflow 정착
+
+- `reuse_store`, `reuse_context_cache`, `force_reindex`를 실행 설정으로 명시
+- 같은 보고서/동일 청킹 설정 재실행 시 contextual ingest 비용을 다시 쓰지 않게 만들기
+- `stores/`와 `context_cache/`를 분리해, store를 다시 만들더라도 API 호출은 재사용할 수 있게 유지
+- fast loop에서는 full eval을 기본 비활성화
 
 ### 2. 기업별 canonical eval dataset 확장
 
