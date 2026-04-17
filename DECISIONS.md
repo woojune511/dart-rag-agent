@@ -208,6 +208,34 @@
 
 - 이후 실험이 모두 같은 출발점과 비교 기준을 갖게 됐다.
 
+### 결정 10. 기본 benchmark 운영 모드는 `Fast Iteration + Hybrid Cache`로 둔다
+
+배경:
+
+- 3기업 full benchmark를 한 번에 돌리면 1시간 timeout과 API 비용 낭비가 쉽게 발생한다.
+- 반복 실험의 대부분은 “새 후보가 baseline보다 나아 보이는가”를 빠르게 보는 목적이다.
+
+결정:
+
+- 기본 루프는 `benchmarks/profiles/dev_fast.json`으로 고정한다.
+- release-grade 검증만 `benchmarks/profiles/release_generalization.json`을 사용한다.
+- 캐시는 두 층으로 분리한다.
+  - `stores/...`
+  - `context_cache/...`
+- 같은 보고서 / 같은 청킹 / 같은 ingest mode 재실행에서는 contextual ingest를 다시 호출하지 않는다.
+- release run은 회사별 job으로 분리하고 partial summary를 허용한다.
+
+검증 메모:
+
+- `dev_fast_cache_check_2026-04-17`에서 삼성전자 1회사 screening-only를 2회 연속 실행했다.
+- 1차 run은 약 `13분 16초`, 2차 run은 약 `5분 27초`였다.
+- 2차 run에서는 모든 후보가 `cache_hit = true`, `cache_level = store`, `ingest.api_calls = 0`으로 기록됐다.
+
+효과:
+
+- 일상 실험에서 가장 비싼 ingest 비용을 반복해서 내지 않게 됐다.
+- release run도 회사별 job으로 쪼개 partial summary를 남길 수 있게 되어 timeout 리스크가 줄었다.
+
 ---
 
 ## 운영 메모

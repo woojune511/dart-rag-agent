@@ -31,6 +31,12 @@
     ],
     "mlflow_experiment_name": "dart_rag_benchmark_generalization"
   },
+  "candidate_ids": [
+    "contextual_all_2500_320",
+    "contextual_parent_only_2500_320",
+    "contextual_parent_hybrid_2500_320",
+    "contextual_selective_v2_2500_320"
+  ],
   "screening": {
     "baseline_experiment_id": "contextual_all_2500_320",
     "parallel_experiments": 2,
@@ -38,15 +44,15 @@
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 3,
     "always_include_full_eval_ids": [],
-      "section_aliases": {
-        "numeric_fact": [
-          "매출현황",
-          "재무제표",
-          "요약재무",
-          "연결재무제표",
-          "연결재무제표 주석"
-        ]
-      }
+    "section_aliases": {
+      "numeric_fact": [
+        "매출현황",
+        "재무제표",
+        "요약재무",
+        "연결재무제표",
+        "연결재무제표 주석"
+      ]
+    }
   },
   "full_evaluation": {
     "enabled": true,

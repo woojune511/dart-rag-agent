@@ -23,6 +23,29 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_DATASET = _PROJECT_ROOT / "data" / "eval" / "eval_dataset.json"
+DEFAULT_NUMERIC_SECTION_ALIASES = [
+    "매출현황",
+    "재무제표",
+    "요약재무",
+    "연결재무제표",
+    "연결재무제표 주석",
+]
+MISSING_RESPONSE_MARKERS = (
+    "없",
+    "찾지 못",
+    "근거를 찾지 못",
+    "답할 수 있는 근거를 찾지 못",
+    "확인되지",
+    "확인할 수 없",
+    "명시되지",
+    "어렵",
+)
+ABSTENTION_RESPONSE_MARKERS = (
+    "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다",
+    "질문에 직접 답할 수 있는 근거를 찾지 못했습니다",
+    "공시 문서에 정보가 없거나",
+    "현재 검색 결과만으로는 확인하기 어렵습니다",
+)
 
 
 @dataclass
@@ -133,6 +156,31 @@ def _contains_section(metadata: Dict[str, Any], expected_section: str) -> bool:
     section = str(metadata.get("section", ""))
     section_path = str(metadata.get("section_path", ""))
     return expected_section == section or expected_section in section_path
+
+
+def _looks_like_missing_answer(text: str) -> bool:
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in MISSING_RESPONSE_MARKERS)
+
+
+def _looks_like_full_abstention_answer(text: str) -> bool:
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in ABSTENTION_RESPONSE_MARKERS)
+
+
+def _expected_sections_for_example(example: EvalExample) -> List[str]:
+    sections = list(example.canonical_expected_sections)
+    if (example.category or "").lower() == "numeric_fact":
+        sections.extend(DEFAULT_NUMERIC_SECTION_ALIASES)
+
+    deduped: List[str] = []
+    seen = set()
+    for section in sections:
+        cleaned = str(section or "").strip()
+        if cleaned and cleaned not in seen:
+            seen.add(cleaned)
+            deduped.append(cleaned)
+    return deduped
 
 
 def _extract_retrieved_metadata(retrieved_docs: List[Any]) -> List[Dict[str, Any]]:
@@ -249,7 +297,7 @@ def _compute_context_recall(example: EvalExample, contexts: List[str]) -> float:
 
 def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any]) -> float:
     expected_company = example.company.lower()
-    expected_sections = example.canonical_expected_sections
+    expected_sections = _expected_sections_for_example(example)
     for item in retrieved_docs:
         doc = item[0] if isinstance(item, (tuple, list)) else item
         metadata = getattr(doc, "metadata", {}) or {}
@@ -267,7 +315,7 @@ def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any])
 def _compute_section_match_rate(example: EvalExample, retrieved_docs: List[Any]) -> float:
     if not retrieved_docs:
         return 0.0
-    expected_sections = example.canonical_expected_sections
+    expected_sections = _expected_sections_for_example(example)
     matched = 0
     for item in retrieved_docs:
         doc = item[0] if isinstance(item, (tuple, list)) else item
@@ -282,7 +330,7 @@ def _compute_citation_coverage(example: EvalExample, citations: List[str]) -> fl
         return 0.0
 
     citation_blob = " ".join(citations).lower()
-    expected_sections = example.canonical_expected_sections
+    expected_sections = _expected_sections_for_example(example)
     checks = [
         example.company.lower() in citation_blob,
         str(example.year) in citation_blob,
@@ -298,7 +346,7 @@ def _compute_missing_info_compliance(example: EvalExample, answer: str) -> Optio
     lowered = (answer or "").lower()
     if not lowered.strip():
         return 0.0
-    if any(marker in lowered for marker in ("없", "찾지 못", "확인되지", "명시되지", "어렵")):
+    if _looks_like_missing_answer(lowered):
         return 1.0
     if example.missing_info_policy:
         policy_tokens = _tokenize_ko(example.missing_info_policy)
@@ -414,6 +462,11 @@ class RAGEvaluator:
         section_match_rate = _compute_section_match_rate(example, retrieved_docs)
         citation_coverage = _compute_citation_coverage(example, citations)
         missing_info_compliance = _compute_missing_info_compliance(example, answer)
+
+        if _looks_like_full_abstention_answer(answer) and (example.category or "").lower() != "missing_information":
+            # Penalize abstentions on answerable questions even when the judge model is lenient.
+            faithfulness = 0.0
+            answer_relevancy = min(answer_relevancy, 0.1)
 
         return EvalResult(
             id=example.id,

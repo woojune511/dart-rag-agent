@@ -669,6 +669,7 @@ coverage: {coverage}
         on_progress=None,
         max_workers: Optional[int] = None,
         batch_size: Optional[int] = None,
+        return_artifacts: bool = False,
     ) -> Dict[str, Any]:
         """Contextual ingest variant that returns timing and usage metrics."""
         if not chunks:
@@ -751,7 +752,7 @@ coverage: {coverage}
         metadatas = [chunk.metadata for chunk in chunks]
         self.vsm.add_documents(texts, metadatas)
 
-        return {
+        result = {
             "mode": "contextual",
             "chunks": total,
             "stored_parent_chunks": len(parents),
@@ -766,6 +767,13 @@ coverage: {coverage}
             "batch_size": request_batch_size,
             "elapsed_sec": time.perf_counter() - started_at,
         }
+        if return_artifacts:
+            result["artifacts"] = {
+                "texts": texts,
+                "metadatas": metadatas,
+                "parents": parents,
+            }
+        return result
 
 
 if __name__ == "__main__":
