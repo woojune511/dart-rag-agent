@@ -236,6 +236,41 @@
 - 일상 실험에서 가장 비싼 ingest 비용을 반복해서 내지 않게 됐다.
 - release run도 회사별 job으로 쪼개 partial summary를 남길 수 있게 되어 timeout 리스크가 줄었다.
 
+### 결정 11. 운영 기본값은 당분간 `contextual_all_2500_320`을 유지한다
+
+배경:
+
+- `v4_generalization_fix_2026-04-17`까지 완료한 결과, 저비용 후보가 비용 절감 자체는 분명했지만 3개 기업 공통 screening quality floor를 넘지 못했다.
+- 저비용 후보의 실패는 단순 ingest 비용보다 query-stage abstention과 category-specific retrieval miss로 나타났다.
+
+결정:
+
+- 기본 운영 baseline은 계속 `contextual_all_2500_320`으로 둔다.
+- `contextual_parent_only`, `contextual_selective_v2`, `contextual_parent_hybrid`는 benchmark 전용 후보로 유지한다.
+- 다음 최적화 우선순위는 ingest mode 추가보다 아래에 둔다.
+  - numeric / risk / R&D abstention 완화
+  - NAVER business overview retrieval 개선
+  - missing-information hallucination 억제
+
+근거:
+
+- `contextual_parent_only_2500_320`
+  - 평균 `API calls -86.0%`
+  - 평균 `ingest time -84.7%`
+  - 하지만 numeric / risk / R&D smoke abstention 반복
+- `contextual_selective_v2_2500_320`
+  - 평균 `API calls -59.6%`
+  - 평균 `ingest time -61.6%`
+  - 하지만 business overview / risk miss 반복
+- `contextual_parent_hybrid_2500_320`
+  - 일부 품질 보완은 있으나 평균 비용 이점이 없고 baseline보다 비싼 경우가 있음
+- `contextual_all_2500_320`
+  - 비용은 가장 크지만 현재까지 가장 일관된 baseline
+
+효과:
+
+- 기본값 변경을 성급하게 하지 않고, 이후 실험을 “더 싼 ingest”보다 “실패 유형 제거” 중심으로 정렬할 수 있게 됐다.
+
 ---
 
 ## 운영 메모

@@ -2,6 +2,8 @@
 
 이 문서는 DART 공시 RAG 시스템에서 retrieval 정확도, answer 품질, ingest 시간, API 비용을 함께 비교하기 위한 benchmark 가이드다.
 
+버전별 코드/실험 변화 흐름은 [experiment_history.md](experiment_history.md)를 참고한다.
+
 ## 목표
 
 현재 benchmark의 목표는 "삼성전자 1건에서 더 싼 후보를 찾기"가 아니라,  
@@ -315,6 +317,7 @@ screening 통과안만 정식 평가로 보낸다.
 
 - `benchmarks/results/v2_low_cost_2026-04-16`
 - `benchmarks/results/v3_generalization_2026-04-16`
+- `benchmarks/results/v4_generalization_fix_2026-04-17`
 - `benchmarks/results/dev_fast_cache_check_2026-04-17`
 
 `v3_generalization_2026-04-16`의 핵심 결과:
@@ -344,6 +347,45 @@ screening 통과안만 정식 평가로 보낸다.
 - 같은 보고서 / 같은 청킹 / 같은 ingest mode 재실행에서는 contextual ingest API 비용을 다시 쓰지 않는다
 - 반복 실험에서 남는 시간은 대부분 query / screening 평가 쪽이다
 - 따라서 일상 루프는 `dev_fast`, release-grade 비교는 회사별 분리 실행이 적절하다
+
+`v4_generalization_fix_2026-04-17`의 핵심 결과:
+
+- `run_status = completed`
+- `삼성전자`, `SK하이닉스`, `NAVER` 3개 기업 모두 완료
+- 공통 screening 통과 후보는 여전히 없음
+
+후보별 해석:
+
+- `contextual_all_2500_320`
+  - 가장 안정적인 baseline
+  - 평균 full eval:
+    - `faithfulness 0.453`
+    - `context recall 0.589`
+  - 하지만 NAVER business overview와 missing-information에서 실패가 남음
+- `contextual_parent_only_2500_320`
+  - 평균 절감:
+    - `API calls -86.0%`
+    - `ingest time -84.7%`
+    - `estimated cost -86.8%`
+  - 하지만 삼성전자 / SK하이닉스 / NAVER 공통으로 numeric 또는 answerable smoke에서 abstention이 반복됨
+- `contextual_parent_hybrid_2500_320`
+  - 품질 보완은 일부 있으나 평균 비용 이점이 없음
+  - `avg API Δ -6.9%`, `avg Cost Δ -22.0%`
+- `contextual_selective_v2_2500_320`
+  - 평균 절감:
+    - `API calls -59.6%`
+    - `ingest time -61.6%`
+    - `estimated cost -60.6%`
+  - 그러나 business overview / risk miss가 반복되어 screening floor를 넘지 못함
+
+현재 해석:
+
+- parser / cache / evaluation 구조 보강 이후에도, 저비용 후보의 주된 실패는 ingest보다 query-stage abstention과 category-specific retrieval miss에 가깝다
+- 따라서 다음 단계는 더 싼 ingest mode를 추가로 만들기보다
+  - numeric / risk / R&D 질문의 abstention 원인 분석
+  - NAVER business overview retrieval 개선
+  - missing-information hallucination 억제
+  에 집중하는 것이 적절하다
 
 ## 실행 방법
 

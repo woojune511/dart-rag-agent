@@ -81,4 +81,5 @@
 ## How To Use This Document
 
 - 현재 코드 상태를 이해하려면 `README.md`, `CONTEXT.md`, `DECISIONS.md`를 먼저 본다.
+- 버전별 실험 변화와 결과 흐름은 `docs/experiment_history.md`를 참고한다.
 - 이 문서는 과거 리뷰 관찰과 그 후속 조치를 추적하는 참고 자료로 사용한다.
