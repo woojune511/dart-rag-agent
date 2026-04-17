@@ -1,0 +1,4551 @@
+{
+  "config_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\experiment_matrix.sample.json",
+  "recorded_matrix": {
+    "mode": "company_run",
+    "company_run": {
+      "id": "skhynix_2024",
+      "label": "SK하이닉스 2024",
+      "defaults": {
+        "metadata": {
+          "company": "SK하이닉스",
+          "stock_code": "000660",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250319000665"
+        },
+        "smoke_queries": [
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024
+          }
+        ]
+      },
+      "experiments": [
+        {
+          "id": "contextual_all_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_all"
+        },
+        {
+          "id": "contextual_parent_only_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_parent_only"
+        },
+        {
+          "id": "contextual_parent_hybrid_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_parent_hybrid"
+        },
+        {
+          "id": "contextual_selective_v2_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_selective_v2"
+        }
+      ]
+    },
+    "defaults": {
+      "k": 8,
+      "ingest_mode": "contextual_all",
+      "max_workers": 8,
+      "batch_size": 16,
+      "eval_mode": "all_filtered",
+      "eval_limit": 0,
+      "pricing": {
+        "input_per_million_tokens_usd": 0.3,
+        "output_per_million_tokens_usd": 2.5
+      },
+      "parent_hybrid_short_text_threshold": 700,
+      "parent_hybrid_sections": [
+        "매출현황",
+        "재무제표",
+        "연구개발",
+        "리스크",
+        "사업개요"
+      ],
+      "selective_v2_short_text_threshold": 700,
+      "selective_v2_short_table_threshold": 1600,
+      "selective_v2_sections": [
+        "사업개요",
+        "위험관리 및 파생거래",
+        "매출 및 수주상황",
+        "연구개발"
+      ],
+      "reset_store": true,
+      "mlflow_experiment_name": "dart_rag_benchmark_generalization"
+    },
+    "screening": {
+      "baseline_experiment_id": "contextual_all_2500_320",
+      "parallel_experiments": 2,
+      "retrieval_hit_drop_threshold": 0.1,
+      "section_match_drop_threshold": 0.15,
+      "max_full_eval_candidates": 3,
+      "always_include_full_eval_ids": [],
+      "section_aliases": {
+        "numeric_fact": [
+          "매출현황",
+          "재무제표",
+          "요약재무",
+          "연결재무제표",
+          "연결재무제표 주석"
+        ]
+      }
+    },
+    "full_evaluation": {
+      "enabled": true,
+      "eval_mode": "all_filtered",
+      "eval_limit": 0
+    }
+  },
+  "screening": {
+    "baseline_experiment_id": "contextual_all_2500_320",
+    "parallel_experiments": 2,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 3,
+    "always_include_full_eval_ids": [],
+    "section_aliases": {
+      "numeric_fact": [
+        "매출현황",
+        "재무제표",
+        "요약재무",
+        "연결재무제표",
+        "연결재무제표 주석"
+      ]
+    }
+  },
+  "full_evaluation": {
+    "enabled": true,
+    "eval_mode": "all_filtered",
+    "eval_limit": 0
+  },
+  "full_eval_candidates": [
+    "contextual_all_2500_320"
+  ],
+  "results": [
+    {
+      "id": "contextual_all_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_all",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-all-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\SK하이닉스\\2024_사업보고서_20250319000665.html",
+      "metadata": {
+        "company": "SK하이닉스",
+        "stock_code": "000660",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250319000665"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_all",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "reset_store": true,
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "SK하이닉스",
+            "stock_code": "000660",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250319000665"
+          },
+          "smoke_queries": [
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_all_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\sk하이닉스-2024\\stores\\contextual-all-2500-320",
+        "collection_name": "dart_reports_v2_contextual-all-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 0.4176283999986481,
+        "chunk_count": 179
+      },
+      "ingest": {
+        "mode": "contextual_all",
+        "chunks": 179,
+        "stored_parent_chunks": 41,
+        "api_calls": 179,
+        "fallback_count": 0,
+        "prompt_chars": 90591,
+        "response_chars": 7158,
+        "prompt_tokens": 56067,
+        "output_tokens": 218299,
+        "total_tokens": 274366,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 186.76050509999914,
+        "contextualized_chunks": 179
+      },
+      "estimated_ingest_cost_usd": 0.5625676,
+      "smoke": {
+        "queries": [
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 18.852096000002348,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 회사의 목적사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n주력 사업은 DRAM 및 NAND를 중심으로 하는 메모리 반도체이며, Foundry 사업도 병행하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요].\n\n주력 생산제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 또한, 2007년부터는 시스템 LSI 분야인 CIS(CMOS Image Sensor) 사업에 재진출하였으며 Foundry 서비스 사업도 추진 중입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 2. 회사의 연혁]. 반도체 부문에서는 DRAM, NAND Flash 등을 주요 품목으로 하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스].",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 회사의 목적사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n주력 사업은 DRAM 및 NAND를 중심으로 하는 메모리 반도체이며, Foundry 사업도 병행하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요].\n\n주력 생산제품은 DRAM, NAND Flash",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 1.030)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.820)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.631)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.630)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 34.40420289999747,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서는 한국채택국제회계기준에 따른 연결 기준으로 작성되었으며 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], 이 보고서에 따르면 2024년 제77기 누계 반도체 부문 매출액은 66,192,960 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스].",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서는 한국채택국제회계기준에 따른 연결 기준으로 작성되었으며 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], 이 보고서에 따르면 2024년 제77기 누계 반도체 부문 매출액은 66,192,960 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스].",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.028)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.024)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.829)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 0.825)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 19.44419470000139,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환위험**\n    *   **배경**: SK하이닉스는 국제적으로 영업활동을 영위하고 있어 주로 달러화, 유로화, 위안화 및 엔화와 관련된 환율변동위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이러한 위험은 미래예상거래, 인식된 자산과 부채 및 해외사업장에 대한 순투자가 기능통화 외의 통화로 표시될 때 발생합니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향**: 각 외화에 대한 기능통화의 환율이 10% 변동할 경우, 법인세비용차감전순이익은 USD 781,121백만원, JPY (109,074)백만원, CNY (8,724)백만원, EUR (58,854)백만원만큼 변동할 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **이자율위험**\n    *   **배경**: SK하이닉스의 이자율위험은 미래의 시장이자율 변동에 따라 차입금에서 발생하는 이자비용이 변동될 위험을 의미하며, 이는 주로 변동금리부 조건의 차입금에서 발생합니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향**: 다른 모든 변수가 일정하고 이자율이 100bp 하락 또는 상승할 경우, 향후 1년간 변동금리부 차입금 및 금융자산으로부터의 순이자비용으로 인한 법인세비용차감전순이익은 49,875백만원만큼 증가 또는 감소할 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **가격위험**\n    *   **배경**: SK하이닉스는 유동성 관리 및 영업상의 필요 등으로 지분증권 및 채무증권에 투자하고 있으며, 당기말 현재 해당 지분증권 및 채무증권은 가격위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향**: 공시 문서에서 가격위험으로 인한 구체적인 법인세비용차감전순이익 변동 영향은 확인되지 않습니다.",
+            "answer_preview": "SK하이닉스 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환위험**\n    *   **배경**: SK하이닉스는 국제적으로 영업활동을 영위하고 있어 주로 달러화, 유로화, 위안화 및 엔화와 관련된 환율변동위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이러한 위험은 미래예상거래, 인식된 자산과 부채 및 해외사업장에 대한",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.025)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.818)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 11.096080100003746,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 제77기(2024년) 연구개발비용 합계는 4,954,447 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]. 또한, 같은 기간 연구개발비의 매출액 대비 비율은 7.5%입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 제77기(2024년) 연구개발비용 합계는 4,954,447 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]. 또한, 같은 기간 연구개발비의 매출액 대비 비율은 7.5%입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 1.025)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.828)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항 > 7-2. 증권의 발행을 통해 조달된 자금의 사용실적 / table (score: 0.820)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항 > 7-2. 증권의 발행을 통해 조달된 자금의 사용실적"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 10.259531299991067,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / paragraph (score: 0.828)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 5. 정관에 관한 사항 / paragraph (score: 0.821)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 18.811220999999204,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.175,
+          "citation_coverage": 1.0,
+          "contamination_rate": 0.0,
+          "avg_latency": 17.765380160004135,
+          "error_rate": 0.0,
+          "failure_examples": []
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "매출 및 수주상황",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 연결 기준 매출액은 66,192,960 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스]. 본 사업보고서는 한국채택국제회계기준에 따른 연결 기준으로 작성되었습니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.375,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 15.227168700002949,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요"
+            ],
+            "answer_key": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 회사의 주요 사업부문은 반도체 부문입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스].\n\n주력 제품은 DRAM 및 NAND를 중심으로 하는 메모리 반도체이며 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요], 특히 휘발성 메모리인 DRAM과 비휘발성 메모리인 NAND Flash를 주력으로 생산",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 1. 사업의 개요",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 21.39534440000716,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "SK하이닉스 2024 사업보고서에서 제품군별 매출 비중은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "재무상태 및 영업실적",
+            "expected_sections": [
+              "재무상태 및 영업실적",
+              "매출 및 수주상황"
+            ],
+            "answer_key": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+            "answer_preview": "현재 공시 근거가 제한적이다.\n\nSK하이닉스의 2024년(제77기) 사업보고서에 따르면, 반도체 부문의 매출액은 66,192,960백만원으로 전체 매출의 100%를 차지한다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스]. 이 반도체 부문의 주요 품목으로는 DRAM, NAND Flash 등이 언급되어 있다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. ",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "SK하이닉스/2024/X. 대주주 등과의 거래내용",
+              "SK하이닉스/2024/II. 사업의 내용 > 3. 원재료 및 생산설비"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 16.062159200009773,
+            "error": null
+          },
+          {
+            "id": "business_overview_003",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 고객군은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황"
+            ],
+            "answer_key": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+            "answer_preview": "SK하이닉스 2024 사업보고서에 따르면, 주요 고객군은 제품별로 다음과 같이 설명됩니다.\n\nDRAM의 경우, 글로벌 서버 공급 업체 및 컴퓨팅 관련 전자 업체에 제품을 공급하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황].\n\nNAND Flash는 IT 컨슈머 제품 전반에 걸쳐 수요처가 다양하며, 세계적인 모바일 디바이스 및 IT 제품 제조업체, 그리고 SSD와 같은 대",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스",
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 14.920710699996562,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환위험**\n    *   **배경:** SK하이닉스는 국제적으로 영업활동을 영위하고 있어 달러화, 유로화, 위안화 및 엔화와 관련된 환율변동위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 당기말 현재 각 외화에 대한 기능통화",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 21.22151780000422,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?"
+      ],
+      "full_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "faithfulness": 0.33999999999999997,
+          "answer_relevancy": 0.483838346266572,
+          "context_recall": 0.6,
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.175,
+          "citation_coverage": 1.0,
+          "avg_score": 0.5998063910444287,
+          "avg_latency": 19.234579372406007,
+          "error_rate": 0.0
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 연결 기준 매출액은 66,192,960 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스]. 본 사업보고서는 한국채택국제회계기준에 따른 연결 기준으로 작성되었습니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].",
+            "ground_truth": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+            "answer_key": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+            "expected_sections": [
+              "사업의 개요",
+              "매출 및 수주상황",
+              "재무상태 및 영업실적"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                "quote": "당사의 연결 기준 매출액은 2024년(제77기) 66조 1,930억원",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "사업 개요에서 2024년 연결 기준 매출액을 직접 제시한다."
+              }
+            ],
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.8718330348105631,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.375,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 15.285967826843262,
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.028)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.024)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.829)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 0.825)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 회사의 주력 생산제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 특히, DRAM 및 NAND를 중심으로 하는 메모리 반도체가 주력 제품이며 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요], 휘발성 메모리인 DRAM과 비휘발성 메모리인 NAND Flash를 주력 생산하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요]. 이들 반도체 부문의 DRAM, NAND Flash 등이 주요 품목으로 매출액의 100%를 차지합니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스]. 또한, Foundry 사업도 병행하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요].",
+            "ground_truth": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+            "answer_key": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+            "expected_sections": [
+              "사업의 개요"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                "quote": "당사 및 당사의 종속기업의 주력 제품은 DRAM 및 NAND를 중심으로 하는 메모리 반도체이며, Foundry 사업도 병행하고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "회사의 핵심 사업과 주력 제품군을 직접 설명한다."
+              }
+            ],
+            "faithfulness": 0.7,
+            "answer_relevancy": 0.655802482091055,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 21.548293352127075,
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 1.030)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.820)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.631)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.630)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "SK하이닉스 2024 사업보고서에서 제품군별 매출 비중은 어떻게 설명되나요?",
+            "answer": "현재 공시 근거가 제한적이다.\n\nSK하이닉스 2024년 사업보고서에 따르면, 반도체 부문의 매출은 DRAM, NAND Flash 등의 품목으로 구성되며, 총 매출액 66,192,960백만원으로 전체 매출의 100%를 차지한다 [SK하이닉스 | 2024 | 사업보고서]. 그러나 DRAM과 NAND Flash 각각의 매출 비중은 공시 문서에서 확인되지 않는다.",
+            "ground_truth": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+            "answer_key": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+            "expected_sections": [
+              "재무상태 및 영업실적",
+              "매출 및 수주상황"
+            ],
+            "evidence": [
+              {
+                "section_path": "V. 재무상태 및 영업실적",
+                "quote": "제품군별로는 전체 매출 중 DRAM과 NAND가 각각 68%와 29% 비중을 차지하였으며, 그 외 기타 매출은 3%를 차지하였습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "제품군별 매출 비중을 직접 제시한다."
+              }
+            ],
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.1,
+            "context_recall": 0.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 23.117038011550903,
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.028)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.632)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.630)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.629)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.628)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.628)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.626)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_003",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 고객군은 어떻게 설명되나요?",
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 주요 고객군은 다음과 같이 설명됩니다.\n\nDRAM의 주요 고객은 글로벌 Server 공급 업체 및 Computing 관련 전자 업체입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]. NAND Flash의 주요 고객은 세계적인 모바일 디바이스 및 IT 제품 제조업체, 그리고 SSD와 같은 대용량 저장장치와 메모리 카드 생산 업체 등입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황].",
+            "ground_truth": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+            "answer_key": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+            "expected_sections": [
+              "매출 및 수주상황"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "quote": "DRAM의 경우 글로벌 Server 공급 업체 및 Computing 관련 전자 업체에 제품을 공급하고 있습니다. NAND Flash는 IT 컨슈머 제품 전체에 걸쳐 그 수요처가 다양하기 때문에, 세계적인 모바일 디바이스 및 IT 제품 제조업체, 그리고 SSD와 같은 대용량 저장장치와 메모리 카드 생산 업체 등을 고객으로 확보하고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "제품군별 주요 고객군을 직접 설명한다."
+              }
+            ],
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.691556214431242,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 13.055968284606934,
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.830)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.828)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.828)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.824)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n1.  **외환위험**\n    *   **배경**: SK하이닉스는 국제적으로 영업활동을 영위하고 있어 달러화, 유로화, 위안화 및 엔화와 관련된 환율변동위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이러한 외환위험은 미래예상거래, 인식된 자산과 부채 및 해외사업장에 대한 순투자가 기능통화 외의 통화로 표시될 때 발생합니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향**: 당기말 현재 각 외화에 대한 기능통화의 환율이 10% 변동할 경우, 법인세비용차감전순이익은 USD 781,121백만원, JPY (109,074)백만원, CNY (8,724)백만원, EUR (58,854)백만원만큼 변동될 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n2.  **이자율위험**\n    *   **배경**: SK하이닉스의 이자율위험은 미래의 시장이자율 변동에 따라 차입금에서 발생하는 이자비용이 변동될 위험을 의미하며, 이는 주로 변동금리부 조건의 차입금에서 발생하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향**: 다른 모든 변수가 일정하고 이자율이 100bp 하락 또는 상승할 경우, 향후 1년간 변동금리부 차입금 및 금융자산으로부터의 순이자비용으로 인한 법인세비용차감전순이익은 49,875백만원만큼 증가 또는 감소할 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n3.  **가격위험**\n    *   **배경**: SK하이닉스는 유동성 관리 및 영업상의 필요 등으로 지분증권 및 채무증권에 투자하고 있으며, 당기말 현재 해당 지분증권 및 채무증권은 가격위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향**: 공시 문서에서 가격위험이 법인세비용차감전순이익에 미치는 구체적인 잠재 영향은 확인되지 않습니다.",
+            "ground_truth": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+            "answer_key": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "연결회사는 시장위험(환율변동위험, 이자율위험 및 가격위험), 신용위험 및 유동성위험과 같은 다양한 금융위험에 노출되어 있습니다. 연결회사의 전반적인 위험관리 정책은 금융시장의 예측불가능성에 초점을 맞추고 있으며 재무성과에 잠재적으로 불리할 수 있는 효과를 최소화하는데 중점을 두고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "핵심 금융위험의 범주와 위험관리 목표를 직접 설명한다."
+              }
+            ],
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.1,
+            "context_recall": 0.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "risk",
+            "latency_sec": 23.165629386901855,
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.025)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.818)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          }
+        ]
+      },
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": 0.0,
+        "ingest_time_reduction_ratio": 0.0,
+        "estimated_cost_reduction_ratio": 0.0
+      }
+    },
+    {
+      "id": "contextual_parent_only_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_parent_only",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-parent-only-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\SK하이닉스\\2024_사업보고서_20250319000665.html",
+      "metadata": {
+        "company": "SK하이닉스",
+        "stock_code": "000660",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250319000665"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_parent_only",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "reset_store": true,
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "SK하이닉스",
+            "stock_code": "000660",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250319000665"
+          },
+          "smoke_queries": [
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_parent_only_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\sk하이닉스-2024\\stores\\contextual-parent-only-2500-320",
+        "collection_name": "dart_reports_v2_contextual-parent-only-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 0.44189400000323076,
+        "chunk_count": 179
+      },
+      "ingest": {
+        "mode": "contextual_parent_only",
+        "chunks": 179,
+        "stored_parent_chunks": 41,
+        "contextualized_chunks": 41,
+        "selector_reason_counts": {},
+        "parent_context_calls": 41,
+        "child_context_calls": 0,
+        "api_calls": 41,
+        "fallback_count": 0,
+        "prompt_chars": 31748,
+        "response_chars": 1780,
+        "prompt_tokens": 20596,
+        "output_tokens": 47076,
+        "total_tokens": 67672,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 45.84009519999381
+      },
+      "estimated_ingest_cost_usd": 0.1238688,
+      "smoke": {
+        "queries": [
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 14.069631299993489,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스 2024년 사업보고서에 따르면, 회사의 목적사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 주력 생산제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 이들 DRAM과 NAND Flash는 반도체 부문에서 SK하이닉스 상표로 매출을 발생시키는 주요 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스].",
+            "answer_preview": "SK하이닉스 2024년 사업보고서에 따르면, 회사의 목적사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 주력 생산제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 이들 DRAM과 NAND Flash는",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.829)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.630)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.629)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.627)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.625)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 6.0725502999994205,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.029)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.023)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.023)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.023)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.022)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.022)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.018)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.830)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 19.53361880000739,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **공급자금융약정 관련 리스크**\n    *   **배경:** 회사는 공급자금융약정을 적용하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 이러한 약정은 기업의 부채, 현금흐름 및 유동성위험 익스포저에 영향을 미칠 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석]. 재무제표 이용자가 이러한 영향을 평가할 수 있도록 관련 정보를 공시해야 합니다.\n\n*   **이자율위험 및 환율위험**\n    *   **배경:** 회사는 이자율위험과 환율위험에 노출되어 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 이러한 위험을 회피하기 위해 회사는 통화스왑계약 및 통화이자율스왑계약을 체결하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n\n*   **신용위험**\n    *   **배경:** 회사는 상각후원가로 측정하는 금융자산과 기업회계기준서 제1115호에서 정의된 계약자산의 기대신용손실에 대해 손실충당금을 인식합니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 회사는 보고기간말에 신용위험이 낮다고 결정된 채무증권 및 최초 인식 이후 신용위험이 유의적으로 증가하지 않은 금융자산을 제외하고는 전체기간 기대신용손실에 해당하는 금액으로 손실충당금을 측정합니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석]. 이는 거래상대방의 채무불이행으로 인한 재무적 손실 가능성을 내포합니다.",
+            "answer_preview": "SK하이닉스 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **공급자금융약정 관련 리스크**\n    *   **배경:** 회사는 공급자금융약정을 적용하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 이러한 약정은 기업의 부채, 현금흐름 및 유동성위험 익스포저에 영향을 미칠 수 있습니다 [SK하이닉스 |",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.822)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 8.430962500002352,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / VIII. 임원 및 직원 등에 관한 사항 > 2. 임원의 보수 등 / table (score: 0.818)",
+              "[SK하이닉스] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항 / table (score: 0.628)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 2. 임원의 보수 등"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 9.088459599995986,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / paragraph (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 5. 정관에 관한 사항 / paragraph (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.820)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 11.439044499999728,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 0.6,
+          "section_match_rate": 0.25,
+          "citation_coverage": 0.8666666666666667,
+          "contamination_rate": 0.0,
+          "avg_latency": 13.360738220004714,
+          "error_rate": 0.0,
+          "failure_examples": [
+            {
+              "id": "business_overview_001",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스",
+                "SK하이닉스/2024/I. 회사의 개요 > 2. 회사의 연혁"
+              ]
+            },
+            {
+              "id": "risk_analysis_001",
+              "category": "risk_analysis",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "SK하이닉스/2024/III. 재무에 관한 사항 > 5. 재무제표 주석",
+                "SK하이닉스/2024/III. 재무에 관한 사항 > 5. 재무제표 주석",
+                "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              ]
+            }
+          ]
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "매출 및 수주상황",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 6.104229700009455,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요"
+            ],
+            "answer_key": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+            "answer_preview": "SK하이닉스 2024년 사업보고서에 따르면, 회사의 목적사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 주력 생산제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 이들 DRAM과 NAND Flash는",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스",
+              "SK하이닉스/2024/I. 회사의 개요 > 2. 회사의 연혁"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 14.746545500005595,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "SK하이닉스 2024 사업보고서에서 제품군별 매출 비중은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "재무상태 및 영업실적",
+            "expected_sections": [
+              "재무상태 및 영업실적",
+              "매출 및 수주상황"
+            ],
+            "answer_key": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+            "answer_preview": "현재 공시 근거가 제한적이다.\n\nSK하이닉스의 2024년 사업보고서에 따르면, 반도체 부문 매출은 DRAM, NAND Flash 등을 포함하며, 제77기(2024년) 매출실적은 66,192,960 백만원으로 확인된다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]. 그러나 제공된 공시 근거에서는 DRAM, NAND Flash 등 개별 제품군별 매출 비중에 대한 구체적인 설명은 확인되",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "SK하이닉스/2024/X. 대주주 등과의 거래내용",
+              "SK하이닉스/2024/XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 10.739772400003858,
+            "error": null
+          },
+          {
+            "id": "business_overview_003",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 고객군은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황"
+            ],
+            "answer_key": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+            "answer_preview": "SK하이닉스 2024 사업보고서에 따르면, 주요 고객군은 다음과 같이 설명됩니다.\n\nDRAM의 경우, 글로벌 Server 공급 업체 및 Computing 관련 전자 업체에 제품을 공급하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황].\n\nNAND Flash는 IT 컨슈머 제품 전체에 걸쳐 수요처가 다양하며, 세계적인 모바일 디바이스 및 IT 제품 제조업체, 그리고 SSD와",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 15.411975099996198,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+            "answer_preview": "SK하이닉스 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **공급자금융약정 관련 리스크**\n    *   **배경:** 회사는 공급자금융약정을 적용하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 이러한 약정은 기업의 부채, 현금흐름 및 유동성위험 익스포저에 영향을 미칠 수 있습니다 [SK하이닉스 |",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 5. 재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 5. 재무제표 주석",
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "risk",
+            "latency_sec": 19.801168400008464,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+        "answerable smoke query abstained: SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+        "retrieval_hit_at_k == 0 for business_overview_001",
+        "retrieval_hit_at_k == 0 for risk_analysis_001",
+        "retrieval_hit_at_k dropped by 0.400"
+      ],
+      "full_eval": {},
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": 0.770949720670391,
+        "ingest_time_reduction_ratio": 0.7545514498611515,
+        "estimated_cost_reduction_ratio": 0.779815261312596
+      }
+    },
+    {
+      "id": "contextual_parent_hybrid_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_parent_hybrid",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-parent-hybrid-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\SK하이닉스\\2024_사업보고서_20250319000665.html",
+      "metadata": {
+        "company": "SK하이닉스",
+        "stock_code": "000660",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250319000665"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_parent_hybrid",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "reset_store": true,
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "SK하이닉스",
+            "stock_code": "000660",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250319000665"
+          },
+          "smoke_queries": [
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_parent_hybrid_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\sk하이닉스-2024\\stores\\contextual-parent-hybrid-2500-320",
+        "collection_name": "dart_reports_v2_contextual-parent-hybrid-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 0.18959540000651032,
+        "chunk_count": 179
+      },
+      "ingest": {
+        "mode": "contextual_parent_hybrid",
+        "chunks": 179,
+        "stored_parent_chunks": 41,
+        "contextualized_chunks": 202,
+        "selector_reason_counts": {
+          "short_text": 10,
+          "table": 142,
+          "targeted_section": 9
+        },
+        "parent_context_calls": 41,
+        "child_context_calls": 161,
+        "api_calls": 202,
+        "fallback_count": 0,
+        "prompt_chars": 111093,
+        "response_chars": 11288,
+        "prompt_tokens": 70341,
+        "output_tokens": 373137,
+        "total_tokens": 443478,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 698.212669799992
+      },
+      "estimated_ingest_cost_usd": 0.9539448,
+      "smoke": {
+        "queries": [
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 23.344620499992743,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스 2024 사업보고서에 따르면, 회사의 주력 사업은 DRAM 및 NAND를 중심으로 하는 메모리 반도체 사업입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요]. 주력 생산 제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 2. 회사의 연혁], [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스]. 이와 함께 Foundry 서비스 사업도 추진 및 병행하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 2. 회사의 연혁], [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요].",
+            "answer_preview": "SK하이닉스 2024 사업보고서에 따르면, 회사의 주력 사업은 DRAM 및 NAND를 중심으로 하는 메모리 반도체 사업입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 1. 사업의 개요]. 주력 생산 제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 2. 회사의 연혁], ",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 1.032)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / table (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.829)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.829)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.628)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 6.755636600006255,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.022)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.021)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.019)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.019)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.830)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 14.424050800007535,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환위험**\n    SK하이닉스는 국제적으로 영업활동을 영위하고 있어 외환위험에 노출되어 있습니다 [SK하이닉 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 달러화, 유로화, 위안화 및 엔화와 관련된 환율 변동 위험에 노출되어 있어, 이는 회사의 재무 성과에 영향을 미칠 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **이자율위험**\n    회사의 이자율위험은 미래 시장 이자율 변동에 따라 차입금에서 발생하는 이자비용이 변동될 위험을 의미합니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이러한 위험은 주로 변동금리부 조건의 차입금에서 발생하며, 이자율 변동 시 이자비용이 증가하거나 감소할 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **가격위험**\n    SK하이닉스는 유동성 관리 및 영업상의 필요 등으로 지분증권 및 채무증권에 투자하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 당기말 현재 해당 지분증권 및 채무증권은 가격위험에 노출되어 있어, 시장 가격 변동에 따라 투자 자산의 가치가 변동될 수 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환위험**\n    SK하이닉스는 국제적으로 영업활동을 영위하고 있어 외환위험에 노출되어 있습니다 [SK하이닉 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 달러화, 유로화, 위안화 및 엔화와 관련된 환율 변동 위험에 노출되어 있어, 이는 회사의 재무 성과에 영향을 미칠 수 있습니다 [SK",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.820)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 10.63459449999209,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 제77기(2024년) 연구개발비용 합계는 4,954,447백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]. 또한, 같은 기간 연구개발비의 매출액 대비 비율은 7.5%입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 제77기(2024년) 연구개발비용 합계는 4,954,447백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]. 또한, 같은 기간 연구개발비의 매출액 대비 비율은 7.5%입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 1.026)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 1.026)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.627)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.626)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 8.334347100011655,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / paragraph (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.820)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 5. 정관에 관한 사항 / paragraph (score: 0.818)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.818)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 12.698649900002057,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.275,
+          "citation_coverage": 1.0,
+          "contamination_rate": 0.0,
+          "avg_latency": 17.758368919999338,
+          "error_rate": 0.0,
+          "failure_examples": []
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "매출 및 수주상황",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.875,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 7.637716099998215,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요"
+            ],
+            "answer_key": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 회사의 주력 생산제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 2. 회사의 연혁]. 당사 및 당사의 종속기업의 주력 제품은 DRAM 및 NAND를 중심으로 하는 메모리 반도체이며 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > ",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/I. 회사의 개요 > 2. 회사의 연혁",
+              "SK하이닉스/2024/II. 사업의 내용 > 1. 사업의 개요",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 28.924890700000105,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "SK하이닉스 2024 사업보고서에서 제품군별 매출 비중은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "재무상태 및 영업실적",
+            "expected_sections": [
+              "재무상태 및 영업실적",
+              "매출 및 수주상황"
+            ],
+            "answer_key": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+            "answer_preview": "SK하이닉스의 2024 사업보고서에 따르면, 제77기 누계 매출액 66,192,960 백만원은 반도체 부문에서 발생했으며, 이는 전체 매출의 100%를 차지합니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스]. 반도체 부문의 주요 매출 품목은 DRAM, NAND Flash 등입니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황].",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "SK하이닉스/2024/X. 대주주 등과의 거래내용",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 22.09922039999219,
+            "error": null
+          },
+          {
+            "id": "business_overview_003",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 고객군은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황"
+            ],
+            "answer_key": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+            "answer_preview": "SK하이닉스 2024 사업보고서에 따르면, 주요 고객군은 다음과 같이 설명됩니다.\n\nDRAM의 경우, 글로벌 Server 공급 업체 및 Computing 관련 전자 업체에 제품을 공급하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황].\n\nNAND Flash는 IT 컨슈머 제품 전체에 걸쳐 수요처가 다양하며, 세계적인 모바일 디바이스 및 IT 제품 제조업체, 그리고 SSD와",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/I. 회사의 개요 > 2. 회사의 연혁",
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 15.796538200011128,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환위험**\n    SK하이닉스는 국제적으로 영업활동을 영위하고 있어 외환위험에 노출되어 있습니다 [SK하이닉 | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 달러화, 유로화, 위안화 및 엔화와 관련된 환율 변동 위험에 노출되어 있어, 이는 회사의 재무 성과에 영향을 미칠 수 있습니다 [SK",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 14.333479199995054,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?"
+      ],
+      "full_eval": {},
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": -0.12849162011173187,
+        "ingest_time_reduction_ratio": -2.738545627867844,
+        "estimated_cost_reduction_ratio": -0.6956980814394575
+      }
+    },
+    {
+      "id": "contextual_selective_v2_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_selective_v2",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-selective-v2-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\SK하이닉스\\2024_사업보고서_20250319000665.html",
+      "metadata": {
+        "company": "SK하이닉스",
+        "stock_code": "000660",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250319000665"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_selective_v2",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "reset_store": true,
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "SK하이닉스",
+            "stock_code": "000660",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250319000665"
+          },
+          "smoke_queries": [
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            },
+            {
+              "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "SK하이닉스",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_selective_v2_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\sk하이닉스-2024\\stores\\contextual-selective-v2-2500-320",
+        "collection_name": "dart_reports_v2_contextual-selective-v2-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 0.735246800002642,
+        "chunk_count": 179
+      },
+      "ingest": {
+        "mode": "contextual_selective_v2",
+        "chunks": 179,
+        "stored_parent_chunks": 41,
+        "contextualized_chunks": 119,
+        "selector_reason_counts": {
+          "business_overview_paragraph": 2,
+          "context_dependent_table": 65,
+          "short_table": 52
+        },
+        "parent_context_calls": 0,
+        "child_context_calls": 119,
+        "api_calls": 119,
+        "fallback_count": 0,
+        "prompt_chars": 59276,
+        "response_chars": 4433,
+        "prompt_tokens": 38154,
+        "output_tokens": 151699,
+        "total_tokens": 189853,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 133.73981379999896
+      },
+      "estimated_ingest_cost_usd": 0.39069370000000003,
+      "smoke": {
+        "queries": [
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 16.142259000000195,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 주력 사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n회사의 주력 생산 제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 이들 품목은 주로 산업용 전자기기에 사용됩니다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 2. 주요 제품 및 서비스].\n\n또한, SK하이닉스는 2007년부터 시스템 LSI 분야인 CIS(CMOS Image Sensor) 사업에 재진출했으며, Foundry 서비스 사업도 추진하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 2. 회사의 연혁].",
+            "answer_preview": "SK하이닉스의 주력 사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n회사의 주력 생산 제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 이들 품목은 주로 산업용 전자기기에 사용됩니다 [SK하이닉스 ",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.831)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.830)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.823)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.631)",
+              "[SK하이닉스] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.629)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.628)",
+              "[SK하이닉스] 2024년 사업보고서 / 【 전문가의 확인 】 > 2. 전문가와의 이해관계 / paragraph (score: 0.628)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "【 전문가의 확인 】 > 2. 전문가와의 이해관계"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 10.958048899992718,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면, 연결 기준 매출액은 129,960,534 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항].",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 연결 기준 매출액은 129,960,534 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항].",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.830)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.827)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.826)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 26.935273099996266,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "SK하이닉스의 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **부채 상환 위험**\n    *   **배경:** 기업회계기준서 제1001호 '재무제표 표시' 개정으로 인해, 보고기간말 현재 비유동부채로 분류되었더라도 보고기간 이후 12개월 이내 약정사항을 준수해야 하는 부채의 경우, 12개월 이내 상환될 수 있는 위험에 대한 정보를 공시해야 합니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 이는 비유동부채가 단기적으로 상환 압박을 받을 수 있음을 시사하며, 회사의 유동성에 영향을 미칠 수 있습니다.\n\n*   **공급자금융약정 관련 유동성 위험**\n    *   **배경:** 기업회계기준서 제1007호 '현금흐름표' 및 제1107호 '금융상품: 공시' 개정에 따라, 공급자금융약정이 기업의 부채, 현금흐름 및 유동성위험 익스포저에 미치는 영향을 평가할 수 있도록 관련 정보를 공시해야 합니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 공급자금융약정은 회사의 실제 부채 수준과 현금흐름에 영향을 주어 유동성 위험을 증가시킬 수 있습니다.\n\n*   **이자율 위험 및 환율 위험**\n    *   **배경:** 회사는 이자율 위험과 환율 위험에 노출되어 있으며, 이를 회피하기 위해 통화스왑계약 및 통화이자율스왑계약을 체결하고 있습니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 시장 이자율 변동 및 환율 변동은 회사의 금융 비용 증가 또는 외화 자산/부채의 가치 변동을 통해 재무 성과에 부정적인 영향을 미칠 수 있습니다.\n\n*   **신용 위험**\n    *   **배경:** 회사는 상각후원가로 측정하는 금융자산 및 기업회계기준서 제1115호에서 정의된 계약자산의 기대신용손실에 대해 손실충당금을 인식하고 있습니다. 신용위험이 낮은 채무증권을 제외하고는 전체기간 기대신용손실에 해당하는 금액으로 손실충당금을 측정합니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 5. 재무제표 주석].\n    *   **잠재 영향:** 거래 상대방의 채무 불이행으로 인해 금융자산 및 계약자산에서 손실이 발생할 수 있으며, 이는 회사의 재무 건전성에 영향을 미칠 수 있습니다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **부채 상환 위험**\n    *   **배경:** 기업회계기준서 제1001호 '재무제표 표시' 개정으로 인해, 보고기간말 현재 비유동부채로 분류되었더라도 보고기간 이후 12개월 이내 약정사항을 준수해야 하는 부채의 경우, 12개월 이내 상환될 수 있는 위험에 대한 정보를 공시해야 합니다 [SK하이닉스 | 2024 | 사업보고서 | II",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.829)",
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.828)",
+              "[SK하이닉스] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항 / table (score: 0.828)",
+              "[SK하이닉스] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.820)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.819)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.818)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 13.611505599998054,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "현재 공시 근거가 제한적이다.\n\nSK하이닉스의 2024년 사업보고서에서 연구개발비용 및 매출 대비 비율은 공시 문서에서 확인되지 않는다. 제공된 근거에는 2024년 연결 기준 매출이 66.2조원([SK하이닉스 | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]) 또는 66조 1,930억원([SK하이닉스 | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견])으로 전년 대비 증가했다는 내용만 포함되어 있다.",
+            "answer_preview": "현재 공시 근거가 제한적이다.\n\nSK하이닉스의 2024년 사업보고서에서 연구개발비용 및 매출 대비 비율은 공시 문서에서 확인되지 않는다. 제공된 근거에는 2024년 연결 기준 매출이 66.2조원([SK하이닉스 | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]) 또는 66조 1,930억원([SK하이닉스 | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견])으로 전년 대비 증가했다는 내용만 포함되어",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.824)",
+              "[SK하이닉스] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.822)",
+              "[SK하이닉스] 2024년 사업보고서 / VIII. 임원 및 직원 등에 관한 사항 > 2. 임원의 보수 등 / paragraph (score: 0.820)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항 > 7-2. 증권의 발행을 통해 조달된 자금의 사용실적 / table (score: 0.819)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 2. 임원의 보수 등"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항 > 7-2. 증권의 발행을 통해 조달된 자금의 사용실적"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "SK하이닉스 2024 사업보고서에서 장기공급 계약에 따른 수주 현황이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "SK하이닉스",
+            "expected_year": 2024,
+            "latency_sec": 8.610610300005646,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[SK하이닉스] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.830)",
+              "[SK하이닉스] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 6. 배당에 관한 사항 / paragraph (score: 0.826)",
+              "[SK하이닉스] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.821)",
+              "[SK하이닉스] 2024년 사업보고서 / II. 사업의 내용 > 3. 원재료 및 생산설비 / table (score: 0.767)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.766)",
+              "[SK하이닉스] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 0.764)",
+              "[SK하이닉스] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.764)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 15.251539379998576,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 0.4,
+          "section_match_rate": 0.1,
+          "citation_coverage": 0.7999999999999999,
+          "contamination_rate": 0.0,
+          "avg_latency": 16.767496279993793,
+          "error_rate": 0.0,
+          "failure_examples": [
+            {
+              "id": "business_overview_001",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스",
+                "SK하이닉스/2024/I. 회사의 개요 > 2. 회사의 연혁"
+              ]
+            },
+            {
+              "id": "business_overview_003",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+                "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              ]
+            },
+            {
+              "id": "risk_analysis_001",
+              "category": "risk_analysis",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+                "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "SK하이닉스/2024/XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              ]
+            }
+          ]
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "SK하이닉스 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "매출 및 수주상황",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 SK하이닉스의 연결 기준 매출액은 66조 1,930억원이다.",
+            "answer_preview": "SK하이닉스의 2024년 사업보고서에 따르면, 연결 기준 매출액은 129,960,534 백만원입니다 [SK하이닉스 | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항].",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.375,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 13.967116699990584,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "SK하이닉스 2024 사업보고서에서 회사의 주력 사업과 제품은 무엇인가요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요"
+            ],
+            "answer_key": "SK하이닉스는 DRAM과 NAND를 중심으로 하는 메모리 반도체를 주력으로 하며, Foundry 사업도 병행한다고 설명한다.",
+            "answer_preview": "SK하이닉스의 주력 사업은 반도체소자 제조 및 판매입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n회사의 주력 생산 제품은 DRAM, NAND Flash 및 MCP(Multi-chip Package)와 같은 메모리 반도체 제품입니다 [SK하이닉스 | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 이들 품목은 주로 산업용 전자기기에 사용됩니다 [SK하이닉스 ",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "【 전문가의 확인 】 > 2. 전문가와의 이해관계"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스",
+              "SK하이닉스/2024/I. 회사의 개요 > 2. 회사의 연혁"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 16.999746799992863,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "SK하이닉스 2024 사업보고서에서 제품군별 매출 비중은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "재무상태 및 영업실적",
+            "expected_sections": [
+              "재무상태 및 영업실적",
+              "매출 및 수주상황"
+            ],
+            "answer_key": "2024년 전체 매출 중 DRAM은 68%, NAND는 29%, 기타 매출은 3% 비중을 차지한다고 설명한다.",
+            "answer_preview": "현재 공시 근거가 제한적이다.\n\nSK하이닉스의 2024년(제77기) 사업보고서에 따르면, 반도체 부문 매출은 66,192,960 백만원으로 확인된다 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]. 품목으로는 DRAM, NAND Flash 등이 언급되어 있으나 [SK하이닉스 | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황], 각 제품군별 매출 비중에 대한",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 7. 기타 참고사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "원재료",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "【 전문가의 확인 】 > 1. 전문가의 확인"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "【 전문가의 확인 】 > 2. 전문가와의 이해관계"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "SK하이닉스/2024/X. 대주주 등과의 거래내용",
+              "SK하이닉스/2024/II. 사업의 내용 > 7. 기타 참고사항"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 15.5608152999921,
+            "error": null
+          },
+          {
+            "id": "business_overview_003",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 고객군은 어떻게 설명되나요?",
+            "category": "business_overview",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황"
+            ],
+            "answer_key": "DRAM은 글로벌 서버 공급업체와 컴퓨팅 전자업체에 공급하고, NAND Flash는 세계적인 모바일 디바이스·IT 제품 제조업체와 SSD·메모리카드 업체를 주요 고객군으로 확보했다고 설명한다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "이사회",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 9.560667900004773,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "SK하이닉스 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "SK하이닉스",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "SK하이닉스는 시장위험(환율·이자율·가격), 신용위험, 유동성위험에 노출되어 있으며, 전반적인 위험관리 정책은 금융시장 변동성이 재무성과에 미치는 부정적 영향을 최소화하는 데 초점을 둔다.",
+            "answer_preview": "SK하이닉스 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **유동성 위험 및 부채 상환 위험**\n    *   **배경:** 기업회계기준서 제1001호 '재무제표 표시' 개정으로 인해, 보고기간 이후 12개월 이내 약정사항을 준수해야 하는 부채가 보고기간말 현재 비유동부채로 분류된 경우, 보고기간 이후 12개월 이내 부채가 상환될 수 있는 위험에 관한 정보를 공시해야 합니다 [SK하이닉스 | 20",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "SK하이닉스",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "SK하이닉스/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
+              "SK하이닉스/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "SK하이닉스/2024/XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "risk",
+            "latency_sec": 27.749134699988645,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: SK하이닉스 2024 사업보고서에서 연구개발비용은 얼마이며 매출 대비 비율은 얼마인가요?",
+        "retrieval_hit_at_k == 0 for business_overview_001",
+        "retrieval_hit_at_k == 0 for business_overview_003",
+        "retrieval_hit_at_k == 0 for risk_analysis_001",
+        "retrieval_hit_at_k dropped by 0.600"
+      ],
+      "full_eval": {},
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": 0.33519553072625696,
+        "ingest_time_reduction_ratio": 0.28389670113395093,
+        "estimated_cost_reduction_ratio": 0.3055168836598481
+      }
+    }
+  ]
+}

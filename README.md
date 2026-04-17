@@ -36,24 +36,36 @@ DART 전자공시 문서를 수집하고, 기업 공시에 대해 근거 기반 
 - Retrieval: Dense + BM25 + RRF + rerank
 - Reasoning: evidence-first
 
-## 최근 benchmark 결과
+## 현재 benchmark 상태
 
-기준 문서:
+현재 benchmark는 두 층으로 운영합니다.
 
-- 삼성전자 2024 사업보고서
-- 접수번호 `20250311001085`
+- `dev_fast`
+  - 삼성전자 1회사, screening only
+  - 빠른 반복 실험용
+- `release_generalization`
+  - 삼성전자 / SK하이닉스 / NAVER
+  - shortlist 후보의 일반화 검증용
 
-1차 screening / 2차 full eval 결과:
+최신 일반화 실험은 [v4_generalization_fix_2026-04-17](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/v4_generalization_fix_2026-04-17/cross_company_summary.md) 입니다.
 
-| Experiment | Ingest (s) | Chunks | API Calls | Screen Hit@k | Screen Section | Full Faithfulness | Full Relevancy | Full Recall |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `plain_2500_320` | 19.183 | 300 | 0 | 0.800 | 0.125 | - | - | - |
-| `contextual_all_2500_320` | 558.723 | 300 | 300 | 1.000 | 0.250 | 0.400 | 0.651 | 0.500 |
-| `contextual_parent_only_2500_320` | 67.964 | 300 | 40 | 0.800 | 0.175 | - | - | - |
-| `contextual_selective_2500_320` | 331.002 | 300 | 289 | 0.800 | 0.150 | - | - | - |
-| `contextual_1500_200` | 774.632 | 502 | 502 | 0.800 | 0.225 | 0.640 | 0.500 | 0.300 |
+현재 상태 요약:
 
-현재 screening 기준을 통과한 후보는 `contextual_all_2500_320` 하나입니다.
+- 3개 기업 기준 공통 screening 통과 후보는 아직 없습니다.
+- `contextual_parent_only_2500_320`
+  - 평균 API 호출과 ingest 시간은 크게 줄였지만
+  - numeric / risk / R&D 질문에서 abstention이 반복됩니다.
+- `contextual_selective_v2_2500_320`
+  - 비용 절감 폭은 크지만
+  - business overview / risk retrieval miss가 남아 있습니다.
+- `contextual_parent_hybrid_2500_320`
+  - 품질 보완 효과는 일부 있으나
+  - 평균 비용이 baseline보다 비싸 실익이 약합니다.
+- `contextual_all_2500_320`
+  - 여전히 가장 안정적인 baseline이지만
+  - NAVER business overview와 missing-information에서 실패가 남아 있습니다.
+
+즉 현재는 기본값을 더 싼 후보로 바꾸기보다, `contextual_all_2500_320`을 기준선으로 유지하면서 query-stage 실패와 기업별 retrieval 약점을 줄이는 단계입니다.
 
 ## 프로젝트 구조
 
@@ -110,6 +122,20 @@ uvicorn main:app --reload --port 8000
 python -m src.ops.benchmark_runner --config benchmarks/experiment_matrix.sample.json
 ```
 
+빠른 반복 실험:
+
+```bash
+python -m src.ops.benchmark_runner --config benchmarks/profiles/dev_fast.json
+```
+
+일반화 검증:
+
+```bash
+python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generalization.json --company-run-id samsung_2024
+python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generalization.json --company-run-id skhynix_2024
+python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generalization.json --company-run-id naver_2024
+```
+
 결과물:
 
 - `benchmarks/results/.../results.json`
@@ -123,4 +149,5 @@ python -m src.ops.benchmark_runner --config benchmarks/experiment_matrix.sample.
 - [CONTEXT.md](CONTEXT.md): 현재 상태와 handoff 메모
 - [DECISIONS.md](DECISIONS.md): 핵심 기술 결정 로그
 - [PLAN.md](PLAN.md): 다음 실험 계획
+- [docs/experiment_history.md](docs/experiment_history.md): 버전별 코드/실험 변화와 결과 요약
 - [REVIEW_FINDINGS.md](REVIEW_FINDINGS.md): 코드 리뷰 아카이브

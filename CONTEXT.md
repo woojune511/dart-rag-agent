@@ -43,6 +43,8 @@
   - `연결재무제표`
   - `연결재무제표 주석`
 - full abstention 패턴만 answerable query 페널티로 취급하도록 평가 보정
+- `release_generalization`을 회사별 job으로 재실행해 `v4_generalization_fix_2026-04-17` 완료
+- cross-company summary 생성까지 확인
 
 ## 최신 benchmark 메모
 
@@ -88,22 +90,51 @@
 - 동일 설정 재실행 시 contextual ingest API 비용은 재발생하지 않음
 - 반복 실험의 주 병목은 이제 ingest보다 query / screening 단계에 가까움
 
+### v4 generalization 완료
+
+기준 run:
+
+- `benchmarks/results/v4_generalization_fix_2026-04-17`
+
+완료 상태:
+
+- `run_status = completed`
+- 완료 기업:
+  - `삼성전자`
+  - `SK하이닉스`
+  - `NAVER`
+
+핵심 결과:
+
+- 공통 screening 통과 후보 없음
+- `contextual_all_2500_320`
+  - 가장 안정적인 baseline
+  - 평균 full eval:
+    - `faithfulness 0.453`
+    - `context recall 0.589`
+- `contextual_parent_only_2500_320`
+  - 비용 절감은 가장 크지만
+  - numeric / risk / R&D 질문에서 abstention 반복
+- `contextual_parent_hybrid_2500_320`
+  - 일부 품질 보완은 있으나 baseline보다 비싼 경우가 있음
+- `contextual_selective_v2_2500_320`
+  - 비용 절감은 크지만 business overview / risk miss가 남음
+
 ## 현재 해석
 
 지금 병목은 parser가 아니라 contextual ingest입니다.  
-문제는 이미 “병렬화가 필요한가”를 넘어서, **저비용 후보를 어떻게 screening 통과 수준까지 끌어올릴 것인가**로 이동했습니다.
+문제는 이미 “병렬화가 필요한가”를 넘어서, **저비용 후보의 query-stage 실패를 어떻게 줄일 것인가**로 이동했습니다.
 
 현재 가장 유력한 다음 실험 축:
 
-- `parent_only` 보완
-  - 숫자/표 질의만 child-level context 유지
-- `selective` 보완
-  - selector를 훨씬 더 공격적으로 줄이고 핵심 섹션만 유지
-- 평가셋 보강
-  - 숫자 질의의 허용 section 범위 재검토
-- query/screening 비용 절감
-  - smoke 질문 수 재조정
-  - screening slice 축소 또는 category별 샘플링 재검토
+- query-stage abstention 완화
+  - numeric / risk / R&D 질문에서 근거가 일부 있어도 완전 abstain으로 흐르는 패턴 점검
+- NAVER business overview retrieval 개선
+  - `I. 회사의 개요` 편중을 줄이고 실제 사업 설명 section 우선순위 재검토
+- missing-information 판정 안정화
+  - hallucination 없이 명시적 부재 응답을 유도하는 prompt / 평가 보정
+- fast loop 추가 최적화
+  - smoke 질문 수와 screening slice 재조정
 
 ## 현재 작업 트리에서 중요 포인트
 
@@ -115,7 +146,7 @@
 
 ## 다음 세션 우선순위
 
-1. `dev_fast` 기준으로 query/screening 비용 추가 절감
-2. `parent_only hybrid` 보완 또는 `selective_v2` 재설계
-3. screening 기준과 eval dataset의 섹션 기대치 재검토
-4. release profile을 회사별 partial run으로 다시 검증
+1. `contextual_all` baseline을 유지한 채 query-stage abstention 원인 분석
+2. NAVER business overview miss를 만드는 retrieval / rerank 패턴 점검
+3. missing-information hallucination 억제 보강
+4. 그 다음에야 `parent_only` / `selective_v2` 재설계 여부 판단

@@ -1,0 +1,4729 @@
+{
+  "config_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\profiles\\release_generalization.json",
+  "recorded_matrix": {
+    "mode": "company_run",
+    "company_run": {
+      "id": "naver_2024",
+      "label": "NAVER 2024",
+      "defaults": {
+        "metadata": {
+          "company": "NAVER",
+          "stock_code": "035420",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250318000645"
+        },
+        "smoke_queries": [
+          {
+            "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "NAVER",
+            "expected_year": 2024
+          }
+        ]
+      },
+      "experiments": [
+        {
+          "id": "contextual_all_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_all"
+        },
+        {
+          "id": "contextual_parent_only_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_parent_only"
+        },
+        {
+          "id": "contextual_parent_hybrid_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_parent_hybrid"
+        },
+        {
+          "id": "contextual_selective_v2_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_selective_v2"
+        }
+      ]
+    },
+    "defaults": {
+      "k": 8,
+      "ingest_mode": "contextual_all",
+      "max_workers": 8,
+      "batch_size": 16,
+      "eval_mode": "all_filtered",
+      "eval_limit": 0,
+      "reuse_store": true,
+      "reuse_context_cache": true,
+      "force_reindex": false,
+      "pricing": {
+        "input_per_million_tokens_usd": 0.3,
+        "output_per_million_tokens_usd": 2.5
+      },
+      "parent_hybrid_short_text_threshold": 700,
+      "parent_hybrid_sections": [
+        "매출현황",
+        "재무제표",
+        "연구개발",
+        "리스크",
+        "사업개요"
+      ],
+      "selective_v2_short_text_threshold": 700,
+      "selective_v2_short_table_threshold": 1600,
+      "selective_v2_sections": [
+        "사업개요",
+        "위험관리 및 파생거래",
+        "매출 및 수주상황",
+        "연구개발"
+      ],
+      "mlflow_experiment_name": "dart_rag_benchmark_generalization"
+    },
+    "screening": {
+      "baseline_experiment_id": "contextual_all_2500_320",
+      "parallel_experiments": 2,
+      "retrieval_hit_drop_threshold": 0.1,
+      "section_match_drop_threshold": 0.15,
+      "max_full_eval_candidates": 3,
+      "always_include_full_eval_ids": [],
+      "section_aliases": {
+        "numeric_fact": [
+          "매출현황",
+          "재무제표",
+          "요약재무",
+          "연결재무제표",
+          "연결재무제표 주석"
+        ]
+      }
+    },
+    "full_evaluation": {
+      "enabled": true,
+      "eval_mode": "all_filtered",
+      "eval_limit": 0
+    }
+  },
+  "screening": {
+    "baseline_experiment_id": "contextual_all_2500_320",
+    "parallel_experiments": 2,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 3,
+    "always_include_full_eval_ids": [],
+    "section_aliases": {
+      "numeric_fact": [
+        "매출현황",
+        "재무제표",
+        "요약재무",
+        "연결재무제표",
+        "연결재무제표 주석"
+      ]
+    }
+  },
+  "full_evaluation": {
+    "enabled": true,
+    "eval_mode": "all_filtered",
+    "eval_limit": 0
+  },
+  "full_eval_candidates": [
+    "contextual_all_2500_320"
+  ],
+  "results": [
+    {
+      "id": "contextual_all_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_all",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-all-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\NAVER\\2024_사업보고서_20250318000645.html",
+      "metadata": {
+        "company": "NAVER",
+        "stock_code": "035420",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250318000645"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_all",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "reuse_store": true,
+          "reuse_context_cache": true,
+          "force_reindex": false,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "NAVER",
+            "stock_code": "035420",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250318000645"
+          },
+          "smoke_queries": [
+            {
+              "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_all_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\naver-2024\\stores\\contextual-all-2500-320",
+        "collection_name": "dart_reports_v2_contextual-all-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 2.6550322999974014,
+        "chunk_count": 733
+      },
+      "ingest": {
+        "mode": "contextual_all",
+        "chunks": 733,
+        "stored_parent_chunks": 42,
+        "api_calls": 733,
+        "fallback_count": 0,
+        "prompt_chars": 355495,
+        "response_chars": 27158,
+        "prompt_tokens": 230295,
+        "output_tokens": 1023196,
+        "total_tokens": 1253491,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 1129.5651272999967,
+        "contextualized_chunks": 733
+      },
+      "cache": {
+        "cache_hit": false,
+        "cache_level": "none",
+        "force_reindex": false,
+        "reuse_store": true,
+        "reuse_context_cache": true,
+        "signature": {
+          "schema_version": 1,
+          "company": "NAVER",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250318000645",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_all",
+          "k": 8,
+          "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
+          "runner_signature": "f7475c57e5c6e22877c3b1514173bf5ce562675abaa73d1ec71e15a76b3c2f65",
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_short_text_threshold": null,
+          "selective_sections": [],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ]
+        }
+      },
+      "estimated_ingest_cost_usd": 2.6270785,
+      "smoke": {
+        "queries": [
+          {
+            "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 23.059001799992984,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER의 2024년 사업보고서에 따르면, 회사는 2020년 3분기부터 사업별 매출 구분을 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드 5개의 카테고리로 나누어 관리하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적으로, NAVER는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]. 또한, 국내 최대 IDC를 보유한 기업으로서 클라우드를 비롯한 다양한 IT 인프라 및 기업향 솔루션 제공을 확대하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]. 이와 더불어 웹툰, 스노우, 뮤직 등 다양한 콘텐츠 사업을 통해서도 글로벌 사업 기반을 확장하고 있는 ICT 기업입니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 회사는 2020년 3분기부터 사업별 매출 구분을 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드 5개의 카테고리로 나누어 관리하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적으로, NAVER는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있습니다 [NAVER | 2",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.829)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.820)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 7.071322100004181,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.021)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.017)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.824)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 19.852542099994025,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있어 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험이 주요하며, 이는 회사의 재무 성과에 영향을 미칠 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **지분증권 가격위험**\n    NAVER는 연결재무상태표상 기타포괄손익-공정가치 측정 금융자산 또는 당기손익-공정가치 측정 금융자산으로 분류되는 금융상품 집합 내 지분증권의 가격위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이는 보유 지분증권의 시장 가격 변동이 회사의 재무 상태에 영향을 줄 수 있음을 의미합니다.\n\n*   **이자율 위험**\n    이자율 위험은 미래 시장 이자율 변동에 따라 예금 또는 차입금 등에서 발생하는 이자수익 및 이자비용이 변동될 위험을 뜻합니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이러한 위험은 주로 변동금리부 조건의 예금과 차입금에서 발생하며, 회사의 수익성 변동으로 이어질 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **신용 위험**\n    NAVER는 기대신용손실 모형이 적용되는 매출채권 및 미수금, 계약자산, 기타금융자산, 채무상품, 리스채권 등의 금융자산을 보유하고 있으며, 이에 대한 신용위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이는 거래 상대방이 의무를 이행하지 못할 경우 회사가 재무적 손실을 입을 수 있음을 의미합니다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있어 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험이 주요하며, 이는 회사의 재무 성과에 영향을 미칠 수 있습니다 [NAVER |",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.019)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.015)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 13.09553489999962,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER의 2024년(제26기) 연결기준 연구개발비용은 1,857,936백만원이며 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동], 연구개발비/영업수익 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "answer_preview": "NAVER의 2024년(제26기) 연결기준 연구개발비용은 1,857,936백만원이며 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동], 연구개발비/영업수익 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / paragraph (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.829)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.821)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.821)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.817)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 37.255710800003726,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에서는 '신규사업' 또는 '중단사업'이라는 용어를 명시적으로 사용하여 사업의 신설이나 중단을 언급하고 있지는 않습니다.\n\n다만, 사업 재편 및 서비스 혁신에 대한 내용은 언급하고 있습니다.\n\n*   **사업 재편 관련:** 2023년 1월 1일에 종속회사인 네이버파이낸셜(주)에 증권, 부동산 서비스 등 영업양도를 완료하고 764억원을 수취했다고 밝히고 있습니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항]. 또한, NAVER BAND Inc.는 전기말 연결실체 지분율이 100.00%였으나 당기말에는 연결대상에서 제외되었다고 명시되어 있습니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석].\n*   **서비스 혁신 관련:** 자체 AI 기술을 개발하여 검색, 쇼핑, 콘텐츠, 핀테크 등 서비스 전반에 걸쳐 AI를 최적화하고 있으며, 검색에 AI Briefing 도입, 광고 분야에 AdVoost 출시 등 AI 기술 접목을 통한 비즈니스 혁신을 추진하고 있다고 설명합니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].",
+            "answer_preview": "NAVER 2024 사업보고서에서는 '신규사업' 또는 '중단사업'이라는 용어를 명시적으로 사용하여 사업의 신설이나 중단을 언급하고 있지는 않습니다.\n\n다만, 사업 재편 및 서비스 혁신에 대한 내용은 언급하고 있습니다.\n\n*   **사업 재편 관련:** 2023년 1월 1일에 종속회사인 네이버파이낸셜(주)에 증권, 부동산 서비스 등 영업양도를 완료하고 764억원을 수취했다고 밝히고 있습니다 [NAVER | 2024 | 사업보고서",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.821)",
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 5. 정관에 관한 사항 / table (score: 0.817)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.816)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 20.066822339998907,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 0.8,
+          "section_match_rate": 0.525,
+          "citation_coverage": 0.9333333333333333,
+          "contamination_rate": 0.0,
+          "avg_latency": 14.747316579998005,
+          "error_rate": 0.0,
+          "failure_examples": [
+            {
+              "id": "business_overview_001",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "NAVER/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "NAVER/2024/IV. 이사의 경영진단 및 분석의견"
+              ]
+            }
+          ]
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.75,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 7.465261200006353,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "주요제품 및 서비스"
+            ],
+            "answer_key": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 회사는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 다양한 사업을 영위하는 ICT 기업입니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n네이버는 변화된 환경과 사업 내용을 반영하여 2020년 3분기부터 사업별 매출을 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드의 5개 카테고리로 구분하여 관리하고 있습니다 [NA",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 25.123551099997712,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "NAVER 2024 사업보고서에서 서비스별 영업수익 구성은 어떻게 제시되나요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요"
+            ],
+            "answer_key": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+            "answer_preview": "NAVER의 2024년 서비스별 영업수익 구성은 다음과 같습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]:\n\n*   **총 영업수익**: 10,737,719 백만원 (100.0%)\n*   **서치플랫폼**: 3,946,166 백만원 (36.8%)\n*   **커머스**: 2,922,977 백만원 (27.2%)\n*   **핀테크**: 1,508,407 백만원 (14.0%)\n*   ",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.25,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 13.22679749999952,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있으며, 이는 환율 변동에 따른 재무적 영향을 미칠 수",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.625,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 19.841062099992996,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_002",
+            "question": "NAVER 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래",
+              "환율변동 영향"
+            ],
+            "answer_key": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 8.079910999993444,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+        "missing-information smoke query hallucinated: NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+        "retrieval_hit_at_k == 0 for business_overview_001"
+      ],
+      "full_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "faithfulness": 0.36,
+          "answer_relevancy": 0.40882702482404254,
+          "context_recall": 0.5666666666666667,
+          "retrieval_hit_at_k": 0.8,
+          "section_match_rate": 0.525,
+          "citation_coverage": 0.9333333333333332,
+          "avg_score": 0.598971170804007,
+          "avg_latency": 14.716849040985107,
+          "error_rate": 0.0
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "ground_truth": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+            "answer_key": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요",
+              "재무상태 및 영업실적"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "quote": "영업수익 10,737,719",
+                "quote_type": "normalized",
+                "why_it_supports_answer": "매출 및 수주상황 표에서 2024년 영업수익 총액을 직접 제시한다."
+              },
+              {
+                "section_path": "V. 재무상태 및 영업실적 > 2. 개요",
+                "quote": "2024년 연결 영업수익은 전년 대비 11% 성장한 10조 7,377억 원",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "경영진단 파트에서도 같은 금액을 요약 설명한다."
+              }
+            ],
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.04006560022165319,
+            "context_recall": 0.5,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.75,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 6.776788949966431,
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.021)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.017)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.824)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "answer": "NAVER의 2024년 사업보고서에 따르면, 회사는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 다양한 사업을 영위하는 ICT 기업입니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n네이버는 변화된 환경과 사업 내용을 반영하여 2020년 3분기부터 사업별 매출을 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드의 5개 카테고리로 구분하여 관리하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적인 주요 사업은 다음과 같습니다:\n*   **서치플랫폼:** 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고 사업을 영위합니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **커머스:** 커머스 사업을 영위합니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **핀테크:** 핀테크 사업을 영위합니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **콘텐츠:** 웹툰, 스노우, 뮤직 등 다양한 콘텐츠 사업을 통해 글로벌 사업 기반을 확장하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **클라우드:** 국내 최대 IDC를 보유한 기업으로서 클라우드를 비롯한 다양한 IT 인프라 및 기업향 솔루션 제공을 확대하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].",
+            "ground_truth": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+            "answer_key": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+            "expected_sections": [
+              "사업의 개요",
+              "주요제품 및 서비스"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                "quote": "네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)'를 기반으로 광고, 커머스 사업을 통해 매출을 창출하고 있습니다. 아울러 올인원 디지털 금융 플랫폼인 핀테크와 웹툰, 스노우 등의 콘텐츠 서비스, 기업용 솔루션을 제공하는 클라우드 등 다각화된 사업 포트폴리오를 기반으로 안정적인 성장을 이어가고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "주요 사업 축을 한 문단에서 직접 요약한다."
+              }
+            ],
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.7810484456214826,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 25.33587098121643,
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.829)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.820)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "NAVER 2024 사업보고서에서 서비스별 영업수익 구성은 어떻게 제시되나요?",
+            "answer": "NAVER의 2024년 서비스별 영업수익 구성은 다음과 같습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]:\n\n*   **총 영업수익**: 10,737,719 백만원 (100.0%)\n*   **서치플랫폼**: 3,946,166 백만원 (36.8%)\n*   **커머스**: 2,922,977 백만원 (27.2%)\n*   **핀테크**: 1,508,407 백만원 (14.0%)\n*   **콘텐츠**: 1,796,421 백만원 (16.7%)\n*   **클라우드**: 563,748 백만원 (5.3%)",
+            "ground_truth": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+            "answer_key": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "quote": "영업수익 10,737,719 / 서치플랫폼 3,946,166 / 커머스 2,922,977 / 핀테크 1,508,407 / 콘텐츠 1,796,421 / 클라우드 563,748",
+                "quote_type": "normalized",
+                "why_it_supports_answer": "서비스별 영업수익 표의 핵심 수치를 한 줄로 정리한 것이다."
+              }
+            ],
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5571007684341203,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.25,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "qa",
+            "latency_sec": 13.16016960144043,
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.030)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.832)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / paragraph (score: 0.815)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "answer": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    *   **배경:** NAVER는 국제적으로 영업활동을 영위하고 있어 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동이 재무 성과에 영향을 미칠 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **지분증권 가격위험**\n    *   **배경:** NAVER는 연결재무상태표상 기타포괄손익-공정가치 측정 금융자산 또는 당기손익-공정가치 측정 금융자산으로 분류되는 금융상품집합 내 지분증권의 가격위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 보유 지분증권의 가격 변동이 회사의 재무 상태에 영향을 줄 수 있습니다.\n\n*   **이자율 위험**\n    *   **배경:** 이자율 위험은 미래 시장 이자율 변동에 따라 예금 또는 차입금 등에서 발생하는 이자수익 및 이자비용이 변동될 위험을 의미합니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 주로 변동금리부 조건의 예금과 차입금에서 발생하며, 이자율 변동이 수익성 및 비용에 영향을 미칠 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **신용 위험**\n    *   **배경:** NAVER는 기대신용손실 모형이 적용되는 매출채권 및 미수금, 계약자산, 기타금융자산, 채무상품, 리스채권 등의 금융자산을 보유하고 있으며, 이에 대한 신용위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 거래 상대방의 채무 불이행으로 인해 재무적 손실이 발생할 수 있습니다.",
+            "ground_truth": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+            "answer_key": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "연결회사는 여러 활동으로 인하여 시장위험(외환위험, 가격위험, 이자율위험), 신용위험 및 유동성위험과 같은 다양한 재무위험에 노출되어 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "리스크 범주를 직접 열거한다."
+              },
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "연결회사는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험, 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "환율변동위험의 주요 통화를 직접 제시한다."
+              }
+            ],
+            "faithfulness": 0.3,
+            "answer_relevancy": 0.5679472001196662,
+            "context_recall": 0.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.625,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "risk",
+            "latency_sec": 19.55022120475769,
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.019)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.015)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_002",
+            "question": "NAVER 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "ground_truth": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+            "answer_key": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+            "expected_sections": [
+              "위험관리 및 파생거래",
+              "환율변동 영향"
+            ],
+            "evidence": [
+              {
+                "section_path": "V. 재무상태 및 영업실적 > 마. 환율변동 영향",
+                "quote": "당사는 효율적인 환율변동위험관리를 위해 당사의 환위험을 주기적으로 모니터링 및 평가하고 있으며, 헷지 용도 외의 외환거래는 금지하고 있습니다. 내부적 관리기법으로 현금흐름을 감안한 외화자금 입출금 Matching 혹은 환율전망에 따른 Leading/Lagging을 활용하거나, 외부적 관리기법으로 통화 변동성 및 매크로 분석에 따른 통화선물 및 옵션 등 위험회피 목적의 파생금융상품 거래를 사용하고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "환율변동위험 대응 방식을 가장 구체적으로 설명한다."
+              },
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "연결회사는 영업 자금 수요를 충족시키기 위해 차입금 한도나 약정을 위반하는 일이 없도록 유동성에 대한 예측을 항시 모니터링하고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "유동성위험 대응의 핵심 원칙을 직접 제시한다."
+              }
+            ],
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.09797310972329026,
+            "context_recall": 0.3333333333333333,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "risk",
+            "latency_sec": 8.761194467544556,
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.023)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.826)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          }
+        ]
+      },
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": 0.0,
+        "ingest_time_reduction_ratio": 0.0,
+        "estimated_cost_reduction_ratio": 0.0
+      }
+    },
+    {
+      "id": "contextual_parent_only_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_parent_only",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-parent-only-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\NAVER\\2024_사업보고서_20250318000645.html",
+      "metadata": {
+        "company": "NAVER",
+        "stock_code": "035420",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250318000645"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_parent_only",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "reuse_store": true,
+          "reuse_context_cache": true,
+          "force_reindex": false,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "NAVER",
+            "stock_code": "035420",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250318000645"
+          },
+          "smoke_queries": [
+            {
+              "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_parent_only_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\naver-2024\\stores\\contextual-parent-only-2500-320",
+        "collection_name": "dart_reports_v2_contextual-parent-only-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 2.7062822000007145,
+        "chunk_count": 733
+      },
+      "ingest": {
+        "mode": "contextual_parent_only",
+        "chunks": 733,
+        "stored_parent_chunks": 42,
+        "contextualized_chunks": 42,
+        "selector_reason_counts": {},
+        "parent_context_calls": 42,
+        "child_context_calls": 0,
+        "api_calls": 42,
+        "fallback_count": 0,
+        "prompt_chars": 30981,
+        "response_chars": 1760,
+        "prompt_tokens": 19908,
+        "output_tokens": 53031,
+        "total_tokens": 72939,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 93.99991220000084
+      },
+      "cache": {
+        "cache_hit": false,
+        "cache_level": "none",
+        "force_reindex": false,
+        "reuse_store": true,
+        "reuse_context_cache": true,
+        "signature": {
+          "schema_version": 1,
+          "company": "NAVER",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250318000645",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_parent_only",
+          "k": 8,
+          "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
+          "runner_signature": "f7475c57e5c6e22877c3b1514173bf5ce562675abaa73d1ec71e15a76b3c2f65",
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_short_text_threshold": null,
+          "selective_sections": [],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ]
+        }
+      },
+      "estimated_ingest_cost_usd": 0.1385499,
+      "smoke": {
+        "queries": [
+          {
+            "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 26.987392800001544,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면, 네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 또한 국내 최대 IDC를 보유한 기업으로서 클라우드를 비롯한 다양한 IT 인프라 및 기업향 솔루션 제공을 확대하고 있으며 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], 웹툰, 스노우 등 다양한 콘텐츠 사업을 통해서도 글로벌 사업 기반을 확장하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n특히, 네이버는 2020년 3분기부터 사업별 매출을 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드 5개의 카테고리로 구분하여 관리하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]. 이와 함께 인공지능, 로보틱스 등 미래 기술에 대한 지속적인 연구개발을 통해 기술플랫폼의 변화와 혁신을 추구합니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 또한 국내 최대 IDC를 보유한 기업으로서 클라우드를 비롯한 다양한 IT 인프라 및 기업향 솔루션 제공을 확대하고 있으며 [NAVER | 2024 | 사업보고서 | I. 회사의",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.830)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.823)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.820)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 5.535457799996948,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.027)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.027)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.025)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.022)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.020)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.823)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 20.334092199991574,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다:\n\n*   **외환 위험**\n    NAVER (연결회사)는 국제적으로 영업활동을 영위하고 있기 때문에 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래] 환율 변동 위험에 노출되어 있습니다. 이는 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동에 영향을 받습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **지분증권 가격위험**\n    연결회사는 연결재무상태표상 기타포괄손익-공정가치 측정 금융자산 또는 당기손익-공정가치 측정 금융자산으로 분류되는 금융상품집합 내 지분증권의 가격위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **이자율위험**\n    이자율위험은 미래의 시장 이자율 변동에 따라 예금 또는 차입금 등에서 발생하는 이자수익 및 이자비용이 변동될 위험을 뜻합니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이는 주로 변동금리부 조건의 예금과 차입금에서 발생하고 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **신용위험**\n    연결회사는 기대신용손실 모형이 적용되는 금융자산(상각후원가로 측정되는 매출채권 및 미수금, 계약자산; 상각후원가로 측정되는 기타금융자산; 기타포괄손익-공정가치로 측정되는 채무상품; 기업회계기준서 제 1116호의 적용범위에 포함되는 리스채권)을 보유하고 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 연결회사는 매출채권, 미수금 및 계약자산에 대해 미래전망정보가 포함된 기대신용손실을 측정하기 위해 신용위험 특성과 연체일을 기준으로 구분하고 있으며 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항], 당기말 현재 매출채권 및 미수금의 손실충당금은 22,762,729천원입니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항].",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다:\n\n*   **외환 위험**\n    NAVER (연결회사)는 국제적으로 영업활동을 영위하고 있기 때문에 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래] 환율 변동 위험에 노출되어 있습니다. 이는 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동에 영향을 받습니다 [NAVER | 2024 | 사업보고",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 13.788905900000827,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER의 2024년 사업보고서에 따르면, 연결기준 연구개발비용은 1,857,936 백만원이며 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동], 연구개발비/영업수익 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 연결기준 연구개발비용은 1,857,936 백만원이며 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동], 연구개발비/영업수익 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / paragraph (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.822)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 27.21572439999727,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "네, NAVER 2024 사업보고서에서는 신규사업 및 중단사업과 관련된 내용이 명시되어 있습니다.\n\n구체적으로, 신규사업과 관련하여 2023년 초 미국 C2C 패션 플랫폼인 Poshmark를 인수하는 등 해외 커머스 사업을 확장하고 있다고 밝히고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n중단사업 또는 사업 재편과 관련해서는 다음과 같은 내용이 확인됩니다:\n*   2023년 1월 1일, 사업재편을 통한 경영효율성 제고를 위해 종속회사인 네이버파이낸셜(주)에 증권, 부동산 서비스 등 영업양도를 완료하고 764억원을 수취했다고 명시하고 있습니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항].\n*   또한, 2024년 12월 말 기준 연결대상 종속회사가 전년말 대비 22개 기업 감소했으며 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], NAVER BAND Inc, 스마트 스프링 펀드, 네이버제트 주식회사 등 다수의 종속기업이 당기말에 연결실체 지분율이 '-'로 표시되어 연결에서 제외되었음을 보여줍니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석].",
+            "answer_preview": "네, NAVER 2024 사업보고서에서는 신규사업 및 중단사업과 관련된 내용이 명시되어 있습니다.\n\n구체적으로, 신규사업과 관련하여 2023년 초 미국 C2C 패션 플랫폼인 Poshmark를 인수하는 등 해외 커머스 사업을 확장하고 있다고 밝히고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n중단사업 또는 사업 재편과 관련해서는 다음과 같은 내용이 확인됩니다:\n*   2023년",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.821)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.816)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 18.772314619997633,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 0.8,
+          "section_match_rate": 0.475,
+          "citation_coverage": 0.9333333333333333,
+          "contamination_rate": 0.0,
+          "avg_latency": 14.54954772000201,
+          "error_rate": 0.0,
+          "failure_examples": [
+            {
+              "id": "business_overview_001",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "NAVER/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "NAVER/2024/IV. 이사의 경영진단 및 분석의견",
+                "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              ]
+            }
+          ]
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.75,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 5.906536800001049,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "주요제품 및 서비스"
+            ],
+            "answer_key": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+            "answer_preview": "네이버 2024 사업보고서에 따르면, 회사가 영위하는 주요 사업은 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드입니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적으로, 네이버 및 네이버의 종속회사들은 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 >",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 22.535100000008242,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "NAVER 2024 사업보고서에서 서비스별 영업수익 구성은 어떻게 제시되나요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요"
+            ],
+            "answer_key": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+            "answer_preview": "NAVER의 2024년 연결 영업수익은 10,737,719백만원이며, 서비스별 구성은 다음과 같습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]:\n\n*   **서치플랫폼** 부문은 3,946,166백만원으로 전체 영업수익의 36.8%를 차지합니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황].\n*   **커머스** 부문은 2,922,9",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 14.814302200000384,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있으며, 이는 환율 변동에 따른 재무적 영향을 미칠 수",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.5,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 18.878813100003754,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_002",
+            "question": "NAVER 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래",
+              "환율변동 영향"
+            ],
+            "answer_key": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 10.612986499996623,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+        "missing-information smoke query hallucinated: NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+        "retrieval_hit_at_k == 0 for business_overview_001"
+      ],
+      "full_eval": {},
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": 0.9427012278308322,
+        "ingest_time_reduction_ratio": 0.9167822111995533,
+        "estimated_cost_reduction_ratio": 0.9472608450794295
+      }
+    },
+    {
+      "id": "contextual_parent_hybrid_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_parent_hybrid",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-parent-hybrid-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\NAVER\\2024_사업보고서_20250318000645.html",
+      "metadata": {
+        "company": "NAVER",
+        "stock_code": "035420",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250318000645"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_parent_hybrid",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "reuse_store": true,
+          "reuse_context_cache": true,
+          "force_reindex": false,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "NAVER",
+            "stock_code": "035420",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250318000645"
+          },
+          "smoke_queries": [
+            {
+              "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_parent_hybrid_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\naver-2024\\stores\\contextual-parent-hybrid-2500-320",
+        "collection_name": "dart_reports_v2_contextual-parent-hybrid-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 1.8339722999953665,
+        "chunk_count": 733
+      },
+      "ingest": {
+        "mode": "contextual_parent_hybrid",
+        "chunks": 733,
+        "stored_parent_chunks": 42,
+        "contextualized_chunks": 740,
+        "selector_reason_counts": {
+          "short_text": 10,
+          "table": 677,
+          "targeted_section": 11
+        },
+        "parent_context_calls": 42,
+        "child_context_calls": 698,
+        "api_calls": 740,
+        "fallback_count": 0,
+        "prompt_chars": 360956,
+        "response_chars": 28614,
+        "prompt_tokens": 234426,
+        "output_tokens": 1035253,
+        "total_tokens": 1269679,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 1196.126685700001
+      },
+      "cache": {
+        "cache_hit": false,
+        "cache_level": "none",
+        "force_reindex": false,
+        "reuse_store": true,
+        "reuse_context_cache": true,
+        "signature": {
+          "schema_version": 1,
+          "company": "NAVER",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250318000645",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_parent_hybrid",
+          "k": 8,
+          "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
+          "runner_signature": "f7475c57e5c6e22877c3b1514173bf5ce562675abaa73d1ec71e15a76b3c2f65",
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_short_text_threshold": null,
+          "selective_sections": [],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ]
+        }
+      },
+      "estimated_ingest_cost_usd": 2.6584602999999998,
+      "smoke": {
+        "queries": [
+          {
+            "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 29.04584179999074,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면, 네이버가 영위하는 주요 사업은 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드입니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적으로, 네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있으며 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요], 웹툰, 스노우 등 다양한 콘텐츠 사업을 통해서도 글로벌 사업 기반을 확장하고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]. 또한, 국내 최대 IDC를 보유한 기업으로서 클라우드를 비롯한 다양한 IT 인프라 및 기업향 솔루션 제공을 확대해가고 있습니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 네이버가 영위하는 주요 사업은 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드입니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적으로, 네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고, 커머스, 핀테크 사업을 영위하고 있으며 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요]",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 5. 정관에 관한 사항 / table (score: 0.830)",
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.823)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.821)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.821)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 6.487828099998296,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.029)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.026)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.019)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.017)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.828)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 18.58505540000624,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있으며, 이는 환율 변동에 따른 재무적 영향을 미칠 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **지분증권 가격위험**\n    NAVER는 연결재무상태표상 기타포괄손익-공정가치 측정 금융자산 또는 당기손익-공정가치 측정 금융자산으로 분류되는 금융상품집합 내 지분증권의 가격위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이는 지분증권 가격 변동에 따라 재무적 손익에 영향을 줄 수 있습니다.\n\n*   **이자율 위험**\n    이자율 위험은 미래의 시장 이자율 변동에 따라 예금 또는 차입금 등에서 발생하는 이자수익 및 이자비용이 변동될 위험을 뜻합니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이러한 위험은 주로 변동금리부 조건의 예금과 차입금에서 발생하며, 이자수익 및 이자비용 변동을 통해 재무 성과에 영향을 미칠 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **신용 위험 (기대신용손실)**\n    NAVER는 기대신용손실 모형이 적용되는 금융자산을 보유하고 있어 신용 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 해당 금융자산에는 상각후원가로 측정되는 매출채권 및 미수금, 계약자산; 상각후원가로 측정되는 기타금융자산; 기타포괄손익-공정가치로 측정되는 채무상품; 기업회계기준서 제 1116호의 적용범위에 포함되는 리스채권 등이 포함됩니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 이는 해당 자산에서 기대신용손실이 발생할 경우 재무적 손실로 이어질 수 있습니다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있으며, 이는 환율 변동에 따른 재무적 영향을 미칠 수",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.015)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.831)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.827)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 12.6859478999977,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER의 2024년 사업보고서에 따르면, 연구개발비용과 영업수익 대비 비율은 연결기준과 별도기준으로 다음과 같습니다.\n\nNAVER의 연결기준 연구개발비용은 1,857,936 백만원이며, 연구개발비/영업수익 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]. 별도기준으로는 연구개발비용이 623,045 백만원이며, 연구개발비/영업수익 비율은 10.1%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 연구개발비용과 영업수익 대비 비율은 연결기준과 별도기준으로 다음과 같습니다.\n\nNAVER의 연결기준 연구개발비용은 1,857,936 백만원이며, 연구개발비/영업수익 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]. 별도기준으로는 연구개발비용이 623,045 백만원이며, 연구개발비/영업수익 비율은 10.1%입니다",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / paragraph (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.816)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 47.93485950000468,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "현재 공시 근거가 제한적이다.\n\nNAVER 2024 사업보고서에서는 중단된 사업 또는 매각된 사업이 있다고 명시하고 있다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]. 구체적으로, NAVER BAND Inc, 스마트 스프링 펀드, 주식회사 작가컴퍼니, 엠콘텐츠랩스 주식회사, 주식회사 스프링캠프, 스프링캠프-KIF 초기전문 투자조합, 주식회사 어뮤즈, 네이버제트 주식회사, SPRINGCAMP US, NAVER Z USA, INC., NAVER Z Limited, WP Technology (UK), eBOOK Initiative Japan Co., Ltd., NAVER WP I, L.P., NAVER WP II, LLC 등 여러 종속기업이 전기말에는 존재했으나 당기말에는 연결실체 지분율이 '-'로 표시되어 더 이상 종속기업이 아님을 명시하며, 이는 중단된 사업 또는 매각된 사업을 의미한다고 밝히고 있다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석].\n\n신규사업에 대해서는 '신규사업'이라는 용어를 직접적으로 명시하고 있지는 않다. 다만, AI 기술을 기반으로 한 피드형 지면 확대, 네이버플러스 스토어 출시 등 코어 사업 경쟁력 강화를 위한 '새로운 시도'와 함께, 2025년에는 AI Briefing 도입 및 AdVoost 출시를 통해 검색과 광고 분야의 혁신을 가속화할 계획임을 밝히고 있다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].",
+            "answer_preview": "현재 공시 근거가 제한적이다.\n\nNAVER 2024 사업보고서에서는 중단된 사업 또는 매각된 사업이 있다고 명시하고 있다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]. 구체적으로, NAVER BAND Inc, 스마트 스프링 펀드, 주식회사 작가컴퍼니, 엠콘텐츠랩스 주식회사, 주식회사 스프링캠프, 스프링캠프-KIF 초기전문 투자조합, 주식회사 어뮤즈, 네이버제트 주식회사, S",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / I. 회사의 개요 > 5. 정관에 관한 사항 / table (score: 0.831)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.815)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.815)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 22.94790653999953,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 0.8,
+          "section_match_rate": 0.575,
+          "citation_coverage": 0.9333333333333333,
+          "contamination_rate": 0.0,
+          "avg_latency": 14.014991340003325,
+          "error_rate": 0.0,
+          "failure_examples": [
+            {
+              "id": "business_overview_001",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "NAVER/2024/I. 회사의 개요 > 5. 정관에 관한 사항",
+                "NAVER/2024/I. 회사의 개요 > 1. 회사의 개요",
+                "NAVER/2024/IV. 이사의 경영진단 및 분석의견"
+              ]
+            }
+          ]
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.875,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 6.196859000003315,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "주요제품 및 서비스"
+            ],
+            "answer_key": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 회사는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 다양한 사업을 영위하는 ICT 기업입니다 [NAVER | 2024 | 사업보고서 | I. 회사의 개요 > 1. 회사의 개요].\n\n네이버는 변화된 환경과 사업 내용을 반영하여 2020년 3분기부터 사업별 매출을 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드의 5개 카테고리로 구분하여 관리하고 있습니다 [NA",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/I. 회사의 개요 > 5. 정관에 관한 사항",
+              "NAVER/2024/I. 회사의 개요 > 1. 회사의 개요",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 24.541452599994955,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "NAVER 2024 사업보고서에서 서비스별 영업수익 구성은 어떻게 제시되나요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요"
+            ],
+            "answer_key": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 서비스별 영업수익 구성은 다음과 같습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]:\n\n*   **총 영업수익**: 10,737,719 백만원 (100.0%)\n*   **서치플랫폼**: 3,946,166 백만원 (36.8%)\n*   **커머스**: 2,922,977 백만원 (27.2%)\n*   **핀테크**: 1,508,407 백만원 ",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.25,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "I. 회사의 개요 > 5. 정관에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 14.607811900001252,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    *   **배경:** NAVER는 국제적으로 영업활동을 영위하고 있어 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동이 재무 성과에 영향을 미칠 수",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.75,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 16.188055400009034,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_002",
+            "question": "NAVER 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래",
+              "환율변동 영향"
+            ],
+            "answer_key": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 8.540777800008073,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+        "missing-information smoke query hallucinated: NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+        "retrieval_hit_at_k == 0 for business_overview_001"
+      ],
+      "full_eval": {},
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": -0.009549795361528002,
+        "ingest_time_reduction_ratio": -0.05892671152048279,
+        "estimated_cost_reduction_ratio": -0.011945512857723717
+      }
+    },
+    {
+      "id": "contextual_selective_v2_2500_320",
+      "config": {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_selective_v2",
+        "k": 8,
+        "max_workers": 8,
+        "batch_size": 16,
+        "collection_name": "dart_reports_v2_contextual-selective-v2-2500-320",
+        "parent_hybrid_short_text_threshold": 700,
+        "parent_hybrid_sections": [
+          "매출현황",
+          "재무제표",
+          "연구개발",
+          "리스크",
+          "사업개요"
+        ],
+        "selective_short_text_threshold": null,
+        "selective_sections": [],
+        "selective_v2_short_text_threshold": 700,
+        "selective_v2_short_table_threshold": 1600,
+        "selective_v2_sections": [
+          "사업개요",
+          "위험관리 및 파생거래",
+          "매출 및 수주상황",
+          "연구개발"
+        ],
+        "section_aliases": {
+          "numeric_fact": [
+            "매출현황",
+            "재무제표",
+            "요약재무",
+            "연결재무제표",
+            "연결재무제표 주석"
+          ]
+        }
+      },
+      "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\NAVER\\2024_사업보고서_20250318000645.html",
+      "metadata": {
+        "company": "NAVER",
+        "stock_code": "035420",
+        "year": 2024,
+        "report_type": "사업보고서",
+        "rcept_no": "20250318000645"
+      },
+      "recorded_settings": {
+        "experiment": {
+          "k": 8,
+          "ingest_mode": "contextual_selective_v2",
+          "max_workers": 8,
+          "batch_size": 16,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0,
+          "reuse_store": true,
+          "reuse_context_cache": true,
+          "force_reindex": false,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ],
+          "mlflow_experiment_name": "dart_rag_benchmark_generalization",
+          "metadata": {
+            "company": "NAVER",
+            "stock_code": "035420",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250318000645"
+          },
+          "smoke_queries": [
+            {
+              "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+              "category": "business_overview",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+              "category": "numeric_fact",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+              "category": "risk_analysis",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+              "category": "r_and_d_investment",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            },
+            {
+              "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+              "category": "missing_information",
+              "expected_company": "NAVER",
+              "expected_year": 2024
+            }
+          ],
+          "id": "contextual_selective_v2_2500_320",
+          "chunk_size": 2500,
+          "chunk_overlap": 320
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_all_2500_320",
+          "parallel_experiments": 2,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 3,
+          "always_include_full_eval_ids": [],
+          "section_aliases": {
+            "numeric_fact": [
+              "매출현황",
+              "재무제표",
+              "요약재무",
+              "연결재무제표",
+              "연결재무제표 주석"
+            ]
+          }
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "all_filtered",
+          "eval_limit": 0
+        }
+      },
+      "store": {
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\v4_generalization_fix_2026-04-17\\naver-2024\\stores\\contextual-selective-v2-2500-320",
+        "collection_name": "dart_reports_v2_contextual-selective-v2-2500-320"
+      },
+      "parse": {
+        "elapsed_sec": 0.6188236000016332,
+        "chunk_count": 733
+      },
+      "ingest": {
+        "mode": "contextual_selective_v2",
+        "chunks": 733,
+        "stored_parent_chunks": 42,
+        "contextualized_chunks": 90,
+        "selector_reason_counts": {
+          "business_overview_paragraph": 1,
+          "context_dependent_table": 39,
+          "risk_section_chunk": 7,
+          "rnd_summary_paragraph": 2,
+          "short_table": 41
+        },
+        "parent_context_calls": 0,
+        "child_context_calls": 90,
+        "api_calls": 90,
+        "fallback_count": 0,
+        "prompt_chars": 43388,
+        "response_chars": 3317,
+        "prompt_tokens": 27220,
+        "output_tokens": 115065,
+        "total_tokens": 142285,
+        "max_workers": 8,
+        "batch_size": 16,
+        "elapsed_sec": 187.14785719999054
+      },
+      "cache": {
+        "cache_hit": false,
+        "cache_level": "none",
+        "force_reindex": false,
+        "reuse_store": true,
+        "reuse_context_cache": true,
+        "signature": {
+          "schema_version": 1,
+          "company": "NAVER",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250318000645",
+          "chunk_size": 2500,
+          "chunk_overlap": 320,
+          "ingest_mode": "contextual_selective_v2",
+          "k": 8,
+          "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
+          "runner_signature": "f7475c57e5c6e22877c3b1514173bf5ce562675abaa73d1ec71e15a76b3c2f65",
+          "parent_hybrid_short_text_threshold": 700,
+          "parent_hybrid_sections": [
+            "매출현황",
+            "재무제표",
+            "연구개발",
+            "리스크",
+            "사업개요"
+          ],
+          "selective_short_text_threshold": null,
+          "selective_sections": [],
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발"
+          ]
+        }
+      },
+      "estimated_ingest_cost_usd": 0.2958285,
+      "smoke": {
+        "queries": [
+          {
+            "query": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 20.670988300000317,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면, 네이버는 2020년 3분기부터 변화된 환경과 사업 내용을 반영하여 사업별 매출 구분을 **서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드**의 5개 카테고리로 구분하여 관리하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n각 주요 사업은 다음과 같습니다:\n*   **서치플랫폼**: 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고 사업을 영위합니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **커머스**: 커머스 사업을 영위합니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **핀테크**: 핀테크 사업을 영위합니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **콘텐츠**: 웹툰, 뮤직 등 다양한 콘텐츠 사업을 통해 글로벌 사업 기반을 확장하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n*   **클라우드**: 국내 최대 IDC를 보유한 기업으로서 기업 고객을 대상으로 클라우드를 비롯한 다양한 IT 인프라 및 솔루션 제공을 확대하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 네이버는 2020년 3분기부터 변화된 환경과 사업 내용을 반영하여 사업별 매출 구분을 **서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드**의 5개 카테고리로 구분하여 관리하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n각 주요 사업은 다음과 같습니다:\n*   **서치플랫폼**: 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.822)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.821)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.819)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.817)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 6.087210799989407,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.030)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.028)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.025)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.024)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.014)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.829)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.826)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 17.918517400001292,
+            "query_type": "risk",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    *   **배경:** NAVER는 국제적으로 영업활동을 영위하고 있어 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동이 재무 성과에 영향을 미칠 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **지분증권 가격위험**\n    *   **배경:** 연결회사는 연결재무상태표상 기타포괄손익-공정가치 측정 금융자산 또는 당기손익-공정가치 측정 금융자산으로 분류되는 금융상품집합 내 지분증권의 가격위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 해당 지분증권의 시장 가격 변동이 회사의 재무 상태에 영향을 줄 수 있습니다.\n\n*   **이자율 위험**\n    *   **배경:** 이자율 위험은 미래 시장 이자율 변동에 따라 예금 또는 차입금 등에서 발생하는 이자수익 및 이자비용이 변동될 위험을 의미합니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 이는 주로 변동금리부 조건의 예금과 차입금에서 발생하며, 이자율 변동에 따라 회사의 이자수익 및 비용이 달라질 수 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n\n*   **신용 위험**\n    *   **배경:** NAVER는 기대신용손실 모형이 적용되는 다양한 금융자산을 보유하고 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 여기에는 상각후원가로 측정되는 매출채권 및 미수금, 계약자산, 기타금융자산, 기타포괄손익-공정가치로 측정되는 채무상품, 그리고 기업회계기준서 제1116호의 적용범위에 포함되는 리스채권이 포함됩니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 이러한 금융자산에 대해 거래상대방이 의무를 이행하지 못할 경우 신용손실이 발생할 위험이 있습니다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    *   **배경:** NAVER는 국제적으로 영업활동을 영위하고 있어 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래].\n    *   **잠재 영향:** 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동이 재무 성과에 영향을 미칠 수",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.019)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 1.015)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.824)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.823)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 연구개발비용과 영업수익 대비 비율은 얼마인가요?",
+            "category": "r_and_d_investment",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 11.042544500000076,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "NAVER의 2024년(제 26기) 연결기준 연구개발비용은 1,857,936 백만원이며 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동], 영업수익 대비 연구개발비 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "answer_preview": "NAVER의 2024년(제 26기) 연결기준 연구개발비용은 1,857,936 백만원이며 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동], 영업수익 대비 연구개발비 비율은 17.3%입니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동].",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / paragraph (score: 1.016)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.830)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.820)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.816)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          },
+          {
+            "query": "NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+            "category": "missing_information",
+            "expected_company": "NAVER",
+            "expected_year": 2024,
+            "latency_sec": 35.17345449999266,
+            "query_type": "qa",
+            "retrieved_count": 8,
+            "citation_count": 8,
+            "answer": "현재 공시 근거가 제한적이다.\n\nNAVER 2024 사업보고서에서는 '신규사업'이라는 용어를 사용하여 새로운 사업 부문을 명시적으로 언급하고 있지는 않습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]. 대신, 주로 AI 기술을 기존 검색, 쇼핑, 콘텐츠, 핀테크 등 서비스 전반에 접목하여 비즈니스 혁신을 이끌고, 플러스스토어 출시와 같은 기존 사업 내 서비스 강화를 언급하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n반면, 여러 종속기업들이 연결 대상에서 제외되었음이 명시되어 있으며, 이는 사실상 중단된 사업 또는 매각된 사업으로 해석될 수 있습니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]. 구체적으로 NAVER BAND Inc, 스마트 스프링 펀드, 주식회사 작가컴퍼니, 주식회사 스프링캠프, 네이버제트 주식회사 등 다수의 종속기업의 연결실체 지분율이 당기말에 '-'로 표시되어 연결 대상에서 제외되었습니다 [NAVER | 2024 | 사업보고서 | III. 재무에 관한 사항 > 3. 연결재무제표 주석].",
+            "answer_preview": "현재 공시 근거가 제한적이다.\n\nNAVER 2024 사업보고서에서는 '신규사업'이라는 용어를 사용하여 새로운 사업 부문을 명시적으로 언급하고 있지는 않습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견]. 대신, 주로 AI 기술을 기존 검색, 쇼핑, 콘텐츠, 핀테크 등 서비스 전반에 접목하여 비즈니스 혁신을 이끌고, 플러스스토어 출시와 같은 기존 사업 내 서비스 강화를 언급하고 있습니다 [NA",
+            "citations": [
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.825)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.819)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.818)",
+              "[NAVER] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / table (score: 0.816)",
+              "[NAVER] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.815)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "error": null
+          }
+        ],
+        "summary": {
+          "count": 5,
+          "avg_latency_sec": 18.17854309999675,
+          "avg_retrieved_count": 8.0,
+          "avg_citation_count": 8.0
+        }
+      },
+      "screening_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "retrieval_hit_at_k": 0.8,
+          "section_match_rate": 0.5,
+          "citation_coverage": 0.9333333333333333,
+          "contamination_rate": 0.0,
+          "avg_latency": 13.07392388000153,
+          "error_rate": 0.0,
+          "failure_examples": [
+            {
+              "id": "business_overview_001",
+              "category": "business_overview",
+              "failure_flags": [
+                "hit_at_k_zero",
+                "section_match_zero"
+              ],
+              "top_retrieved": [
+                "NAVER/2024/IV. 이사의 경영진단 및 분석의견",
+                "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "NAVER/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              ]
+            }
+          ]
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+            "category": "numeric_fact",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요",
+              "재무상태 및 영업실적"
+            ],
+            "answer_key": "2024년 NAVER의 연결 기준 영업수익은 10조 7,377억원이다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.75,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 5.849109199989471,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "NAVER 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "사업의 개요",
+            "expected_sections": [
+              "사업의 개요",
+              "주요제품 및 서비스"
+            ],
+            "answer_key": "NAVER는 검색 포털을 기반으로 광고와 커머스 사업을 영위하고, 핀테크, 콘텐츠, 클라우드까지 포함한 다각화된 사업 포트폴리오를 운영한다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 회사가 영위하는 주요 사업은 서치플랫폼, 커머스, 핀테크, 콘텐츠, 클라우드입니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].\n\n구체적으로, 네이버는 국내 1위 인터넷 검색 포털 '네이버(NAVER)' 서비스를 기반으로 광고 사업을 영위하고 있으며, 커머스 및 핀테크 사업도 운영하고 있습니다 [NAVER | 2024 | 사업보고서 | IV. 이사의 ",
+            "retrieval_hit_at_k": 0.0,
+            "section_match_rate": 0.0,
+            "citation_coverage": 0.6666666666666666,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견",
+              "NAVER/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+              "NAVER/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+            ],
+            "failure_flags": [
+              "hit_at_k_zero",
+              "section_match_zero"
+            ],
+            "query_type": "qa",
+            "latency_sec": 17.048319399997126,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "NAVER 2024 사업보고서에서 서비스별 영업수익 구성은 어떻게 제시되나요?",
+            "category": "business_overview",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "매출 및 수주상황",
+            "expected_sections": [
+              "매출 및 수주상황",
+              "사업의 개요"
+            ],
+            "answer_key": "2024년 서비스별 영업수익은 서치플랫폼 3,946,166백만원, 커머스 2,922,977백만원, 핀테크 1,508,407백만원, 콘텐츠 1,796,421백만원, 클라우드 563,748백만원으로 제시된다.",
+            "answer_preview": "NAVER의 2024년 사업보고서에 따르면, 서비스별 영업수익 구성은 다음과 같습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 4. 매출 및 수주상황]:\n\n*   **총 영업수익:** 10,737,719백만원 (100.0%)\n*   **서치플랫폼:** 3,946,166백만원 (36.8%)\n*   **커머스:** 2,922,977백만원 (27.2%)\n*   **핀테크:** 1,508,407백만원 (14.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+              "NAVER/2024/IV. 이사의 경영진단 및 분석의견",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "qa",
+            "latency_sec": 12.466943000006722,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "NAVER 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "answer_key": "NAVER는 시장위험(외환·가격·이자율), 신용위험, 유동성위험에 노출되어 있으며 특히 USD·JPY·EUR 관련 환율변동위험을 설명한다.",
+            "answer_preview": "NAVER 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.\n\n*   **외환 위험**\n    NAVER는 국제적으로 영업활동을 영위하고 있기 때문에 외환 위험에 노출되어 있습니다 [NAVER | 2024 | 사업보고서 | II. 사업의 내용 > 5. 위험관리 및 파생거래]. 특히 주로 미국달러화, 일본 엔화 및 유로화와 관련된 환율 변동 위험에 노출되어 있으며, 이는 환율 변동에 따른 재무적 영향을 미칠 수",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.625,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 19.973033700007363,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_002",
+            "question": "NAVER 2024 사업보고서에서 환율변동위험과 유동성위험에는 어떻게 대응한다고 설명하나요?",
+            "category": "risk_analysis",
+            "company": "NAVER",
+            "year": 2024,
+            "section": "위험관리 및 파생거래",
+            "expected_sections": [
+              "위험관리 및 파생거래",
+              "환율변동 영향"
+            ],
+            "answer_key": "NAVER는 환위험을 주기적으로 모니터링하고 헷지 목적 외 외환거래를 금지하며, 외화자금 매칭·Leading/Lagging·통화선물·옵션 등을 활용한다. 유동성 측면에서는 자금 수요와 약정 준수 여부를 상시 모니터링하고 차입한도를 관리한다고 설명한다.",
+            "answer_preview": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "contamination_rate": 0.0,
+            "retrieved_count": 8,
+            "retrieved_metadata": [
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "NAVER",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              }
+            ],
+            "top_retrieved": [
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "NAVER/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 10.032214100006968,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": false,
+      "screen_failure_reasons": [
+        "answerable smoke query abstained: NAVER 2024 사업보고서에서 연결 기준 영업수익은 얼마인가요?",
+        "missing-information smoke query hallucinated: NAVER 2024 사업보고서에서 신규사업 및 중단사업이 있다고 명시하나요?",
+        "retrieval_hit_at_k == 0 for business_overview_001"
+      ],
+      "full_eval": {},
+      "comparison_to_baseline": {
+        "api_call_reduction_ratio": 0.8772169167803547,
+        "ingest_time_reduction_ratio": 0.8343186659388727,
+        "estimated_cost_reduction_ratio": 0.8873925921893845
+      }
+    }
+  ]
+}

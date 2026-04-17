@@ -28,7 +28,7 @@
 ## 이번 스프린트 목표
 
 이번 스프린트는 운영 기본값을 바꾸는 단계가 아니다.  
-대신 **삼성전자 / SK하이닉스 / NAVER 3개 기업에서 screening quality floor를 재현하는 후보를 확인하고, 그 결과로 기본값 후보를 선택할 수 있게 만드는 것**이 목표다.
+`v4_generalization_fix_2026-04-17`까지 완료한 현재 목표는 **더 싼 ingest 후보를 새로 찾는 것보다, 현재 저비용 후보가 실패하는 query-stage 패턴을 줄여 다음 일반화 run에서 다시 비교 가능하게 만드는 것**이다.
 
 기본 운영 방식:
 
@@ -38,31 +38,26 @@
 
 핵심 질문:
 
-- `contextual_parent_only`가 삼성전자 외 기업에서도 통과하는가
-- `contextual_selective_v2`가 특정 기업에서 반복적으로 실패하는 질문 유형이 있는가
-- 같은 후보가 최소 2개 기업에서 통과하는가
-- baseline 대비 API calls / ingest 시간이 얼마나 줄어드는가
-- reviewer artifact만으로 기업별 정답 근거를 추적할 수 있는가
+- 왜 저비용 후보들이 numeric / risk / R&D에서 abstention으로 무너지는가
+- 왜 NAVER에서는 business overview가 계속 miss되는가
+- missing-information 질문에서 hallucination을 어떻게 줄일 것인가
+- 이 문제를 줄인 뒤에도 `contextual_parent_only` 또는 `contextual_selective_v2`가 비용 이점을 유지하는가
 
 ## 우선순위 작업
 
-### 1. 일반화 benchmark matrix 구성
+### 1. Query-stage abstention 분석
 
-- 대상 기업:
-  - `삼성전자`
-  - `SK하이닉스`
-  - `NAVER`
-- 비교 후보:
-  - `contextual_all_2500_320`
-  - `contextual_parent_only_2500_320`
-  - `contextual_parent_hybrid_2500_320`
-  - `contextual_selective_v2_2500_320`
+대상:
+
+- `numeric_fact`
+- `risk_analysis`
+- `r_and_d_investment`
 
 목표:
 
-- 기업별 screening 결과와 cross-company aggregate를 함께 남기기
-- 후보별 pass count와 비용 절감률을 직접 비교할 수 있게 만들기
-- 회사별 개별 실행 결과를 root partial summary로 합칠 수 있게 만들기
+- retrieved docs는 충분한데 answer가 abstain하는 케이스를 분리
+- 실제 retrieval miss와 reasoning / prompting miss를 구분
+- smoke query failure를 “retrieval failure / evidence failure / analyze failure” 수준으로 다시 분류
 
 ### 1-1. Cost-efficient workflow 정착
 
@@ -71,23 +66,32 @@
 - `stores/`와 `context_cache/`를 분리해, store를 다시 만들더라도 API 호출은 재사용할 수 있게 유지
 - fast loop에서는 full eval을 기본 비활성화
 
-### 2. 기업별 canonical eval dataset 확장
+### 2. NAVER business overview retrieval 개선
 
-- 삼성전자 canonical dataset 유지
-- `SK하이닉스`, `NAVER`용 canonical dataset 추가
-- 각 기업당 최소 8문항 이상 확보
-- 형식:
-  - `answer_key`
-  - `expected_sections`
-  - `evidence`
-  - `missing_info_policy`
+현재 관찰:
+
+- NAVER는 parser 보정 후에도 `business_overview_001`이 계속 miss된다.
+- 상위 검색 결과가 `I. 회사의 개요`, `IV. 이사의 경영진단 및 분석의견`, `III. 재무에 관한 사항` 쪽으로 편중된다.
 
 목표:
 
-- 도메인 지식 없이도 질문별 정답 근거를 검수 가능하게 만들기
-- 제조업 / 플랫폼 기업 간 섹션 차이를 평가 데이터에 반영하기
+- NAVER에서 실제 사업 설명이 들어 있는 section 우선순위를 다시 정의
+- rerank나 section bias 조정이 필요한지 확인
+- 다음 run에서 `business_overview_001` miss를 먼저 줄이기
 
-### 3. 평가 보강
+### 3. Missing-information 안정화
+
+현재 관찰:
+
+- NAVER에서 `신규사업 및 중단사업` 질문은 smoke 단계에서 hallucination으로 잡힌다.
+
+목표:
+
+- missing-information prompt / 판정 기준을 점검
+- partial limitation과 true missing response를 더 분명히 구분
+- “근거 없음” 응답이 citation 없이 단정으로 흐르지 않도록 제어
+
+### 4. 평가 보강
 
 - screening cutoff는 그대로 유지:
   - `retrieval_hit_drop_threshold = 0.10`
@@ -131,29 +135,34 @@
 
 ## 성공 조건
 
-아래를 모두 만족하는 기본값 후보 1개 이상 확보:
+이번 단계의 성공 조건은 “기본값 후보 확정”이 아니라 아래다.
 
-- 동일 후보가 3개 기업 중 최소 2개 기업에서 screening 통과
-- risk/business/numeric 질의에서 `retrieval_hit_at_k == 0` 없음
-- contamination 없음
-- baseline 대비 다음 중 하나 이상 달성
-  - `api_calls` 40% 이상 감소
-  - `ingest.elapsed_sec` 30% 이상 감소
-- cross-company summary와 reviewer artifact만으로 선택 근거를 설명 가능
+- NAVER `business_overview_001` miss 원인을 retrieval / reasoning 중 어디인지 분리
+- numeric / risk / R&D abstention이 반복되는 대표 케이스 3개 이상을 설명 가능하게 정리
+- missing-information hallucination을 유발하는 대표 패턴을 재현 가능하게 문서화
+- 위 수정 후 `dev_fast` 기준 재실험으로 적어도 1개 failure type이 줄어드는지 확인
 
-## 다음 단계
+## 현재 상태와 다음 단계
 
-이번 스프린트의 실제 결과는 다음과 같다.
+`v4_generalization_fix_2026-04-17`의 실제 결과는 다음과 같다.
 
-- `삼성전자`: `contextual_parent_hybrid_2500_320`만 통과
-- `SK하이닉스`: `contextual_all_2500_320`만 통과
-- `NAVER`: 통과 후보 없음
-- 따라서 "같은 후보가 최소 2개 기업에서 통과" 조건은 아직 충족되지 않았다
+- `run_status = completed`
+- 3개 기업 공통 screening 통과 후보 없음
+- `contextual_all_2500_320`
+  - 가장 안정적인 baseline
+- `contextual_parent_only_2500_320`
+  - 가장 큰 비용 절감
+  - 하지만 answerable smoke abstention 반복
+- `contextual_selective_v2_2500_320`
+  - 의미 있는 비용 절감
+  - 하지만 business overview / risk miss 반복
+- `contextual_parent_hybrid_2500_320`
+  - baseline보다 비싼 경우가 있어 실익이 약함
 
 지금 기준 다음 우선순위는 아래다.
 
-1. NAVER 문서의 `section_path` 이상 징후를 parser / section extraction 수준에서 먼저 수정
-2. 숫자 질의 section alias를 `연결재무제표`, `연결재무제표 주석`까지 확장할지 검토
-3. "근거를 찾지 못했다" 응답이 과대평가되는 judge / evaluation 로직 보정
-4. 그 다음에 generalization benchmark를 재실행
-5. 재실행 결과를 기준으로 기본값 후보 shortlist를 다시 확정
+1. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
+2. NAVER business overview retrieval 실패 원인 정리
+3. missing-information hallucination 억제
+4. 그 다음에 `dev_fast` 기준 재실험
+5. 실패 유형이 줄어든 뒤에만 release generalization 재실행
