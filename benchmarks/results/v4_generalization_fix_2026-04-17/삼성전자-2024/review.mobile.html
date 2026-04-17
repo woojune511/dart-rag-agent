@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>삼성전자-2024 Mobile Review</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --paper: #fffdf8;
+      --ink: #1f1c19;
+      --muted: #6f665c;
+      --line: #ddd2c3;
+      --accent: #115e59;
+      --accent-soft: #d8f0ec;
+      --warn: #a16207;
+      --warn-soft: #f9ecc8;
+      --bad: #b42318;
+      --bad-soft: #fde7e4;
+      --good: #166534;
+      --good-soft: #dcfce7;
+      --shadow: 0 10px 30px rgba(47, 39, 26, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(17, 94, 89, 0.10), transparent 30%),
+        linear-gradient(180deg, #f7f1e7 0%, var(--bg) 100%);
+      color: var(--ink);
+      font: 16px/1.55 "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+    .page {
+      width: min(100%, 860px);
+      margin: 0 auto;
+      padding: 18px 14px 48px;
+    }
+    .hero {
+      padding: 18px 2px 10px;
+    }
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 1.7rem;
+      line-height: 1.15;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+    .card {
+      background: color-mix(in srgb, var(--paper) 92%, white);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      margin: 16px 0;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head h2 {
+      margin: 10px 0 4px;
+      font-size: 1.15rem;
+      line-height: 1.35;
+    }
+    .question-id {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .meta-line {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .meta-chip, .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--line);
+      background: #f7f2ea;
+    }
+    .meta-chip.muted {
+      color: var(--muted);
+    }
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .badge.good {
+      background: var(--good-soft);
+      border-color: #a7f3d0;
+      color: var(--good);
+    }
+    .badge.warn {
+      background: var(--warn-soft);
+      border-color: #facc15;
+      color: var(--warn);
+    }
+    .badge.bad {
+      background: var(--bad-soft);
+      border-color: #fca5a5;
+      color: var(--bad);
+    }
+    .section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line);
+    }
+    .section h3, .section h4 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+    }
+    .answer-key, .actual-answer, .policy {
+      white-space: pre-wrap;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      background: #faf7f1;
+      border: 1px solid #e7ded2;
+      border-radius: 14px;
+      padding: 12px 13px;
+    }
+    .pill-list, .evidence-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .pill-list li, .evidence-list li {
+      background: #faf7f1;
+      border: 1px solid #e7ded2;
+      border-radius: 14px;
+      padding: 11px 12px;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+    .evidence-list li {
+      border-left: 4px solid var(--accent);
+      background: #f5fbfa;
+    }
+    details {
+      border-radius: 14px;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .details-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 12px;
+    }
+    .empty {
+      color: var(--muted);
+    }
+    .error-block .policy {
+      border-color: #fca5a5;
+      background: var(--bad-soft);
+    }
+    @media (min-width: 700px) {
+      .page {
+        padding-inline: 18px;
+      }
+      .details-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>삼성전자-2024 Mobile Review</h1>
+      <p>질문 · 정답 기준 · 근거 · 실제 응답을 모바일 카드 레이아웃으로 정리한 보기</p>
+    </header>
+    
+    <article class="card">
+      <div class="card-head">
+        <div class="meta-line">
+          <span class="meta-chip">contextual_all_2500_320</span>
+          <span class="meta-chip muted">numeric_fact</span>
+        </div>
+        <h2>삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?</h2>
+        <p class="question-id">numeric_fact_001</p>
+        <div class="badge-row"><span class="badge bad">Faithfulness: 0.0</span><span class="badge good">Relevancy: 0.8630992982993713</span><span class="badge bad">Recall: 0.0</span><span class="badge good">Hit@k: 1.0</span><span class="badge good">Section: 1.0</span><span class="badge good">Citation: 1.0</span></div>
+      </div>
+
+      <section class="section">
+        <h3>정답 기준</h3>
+        <div class="answer-key">2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.</div>
+      </section>
+
+      <section class="section">
+        <h3>예상 섹션</h3>
+        <ul class="pill-list"><li>매출현황</li><li>재무제표</li><li>요약재무</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>근거</h3>
+        <ul class="evidence-list"><li>II. 사업의 내용 &gt; 4. 매출 및 수주상황: 2024년 매출은 300조 8,709억원으로 전년 동기 대비 16.2% 증가하였습니다.</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>실제 응답</h3>
+        <div class="actual-answer">삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 4. 매출 및 수주상황]. 이는 300,870,903 백만원에 해당합니다 [삼성전자 | 2024 | 사업보고서 | III. 재무에 관한 사항 &gt; 1. 요약재무정보].</div>
+      </section>
+
+      <details class="section details-block">
+        <summary>검색 결과와 인용 보기</summary>
+        <div class="details-grid">
+          <div>
+            <h4>Top Retrieved</h4>
+            <ul class="pill-list"><li>삼성전자/2024/III. 재무에 관한 사항 &gt; 2. 연결재무제표</li><li>삼성전자/2024/III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석</li><li>삼성전자/2024/III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석</li></ul>
+          </div>
+          <div>
+            <h4>Citations</h4>
+            <ul class="pill-list"><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 2. 연결재무제표 / table (score: 1.028)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석 / table (score: 1.027)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석 / table (score: 1.025)</li><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 4. 매출 및 수주상황 / paragraph (score: 0.831)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.829)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 1. 요약재무정보 / paragraph (score: 0.828)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 1. 요약재무정보 / table (score: 0.825)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석 / table (score: 0.824)</li></ul>
+          </div>
+        </div>
+      </details>
+
+      
+
+      
+    </article>
+    
+
+    <article class="card">
+      <div class="card-head">
+        <div class="meta-line">
+          <span class="meta-chip">contextual_all_2500_320</span>
+          <span class="meta-chip muted">business_overview</span>
+        </div>
+        <h2>삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?</h2>
+        <p class="question-id">business_overview_001</p>
+        <div class="badge-row"><span class="badge good">Faithfulness: 1.0</span><span class="badge warn">Relevancy: 0.7703034925171235</span><span class="badge good">Recall: 1.0</span><span class="badge bad">Hit@k: 0.0</span><span class="badge bad">Section: 0.0</span><span class="badge warn">Citation: 0.6666666666666666</span></div>
+      </div>
+
+      <section class="section">
+        <h3>정답 기준</h3>
+        <div class="answer-key">삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.</div>
+      </section>
+
+      <section class="section">
+        <h3>예상 섹션</h3>
+        <ul class="pill-list"><li>사업개요</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>근거</h3>
+        <ul class="evidence-list"><li>II. 사업의 내용 &gt; 1. 사업의 개요: 사업별로 보면, Set 사업은 DX(Device eXperience) 부문이 TV를 비롯하여 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산ㆍ판매하며, 부품 사업은 DS(Device Solutions) 부문에서 DRAM, NAND Flash, 모바일AP 등의 제품을 생산ㆍ판매하고, SDC가 스마트폰용 OLED 패널 등을 생산ㆍ판매하고 있습니다. 또한, Harman에서는 디지털 콕핏(Digital Cockpit), 카오디오 등 전장제품과 포터블/사운드바 스피커 등 소비자오디오 제품 등을 생산ㆍ판매하고 있습니다.</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>실제 응답</h3>
+        <div class="actual-answer">삼성전자 2024 사업보고서에 따르면, 삼성전자주식회사 및 종속기업(연결회사)의 사업은 크게 DX 부문, DS 부문, SDC, Harman으로 구성되어 있습니다 [삼성전자 | 2024 | 사업보고서 | III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석].
+
+각 부문의 주요 사업 내용은 다음과 같습니다:
+*   **DX(Device eXperience) 부문**은 TV, 냉장고, 스마트폰, 네트워크시스템 등의 사업을 영위합니다 [삼성전자 | 2024 | 사업보고서 | III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석].
+*   **DS(Device Solutions) 부문**은 메모리, Foundry, System LSI 등으로 구성되어 있습니다 [삼성전자 | 2024 | 사업보고서 | III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석].
+*   **SDC**는 디스플레이 패널 사업을 영위합니다 [삼성전자 | 2024 | 사업보고서 | III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석].
+*   **Harman**은 전장부품사업 등을 영위하고 있습니다 [삼성전자 | 2024 | 사업보고서 | III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석].</div>
+      </section>
+
+      <details class="section details-block">
+        <summary>검색 결과와 인용 보기</summary>
+        <div class="details-grid">
+          <div>
+            <h4>Top Retrieved</h4>
+            <ul class="pill-list"><li>삼성전자/2024/III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석</li><li>삼성전자/2024/XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세)</li><li>삼성전자/2024/VII. 주주에 관한 사항</li></ul>
+          </div>
+          <div>
+            <h4>Citations</h4>
+            <ul class="pill-list"><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석 / table (score: 0.832)</li><li>[삼성전자] 2024년 사업보고서 / XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세) / table (score: 0.828)</li><li>[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.825)</li><li>[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 &gt; 1. 이사회에 관한 사항 / table (score: 0.823)</li><li>[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 &gt; 1. 이사회에 관한 사항 / table (score: 0.822)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.819)</li><li>[삼성전자] 2024년 사업보고서 / I. 회사의 개요 &gt; 1. 회사의 개요 / paragraph (score: 0.816)</li><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 4. 매출 및 수주상황 / paragraph (score: 0.816)</li></ul>
+          </div>
+        </div>
+      </details>
+
+      
+
+      
+    </article>
+    
+
+    <article class="card">
+      <div class="card-head">
+        <div class="meta-line">
+          <span class="meta-chip">contextual_all_2500_320</span>
+          <span class="meta-chip muted">business_overview</span>
+        </div>
+        <h2>삼성전자 2024 사업보고서에서 주요 사업부별 매출 비중은 어떻게 설명되나요?</h2>
+        <p class="question-id">business_overview_002</p>
+        <div class="badge-row"><span class="badge good">Faithfulness: 1.0</span><span class="badge warn">Relevancy: 0.7665726927242086</span><span class="badge good">Recall: 1.0</span><span class="badge good">Hit@k: 1.0</span><span class="badge bad">Section: 0.25</span><span class="badge warn">Citation: 0.6666666666666666</span></div>
+      </div>
+
+      <section class="section">
+        <h3>정답 기준</h3>
+        <div class="answer-key">내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.</div>
+      </section>
+
+      <section class="section">
+        <h3>예상 섹션</h3>
+        <ul class="pill-list"><li>주요 제품 및 서비스</li><li>매출현황</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>근거</h3>
+        <ul class="evidence-list"><li>II. 사업의 내용 &gt; 2. 주요 제품 및 서비스: 2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 660억원(36.9%)이며, SDC가 29조 1,578억원(9.7%), Harman은 14조 2,749억원(4.7%)입니다.</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>실제 응답</h3>
+        <div class="actual-answer">2024년(제56기) 삼성전자의 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%로 설명됩니다 [삼성전자 | 2024 | 사업보고서 | IV. 이사의 경영진단 및 분석의견].</div>
+      </section>
+
+      <details class="section details-block">
+        <summary>검색 결과와 인용 보기</summary>
+        <div class="details-grid">
+          <div>
+            <h4>Top Retrieved</h4>
+            <ul class="pill-list"><li>삼성전자/2024/II. 사업의 내용 &gt; 4. 매출 및 수주상황</li><li>삼성전자/2024/II. 사업의 내용 &gt; 7. 기타 참고사항</li><li>삼성전자/2024/XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세)</li></ul>
+          </div>
+          <div>
+            <h4>Citations</h4>
+            <ul class="pill-list"><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 4. 매출 및 수주상황 / paragraph (score: 1.028)</li><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 7. 기타 참고사항 / paragraph (score: 1.016)</li><li>[삼성전자] 2024년 사업보고서 / XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세) / table (score: 0.825)</li><li>[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)</li><li>[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 &gt; 1. 이사회에 관한 사항 / table (score: 0.822)</li><li>[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.821)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석 / table (score: 0.816)</li><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 3. 원재료 및 생산설비 / table (score: 0.816)</li></ul>
+          </div>
+        </div>
+      </details>
+
+      
+
+      
+    </article>
+    
+
+    <article class="card">
+      <div class="card-head">
+        <div class="meta-line">
+          <span class="meta-chip">contextual_all_2500_320</span>
+          <span class="meta-chip muted">business_overview</span>
+        </div>
+        <h2>삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?</h2>
+        <p class="question-id">business_overview_003</p>
+        <div class="badge-row"><span class="badge good">Faithfulness: 1.0</span><span class="badge good">Relevancy: 0.8395137223174869</span><span class="badge good">Recall: 1.0</span><span class="badge good">Hit@k: 1.0</span><span class="badge bad">Section: 0.125</span><span class="badge warn">Citation: 0.6666666666666666</span></div>
+      </div>
+
+      <section class="section">
+        <h3>정답 기준</h3>
+        <div class="answer-key">삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.</div>
+      </section>
+
+      <section class="section">
+        <h3>예상 섹션</h3>
+        <ul class="pill-list"><li>사업개요</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>근거</h3>
+        <ul class="evidence-list"><li>II. 사업의 내용 &gt; 1. 사업의 개요: 당사는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄 및 DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>실제 응답</h3>
+        <div class="actual-answer">삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 1. 사업의 개요]. 2024년말 현재 삼성전자의 연결대상 종속기업은 228개사입니다 [삼성전자 | 2024 | 사업보고서 | XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세)].</div>
+      </section>
+
+      <details class="section details-block">
+        <summary>검색 결과와 인용 보기</summary>
+        <div class="details-grid">
+          <div>
+            <h4>Top Retrieved</h4>
+            <ul class="pill-list"><li>삼성전자/2024/II. 사업의 내용 &gt; 1. 사업의 개요</li><li>삼성전자/2024/III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석</li><li>삼성전자/2024/XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세)</li></ul>
+          </div>
+          <div>
+            <h4>Citations</h4>
+            <ul class="pill-list"><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 1. 사업의 개요 / paragraph (score: 0.583)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 3. 연결재무제표 주석 / table (score: 0.582)</li><li>[삼성전자] 2024년 사업보고서 / XII. 상세표 &gt; 1. 연결대상 종속회사 현황(상세) / table (score: 0.581)</li><li>[삼성전자] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.580)</li><li>[삼성전자] 2024년 사업보고서 / I. 회사의 개요 &gt; 1. 회사의 개요 / paragraph (score: 0.578)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.577)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.577)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.576)</li></ul>
+          </div>
+        </div>
+      </details>
+
+      
+
+      
+    </article>
+    
+
+    <article class="card">
+      <div class="card-head">
+        <div class="meta-line">
+          <span class="meta-chip">contextual_all_2500_320</span>
+          <span class="meta-chip muted">risk_analysis</span>
+        </div>
+        <h2>삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?</h2>
+        <p class="question-id">risk_analysis_001</p>
+        <div class="badge-row"><span class="badge bad">Faithfulness: 0.3</span><span class="badge warn">Relevancy: 0.6196406025627519</span><span class="badge bad">Recall: 0.0</span><span class="badge good">Hit@k: 1.0</span><span class="badge bad">Section: 0.125</span><span class="badge good">Citation: 1.0</span></div>
+      </div>
+
+      <section class="section">
+        <h3>정답 기준</h3>
+        <div class="answer-key">사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.</div>
+      </section>
+
+      <section class="section">
+        <h3>예상 섹션</h3>
+        <ul class="pill-list"><li>위험관리 및 파생거래</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>근거</h3>
+        <ul class="evidence-list"><li>II. 사업의 내용 &gt; 5. 위험관리 및 파생거래: 당사는 영업활동에서 파생되는 시장위험, 신용위험, 유동성위험 등을 최소화하는데 중점을 두고 재무위험을 관리하고 있으며, 이를 위해 각각의 위험요인에 대해 면밀하게 모니터링 및 대응하고 있습니다.</li><li>II. 사업의 내용 &gt; 5. 위험관리 및 파생거래: 당사는 글로벌 영업활동을 수행함에 따라 기능통화와 다른 통화로도 거래를 하고 있어 환율변동위험에 노출되어 있습니다.</li><li>II. 사업의 내용 &gt; 5. 위험관리 및 파생거래: 신용위험은 통상적인 거래 및 투자 활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다.</li><li>II. 사업의 내용 &gt; 5. 위험관리 및 파생거래: 유동성위험이란 당사가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다.</li></ul>
+      </section>
+
+      <section class="section">
+        <h3>실제 응답</h3>
+        <div class="actual-answer">삼성전자 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다.
+
+*   **환율변동위험**
+    삼성전자는 글로벌 영업활동으로 인해 기능통화와 다른 통화(주로 USD, EUR)로 거래하며 환율변동위험에 노출되어 있습니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래]. 이는 환율 변동에 따라 재무 성과에 영향을 미칠 수 있습니다.
+
+*   **이자율변동위험**
+    이자율변동위험은 시장금리 변동으로 인해 투자 및 재무 활동에서 발생하는 이자수익 및 비용의 현금흐름이 변동될 위험을 의미합니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래]. 이 위험은 주로 예금 및 변동금리부 차입금에서 비롯됩니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래].
+
+*   **주가변동위험**
+    삼성전자는 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품에 투자하고 있어 주가변동위험에 노출되어 있습니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래]. 이는 투자 자산의 가치 변동으로 이어질 수 있습니다.
+
+*   **신용위험**
+    신용위험은 통상적인 거래 및 투자 활동에서 발생하며, 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래]. 이는 채권 회수 불능 등의 재무적 손실로 이어질 수 있습니다.
+
+*   **유동성위험**
+    유동성위험은 삼성전자가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래]. 이는 단기적인 자금 부족으로 인해 기업 운영에 차질을 빚을 수 있습니다.
+
+*   **자본위험**
+    삼성전사는 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로 제공할 수 있는 능력을 보호하고 건전한 자본구조를 유지하는 것을 목적으로 자본위험을 관리하고 있습니다 [삼성전자 | 2024 | 사업보고서 | II. 사업의 내용 &gt; 5. 위험관리 및 파생거래]. 이는 자본구조의 건전성 유지 및 지속적인 이익 제공 능력과 관련된 위험입니다.</div>
+      </section>
+
+      <details class="section details-block">
+        <summary>검색 결과와 인용 보기</summary>
+        <div class="details-grid">
+          <div>
+            <h4>Top Retrieved</h4>
+            <ul class="pill-list"><li>삼성전자/2024/II. 사업의 내용 &gt; 5. 위험관리 및 파생거래</li><li>삼성전자/2024/IV. 이사의 경영진단 및 분석의견</li><li>삼성전자/2024/III. 재무에 관한 사항 &gt; 5. 재무제표 주석</li></ul>
+          </div>
+          <div>
+            <h4>Citations</h4>
+            <ul class="pill-list"><li>[삼성전자] 2024년 사업보고서 / II. 사업의 내용 &gt; 5. 위험관리 및 파생거래 / paragraph (score: 1.016)</li><li>[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.827)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.817)</li><li>[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 &gt; 2. 감사제도에 관한 사항 / table (score: 0.816)</li><li>[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.815)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 1. 요약재무정보 / paragraph (score: 0.631)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 4. 재무제표 / table (score: 0.631)</li><li>[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 &gt; 5. 재무제표 주석 / table (score: 0.629)</li></ul>
+          </div>
+        </div>
+      </details>
+
+      
+
+      
+    </article>
+    
+  </main>
+</body>
+</html>
