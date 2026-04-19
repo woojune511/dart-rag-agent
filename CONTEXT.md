@@ -120,21 +120,26 @@
 - `contextual_selective_v2_2500_320`
   - 비용 절감은 크지만 business overview / risk miss가 남음
 
-## 현재 해석
+## 최근 반영된 query-stage 개선 (결정 39~41)
 
-지금 병목은 parser가 아니라 contextual ingest입니다.  
-문제는 이미 “병렬화가 필요한가”를 넘어서, **저비용 후보의 query-stage 실패를 어떻게 줄일 것인가**로 이동했습니다.
+v4 benchmark 결과 분석 후 세 가지 실패 경로를 수정했다.
 
-현재 가장 유력한 다음 실험 축:
+**A — Evidence 하드 abstain 방지** (`_extract_evidence`):
+- `docs[:6]` → `docs[:8]`로 evidence LLM 입력 확대
+- `coverage=missing` + docs 존재 시 → deterministic fallback(sparse)으로 전환, 하드 abstain 제거
 
-- query-stage abstention 완화
-  - numeric / risk / R&D 질문에서 근거가 일부 있어도 완전 abstain으로 흐르는 패턴 점검
-- NAVER business overview retrieval 개선
-  - `I. 회사의 개요` 편중을 줄이고 실제 사업 설명 section 우선순위 재검토
-- missing-information 판정 안정화
-  - hallucination 없이 명시적 부재 응답을 유도하는 prompt / 평가 보정
-- fast loop 추가 최적화
-  - smoke 질문 수와 screening slice 재조정
+**B — Analyze 과잉 추론 억제** (`_analyze`):
+- `risk` instruction에서 “잠재 영향 설명” 제거
+- “확인되지 않습니다” 사용을 질문 전체 abstain 때만으로 제한
+- `coverage` raw 노출 → `coverage_note` 딕셔너리로 교체 (sufficient일 때 빈 문자열)
+
+**C — query_type 6종 확장 + 분리 retrieval 레인** (`_classify_query`, `_rerank_docs`, `_retrieve`):
+- `qa` catch-all을 `numeric_fact` / `business_overview`로 세분화
+- classify 프롬프트에 타입별 판별 기준 + 예시 추가
+- keyword hardcoding 제거 → `_TABLE_PREFERRED_TYPES` / `_PARAGRAPH_PREFERRED_TYPES` 기반
+- `_retrieve`에 분리 레인 추가: numeric/trend는 표 우선(단락 최소 2개), overview/risk/qa는 단락 최소 절반 보장
+
+검증: 분류 8/8, mock 레인 비율 테스트 통과. 실제 benchmark 재실행 필요.
 
 ## 현재 작업 트리에서 중요 포인트
 
@@ -146,7 +151,6 @@
 
 ## 다음 세션 우선순위
 
-1. `contextual_all` baseline을 유지한 채 query-stage abstention 원인 분석
-2. NAVER business overview miss를 만드는 retrieval / rerank 패턴 점검
-3. missing-information hallucination 억제 보강
-4. 그 다음에야 `parent_only` / `selective_v2` 재설계 여부 판단
+1. 결정 39~41 반영 후 `contextual_all` baseline 재벤치마크 (삼성전자 또는 전체)
+2. missing-information hallucination 억제 보강
+3. `parent_only` / `selective_v2` 재설계 여부는 재벤치마크 결과 후 판단
