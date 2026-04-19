@@ -76,12 +76,14 @@ class FinancialAgentState(TypedDict):
 
 
 class QueryClassification(BaseModel):
-    query_type: Literal["qa", "comparison", "trend", "risk"] = Field(
+    query_type: Literal["numeric_fact", "business_overview", "risk", "comparison", "trend", "qa"] = Field(
         description=(
-            "qa=단일 기업 중심의 사실/설명 질의, "
-            "comparison=기업 또는 항목 간 비교, "
-            "trend=시계열 변화 분석, "
-            "risk=리스크 요인 분석"
+            "numeric_fact=특정 수치·금액·비율을 묻는 질의 (매출, 영업이익, 부채비율, R&D 비용 등), "
+            "business_overview=사업 구조·주요 사업·서비스·제품·고객군 등 기업 개요 설명 질의, "
+            "risk=리스크 요인·위험 관리·파생거래 등 리스크 분석 질의, "
+            "comparison=두 기업 또는 두 항목 간 비교 질의, "
+            "trend=시계열 변화·추이·성장률 등 기간 분석 질의, "
+            "qa=위 유형에 해당하지 않는 일반 사실·설명 질의"
         )
     )
 
@@ -127,7 +129,22 @@ class FinancialAgent:
     def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
         structured_llm = self.llm.with_structured_output(QueryClassification)
         prompt = ChatPromptTemplate.from_template(
-            "다음 기업 공시 질문의 유형을 분류하세요.\n\n질문: {query}"
+            """다음 기업 공시 질문의 유형을 분류하세요.
+
+유형 판별 기준:
+- numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 숫자로 귀결됨.
+  예) "연결 매출액은?", "영업이익률은?", "R&D 비용은?", "부채비율은?", "종속기업은 몇 개?"
+- business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 등 기업 개요를 묻는 질의.
+  예) "주요 사업은?", "어떤 제품을 생산하나?", "사업 부문 구성은?", "주요 고객군은?"
+- risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
+  예) "주요 재무 리스크는?", "환율 위험 관리 방식은?", "사업 리스크 요인은?"
+- comparison : 두 기업 또는 두 항목을 명시적으로 비교하는 질의.
+  예) "삼성전자 vs SK하이닉스 매출 비교", "DX 부문과 DS 부문 매출 차이는?"
+- trend : 시계열 변화·추이·성장률·전년 대비 변화를 묻는 질의.
+  예) "최근 3년 영업이익 추이는?", "매출 성장률 변화는?"
+- qa : 위 유형에 해당하지 않는 일반 사실·설명 질의.
+
+질문: {query}"""
         )
         result: QueryClassification = (prompt | structured_llm).invoke({"query": state["query"]})
         logger.info("[classify] query_type=%s", result.query_type)
@@ -157,11 +174,16 @@ class FinancialAgent:
         filtered = [item for item in docs if predicate(item[0])]
         return filtered if filtered else docs
 
+    # query_type별 표 청크 선호 여부
+    _TABLE_PREFERRED_TYPES = frozenset(["numeric_fact", "trend"])
+    _PARAGRAPH_PREFERRED_TYPES = frozenset(["business_overview", "risk", "qa"])
+
     def _rerank_docs(self, docs, state: FinancialAgentState):
         companies = {company.lower() for company in state.get("companies", [])}
         years = {int(year) for year in state.get("years", [])}
         topic_terms = _tokenize_terms(state.get("topic") or state["query"])
         section_filter = (state.get("section_filter") or "").strip()
+        query_type = state.get("query_type", "qa")
 
         reranked = []
         for doc, score in docs:
@@ -170,6 +192,7 @@ class FinancialAgent:
             year = metadata.get("year")
             section = str(metadata.get("section", ""))
             section_path = str(metadata.get("section_path", section))
+            block_type = metadata.get("block_type", "")
             document_terms = _tokenize_terms(
                 " ".join(
                     [
@@ -194,6 +217,12 @@ class FinancialAgent:
             if topic_terms and document_terms:
                 overlap = len(topic_terms & document_terms) / max(len(topic_terms), 1)
                 boosted += min(overlap, 0.20)
+
+            # block_type 보정: query_type 기반으로 표/단락 선호도 반영
+            if query_type in self._PARAGRAPH_PREFERRED_TYPES and block_type == "table":
+                boosted -= 0.08
+            elif query_type in self._TABLE_PREFERRED_TYPES and block_type == "paragraph":
+                boosted -= 0.04
 
             reranked.append((doc, boosted))
 
@@ -262,8 +291,29 @@ class FinancialAgent:
                 lambda doc: int(doc.metadata.get("year", 0)) in valid_years,
             )
 
-        docs = self._rerank_docs(docs, state)[: self.k]
-        logger.info("[retrieve] final %s chunks returned", len(docs))
+        reranked = self._rerank_docs(docs, state)
+
+        # query_type에 따라 표/단락 비율 보장
+        query_type = state.get("query_type", "qa")
+        if query_type in self._TABLE_PREFERRED_TYPES:
+            # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
+            tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
+            paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
+            min_para = min(2, len(paras))
+            docs = (tables[: self.k - min_para] + paras[:min_para])
+            docs.sort(key=lambda x: x[1], reverse=True)
+        elif query_type in self._PARAGRAPH_PREFERRED_TYPES:
+            # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
+            tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
+            paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
+            min_para = min(self.k // 2, len(paras))
+            docs = (paras[:min_para] + tables[: self.k - min_para])
+            docs.sort(key=lambda x: x[1], reverse=True)
+        else:
+            docs = reranked
+
+        docs = docs[: self.k]
+        logger.info("[retrieve] query_type=%s final %s chunks returned", query_type, len(docs))
         return {"retrieved_docs": docs}
 
     def _format_context(self, docs) -> str:
@@ -332,12 +382,24 @@ class FinancialAgent:
 """
         )
 
+        def _deterministic_fallback(doc_list) -> List[str]:
+            bullets = []
+            for doc, _score in doc_list[: min(6, len(doc_list))]:
+                metadata = doc.metadata or {}
+                anchor = (
+                    f"[{metadata.get('company', '?')} | {metadata.get('year', '?')} | "
+                    f"{metadata.get('section_path', metadata.get('section', '?'))}]"
+                )
+                snippet = re.sub(r"\s+", " ", doc.page_content).strip()[:220]
+                bullets.append(f"- {anchor} {snippet}")
+            return bullets
+
         try:
             result: EvidenceExtraction = (prompt | structured_llm).invoke(
                 {
                     "query": state["query"],
                     "topic": state.get("topic") or state["query"],
-                    "context": self._format_context(docs[: min(6, len(docs))]),
+                    "context": self._format_context(docs[: min(8, len(docs))]),
                 }
             )
             evidence_bullets = [
@@ -345,18 +407,21 @@ class FinancialAgent:
                 for item in result.evidence
             ]
             logger.info("[evidence] coverage=%s bullets=%s", result.coverage, len(evidence_bullets))
+
+            # structured output이 missing을 반환했지만 docs는 있는 경우:
+            # hard abstain 대신 deterministic fallback으로 sparse 답변 시도
+            if not evidence_bullets and result.coverage == "missing":
+                logger.info("[evidence] structured output returned missing with docs present — using deterministic fallback")
+                fallback = _deterministic_fallback(docs)
+                return {
+                    "evidence_bullets": fallback,
+                    "evidence_status": "sparse" if fallback else "missing",
+                }
+
             return {"evidence_bullets": evidence_bullets, "evidence_status": result.coverage}
         except Exception as exc:
             logger.warning("Evidence extraction failed, using deterministic fallback: %s", exc)
-            fallback = []
-            for doc, _score in docs[: min(4, len(docs))]:
-                metadata = doc.metadata or {}
-                anchor = (
-                    f"[{metadata.get('company', '?')} | {metadata.get('year', '?')} | "
-                    f"{metadata.get('section_path', metadata.get('section', '?'))}]"
-                )
-                snippet = re.sub(r"\s+", " ", doc.page_content).strip()[:220]
-                fallback.append(f"- {anchor} {snippet}")
+            fallback = _deterministic_fallback(docs)
             return {
                 "evidence_bullets": fallback,
                 "evidence_status": "sparse" if fallback else "missing",
@@ -374,29 +439,34 @@ class FinancialAgent:
 
         coverage = state.get("evidence_status", "sparse")
         instructions = {
+            "numeric_fact": "수치·금액을 정확히 제시하고 출처 앵커를 붙이세요. 근거에 없는 수치는 쓰지 마세요.",
+            "business_overview": "사업 구조와 주요 내용을 항목별로 서술하세요. 근거에 있는 내용만 쓰세요.",
+            "risk": "공시에 명시된 리스크 항목만 정리하세요. 근거 목록에 있는 내용만 쓰세요.",
+            "comparison": "항목별로 나란히 정리해 비교하세요.",
+            "trend": "시간 흐름에 따라 수치 변화를 정리하고 근거에 있는 원인만 설명하세요.",
             "qa": "근거를 바탕으로 핵심 사실을 정확하게 설명하세요.",
-            "comparison": "근거를 항목별로 정리해 비교하세요.",
-            "trend": "근거를 시간 흐름에 따라 정리하고 변화 원인을 설명하세요.",
-            "risk": "주요 리스크를 항목별로 정리하고 배경과 잠재 영향을 설명하세요.",
         }
         instruction = instructions.get(state.get("query_type", "qa"), instructions["qa"])
         evidence_text = "\n".join(evidence_bullets)
+
+        coverage_note = {
+            "sparse": "현재 공시 근거가 제한적입니다. 근거에 있는 내용만 답하세요.",
+            "conflicting": "공시 근거가 서로 상충합니다. 상충 내용을 명시하세요.",
+        }.get(coverage, "")
 
         prompt = ChatPromptTemplate.from_template(
             """당신은 한국 기업 공시(DART) 분석 전문가입니다.
 아래 근거 목록만 사용해 답변을 작성하세요.
 
 답변 규칙:
-- 제공된 근거 밖의 내용은 쓰지 마세요.
+- 근거 목록에 없는 내용은 절대 쓰지 마세요.
+- 근거에 없는 항목이나 수치를 "확인되지 않습니다" 형태로 언급하지 마세요.
+- "확인되지 않습니다" 표현은 질문 전체에 답할 근거가 없을 때만 쓰세요.
 - 핵심 주장마다 근거 앵커를 자연스럽게 반영하세요.
-- coverage 상태가 sparse이면 "현재 공시 근거가 제한적이다"는 점을 분명히 밝히세요.
-- coverage 상태가 conflicting이면 공시 근거가 상충한다고 명시하세요.
-- 질문에 필요한 정보가 충분하지 않으면 "공시 문서에서 확인되지 않는다"는 식으로 답하세요.
+{coverage_note}
 
 질문 유형 지침:
 {instruction}
-
-coverage: {coverage}
 
 근거 목록:
 {evidence}
@@ -410,7 +480,7 @@ coverage: {coverage}
         answer = chain.invoke(
             {
                 "instruction": instruction,
-                "coverage": coverage,
+                "coverage_note": coverage_note,
                 "evidence": evidence_text,
                 "query": state["query"],
             }

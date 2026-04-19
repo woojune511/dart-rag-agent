@@ -278,3 +278,80 @@
 - Python 3.14 환경에서는 `langchain_core` 관련 경고가 남아 있다.
 - `langchain_community.vectorstores.Chroma` deprecation 경고도 남아 있다.
 - Hugging Face cache와 local benchmark store는 `.gitignore`로 제외한다.
+
+---
+
+## v4 결과 기반 query-stage 실패 개선
+
+### 결정 39: Evidence 하드 abstain 방지 — docs 상한 확대 + missing fallback
+
+**문제**: Hit@k=1.0임에도 agent가 "근거를 찾지 못했습니다"를 반환하는 케이스 발생.
+NAVER `numeric_fact_001` (영업수익) 등.
+
+**근본 원인**:
+- `_extract_evidence()`가 `docs[:6]`만 evidence LLM에 전달
+- 정답 청크가 7~8위에 있으면 evidence LLM에 아예 전달되지 않음
+- structured output이 `coverage=missing`을 반환하면 `evidence_bullets=[]` → `_analyze()`에서 하드 abstain
+
+**해결책**:
+1. `docs[:6]` → `docs[:8]`로 확대
+2. `coverage=missing` + docs 존재 시 하드 abstain 대신 deterministic fallback 실행
+   - `docs[:6]`에서 `[section_path] page_content[:220]` 스니펫 추출 → `evidence_status=sparse`로 전달
+   - `_deterministic_fallback()` 헬퍼로 분리, exception 경로와 missing 경로 공유
+
+**결과**: 검색은 성공했는데 evidence 단계에서 abstain하는 경우를 sparse 답변으로 대체
+
+---
+
+### 결정 40: Analyze 프롬프트 — risk 과잉 추론 및 "확인되지 않습니다" 남발 억제
+
+**문제**: SK하이닉스 `risk_analysis_001`에서 faithfulness=0.0.
+Evidence에 시장위험·신용위험·유동성위험이 정확히 있는데, 최종 답변이 "가격위험이 법인세비용차감전순이익에 미치는 잠재 영향은 확인되지 않습니다" 같은 문장을 반복적으로 추가.
+
+**근본 원인**:
+- `risk` instruction: "배경과 잠재 영향을 설명하세요" → LLM이 문서에 없는 영향을 추론
+- `"질문에 필요한 정보가 충분하지 않으면 확인되지 않는다는 식으로 답하세요"` 규칙이 개별 하위 항목에 적용됨
+- `coverage: sparse` raw 값이 프롬프트에 노출되어 LLM이 과도한 부재 명시를 유도받음
+
+**해결책**:
+1. `risk` instruction: "배경과 잠재 영향" 제거 → "공시에 명시된 항목만 정리"
+2. "확인되지 않습니다" 사용 조건을 "질문 전체에 답할 근거가 없을 때만"으로 제한
+3. `coverage`를 raw로 노출하던 방식 → `coverage_note` 딕셔너리로 변환
+   - `sufficient` → 빈 문자열 (불필요한 노이즈 제거)
+   - `sparse` → 짧은 힌트 한 줄
+   - `conflicting` → 상충 명시 안내
+
+---
+
+### 결정 41: query_type 6종 확장 + 표/단락 분리 retrieval 레인
+
+**문제**: `qa`가 catch-all로 수치 쿼리(numeric_fact)와 개요 쿼리(business_overview)를 모두 포함.
+표 청크가 RRF에서 상위를 점령해 business_overview 질문에서 Hit@k=0.0 발생.
+기존 C 해결책(keyword frozenset)은 rule-based hardcoding.
+
+**해결책**:
+
+**1. `QueryClassification` 4종 → 6종**:
+- 기존: `qa`, `comparison`, `trend`, `risk`
+- 추가: `numeric_fact` (수치·금액 중심), `business_overview` (사업 구조·개요)
+- `qa`는 어느 유형에도 해당하지 않는 일반 질의 catch-all로 축소
+
+**2. `_classify_query` 프롬프트 보강**:
+- 각 타입별 판별 기준 + 구체 예시 추가 (zero-shot → few-shot 형태)
+
+**3. `_rerank_docs` keyword hardcoding 제거**:
+- `_NUMERIC_QUERY_SIGNALS`, `_OVERVIEW_QUERY_SIGNALS` frozenset 삭제
+- `_TABLE_PREFERRED_TYPES = {"numeric_fact", "trend"}` / `_PARAGRAPH_PREFERRED_TYPES = {"business_overview", "risk", "qa"}`
+- 표 청크 패널티 `-0.08` / 단락 청크 패널티 `-0.04` — `state["query_type"]` 기반 적용
+
+**4. `_retrieve` 분리 레인**:
+- `TABLE_PREFERRED`: 표 우선, 단락 최소 2개 보장
+- `PARAGRAPH_PREFERRED`: 단락 최소 `k//2`개 보장
+- `comparison`: 비율 제한 없음
+
+**5. `_analyze` instruction 6종으로 세분화**:
+- `numeric_fact`: 수치 정확히 + 출처 앵커
+- `business_overview`: 항목별 서술
+- 기존 `risk`/`comparison`/`trend`/`qa` 유지
+
+**검증**: 분류 8/8 정확, 분리 레인 mock 테스트 통과
