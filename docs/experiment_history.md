@@ -325,3 +325,52 @@
 
 - 숫자 질문에서 generic `faithfulness`와 실제 정답성 / grounding 해석이 갈라질 수 있다는 점이 benchmark 결과에 명확히 드러났다.
 - 이 시점부터 `numeric_fact`의 주 판정은 `numeric_final_judgement`로 보고, generic `faithfulness`는 보조 참고치로 낮춰 해석한다.
+
+---
+
+## Typed Compression / Validation Outputs
+
+참조:
+
+- [answer_generation_principles.md](answer_generation_principles.md)
+- [architecture_direction.md](architecture_direction.md)
+
+### 코드 / 설정 변화
+
+- `src/agent/financial_graph.py`
+  - `CompressionOutput`
+  - `ValidationOutput`
+- `src/ops/evaluator.py`
+  - per-question 결과에 claim selection / drop 정보 추가
+- `src/ops/benchmark_runner.py`
+  - `results.json`, `review.csv`, `review.md`에 새 필드 직렬화
+
+추가된 필드:
+
+- `selected_claim_ids`
+- `draft_points`
+- `kept_claim_ids`
+- `dropped_claim_ids`
+- `unsupported_sentences`
+
+동시에 질문 wording을 직접 읽어 output style을 바꾸던 local optimization은 제거했다.
+
+### 핵심 의의
+
+- 기존 `compression -> validation`은 구조적으로는 분리됐지만, 결과 artifact에는 여전히 문자열 중심 정보만 남았다.
+- 이제는 reviewer artifact에서
+  - 어떤 claim을 선택했는지
+  - 무엇을 버렸는지
+  - 어떤 문장을 unsupported로 제거했는지
+  를 직접 볼 수 있게 됐다.
+
+### 현재 상태
+
+- 코드 반영 완료
+- 문법 검증 완료
+- 아직 이 새 typed field를 포함한 full eval 재실행은 하지 않았다
+
+### 해석
+
+- 이 단계의 목적은 점수 개선이 아니라 **failure analysis를 더 설명 가능하게 만드는 것**이다.
+- 다음 실험부터는 `business_overview` / `risk` 회귀를 “점수 변화”가 아니라 “claim 선택과 제거 흐름”까지 포함해 분석할 수 있어야 한다.

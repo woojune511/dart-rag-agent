@@ -16,6 +16,8 @@ answer generation 원칙과 최근 rule inventory는 [answer_generation_principl
 benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 방식"이 아니라, **screening -> full evaluation의 2단계 구조**로 운영한다.  
 다만 이번 단계에서는 "screening을 통과한 후보가 다른 기업에서도 통과하는가"를 핵심 질문으로 둔다.
 
+추가로 현재 answer generation은 `compression -> validation` 구조를 유지하되, 최근에는 문자열 중심 결과가 아니라 **typed compression / validation output**을 benchmark artifact에 남기는 방향으로 확장됐다. 따라서 review artifact에서는 answer 자체뿐 아니라 어떤 claim을 선택했고 무엇을 버렸는지도 같이 확인할 수 있어야 한다.
+
 현재 baseline:
 
 - `contextual_all_2500_320`
@@ -189,6 +191,23 @@ screening 통과안만 정식 평가로 보낸다.
 - missing-information 계열 질문은 `missing_info_policy`를 함께 기록해, 어떤 표현이면 합격인지 설명 가능하게 한다.
 
 현재 canonical dataset은 기업별로 8개 이상 문항을 포함하며, 삼성전자 기준 canonical file은 11개 문항을 포함한다.
+
+## Reviewer Artifact
+
+benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 실제 답만 보여주는 용도가 아니다. 현재는 아래 정보를 함께 검수할 수 있어야 한다.
+
+- canonical `answer_key`
+- canonical `evidence quote`
+- runtime structured evidence
+- `selected_claim_ids`
+- `draft_points`
+- `kept_claim_ids`
+- `dropped_claim_ids`
+- `unsupported_sentences`
+- actual answer
+- top retrieved / citations
+
+이 필드들은 특히 `business_overview`, `risk`처럼 retrieval은 맞는데 answer가 과잉 설명으로 흔들리는 케이스를 디버깅하는 데 중요하다.
 
 ## 지표 정의
 

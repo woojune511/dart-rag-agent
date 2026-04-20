@@ -2,9 +2,8 @@
 
 | Experiment | Chunk | Overlap | Mode | Screen Pass | Parse (s) | Ingest (s) | Est. Cost (USD) | API Δ | Time Δ | Cost Δ | Parent Calls | Child Calls | API Calls | Contam | Hit@k | Section | Citation | Full Faithfulness | Full Relevancy | Full Recall |
 |---|---:|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| contextual_all_2500_320 | 2500 | 320 | contextual_all | yes | 0.637 | 570.976 | 1.0633 | 0.0% | 0.0% | 0.0% | 0 | 0 | 300 | 0.000 | 1.000 | 0.350 | 0.867 | 0.660 | 0.682 | 0.600 |
-| contextual_parent_only_2500_320 | 2500 | 320 | contextual_parent_only | yes | 0.757 | 54.017 | 0.1240 | 86.7% | 90.5% | 88.3% | 40 | 0 | 40 | 0.000 | 1.000 | 0.300 | 0.800 | 0.740 | 0.706 | 0.800 |
-| contextual_selective_v2_2500_320 | 2500 | 320 | contextual_selective_v2 | no | 0.510 | 153.136 | 0.4063 | 57.7% | 73.2% | 61.8% | 0 | 127 | 127 | 0.000 | 0.600 | 0.225 | 0.733 | - | - | - |
+| contextual_all_2500_320 | 2500 | 320 | contextual_all | yes | 0.637 | 0.000 | 0.0000 | - | - | - | 0 | 0 | 0 | 0.000 | 1.000 | 0.562 | 0.833 | 0.500 | 0.801 | 0.500 |
+| contextual_parent_only_2500_320 | 2500 | 320 | contextual_parent_only | yes | 0.757 | 0.000 | 0.0000 | - | - | - | 40 | 0 | 0 | 0.000 | 1.000 | 0.500 | 0.833 | 0.500 | 0.749 | 0.750 |
 
 ## Reading Guide
 

@@ -492,6 +492,11 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "citations": result.citations,
                 "retrieved_metadata": result.retrieved_metadata,
                 "runtime_evidence": result.runtime_evidence,
+                "selected_claim_ids": result.selected_claim_ids,
+                "draft_points": result.draft_points,
+                "kept_claim_ids": result.kept_claim_ids,
+                "dropped_claim_ids": result.dropped_claim_ids,
+                "unsupported_sentences": result.unsupported_sentences,
                 "missing_info_policy": result.missing_info_policy,
                 "error": result.error,
             }
@@ -1421,6 +1426,8 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                         if part
                     )
                 )
+            draft_points_rows = question_result.get("draft_points") or []
+            unsupported_rows = question_result.get("unsupported_sentences") or []
             top_retrieved = []
             for metadata in (question_result.get("retrieved_metadata") or [])[:3]:
                 company = metadata.get("company") or "?"
@@ -1438,6 +1445,11 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "expected_sections": " | ".join(question_result.get("expected_sections", [])),
                     "evidence_quotes": "\n\n".join(evidence_quotes),
                     "runtime_evidence": "\n\n".join(runtime_evidence),
+                    "selected_claim_ids": " | ".join(question_result.get("selected_claim_ids", [])),
+                    "draft_points": "\n\n".join(str(row) for row in draft_points_rows),
+                    "kept_claim_ids": " | ".join(question_result.get("kept_claim_ids", [])),
+                    "dropped_claim_ids": " | ".join(question_result.get("dropped_claim_ids", [])),
+                    "unsupported_sentences": "\n\n".join(str(row) for row in unsupported_rows),
                     "actual_answer": question_result.get("answer"),
                     "top_retrieved": " | ".join(top_retrieved),
                     "citations": " | ".join(question_result.get("citations", [])),
@@ -1472,6 +1484,11 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "expected_sections",
         "evidence_quotes",
         "runtime_evidence",
+        "selected_claim_ids",
+        "draft_points",
+        "kept_claim_ids",
+        "dropped_claim_ids",
+        "unsupported_sentences",
         "actual_answer",
         "top_retrieved",
         "citations",
@@ -1545,6 +1562,26 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "Runtime Evidence",
                 "",
                 row["runtime_evidence"] or "-",
+                "",
+                "Selected Claims",
+                "",
+                row["selected_claim_ids"] or "-",
+                "",
+                "Draft Points",
+                "",
+                row["draft_points"] or "-",
+                "",
+                "Kept Claims",
+                "",
+                row["kept_claim_ids"] or "-",
+                "",
+                "Dropped Claims",
+                "",
+                row["dropped_claim_ids"] or "-",
+                "",
+                "Unsupported Sentences",
+                "",
+                row["unsupported_sentences"] or "-",
                 "",
                 "Actual Answer",
                 "",

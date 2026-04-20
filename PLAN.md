@@ -36,6 +36,16 @@
 
 숫자 질문(`numeric_fact`)은 일반 서술형 `faithfulness` judge와 분리해서 다루기로 했고, 현재 [numeric_evaluation_architecture.md](docs/numeric_evaluation_architecture.md)에 정리한 **parallel numeric evaluators + resolver** 구조의 1차 구현이 들어간 상태다. 삼성전자 `numeric_fact_001` 재검증에서는 generic `faithfulness=0.0`인데도 `numeric_final_judgement=PASS`가 나와, false fail을 줄이는 방향이 유효함을 확인했다. 다음 단계는 설계 그 자체보다, 이 numeric evaluator를 aggregate와 해석 규칙에 제대로 반영하는 것이다.
 
+추가로 answer generation 쪽에서는 `compress -> validate`를 유지하되, 이제 문자열 중심이 아니라 **typed compression / validation output**으로 옮겨가고 있다. 현재 구현은 아래 필드를 남긴다.
+
+- `selected_claim_ids`
+- `draft_points`
+- `kept_claim_ids`
+- `dropped_claim_ids`
+- `unsupported_sentences`
+
+다음 단계는 이 필드들이 reviewer artifact에서 실제로 문제 원인을 드러내는지 검증하는 것이다.
+
 기본 운영 방식:
 
 - 평소에는 `benchmarks/profiles/dev_fast.json`으로 단일 기업 + screening only
@@ -63,6 +73,29 @@
 
 - `docs/answer_generation_principles.md`
 - 최근 rule inventory와 각 rule의 목적/부작용 메모
+
+### 1-1. Typed compression / validation 검증
+
+목표:
+
+- `compress` / `validate`의 typed output이 실제 benchmark 결과에 유의미하게 남는지 확인
+- `business_overview` / `risk` 문항에서
+  - 어떤 claim을 선택했는지
+  - 어떤 claim을 버렸는지
+  - 어떤 문장을 unsupported로 제거했는지
+  를 reviewer artifact에서 바로 읽을 수 있게 만들기
+
+산출물:
+
+- `results.json`
+- `review.csv`
+- `review.md`
+  에 아래 필드가 실제로 채워진 run 1회
+  - `selected_claim_ids`
+  - `draft_points`
+  - `kept_claim_ids`
+  - `dropped_claim_ids`
+  - `unsupported_sentences`
 
 ### 2. Query-stage abstention 분석
 
@@ -210,9 +243,10 @@
 지금 기준 다음 우선순위는 아래다.
 
 1. answer generation 원칙과 rule inventory 문서화
-2. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
-3. NAVER business overview retrieval 실패 원인 정리
-4. missing-information hallucination 억제
-5. numeric evaluator aggregate / reporting 반영
-6. 그 다음에 `dev_fast` 기준 재실험
-7. 실패 유형이 줄어든 뒤에만 release generalization 재실행
+2. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
+3. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
+4. NAVER business overview retrieval 실패 원인 정리
+5. missing-information hallucination 억제
+6. numeric evaluator aggregate / reporting 반영
+7. 그 다음에 `dev_fast` 기준 재실험
+8. 실패 유형이 줄어든 뒤에만 release generalization 재실행
