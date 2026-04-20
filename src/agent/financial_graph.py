@@ -132,10 +132,15 @@ class FinancialAgent:
             """다음 기업 공시 질문의 유형을 분류하세요.
 
 유형 판별 기준:
-- numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 숫자로 귀결됨.
-  예) "연결 매출액은?", "영업이익률은?", "R&D 비용은?", "부채비율은?", "종속기업은 몇 개?"
-- business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 등 기업 개요를 묻는 질의.
-  예) "주요 사업은?", "어떤 제품을 생산하나?", "사업 부문 구성은?", "주요 고객군은?"
+- numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 단일 숫자 또는 명확한 수치 목록으로 귀결됨.
+  핵심 구별 기준: 수치 자체가 목적인가? 사업 구조 이해가 목적인가?
+  numeric_fact 예) "연결 매출액은?", "영업이익률은?", "R&D 비용은 얼마?", "부채비율은?", "EPS는?"
+  business_overview로 분류해야 할 수치 질문 예) "사업부문 간 내부거래 규모·비중은?" (사업 구조 파악 목적),
+    "자회사는 몇 개?" (사업 구조 파악 목적), "각 부문별 매출 비중은?" (부문 구성 이해 목적)
+- business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 구성 등 기업 개요를 묻는 질의.
+  수치를 포함하더라도 사업 구조 파악이 목적이면 business_overview.
+  예) "주요 사업은?", "어떤 제품을 생산하나?", "사업 부문 구성은?", "주요 고객군은?",
+    "사업부문 간 매출 비중은?", "몇 개의 자회사를 통해 사업을 영위하나?"
 - risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
   예) "주요 재무 리스크는?", "환율 위험 관리 방식은?", "사업 리스크 요인은?"
 - comparison : 두 기업 또는 두 항목을 명시적으로 비교하는 질의.
@@ -363,6 +368,11 @@ class FinancialAgent:
             return {"evidence_bullets": [], "evidence_status": "missing"}
 
         structured_llm = self.llm.with_structured_output(EvidenceExtraction)
+        query_type = state.get("query_type", "qa")
+        extra_rules = (
+            "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
+            "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
+        ) if query_type == "risk" else ""
         prompt = ChatPromptTemplate.from_template(
             """당신은 기업 공시 분석 보조자입니다.
 질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.
@@ -372,7 +382,7 @@ class FinancialAgent:
 - 각 근거는 반드시 출처 앵커를 포함하세요.
 - 숫자, 기간, 조건이 보이면 그대로 유지하세요.
 - 근거가 부족하면 coverage를 sparse로, 서로 충돌하면 conflicting으로 설정하세요.
-- 아예 답할 근거가 없으면 coverage를 missing으로 두고 evidence는 비우세요.
+- 아예 답할 근거가 없으면 coverage를 missing으로 두고 evidence는 비우세요.{extra_rules}
 
 질문: {query}
 핵심 주제: {topic}
@@ -400,6 +410,7 @@ class FinancialAgent:
                     "query": state["query"],
                     "topic": state.get("topic") or state["query"],
                     "context": self._format_context(docs[: min(8, len(docs))]),
+                    "extra_rules": extra_rules,
                 }
             )
             evidence_bullets = [
@@ -439,20 +450,32 @@ class FinancialAgent:
 
         coverage = state.get("evidence_status", "sparse")
         instructions = {
-            "numeric_fact": "수치·금액을 정확히 제시하고 출처 앵커를 붙이세요. 근거에 없는 수치는 쓰지 마세요.",
-            "business_overview": "사업 구조와 주요 내용을 항목별로 서술하세요. 근거에 있는 내용만 쓰세요.",
-            "risk": "공시에 명시된 리스크 항목만 정리하세요. 근거 목록에 있는 내용만 쓰세요.",
+            "numeric_fact": "질문에서 요청한 수치·금액만 정확히 제시하고 출처 앵커를 붙이세요. 질문이 요청하지 않은 수치나 합계는 포함하지 마세요.",
+            "business_overview": "사업 구조와 주요 내용을 항목별로 서술하세요. 각 항목의 수치는 근거에 직접 명시된 것만 인용하세요. 계산하거나 추론한 수치는 포함하지 마세요.",
+            "risk": (
+                "근거 목록에 등장하는 리스크 유형명과 설명만 그대로 사용하세요. "
+                "근거 본문에 직접 나오지 않는 리스크 카테고리명(예: '운영위험', '규제위험' 등)은 절대 추가하지 마세요. "
+                "근거에 없는 단어를 리스크 유형명으로 쓰면 안 됩니다."
+            ),
             "comparison": "항목별로 나란히 정리해 비교하세요.",
             "trend": "시간 흐름에 따라 수치 변화를 정리하고 근거에 있는 원인만 설명하세요.",
             "qa": "근거를 바탕으로 핵심 사실을 정확하게 설명하세요.",
         }
-        instruction = instructions.get(state.get("query_type", "qa"), instructions["qa"])
         evidence_text = "\n".join(evidence_bullets)
 
-        coverage_note = {
-            "sparse": "현재 공시 근거가 제한적입니다. 근거에 있는 내용만 답하세요.",
-            "conflicting": "공시 근거가 서로 상충합니다. 상충 내용을 명시하세요.",
-        }.get(coverage, "")
+        # sparse = deterministic fallback 결과 (raw snippet). 구조화·추론 금지.
+        if coverage == "sparse":
+            instruction = (
+                "근거가 제한적입니다. 아래 근거 문장에 명시된 내용만 그대로 인용하세요. "
+                "카테고리를 새로 만들거나 근거에 없는 항목을 추가하지 마세요. "
+                "근거에 없는 표현은 절대 쓰지 마세요."
+            )
+            coverage_note = ""
+        else:
+            instruction = instructions.get(state.get("query_type", "qa"), instructions["qa"])
+            coverage_note = {
+                "conflicting": "공시 근거가 서로 상충합니다. 상충 내용을 명시하세요.",
+            }.get(coverage, "")
 
         prompt = ChatPromptTemplate.from_template(
             """당신은 한국 기업 공시(DART) 분석 전문가입니다.

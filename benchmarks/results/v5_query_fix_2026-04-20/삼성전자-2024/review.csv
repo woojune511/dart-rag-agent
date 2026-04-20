@@ -1,0 +1,1 @@
+experiment_id,question_id,category,question,answer_key,expected_sections,evidence_quotes,actual_answer,top_retrieved,citations,faithfulness,answer_relevancy,context_recall,retrieval_hit_at_k,section_match_rate,citation_coverage,missing_info_compliance,missing_info_policy,error
