@@ -479,12 +479,19 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "retrieval_hit_at_k": result.retrieval_hit_at_k,
                 "section_match_rate": result.section_match_rate,
                 "citation_coverage": result.citation_coverage,
+                "numeric_equivalence": result.numeric_equivalence,
+                "numeric_grounding": result.numeric_grounding,
+                "numeric_retrieval_support": result.numeric_retrieval_support,
+                "numeric_final_judgement": result.numeric_final_judgement,
+                "numeric_confidence": result.numeric_confidence,
+                "numeric_debug": result.numeric_debug,
                 "missing_info_compliance": result.missing_info_compliance,
                 "retrieved_count": result.retrieved_count,
                 "query_type": result.query_type,
                 "latency_sec": result.latency_sec,
                 "citations": result.citations,
                 "retrieved_metadata": result.retrieved_metadata,
+                "runtime_evidence": result.runtime_evidence,
                 "missing_info_policy": result.missing_info_policy,
                 "error": result.error,
             }
@@ -1394,6 +1401,26 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 for row in evidence_rows
                 if row.get("quote")
             ]
+            runtime_evidence_rows = question_result.get("runtime_evidence") or []
+            runtime_evidence = []
+            for row in runtime_evidence_rows:
+                metadata = row.get("metadata") or {}
+                section = metadata.get("section_path") or metadata.get("section") or "?"
+                runtime_evidence.append(
+                    " | ".join(
+                        part
+                        for part in [
+                            row.get("evidence_id") or "?",
+                            row.get("support_level") or "?",
+                            row.get("question_relevance") or "?",
+                            row.get("source_anchor") or "?",
+                            f"section={section}",
+                            f"claim={row.get('claim', '')}",
+                            f"quote={row.get('quote_span', '')}",
+                        ]
+                        if part
+                    )
+                )
             top_retrieved = []
             for metadata in (question_result.get("retrieved_metadata") or [])[:3]:
                 company = metadata.get("company") or "?"
@@ -1410,6 +1437,7 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "answer_key": question_result.get("answer_key"),
                     "expected_sections": " | ".join(question_result.get("expected_sections", [])),
                     "evidence_quotes": "\n\n".join(evidence_quotes),
+                    "runtime_evidence": "\n\n".join(runtime_evidence),
                     "actual_answer": question_result.get("answer"),
                     "top_retrieved": " | ".join(top_retrieved),
                     "citations": " | ".join(question_result.get("citations", [])),
@@ -1419,6 +1447,11 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "retrieval_hit_at_k": question_result.get("retrieval_hit_at_k"),
                     "section_match_rate": question_result.get("section_match_rate"),
                     "citation_coverage": question_result.get("citation_coverage"),
+                    "numeric_equivalence": question_result.get("numeric_equivalence"),
+                    "numeric_grounding": question_result.get("numeric_grounding"),
+                    "numeric_retrieval_support": question_result.get("numeric_retrieval_support"),
+                    "numeric_final_judgement": question_result.get("numeric_final_judgement"),
+                    "numeric_confidence": question_result.get("numeric_confidence"),
                     "missing_info_compliance": question_result.get("missing_info_compliance"),
                     "missing_info_policy": question_result.get("missing_info_policy"),
                     "error": question_result.get("error"),
@@ -1438,6 +1471,7 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "answer_key",
         "expected_sections",
         "evidence_quotes",
+        "runtime_evidence",
         "actual_answer",
         "top_retrieved",
         "citations",
@@ -1447,6 +1481,11 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "retrieval_hit_at_k",
         "section_match_rate",
         "citation_coverage",
+        "numeric_equivalence",
+        "numeric_grounding",
+        "numeric_retrieval_support",
+        "numeric_final_judgement",
+        "numeric_confidence",
         "missing_info_compliance",
         "missing_info_policy",
         "error",
@@ -1486,6 +1525,12 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 f"- Metrics: faithfulness={row['faithfulness']}, relevancy={row['answer_relevancy']}, recall={row['context_recall']}, hit@k={row['retrieval_hit_at_k']}, section={row['section_match_rate']}, citation={row['citation_coverage']}",
             ]
         )
+        if row.get("numeric_final_judgement"):
+            lines.append(
+                f"- Numeric Eval: judgement={row['numeric_final_judgement']}, "
+                f"equivalence={row['numeric_equivalence']}, grounding={row['numeric_grounding']}, "
+                f"retrieval_support={row['numeric_retrieval_support']}, confidence={row['numeric_confidence']}"
+            )
         if row.get("missing_info_policy"):
             lines.append(f"- Missing Info Policy: {row['missing_info_policy']}")
         if row.get("missing_info_compliance") is not None:
@@ -1496,6 +1541,10 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "Evidence",
                 "",
                 row["evidence_quotes"] or "-",
+                "",
+                "Runtime Evidence",
+                "",
+                row["runtime_evidence"] or "-",
                 "",
                 "Actual Answer",
                 "",

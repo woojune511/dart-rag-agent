@@ -2,7 +2,8 @@
 
 이 문서는 DART 공시 RAG 시스템에서 retrieval 정확도, answer 품질, ingest 시간, API 비용을 함께 비교하기 위한 benchmark 가이드다.
 
-버전별 코드/실험 변화 흐름은 [experiment_history.md](experiment_history.md)를 참고한다.
+버전별 코드/실험 변화 흐름은 [experiment_history.md](experiment_history.md)를 참고한다.  
+answer generation 원칙과 최근 rule inventory는 [answer_generation_principles.md](answer_generation_principles.md)를 참고한다.
 
 ## 목표
 
@@ -232,6 +233,46 @@ screening 통과안만 정식 평가로 보낸다.
 - `context_recall`
   - canonical dataset의 evidence quote가 retrieved context에 얼마나 회수됐는지
 
+### Numeric Evaluation Note
+
+`numeric_fact`는 일반 서술형 질문과 동일한 `faithfulness` judge만으로 채점하지 않는 방향으로 전환할 예정이다.
+
+숫자 질문에서는 특히 다음 문제가 크다.
+
+- 같은 값을 다른 단위로 표현한 경우
+- 표 셀 값과 문단 요약 값이 동치인 경우
+- retrieval은 맞는데 judge가 숫자 표현을 잘못 읽는 경우
+
+따라서 앞으로는:
+
+- `numeric_equivalence`
+- `numeric_grounding`
+- `numeric_retrieval_support`
+- `numeric_final_judgement`
+
+를 병렬 evaluator로 계산하고, 기존 `faithfulness`는 보조 지표로 유지하는 구조를 목표로 한다.
+
+상세 설계는 [numeric_evaluation_architecture.md](numeric_evaluation_architecture.md)를 참고한다.
+
+현재 구현 상태:
+
+- `numeric_fact`에 한해 1차 numeric evaluator path가 들어가 있다.
+- 결과물에는 다음 필드가 같이 기록된다.
+  - `numeric_equivalence`
+  - `numeric_grounding`
+  - `numeric_retrieval_support`
+  - `numeric_final_judgement`
+  - `numeric_confidence`
+- 따라서 숫자 질문은 `faithfulness`와 `numeric_final_judgement`를 함께 봐야 한다.
+
+주의:
+
+- `faithfulness`는 중요한 안정성 지표지만, 단독으로 최적화하면 과도하게 보수적이거나 benchmark-specific한 답변이 될 수 있다.
+- retrieval 계열 지표가 유지되는데 `faithfulness`만 크게 흔들리는 경우, retrieval보다 answer synthesis와 judge interaction을 먼저 의심한다.
+- 최근 `v6` / `v7` 실험은 일부 faithfulness 회복에 성공했지만, 동시에 answer-stage hardcoded rule 누적의 한계도 보여줬다.
+- 따라서 앞으로는 score만 올리는 규칙 추가보다, answer generation 구조를 더 principled하게 재정리하는 것을 우선한다.
+- `numeric_fact`에서 `faithfulness = 0.0`인데 `numeric_final_judgement = PASS`라면, 우선 numeric evaluator를 신뢰하고 generic judge limitation으로 해석한다.
+
 ## Section Alias Policy
 
 숫자 질의는 단일 section만 정답으로 보지 않는다.  
@@ -308,6 +349,7 @@ screening 통과안만 정식 평가로 보낸다.
 - miss가 난 질문의 `failure_examples`
 - selector가 어떤 이유로 chunk를 contextualize했는지에 대한 `selector_reason_counts`
 - 질문별 `answer_key`, evidence quote, 실제 answer, top retrieved를 나란히 볼 수 있는 review artifact
+- 숫자 질문의 `numeric_final_judgement`와 세부 numeric evaluator 결과
 - 기업별 screening 결과와 후보별 cross-company aggregate
 - partial / completed 상태를 나타내는 `run_status`, `completed_companies`, `pending_companies`
 
@@ -347,6 +389,17 @@ screening 통과안만 정식 평가로 보낸다.
 - 같은 보고서 / 같은 청킹 / 같은 ingest mode 재실행에서는 contextual ingest API 비용을 다시 쓰지 않는다
 - 반복 실험에서 남는 시간은 대부분 query / screening 평가 쪽이다
 - 따라서 일상 루프는 `dev_fast`, release-grade 비교는 회사별 분리 실행이 적절하다
+
+추가로 같은 결과물에는 numeric evaluator 검증도 반영됐다.
+
+- `numeric_fact_001`
+  - generic `faithfulness = 0.0`
+  - `numeric_final_judgement = PASS`
+
+현재 해석:
+
+- 숫자 질문에서는 generic judge보다 numeric evaluator가 더 신뢰할 수 있는 해석 축이다.
+- 따라서 이후 benchmark 해석과 summary도 이 기준을 더 직접 반영해야 한다.
 
 `v4_generalization_fix_2026-04-17`의 핵심 결과:
 
