@@ -120,9 +120,9 @@
 - `contextual_selective_v2_2500_320`
   - 비용 절감은 크지만 business overview / risk miss가 남음
 
-## 최근 반영된 query-stage 개선 (결정 39~41)
+## 최근 반영된 query-stage 개선 (결정 39~42)
 
-v4 benchmark 결과 분석 후 세 가지 실패 경로를 수정했다.
+v4 benchmark 결과 분석 후 실패 경로를 수정했다.
 
 **A — Evidence 하드 abstain 방지** (`_extract_evidence`):
 - `docs[:6]` → `docs[:8]`로 evidence LLM 입력 확대
@@ -131,15 +131,43 @@ v4 benchmark 결과 분석 후 세 가지 실패 경로를 수정했다.
 **B — Analyze 과잉 추론 억제** (`_analyze`):
 - `risk` instruction에서 “잠재 영향 설명” 제거
 - “확인되지 않습니다” 사용을 질문 전체 abstain 때만으로 제한
-- `coverage` raw 노출 → `coverage_note` 딕셔너리로 교체 (sufficient일 때 빈 문자열)
+- sparse evidence 시 별도 보수적 instruction 적용 (카테고리 생성·추론 금지)
 
 **C — query_type 6종 확장 + 분리 retrieval 레인** (`_classify_query`, `_rerank_docs`, `_retrieve`):
 - `qa` catch-all을 `numeric_fact` / `business_overview`로 세분화
-- classify 프롬프트에 타입별 판별 기준 + 예시 추가
+- classify 프롬프트: 수치 포함이더라도 사업 구조 파악 목적이면 `business_overview` 판별 기준 추가
 - keyword hardcoding 제거 → `_TABLE_PREFERRED_TYPES` / `_PARAGRAPH_PREFERRED_TYPES` 기반
 - `_retrieve`에 분리 레인 추가: numeric/trend는 표 우선(단락 최소 2개), overview/risk/qa는 단락 최소 절반 보장
 
-검증: 분류 8/8, mock 레인 비율 테스트 통과. 실제 benchmark 재실행 필요.
+**D — Risk evidence verbatim 제한** (`_extract_evidence`):
+- `query_type == “risk”`일 때 `extra_rules` 주입:
+  컨텍스트에 없는 리스크 카테고리명(운영위험 등) 생성 금지
+
+**E — Evaluator context 범위 일치** (`evaluator.py`):
+- `_compute_faithfulness`: `contexts[:5]` → `contexts[:8]`
+- agent 실제 사용 범위(docs[:8])와 맞춰 평가 일관성 확보
+
+검증: 분류 8/8, mock 레인 비율 테스트 통과. v5 full eval 재실험 필요 (결정 42).
+
+## v5 benchmark 결과 요약 (2026-04-20, 삼성전자 contextual_all)
+
+기준: `dev_fast` 프로파일, 7개 질문 (v4 공통 5개 + r_and_d_001 + missing_info_001)
+
+screening (7개 질문 aggregate):
+- `contextual_all`: hit@k=0.714, section=0.250
+- `contextual_parent_only`: hit@k=0.857, section=0.232  ← screen_pass=True
+- `contextual_selective_v2`: hit@k=0.571, section=0.214  ← screen_pass=False
+
+full eval (공통 5개 질문, v4 vs v5 비교):
+- context_recall: 0.600 (동일)
+- citation_coverage: 0.800 → 0.867 (+0.067)
+- faithfulness: 0.660 → 0.380 (-0.280) ← 결정 42 수정 후 재실험 필요
+- answer_relevancy: 0.772 → 0.747 (-0.025)
+
+주요 관찰:
+- retrieval 수치는 v4와 완전히 동일, latency만 +3~6초 (classify 콜 추가)
+- business_overview_001 hit@k=0.0 지속 (회사개요 vs 사업개요 섹션 불일치 문제)
+- missing_information_001은 적절하게 abstention (hit=0.0이 정상 동작)
 
 ## 현재 작업 트리에서 중요 포인트
 
@@ -151,6 +179,9 @@ v4 benchmark 결과 분석 후 세 가지 실패 경로를 수정했다.
 
 ## 다음 세션 우선순위
 
-1. 결정 39~41 반영 후 `contextual_all` baseline 재벤치마크 (삼성전자 또는 전체)
-2. missing-information hallucination 억제 보강
-3. `parent_only` / `selective_v2` 재설계 여부는 재벤치마크 결과 후 판단
+1. 결정 42 수정 후 full eval 재실험 (faithfulness 회복 확인)
+   - risk evidence verbatim 제한 (D)
+   - evaluator contexts[:8] (E)
+2. 전체 3개사(삼성전자·SK하이닉스·NAVER) `contextual_all` 재벤치마크
+3. missing-information hallucination 억제 보강
+4. `parent_only` / `selective_v2` 재설계 여부는 재벤치마크 결과 후 판단

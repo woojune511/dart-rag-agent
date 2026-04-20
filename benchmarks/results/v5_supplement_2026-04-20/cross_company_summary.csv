@@ -1,0 +1,4 @@
+company_id,company,experiment_id,screen_pass,critical_category_miss_count,retrieval_hit_at_k,section_match_rate,citation_coverage,contamination_rate,api_calls,estimated_ingest_cost_usd,ingest_elapsed_sec,api_call_reduction_ratio,ingest_time_reduction_ratio,estimated_cost_reduction_ratio,full_faithfulness,full_context_recall,full_answer_relevancy,full_retrieval_hit_at_k,full_section_match_rate,full_citation_coverage,full_avg_score,screen_failure_reasons,screen_failure_examples
+samsung_2024,삼성전자 2024,contextual_all_2500_320,True,0,1.0,0.1875,0.6666666666666666,0.0,0,0.0,14.761688700004015,,0.0,,,,,,,,,,[]
+samsung_2024,삼성전자 2024,contextual_parent_only_2500_320,True,0,1.0,0.125,0.6666666666666666,0.0,0,0.0,16.04261549999501,,-0.08677373070403838,,,,,,,,,,[]
+samsung_2024,삼성전자 2024,contextual_selective_v2_2500_320,True,0,1.0,0.1875,0.6666666666666666,0.0,0,0.0,8.90224920000037,,0.3969355823092281,,,,,,,,,,[]

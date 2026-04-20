@@ -355,3 +355,39 @@ Evidence에 시장위험·신용위험·유동성위험이 정확히 있는데, 
 - 기존 `risk`/`comparison`/`trend`/`qa` 유지
 
 **검증**: 분류 8/8 정확, 분리 레인 mock 테스트 통과
+
+---
+
+## 결정 42 — v5 benchmark 실행 및 faithfulness 하락 원인 분석 (2026-04-20)
+
+**문제**: 결정 39~41 반영 후 v5 full eval에서 faithfulness가 v4(0.660) → v5(0.380)로 하락.
+retrieval 수치(hit@k, section, citation, context_recall)는 동일하게 유지됨.
+
+**원인**:
+
+1. **`risk` evidence LLM 할루시네이션**: `_extract_evidence`에서 LLM이 DART 원문에 없는 리스크 카테고리명(예: "운영위험")을 자체 금융 지식으로 추가 → `_analyze`가 이를 그대로 출력 → faithfulness evaluator가 원문에 없는 내용으로 판정해 0.0.
+2. **`business_overview` 검색 레인 변경**: 결정 41(Fix C)로 검색 결과가 바뀌어 v5 답변 구조가 v4와 달라짐 → stochastic judge 편차 반영.
+3. **Evaluator context 범위 불일치**: `_compute_faithfulness`가 `contexts[:5]`를 사용하지만 agent는 `docs[:8]`을 실제로 사용 → evaluator가 실제 근거를 일부 제외한 채 판정.
+
+**해결책**:
+
+**A. `_extract_evidence` — risk 타입 verbatim 제한** (`src/agent/financial_graph.py`):
+- `query_type == "risk"`일 때 `extra_rules` 추가:
+  "리스크 유형명은 컨텍스트에 명시된 단어만 사용, 컨텍스트에 없는 리스크 카테고리를 새로 만들지 마세요"
+- `extra_rules`를 prompt 및 invoke에 전달
+
+**B. `_analyze` — sparse evidence 보수적 지침** (`src/agent/financial_graph.py`):
+- `evidence_status == "sparse"`(deterministic fallback 결과)일 때 별도 instruction 적용:
+  "근거 문장에 명시된 내용만 그대로 인용, 카테고리 새로 만들거나 없는 항목 추가 금지"
+- `coverage_note` 없애고 instruction만 사용
+
+**C. `_classify_query` 프롬프트 보강** (`src/agent/financial_graph.py`):
+- `numeric_fact` vs `business_overview` 판별 기준 명확화:
+  "사업 구조 파악이 목적이면 수치를 포함하더라도 business_overview"
+- 사업부문 비중, 자회사 수 등 예시 추가
+
+**D. Evaluator context 확장** (`src/ops/evaluator.py`):
+- `_compute_faithfulness`에서 `contexts[:5]` → `contexts[:8]`로 확장
+- agent 실제 사용 범위(docs[:8])와 일치시켜 평가 일관성 확보
+
+**결과**: 코드 수정 완료. 재실험 필요.

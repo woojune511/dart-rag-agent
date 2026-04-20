@@ -242,7 +242,7 @@ def _compute_faithfulness(llm: ChatGoogleGenerativeAI, answer: str, contexts: Li
     if not answer or not contexts:
         return 0.0
 
-    context_text = "\n\n---\n\n".join(contexts[:5])
+    context_text = "\n\n---\n\n".join(contexts[:8])
     prompt = _FAITHFULNESS_PROMPT.format(context=context_text[:4000], answer=answer[:1500])
     try:
         response = llm.invoke(prompt)

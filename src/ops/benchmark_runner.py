@@ -749,6 +749,10 @@ def _select_eval_examples(
     eval_mode = config.get("eval_mode", "single_company_slice")
     eval_limit = int(config.get("eval_limit", 5) or 5)
 
+    if eval_mode == "question_ids":
+        allowed = set(config.get("question_ids") or [])
+        return [e for e in filtered if e.id in allowed]
+
     if eval_mode == "all_filtered":
         return filtered[:eval_limit] if eval_limit > 0 else filtered
 
@@ -2134,8 +2138,6 @@ def run_screening_experiment(
 ) -> Dict[str, Any]:
     experiment_id = config["id"]
     report_path = _normalise_path(config["report_path"])
-    if not report_path.exists():
-        raise FileNotFoundError(f"report_path not found: {report_path}")
 
     metadata = dict(config["metadata"])
     persist_dir = output_root / "stores" / _slugify(experiment_id)
@@ -2214,6 +2216,8 @@ def run_screening_experiment(
             },
         )
     else:
+        if not report_path.exists():
+            raise FileNotFoundError(f"report_path not found: {report_path}")
         parser = FinancialParser(
             chunk_size=int(config.get("chunk_size", DEFAULT_CHUNK_SIZE)),
             chunk_overlap=int(config.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
