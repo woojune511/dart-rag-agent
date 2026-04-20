@@ -4,20 +4,15 @@
 
 | Company | Experiment | Screen Pass | Critical Misses | Hit@k | Section | Citation | Contam | API Calls | Est. Cost (USD) | Ingest (s) | API Δ | Time Δ | Cost Δ | Full Faithfulness | Full Recall |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 삼성전자 2024 | contextual_all_2500_320 | yes | 0 | 1.000 | 0.350 | 0.867 | 0.000 | 300 | 1.0633 | 570.976 | 0.0% | 0.0% | 0.0% | 0.660 | 0.600 |
-| 삼성전자 2024 | contextual_parent_only_2500_320 | yes | 0 | 1.000 | 0.300 | 0.800 | 0.000 | 40 | 0.1240 | 54.017 | 86.7% | 90.5% | 88.3% | 0.740 | 0.800 |
-| 삼성전자 2024 | contextual_selective_v2_2500_320 | no | 2 | 0.600 | 0.225 | 0.733 | 0.000 | 127 | 0.4063 | 153.136 | 57.7% | 73.2% | 61.8% | - | - |
+| 삼성전자 2024 | contextual_all_2500_320 | yes | 0 | 1.000 | 0.562 | 0.833 | 0.000 | 0 | 0.0000 | 0.000 | - | - | - | 0.500 | 0.500 |
+| 삼성전자 2024 | contextual_parent_only_2500_320 | yes | 0 | 1.000 | 0.500 | 0.833 | 0.000 | 0 | 0.0000 | 0.000 | - | - | - | 0.500 | 0.750 |
 
 ## Winner Ranking
 
 | Rank | Experiment | Pass Count | Company Count | Critical Misses | Avg API Δ | Avg Time Δ | Avg Cost Δ | Avg Faithfulness | Avg Recall |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | contextual_parent_only_2500_320 | 1 | 1 | 0 | 86.7% | 90.5% | 88.3% | 0.740 | 0.800 |
-| 2 | contextual_all_2500_320 | 1 | 1 | 0 | 0.0% | 0.0% | 0.0% | 0.660 | 0.600 |
-| 3 | contextual_selective_v2_2500_320 | 0 | 1 | 2 | 57.7% | 73.2% | 61.8% | - | - |
-
-Failure Notes for `contextual_selective_v2_2500_320`
-- 삼성전자 2024: retrieval_hit_at_k == 0 for business_overview_001 | retrieval_hit_at_k == 0 for risk_analysis_001 | retrieval_hit_at_k dropped by 0.400
+| 1 | contextual_parent_only_2500_320 | 1 | 1 | 0 | - | - | - | 0.500 | 0.750 |
+| 2 | contextual_all_2500_320 | 1 | 1 | 0 | - | - | - | 0.500 | 0.500 |
 
 ## Selection Policy
 

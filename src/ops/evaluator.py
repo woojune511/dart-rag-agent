@@ -113,6 +113,11 @@ class EvalResult:
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
     runtime_evidence: List[Dict[str, Any]] = field(default_factory=list)
+    selected_claim_ids: List[str] = field(default_factory=list)
+    draft_points: List[str] = field(default_factory=list)
+    kept_claim_ids: List[str] = field(default_factory=list)
+    dropped_claim_ids: List[str] = field(default_factory=list)
+    unsupported_sentences: List[str] = field(default_factory=list)
     numeric_equivalence: Optional[float] = None
     numeric_grounding: Optional[float] = None
     numeric_retrieval_support: Optional[float] = None
@@ -791,6 +796,11 @@ class RAGEvaluator:
         retrieved_docs: List[Any] = []
         citations: List[str] = []
         runtime_evidence: List[Dict[str, Any]] = []
+        selected_claim_ids: List[str] = []
+        draft_points: List[str] = []
+        kept_claim_ids: List[str] = []
+        dropped_claim_ids: List[str] = []
+        unsupported_sentences: List[str] = []
 
         try:
             result = self.agent.run(example.question)
@@ -799,6 +809,11 @@ class RAGEvaluator:
             retrieved_docs = result.get("retrieved_docs", [])
             citations = result.get("citations", [])
             runtime_evidence = result.get("evidence_items", []) or []
+            selected_claim_ids = result.get("selected_claim_ids", []) or []
+            draft_points = result.get("draft_points", []) or []
+            kept_claim_ids = result.get("kept_claim_ids", []) or []
+            dropped_claim_ids = result.get("dropped_claim_ids", []) or []
+            unsupported_sentences = result.get("unsupported_sentences", []) or []
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
@@ -860,6 +875,11 @@ class RAGEvaluator:
             citations=citations,
             retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),
             runtime_evidence=runtime_evidence,
+            selected_claim_ids=selected_claim_ids,
+            draft_points=draft_points,
+            kept_claim_ids=kept_claim_ids,
+            dropped_claim_ids=dropped_claim_ids,
+            unsupported_sentences=unsupported_sentences,
             numeric_equivalence=numeric_eval.get("numeric_equivalence"),
             numeric_grounding=numeric_eval.get("numeric_grounding"),
             numeric_retrieval_support=numeric_eval.get("numeric_retrieval_support"),

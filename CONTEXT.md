@@ -258,6 +258,36 @@ structured runtime evidence를 붙인 뒤에도 `numeric_fact_001`은 사람이 
 - 하지만 새 numeric evaluator path는 같은 케이스를 `PASS`로 올바르게 해석했다.
 - 따라서 앞으로 `numeric_fact`의 주 판정은 `numeric_final_judgement`를 우선하고, generic `faithfulness`는 보조 지표로 본다.
 
+## typed compression / validation 반영 메모
+
+반영 범위:
+
+- `src/agent/financial_graph.py`
+  - `CompressionOutput`
+  - `ValidationOutput`
+- `src/ops/evaluator.py`
+  - per-question 결과에 claim selection / drop 정보 추가
+- `src/ops/benchmark_runner.py`
+  - `results.json`, `review.csv`, `review.md`에 새 필드 직렬화
+
+핵심 변화:
+
+- 기존 `compress` / `validate`는 문자열만 주고받는 구조에 가까웠다.
+- 현재는 아래 typed output을 남긴다.
+  - `selected_claim_ids`
+  - `draft_points`
+  - `kept_claim_ids`
+  - `dropped_claim_ids`
+  - `unsupported_sentences`
+- 질문 wording 기반 output style 분기는 제거했다.
+- 이 변경으로 reviewer artifact에서 “무슨 claim을 썼고, 무엇을 버렸는지”를 직접 추적할 수 있게 됐다.
+
+현재 상태:
+
+- `py_compile` 검증 완료
+- 아직 새 typed field를 포함한 full eval 재실행은 하지 않았다.
+- 다음 검증은 삼성전자 1회사 `dev_fast_fulleval`을 다시 돌려, review artifact에 새 필드가 실제로 유의미하게 남는지 확인하는 것이다.
+
 ## 다음 세션 우선순위
 
 1. 최근 answer-stage rule inventory 정리
@@ -265,10 +295,15 @@ structured runtime evidence를 붙인 뒤에도 `numeric_fact_001`은 사람이 
 2. answer generation 구조 재설계
    - evidence compression 중심으로 재정의
    - benchmark-only 최적화와 운영 기본값 분리
-3. numeric evaluator 후속 정리
+3. typed compression / validation 결과 검증
+   - `selected_claim_ids`
+   - `dropped_claim_ids`
+   - `unsupported_sentences`
+   가 review artifact에서 실제로 해석 가능한지 확인
+4. numeric evaluator 후속 정리
    - aggregate / summary에서 `numeric_final_judgement`를 더 전면에 노출
    - `UNCERTAIN` 버킷 해석 규칙 정교화
-4. NAVER business overview retrieval 실패 원인 정리
-5. missing-information hallucination 억제 보강
-6. 그 다음에 `dev_fast` 기준 재실험
-7. 실패 유형이 줄어든 뒤에만 전체 3개사 재벤치마크
+5. NAVER business overview retrieval 실패 원인 정리
+6. missing-information hallucination 억제 보강
+7. 그 다음에 `dev_fast` 기준 재실험
+8. 실패 유형이 줄어든 뒤에만 전체 3개사 재벤치마크

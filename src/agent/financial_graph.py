@@ -76,7 +76,12 @@ class FinancialAgentState(TypedDict):
     evidence_bullets: List[str]
     evidence_items: List[Dict[str, Any]]
     evidence_status: str
+    selected_claim_ids: List[str]
+    draft_points: List[str]
     compressed_answer: str
+    kept_claim_ids: List[str]
+    dropped_claim_ids: List[str]
+    unsupported_sentences: List[str]
     answer: str
     citations: List[str]
 
@@ -130,6 +135,38 @@ class EvidenceItem(BaseModel):
 class EvidenceExtraction(BaseModel):
     coverage: Literal["sufficient", "sparse", "conflicting", "missing"]
     evidence: List[EvidenceItem] = Field(default_factory=list)
+
+
+class CompressionOutput(BaseModel):
+    selected_claim_ids: List[str] = Field(
+        default_factory=list,
+        description="답변 초안에 실제로 사용한 evidence_id 목록",
+    )
+    draft_points: List[str] = Field(
+        default_factory=list,
+        description="최종 초안으로 압축하기 전 핵심 포인트 목록",
+    )
+    draft_answer: str = Field(
+        description="structured evidence만으로 압축한 답변 초안",
+    )
+
+
+class ValidationOutput(BaseModel):
+    kept_claim_ids: List[str] = Field(
+        default_factory=list,
+        description="검증 후 최종 답변에 남긴 evidence_id 목록",
+    )
+    dropped_claim_ids: List[str] = Field(
+        default_factory=list,
+        description="검증 과정에서 제거한 evidence_id 목록",
+    )
+    unsupported_sentences: List[str] = Field(
+        default_factory=list,
+        description="근거 부족 또는 과잉 설명으로 제거한 문장 목록",
+    )
+    final_answer: str = Field(
+        description="검증을 거친 최종 답변",
+    )
 
 
 class FinancialAgent:
@@ -533,8 +570,17 @@ class FinancialAgent:
                     return selected
         return selected[:6]
 
+    def _filter_evidence_by_ids(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        evidence_ids: List[str],
+    ) -> List[Dict[str, Any]]:
+        if not evidence_items or not evidence_ids:
+            return []
+        wanted = {str(value).strip() for value in evidence_ids if str(value).strip()}
+        return [item for item in evidence_items if str(item.get("evidence_id", "")).strip() in wanted]
+
     def _compression_guidance(self, query_type: str, query: str, coverage: str) -> Dict[str, str]:
-        lowered_query = query.lower()
         instructions = {
             "numeric_fact": (
                 "질문이 요청한 숫자·금액·비율만 답하세요. claim과 quote_span에 있는 표기를 그대로 유지하고, "
@@ -559,12 +605,6 @@ class FinancialAgent:
             "trend": "2~4문장.",
             "qa": "짧고 직접적으로.",
         }
-        if query_type == "numeric_fact" and any(token in lowered_query for token in ("얼마", "몇", "금액", "규모")):
-            output_styles["numeric_fact"] = "반드시 1문장."
-        if query_type == "business_overview" and any(
-            token in lowered_query for token in ("몇 개", "몇개의", "몇 개의", "몇개", "종속기업", "자회사 수")
-        ):
-            output_styles["business_overview"] = "반드시 1~2문장."
 
         coverage_note = ""
         if coverage == "sparse":
@@ -687,10 +727,12 @@ class FinancialAgent:
         evidence_bullets = state.get("evidence_bullets", [])
         if not evidence_items and not evidence_bullets:
             return {
+                "selected_claim_ids": [],
+                "draft_points": [],
                 "compressed_answer": (
                     "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. "
                     "공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다."
-                )
+                ),
             }
 
         coverage = state.get("evidence_status", "sparse")
@@ -700,9 +742,10 @@ class FinancialAgent:
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
         guidance = self._compression_guidance(query_type, query, coverage)
 
+        structured_llm = self.llm.with_structured_output(CompressionOutput)
         prompt = ChatPromptTemplate.from_template(
             """당신은 한국 기업 공시(DART) 분석 전문가입니다.
-아래 structured evidence를 질문 범위에 맞게 압축해 답변 초안을 작성하세요.
+아래 structured evidence를 질문 범위에 맞게 압축해 typed output을 만드세요.
 
 Compression 규칙:
 - evidence에 없는 내용은 추가하지 마세요.
@@ -725,37 +768,70 @@ Structured Evidence:
 
 질문: {query}
 
-답변 초안:"""
+반드시 다음 필드를 채우세요.
+- selected_claim_ids: 실제로 사용한 evidence_id만
+- draft_points: 중복을 제거한 핵심 포인트 목록
+- draft_answer: 사용자에게 보여줄 짧은 초안 답변
+"""
         )
 
-        chain = prompt | self.llm | StrOutputParser()
-        compressed_answer = chain.invoke(
-            {
-                "instruction": guidance["instruction"],
-                "coverage_note": guidance["coverage_note"],
-                "output_style": guidance["output_style"],
-                "evidence": evidence_text,
-                "query": state["query"],
+        try:
+            chain = prompt | structured_llm
+            compressed: CompressionOutput = chain.invoke(
+                {
+                    "instruction": guidance["instruction"],
+                    "coverage_note": guidance["coverage_note"],
+                    "output_style": guidance["output_style"],
+                    "evidence": evidence_text,
+                    "query": state["query"],
+                }
+            )
+            logger.info("[compress] typed compression generated")
+            return {
+                "selected_claim_ids": compressed.selected_claim_ids,
+                "draft_points": compressed.draft_points,
+                "compressed_answer": compressed.draft_answer,
             }
-        )
-        logger.info("[compress] compressed answer generated")
-        return {"compressed_answer": compressed_answer}
+        except Exception as exc:
+            logger.warning("Compression structured output failed, using fallback text output: %s", exc)
+            chain = prompt | self.llm | StrOutputParser()
+            compressed_answer = chain.invoke(
+                {
+                    "instruction": guidance["instruction"],
+                    "coverage_note": guidance["coverage_note"],
+                    "output_style": guidance["output_style"],
+                    "evidence": evidence_text,
+                    "query": state["query"],
+                }
+            )
+            return {
+                "selected_claim_ids": [item.get("evidence_id", "") for item in selected_evidence if item.get("evidence_id")],
+                "draft_points": [item.get("claim", "") for item in selected_evidence if item.get("claim")][:4],
+                "compressed_answer": compressed_answer,
+            }
 
     def _validate_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         compressed_answer = state.get("compressed_answer", "")
         if not compressed_answer:
-            return {"answer": compressed_answer}
+            return {
+                "kept_claim_ids": [],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "answer": compressed_answer,
+            }
 
         evidence_items = state.get("evidence_items", [])
         evidence_bullets = state.get("evidence_bullets", [])
-        evidence_text = self._format_evidence_for_prompt(
-            self._select_evidence_for_compression(evidence_items),
-            evidence_bullets,
-        )
+        selected_claim_ids = state.get("selected_claim_ids", [])
+        selected_evidence = self._filter_evidence_by_ids(evidence_items, selected_claim_ids)
+        if not selected_evidence:
+            selected_evidence = self._select_evidence_for_compression(evidence_items)
+        evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
         query_type = state.get("query_type", "qa")
 
+        structured_llm = self.llm.with_structured_output(ValidationOutput)
         validator_prompt = ChatPromptTemplate.from_template(
-            """다음 답변 초안을 structured evidence와 대조해 검증하세요.
+            """다음 답변 초안을 structured evidence와 대조해 검증하고 typed output을 만드세요.
 
 Validator 규칙:
 - 새 정보는 절대 추가하지 마세요.
@@ -774,18 +850,48 @@ Structured Evidence:
 {evidence}
 
 초안 답변:
-{answer}"""
+{answer}
+
+반드시 다음 필드를 채우세요.
+- kept_claim_ids: 최종 답변에 실제로 남긴 evidence_id
+- dropped_claim_ids: 제거한 evidence_id
+- unsupported_sentences: 삭제하거나 축소한 문장/구
+- final_answer: 최종 사용자 답변
+"""
         )
-        validated_answer = (validator_prompt | self.llm | StrOutputParser()).invoke(
-            {
-                "query_type": query_type,
-                "query": state["query"],
-                "evidence": evidence_text,
-                "answer": compressed_answer,
+        try:
+            validated: ValidationOutput = (validator_prompt | structured_llm).invoke(
+                {
+                    "query_type": query_type,
+                    "query": state["query"],
+                    "evidence": evidence_text,
+                    "answer": compressed_answer,
+                }
+            )
+            logger.info("[validate] typed validation generated")
+            return {
+                "kept_claim_ids": validated.kept_claim_ids,
+                "dropped_claim_ids": validated.dropped_claim_ids,
+                "unsupported_sentences": validated.unsupported_sentences,
+                "answer": validated.final_answer,
             }
-        )
-        logger.info("[validate] answer validated")
-        return {"answer": validated_answer}
+        except Exception as exc:
+            logger.warning("Validation structured output failed, using fallback text output: %s", exc)
+            validated_answer = (validator_prompt | self.llm | StrOutputParser()).invoke(
+                {
+                    "query_type": query_type,
+                    "query": state["query"],
+                    "evidence": evidence_text,
+                    "answer": compressed_answer,
+                }
+            )
+            selected_ids = [item.get("evidence_id", "") for item in selected_evidence if item.get("evidence_id")]
+            return {
+                "kept_claim_ids": selected_ids,
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "answer": validated_answer,
+            }
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()
@@ -842,7 +948,12 @@ Structured Evidence:
             "evidence_bullets": [],
             "evidence_items": [],
             "evidence_status": "missing",
+            "selected_claim_ids": [],
+            "draft_points": [],
             "compressed_answer": "",
+            "kept_claim_ids": [],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
             "answer": "",
             "citations": [],
         }
@@ -856,6 +967,11 @@ Structured Evidence:
             "citations": final["citations"],
             "retrieved_docs": final["retrieved_docs"],
             "evidence_items": final.get("evidence_items", []),
+            "selected_claim_ids": final.get("selected_claim_ids", []),
+            "draft_points": final.get("draft_points", []),
+            "kept_claim_ids": final.get("kept_claim_ids", []),
+            "dropped_claim_ids": final.get("dropped_claim_ids", []),
+            "unsupported_sentences": final.get("unsupported_sentences", []),
         }
 
     def ingest(self, chunks: List) -> None:
