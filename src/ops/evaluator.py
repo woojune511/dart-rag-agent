@@ -7,10 +7,11 @@ from __future__ import annotations
 import json
 import logging
 import re
+from statistics import mean
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import mlflow
 import numpy as np
@@ -111,6 +112,13 @@ class EvalResult:
     latency_sec: float
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
+    runtime_evidence: List[Dict[str, Any]] = field(default_factory=list)
+    numeric_equivalence: Optional[float] = None
+    numeric_grounding: Optional[float] = None
+    numeric_retrieval_support: Optional[float] = None
+    numeric_final_judgement: Optional[str] = None
+    numeric_confidence: Optional[float] = None
+    numeric_debug: Dict[str, Any] = field(default_factory=dict)
     missing_info_policy: Optional[str] = None
     error: Optional[str] = None
 
@@ -146,6 +154,40 @@ _FAITHFULNESS_PROMPT = """\
 
 숫자(0.0~1.0)만 답하세요."""
 
+_NUMERIC_GROUNDING_PROMPT = """\
+다음은 숫자 질문에 대한 답변과 근거입니다.
+답변의 핵심 숫자 주장이 근거에 직접 뒷받침되는지 평가하세요.
+
+중요 규칙:
+- 단위 변환으로 같은 값을 표현한 경우는 같은 값으로 인정하세요.
+- 예: `300조 8,709억원`과 `300,870,903 백만원`은 같은 금액입니다.
+- 숫자가 맞아도 질문이 묻는 대상 항목이 다르면 grounded가 아닙니다.
+- 근거에 없는 숫자나 잘못된 단위 해석이면 not_grounded입니다.
+- 확실하지 않으면 uncertain을 선택하세요.
+
+[질문]
+{question}
+
+[답변]
+{answer}
+
+[Canonical Answer]
+{answer_key}
+
+[Runtime Evidence]
+{runtime_evidence}
+
+[Canonical Evidence]
+{canonical_evidence}
+
+다음 JSON만 답하세요.
+{{
+  "verdict": "grounded|not_grounded|uncertain",
+  "confidence": 0.0,
+  "reason": "짧은 이유"
+}}
+"""
+
 
 def _tokenize_ko(text: str) -> set[str]:
     tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
@@ -166,6 +208,315 @@ def _looks_like_missing_answer(text: str) -> bool:
 def _looks_like_full_abstention_answer(text: str) -> bool:
     lowered = (text or "").lower()
     return any(marker in lowered for marker in ABSTENTION_RESPONSE_MARKERS)
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_number(value: str) -> Optional[float]:
+    cleaned = str(value or "").replace(",", "").strip()
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _is_overlapping(start: int, end: int, spans: List[Tuple[int, int]]) -> bool:
+    return any(not (end <= existing_start or start >= existing_end) for existing_start, existing_end in spans)
+
+
+def _build_numeric_candidate(
+    *,
+    value_text: str,
+    unit_text: str,
+    kind: str,
+    normalized_value: Optional[float],
+    start: int,
+    end: int,
+) -> Dict[str, Any]:
+    return {
+        "value_text": value_text,
+        "unit_text": unit_text,
+        "kind": kind,
+        "normalized_value": normalized_value,
+        "span": [start, end],
+    }
+
+
+def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
+    if not text:
+        return []
+
+    candidates: List[Dict[str, Any]] = []
+    occupied_spans: List[Tuple[int, int]] = []
+
+    composite_currency_patterns = [
+        re.compile(r"(?P<jo>[\d,]+)\s*조\s*(?P<eok>[\d,]+)\s*억\s*원?"),
+        re.compile(r"(?P<jo>[\d,]+)\s*조\s*(?P<eok>[\d,]+)\s*억원"),
+        re.compile(r"(?P<jo>[\d,]+)\s*조원"),
+    ]
+    for pattern in composite_currency_patterns:
+        for match in pattern.finditer(text):
+            start, end = match.span()
+            if _is_overlapping(start, end, occupied_spans):
+                continue
+            jo_value = _parse_number(match.groupdict().get("jo") or "")
+            eok_value = _parse_number(match.groupdict().get("eok") or "0")
+            if jo_value is None:
+                continue
+            normalized_value = jo_value * 1_0000_0000_0000 + (eok_value or 0.0) * 100_000_000
+            candidates.append(
+                _build_numeric_candidate(
+                    value_text=match.group(0),
+                    unit_text="원",
+                    kind="currency",
+                    normalized_value=normalized_value,
+                    start=start,
+                    end=end,
+                )
+            )
+            occupied_spans.append((start, end))
+
+    generic_patterns = [
+        (re.compile(r"(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>백만원|억원|천원|원)"), "currency"),
+        (re.compile(r"(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>%|퍼센트)"), "percent"),
+        (re.compile(r"(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>개|곳|명)"), "count"),
+    ]
+    currency_scale = {
+        "원": 1.0,
+        "천원": 1_000.0,
+        "백만원": 1_000_000.0,
+        "억원": 100_000_000.0,
+    }
+
+    for pattern, kind in generic_patterns:
+        for match in pattern.finditer(text):
+            start, end = match.span()
+            if _is_overlapping(start, end, occupied_spans):
+                continue
+            raw_value = _parse_number(match.group("value"))
+            unit = match.group("unit")
+            if raw_value is None:
+                continue
+            if kind == "currency":
+                normalized_value = raw_value * currency_scale[unit]
+            else:
+                normalized_value = raw_value
+            candidates.append(
+                _build_numeric_candidate(
+                    value_text=match.group(0),
+                    unit_text=unit,
+                    kind=kind,
+                    normalized_value=normalized_value,
+                    start=start,
+                    end=end,
+                )
+            )
+            occupied_spans.append((start, end))
+
+    candidates.sort(key=lambda item: (item["span"][0], item["span"][1]))
+    return candidates
+
+
+def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    if left.get("kind") != right.get("kind"):
+        return False
+    left_value = _safe_float(left.get("normalized_value"))
+    right_value = _safe_float(right.get("normalized_value"))
+    if left_value is None or right_value is None:
+        return False
+
+    if left.get("kind") == "currency":
+        tolerance = max(abs(right_value) * 1e-6, 0.5)
+    elif left.get("kind") == "percent":
+        tolerance = 1e-6
+    else:
+        tolerance = 1e-6
+    return abs(left_value - right_value) <= tolerance
+
+
+def _compute_numeric_equivalence(
+    answer: str,
+    answer_key: str,
+    canonical_evidence: List[EvalEvidence],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    answer_candidates = _extract_numeric_candidates(answer)
+    reference_candidates = _extract_numeric_candidates(answer_key)
+    for evidence in canonical_evidence:
+        reference_candidates.extend(_extract_numeric_candidates(evidence.quote))
+
+    if not answer_candidates or not reference_candidates:
+        return None, {
+            "answer_candidates": answer_candidates,
+            "reference_candidates": reference_candidates,
+            "matched_pair": None,
+            "reason": "missing_candidates",
+        }
+
+    for answer_candidate in answer_candidates:
+        for reference_candidate in reference_candidates:
+            if _numeric_values_equivalent(answer_candidate, reference_candidate):
+                return 1.0, {
+                    "answer_candidates": answer_candidates,
+                    "reference_candidates": reference_candidates,
+                    "matched_pair": {
+                        "answer": answer_candidate,
+                        "reference": reference_candidate,
+                    },
+                    "reason": "equivalent_value",
+                }
+
+    return 0.0, {
+        "answer_candidates": answer_candidates,
+        "reference_candidates": reference_candidates,
+        "matched_pair": None,
+        "reason": "no_equivalent_value",
+    }
+
+
+def _format_runtime_evidence_for_numeric_judge(runtime_evidence: List[Dict[str, Any]]) -> str:
+    if not runtime_evidence:
+        return "-"
+    rows: List[str] = []
+    for row in runtime_evidence[:6]:
+        metadata = row.get("metadata") or {}
+        section = metadata.get("section_path") or metadata.get("section") or "?"
+        rows.append(
+            " | ".join(
+                part
+                for part in [
+                    row.get("source_anchor") or "?",
+                    f"section={section}",
+                    f"claim={row.get('claim', '')}",
+                    f"quote={row.get('quote_span', '')}",
+                ]
+                if part
+            )
+        )
+    return "\n".join(rows)
+
+
+def _format_canonical_evidence_for_numeric_judge(example: EvalExample) -> str:
+    if not example.evidence:
+        return "-"
+    return "\n".join(
+        f"{evidence.section_path}: {evidence.quote}"
+        for evidence in example.evidence[:4]
+        if evidence.quote
+    ) or "-"
+
+
+def _compute_numeric_grounding(
+    llm: ChatGoogleGenerativeAI,
+    example: EvalExample,
+    answer: str,
+    runtime_evidence: List[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    if not answer:
+        return None, {"verdict": "uncertain", "confidence": 0.0, "reason": "empty_answer"}
+
+    prompt = _NUMERIC_GROUNDING_PROMPT.format(
+        question=example.question[:800],
+        answer=answer[:1200],
+        answer_key=example.canonical_answer_key[:800],
+        runtime_evidence=_format_runtime_evidence_for_numeric_judge(runtime_evidence)[:3000],
+        canonical_evidence=_format_canonical_evidence_for_numeric_judge(example)[:2000],
+    )
+    try:
+        response = llm.invoke(prompt)
+        text = (response.content or "").strip()
+        data: Dict[str, Any]
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            data = json.loads(match.group(0)) if match else {}
+        verdict = str(data.get("verdict", "uncertain")).strip().lower()
+        confidence = _safe_float(data.get("confidence"))
+        confidence = confidence if confidence is not None else 0.0
+        if verdict == "grounded":
+            score = 1.0
+        elif verdict == "not_grounded":
+            score = 0.0
+        else:
+            score = None
+        return score, {
+            "verdict": verdict,
+            "confidence": float(max(0.0, min(confidence, 1.0))),
+            "reason": str(data.get("reason", "")),
+            "raw_response": text,
+        }
+    except Exception as exc:
+        logger.warning("numeric grounding calculation failed: %s", exc)
+        return None, {"verdict": "uncertain", "confidence": 0.0, "reason": str(exc)}
+
+
+def _resolve_numeric_judgement(
+    *,
+    equivalence: Optional[float],
+    grounding: Optional[float],
+    retrieval_support: Optional[float],
+    grounding_confidence: float,
+) -> Tuple[Optional[str], Optional[float]]:
+    if equivalence == 0.0 or grounding == 0.0:
+        return "FAIL", max(grounding_confidence, 0.7 if equivalence == 0.0 else 0.6)
+    if equivalence == 1.0 and grounding == 1.0 and retrieval_support == 1.0:
+        confidence = mean([1.0, 1.0, 1.0, max(grounding_confidence, 0.5)])
+        return "PASS", min(confidence, 1.0)
+    if equivalence is None and grounding is None:
+        return "UNCERTAIN", grounding_confidence if grounding_confidence > 0 else None
+    if equivalence == 1.0 and grounding is None:
+        return "UNCERTAIN", grounding_confidence if grounding_confidence > 0 else 0.5
+    if grounding == 1.0 and equivalence is None:
+        return "UNCERTAIN", grounding_confidence if grounding_confidence > 0 else 0.5
+    if retrieval_support == 0.0:
+        return "FAIL", 0.7
+    return "UNCERTAIN", grounding_confidence if grounding_confidence > 0 else None
+
+
+def _compute_numeric_evaluation(
+    *,
+    llm: ChatGoogleGenerativeAI,
+    example: EvalExample,
+    answer: str,
+    runtime_evidence: List[Dict[str, Any]],
+    retrieval_hit_at_k: float,
+) -> Dict[str, Any]:
+    equivalence, equivalence_debug = _compute_numeric_equivalence(
+        answer=answer,
+        answer_key=example.canonical_answer_key,
+        canonical_evidence=example.evidence,
+    )
+    grounding, grounding_debug = _compute_numeric_grounding(
+        llm=llm,
+        example=example,
+        answer=answer,
+        runtime_evidence=runtime_evidence,
+    )
+    retrieval_support = retrieval_hit_at_k
+    final_judgement, confidence = _resolve_numeric_judgement(
+        equivalence=equivalence,
+        grounding=grounding,
+        retrieval_support=retrieval_support,
+        grounding_confidence=float(grounding_debug.get("confidence", 0.0) or 0.0),
+    )
+    return {
+        "numeric_equivalence": equivalence,
+        "numeric_grounding": grounding,
+        "numeric_retrieval_support": retrieval_support,
+        "numeric_final_judgement": final_judgement,
+        "numeric_confidence": confidence,
+        "numeric_debug": {
+            "equivalence": equivalence_debug,
+            "grounding": grounding_debug,
+        },
+    }
 
 
 def _expected_sections_for_example(example: EvalExample) -> List[str]:
@@ -439,6 +790,7 @@ class RAGEvaluator:
         query_type = "unknown"
         retrieved_docs: List[Any] = []
         citations: List[str] = []
+        runtime_evidence: List[Dict[str, Any]] = []
 
         try:
             result = self.agent.run(example.question)
@@ -446,6 +798,7 @@ class RAGEvaluator:
             query_type = result.get("query_type", "unknown")
             retrieved_docs = result.get("retrieved_docs", [])
             citations = result.get("citations", [])
+            runtime_evidence = result.get("evidence_items", []) or []
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
@@ -462,6 +815,16 @@ class RAGEvaluator:
         section_match_rate = _compute_section_match_rate(example, retrieved_docs)
         citation_coverage = _compute_citation_coverage(example, citations)
         missing_info_compliance = _compute_missing_info_compliance(example, answer)
+        numeric_eval: Dict[str, Any] = {}
+
+        if (example.category or "").lower() == "numeric_fact":
+            numeric_eval = _compute_numeric_evaluation(
+                llm=self._llm,
+                example=example,
+                answer=answer,
+                runtime_evidence=runtime_evidence,
+                retrieval_hit_at_k=retrieval_hit_at_k,
+            )
 
         if _looks_like_full_abstention_answer(answer) and (example.category or "").lower() != "missing_information":
             # Penalize abstentions on answerable questions even when the judge model is lenient.
@@ -496,6 +859,13 @@ class RAGEvaluator:
             latency_sec=latency,
             citations=citations,
             retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),
+            runtime_evidence=runtime_evidence,
+            numeric_equivalence=numeric_eval.get("numeric_equivalence"),
+            numeric_grounding=numeric_eval.get("numeric_grounding"),
+            numeric_retrieval_support=numeric_eval.get("numeric_retrieval_support"),
+            numeric_final_judgement=numeric_eval.get("numeric_final_judgement"),
+            numeric_confidence=numeric_eval.get("numeric_confidence"),
+            numeric_debug=numeric_eval.get("numeric_debug", {}),
             missing_info_policy=example.missing_info_policy,
             error=error,
         )
@@ -521,18 +891,24 @@ class RAGEvaluator:
                 logger.info("Evaluating [%s/%s] %s", index, len(examples), example.id)
                 result = self.evaluate_one(example)
                 results.append(result)
-                mlflow.log_metrics(
-                    {
-                        "faithfulness": result.faithfulness,
-                        "answer_relevancy": result.answer_relevancy,
-                        "context_recall": result.context_recall,
-                        "retrieval_hit_at_k": result.retrieval_hit_at_k,
-                        "section_match_rate": result.section_match_rate,
-                        "citation_coverage": result.citation_coverage,
-                        "latency_sec": result.latency_sec,
-                    },
-                    step=index,
-                )
+                metrics = {
+                    "faithfulness": result.faithfulness,
+                    "answer_relevancy": result.answer_relevancy,
+                    "context_recall": result.context_recall,
+                    "retrieval_hit_at_k": result.retrieval_hit_at_k,
+                    "section_match_rate": result.section_match_rate,
+                    "citation_coverage": result.citation_coverage,
+                    "latency_sec": result.latency_sec,
+                }
+                if result.numeric_equivalence is not None:
+                    metrics["numeric_equivalence"] = result.numeric_equivalence
+                if result.numeric_grounding is not None:
+                    metrics["numeric_grounding"] = result.numeric_grounding
+                if result.numeric_retrieval_support is not None:
+                    metrics["numeric_retrieval_support"] = result.numeric_retrieval_support
+                if result.numeric_confidence is not None:
+                    metrics["numeric_confidence"] = result.numeric_confidence
+                mlflow.log_metrics(metrics, step=index)
 
             valid_results = [result for result in results if result.error is None]
             error_rate = (len(results) - len(valid_results)) / len(results) if results else 0.0
@@ -541,6 +917,26 @@ class RAGEvaluator:
                 values = [getattr(result, attr) for result in valid_results]
                 return float(np.mean(values)) if values else 0.0
 
+            def _average_optional(attr: str) -> Optional[float]:
+                values = [getattr(result, attr) for result in valid_results if getattr(result, attr) is not None]
+                return float(np.mean(values)) if values else None
+
+            numeric_results = [
+                result
+                for result in valid_results
+                if (result.numeric_final_judgement or "").strip()
+            ]
+            numeric_pass_rate = (
+                sum(1.0 for result in numeric_results if result.numeric_final_judgement == "PASS") / len(numeric_results)
+                if numeric_results
+                else None
+            )
+            numeric_uncertain_rate = (
+                sum(1.0 for result in numeric_results if result.numeric_final_judgement == "UNCERTAIN") / len(numeric_results)
+                if numeric_results
+                else None
+            )
+
             aggregate = {
                 "faithfulness": _average("faithfulness"),
                 "answer_relevancy": _average("answer_relevancy"),
@@ -548,11 +944,17 @@ class RAGEvaluator:
                 "retrieval_hit_at_k": _average("retrieval_hit_at_k"),
                 "section_match_rate": _average("section_match_rate"),
                 "citation_coverage": _average("citation_coverage"),
+                "numeric_equivalence": _average_optional("numeric_equivalence"),
+                "numeric_grounding": _average_optional("numeric_grounding"),
+                "numeric_retrieval_support": _average_optional("numeric_retrieval_support"),
+                "numeric_confidence": _average_optional("numeric_confidence"),
+                "numeric_pass_rate": numeric_pass_rate,
+                "numeric_uncertain_rate": numeric_uncertain_rate,
                 "avg_score": _average("aggregate_score"),
                 "avg_latency": _average("latency_sec"),
                 "error_rate": error_rate,
             }
-            mlflow.log_metrics({"agg_" + key: value for key, value in aggregate.items()})
+            mlflow.log_metrics({"agg_" + key: value for key, value in aggregate.items() if value is not None})
 
             artifact_path = _PROJECT_ROOT / "mlruns" / "_eval_artifact_tmp.json"
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
@@ -570,6 +972,11 @@ class RAGEvaluator:
                             "retrieval_hit_at_k": result.retrieval_hit_at_k,
                             "section_match_rate": result.section_match_rate,
                             "citation_coverage": result.citation_coverage,
+                            "numeric_equivalence": result.numeric_equivalence,
+                            "numeric_grounding": result.numeric_grounding,
+                            "numeric_retrieval_support": result.numeric_retrieval_support,
+                            "numeric_final_judgement": result.numeric_final_judgement,
+                            "numeric_confidence": result.numeric_confidence,
                             "missing_info_compliance": result.missing_info_compliance,
                             "latency_sec": result.latency_sec,
                             "query_type": result.query_type,
@@ -592,6 +999,7 @@ class RAGEvaluator:
                 "  Retrieval Hit@k  : %.3f\n"
                 "  Section Match    : %.3f\n"
                 "  Citation Coverage: %.3f\n"
+                "  Numeric Pass Rate: %s\n"
                 "  Avg Score        : %.3f\n"
                 "  Error Rate       : %.1f%%",
                 len(results),
@@ -601,6 +1009,7 @@ class RAGEvaluator:
                 aggregate["retrieval_hit_at_k"],
                 aggregate["section_match_rate"],
                 aggregate["citation_coverage"],
+                "-" if aggregate["numeric_pass_rate"] is None else f"{aggregate['numeric_pass_rate']:.3f}",
                 aggregate["avg_score"],
                 aggregate["error_rate"] * 100,
             )

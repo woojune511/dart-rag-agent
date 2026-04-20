@@ -45,6 +45,9 @@
 - full abstention 패턴만 answerable query 페널티로 취급하도록 평가 보정
 - `release_generalization`을 회사별 job으로 재실행해 `v4_generalization_fix_2026-04-17` 완료
 - cross-company summary 생성까지 확인
+- `v6` / `v7` 삼성전자 single-company full eval로 faithfulness 회복 실험 수행
+- structured runtime evidence 기록 확인
+- answer generation을 `compression -> validation` 구조로 분리
 
 ## 최신 benchmark 메모
 
@@ -177,11 +180,95 @@ full eval (공통 5개 질문, v4 vs v5 비교):
   - `benchmarks/results/**/stores/`
   - `mlflow.db`
 
+## v6 / v7 faithfulness 실험 메모
+
+기준 run:
+
+- `benchmarks/results/v6_faithfulness_guard_2026-04-20`
+- `benchmarks/results/v7_faithfulness_guard_refine_2026-04-20`
+
+핵심 결과:
+
+- `v5` baseline `contextual_all_2500_320`
+  - full faithfulness `0.380`
+- `v6`
+  - full faithfulness `0.500`
+- `v7`
+  - full faithfulness `0.600`
+
+세부 해석:
+
+- `v6`와 `v7`에서 `business_overview` 문항은 일부 회복됐다.
+- 하지만 `risk_analysis_001`은 다시 `0.0`으로 흔들렸다.
+- 즉 최근 rule 추가는 일부 문항을 개선했지만, 다른 문항에서 새 부작용을 만들었다.
+- 이건 retrieval 문제가 아니라 answer generation이 benchmark judge에 맞춰 흔들리고 있다는 신호로 본다.
+
+판단:
+
+- 지금은 더 많은 hardcoded rule을 추가할 단계가 아니다.
+- 다음 단계는 score를 더 올리는 것이 아니라, answer generation 구조를 더 단순하고 principled하게 재정리하는 것이다.
+- 관련 원칙은 [answer_generation_principles.md](docs/answer_generation_principles.md)에 정리했다.
+
+## numeric evaluator 한계와 다음 방향
+
+structured runtime evidence를 붙인 뒤에도 `numeric_fact_001`은 사람이 보기엔 사실상 맞는 답인데 `faithfulness = 0.0`이 반복됐다.
+
+대표 예:
+
+- canonical 표현: `300조 8,709억원`
+- actual answer 표현: `300,870,903 백만원`
+
+이 케이스는 generation failure라기보다, **현재 서술형 faithfulness judge가 숫자 동치성을 충분히 인정하지 못하는 evaluator limitation**으로 해석한다.
+
+현재 판단:
+
+- 숫자 질문은 일반 서술형 `faithfulness`와 분리해서 평가해야 한다.
+- generation rule을 더 붙이기보다 evaluator를 분리하는 것이 우선이다.
+- 다음 단계는 [numeric_evaluation_architecture.md](docs/numeric_evaluation_architecture.md)의 parallel numeric evaluators + resolver 구조를 실제 evaluator에 도입하는 것이다.
+
+## numeric evaluator 구현 및 재검증 메모
+
+반영 범위:
+
+- `src/ops/evaluator.py`
+  - `Numeric Extractor`
+  - `Numeric Equivalence Checker`
+  - `Grounding Judge`
+  - `Retrieval Support Check`
+  - `Conflict Resolver`
+- `src/ops/benchmark_runner.py`
+  - `results.json`, `review.csv`, `review.md`에 numeric evaluator 결과 직렬화
+
+재검증 run:
+
+- `benchmarks/results/dev_fast_cache_check_2026-04-17`
+
+핵심 결과:
+
+- `numeric_fact_001`
+  - generic `faithfulness = 0.0`
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  - `numeric_final_judgement = PASS`
+
+해석:
+
+- 숫자 질문에서는 generic `faithfulness`가 여전히 false fail을 만들 수 있다.
+- 하지만 새 numeric evaluator path는 같은 케이스를 `PASS`로 올바르게 해석했다.
+- 따라서 앞으로 `numeric_fact`의 주 판정은 `numeric_final_judgement`를 우선하고, generic `faithfulness`는 보조 지표로 본다.
+
 ## 다음 세션 우선순위
 
-1. 결정 42 수정 후 full eval 재실험 (faithfulness 회복 확인)
-   - risk evidence verbatim 제한 (D)
-   - evaluator contexts[:8] (E)
-2. 전체 3개사(삼성전자·SK하이닉스·NAVER) `contextual_all` 재벤치마크
-3. missing-information hallucination 억제 보강
-4. `parent_only` / `selective_v2` 재설계 여부는 재벤치마크 결과 후 판단
+1. 최근 answer-stage rule inventory 정리
+   - 유지 / 실험용 / 제거 후보 분류
+2. answer generation 구조 재설계
+   - evidence compression 중심으로 재정의
+   - benchmark-only 최적화와 운영 기본값 분리
+3. numeric evaluator 후속 정리
+   - aggregate / summary에서 `numeric_final_judgement`를 더 전면에 노출
+   - `UNCERTAIN` 버킷 해석 규칙 정교화
+4. NAVER business overview retrieval 실패 원인 정리
+5. missing-information hallucination 억제 보강
+6. 그 다음에 `dev_fast` 기준 재실험
+7. 실패 유형이 줄어든 뒤에만 전체 3개사 재벤치마크

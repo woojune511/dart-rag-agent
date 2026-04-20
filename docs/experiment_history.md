@@ -215,3 +215,113 @@
 2. 다기업 일반화로 확장하자 공통 승자가 사라졌다.
 3. parser / evaluation / workflow를 보정했지만, 핵심 실패는 여전히 query-stage abstention과 category-specific retrieval miss였다.
 4. 따라서 지금의 핵심 과제는 “더 싼 ingest mode를 찾는 것”보다 “현재 저비용 후보가 왜 답을 포기하는지 줄이는 것”이다.
+
+---
+
+## v5 / v6 / v7 Faithfulness Follow-up
+
+참조:
+
+- [v5_fulleval_2026-04-20/삼성전자-2024/summary.md](../benchmarks/results/v5_fulleval_2026-04-20/삼성전자-2024/summary.md)
+- [v6_faithfulness_guard_2026-04-20/삼성전자-2024/summary.md](../benchmarks/results/v6_faithfulness_guard_2026-04-20/삼성전자-2024/summary.md)
+- [v7_faithfulness_guard_refine_2026-04-20/삼성전자-2024/summary.md](../benchmarks/results/v7_faithfulness_guard_refine_2026-04-20/삼성전자-2024/summary.md)
+
+### 코드 / 설정 변화
+
+- `v5`
+  - query_type 6종 확장
+  - retrieval lane 분리
+  - risk evidence verbatim 제한
+  - evaluator context 확장
+- `v6`
+  - business_overview / numeric / risk answer를 더 보수적으로 만드는 guard 추가
+  - section bias와 output style 강화
+- `v7`
+  - 숫자 1개 / 개수 1개 질문을 더 짧게 답하도록 추가 제약
+
+### 핵심 결과
+
+- baseline `contextual_all_2500_320`의 삼성전자 5문항 full eval faithfulness:
+  - `v5`: `0.380`
+  - `v6`: `0.500`
+  - `v7`: `0.600`
+- 하지만 `v7`에서는:
+  - `business_overview_001`, `business_overview_003` 회복
+  - `risk_analysis_001`은 다시 `0.0`
+
+### 해석
+
+- 일부 metric 회복은 가능했지만, 질문 유형별 rule 추가가 다른 유형에서 새 부작용을 만들었다.
+- 이건 “hardcoded rule을 더 붙이면 장기적으로 안 된다”는 신호로 해석한다.
+- 따라서 이후 방향은 점수 자체를 더 올리는 것보다:
+  - answer generation 원칙 문서화
+  - 최근 rule inventory 분류
+  - evidence compression 중심의 구조 재정의
+로 옮긴다.
+
+---
+
+## Numeric Evaluator Follow-up
+
+참조:
+
+- [numeric_evaluation_architecture.md](numeric_evaluation_architecture.md)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
+
+### 코드 / 설정 변화
+
+- structured runtime evidence를 benchmark 결과에 기록
+- 숫자 질문 false fail을 generation 문제가 아니라 evaluator 문제로 분리해서 해석
+- `numeric_fact`는 일반 서술형 `faithfulness`와 분리해 다루는 architecture 방향 문서화
+
+### 핵심 관찰
+
+- `numeric_fact_001`은 사람이 보기엔 사실상 맞는 답인데도 `faithfulness = 0.0`이 반복됐다.
+- 대표 케이스:
+  - canonical 표현: `300조 8,709억원`
+  - actual answer 표현: `300,870,903 백만원`
+- runtime evidence와 retrieved context는 충분했기 때문에, 이 케이스는 retrieval failure보다 evaluator limitation에 가깝다고 판단했다.
+
+### 해석
+
+- 숫자 질문은 값 동치성, grounding, retrieval support를 따로 봐야 한다.
+- 따라서 다음 단계는 generation rule 추가보다:
+  - `Numeric Extractor`
+  - `Numeric Equivalence Checker`
+  - `Grounding Judge`
+  - `Retrieval Support Check`
+  - `Conflict Resolver`
+  구조를 실제 evaluator에 반영하는 것이다.
+
+---
+
+## Numeric Evaluator Implementation
+
+참조:
+
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv)
+
+### 코드 / 설정 변화
+
+- `src/ops/evaluator.py`에 `numeric_fact` 전용 evaluator path 추가
+  - `Numeric Extractor`
+  - `Numeric Equivalence Checker`
+  - `Grounding Judge`
+  - `Retrieval Support Check`
+  - `Conflict Resolver`
+- `src/ops/benchmark_runner.py`가 numeric evaluator 결과를 benchmark artifact에 직렬화
+
+### 핵심 결과
+
+- `numeric_fact_001`
+  - generic `faithfulness = 0.0`
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  - `numeric_final_judgement = PASS`
+
+### 해석
+
+- 숫자 질문에서 generic `faithfulness`와 실제 정답성 / grounding 해석이 갈라질 수 있다는 점이 benchmark 결과에 명확히 드러났다.
+- 이 시점부터 `numeric_fact`의 주 판정은 `numeric_final_judgement`로 보고, generic `faithfulness`는 보조 참고치로 낮춰 해석한다.

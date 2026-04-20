@@ -4,17 +4,20 @@
 
 | Company | Experiment | Screen Pass | Critical Misses | Hit@k | Section | Citation | Contam | API Calls | Est. Cost (USD) | Ingest (s) | API Δ | Time Δ | Cost Δ | Full Faithfulness | Full Recall |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 삼성전자 2024 | contextual_all_2500_320 | yes | 0 | 1.000 | 0.350 | 0.867 | 0.000 | 300 | 1.0633 | 570.976 | 0.0% | 0.0% | 0.0% | 0.660 | 0.600 |
-| 삼성전자 2024 | contextual_parent_only_2500_320 | yes | 0 | 1.000 | 0.300 | 0.800 | 0.000 | 40 | 0.1240 | 54.017 | 86.7% | 90.5% | 88.3% | 0.740 | 0.800 |
-| 삼성전자 2024 | contextual_selective_v2_2500_320 | no | 2 | 0.600 | 0.225 | 0.733 | 0.000 | 127 | 0.4063 | 153.136 | 57.7% | 73.2% | 61.8% | - | - |
+| 삼성전자 2024 | contextual_all_2500_320 | yes | 0 | 1.000 | 0.325 | 0.800 | 0.000 | 300 | 0.9015 | 317.568 | 0.0% | 0.0% | 0.0% | 0.600 | 0.650 |
+| 삼성전자 2024 | contextual_parent_only_2500_320 | no | 1 | 0.800 | 0.300 | 0.800 | 0.000 | 40 | 0.1311 | 55.947 | 86.7% | 82.4% | 85.5% | - | - |
+| 삼성전자 2024 | contextual_selective_v2_2500_320 | no | 2 | 0.600 | 0.250 | 0.733 | 0.000 | 127 | 0.4001 | 151.407 | 57.7% | 52.3% | 55.6% | - | - |
 
 ## Winner Ranking
 
 | Rank | Experiment | Pass Count | Company Count | Critical Misses | Avg API Δ | Avg Time Δ | Avg Cost Δ | Avg Faithfulness | Avg Recall |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | contextual_parent_only_2500_320 | 1 | 1 | 0 | 86.7% | 90.5% | 88.3% | 0.740 | 0.800 |
-| 2 | contextual_all_2500_320 | 1 | 1 | 0 | 0.0% | 0.0% | 0.0% | 0.660 | 0.600 |
-| 3 | contextual_selective_v2_2500_320 | 0 | 1 | 2 | 57.7% | 73.2% | 61.8% | - | - |
+| 1 | contextual_all_2500_320 | 1 | 1 | 0 | 0.0% | 0.0% | 0.0% | 0.600 | 0.650 |
+| 2 | contextual_parent_only_2500_320 | 0 | 1 | 1 | 86.7% | 82.4% | 85.5% | - | - |
+
+Failure Notes for `contextual_parent_only_2500_320`
+- 삼성전자 2024: retrieval_hit_at_k == 0 for risk_analysis_001 | retrieval_hit_at_k dropped by 0.200
+| 3 | contextual_selective_v2_2500_320 | 0 | 1 | 2 | 57.7% | 52.3% | 55.6% | - | - |
 
 Failure Notes for `contextual_selective_v2_2500_320`
 - 삼성전자 2024: retrieval_hit_at_k == 0 for business_overview_001 | retrieval_hit_at_k == 0 for risk_analysis_001 | retrieval_hit_at_k dropped by 0.400
