@@ -261,6 +261,57 @@
 
 ---
 
+## Typed Compression / Validation and Sentence-Level Validator
+
+참조:
+
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
+- [dev_fulleval_sentence_validator_2026-04-21/삼성전자-2024/summary.md](../benchmarks/results/dev_fulleval_sentence_validator_2026-04-21/삼성전자-2024/summary.md)
+- [dev_focus_validator_2026-04-21/삼성전자-2024/summary.md](../benchmarks/results/dev_focus_validator_2026-04-21/삼성전자-2024/summary.md)
+
+### 코드 / 설정 변화
+
+- `compression -> validation`을 typed output으로 확장
+  - `selected_claim_ids`
+  - `draft_points`
+  - `kept_claim_ids`
+  - `dropped_claim_ids`
+  - `unsupported_sentences`
+  - `sentence_checks`
+- sentence-level validator 추가
+- validator 결과를 그대로 쓰지 않고, 후처리에서
+  - intro sentence 제거
+  - 근거 없는 keep 강등
+  - 중복 claim 제거
+  - 과잉 일반화 문장 제거
+  로 연결
+
+### 핵심 결과
+
+- typed artifact는 review artifact에 안정적으로 남는다.
+- 하지만 5문항 full eval 기준으로는:
+  - retrieval / citation 지표는 소폭 개선
+  - `contextual_all`의 answer 품질 지표는 오히려 하락
+- 3문항 focus run에서는 처음으로 실제 pruning이 의미 있게 발생했다.
+  - `contextual_all / risk_analysis_001`
+    - 도입 문장 `drop_redundant`
+  - `contextual_parent_only / risk_analysis_001`
+    - 도입 문장 `drop_unsupported`
+    - `dropped_claim_ids = ev_002`
+
+### 해석
+
+- validator는 이제 “보이기만 하는 단계”는 지났다.
+- 하지만 아직 “잘 자르는 validator”는 아니다.
+- 현재 병목은 validator 강도보다, `business_overview` / `risk`에서 어떤 claim을 같이 선택하느냐에 더 가깝다.
+- 따라서 다음 단계는 validator를 더 세게 만드는 것보다:
+  - `claim_type`
+  - `topic_key`
+  - group-wise selection
+  중심으로 compression 앞단을 더 구조화하는 쪽이다.
+
+---
+
 ## Numeric Evaluator Follow-up
 
 참조:

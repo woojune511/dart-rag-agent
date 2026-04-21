@@ -18,6 +18,8 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
 
 추가로 현재 answer generation은 `compression -> validation` 구조를 유지하되, 최근에는 문자열 중심 결과가 아니라 **typed compression / validation output**을 benchmark artifact에 남기는 방향으로 확장됐다. 따라서 review artifact에서는 answer 자체뿐 아니라 어떤 claim을 선택했고 무엇을 버렸는지도 같이 확인할 수 있어야 한다.
 
+최근에는 sentence-level validator와 후처리 정규화를 추가해, `sentence_checks` verdict가 실제 `final_answer`, `unsupported_sentences`, `dropped_claim_ids`에 반영되도록 보강했다. 다만 현재 관찰상 이 validator는 “실제로 pruning을 시작한 단계”이지, 아직 answer quality를 안정적으로 끌어올리는 단계는 아니다.
+
 현재 baseline:
 
 - `contextual_all_2500_320`
@@ -209,6 +211,25 @@ benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 
 
 이 필드들은 특히 `business_overview`, `risk`처럼 retrieval은 맞는데 answer가 과잉 설명으로 흔들리는 케이스를 디버깅하는 데 중요하다.
 
+추가 필드:
+
+- `sentence_checks`
+  - 문장별 verdict
+  - `keep`
+  - `drop_overextended`
+  - `drop_unsupported`
+  - `drop_redundant`
+
+현재 해석 원칙:
+
+- `typed artifact`는 이제 신뢰할 만하게 남는다.
+- 하지만 validator 성능은 아직 제한적이므로,
+  - `dropped_claim_ids`
+  - `unsupported_sentences`
+  - `sentence_checks`
+  를 “왜 잘랐는지” 설명하는 용도로 우선 사용한다.
+- 다음 단계는 validator 강도 추가보다 `claim_type` / `topic_key` 기반 selection 보강이다.
+
 ## 지표 정의
 
 ### Speed
@@ -257,6 +278,49 @@ benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 
 `numeric_fact`는 일반 서술형 질문과 동일한 `faithfulness` judge만으로 채점하지 않는 방향으로 전환할 예정이다.
 
 숫자 질문에서는 특히 다음 문제가 크다.
+
+- 같은 값인데 단위나 표기 방식이 달라 generic `faithfulness` judge가 false fail을 줄 수 있다.
+- 따라서 `numeric_fact`에서는 `faithfulness`를 참고치로만 보고,
+  - `numeric_equivalence`
+  - `numeric_grounding`
+  - `numeric_retrieval_support`
+  - `numeric_final_judgement`
+  를 주 판정으로 해석한다.
+
+## 최신 validator 실험 메모
+
+### `dev_fulleval_sentence_validator_2026-04-21`
+
+삼성전자 5문항 full eval 기준:
+
+- `contextual_all_2500_320`
+  - `faithfulness 0.540`
+  - `relevancy 0.586`
+  - `recall 0.600`
+  - `hit@k 1.000`
+  - `section 0.325`
+  - `citation 0.867`
+
+이전 5문항 run 대비 해석:
+
+- retrieval / citation 지원은 소폭 개선
+- answer quality 지표는 아직 개선되지 않음
+- `sentence_checks`는 남지만, `dropped_claim_ids` / `unsupported_sentences`는 여전히 드물다
+
+### `dev_focus_validator_2026-04-21`
+
+삼성전자 3문항 focus run 기준:
+
+- validator가 실제로 prune verdict를 내기 시작했다.
+- `risk_analysis_001`
+  - `contextual_all`: 도입 문장 `drop_redundant`
+  - `contextual_parent_only`: 도입 문장 `drop_unsupported`, `dropped_claim_ids = ev_002`
+
+해석:
+
+- validator는 이제 “기록만 하는 단계”는 아님
+- 하지만 아직 “잘 자르는 validator”는 아니며,
+- 실제 병목은 `business_overview` / `risk`에서 어떤 claim을 같이 선택하는지에 더 가깝다
 
 - 같은 값을 다른 단위로 표현한 경우
 - 표 셀 값과 문단 요약 값이 동치인 경우

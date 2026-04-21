@@ -170,7 +170,8 @@
     ]
   },
   "full_eval_candidates": [
-    "contextual_all_2500_320"
+    "contextual_all_2500_320",
+    "contextual_parent_only_2500_320"
   ],
   "results": [
     {
@@ -334,11 +335,11 @@
         }
       },
       "store": {
-        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_fast_cache_check_2026-04-17\\삼성전자-2024\\stores\\contextual-all-2500-320",
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_fulleval_sentence_validator_2026-04-21\\삼성전자-2024\\stores\\contextual-all-2500-320",
         "collection_name": "dart_reports_v2_contextual-all-2500-320"
       },
       "parse": {
-        "elapsed_sec": 0.35424360004253685,
+        "elapsed_sec": 1.8436386999674141,
         "chunk_count": 300
       },
       "ingest": {
@@ -348,13 +349,13 @@
         "api_calls": 300,
         "fallback_count": 0,
         "prompt_chars": 151995,
-        "response_chars": 11476,
+        "response_chars": 11425,
         "prompt_tokens": 86210,
-        "output_tokens": 420322,
-        "total_tokens": 506532,
+        "output_tokens": 348004,
+        "total_tokens": 434214,
         "max_workers": 8,
         "batch_size": 16,
-        "elapsed_sec": 568.7025555999717,
+        "elapsed_sec": 328.1058461999637,
         "contextualized_chunks": 300
       },
       "cache": {
@@ -374,7 +375,7 @@
           "ingest_mode": "contextual_all",
           "k": 8,
           "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
-          "runner_signature": "a75a2c04fe01a553f6c49d3c046d090cd5dc7c0febae2a19c9ef128197c68eba",
+          "runner_signature": "56674096a8ef1074c7fd23d9a9be726baa3f9fc65736d7c3c011ee2c35c311bc",
           "parent_hybrid_short_text_threshold": 700,
           "parent_hybrid_sections": [
             "매출현황",
@@ -395,7 +396,7 @@
           ]
         }
       },
-      "estimated_ingest_cost_usd": 1.076668,
+      "estimated_ingest_cost_usd": 0.8958729999999999,
       "smoke": {
         "queries": [
           {
@@ -403,23 +404,29 @@
             "category": "business_overview",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 35.367697699985,
+            "latency_sec": 33.61680570000317,
             "query_type": "business_overview",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자는 제품 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, Harman의 4개 부문으로 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰 등, DS 부문은 DRAM, NAND Flash 등, SDC는 스마트폰용 OLED 패널 등, Harman은 디지털 콕핏, 카오디오 등을 포함합니다.",
-            "answer_preview": "삼성전자는 제품 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, Harman의 4개 부문으로 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰 등, DS 부문은 DRAM, NAND Flash 등, SDC는 스마트폰용 OLED 패널 등, Harman은 디지털 콕핏, 카오디오 등을 포함합니다.",
+            "answer": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(패널 사업), Harman(전장부품사업 등)으로 나누어 경영합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰 등, DS 부문에서 DRAM, NAND Flash 등, SDC에서 스마트폰용 OLED 패널, Harman에서 디지털 콕핏, 카오디오 등입니다.",
+            "answer_preview": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(패널 사업), Harman(전장부품사업 등)으로 나누어 경영합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰 등, DS 부문에서 DRAM, NAND Flash 등, SDC에서 스마트폰용 OLED 패널, Harman에서 디지털 콕핏, 카오디오 등입니다.",
             "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 1.214)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.818)",
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.816)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.751)",
-              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.747)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.746)",
-              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / table (score: 0.743)"
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.748)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.747)",
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.745)"
             ],
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -437,12 +444,6 @@
                 "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "경영진단",
-                "section_path": "IV. 이사의 경영진단 및 분석의견"
               },
               {
                 "company": "삼성전자",
@@ -465,8 +466,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
               }
             ],
             "error": null
@@ -476,23 +477,29 @@
             "category": "numeric_fact",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 18.51443919999292,
+            "latency_sec": 16.64094740001019,
             "query_type": "numeric_fact",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다 (삼성전자 | 2024).",
-            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다 (삼성전자 | 2024).",
+            "answer": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
+            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
             "citations": [
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.149)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.145)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.147)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.143)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.142)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.142)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 1.088)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.944)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.943)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.871)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.848)"
+              "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / paragraph (score: 0.586)"
             ],
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -526,20 +533,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
               }
             ],
             "error": null
@@ -549,18 +550,18 @@
             "category": "risk_analysis",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 39.92589670000598,
+            "latency_sec": 45.978787900006864,
             "query_type": "risk",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자 2024년 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 시장위험, 환율변동위험, 이자율변동위험, 주가변동위험, 신용위험, 유동성위험.",
-            "answer_preview": "삼성전자 2024년 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 시장위험, 환율변동위험, 이자율변동위험, 주가변동위험, 신용위험, 유동성위험.",
+            "answer": "삼성전자 2024 사업보고서 [II. 사업의 내용 > 5. 위험관리 및 파생거래]에 따르면, 주요 재무 리스크는 다음과 같습니다. 시장위험: 환율변동위험, 이자율변동위험, 주가변동위험을 포함합니다. 환율변동위험은 글로벌 영업활동으로 인해 기능통화와 다른 통화로 거래할 때 발생하며, USD, EUR 등이 주요 노출 통화입니다. 이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험으로, 주로 예금 및 변동금리부 차입금에서 발생합니다. 주가변동위험은 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품 투자에서 발생합니다. 신용위험: 고객 또는 거래상대방이 계약조건상 의무를 지키지 못할 때 발생하며, 금융자산 장부금액이 최대 노출액입니다. 유동성위험",
+            "answer_preview": "삼성전자 2024 사업보고서 [II. 사업의 내용 > 5. 위험관리 및 파생거래]에 따르면, 주요 재무 리스크는 다음과 같습니다. 시장위험: 환율변동위험, 이자율변동위험, 주가변동위험을 포함합니다. 환율변동위험은 글로벌 영업활동으로 인해 기능통화와 다른 통화로 거래할 때 발생하며, USD, EUR 등이 주요 노출 통화입니다. 이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험으로, 주로 예금 및 변동",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / paragraph (score: 1.196)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.737)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.826)",
               "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.736)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.631)",
+              "[삼성전자] 2024년 사업보고서 / V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항 / table (score: 0.734)",
               "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.623)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.551)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.550)"
@@ -581,8 +582,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
               },
               {
                 "company": "삼성전자",
@@ -593,8 +594,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
               },
               {
                 "company": "삼성전자",
@@ -622,21 +623,21 @@
             "category": "r_and_d_investment",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 27.823068400030024,
+            "latency_sec": 23.51339310000185,
             "query_type": "numeric_fact",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자의 2024년 연구개발비용 총계는 35조 215억원이며, 이 중 개발비 자산화된 금액은 없고 정부보조금으로 차감된 금액을 제외한 34조 9,981억원이 당기비용으로 회계처리되었습니다.",
-            "answer_preview": "삼성전자의 2024년 연구개발비용 총계는 35조 215억원이며, 이 중 개발비 자산화된 금액은 없고 정부보조금으로 차감된 금액을 제외한 34조 9,981억원이 당기비용으로 회계처리되었습니다.",
+            "answer": "삼성전자의 2024년(제56기) 연구개발비용은 35조 215억원이며, 이 중 34조 9,981억원이 당기비용으로 회계처리되었습니다.",
+            "answer_preview": "삼성전자의 2024년(제56기) 연구개발비용은 35조 215억원이며, 이 중 34조 9,981억원이 당기비용으로 회계처리되었습니다.",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 1.016)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.826)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.820)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.816)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.776)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.745)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.743)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.640)"
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.781)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.744)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.744)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.589)"
             ],
             "retrieved_metadata": [
               {
@@ -684,8 +685,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
               }
             ],
             "error": null
@@ -695,20 +696,20 @@
             "category": "missing_information",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 24.335521000029985,
+            "latency_sec": 25.544448599976022,
             "query_type": "qa",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "제공된 삼성전자 2024 사업보고서 structured evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래에 대한 명시적인 언급이 없습니다.",
-            "answer_preview": "제공된 삼성전자 2024 사업보고서 structured evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래에 대한 명시적인 언급이 없습니다.",
+            "answer": "제공된 삼성전자 2024 사업보고서 structured evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시된 내용은 없습니다.",
+            "answer_preview": "제공된 삼성전자 2024 사업보고서 structured evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시된 내용은 없습니다.",
             "citations": [
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.951)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.950)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.949)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.948)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.946)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.946)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.830)",
-              "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.826)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.788)",
+              "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.827)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.787)",
               "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / paragraph (score: 0.622)"
             ],
             "retrieved_metadata": [
@@ -766,7 +767,7 @@
         ],
         "summary": {
           "count": 5,
-          "avg_latency_sec": 29.193324600008783,
+          "avg_latency_sec": 29.05887653999962,
           "avg_retrieved_count": 8.0,
           "avg_citation_count": 8.0
         }
@@ -774,27 +775,13 @@
       "screening_eval": {
         "question_count": 5,
         "aggregate": {
-          "retrieval_hit_at_k": 0.8,
-          "section_match_rate": 0.3,
-          "citation_coverage": 0.7999999999999999,
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.325,
+          "citation_coverage": 0.8666666666666667,
           "contamination_rate": 0.0,
-          "avg_latency": 25.929754659999162,
+          "avg_latency": 29.80944528001128,
           "error_rate": 0.0,
-          "failure_examples": [
-            {
-              "id": "business_overview_001",
-              "category": "business_overview",
-              "failure_flags": [
-                "hit_at_k_zero",
-                "section_match_zero"
-              ],
-              "top_retrieved": [
-                "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
-                "삼성전자/2024/I. 회사의 개요 > 1. 회사의 개요",
-                "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황"
-              ]
-            }
-          ]
+          "failure_examples": []
         },
         "per_question": [
           {
@@ -810,13 +797,19 @@
               "요약재무"
             ],
             "answer_key": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
-            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
+            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 1.0,
+            "section_match_rate": 0.875,
             "citation_coverage": 1.0,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -850,20 +843,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
               }
             ],
             "top_retrieved": [
@@ -873,7 +860,7 @@
             ],
             "failure_flags": [],
             "query_type": "numeric_fact",
-            "latency_sec": 17.5056374000269,
+            "latency_sec": 18.834969400020782,
             "error": null
           },
           {
@@ -887,13 +874,19 @@
               "사업개요"
             ],
             "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
-            "answer_preview": "삼성전자는 제품 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, Harman의 4개 부문으로 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰 등, DS 부문은 DRAM, NAND Flash 등, SDC는 스마트폰용 OLED 패널 등, Harman은 디지털 콕핏, 카오디오 등을 포함합니다.",
-            "retrieval_hit_at_k": 0.0,
-            "section_match_rate": 0.0,
+            "answer_preview": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(패널 사업), Harman(전장부품사업 등)으로 나누어 경영합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰 등, DS 부문에서 DRAM, NAND Flash 등, SDC에서 스마트폰용 OLED 패널, Harman에서 디지털 콕핏, 카오디오 등입니다.",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
             "citation_coverage": 0.6666666666666666,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -911,12 +904,6 @@
                 "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "경영진단",
-                "section_path": "IV. 이사의 경영진단 및 분석의견"
               },
               {
                 "company": "삼성전자",
@@ -939,21 +926,18 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
               }
             ],
             "top_retrieved": [
+              "삼성전자/2024/II. 사업의 내용 > 1. 사업의 개요",
               "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
-              "삼성전자/2024/I. 회사의 개요 > 1. 회사의 개요",
-              "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황"
+              "삼성전자/2024/I. 회사의 개요 > 1. 회사의 개요"
             ],
-            "failure_flags": [
-              "hit_at_k_zero",
-              "section_match_zero"
-            ],
+            "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 37.84340680000605,
+            "latency_sec": 35.01437900000019,
             "error": null
           },
           {
@@ -968,10 +952,10 @@
               "매출현황"
             ],
             "answer_key": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
-            "answer_preview": "2024년 삼성전자의 주요 사업부별 매출 비중은 DX 부문이 58.1% (174조 8,877억원), DS 부문이 36.9% (111조 660억원)를 차지합니다. 이 외 SDC는 9.7% (29조 1,578억원), Harman은 4.7% (14조 2,749억원)의 매출 비중을 보였습니다.",
+            "answer_preview": "2024년 삼성전자 사업보고서에 따르면, 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.8%입니다.",
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 0.25,
-            "citation_coverage": 0.6666666666666666,
+            "section_match_rate": 0.375,
+            "citation_coverage": 1.0,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
             "retrieved_metadata": [
@@ -990,8 +974,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "경영진단",
-                "section_path": "IV. 이사의 경영진단 및 분석의견"
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
               },
               {
                 "company": "삼성전자",
@@ -1002,36 +992,30 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "회사개요",
                 "section_path": "VII. 주주에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 3. 타법인출자 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               }
             ],
             "top_retrieved": [
               "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
               "삼성전자/2024/II. 사업의 내용 > 7. 기타 참고사항",
-              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견"
+              "삼성전자/2024/II. 사업의 내용 > 1. 사업의 개요"
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 27.79548089997843,
+            "latency_sec": 24.597560000023805,
             "error": null
           },
           {
@@ -1045,7 +1029,7 @@
               "사업개요"
             ],
             "answer_key": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
-            "answer_preview": "삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+            "answer_preview": "삼성전자는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄 및 DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
             "retrieval_hit_at_k": 1.0,
             "section_match_rate": 0.125,
             "citation_coverage": 0.6666666666666666,
@@ -1085,14 +1069,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타공시",
-                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "계열회사",
-                "section_path": "IX. 계열회사 등에 관한 사항"
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
               },
               {
                 "company": "삼성전자",
@@ -1108,7 +1092,7 @@
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 17.736416500003543,
+            "latency_sec": 32.336158099991735,
             "error": null
           },
           {
@@ -1122,7 +1106,7 @@
               "위험관리 및 파생거래"
             ],
             "answer_key": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
-            "answer_preview": "삼성전자 2024 사업보고서의 주요 재무 리스크는 시장위험(환율변동위험, 이자율변동위험, 주가변동위험), 신용위험, 유동성위험입니다.",
+            "answer_preview": "삼성전자 2024 사업보고서에 따르면, 주요 재무 리스크는 다음과 같습니다 (출처: 삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래):- 시장위험 (환율변동위험, 이자율변동위험, 주가변동위험 포함)- 신용위험- 유동성위험",
             "retrieval_hit_at_k": 1.0,
             "section_match_rate": 0.125,
             "citation_coverage": 1.0,
@@ -1144,8 +1128,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
               },
               {
                 "company": "삼성전자",
@@ -1156,8 +1140,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
               },
               {
                 "company": "삼성전자",
@@ -1181,43 +1165,41 @@
             "top_retrieved": [
               "삼성전자/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
               "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
-              "삼성전자/2024/III. 재무에 관한 사항 > 5. 재무제표 주석"
+              "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보"
             ],
             "failure_flags": [],
             "query_type": "risk",
-            "latency_sec": 28.76783169998089,
+            "latency_sec": 38.26415990001988,
             "error": null
           }
         ]
       },
-      "screen_pass": false,
-      "screen_failure_reasons": [
-        "retrieval_hit_at_k == 0 for business_overview_001"
-      ],
+      "screen_pass": true,
+      "screen_failure_reasons": [],
       "full_eval": {
         "question_count": 5,
         "aggregate": {
-          "faithfulness": 0.6,
-          "answer_relevancy": 0.7111482920303687,
+          "faithfulness": 0.54,
+          "answer_relevancy": 0.5860232378563588,
           "context_recall": 0.6,
-          "retrieval_hit_at_k": 0.8,
-          "section_match_rate": 0.3,
-          "citation_coverage": 0.7999999999999999,
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.325,
+          "citation_coverage": 0.8666666666666666,
           "numeric_equivalence": 1.0,
           "numeric_grounding": 1.0,
           "numeric_retrieval_support": 1.0,
           "numeric_confidence": 1.0,
           "numeric_pass_rate": 1.0,
           "numeric_uncertain_rate": 0.0,
-          "avg_score": 0.6351913820050615,
-          "avg_latency": 28.055442810058594,
+          "avg_score": 0.6529483174205042,
+          "avg_latency": 28.83424825668335,
           "error_rate": 0.0
         },
         "per_question": [
           {
             "id": "numeric_fact_001",
             "question": "삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
-            "answer": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
+            "answer": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
             "ground_truth": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
             "answer_key": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
             "expected_sections": [
@@ -1234,10 +1216,10 @@
               }
             ],
             "faithfulness": 0.0,
-            "answer_relevancy": 0.7894969149930126,
+            "answer_relevancy": 0.7580076917893936,
             "context_recall": 0.0,
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 1.0,
+            "section_match_rate": 0.875,
             "citation_coverage": 1.0,
             "numeric_equivalence": 1.0,
             "numeric_grounding": 1.0,
@@ -1248,13 +1230,13 @@
               "equivalence": {
                 "answer_candidates": [
                   {
-                    "value_text": "300,870,903 백만원",
-                    "unit_text": "백만원",
+                    "value_text": "300조 8,709억원",
+                    "unit_text": "원",
                     "kind": "currency",
-                    "normalized_value": 300870903000000.0,
+                    "normalized_value": 300870900000000.0,
                     "span": [
                       23,
-                      38
+                      35
                     ]
                   }
                 ],
@@ -1302,13 +1284,13 @@
                 ],
                 "matched_pair": {
                   "answer": {
-                    "value_text": "300,870,903 백만원",
-                    "unit_text": "백만원",
+                    "value_text": "300조 8,709억원",
+                    "unit_text": "원",
                     "kind": "currency",
-                    "normalized_value": 300870903000000.0,
+                    "normalized_value": 300870900000000.0,
                     "span": [
                       23,
-                      38
+                      35
                     ]
                   },
                   "reference": {
@@ -1327,25 +1309,31 @@
               "grounding": {
                 "verdict": "grounded",
                 "confidence": 1.0,
-                "reason": "답변의 핵심 숫자 '300,870,903 백만원'은 근거의 'quote' 필드에 '매출액 | 300,870,903'으로 명시되어 있으며, 근거의 'claim' 필드에서 '백만원' 단위와 '2024년 연결 기준 매출액'이라는 대상 항목까지 정확히 일치하여 직접 뒷받침됩니다.",
-                "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"답변의 핵심 숫자 '300,870,903 백만원'은 근거의 'quote' 필드에 '매출액 | 300,870,903'으로 명시되어 있으며, 근거의 'claim' 필드에서 '백만원' 단위와 '2024년 연결 기준 매출액'이라는 대상 항목까지 정확히 일치하여 직접 뒷받침됩니다.\"\n}\n```"
+                "reason": "답변의 핵심 숫자 '300조 8,709억원'이 근거에 '2024년 매출은 300조 8,709억원'으로 직접 명시되어 있습니다. 질문에서 묻는 '연결 기준 매출액'과 근거의 '매출'은 해당 문맥에서 동일한 대상을 지칭합니다.",
+                "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"답변의 핵심 숫자 '300조 8,709억원'이 근거에 '2024년 매출은 300조 8,709억원'으로 직접 명시되어 있습니다. 질문에서 묻는 '연결 기준 매출액'과 근거의 '매출'은 해당 문맥에서 동일한 대상을 지칭합니다.\"\n}\n```"
               }
             },
             "missing_info_compliance": null,
             "retrieved_count": 8,
             "query_type": "numeric_fact",
-            "latency_sec": 20.64154028892517,
+            "latency_sec": 18.40852665901184,
             "citations": [
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.149)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.145)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.147)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.143)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.142)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.142)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 1.088)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.944)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.943)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.871)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.848)"
+              "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / paragraph (score: 0.586)"
             ],
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -1379,28 +1367,22 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "대주주거래",
+                "section_path": "X. 대주주 등과의 거래내용"
               }
             ],
             "runtime_evidence": [
               {
                 "evidence_id": "ev_001",
-                "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
-                "claim": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
-                "quote_span": "매출액 | 300,870,903",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 4. 매출 및 수주상황]",
+                "claim": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
+                "quote_span": "2024년 매출은 300조 8,709억원으로 전년 동기 대비 16.2% 증가하였습니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
@@ -1408,17 +1390,17 @@
                   "2024년",
                   "연결 기준",
                   "매출액",
-                  "300,870,903 백만원"
+                  "300조 8,709억원"
                 ],
                 "metadata": {
                   "company": "삼성전자",
                   "year": 2024,
                   "report_type": "사업보고서",
-                  "section": "요약재무",
-                  "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "section": "매출현황",
+                  "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
                   "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:31:0",
-                  "parent_id": "20250311001085::III. 재무에 관한 사항 > 1. 요약재무정보"
+                  "chunk_uid": "20250311001085:17:1",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 4. 매출 및 수주상황"
                 }
               }
             ],
@@ -1426,20 +1408,30 @@
               "ev_001"
             ],
             "draft_points": [
-              "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다."
+              "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다."
             ],
             "kept_claim_ids": [
               "ev_001"
             ],
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_001)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              }
+            ],
             "missing_info_policy": null,
             "error": null
           },
           {
             "id": "business_overview_001",
             "question": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
-            "answer": "삼성전자는 제품 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(삼성디스플레이), Harman의 4개 부문으로 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문의 TV, 스마트폰 등, DS 부문의 DRAM, NAND Flash 등, SDC의 스마트폰용 OLED 패널, Harman의 디지털 콕핏, 카오디오 등입니다.",
+            "answer": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, Harman으로 나누어 경영하며, 각 부문은 다양한 제품을 생산 및 판매합니다. DX 부문은 TV, 스마트폰 등을, DS 부문은 DRAM, NAND Flash 등을, SDC는 스마트폰용 OLED 패널을, Harman은 전장부품 및 소비자 오디오 제품을 주요 사업으로 영위합니다.",
             "ground_truth": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
             "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
             "expected_sections": [
@@ -1454,10 +1446,10 @@
               }
             ],
             "faithfulness": 1.0,
-            "answer_relevancy": 0.5512958947933921,
+            "answer_relevancy": 0.5127038336079116,
             "context_recall": 1.0,
-            "retrieval_hit_at_k": 0.0,
-            "section_match_rate": 0.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
             "citation_coverage": 0.6666666666666666,
             "numeric_equivalence": null,
             "numeric_grounding": null,
@@ -1468,18 +1460,24 @@
             "missing_info_compliance": null,
             "retrieved_count": 8,
             "query_type": "business_overview",
-            "latency_sec": 37.204750776290894,
+            "latency_sec": 35.82238578796387,
             "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 1.214)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.818)",
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.816)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.751)",
-              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.747)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.746)",
-              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / table (score: 0.743)"
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.748)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.747)",
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.745)"
             ],
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -1497,12 +1495,6 @@
                 "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "경영진단",
-                "section_path": "IV. 이사의 경영진단 및 분석의견"
               },
               {
                 "company": "삼성전자",
@@ -1525,29 +1517,25 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
               }
             ],
             "runtime_evidence": [
               {
                 "evidence_id": "ev_001",
                 "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
-                "claim": "삼성전자는 제품 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(삼성디스플레이㈜ 및 그 종속기업), Harman(Harman International Industries, Inc. 및 그 종속기업)의 4개 부문으로 나누어 주요 사업을 영위합니다.",
+                "claim": "삼성전자는 제품의 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, 패널 사업을 영위하는 SDC, 전장부품사업 등을 영위하는 Harman으로 나누어 경영하고 있습니다.",
                 "quote_span": "당사는 제품의 특성에 따라 DX(Device eXperience), DS(Device Solutions) 2개의 부문과 패널 사업을 영위하는 SDC(삼성디스플레이㈜ 및 그 종속기업), 전장부품사업 등을 영위하는 Harman(Harman International Industries, Inc. 및 그 종속기업)으로 나누어 경영을 하고 있습니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
-                  "삼성전자",
                   "DX 부문",
                   "DS 부문",
                   "SDC",
                   "Harman",
-                  "주요 사업",
-                  "Device eXperience",
-                  "Device Solutions",
-                  "삼성디스플레이",
-                  "Harman International Industries"
+                  "패널 사업",
+                  "전장부품사업"
                 ],
                 "metadata": {
                   "company": "삼성전자",
@@ -1563,15 +1551,12 @@
               {
                 "evidence_id": "ev_002",
                 "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
-                "claim": "각 부문별 주요 제품은 DX 부문에서 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등이며, DS 부문은 DRAM, NAND Flash, 모바일AP 등을, SDC는 스마트폰용 OLED 패널 등을, Harman은 디지털 콕핏, 카오디오, 포터블 스피커 등을 포함합니다.",
-                "quote_span": "DX 부문 | TV, 모니터, 냉장고, 세탁기, 에어컨,스마트폰, 네트워크시스템, PC 등, DS 부문 | DRAM, NAND Flash, 모바일AP 등, SDC | 스마트폰용 OLED 패널 등, Harman | 디지털 콕핏(Digital Cockpit), 카오디오, 포터블 스피커 등",
+                "claim": "DX 부문은 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 주요 제품으로 생산 및 판매합니다.",
+                "quote_span": "DX 부문 | TV, 모니터, 냉장고, 세탁기, 에어컨,스마트폰, 네트워크시스템, PC 등",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
                   "DX 부문",
-                  "DS 부문",
-                  "SDC",
-                  "Harman",
                   "TV",
                   "모니터",
                   "냉장고",
@@ -1579,15 +1564,79 @@
                   "에어컨",
                   "스마트폰",
                   "네트워크시스템",
-                  "PC",
+                  "PC"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_003",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "DS 부문은 DRAM, NAND Flash, 모바일AP 등을 주요 제품으로 생산 및 판매합니다.",
+                "quote_span": "DS 부문 | DRAM, NAND Flash, 모바일AP 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "DS 부문",
                   "DRAM",
                   "NAND Flash",
-                  "모바일AP",
-                  "OLED 패널",
+                  "모바일AP"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_004",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "SDC는 스마트폰용 OLED 패널 등을 주요 제품으로 생산 및 판매합니다.",
+                "quote_span": "SDC | 스마트폰용 OLED 패널 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "SDC",
+                  "스마트폰용 OLED 패널"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_005",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "Harman은 디지털 콕핏(Digital Cockpit), 카오디오, 포터블 스피커 등 전장부품 및 소비자 오디오 제품을 생산 및 판매합니다.",
+                "quote_span": "Harman | 디지털 콕핏(Digital Cockpit), 카오디오, 포터블 스피커 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "Harman",
                   "디지털 콕핏",
                   "카오디오",
                   "포터블 스피커",
-                  "주요 제품"
+                  "전장부품",
+                  "소비자 오디오 제품"
                 ],
                 "metadata": {
                   "company": "삼성전자",
@@ -1603,28 +1652,55 @@
             ],
             "selected_claim_ids": [
               "ev_001",
-              "ev_002"
+              "ev_002",
+              "ev_003",
+              "ev_004",
+              "ev_005"
             ],
             "draft_points": [
-              "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(삼성디스플레이), Harman의 4개 부문으로 주요 사업을 영위합니다.",
-              "DX 부문은 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 주요 제품으로 합니다.",
-              "DS 부문은 DRAM, NAND Flash, 모바일AP 등을 주요 제품으로 합니다.",
-              "SDC는 스마트폰용 OLED 패널 등을 주요 제품으로 합니다.",
-              "Harman은 디지털 콕핏, 카오디오, 포터블 스피커 등을 주요 제품으로 합니다."
+              "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, Harman으로 나누어 경영합니다.",
+              "DX 부문은 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산 및 판매합니다.",
+              "DS 부문은 DRAM, NAND Flash, 모바일AP 등을 생산 및 판매합니다.",
+              "SDC는 스마트폰용 OLED 패널 등을 생산 및 판매합니다.",
+              "Harman은 디지털 콕핏, 카오디오, 포터블 스피커 등 전장부품 및 소비자 오디오 제품을 생산 및 판매합니다."
             ],
             "kept_claim_ids": [
               "ev_001",
-              "ev_002"
+              "ev_002",
+              "ev_003",
+              "ev_004",
+              "ev_005"
             ],
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, Harman으로 나누어 경영하며, 각 부문은 다양한 제품을 생산 및 판매합니다.",
+                "verdict": "keep",
+                "reason": "이 문장은 삼성전자의 주요 사업 부문 구성을 설명하며, 이는 ev_001에 의해 직접적으로 뒷받침됩니다. '각 부문은 다양한 제품을 생산 및 판매합니다'는 일반적인 설명이지만, 이어지는 문장들에서 구체적인 제품들이 제시되므로 전체적인 답변의 맥락에서 적절합니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              },
+              {
+                "sentence": "DX 부문은 TV, 스마트폰 등을, DS 부문은 DRAM, NAND Flash 등을, SDC는 스마트폰용 OLED 패널을, Harman은 전장부품 및 소비자 오디오 제품을 주요 사업으로 영위합니다.",
+                "verdict": "keep",
+                "reason": "이 문장은 각 사업 부문별 주요 제품을 구체적으로 명시하며, 이는 ev_002(DX 부문), ev_003(DS 부문), ev_004(SDC), ev_005(Harman)에 의해 각각 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_002",
+                  "ev_003",
+                  "ev_004",
+                  "ev_005"
+                ]
+              }
+            ],
             "missing_info_policy": null,
             "error": null
           },
           {
             "id": "business_overview_002",
             "question": "삼성전자 2024 사업보고서에서 주요 사업부별 매출 비중은 어떻게 설명되나요?",
-            "answer": "2024년 삼성전자의 주요 사업부별 매출 비중은 DX 부문이 58.1%, DS 부문이 36.9%를 차지합니다. 이어서 SDC는 9.7%, Harman은 4.7%의 비중을 보였습니다.",
+            "answer": "2024년 삼성전자의 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.8%입니다.",
             "ground_truth": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
             "answer_key": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
             "expected_sections": [
@@ -1639,12 +1715,12 @@
                 "why_it_supports_answer": "사업부별 매출액과 비중을 한 문장으로 직접 제시한다."
               }
             ],
-            "faithfulness": 1.0,
-            "answer_relevancy": 0.6561546320438048,
+            "faithfulness": 0.7,
+            "answer_relevancy": 0.6740447442748562,
             "context_recall": 1.0,
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 0.25,
-            "citation_coverage": 0.6666666666666666,
+            "section_match_rate": 0.375,
+            "citation_coverage": 1.0,
             "numeric_equivalence": null,
             "numeric_grounding": null,
             "numeric_retrieval_support": null,
@@ -1654,16 +1730,16 @@
             "missing_info_compliance": null,
             "retrieved_count": 8,
             "query_type": "business_overview",
-            "latency_sec": 28.428572177886963,
+            "latency_sec": 25.072928428649902,
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.029)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 7. 기타 참고사항 / paragraph (score: 1.016)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 1.015)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 2. 주요 제품 및 서비스 / paragraph (score: 0.915)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.745)",
-              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / table (score: 0.742)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.736)",
-              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.736)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.626)"
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.741)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 3. 타법인출자 현황(상세) / table (score: 0.738)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.736)"
             ],
             "retrieved_metadata": [
               {
@@ -1681,8 +1757,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "경영진단",
-                "section_path": "IV. 이사의 경영진단 및 분석의견"
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "주요제품",
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
               },
               {
                 "company": "삼성전자",
@@ -1693,64 +1775,34 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "회사개요",
                 "section_path": "VII. 주주에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 3. 타법인출자 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               }
             ],
             "runtime_evidence": [
               {
                 "evidence_id": "ev_001",
-                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "2024년 삼성전자의 전사 매출은 300조 8,709억원입니다.",
-                "quote_span": "전사 매출 | 300,870,903 | 100.0%",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 2. 주요 제품 및 서비스]",
+                "claim": "2024년 삼성전자의 총 매출 300조 8,709억원 중 DX 부문은 174조 8,877억원으로 58.1%의 비중을 차지했습니다.",
+                "quote_span": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%)",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
                   "2024년",
-                  "삼성전자",
-                  "전사 매출",
-                  "300조 8,709억원"
-                ],
-                "metadata": {
-                  "company": "삼성전자",
-                  "year": 2024,
-                  "report_type": "사업보고서",
-                  "section": "경영진단",
-                  "section_path": "IV. 이사의 경영진단 및 분석의견",
-                  "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:125:3",
-                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
-                }
-              },
-              {
-                "evidence_id": "ev_002",
-                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "2024년 DX 부문의 매출은 174조 8,877억원으로 전체 매출의 58.1%를 차지합니다.",
-                "quote_span": "DX 부문 | 174,887,683 | 58.1%",
-                "support_level": "direct",
-                "question_relevance": "high",
-                "allowed_terms": [
-                  "2024년",
-                  "DX 부문",
                   "매출",
+                  "DX 부문",
                   "174조 8,877억원",
                   "58.1%"
                 ],
@@ -1758,24 +1810,22 @@
                   "company": "삼성전자",
                   "year": 2024,
                   "report_type": "사업보고서",
-                  "section": "경영진단",
-                  "section_path": "IV. 이사의 경영진단 및 분석의견",
+                  "section": "주요제품",
+                  "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
                   "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:125:3",
-                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                  "chunk_uid": "20250311001085:11:0",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 2. 주요 제품 및 서비스"
                 }
               },
               {
-                "evidence_id": "ev_003",
-                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "2024년 DS 부문의 매출은 111조 660억원으로 전체 매출의 36.9%를 차지합니다.",
-                "quote_span": "DS 부문 | 111,065,950 | 36.9%",
+                "evidence_id": "ev_002",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 2. 주요 제품 및 서비스]",
+                "claim": "DS 부문은 111조 660억원으로 전체 매출의 36.9%를 차지했습니다.",
+                "quote_span": "DS 부문이 111조 660억원(36.9%)",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
-                  "2024년",
                   "DS 부문",
-                  "매출",
                   "111조 660억원",
                   "36.9%"
                 ],
@@ -1783,24 +1833,22 @@
                   "company": "삼성전자",
                   "year": 2024,
                   "report_type": "사업보고서",
-                  "section": "경영진단",
-                  "section_path": "IV. 이사의 경영진단 및 분석의견",
+                  "section": "주요제품",
+                  "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
                   "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:125:3",
-                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                  "chunk_uid": "20250311001085:11:0",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 2. 주요 제품 및 서비스"
                 }
               },
               {
-                "evidence_id": "ev_004",
-                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "2024년 SDC의 매출은 29조 1,578억원으로 전체 매출의 9.7%를 차지합니다.",
-                "quote_span": "SDC | 29,157,820 | 9.7%",
+                "evidence_id": "ev_003",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 2. 주요 제품 및 서비스]",
+                "claim": "SDC는 29조 1,578억원으로 9.7%의 매출 비중을 보였습니다.",
+                "quote_span": "SDC가 29조 1,578억원(9.7%)",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
-                  "2024년",
                   "SDC",
-                  "매출",
                   "29조 1,578억원",
                   "9.7%"
                 ],
@@ -1808,66 +1856,101 @@
                   "company": "삼성전자",
                   "year": 2024,
                   "report_type": "사업보고서",
-                  "section": "경영진단",
-                  "section_path": "IV. 이사의 경영진단 및 분석의견",
+                  "section": "주요제품",
+                  "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
                   "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:125:3",
-                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                  "chunk_uid": "20250311001085:11:0",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 2. 주요 제품 및 서비스"
                 }
               },
               {
-                "evidence_id": "ev_005",
-                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "2024년 Harman의 매출은 14조 2,749억원으로 전체 매출의 4.7%를 차지합니다.",
-                "quote_span": "Harman | 14,274,930 | 4.7%",
+                "evidence_id": "ev_004",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 2. 주요 제품 및 서비스]",
+                "claim": "Harman은 14조 2,749억원으로 4.8%의 매출 비중을 기록했습니다.",
+                "quote_span": "Harman은 14조 2,749억원(4.8%)입니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
-                  "2024년",
                   "Harman",
-                  "매출",
                   "14조 2,749억원",
-                  "4.7%"
+                  "4.8%"
                 ],
                 "metadata": {
                   "company": "삼성전자",
                   "year": 2024,
                   "report_type": "사업보고서",
-                  "section": "경영진단",
-                  "section_path": "IV. 이사의 경영진단 및 분석의견",
+                  "section": "주요제품",
+                  "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
                   "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:125:3",
-                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                  "chunk_uid": "20250311001085:11:0",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 2. 주요 제품 및 서비스"
+                }
+              },
+              {
+                "evidence_id": "ev_005",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 2. 주요 제품 및 서비스]",
+                "claim": "부문간 내부거래 제거 등 기타 항목은 △28조 5,155억원으로 △9.5%의 비중을 차지했습니다.",
+                "quote_span": "기타 | 부문간 내부거래 제거 등 | △285,155 | △9.5%",
+                "support_level": "direct",
+                "question_relevance": "medium",
+                "allowed_terms": [
+                  "기타",
+                  "부문간 내부거래 제거",
+                  "△28조 5,155억원",
+                  "△9.5%"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "주요제품",
+                  "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:11:0",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 2. 주요 제품 및 서비스"
                 }
               }
             ],
             "selected_claim_ids": [
+              "ev_001",
               "ev_002",
               "ev_003",
-              "ev_004",
-              "ev_005"
+              "ev_004"
             ],
             "draft_points": [
-              "2024년 삼성전자의 DX 부문 매출은 전체 매출의 58.1%를 차지합니다.",
-              "2024년 삼성전자의 DS 부문 매출은 전체 매출의 36.9%를 차지합니다.",
-              "2024년 삼성전자의 SDC 매출은 전체 매출의 9.7%를 차지합니다.",
-              "2024년 삼성전자의 Harman 매출은 전체 매출의 4.7%를 차지합니다."
+              "2024년 삼성전자 매출 중 DX 부문은 58.1%를 차지했습니다.",
+              "DS 부문은 36.9%를 차지했습니다.",
+              "SDC는 9.7%의 매출 비중을 보였습니다.",
+              "Harman은 4.8%의 매출 비중을 기록했습니다."
             ],
             "kept_claim_ids": [
+              "ev_001",
               "ev_002",
               "ev_003",
-              "ev_004",
-              "ev_005"
+              "ev_004"
             ],
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "2024년 삼성전자의 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.8%입니다.",
+                "verdict": "keep",
+                "reason": "모든 정보가 제공된 근거에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_001",
+                  "ev_002",
+                  "ev_003",
+                  "ev_004"
+                ]
+              }
+            ],
             "missing_info_policy": null,
             "error": null
           },
           {
             "id": "business_overview_003",
             "question": "삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?",
-            "answer": "삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다. (삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요)",
+            "answer": "삼성전자는 총 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
             "ground_truth": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
             "answer_key": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
             "expected_sections": [
@@ -1882,7 +1965,7 @@
               }
             ],
             "faithfulness": 1.0,
-            "answer_relevancy": 0.8216628267710343,
+            "answer_relevancy": 0.6501181588005484,
             "context_recall": 1.0,
             "retrieval_hit_at_k": 1.0,
             "section_match_rate": 0.125,
@@ -1896,16 +1979,16 @@
             "missing_info_compliance": null,
             "retrieved_count": 8,
             "query_type": "business_overview",
-            "latency_sec": 21.73704242706299,
+            "latency_sec": 17.159599781036377,
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.783)",
-              "[삼성전자] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.689)",
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.578)",
-              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 2. 계열회사 현황(상세) / paragraph (score: 0.576)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 2. 계열회사 현황(상세) / paragraph (score: 0.575)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.574)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.501)",
+              "[삼성전자] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.501)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.501)",
-              "[삼성전자] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.500)"
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.500)"
             ],
             "retrieved_metadata": [
               {
@@ -1913,12 +1996,6 @@
                 "year": 2024,
                 "section": "사업개요",
                 "section_path": "II. 사업의 내용 > 1. 사업의 개요"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "계열회사",
-                "section_path": "IX. 계열회사 등에 관한 사항"
               },
               {
                 "company": "삼성전자",
@@ -1947,29 +2024,34 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
                 "section": "기타공시",
                 "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "계열회사",
-                "section_path": "IX. 계열회사 등에 관한 사항"
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
               }
             ],
             "runtime_evidence": [
               {
                 "evidence_id": "ev_001",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]",
-                "claim": "삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다.",
+                "claim": "삼성전자는 본사를 거점으로 한국과 해외 생산·판매법인, SDC 및 Harman 산하 종속기업 등 총 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다.",
                 "quote_span": "당사는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄 및 DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
                   "228개",
                   "종속기업",
-                  "글로벌 전자 기업",
-                  "구성된"
+                  "글로벌 전자 기업"
                 ],
                 "metadata": {
                   "company": "삼성전자",
@@ -1987,20 +2069,31 @@
               "ev_001"
             ],
             "draft_points": [
-              "삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업이다."
+              "삼성전자는 총 228개의 종속기업으로 구성되어 있습니다.",
+              "삼성전자는 글로벌 전자 기업입니다."
             ],
             "kept_claim_ids": [
               "ev_001"
             ],
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자는 총 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거에 따라 삼성전자가 228개의 종속기업으로 구성된 글로벌 전자 기업임을 명확히 설명하고 있습니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              }
+            ],
             "missing_info_policy": null,
             "error": null
           },
           {
             "id": "risk_analysis_001",
             "question": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
-            "answer": "삼성전자 2024년 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 시장위험, 환율변동위험, 이자율변동위험, 주가변동위험, 신용위험, 유동성위험",
+            "answer": "삼성전자 2024 사업보고서 [II. 사업의 내용 > 5. 위험관리 및 파생거래]에 따르면, 주요 재무 리스크는 다음과 같습니다. 시장위험: 환율변동위험, 이자율변동위험, 주가변동위험을 포함합니다. 환율변동위험은 글로벌 영업활동으로 인해 기능통화와 다른 통화로 거래할 때 발생하며, USD, EUR 등이 주요 노출 통화입니다. 이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험으로, 주로 예금 및 변동금리부 차입금에서 발생합니다. 주가변동위험은 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품 투자에서 발생합니다. 신용위험: 고객 또는 거래상대방이 계약조건상 의무를 지키지 못할 때 발생하며, 금융자산 장부금액이 최대 노출액입니다. 유동성위험",
             "ground_truth": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
             "answer_key": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
             "expected_sections": [
@@ -2033,7 +2126,7 @@
               }
             ],
             "faithfulness": 0.0,
-            "answer_relevancy": 0.7371311915506001,
+            "answer_relevancy": 0.3352417608090847,
             "context_recall": 0.0,
             "retrieval_hit_at_k": 1.0,
             "section_match_rate": 0.125,
@@ -2047,13 +2140,13 @@
             "missing_info_compliance": null,
             "retrieved_count": 8,
             "query_type": "risk",
-            "latency_sec": 32.26530838012695,
+            "latency_sec": 47.70780062675476,
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / paragraph (score: 1.196)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.737)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.826)",
               "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.736)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.631)",
+              "[삼성전자] 2024년 사업보고서 / V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항 / table (score: 0.734)",
               "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.623)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.551)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.550)"
@@ -2074,8 +2167,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
               },
               {
                 "company": "삼성전자",
@@ -2086,8 +2179,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "요약재무",
-                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
               },
               {
                 "company": "삼성전자",
@@ -2112,7 +2205,31 @@
               {
                 "evidence_id": "ev_001",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자의 주요 재무위험 중 하나는 시장위험으로, 이는 환율변동위험, 이자율변동위험, 주가변동위험을 포함합니다.",
+                "claim": "삼성전자는 영업활동에서 파생되는 시장위험, 신용위험, 유동성위험 등을 주요 재무위험으로 관리하고 있습니다.",
+                "quote_span": "당사는 영업활동에서 파생되는 시장위험, 신용위험, 유동성위험 등을 최소화하는데 중점을 두고 재무위험을 관리하고 있으며",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "시장위험",
+                  "신용위험",
+                  "유동성위험",
+                  "재무위험"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_002",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "시장위험에는 환율변동위험, 이자율변동위험, 주가변동위험이 포함됩니다.",
                 "quote_span": "나. 주요 재무위험관리 (1) 시장위험 (환율변동위험) (이자율변동위험) (주가변동위험)",
                 "support_level": "direct",
                 "question_relevance": "high",
@@ -2134,17 +2251,17 @@
                 }
               },
               {
-                "evidence_id": "ev_002",
+                "evidence_id": "ev_003",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자는 글로벌 영업활동으로 인해 USD, EUR 등 기능통화와 다른 통화로 거래하여 환율변동위험에 노출되어 있습니다.",
+                "claim": "환율변동위험은 글로벌 영업활동으로 인해 기능통화와 다른 통화로 거래할 때 발생하며, USD, EUR 등이 주요 노출 통화입니다.",
                 "quote_span": "당사는 글로벌 영업활동을 수행함에 따라 기능통화와 다른 통화로도 거래를 하고 있어 환율변동위험에 노출되어 있습니다. 환율변동위험에 노출되는 주요 통화로는 USD, EUR 등이 있습니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
                   "환율변동위험",
+                  "글로벌 영업활동",
                   "USD",
-                  "EUR",
-                  "글로벌 영업활동"
+                  "EUR"
                 ],
                 "metadata": {
                   "company": "삼성전자",
@@ -2158,9 +2275,9 @@
                 }
               },
               {
-                "evidence_id": "ev_003",
+                "evidence_id": "ev_004",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자의 이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험이며, 주로 예금 및 변동금리부 차입금에서 발생합니다.",
+                "claim": "이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험으로, 주로 예금 및 변동금리부 차입금에서 발생합니다.",
                 "quote_span": "이자율변동위험은 시장금리 변동으로 인해 투자 및 재무 활동으로부터 발생하는 이자수익, 비용의 현금흐름이 변동될 위험으로서, 주로 예금 및 변동금리부 차입금에서비롯됩니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
@@ -2182,40 +2299,17 @@
                 }
               },
               {
-                "evidence_id": "ev_004",
+                "evidence_id": "ev_005",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자는 전략적 목적 등으로 지분상품에 투자하고 있어 주가변동위험에 노출되어 있습니다.",
+                "claim": "주가변동위험은 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품 투자에서 발생합니다.",
                 "quote_span": "당사는 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품에 투자하고 있습니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
                   "주가변동위험",
                   "지분상품",
-                  "투자"
-                ],
-                "metadata": {
-                  "company": "삼성전자",
-                  "year": 2024,
-                  "report_type": "사업보고서",
-                  "section": "리스크",
-                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
-                  "block_type": "paragraph",
-                  "chunk_uid": "20250311001085:20:2",
-                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
-                }
-              },
-              {
-                "evidence_id": "ev_005",
-                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자의 신용위험은 고객 또는 거래상대방이 계약조건상 의무를 지키지 못할 때 발생하며, 금융기관과의 거래에서도 발생할 수 있습니다.",
-                "quote_span": "신용위험은 통상적인 거래 및 투자 활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다. 이러한 신용위험을 관리하기 위하여 고객과 거래상대방의 재무상태와 과거 경험 및 기타 요소를 고려하여 주기적으로 재무신용도를 평가하고 있으며, 고객과 거래상대방 각각에 대한 신용한도를 설정ㆍ관리하고 있습니다.",
-                "support_level": "direct",
-                "question_relevance": "high",
-                "allowed_terms": [
-                  "신용위험",
-                  "고객",
-                  "거래상대방",
-                  "계약조건상 의무"
+                  "기타포괄손익-공정가치금융자산",
+                  "당기손익-공정가치금융자산"
                 ],
                 "metadata": {
                   "company": "삼성전자",
@@ -2231,15 +2325,16 @@
               {
                 "evidence_id": "ev_006",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자의 유동성위험은 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미하며, 대규모 투자가 많은 사업 특성상 적정 유동성 유지가 중요합니다.",
-                "quote_span": "유동성위험이란 당사가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다. 당사의 주요 유동성 공급원은 영업에서 창출한 현금 및 자본시장 및 금융기관에서 조달한 자금이며, 주요 유동성 수요는 생산, 연구개발을 위한 투자를 비롯해, 운전자본, 배당 등에 있습니다. 대규모 투자가 많은 당사의 사업 특성상 적정 유동성의 유지가 매우 중요합니다.",
+                "claim": "신용위험은 고객 또는 거래상대방이 계약조건상 의무를 지키지 못할 때 발생하며, 금융자산 장부금액이 최대 노출액입니다.",
+                "quote_span": "신용위험은 통상적인 거래 및 투자 활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다. 당사의 신용위험 최대노출액은 금융자산 장부금액과 동일합니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
-                  "유동성위험",
-                  "금융부채",
-                  "의무 이행",
-                  "대규모 투자"
+                  "신용위험",
+                  "고객",
+                  "거래상대방",
+                  "계약조건",
+                  "금융자산 장부금액"
                 ],
                 "metadata": {
                   "company": "삼성전자",
@@ -2255,14 +2350,37 @@
               {
                 "evidence_id": "ev_007",
                 "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
-                "claim": "삼성전자의 자본위험은 건전한 자본구조를 유지하고 주주 및 이해관계자에게 이익을 지속적으로 제공할 수 있는 능력을 보호하는 것과 관련이 있으며, 신용등급 및 부채비율 등의 지표로 관리됩니다.",
+                "claim": "유동성위험은 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미하며, 대규모 투자가 많은 사업 특성상 적정 유동성 유지가 중요합니다.",
+                "quote_span": "유동성위험이란 당사가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다. 대규모 투자가 많은 당사의 사업 특성상 적정 유동성의 유지가 매우 중요합니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "유동성위험",
+                  "금융부채",
+                  "대규모 투자",
+                  "유동성"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_008",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "자본위험은 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로 제공하고 건전한 자본구조를 유지하는 것과 관련되며, 신용등급 및 부채비율 등의 지표로 관리됩니다.",
                 "quote_span": "당사의 자본관리 목적은 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로제공할 수 있는 능력을 보호하고 건전한 자본구조를 유지하는 것입니다. 당사는 신용등급, 부채비율 등의 지표를 이용하여 자본위험을 관리하고 있습니다.",
                 "support_level": "direct",
                 "question_relevance": "high",
                 "allowed_terms": [
                   "자본위험",
-                  "자본관리",
-                  "건전한 자본구조",
+                  "자본구조",
                   "신용등급",
                   "부채비율"
                 ],
@@ -2276,6 +2394,29 @@
                   "chunk_uid": "20250311001085:20:2",
                   "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
                 }
+              },
+              {
+                "evidence_id": "ev_009",
+                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                "claim": "2025년에는 관세 중심의 보호무역 기조 확산과 환율 리스크 등 경제적 불확실성이 예상됩니다.",
+                "quote_span": "2025년은 관세 중심의 보호무역 기조 확산과 환율 리스크 등 경제적 불확실성이 예고되고 있으며",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "2025년",
+                  "환율 리스크",
+                  "경제적 불확실성"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "경영진단",
+                  "section_path": "IV. 이사의 경영진단 및 분석의견",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:130:8",
+                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                }
               }
             ],
             "selected_claim_ids": [
@@ -2287,12 +2428,12 @@
               "ev_006"
             ],
             "draft_points": [
-              "시장위험",
-              "환율변동위험",
-              "이자율변동위험",
-              "주가변동위험",
-              "신용위험",
-              "유동성위험"
+              "삼성전자는 시장위험, 신용위험, 유동성위험을 주요 재무위험으로 관리합니다.",
+              "시장위험에는 환율변동위험, 이자율변동위험, 주가변동위험이 포함됩니다.",
+              "환율변동위험은 글로벌 영업활동에서 기능통화와 다른 통화 거래 시 발생하며, USD, EUR 등이 주요 노출 통화입니다.",
+              "이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험으로, 주로 예금 및 변동금리부 차입금에서 발생합니다.",
+              "주가변동위험은 전략적 목적 등으로 지분상품 투자에서 발생합니다.",
+              "신용위험은 고객 또는 거래상대방이 계약조건상 의무를 지키지 못할 때 발생하며, 금융자산 장부금액이 최대 노출액입니다."
             ],
             "kept_claim_ids": [
               "ev_001",
@@ -2304,6 +2445,64 @@
             ],
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자 2024 사업보고서 [II. 사업의 내용 > 5. 위험관리 및 파생거래]에 따르면, 주요 재무 리스크는 다음과 같습니다.",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_001)에 따라 삼성전자의 주요 재무 리스크를 소개하는 문장으로, 내용이 정확하고 질문에 직접적으로 답변합니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              },
+              {
+                "sentence": "시장위험: 환율변동위험, 이자율변동위험, 주가변동위험을 포함합니다.",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_002)에 따라 시장위험의 구성 요소를 정확하게 설명합니다.",
+                "supporting_claim_ids": [
+                  "ev_002"
+                ]
+              },
+              {
+                "sentence": "환율변동위험은 글로벌 영업활동으로 인해 기능통화와 다른 통화로 거래할 때 발생하며, USD, EUR 등이 주요 노출 통화입니다.",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_003)에 따라 환율변동위험의 발생 원인과 주요 노출 통화를 정확하게 설명합니다.",
+                "supporting_claim_ids": [
+                  "ev_003"
+                ]
+              },
+              {
+                "sentence": "이자율변동위험은 시장금리 변동으로 인한 이자수익 및 비용의 현금흐름 변동 위험으로, 주로 예금 및 변동금리부 차입금에서 발생합니다.",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_004)에 따라 이자율변동위험의 정의와 발생 원인을 정확하게 설명합니다.",
+                "supporting_claim_ids": [
+                  "ev_004"
+                ]
+              },
+              {
+                "sentence": "주가변동위험은 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품 투자에서 발생합니다.",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_005)에 따라 주가변동위험의 발생 원인을 정확하게 설명합니다.",
+                "supporting_claim_ids": [
+                  "ev_005"
+                ]
+              },
+              {
+                "sentence": "신용위험: 고객 또는 거래상대방이 계약조건상 의무를 지키지 못할 때 발생하며, 금융자산 장부금액이 최대 노출액입니다.",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_006)에 따라 신용위험의 정의와 최대 노출액을 정확하게 설명합니다.",
+                "supporting_claim_ids": [
+                  "ev_006"
+                ]
+              },
+              {
+                "sentence": "유동성위험",
+                "verdict": "keep",
+                "reason": "제시된 근거(ev_001)에 따라 유동성위험이 주요 재무위험 중 하나임을 명시합니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              }
+            ],
             "missing_info_policy": null,
             "error": null
           }
@@ -2476,11 +2675,11 @@
         }
       },
       "store": {
-        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_fast_cache_check_2026-04-17\\삼성전자-2024\\stores\\contextual-parent-only-2500-320",
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_fulleval_sentence_validator_2026-04-21\\삼성전자-2024\\stores\\contextual-parent-only-2500-320",
         "collection_name": "dart_reports_v2_contextual-parent-only-2500-320"
       },
       "parse": {
-        "elapsed_sec": 0.42483510001329705,
+        "elapsed_sec": 2.0352760999812745,
         "chunk_count": 300
       },
       "ingest": {
@@ -2494,13 +2693,13 @@
         "api_calls": 40,
         "fallback_count": 0,
         "prompt_chars": 32705,
-        "response_chars": 1773,
+        "response_chars": 1699,
         "prompt_tokens": 20424,
-        "output_tokens": 47233,
-        "total_tokens": 67657,
+        "output_tokens": 48884,
+        "total_tokens": 69308,
         "max_workers": 8,
         "batch_size": 16,
-        "elapsed_sec": 48.037084400013555
+        "elapsed_sec": 66.84125309996307
       },
       "cache": {
         "cache_hit": false,
@@ -2519,7 +2718,7 @@
           "ingest_mode": "contextual_parent_only",
           "k": 8,
           "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
-          "runner_signature": "a75a2c04fe01a553f6c49d3c046d090cd5dc7c0febae2a19c9ef128197c68eba",
+          "runner_signature": "56674096a8ef1074c7fd23d9a9be726baa3f9fc65736d7c3c011ee2c35c311bc",
           "parent_hybrid_short_text_threshold": 700,
           "parent_hybrid_sections": [
             "매출현황",
@@ -2540,7 +2739,7 @@
           ]
         }
       },
-      "estimated_ingest_cost_usd": 0.12420969999999999,
+      "estimated_ingest_cost_usd": 0.12833719999999998,
       "smoke": {
         "queries": [
           {
@@ -2548,21 +2747,21 @@
             "category": "business_overview",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 27.906878800014965,
+            "latency_sec": 34.5373002999695,
             "query_type": "business_overview",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, 패널 사업을 영위하는 SDC, 전장부품사업 등을 영위하는 Harman으로 나누어 경영합니다. 주요 사업으로는 DX 부문의 TV, 스마트폰, PC 등, DS 부문의 DRAM, NAND Flash, 모바일AP 등, SDC의 스마트폰용 OLED 패널, Harman의 디지털 콕핏 및 카오디오 등이 있습니다.",
-            "answer_preview": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, 패널 사업을 영위하는 SDC, 전장부품사업 등을 영위하는 Harman으로 나누어 경영합니다. 주요 사업으로는 DX 부문의 TV, 스마트폰, PC 등, DS 부문의 DRAM, NAND Flash, 모바일AP 등, SDC의 스마트폰용 OLED 패널, Harman의 디지털 콕핏 및 카오디오 등이 있습니다.",
+            "answer": "삼성전자의 DX 부문은 TV, 스마트폰, PC 등 Set 제품을 생산 및 판매합니다. DS 부문은 DRAM, NAND Flash 등 부품 제품을 생산 및 판매하며, 메모리 반도체, System LSI, Foundry 사업으로 구성됩니다. SDC는 스마트폰용 OLED 패널 등 패널 사업을, Harman은 전장부품 및 라이프스타일 오디오 사업을 운영합니다.",
+            "answer_preview": "삼성전자의 DX 부문은 TV, 스마트폰, PC 등 Set 제품을 생산 및 판매합니다. DS 부문은 DRAM, NAND Flash 등 부품 제품을 생산 및 판매하며, 메모리 반도체, System LSI, Foundry 사업으로 구성됩니다. SDC는 스마트폰용 OLED 패널 등 패널 사업을, Harman은 전장부품 및 라이프스타일 오디오 사업을 운영합니다.",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 1.228)",
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.828)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.825)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / paragraph (score: 0.825)",
-              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.747)",
-              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.746)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.746)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.744)"
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.745)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.745)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.743)",
+              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / table (score: 0.741)"
             ],
             "retrieved_metadata": [
               {
@@ -2604,14 +2803,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "이사회",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
               }
             ],
             "error": null
@@ -2621,21 +2820,21 @@
             "category": "numeric_fact",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 17.615963999996893,
+            "latency_sec": 21.891672099998686,
             "query_type": "numeric_fact",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
-            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
+            "answer": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
+            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.148)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.146)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.147)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.141)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.140)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.140)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.139)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.136)",
-              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.871)",
-              "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / paragraph (score: 0.585)"
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.872)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.846)"
             ],
             "retrieved_metadata": [
               {
@@ -2683,8 +2882,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "대주주거래",
-                "section_path": "X. 대주주 등과의 거래내용"
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
               }
             ],
             "error": null
@@ -2694,46 +2893,40 @@
             "category": "risk_analysis",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 58.08822089998284,
+            "latency_sec": 29.20465290005086,
             "query_type": "risk",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 다음과 같습니다: 환율, 이자율 변동을 포함한 국내외 금융 시장의 동향 및 2025년 예상되는 환율 리스크 등 경제적 불확실성, 유동성위험, 채무상품 및 매출채권에 대한 기대신용손실, 재고자산 가치 하락 위험 (판가 하락, 원가 상승, 과잉 또는 진부화로 인한), 소송, 분쟁 및 규제기관 조사에 따른 자원 유출 불확실성입니다.",
-            "answer_preview": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 다음과 같습니다: 환율, 이자율 변동을 포함한 국내외 금융 시장의 동향 및 2025년 예상되는 환율 리스크 등 경제적 불확실성, 유동성위험, 채무상품 및 매출채권에 대한 기대신용손실, 재고자산 가치 하락 위험 (판가 하락, 원가 상승, 과잉 또는 진부화로 인한), 소송, 분쟁 및 규제기관 조사에 따른 자원 유출 불확실성입니다.",
+            "answer": "삼성전자 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다. 환율변동위험, 이자율변동위험, 주가변동위험, 신용위험, 유동성위험, 자본위험",
+            "answer_preview": "삼성전자 2024 사업보고서에 따르면 주요 재무 리스크는 다음과 같습니다. 환율변동위험, 이자율변동위험, 주가변동위험, 신용위험, 유동성위험, 자본위험",
             "citations": [
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.829)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.750)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.750)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.746)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.745)",
-              "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.626)",
-              "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 4. 작성기준일 이후 발생한 주요사항 등 기타사항 / paragraph (score: 0.624)",
-              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / paragraph (score: 0.619)"
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / paragraph (score: 1.198)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / paragraph (score: 1.196)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.743)",
+              "[삼성전자] 2024년 사업보고서 / V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항 / table (score: 0.738)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.738)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.628)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.548)"
             ],
             "retrieved_metadata": [
               {
                 "company": "삼성전자",
                 "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
                 "section": "경영진단",
                 "section_path": "IV. 이사의 경영진단 및 분석의견"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
               },
               {
                 "company": "삼성전자",
@@ -2744,20 +2937,26 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타공시",
-                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타공시",
-                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 4. 작성기준일 이후 발생한 주요사항 등 기타사항"
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
               }
             ],
             "error": null
@@ -2767,21 +2966,21 @@
             "category": "r_and_d_investment",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 23.674394199973904,
+            "latency_sec": 27.035034200001974,
             "query_type": "numeric_fact",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자의 2024년(제56기) 연구개발비용 총계는 35조 215억원이며, 이 중 34조 9,981억원이 당기비용으로 회계처리되었고 개발비로 자산화된 금액은 없습니다.",
-            "answer_preview": "삼성전자의 2024년(제56기) 연구개발비용 총계는 35조 215억원이며, 이 중 34조 9,981억원이 당기비용으로 회계처리되었고 개발비로 자산화된 금액은 없습니다.",
+            "answer": "삼성전자의 2024년 연구개발비용 총계는 35조 215억원이며, 이 중 정부보조금으로 차감되거나 자산화된 연구개발비를 제외한 34조 9,981억원이 당기비용으로 회계처리되었습니다.",
+            "answer_preview": "삼성전자의 2024년 연구개발비용 총계는 35조 215억원이며, 이 중 정부보조금으로 차감되거나 자산화된 연구개발비를 제외한 34조 9,981억원이 당기비용으로 회계처리되었습니다.",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 1.016)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.935)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.783)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.743)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.741)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.680)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.588)"
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.744)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.738)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.640)"
             ],
             "retrieved_metadata": [
               {
@@ -2789,6 +2988,12 @@
                 "year": 2024,
                 "section": "연구개발",
                 "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               },
               {
                 "company": "삼성전자",
@@ -2825,12 +3030,6 @@
                 "year": 2024,
                 "section": "요약재무",
                 "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "경영진단",
-                "section_path": "IV. 이사의 경영진단 및 분석의견"
               }
             ],
             "error": null
@@ -2840,17 +3039,17 @@
             "category": "missing_information",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 18.982770500006154,
+            "latency_sec": 27.960814299993217,
             "query_type": "qa",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "제공된 삼성전자 2024 사업보고서 evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시된 내용은 없습니다.",
-            "answer_preview": "제공된 삼성전자 2024 사업보고서 evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시된 내용은 없습니다.",
+            "answer": "제공된 삼성전자 2024 사업보고서 structured evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시된 내용은 없습니다.",
+            "answer_preview": "제공된 삼성전자 2024 사업보고서 structured evidence에는 2024년말 현재 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래가 있다고 명시된 내용은 없습니다.",
             "citations": [
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.949)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.947)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.946)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.947)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.946)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.945)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.945)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.829)",
               "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.829)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.822)",
@@ -2860,8 +3059,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               },
               {
                 "company": "삼성전자",
@@ -2878,8 +3077,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                "section": "재무주석",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
               },
               {
                 "company": "삼성전자",
@@ -2911,7 +3110,7 @@
         ],
         "summary": {
           "count": 5,
-          "avg_latency_sec": 29.253645679994953,
+          "avg_latency_sec": 28.125894760002847,
           "avg_retrieved_count": 8.0,
           "avg_citation_count": 8.0
         }
@@ -2919,27 +3118,13 @@
       "screening_eval": {
         "question_count": 5,
         "aggregate": {
-          "retrieval_hit_at_k": 0.8,
-          "section_match_rate": 0.3,
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.325,
           "citation_coverage": 0.7999999999999999,
           "contamination_rate": 0.0,
-          "avg_latency": 28.343289319996256,
+          "avg_latency": 28.663242959976195,
           "error_rate": 0.0,
-          "failure_examples": [
-            {
-              "id": "risk_analysis_001",
-              "category": "risk_analysis",
-              "failure_flags": [
-                "hit_at_k_zero",
-                "section_match_zero"
-              ],
-              "top_retrieved": [
-                "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
-                "삼성전자/2024/III. 재무에 관한 사항 > 5. 재무제표 주석",
-                "삼성전자/2024/III. 재무에 관한 사항 > 5. 재무제표 주석"
-              ]
-            }
-          ]
+          "failure_examples": []
         },
         "per_question": [
           {
@@ -2955,9 +3140,9 @@
               "요약재무"
             ],
             "answer_key": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
-            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300조 8,709억원입니다.",
+            "answer_preview": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 0.875,
+            "section_match_rate": 1.0,
             "citation_coverage": 1.0,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
@@ -3007,8 +3192,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "대주주거래",
-                "section_path": "X. 대주주 등과의 거래내용"
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
               }
             ],
             "top_retrieved": [
@@ -3018,7 +3203,7 @@
             ],
             "failure_flags": [],
             "query_type": "numeric_fact",
-            "latency_sec": 18.297234700003173,
+            "latency_sec": 19.00239999999758,
             "error": null
           },
           {
@@ -3032,7 +3217,7 @@
               "사업개요"
             ],
             "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
-            "answer_preview": "삼성전자는 DX 부문을 통해 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산 및 판매하며, DS 부문을 통해 DRAM, NAND Flash, 모바일AP 등의 제품을 생산 및 판매합니다. 또한, SDC(삼성디스플레이)를 통해 스마트폰용 OLED 패널 등의 패널 사업을, Harman을 통해 전장부품 및 소비자오디오 제품 사업을 영위합니다.",
+            "answer_preview": "삼성전자의 DX 부문은 TV, 스마트폰, PC 등 Set 제품을 생산 및 판매합니다. DS 부문은 DRAM, NAND Flash 등 부품 제품을 생산 및 판매하며, 메모리 반도체, System LSI, Foundry 사업으로 구성됩니다. SDC는 스마트폰용 OLED 패널 등 패널 사업을, Harman은 전장부품 및 라이프스타일 오디오 사업을 운영합니다.",
             "retrieval_hit_at_k": 1.0,
             "section_match_rate": 0.125,
             "citation_coverage": 0.6666666666666666,
@@ -3078,14 +3263,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "이사회",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
               }
             ],
             "top_retrieved": [
@@ -3095,7 +3280,7 @@
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 42.017615799966734,
+            "latency_sec": 34.40698440000415,
             "error": null
           },
           {
@@ -3110,10 +3295,10 @@
               "매출현황"
             ],
             "answer_key": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
-            "answer_preview": "삼성전자 2024 사업보고서에 따르면, 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%이며, 기타 항목은 -9.5%입니다.",
+            "answer_preview": "2024년 삼성전자의 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%입니다.",
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 0.375,
-            "citation_coverage": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 0.6666666666666666,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
             "retrieved_metadata": [
@@ -3126,14 +3311,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "매출현황",
-                "section_path": "II. 사업의 내용 > 7. 기타 참고사항"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "주요제품",
-                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
               },
               {
                 "company": "삼성전자",
@@ -3144,36 +3323,42 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
                 "section": "경영진단",
                 "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
               }
             ],
             "top_retrieved": [
               "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
-              "삼성전자/2024/II. 사업의 내용 > 7. 기타 참고사항",
-              "삼성전자/2024/II. 사업의 내용 > 2. 주요 제품 및 서비스"
+              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
+              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견"
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 26.01330390002113,
+            "latency_sec": 28.571125399961602,
             "error": null
           },
           {
@@ -3203,6 +3388,12 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
+                "section": "계열회사",
+                "section_path": "XII. 상세표 > 2. 계열회사 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
                 "section": "회사개요",
                 "section_path": "I. 회사의 개요 > 1. 회사의 개요"
               },
@@ -3216,19 +3407,7 @@
                 "company": "삼성전자",
                 "year": 2024,
                 "section": "계열회사",
-                "section_path": "XII. 상세표 > 2. 계열회사 현황(상세)"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "계열회사",
                 "section_path": "IX. 계열회사 등에 관한 사항"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               },
               {
                 "company": "삼성전자",
@@ -3239,18 +3418,24 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
                 "section": "계열회사",
                 "section_path": "IX. 계열회사 등에 관한 사항"
               }
             ],
             "top_retrieved": [
               "삼성전자/2024/II. 사업의 내용 > 1. 사업의 개요",
-              "삼성전자/2024/I. 회사의 개요 > 1. 회사의 개요",
-              "삼성전자/2024/V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
+              "삼성전자/2024/XII. 상세표 > 2. 계열회사 현황(상세)",
+              "삼성전자/2024/I. 회사의 개요 > 1. 회사의 개요"
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 16.72497119999025,
+            "latency_sec": 17.92540009994991,
             "error": null
           },
           {
@@ -3264,36 +3449,30 @@
               "위험관리 및 파생거래"
             ],
             "answer_key": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
-            "answer_preview": "삼성전자의 주요 재무 리스크는 다음과 같습니다. - 환율 변동 - 이자율 변동 - 유동성위험 - 기대신용손실 - 재고자산 가치 하락 - 소송, 분쟁 및 규제기관 조사로 인한 자원 유출 불확실성",
-            "retrieval_hit_at_k": 0.0,
-            "section_match_rate": 0.0,
-            "citation_coverage": 0.6666666666666666,
+            "answer_preview": "삼성전자 2024 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 환율변동위험: 글로벌 영업활동으로 기능통화와 다른 통화로 거래하여 발생하며, USD, EUR 등이 주요 노출 통화입니다. 이자율변동위험: 시장금리 변동으로 투자 및 재무 활동에서 발생하는 이자수익, 비용의 현금흐름이 변동될 위험으로, 주로 예금 및 변동금리부 차입금에서 비롯됩니다. 주가변동위험: 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익",
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.25,
+            "citation_coverage": 1.0,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
             "retrieved_metadata": [
               {
                 "company": "삼성전자",
                 "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
                 "section": "경영진단",
                 "section_path": "IV. 이사의 경영진단 및 분석의견"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "재무주석",
-                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
               },
               {
                 "company": "삼성전자",
@@ -3304,14 +3483,378 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타공시",
-                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "top_retrieved": [
+              "삼성전자/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "삼성전자/2024/II. 사업의 내용 > 5. 위험관리 및 파생거래",
+              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견"
+            ],
+            "failure_flags": [],
+            "query_type": "risk",
+            "latency_sec": 43.41030489996774,
+            "error": null
+          }
+        ]
+      },
+      "screen_pass": true,
+      "screen_failure_reasons": [],
+      "full_eval": {
+        "question_count": 5,
+        "aggregate": {
+          "faithfulness": 0.7,
+          "answer_relevancy": 0.6159694671770859,
+          "context_recall": 0.72,
+          "retrieval_hit_at_k": 1.0,
+          "section_match_rate": 0.325,
+          "citation_coverage": 0.7999999999999999,
+          "numeric_equivalence": 1.0,
+          "numeric_grounding": 1.0,
+          "numeric_retrieval_support": 1.0,
+          "numeric_confidence": 1.0,
+          "numeric_pass_rate": 1.0,
+          "numeric_uncertain_rate": 0.0,
+          "avg_score": 0.6934949111961809,
+          "avg_latency": 25.847590112686156,
+          "error_rate": 0.0
+        },
+        "per_question": [
+          {
+            "id": "numeric_fact_001",
+            "question": "삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
+            "answer": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
+            "ground_truth": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
+            "answer_key": "2024년 삼성전자의 연결 기준 매출은 300조 8,709억원이며 전년 대비 16.2% 증가했다.",
+            "expected_sections": [
+              "매출현황",
+              "재무제표",
+              "요약재무"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "quote": "2024년 매출은 300조 8,709억원으로 전년 동기 대비 16.2% 증가하였습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "질문이 묻는 2024년 연결 기준 매출액과 전년 대비 증감률을 직접 제시한다."
+              }
+            ],
+            "faithfulness": 0.0,
+            "answer_relevancy": 0.7894969149930126,
+            "context_recall": 0.5,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 1.0,
+            "citation_coverage": 1.0,
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 1.0,
+            "numeric_retrieval_support": 1.0,
+            "numeric_final_judgement": "PASS",
+            "numeric_confidence": 1.0,
+            "numeric_debug": {
+              "equivalence": {
+                "answer_candidates": [
+                  {
+                    "value_text": "300,870,903 백만원",
+                    "unit_text": "백만원",
+                    "kind": "currency",
+                    "normalized_value": 300870903000000.0,
+                    "span": [
+                      23,
+                      38
+                    ]
+                  }
+                ],
+                "reference_candidates": [
+                  {
+                    "value_text": "300조 8,709억원",
+                    "unit_text": "원",
+                    "kind": "currency",
+                    "normalized_value": 300870900000000.0,
+                    "span": [
+                      22,
+                      34
+                    ]
+                  },
+                  {
+                    "value_text": "16.2%",
+                    "unit_text": "%",
+                    "kind": "percent",
+                    "normalized_value": 16.2,
+                    "span": [
+                      43,
+                      48
+                    ]
+                  },
+                  {
+                    "value_text": "300조 8,709억원",
+                    "unit_text": "원",
+                    "kind": "currency",
+                    "normalized_value": 300870900000000.0,
+                    "span": [
+                      10,
+                      22
+                    ]
+                  },
+                  {
+                    "value_text": "16.2%",
+                    "unit_text": "%",
+                    "kind": "percent",
+                    "normalized_value": 16.2,
+                    "span": [
+                      34,
+                      39
+                    ]
+                  }
+                ],
+                "matched_pair": {
+                  "answer": {
+                    "value_text": "300,870,903 백만원",
+                    "unit_text": "백만원",
+                    "kind": "currency",
+                    "normalized_value": 300870903000000.0,
+                    "span": [
+                      23,
+                      38
+                    ]
+                  },
+                  "reference": {
+                    "value_text": "300조 8,709억원",
+                    "unit_text": "원",
+                    "kind": "currency",
+                    "normalized_value": 300870900000000.0,
+                    "span": [
+                      22,
+                      34
+                    ]
+                  }
+                },
+                "reason": "equivalent_value"
+              },
+              "grounding": {
+                "verdict": "grounded",
+                "confidence": 1.0,
+                "reason": "답변의 핵심 숫자 주장인 '300,870,903 백만원'이 Runtime Evidence의 claim과 quote에 직접적으로 명시되어 일치합니다.",
+                "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"답변의 핵심 숫자 주장인 '300,870,903 백만원'이 Runtime Evidence의 claim과 quote에 직접적으로 명시되어 일치합니다.\"\n}\n```"
+              }
+            },
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "numeric_fact",
+            "latency_sec": 18.93932819366455,
+            "citations": [
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.148)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.147)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.141)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.140)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.140)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.139)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.872)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.846)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "runtime_evidence": [
+              {
+                "evidence_id": "ev_001",
+                "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                "claim": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다.",
+                "quote_span": "매출액 | 300,870,903",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "삼성전자",
+                  "2024년",
+                  "연결 기준 매출액",
+                  "300,870,903 백만원"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "요약재무",
+                  "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:31:0",
+                  "parent_id": "20250311001085::III. 재무에 관한 사항 > 1. 요약재무정보"
+                }
+              }
+            ],
+            "selected_claim_ids": [
+              "ev_001"
+            ],
+            "draft_points": [
+              "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다."
+            ],
+            "kept_claim_ids": [
+              "ev_001"
+            ],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자의 2024년 연결 기준 매출액은 300,870,903 백만원입니다 (삼성전자 | 2024).",
+                "verdict": "keep",
+                "reason": "The sentence is directly supported by the evidence.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_001",
+            "question": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "answer": "삼성전자는 DX(Device eXperience), DS(Device Solutions) 부문과 SDC(패널 사업), Harman(전장부품사업 등)으로 나누어 경영합니다. 각 부문은 TV, 스마트폰, PC 등(DX), DRAM, NAND Flash 등(DS), 디스플레이 패널(SDC), 전장제품 및 소비자 오디오(Harman)를 주요 사업으로 영위합니다.",
+            "ground_truth": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
+            "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
+            "expected_sections": [
+              "사업개요"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                "quote": "사업별로 보면, Set 사업은 DX(Device eXperience) 부문이 TV를 비롯하여 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산ㆍ판매하며, 부품 사업은 DS(Device Solutions) 부문에서 DRAM, NAND Flash, 모바일AP 등의 제품을 생산ㆍ판매하고, SDC가 스마트폰용 OLED 패널 등을 생산ㆍ판매하고 있습니다. 또한, Harman에서는 디지털 콕핏(Digital Cockpit), 카오디오 등 전장제품과 포터블/사운드바 스피커 등 소비자오디오 제품 등을 생산ㆍ판매하고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "주요 사업부와 각 사업부가 생산·판매하는 대표 제품군을 직접 설명한다."
+              }
+            ],
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.5523688042018099,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 0.6666666666666666,
+            "numeric_equivalence": null,
+            "numeric_grounding": null,
+            "numeric_retrieval_support": null,
+            "numeric_final_judgement": null,
+            "numeric_confidence": null,
+            "numeric_debug": {},
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "business_overview",
+            "latency_sec": 26.973600149154663,
+            "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 1.228)",
+              "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.828)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
+              "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / paragraph (score: 0.825)",
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.745)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.745)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.743)",
+              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / table (score: 0.741)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
                 "section": "기타공시",
-                "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 4. 작성기준일 이후 발생한 주요사항 등 기타사항"
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
               },
               {
                 "company": "삼성전자",
@@ -3320,30 +3863,870 @@
                 "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
               }
             ],
-            "top_retrieved": [
-              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
-              "삼성전자/2024/III. 재무에 관한 사항 > 5. 재무제표 주석",
-              "삼성전자/2024/III. 재무에 관한 사항 > 5. 재무제표 주석"
+            "runtime_evidence": [
+              {
+                "evidence_id": "ev_001",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "삼성전자는 제품 특성에 따라 DX(Device eXperience), DS(Device Solutions) 두 개의 부문과 패널 사업을 영위하는 SDC, 전장부품사업 등을 영위하는 Harman으로 나누어 경영하고 있습니다.",
+                "quote_span": "당사는 제품의 특성에 따라 DX(Device eXperience), DS(Device Solutions) 2개의 부문과 패널 사업을 영위하는 SDC(삼성디스플레이㈜ 및 그 종속기업), 전장부품사업 등을 영위하는 Harman(Harman International Industries, Inc. 및 그 종속기업)으로 나누어 경영을 하고 있습니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "DX 부문",
+                  "DS 부문",
+                  "SDC",
+                  "Harman",
+                  "패널 사업",
+                  "전장부품사업"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_002",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "DX 부문은 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산 및 판매합니다.",
+                "quote_span": "DX 부문 | TV, 모니터, 냉장고, 세탁기, 에어컨,스마트폰, 네트워크시스템, PC 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "DX 부문",
+                  "TV",
+                  "모니터",
+                  "냉장고",
+                  "세탁기",
+                  "에어컨",
+                  "스마트폰",
+                  "네트워크시스템",
+                  "PC"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_003",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "DS 부문은 DRAM, NAND Flash, 모바일AP 등의 제품을 생산 및 판매합니다.",
+                "quote_span": "DS 부문 | DRAM, NAND Flash, 모바일AP 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "DS 부문",
+                  "DRAM",
+                  "NAND Flash",
+                  "모바일AP",
+                  "메모리 반도체",
+                  "System LSI",
+                  "Foundry"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_004",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "SDC는 스마트폰용 OLED 패널 등을 생산 및 판매하며, 중소형 및 대형 디스플레이 패널 사업을 영위합니다.",
+                "quote_span": "SDC | 스마트폰용 OLED 패널 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "SDC",
+                  "스마트폰용 OLED 패널",
+                  "중소형 디스플레이 패널",
+                  "대형 디스플레이 패널"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_005",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "Harman은 디지털 콕핏, 카오디오 등 전장제품과 포터블/사운드바 스피커 등 소비자 오디오 제품을 생산 및 판매합니다.",
+                "quote_span": "Harman | 디지털 콕핏(Digital Cockpit), 카오디오, 포터블 스피커 등",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "Harman",
+                  "디지털 콕핏",
+                  "카오디오",
+                  "전장제품",
+                  "포터블 스피커",
+                  "사운드바 스피커",
+                  "소비자 오디오"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              }
             ],
-            "failure_flags": [
-              "hit_at_k_zero",
-              "section_match_zero"
+            "selected_claim_ids": [
+              "ev_001",
+              "ev_002",
+              "ev_003",
+              "ev_004",
+              "ev_005"
             ],
+            "draft_points": [
+              "삼성전자는 DX(Device eXperience), DS(Device Solutions) 두 개의 부문과 패널 사업을 영위하는 SDC, 전장부품사업 등을 영위하는 Harman으로 나누어 경영합니다.",
+              "DX 부문은 TV, 모니터, 냉장고, 세탁기, 에어컨, 스마트폰, 네트워크시스템, PC 등을 생산 및 판매합니다.",
+              "DS 부문은 DRAM, NAND Flash, 모바일AP 등의 제품을 생산 및 판매합니다.",
+              "SDC는 스마트폰용 OLED 패널 등을 생산 및 판매하며, 중소형 및 대형 디스플레이 패널 사업을 영위합니다.",
+              "Harman은 디지털 콕핏, 카오디오 등 전장제품과 포터블/사운드바 스피커 등 소비자 오디오 제품을 생산 및 판매합니다."
+            ],
+            "kept_claim_ids": [
+              "ev_001",
+              "ev_002",
+              "ev_003",
+              "ev_004",
+              "ev_005"
+            ],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자는 DX(Device eXperience), DS(Device Solutions) 부문과 SDC(패널 사업), Harman(전장부품사업 등)으로 나누어 경영합니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_001)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              },
+              {
+                "sentence": "각 부문은 TV, 스마트폰, PC 등(DX), DRAM, NAND Flash 등(DS), 디스플레이 패널(SDC), 전장제품 및 소비자 오디오(Harman)를 주요 사업으로 영위합니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_002, ev_003, ev_004, ev_005)에 의해 각 부문의 주요 사업 내용이 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_002",
+                  "ev_003",
+                  "ev_004",
+                  "ev_005"
+                ]
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_002",
+            "question": "삼성전자 2024 사업보고서에서 주요 사업부별 매출 비중은 어떻게 설명되나요?",
+            "answer": "삼성전자 2024년(제56기) 사업보고서에 따르면, 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%입니다.",
+            "ground_truth": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
+            "answer_key": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
+            "expected_sections": [
+              "주요 제품 및 서비스",
+              "매출현황"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 2. 주요 제품 및 서비스",
+                "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 660억원(36.9%)이며, SDC가 29조 1,578억원(9.7%), Harman은 14조 2,749억원(4.7%)입니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "사업부별 매출액과 비중을 한 문장으로 직접 제시한다."
+              }
+            ],
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.6827745970241875,
+            "context_recall": 0.6,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 0.6666666666666666,
+            "numeric_equivalence": null,
+            "numeric_grounding": null,
+            "numeric_retrieval_support": null,
+            "numeric_final_judgement": null,
+            "numeric_confidence": null,
+            "numeric_debug": {},
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "business_overview",
+            "latency_sec": 19.098327159881592,
+            "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.025)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.829)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.819)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.819)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.743)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.742)",
+              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.740)",
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.739)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "매출현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "VII. 주주에 관한 사항"
+              }
+            ],
+            "runtime_evidence": [
+              {
+                "evidence_id": "ev_001",
+                "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                "claim": "삼성전자의 2024년(제56기) 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%입니다.",
+                "quote_span": "매출 | DX 부문 | 174,887,683 | 58.1% | ... DS 부문 | 111,065,950 | 36.9% | ... SDC | 29,157,820 | 9.7% | ... Harman | 14,274,930 | 4.7%",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "삼성전자",
+                  "2024년",
+                  "제56기",
+                  "매출 비중",
+                  "DX 부문",
+                  "58.1%",
+                  "DS 부문",
+                  "36.9%",
+                  "SDC",
+                  "9.7%",
+                  "Harman",
+                  "4.7%"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "경영진단",
+                  "section_path": "IV. 이사의 경영진단 및 분석의견",
+                  "block_type": "table",
+                  "chunk_uid": "20250311001085:123:1",
+                  "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                }
+              }
+            ],
+            "selected_claim_ids": [
+              "ev_001"
+            ],
+            "draft_points": [
+              "삼성전자의 2024년(제56기) 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%이다."
+            ],
+            "kept_claim_ids": [
+              "ev_001"
+            ],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자 2024년(제56기) 사업보고서에 따르면, 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%입니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_001)에 직접적으로 뒷받침되는 문장입니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "business_overview_003",
+            "question": "삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?",
+            "answer": "삼성전자는 총 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다.",
+            "ground_truth": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
+            "answer_key": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
+            "expected_sections": [
+              "사업개요"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                "quote": "당사는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄 및 DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "글로벌 전자 기업으로서의 구성과 종속기업 수를 직접 제시한다."
+              }
+            ],
+            "faithfulness": 1.0,
+            "answer_relevancy": 0.735579623754481,
+            "context_recall": 1.0,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.125,
+            "citation_coverage": 0.6666666666666666,
+            "numeric_equivalence": null,
+            "numeric_grounding": null,
+            "numeric_retrieval_support": null,
+            "numeric_final_judgement": null,
+            "numeric_confidence": null,
+            "numeric_debug": {},
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
+            "query_type": "business_overview",
+            "latency_sec": 22.98180055618286,
+            "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 1. 사업의 개요 / paragraph (score: 0.783)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 2. 계열회사 현황(상세) / paragraph (score: 0.579)",
+              "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.578)",
+              "[삼성전자] 2024년 사업보고서 / V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항 / paragraph (score: 0.576)",
+              "[삼성전자] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.501)",
+              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.501)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.500)",
+              "[삼성전자] 2024년 사업보고서 / IX. 계열회사 등에 관한 사항 / table (score: 0.498)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "사업개요",
+                "section_path": "II. 사업의 내용 > 1. 사업의 개요"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "XII. 상세표 > 2. 계열회사 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "회사개요",
+                "section_path": "I. 회사의 개요 > 1. 회사의 개요"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타공시",
+                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "계열회사",
+                "section_path": "IX. 계열회사 등에 관한 사항"
+              }
+            ],
+            "runtime_evidence": [
+              {
+                "evidence_id": "ev_001",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]",
+                "claim": "삼성전자는 본사를 거점으로 한국과 해외 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 총 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다.",
+                "quote_span": "당사는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄 및 DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "삼성전자",
+                  "종속기업",
+                  "228개",
+                  "글로벌 전자 기업"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "사업개요",
+                  "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:10:0",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 1. 사업의 개요"
+                }
+              },
+              {
+                "evidence_id": "ev_002",
+                "source_anchor": "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]",
+                "claim": "삼성전자는 본사를 거점으로 한국과 해외 생산ㆍ판매법인 및 SDC, Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다.",
+                "quote_span": "당사는 본사를 거점으로 한국과 DX 부문 산하 해외 9개 지역총괄, DS 부문 산하 해외 5개 지역총괄의 생산ㆍ판매법인 및 SDC, Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "삼성전자",
+                  "종속기업",
+                  "228개",
+                  "글로벌 전자 기업"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "회사개요",
+                  "section_path": "I. 회사의 개요 > 1. 회사의 개요",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:0:0",
+                  "parent_id": "20250311001085::I. 회사의 개요 > 1. 회사의 개요"
+                }
+              }
+            ],
+            "selected_claim_ids": [
+              "ev_001",
+              "ev_002"
+            ],
+            "draft_points": [
+              "삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업입니다."
+            ],
+            "kept_claim_ids": [
+              "ev_001",
+              "ev_002"
+            ],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자는 총 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명합니다.",
+                "verdict": "keep",
+                "reason": "제시된 모든 근거에서 삼성전자가 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 명시하고 있습니다.",
+                "supporting_claim_ids": [
+                  "ev_001",
+                  "ev_002"
+                ]
+              }
+            ],
+            "missing_info_policy": null,
+            "error": null
+          },
+          {
+            "id": "risk_analysis_001",
+            "question": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "answer": "삼성전자 2024 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 환율변동위험: 글로벌 영업활동으로 기능통화와 다른 통화로 거래하여 발생하며, USD, EUR 등이 주요 노출 통화입니다. 이자율변동위험: 시장금리 변동으로 투자 및 재무 활동에서 발생하는 이자수익, 비용의 현금흐름이 변동될 위험으로, 주로 예금 및 변동금리부 차입금에서 비롯됩니다. 주가변동위험: 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품에 투자하여 노출됩니다. 신용위험: 고객 또는 거래상대방이 계약조건상 의무를 지키지 못하였을 때 발생하며, 금융기관과의 거래에서도 발생할 수 있습니다. 유동성위험: 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미하며, 대규모 투자가 많은 사업 특성상 적정 유동성 유지가 중요합니다. 자본위험: 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로 제공하고 건전한 자본구조를 유지하기 위한 자본관리 목적과 관련되며, 신용등급, 부채비율 등의 지표를 이용하여 관리됩니다.",
+            "ground_truth": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
+            "answer_key": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
+            "expected_sections": [
+              "위험관리 및 파생거래"
+            ],
+            "evidence": [
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "당사는 영업활동에서 파생되는 시장위험, 신용위험, 유동성위험 등을 최소화하는데 중점을 두고 재무위험을 관리하고 있으며, 이를 위해 각각의 위험요인에 대해 면밀하게 모니터링 및 대응하고 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "핵심 재무위험의 큰 범주를 직접 나열한다."
+              },
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "당사는 글로벌 영업활동을 수행함에 따라 기능통화와 다른 통화로도 거래를 하고 있어 환율변동위험에 노출되어 있습니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "시장위험 중 환율변동위험을 구체적으로 설명한다."
+              },
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "신용위험은 통상적인 거래 및 투자 활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "신용위험의 정의와 발생 상황을 직접 설명한다."
+              },
+              {
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                "quote": "유동성위험이란 당사가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다.",
+                "quote_type": "verbatim",
+                "why_it_supports_answer": "유동성위험을 별도 리스크 항목으로 정의한다."
+              }
+            ],
+            "faithfulness": 0.5,
+            "answer_relevancy": 0.3196273959119383,
+            "context_recall": 0.5,
+            "retrieval_hit_at_k": 1.0,
+            "section_match_rate": 0.25,
+            "citation_coverage": 1.0,
+            "numeric_equivalence": null,
+            "numeric_grounding": null,
+            "numeric_retrieval_support": null,
+            "numeric_final_judgement": null,
+            "numeric_confidence": null,
+            "numeric_debug": {},
+            "missing_info_compliance": null,
+            "retrieved_count": 8,
             "query_type": "risk",
-            "latency_sec": 38.663320999999996,
+            "latency_sec": 41.24489450454712,
+            "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / paragraph (score: 1.198)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 5. 위험관리 및 파생거래 / paragraph (score: 1.196)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.828)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / table (score: 0.743)",
+              "[삼성전자] 2024년 사업보고서 / V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항 / table (score: 0.738)",
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / table (score: 0.738)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.628)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.548)"
+            ],
+            "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "리스크",
+                "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타재무",
+                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "경영진단",
+                "section_path": "IV. 이사의 경영진단 및 분석의견"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+              }
+            ],
+            "runtime_evidence": [
+              {
+                "evidence_id": "ev_001",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "삼성전자는 글로벌 영업활동으로 기능통화와 다른 통화로 거래하여 환율변동위험에 노출되어 있으며, USD, EUR 등이 주요 노출 통화입니다.",
+                "quote_span": "당사는 글로벌 영업활동을 수행함에 따라 기능통화와 다른 통화로도 거래를 하고 있어 환율변동위험에 노출되어 있습니다. 환율변동위험에 노출되는 주요 통화로는 USD, EUR 등이 있습니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "환율변동위험",
+                  "글로벌 영업활동",
+                  "기능통화",
+                  "USD",
+                  "EUR"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_002",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "이자율변동위험은 시장금리 변동으로 인해 투자 및 재무 활동에서 발생하는 이자수익, 비용의 현금흐름이 변동될 위험으로서, 주로 예금 및 변동금리부 차입금에서 비롯됩니다.",
+                "quote_span": "이자율변동위험은 시장금리 변동으로 인해 투자 및 재무 활동으로부터 발생하는 이자수익, 비용의 현금흐름이 변동될 위험으로서, 주로 예금 및 변동금리부 차입금에서비롯됩니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "이자율변동위험",
+                  "시장금리 변동",
+                  "이자수익",
+                  "이자비용",
+                  "현금흐름",
+                  "예금",
+                  "변동금리부 차입금"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_003",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "삼성전자는 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품에 투자하고 있어 주가변동위험에 노출되어 있습니다.",
+                "quote_span": "당사는 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품에 투자하고 있습니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "주가변동위험",
+                  "지분상품",
+                  "기타포괄손익-공정가치금융자산",
+                  "당기손익-공정가치금융자산"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_004",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "신용위험은 고객 또는 거래상대방이 계약조건상 의무를 지키지 못하였을 때 발생하며, 금융기관과의 거래에서도 발생할 수 있습니다.",
+                "quote_span": "신용위험은 통상적인 거래 및 투자 활동에서 발생하며 고객 또는 거래상대방이 계약조건상 의무사항을 지키지 못하였을 때 발생합니다. 신용위험은 금융기관과의 거래에서도 발생할 수 있으며 해당 거래는 현금및현금성자산, 각종 예금 그리고 파생금융상품 등의 금융상품 거래를 포함합니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "신용위험",
+                  "고객",
+                  "거래상대방",
+                  "계약조건",
+                  "의무사항",
+                  "금융기관"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_005",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "유동성위험은 삼성전자가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미하며, 대규모 투자가 많은 사업 특성상 적정 유동성 유지가 매우 중요합니다.",
+                "quote_span": "유동성위험이란 당사가 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미합니다. 대규모 투자가 많은 당사의 사업 특성상 적정 유동성의 유지가 매우 중요합니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "유동성위험",
+                  "금융부채",
+                  "의무 이행",
+                  "대규모 투자",
+                  "적정 유동성"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              },
+              {
+                "evidence_id": "ev_006",
+                "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+                "claim": "삼성전자의 자본관리 목적은 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로 제공하고 건전한 자본구조를 유지하는 것이며, 신용등급, 부채비율 등의 지표를 이용하여 자본위험을 관리합니다.",
+                "quote_span": "당사의 자본관리 목적은 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로제공할 수 있는 능력을 보호하고 건전한 자본구조를 유지하는 것입니다. 당사는 신용등급, 부채비율 등의 지표를 이용하여 자본위험을 관리하고 있습니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": [
+                  "자본위험",
+                  "자본관리",
+                  "계속기업",
+                  "주주",
+                  "이해관계자",
+                  "이익",
+                  "건전한 자본구조",
+                  "신용등급",
+                  "부채비율"
+                ],
+                "metadata": {
+                  "company": "삼성전자",
+                  "year": 2024,
+                  "report_type": "사업보고서",
+                  "section": "리스크",
+                  "section_path": "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+                  "block_type": "paragraph",
+                  "chunk_uid": "20250311001085:20:2",
+                  "parent_id": "20250311001085::II. 사업의 내용 > 5. 위험관리 및 파생거래"
+                }
+              }
+            ],
+            "selected_claim_ids": [
+              "ev_001",
+              "ev_002",
+              "ev_003",
+              "ev_004",
+              "ev_005",
+              "ev_006"
+            ],
+            "draft_points": [
+              "환율변동위험",
+              "이자율변동위험",
+              "주가변동위험",
+              "신용위험",
+              "유동성위험",
+              "자본위험"
+            ],
+            "kept_claim_ids": [
+              "ev_001",
+              "ev_002",
+              "ev_003",
+              "ev_004",
+              "ev_005",
+              "ev_006"
+            ],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [
+              {
+                "sentence": "삼성전자 2024 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다.",
+                "verdict": "keep",
+                "reason": "질문에 대한 답변을 시작하는 도입 문장으로, 이어지는 내용이 모두 근거로 뒷받침되므로 유지합니다.",
+                "supporting_claim_ids": []
+              },
+              {
+                "sentence": "환율변동위험: 글로벌 영업활동으로 기능통화와 다른 통화로 거래하여 발생하며, USD, EUR 등이 주요 노출 통화입니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_001)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_001"
+                ]
+              },
+              {
+                "sentence": "이자율변동위험: 시장금리 변동으로 투자 및 재무 활동에서 발생하는 이자수익, 비용의 현금흐름이 변동될 위험으로, 주로 예금 및 변동금리부 차입금에서 비롯됩니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_002)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_002"
+                ]
+              },
+              {
+                "sentence": "주가변동위험: 전략적 목적 등으로 기타포괄손익-공정가치금융자산 및 당기손익-공정가치금융자산으로 분류된 지분상품에 투자하여 노출됩니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_003)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_003"
+                ]
+              },
+              {
+                "sentence": "신용위험: 고객 또는 거래상대방이 계약조건상 의무를 지키지 못하였을 때 발생하며, 금융기관과의 거래에서도 발생할 수 있습니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_004)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_004"
+                ]
+              },
+              {
+                "sentence": "유동성위험: 금융부채와 관련된 모든 의무를 이행하는 데 어려움을 겪게 될 위험을 의미하며, 대규모 투자가 많은 사업 특성상 적정 유동성 유지가 중요합니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_005)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_005"
+                ]
+              },
+              {
+                "sentence": "자본위험: 계속기업으로서 주주 및 이해관계자에게 이익을 지속적으로 제공하고 건전한 자본구조를 유지하기 위한 자본관리 목적과 관련되며, 신용등급, 부채비율 등의 지표를 이용하여 관리됩니다.",
+                "verdict": "keep",
+                "reason": "제공된 근거(ev_006)에 의해 직접적으로 뒷받침됩니다.",
+                "supporting_claim_ids": [
+                  "ev_006"
+                ]
+              }
+            ],
+            "missing_info_policy": null,
             "error": null
           }
         ]
       },
-      "screen_pass": false,
-      "screen_failure_reasons": [
-        "retrieval_hit_at_k == 0 for risk_analysis_001"
-      ],
-      "full_eval": {},
       "comparison_to_baseline": {
         "api_call_reduction_ratio": 0.8666666666666667,
-        "ingest_time_reduction_ratio": 0.9155321460630061,
-        "estimated_cost_reduction_ratio": 0.8846350964271251
+        "ingest_time_reduction_ratio": 0.7962814321228926,
+        "estimated_cost_reduction_ratio": 0.8567462129118748
       }
     },
     {
@@ -3507,11 +4890,11 @@
         }
       },
       "store": {
-        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_fast_cache_check_2026-04-17\\삼성전자-2024\\stores\\contextual-selective-v2-2500-320",
+        "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_fulleval_sentence_validator_2026-04-21\\삼성전자-2024\\stores\\contextual-selective-v2-2500-320",
         "collection_name": "dart_reports_v2_contextual-selective-v2-2500-320"
       },
       "parse": {
-        "elapsed_sec": 0.7875289999647066,
+        "elapsed_sec": 1.0654859999776818,
         "chunk_count": 300
       },
       "ingest": {
@@ -3530,13 +4913,13 @@
         "api_calls": 127,
         "fallback_count": 0,
         "prompt_chars": 61421,
-        "response_chars": 4690,
+        "response_chars": 4643,
         "prompt_tokens": 38115,
-        "output_tokens": 154328,
-        "total_tokens": 192443,
+        "output_tokens": 155588,
+        "total_tokens": 193703,
         "max_workers": 8,
         "batch_size": 16,
-        "elapsed_sec": 146.85264659998938
+        "elapsed_sec": 158.60101959999884
       },
       "cache": {
         "cache_hit": false,
@@ -3555,7 +4938,7 @@
           "ingest_mode": "contextual_selective_v2",
           "k": 8,
           "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
-          "runner_signature": "a75a2c04fe01a553f6c49d3c046d090cd5dc7c0febae2a19c9ef128197c68eba",
+          "runner_signature": "56674096a8ef1074c7fd23d9a9be726baa3f9fc65736d7c3c011ee2c35c311bc",
           "parent_hybrid_short_text_threshold": 700,
           "parent_hybrid_sections": [
             "매출현황",
@@ -3576,7 +4959,7 @@
           ]
         }
       },
-      "estimated_ingest_cost_usd": 0.3972545,
+      "estimated_ingest_cost_usd": 0.40040450000000005,
       "smoke": {
         "queries": [
           {
@@ -3584,21 +4967,21 @@
             "category": "business_overview",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 22.751876099966466,
+            "latency_sec": 28.755422800022643,
             "query_type": "business_overview",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, 그리고 Harman으로 나누어 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰, PC 등, DS 부문에서 DRAM, NAND Flash, 모바일AP 등, SDC에서 스마트폰용 OLED 패널 등, Harman에서 디지털 콕핏, 카오디오, 포터블 스피커 등입니다.",
-            "answer_preview": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, 그리고 Harman으로 나누어 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰, PC 등, DS 부문에서 DRAM, NAND Flash, 모바일AP 등, SDC에서 스마트폰용 OLED 패널 등, Harman에서 디지털 콕핏, 카오디오, 포터블 스피커 등입니다.",
+            "answer": "삼성전자는 DX(Device eXperience), DS(Device Solutions), SDC(삼성디스플레이), Harman의 4개 부문으로 주요 사업을 영위합니다. DX 부문은 TV, 스마트폰, PC 등을, DS 부문은 DRAM, NAND Flash, 모바일AP 등을, SDC는 스마트폰용 OLED 패널 등을, Harman은 디지털 콕핏, 카오디오 등을 주요 제품으로 합니다.",
+            "answer_preview": "삼성전자는 DX(Device eXperience), DS(Device Solutions), SDC(삼성디스플레이), Harman의 4개 부문으로 주요 사업을 영위합니다. DX 부문은 TV, 스마트폰, PC 등을, DS 부문은 DRAM, NAND Flash, 모바일AP 등을, SDC는 스마트폰용 OLED 패널 등을, Harman은 디지털 콕핏, 카오디오 등을 주요 제품으로 합니다.",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 1. 회사의 개요 / paragraph (score: 0.825)",
               "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / paragraph (score: 0.822)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.822)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.816)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.745)",
-              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.744)",
-              "[삼성전자] 2024년 사업보고서 / VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황 / table (score: 0.743)",
-              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.739)"
+              "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.745)",
+              "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항 / table (score: 0.740)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.737)"
             ],
             "retrieved_metadata": [
               {
@@ -3640,14 +5023,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "임원현황",
-                "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황"
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "감사의견",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               }
             ],
             "error": null
@@ -3657,7 +5040,7 @@
             "category": "numeric_fact",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 18.97984380001435,
+            "latency_sec": 15.778051899978891,
             "query_type": "numeric_fact",
             "retrieved_count": 8,
             "citation_count": 8,
@@ -3666,11 +5049,11 @@
             "citations": [
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.148)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.146)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.145)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.144)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 1.089)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.946)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.944)",
-              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.873)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.872)",
               "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / paragraph (score: 0.582)"
             ],
             "retrieved_metadata": [
@@ -3730,17 +5113,17 @@
             "category": "risk_analysis",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 33.72852090001106,
+            "latency_sec": 41.678927800036035,
             "query_type": "risk",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자 2024 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 다수의 회사 등과 진행 중인 소송, 분쟁 및 규제기관의 조사에 따른 자원 유출금액 및 시기의 불확실성; 분할된 삼성디스플레이㈜ 등의 분할 전 채무에 대한 연대 변제 책임; 계열회사들의 운영자금 및 기타 목적을 위한 채무에 대한 지급보증 제공 (특히 SEA의 US Government 채무 관련).",
-            "answer_preview": "삼성전자 2024 사업보고서에 따른 주요 재무 리스크는 다음과 같습니다. 다수의 회사 등과 진행 중인 소송, 분쟁 및 규제기관의 조사에 따른 자원 유출금액 및 시기의 불확실성; 분할된 삼성디스플레이㈜ 등의 분할 전 채무에 대한 연대 변제 책임; 계열회사들의 운영자금 및 기타 목적을 위한 채무에 대한 지급보증 제공 (특히 SEA의 US Government 채무 관련).",
+            "answer": "삼성전자 2024 사업보고서 [XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항]에 따르면, 주요 재무 리스크는 정상적인 영업과정에서 발생하는 다수의 소송, 분쟁 및 규제기관의 조사로 인한 자원 유출 금액 및 시기의 불확실성, 분할된 삼성디스플레이(주) 등의 분할 전 채무에 대한 연대 변제 책임, 그리고 다수의 계열회사에 대한 운영자금 목적의 지급보증 제공 (2024년말 기준 채무보증한도는 총 US$15,462,055천)입니다.",
+            "answer_preview": "삼성전자 2024 사업보고서 [XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항]에 따르면, 주요 재무 리스크는 정상적인 영업과정에서 발생하는 다수의 소송, 분쟁 및 규제기관의 조사로 인한 자원 유출 금액 및 시기의 불확실성, 분할된 삼성디스플레이(주) 등의 분할 전 채무에 대한 연대 변제 책임, 그리고 다수의 계열회사에 대한 운영자금 목적의 지급보증 제공 (2024년말 기준 채무보증한도는 총",
             "citations": [
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.750)",
-              "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 1. 연결대상 종속회사 현황(상세) / table (score: 0.748)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.744)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.740)",
+              "[삼성전자] 2024년 사업보고서 / V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항 / table (score: 0.740)",
+              "[삼성전자] 2024년 사업보고서 / VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황 / table (score: 0.737)",
               "[삼성전자] 2024년 사업보고서 / VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항 / paragraph (score: 0.624)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항 > 7-2. 증권의 발행을 통해 조달된 자금의 사용실적 / paragraph (score: 0.624)",
               "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.624)",
@@ -3756,20 +5139,20 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타공시",
-                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "재무제표",
                 "section_path": "III. 재무에 관한 사항 > 4. 재무제표"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황"
               },
               {
                 "company": "삼성전자",
@@ -3803,23 +5186,29 @@
             "category": "r_and_d_investment",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 23.77398329996504,
+            "latency_sec": 22.395352499966975,
             "query_type": "numeric_fact",
             "retrieved_count": 8,
             "citation_count": 8,
-            "answer": "삼성전자의 2024년 연구개발비용은 총 35조 215억원이며, 이 중 34조 9,981억원이 당기비용으로 회계처리되었고 개발비로 자산화된 금액은 없습니다.",
-            "answer_preview": "삼성전자의 2024년 연구개발비용은 총 35조 215억원이며, 이 중 34조 9,981억원이 당기비용으로 회계처리되었고 개발비로 자산화된 금액은 없습니다.",
+            "answer": "2024년(제56기) 삼성전자의 연구개발비용은 35조 215억원이며, 이 중 정부보조금으로 차감되거나 자산화된 연구개발비를 제외하고 34조 9,981억원을 당기비용으로 회계처리하였습니다.",
+            "answer_preview": "2024년(제56기) 삼성전자의 연구개발비용은 35조 215억원이며, 이 중 정부보조금으로 차감되거나 자산화된 연구개발비를 제외하고 34조 9,981억원을 당기비용으로 회계처리하였습니다.",
             "citations": [
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 1.016)",
               "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.828)",
-              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.821)",
+              "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 6. 주요계약 및 연구개발활동 / table (score: 0.820)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.783)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.745)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.744)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.742)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.737)",
               "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 0.657)"
             ],
             "retrieved_metadata": [
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연구개발",
+                "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+              },
               {
                 "company": "삼성전자",
                 "year": 2024,
@@ -3859,12 +5248,6 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
               }
@@ -3876,7 +5259,7 @@
             "category": "missing_information",
             "expected_company": "삼성전자",
             "expected_year": 2024,
-            "latency_sec": 24.466265299997758,
+            "latency_sec": 24.724514900008217,
             "query_type": "qa",
             "retrieved_count": 8,
             "citation_count": 8,
@@ -3885,12 +5268,12 @@
             "citations": [
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.949)",
               "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.948)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.948)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.947)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.947)",
+              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 0.946)",
               "[삼성전자] 2024년 사업보고서 / XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항 / paragraph (score: 0.827)",
               "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.826)",
-              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.787)",
-              "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항 / paragraph (score: 0.618)"
+              "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.786)",
+              "[삼성전자] 2024년 사업보고서 / I. 회사의 개요 > 2. 회사의 연혁 / paragraph (score: 0.785)"
             ],
             "retrieved_metadata": [
               {
@@ -3938,8 +5321,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타재무",
-                "section_path": "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"
+                "section": "임원현황",
+                "section_path": "I. 회사의 개요 > 2. 회사의 연혁"
               }
             ],
             "error": null
@@ -3947,7 +5330,7 @@
         ],
         "summary": {
           "count": 5,
-          "avg_latency_sec": 24.740097879990934,
+          "avg_latency_sec": 26.66645398000255,
           "avg_retrieved_count": 8.0,
           "avg_citation_count": 8.0
         }
@@ -3956,10 +5339,10 @@
         "question_count": 5,
         "aggregate": {
           "retrieval_hit_at_k": 0.6,
-          "section_match_rate": 0.25,
+          "section_match_rate": 0.225,
           "citation_coverage": 0.7333333333333333,
           "contamination_rate": 0.0,
-          "avg_latency": 23.549474939983337,
+          "avg_latency": 27.529136540018953,
           "error_rate": 0.0,
           "failure_examples": [
             {
@@ -3984,8 +5367,8 @@
               ],
               "top_retrieved": [
                 "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
-                "삼성전자/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
-                "삼성전자/2024/III. 재무에 관한 사항 > 4. 재무제표"
+                "삼성전자/2024/III. 재무에 관한 사항 > 4. 재무제표",
+                "삼성전자/2024/V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
               ]
             }
           ]
@@ -4067,7 +5450,7 @@
             ],
             "failure_flags": [],
             "query_type": "numeric_fact",
-            "latency_sec": 17.04159229999641,
+            "latency_sec": 15.42153520003194,
             "error": null
           },
           {
@@ -4081,7 +5464,7 @@
               "사업개요"
             ],
             "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
-            "answer_preview": "삼성전자는 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC, 그리고 Harman으로 나누어 주요 사업을 영위합니다. 각 부문별 주요 제품은 DX 부문에서 TV, 스마트폰, PC 등, DS 부문에서 DRAM, NAND Flash, 모바일AP 등, SDC에서 스마트폰용 OLED 패널 등, Harman에서 디지털 콕핏, 카오디오, 포터블 스피커 등입니다.",
+            "answer_preview": "삼성전자는 제품 특성에 따라 DX(Device eXperience), DS(Device Solutions) 2개 부문과 패널 사업을 영위하는 SDC, 전장부품사업 등을 영위하는 Harman으로 나누어 주요 사업을 경영하고 있습니다. DX 부문은 TV, 스마트폰 등을, DS 부문은 DRAM, NAND Flash 등을, SDC는 스마트폰용 OLED 패널을, Harman은 디지털 콕핏 등을 주요 제품으로 합니다.",
             "retrieval_hit_at_k": 0.0,
             "section_match_rate": 0.0,
             "citation_coverage": 0.6666666666666666,
@@ -4127,14 +5510,14 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "임원현황",
-                "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황"
+                "section": "감사의견",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "감사의견",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 2. 감사제도에 관한 사항"
+                "section": "연결재무제표",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
               }
             ],
             "top_retrieved": [
@@ -4147,7 +5530,7 @@
               "section_match_zero"
             ],
             "query_type": "business_overview",
-            "latency_sec": 21.06725889997324,
+            "latency_sec": 42.11005359998671,
             "error": null
           },
           {
@@ -4162,9 +5545,9 @@
               "매출현황"
             ],
             "answer_key": "내부거래 포함 기준으로 2024년 매출은 DX 174조 8,877억원(58.1%), DS 111조 660억원(36.9%), SDC 29조 1,578억원(9.7%), Harman 14조 2,749억원(4.7%)으로 제시된다.",
-            "answer_preview": "삼성전자 2024년 사업보고서에 따르면, 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%입니다.",
+            "answer_preview": "2024년(제56기) 삼성전자의 주요 사업부별 매출 비중은 DX 부문 58.1%, DS 부문 36.9%, SDC 9.7%, Harman 4.7%입니다.",
             "retrieval_hit_at_k": 1.0,
-            "section_match_rate": 0.25,
+            "section_match_rate": 0.125,
             "citation_coverage": 0.6666666666666666,
             "contamination_rate": 0.0,
             "retrieved_count": 8,
@@ -4174,12 +5557,6 @@
                 "year": 2024,
                 "section": "매출현황",
                 "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
-                "section": "매출현황",
-                "section_path": "II. 사업의 내용 > 7. 기타 참고사항"
               },
               {
                 "company": "삼성전자",
@@ -4196,8 +5573,8 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "이사회",
-                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
               },
               {
                 "company": "삼성전자",
@@ -4216,16 +5593,22 @@
                 "year": 2024,
                 "section": "기타공시",
                 "section_path": "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "이사회",
+                "section_path": "VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"
               }
             ],
             "top_retrieved": [
               "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
-              "삼성전자/2024/II. 사업의 내용 > 7. 기타 참고사항",
-              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견"
+              "삼성전자/2024/IV. 이사의 경영진단 및 분석의견",
+              "삼성전자/2024/VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황"
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 17.658777199976612,
+            "latency_sec": 21.70602320000762,
             "error": null
           },
           {
@@ -4239,7 +5622,7 @@
               "사업개요"
             ],
             "answer_key": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
-            "answer_preview": "삼성전자는 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
+            "answer_preview": "삼성전자는 본사를 거점으로 한국과 해외 9개 지역총괄 및 해외 5개 지역총괄의 생산ㆍ판매법인, SDC 및 Harman 산하 종속기업 등 228개의 종속기업으로 구성된 글로벌 전자 기업입니다.",
             "retrieval_hit_at_k": 1.0,
             "section_match_rate": 0.125,
             "citation_coverage": 0.6666666666666666,
@@ -4302,7 +5685,7 @@
             ],
             "failure_flags": [],
             "query_type": "business_overview",
-            "latency_sec": 18.582371199969202,
+            "latency_sec": 30.33215910004219,
             "error": null
           },
           {
@@ -4316,7 +5699,7 @@
               "위험관리 및 파생거래"
             ],
             "answer_key": "사업보고서는 시장위험, 신용위험, 유동성위험을 핵심 재무위험으로 제시하고, 시장위험 중에서는 환율변동위험을 상세히 설명한다.",
-            "answer_preview": "삼성전자의 2024년 주요 재무 리스크는 다음과 같습니다:정상적인 영업 과정에서 발생하는 다수의 소송, 분쟁 및 규제기관 조사로 인한 자원 유출 금액 및 시기의 불확실성([삼성전자 | 2024 | XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항]).분할된 삼성디스플레이㈜ 등의 분할 전 채무에 대한 연대 변제 책임([삼성전자 | 2024 | XI. 그 밖에 투자자 보호를 위하여 필요한 사항 >",
+            "answer_preview": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 다음과 같습니다: 정상적인 영업과정에서 발생하는 다수의 소송, 분쟁 및 규제기관의 조사로 인한 자원 유출 금액 및 시기의 불확실성; 분할된 삼성디스플레이(주) 등의 분할 전 채무에 대해 연대하여 변제할 책임; 다수의 계열회사에 대한 운영자금 목적의 지급보증 (2024년말 기준 채무보증한도 총 US$15,462,055천).",
             "retrieval_hit_at_k": 0.0,
             "section_match_rate": 0.0,
             "citation_coverage": 0.6666666666666666,
@@ -4332,20 +5715,20 @@
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "기타공시",
-                "section_path": "XII. 상세표 > 1. 연결대상 종속회사 현황(상세)"
-              },
-              {
-                "company": "삼성전자",
-                "year": 2024,
                 "section": "재무제표",
                 "section_path": "III. 재무에 관한 사항 > 4. 재무제표"
               },
               {
                 "company": "삼성전자",
                 "year": 2024,
-                "section": "연결재무제표",
-                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                "section": "기타",
+                "section_path": "V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
+              },
+              {
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "임원현황",
+                "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 1. 임원 및 직원 등의 현황"
               },
               {
                 "company": "삼성전자",
@@ -4374,15 +5757,15 @@
             ],
             "top_retrieved": [
               "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
-              "삼성전자/2024/XII. 상세표 > 1. 연결대상 종속회사 현황(상세)",
-              "삼성전자/2024/III. 재무에 관한 사항 > 4. 재무제표"
+              "삼성전자/2024/III. 재무에 관한 사항 > 4. 재무제표",
+              "삼성전자/2024/V. 회계감사인의 감사의견 등 > 1. 외부감사에 관한 사항"
             ],
             "failure_flags": [
               "hit_at_k_zero",
               "section_match_zero"
             ],
             "query_type": "risk",
-            "latency_sec": 43.39737510000123,
+            "latency_sec": 28.075911600026302,
             "error": null
           }
         ]
@@ -4391,13 +5774,13 @@
       "screen_failure_reasons": [
         "retrieval_hit_at_k == 0 for business_overview_001",
         "retrieval_hit_at_k == 0 for risk_analysis_001",
-        "retrieval_hit_at_k dropped by 0.200"
+        "retrieval_hit_at_k dropped by 0.400"
       ],
       "full_eval": {},
       "comparison_to_baseline": {
         "api_call_reduction_ratio": 0.5766666666666667,
-        "ingest_time_reduction_ratio": 0.7417760037229615,
-        "estimated_cost_reduction_ratio": 0.6310334290607689
+        "ingest_time_reduction_ratio": 0.5166162949033841,
+        "estimated_cost_reduction_ratio": 0.5530566274460776
       }
     }
   ]

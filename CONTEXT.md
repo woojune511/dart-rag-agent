@@ -48,6 +48,18 @@
 - `v6` / `v7` 삼성전자 single-company full eval로 faithfulness 회복 실험 수행
 - structured runtime evidence 기록 확인
 - answer generation을 `compression -> validation` 구조로 분리
+- `compress` / `validate` typed output 도입
+  - `selected_claim_ids`
+  - `draft_points`
+  - `kept_claim_ids`
+  - `dropped_claim_ids`
+  - `unsupported_sentences`
+  - `sentence_checks`
+- sentence-level validator 후처리 보강
+  - `drop_overextended`
+  - `drop_unsupported`
+  - `drop_redundant`
+  를 실제 pruning으로 연결
 
 ## 최신 benchmark 메모
 
@@ -217,6 +229,75 @@ structured runtime evidence를 붙인 뒤에도 `numeric_fact_001`은 사람이 
 
 - canonical 표현: `300조 8,709억원`
 - actual answer 표현: `300,870,903 백만원`
+
+판단:
+
+- 이 케이스는 generation 문제가 아니라 evaluator limitation으로 본다.
+- 그래서 `numeric_fact`는 generic `faithfulness` 하나로 해석하지 않고,
+  - `numeric_equivalence`
+  - `numeric_grounding`
+  - `numeric_retrieval_support`
+  - `numeric_final_judgement`
+  를 함께 본다.
+
+## typed compression / validation 최신 메모
+
+기준 run:
+
+- `benchmarks/results/dev_fast_cache_check_2026-04-17`
+- `benchmarks/results/dev_fulleval_sentence_validator_2026-04-21`
+- `benchmarks/results/dev_focus_validator_2026-04-21`
+
+진행 순서:
+
+1. structured evidence를 runtime artifact에 남김
+2. `compress -> validate`를 typed output으로 전환
+3. `review.csv` / `review.md`에
+   - `selected_claim_ids`
+   - `draft_points`
+   - `kept_claim_ids`
+   - `dropped_claim_ids`
+   - `unsupported_sentences`
+   - `sentence_checks`
+   를 기록
+4. sentence-level validator를 넣고, 후처리에서 실제 prune verdict를 반영
+
+현재 관찰:
+
+- typed artifact는 의도대로 잘 남는다.
+- 하지만 5문항 full eval 기준으로는 validator가 아직 충분히 많이 자르지 못한다.
+- `dev_fulleval_sentence_validator_2026-04-21` 기준 `contextual_all` 변화:
+  - `faithfulness 0.600 -> 0.540`
+  - `relevancy 0.711 -> 0.586`
+  - `recall 0.600 -> 0.600`
+  - `hit@k 0.800 -> 1.000`
+  - `section 0.300 -> 0.325`
+  - `citation 0.800 -> 0.867`
+- 즉 retrieval / citation 쪽은 좋아졌지만, answer quality는 아직 안정적으로 개선되지 않았다.
+
+focus run 관찰:
+
+- `dev_focus_validator_2026-04-21`에서 `risk_analysis_001`은 실제로 pruning이 발생했다.
+- `contextual_all`
+  - 도입 문장 하나가 `drop_redundant`
+- `contextual_parent_only`
+  - 도입 문장 하나가 `drop_unsupported`
+  - `dropped_claim_ids = ev_002`
+
+현재 해석:
+
+- validator는 이제 “기록만 하는 단계”는 지났다.
+- 하지만 아직 “잘 자르는 validator”까지는 아니다.
+- 지금 병목은 validator 강도보다, `business_overview` / `risk`에서 어떤 claim을 같이 선택하느냐에 더 가깝다.
+
+다음 우선순위:
+
+- evidence에 `claim_type` / `topic_key`를 추가
+- compression을 top-N이 아니라 group-wise selection으로 변경
+- `business_overview`
+  - `DX / DS / SDC / Harman` 대표 claim만 선택
+- `risk`
+  - 상위 taxonomy claim과 세부 risk claim을 동시에 다 넣지 않기
 
 이 케이스는 generation failure라기보다, **현재 서술형 faithfulness judge가 숫자 동치성을 충분히 인정하지 못하는 evaluator limitation**으로 해석한다.
 

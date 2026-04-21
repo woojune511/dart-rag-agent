@@ -4,26 +4,21 @@
 
 | Company | Experiment | Screen Pass | Critical Misses | Hit@k | Section | Citation | Contam | API Calls | Est. Cost (USD) | Ingest (s) | API Δ | Time Δ | Cost Δ | Full Faithfulness | Full Recall |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 삼성전자 2024 | contextual_all_2500_320 | no | 1 | 0.800 | 0.300 | 0.800 | 0.000 | 300 | 1.0767 | 568.703 | 0.0% | 0.0% | 0.0% | 0.600 | 0.600 |
-| 삼성전자 2024 | contextual_parent_only_2500_320 | no | 1 | 0.800 | 0.300 | 0.800 | 0.000 | 40 | 0.1242 | 48.037 | 86.7% | 91.6% | 88.5% | - | - |
-| 삼성전자 2024 | contextual_selective_v2_2500_320 | no | 2 | 0.600 | 0.250 | 0.733 | 0.000 | 127 | 0.3973 | 146.853 | 57.7% | 74.2% | 63.1% | - | - |
+| 삼성전자 2024 | contextual_all_2500_320 | no | 1 | 0.667 | 0.083 | 0.778 | 0.000 | 0 | 0.0000 | 0.000 | - | - | - | 0.667 | 0.750 |
+| 삼성전자 2024 | contextual_parent_only_2500_320 | no | 1 | 0.667 | 0.083 | 0.667 | 0.000 | 0 | 0.0000 | 0.000 | - | - | - | 0.833 | 0.667 |
 
 ## Winner Ranking
 
 | Rank | Experiment | Pass Count | Company Count | Critical Misses | Avg API Δ | Avg Time Δ | Avg Cost Δ | Avg Faithfulness | Avg Recall |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | contextual_parent_only_2500_320 | 0 | 1 | 1 | 86.7% | 91.6% | 88.5% | - | - |
+| 1 | contextual_parent_only_2500_320 | 0 | 1 | 1 | - | - | - | 0.833 | 0.667 |
 
 Failure Notes for `contextual_parent_only_2500_320`
 - 삼성전자 2024: retrieval_hit_at_k == 0 for risk_analysis_001
-| 2 | contextual_all_2500_320 | 0 | 1 | 1 | 0.0% | 0.0% | 0.0% | 0.600 | 0.600 |
+| 2 | contextual_all_2500_320 | 0 | 1 | 1 | - | - | - | 0.667 | 0.750 |
 
 Failure Notes for `contextual_all_2500_320`
 - 삼성전자 2024: retrieval_hit_at_k == 0 for business_overview_001
-| 3 | contextual_selective_v2_2500_320 | 0 | 1 | 2 | 57.7% | 74.2% | 63.1% | - | - |
-
-Failure Notes for `contextual_selective_v2_2500_320`
-- 삼성전자 2024: retrieval_hit_at_k == 0 for business_overview_001 | retrieval_hit_at_k == 0 for risk_analysis_001 | retrieval_hit_at_k dropped by 0.200
 
 ## Selection Policy
 

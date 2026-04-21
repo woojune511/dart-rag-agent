@@ -65,6 +65,14 @@ def _normalise_spaces(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip()
 
 
+def _split_sentences(text: str) -> List[str]:
+    cleaned = _normalise_spaces(text)
+    if not cleaned:
+        return []
+    parts = re.split(r"(?<=[.!?])\s+|(?<=다)\s+", cleaned)
+    return [part.strip() for part in parts if part.strip()]
+
+
 class FinancialAgentState(TypedDict):
     query: str
     query_type: str
@@ -82,6 +90,7 @@ class FinancialAgentState(TypedDict):
     kept_claim_ids: List[str]
     dropped_claim_ids: List[str]
     unsupported_sentences: List[str]
+    sentence_checks: List[Dict[str, Any]]
     answer: str
     citations: List[str]
 
@@ -163,6 +172,10 @@ class ValidationOutput(BaseModel):
     unsupported_sentences: List[str] = Field(
         default_factory=list,
         description="근거 부족 또는 과잉 설명으로 제거한 문장 목록",
+    )
+    sentence_checks: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="문장별 검증 결과. sentence, verdict, reason, supporting_claim_ids를 포함",
     )
     final_answer: str = Field(
         description="검증을 거친 최종 답변",
@@ -580,6 +593,144 @@ class FinancialAgent:
         wanted = {str(value).strip() for value in evidence_ids if str(value).strip()}
         return [item for item in evidence_items if str(item.get("evidence_id", "")).strip() in wanted]
 
+    def _evidence_lookup(self, evidence_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        return {
+            str(item.get("evidence_id", "")).strip(): item
+            for item in evidence_items
+            if str(item.get("evidence_id", "")).strip()
+        }
+
+    def _sentence_support_text(self, claim_ids: List[str], evidence_lookup: Dict[str, Dict[str, Any]]) -> str:
+        parts: List[str] = []
+        for claim_id in claim_ids:
+            item = evidence_lookup.get(str(claim_id).strip())
+            if not item:
+                continue
+            parts.append(str(item.get("claim", "")).strip())
+            parts.append(str(item.get("quote_span", "")).strip())
+        return " ".join(part for part in parts if part)
+
+    def _is_intro_sentence(self, sentence: str) -> bool:
+        lowered = _normalise_spaces(sentence).lower()
+        intro_patterns = (
+            "다음과 같습니다",
+            "다음과 같",
+            "주요 재무 리스크는",
+            "주요 사업은",
+            "영위하는 주요 사업은",
+        )
+        return any(pattern in lowered for pattern in intro_patterns)
+
+    def _normalise_sentence_checks(
+        self,
+        *,
+        query_type: str,
+        compressed_answer: str,
+        sentence_checks: List[Dict[str, Any]],
+        selected_claim_ids: List[str],
+        evidence_items: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        evidence_lookup = self._evidence_lookup(evidence_items)
+        normalized: List[Dict[str, Any]] = []
+
+        raw_checks = sentence_checks or []
+        if not raw_checks:
+            raw_checks = [
+                {
+                    "sentence": sentence,
+                    "verdict": "keep",
+                    "reason": "fallback_keep",
+                    "supporting_claim_ids": selected_claim_ids,
+                }
+                for sentence in _split_sentences(compressed_answer)
+            ]
+
+        seen_sentences: set[str] = set()
+        previous_keep_signature: Optional[tuple] = None
+        previous_keep_tokens: set[str] = set()
+
+        for index, entry in enumerate(raw_checks):
+            sentence = _normalise_spaces(str(entry.get("sentence", "")))
+            if not sentence or sentence in seen_sentences:
+                continue
+            seen_sentences.add(sentence)
+
+            verdict = str(entry.get("verdict", "keep") or "keep").strip()
+            reason = _normalise_spaces(str(entry.get("reason", "")))
+            supporting_claim_ids = [
+                str(value).strip()
+                for value in (entry.get("supporting_claim_ids") or [])
+                if str(value).strip()
+            ]
+
+            if verdict not in {"keep", "drop_overextended", "drop_unsupported", "drop_redundant"}:
+                verdict = "keep"
+
+            if verdict == "keep" and not supporting_claim_ids:
+                verdict = "drop_unsupported"
+                reason = reason or "근거 claim이 연결되지 않음"
+
+            support_text = self._sentence_support_text(supporting_claim_ids, evidence_lookup)
+            support_tokens = _tokenize_terms(support_text)
+            sentence_tokens = _tokenize_terms(sentence)
+
+            if verdict == "keep" and self._is_intro_sentence(sentence) and index < len(raw_checks) - 1:
+                verdict = "drop_redundant"
+                reason = reason or "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거"
+
+            if verdict == "keep" and previous_keep_signature and tuple(supporting_claim_ids) == previous_keep_signature:
+                overlap = len(sentence_tokens & previous_keep_tokens) / max(len(sentence_tokens | previous_keep_tokens), 1)
+                if overlap >= 0.6:
+                    verdict = "drop_redundant"
+                    reason = reason or "같은 claim을 반복 설명함"
+
+            if verdict == "keep" and query_type in {"business_overview", "risk"} and support_tokens:
+                overlap = len(sentence_tokens & support_tokens) / max(len(sentence_tokens), 1)
+                if overlap < 0.35 and len(sentence_tokens) >= 5:
+                    verdict = "drop_overextended"
+                    reason = reason or "근거 claim보다 과도하게 일반화되거나 확장됨"
+
+            normalized.append(
+                {
+                    "sentence": sentence,
+                    "verdict": verdict,
+                    "reason": reason,
+                    "supporting_claim_ids": supporting_claim_ids,
+                }
+            )
+
+            if verdict == "keep":
+                previous_keep_signature = tuple(supporting_claim_ids)
+                previous_keep_tokens = sentence_tokens
+
+        kept_sentences = [item["sentence"] for item in normalized if item["verdict"] == "keep"]
+        kept_claim_ids = sorted(
+            {
+                claim_id
+                for item in normalized
+                if item["verdict"] == "keep"
+                for claim_id in item.get("supporting_claim_ids", [])
+            }
+        )
+        dropped_claim_ids = sorted(set(selected_claim_ids) - set(kept_claim_ids))
+        unsupported_sentences = [
+            item["sentence"] for item in normalized if item["verdict"] != "keep"
+        ]
+        final_answer = " ".join(kept_sentences).strip()
+        if not final_answer:
+            final_answer = (
+                "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. "
+                "공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다."
+            )
+
+        return {
+            "kept_claim_ids": kept_claim_ids,
+            "dropped_claim_ids": dropped_claim_ids,
+            "unsupported_sentences": unsupported_sentences,
+            "sentence_checks": normalized,
+            "answer": final_answer,
+        }
+
     def _compression_guidance(self, query_type: str, query: str, coverage: str) -> Dict[str, str]:
         instructions = {
             "numeric_fact": (
@@ -817,6 +968,7 @@ Structured Evidence:
                 "kept_claim_ids": [],
                 "dropped_claim_ids": [],
                 "unsupported_sentences": [],
+                "sentence_checks": [],
                 "answer": compressed_answer,
             }
 
@@ -831,7 +983,7 @@ Structured Evidence:
 
         structured_llm = self.llm.with_structured_output(ValidationOutput)
         validator_prompt = ChatPromptTemplate.from_template(
-            """다음 답변 초안을 structured evidence와 대조해 검증하고 typed output을 만드세요.
+            """다음 답변 초안을 structured evidence와 대조해 문장 단위로 검증하고 typed output을 만드세요.
 
 Validator 규칙:
 - 새 정보는 절대 추가하지 마세요.
@@ -841,7 +993,16 @@ Validator 규칙:
 - risk: evidence에 없는 상위 taxonomy나 재분류를 만들지 마세요.
 - duplicated claim은 하나만 남기세요.
 - 가능한 한 기존 source_anchor는 유지하세요.
-- 최종 답변만 출력하세요.
+- 초안을 문장 단위로 나눈 뒤 각 문장을 아래 verdict 중 하나로 판정하세요.
+  - keep
+  - drop_overextended
+  - drop_unsupported
+  - drop_redundant
+- supporting_claim_ids에는 그 문장을 직접 지지하는 evidence_id만 넣으세요.
+- keep가 아닌 문장은 unsupported_sentences에도 넣으세요.
+- kept_claim_ids / dropped_claim_ids는 sentence_checks와 일관되게 작성하세요.
+- final_answer는 keep verdict를 받은 문장만 자연스럽게 이어 붙인 결과여야 합니다.
+- keep 문장이 하나도 없으면, 질문에 직접 답할 수 있는 근거를 찾지 못했다는 짧은 문장만 남기세요.
 
 질문 유형: {query_type}
 질문: {query}
@@ -856,6 +1017,7 @@ Structured Evidence:
 - kept_claim_ids: 최종 답변에 실제로 남긴 evidence_id
 - dropped_claim_ids: 제거한 evidence_id
 - unsupported_sentences: 삭제하거나 축소한 문장/구
+- sentence_checks: 각 문장에 대한 verdict, reason, supporting_claim_ids
 - final_answer: 최종 사용자 답변
 """
         )
@@ -869,12 +1031,13 @@ Structured Evidence:
                 }
             )
             logger.info("[validate] typed validation generated")
-            return {
-                "kept_claim_ids": validated.kept_claim_ids,
-                "dropped_claim_ids": validated.dropped_claim_ids,
-                "unsupported_sentences": validated.unsupported_sentences,
-                "answer": validated.final_answer,
-            }
+            return self._normalise_sentence_checks(
+                query_type=query_type,
+                compressed_answer=validated.final_answer or compressed_answer,
+                sentence_checks=validated.sentence_checks,
+                selected_claim_ids=[item.get("evidence_id", "") for item in selected_evidence if item.get("evidence_id")],
+                evidence_items=selected_evidence,
+            )
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
             validated_answer = (validator_prompt | self.llm | StrOutputParser()).invoke(
@@ -886,12 +1049,22 @@ Structured Evidence:
                 }
             )
             selected_ids = [item.get("evidence_id", "") for item in selected_evidence if item.get("evidence_id")]
-            return {
-                "kept_claim_ids": selected_ids,
-                "dropped_claim_ids": [],
-                "unsupported_sentences": [],
-                "answer": validated_answer,
-            }
+            return self._normalise_sentence_checks(
+                query_type=query_type,
+                compressed_answer=validated_answer,
+                sentence_checks=[
+                    {
+                        "sentence": validated_answer,
+                        "verdict": "keep",
+                        "reason": "fallback",
+                        "supporting_claim_ids": selected_ids,
+                    }
+                ]
+                if validated_answer
+                else [],
+                selected_claim_ids=selected_ids,
+                evidence_items=selected_evidence,
+            )
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()
@@ -954,6 +1127,7 @@ Structured Evidence:
             "kept_claim_ids": [],
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
+            "sentence_checks": [],
             "answer": "",
             "citations": [],
         }
@@ -972,6 +1146,7 @@ Structured Evidence:
             "kept_claim_ids": final.get("kept_claim_ids", []),
             "dropped_claim_ids": final.get("dropped_claim_ids", []),
             "unsupported_sentences": final.get("unsupported_sentences", []),
+            "sentence_checks": final.get("sentence_checks", []),
         }
 
     def ingest(self, chunks: List) -> None:
