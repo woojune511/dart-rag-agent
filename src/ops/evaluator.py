@@ -118,6 +118,7 @@ class EvalResult:
     kept_claim_ids: List[str] = field(default_factory=list)
     dropped_claim_ids: List[str] = field(default_factory=list)
     unsupported_sentences: List[str] = field(default_factory=list)
+    sentence_checks: List[Dict[str, Any]] = field(default_factory=list)
     numeric_equivalence: Optional[float] = None
     numeric_grounding: Optional[float] = None
     numeric_retrieval_support: Optional[float] = None
@@ -801,6 +802,7 @@ class RAGEvaluator:
         kept_claim_ids: List[str] = []
         dropped_claim_ids: List[str] = []
         unsupported_sentences: List[str] = []
+        sentence_checks: List[Dict[str, Any]] = []
 
         try:
             result = self.agent.run(example.question)
@@ -814,6 +816,7 @@ class RAGEvaluator:
             kept_claim_ids = result.get("kept_claim_ids", []) or []
             dropped_claim_ids = result.get("dropped_claim_ids", []) or []
             unsupported_sentences = result.get("unsupported_sentences", []) or []
+            sentence_checks = result.get("sentence_checks", []) or []
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
@@ -880,6 +883,7 @@ class RAGEvaluator:
             kept_claim_ids=kept_claim_ids,
             dropped_claim_ids=dropped_claim_ids,
             unsupported_sentences=unsupported_sentences,
+            sentence_checks=sentence_checks,
             numeric_equivalence=numeric_eval.get("numeric_equivalence"),
             numeric_grounding=numeric_eval.get("numeric_grounding"),
             numeric_retrieval_support=numeric_eval.get("numeric_retrieval_support"),

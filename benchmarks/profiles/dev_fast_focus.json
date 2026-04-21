@@ -5,7 +5,7 @@
     "max_workers": 8,
     "batch_size": 16,
     "eval_mode": "question_ids",
-    "eval_limit": 2,
+    "eval_limit": 3,
     "reuse_store": true,
     "reuse_context_cache": true,
     "force_reindex": false,
@@ -31,8 +31,10 @@
     ],
     "mlflow_experiment_name": "dart_rag_benchmark_dev_fast",
     "question_ids": [
-      "numeric_fact_001",
+      "business_overview_001",
       "business_overview_003"
+      ,
+      "risk_analysis_001"
     ]
   },
   "candidate_ids": [
@@ -62,10 +64,11 @@
   "full_evaluation": {
     "enabled": true,
     "eval_mode": "question_ids",
-    "eval_limit": 2,
+    "eval_limit": 3,
     "question_ids": [
-      "numeric_fact_001",
-      "business_overview_003"
+      "business_overview_001",
+      "business_overview_003",
+      "risk_analysis_001"
     ]
   },
   "company_runs": [
@@ -83,14 +86,20 @@
         "eval_dataset_path": "benchmarks/eval_dataset.canonical.json",
         "smoke_queries": [
           {
-            "query": "삼성전자 2024 사업보고서에서 연결 기준 매출액은 얼마인가요?",
-            "category": "numeric_fact",
+            "query": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+            "category": "business_overview",
             "expected_company": "삼성전자",
             "expected_year": 2024
           },
           {
             "query": "삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?",
             "category": "business_overview",
+            "expected_company": "삼성전자",
+            "expected_year": 2024
+          },
+          {
+            "query": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+            "category": "risk_analysis",
             "expected_company": "삼성전자",
             "expected_year": 2024
           }

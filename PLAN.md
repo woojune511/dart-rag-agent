@@ -43,8 +43,9 @@
 - `kept_claim_ids`
 - `dropped_claim_ids`
 - `unsupported_sentences`
+- `sentence_checks`
 
-다음 단계는 이 필드들이 reviewer artifact에서 실제로 문제 원인을 드러내는지 검증하는 것이다.
+typed artifact 검증 결과, 이 필드들은 reviewer artifact에서 실제로 읽히지만 validator가 아직 충분히 공격적으로 pruning하지는 못한다. 따라서 다음 단계는 validator를 더 세게 만드는 것보다, compression 앞단의 claim selection을 더 구조화하는 것이다.
 
 기본 운영 방식:
 
@@ -96,6 +97,23 @@
   - `kept_claim_ids`
   - `dropped_claim_ids`
   - `unsupported_sentences`
+  - `sentence_checks`
+
+현재 상태:
+
+- `dev_fast_cache_check_2026-04-17`에서 typed artifact 기록 자체는 확인했다.
+- `dev_fulleval_sentence_validator_2026-04-21`에서 sentence-level validator를 5문항 full eval에 다시 붙여 확인했다.
+- `dev_focus_validator_2026-04-21`에서는 실제 prune verdict가 처음으로 의미 있게 발생했다.
+
+현재 문제:
+
+- 5문항 full eval 기준으로는 `dropped_claim_ids`, `unsupported_sentences`가 아직 충분히 많이 생기지 않는다.
+- validator가 실제로 자르기 시작했지만, 여전히 claim selection이 과도하거나 애매하면 answer quality가 흔들린다.
+
+다음 작업:
+
+- validator를 더 세게 만드는 것보다 `claim_type` / `topic_key` 기반 selection으로 이동
+- `business_overview`, `risk`에서 group-wise claim selection 도입
 
 ### 2. Query-stage abstention 분석
 
@@ -186,6 +204,22 @@
 - `results.json`, `review.csv`, `review.md`에 `numeric_equivalence`, `numeric_grounding`, `numeric_retrieval_support`, `numeric_final_judgement`, `numeric_confidence`가 기록됨
 - 다음 단계는 이 값을 aggregate / summary / 승자 해석에 더 직접 반영하는 것
 
+### 7. Claim grouping 기반 compression
+
+목표:
+
+- `business_overview`와 `risk`에서 근거가 섞이며 답이 과잉 설명으로 흐르는 문제를 줄이기
+- validator가 뒤에서 과하게 자르는 대신, compression 단계에서부터 잘못된 claim 조합을 줄이기
+
+방향:
+
+- evidence에 `claim_type` / `topic_key` 추가
+- `business_overview`
+  - `DX / DS / SDC / Harman` 대표 claim만 유지
+- `risk`
+  - 상위 taxonomy claim과 하위 risk item claim을 동시에 다 넣지 않기
+- top-N evidence selection 대신 group-wise selection 도입
+
 ## 측정 항목
 
 ### 품질
@@ -218,6 +252,8 @@
 - 최근 hardcoded answer-stage rule이 어떤 역할을 하는지 문서로 설명 가능할 것
 - benchmark-only 최적화와 운영 기본값 후보를 구분하는 기준이 문서에 명시될 것
 - NAVER `business_overview_001` miss 원인을 retrieval / reasoning 중 어디인지 분리
+- typed validator artifact에서 실제 pruning이 언제, 왜 일어났는지 설명 가능할 것
+- 다음 단계가 “validator를 더 세게”가 아니라 “claim selection을 더 구조화”하는 방향으로 정리될 것
 - numeric / risk / R&D abstention이 반복되는 대표 케이스 3개 이상을 설명 가능하게 정리
 - missing-information hallucination을 유발하는 대표 패턴을 재현 가능하게 문서화
 - 위 수정 후 `dev_fast` 기준 재실험으로 적어도 1개 failure type이 줄어드는지 확인
