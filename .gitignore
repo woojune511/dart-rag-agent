@@ -17,4 +17,5 @@ archive/
 # Local benchmark configs / generated artifacts
 benchmarks/experiment_matrix.local.json
 benchmarks/results/**/stores/
+benchmarks/results/**/context_cache/
 mlflow.db

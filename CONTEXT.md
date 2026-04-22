@@ -35,6 +35,7 @@
 - `src/ops/evaluator.py`는 기존 canonical schema와 Golden Dataset schema v1을 모두 읽도록 확장 완료
 - `single_document_dev` profile에서 삼성전자 2024 기준 `20문항`이 선택되는 것 확인
 - 다음 우선순위는 이 20문항을 `draft -> verified`로 수동 검수하는 것
+- 단일 문서 micro benchmark에서 `document-structure graph`와 `zero-cost prefix`를 비교할 수 있는 실험 프로파일 확보
 
 ## 최근 반영 사항
 
@@ -84,6 +85,40 @@
 
 - 삼성전자 2024 사업보고서
 - 접수번호 `20250311001085`
+
+### 단일 문서 graph / prefix micro benchmark
+
+기준 run:
+
+- `benchmarks/results/graph_micro_2026-04-22`
+- `benchmarks/results/graph_micro_constrained_2026-04-22`
+- `benchmarks/results/graph_micro_prefix_2026-04-22`
+
+핵심 관찰:
+
+- 1차 `plain + graph expansion`만으로는 `contextual_all` 대체 실패
+  - 비용/시간은 크게 줄었지만
+  - `q_009` 재무 리스크 질문에서 seed retrieval miss가 반복
+- graph expansion 제약
+  - `table -> paragraph prev만 허용`
+  - `sibling_next 제거`
+  - `max_docs = 8`
+  를 넣어도, seed retrieval 자체가 틀리면 품질을 복구하지 못했다
+- 이후 `plain` / `plain_graph` 인덱싱 텍스트 앞에 **Zero-Cost Prefix**를 추가
+  - `[섹션]`, `[분류]`, `[키워드]`를 원문 앞에 삽입
+  - LLM contextual ingest 없이도 vocabulary mismatch를 줄이는 목적
+
+현재 결론:
+
+- `Document-Structure Graph`는 **좋은 seed를 보강하는 도구**다
+- `q_009`의 핵심 병목은 graph가 아니라 **seed retrieval miss**였고
+- `Zero-Cost Prefix` 추가 후 `q_009`는 plain 계열에서도 `hit@k = 1.0`으로 회복됐다
+- 반면 `q_001` 연결 기준 매출액 질문은 여전히 `연결재무제표 주석` 표로 과도하게 쏠리고, 답변 단계에서 total revenue를 안정적으로 뽑지 못한다
+
+의미:
+
+- 리스크 질문은 seed retrieval 보강이 우선이고
+- 숫자 질문은 retrieval 이후에도 `query target alignment`와 evidence extraction이 별도 병목이다
 
 현재 결과 요약:
 
