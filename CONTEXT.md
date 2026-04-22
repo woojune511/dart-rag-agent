@@ -19,6 +19,23 @@
 - Chunk size / overlap: `2500 / 320`
 - Baseline ingest mode: `contextual_all`
 
+현재는 시스템 전반을 다시 정렬하기 위해, 다기업 generalization보다 **단일 문서 Golden Dataset과 evaluator 확정**을 먼저 하기로 했다.
+기준 문서는 `삼성전자 2024 사업보고서`다.
+
+현재 single-document baseline 자산:
+
+- `docs/single_document_eval_strategy.md`
+- `docs/golden_dataset_schema.md`
+- `benchmarks/golden/samsung_2024_v1.json`
+- `benchmarks/profiles/single_document_dev.json`
+
+현재 상태:
+
+- Golden Dataset `v1 draft` 20문항 생성 완료
+- `src/ops/evaluator.py`는 기존 canonical schema와 Golden Dataset schema v1을 모두 읽도록 확장 완료
+- `single_document_dev` profile에서 삼성전자 2024 기준 `20문항`이 선택되는 것 확인
+- 다음 우선순위는 이 20문항을 `draft -> verified`로 수동 검수하는 것
+
 ## 최근 반영 사항
 
 - benchmark runner에 2단계 평가 구조 반영
@@ -388,3 +405,34 @@ focus run 관찰:
 6. missing-information hallucination 억제 보강
 7. 그 다음에 `dev_fast` 기준 재실험
 8. 실패 유형이 줄어든 뒤에만 전체 3개사 재벤치마크
+
+## 새 기준선: single-document benchmark lab
+
+다음 단계는 retrieval / generation tweak가 아니다.
+
+먼저 할 일:
+
+1. 삼성전자 2024 사업보고서 1건 기준으로 Golden Dataset 20~30개 구축
+2. 질문 taxonomy 확정
+   - `single-hop-fact`
+   - `multi-hop-comparison`
+   - `multi-hop-calculation`
+   - `synthesis-abstract`
+   - `adversarial-out-of-domain`
+3. JSON schema v1 확정
+4. evaluator 분리
+   - retrieval
+   - generation
+   - numeric
+   - refusal
+5. benchmark runner를 single-document 기준으로 먼저 고정
+
+이 판단의 이유:
+
+- 지금은 평균 metric보다 평가 기준 자체를 먼저 고정하는 편이 중요하다.
+- multi-company run은 parser 차이, section alias 차이, evaluator 차이가 섞인다.
+- local rule을 더 붙이는 것보다 “무엇을 좋은 답으로 볼 것인가”를 단일 문서에서 먼저 고정해야 한다.
+
+참조:
+
+- [single_document_eval_strategy.md](docs/single_document_eval_strategy.md)

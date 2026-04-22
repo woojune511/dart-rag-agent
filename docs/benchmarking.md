@@ -3,11 +3,28 @@
 이 문서는 DART 공시 RAG 시스템에서 retrieval 정확도, answer 품질, ingest 시간, API 비용을 함께 비교하기 위한 benchmark 가이드다.
 
 버전별 코드/실험 변화 흐름은 [experiment_history.md](experiment_history.md)를 참고한다.  
-answer generation 원칙과 최근 rule inventory는 [answer_generation_principles.md](answer_generation_principles.md)를 참고한다.
+answer generation 원칙과 최근 rule inventory는 [answer_generation_principles.md](answer_generation_principles.md)를 참고한다.  
+단일 문서 기준선 재정렬 방향은 [single_document_eval_strategy.md](single_document_eval_strategy.md)를 참고한다.
+single-document metric spec은 [evaluation_metrics_v1.md](evaluation_metrics_v1.md)를 참고한다.
 
 ## 목표
 
-현재 benchmark의 목표는 "삼성전자 1건에서 더 싼 후보를 찾기"가 아니라,  
+현재 benchmark의 장기 목표는 다기업 generalization이지만, **가장 먼저 고정해야 하는 기준선은 단일 문서 benchmark**다.
+
+현재 이 문서에서 특히 중요한 기술적 포인트는 세 가지다.
+
+1. benchmark는 retrieval / generation / numeric / refusal을 한 지표로 섞지 않는다
+2. answer generation 개선은 metric gaming이 아니라 typed artifact와 evidence trace 위에서 해석한다
+3. multi-company generalization보다 single-document benchmark lab을 먼저 고정한다
+
+즉 우선순위는 다음 순서다.
+
+1. 삼성전자 2024 사업보고서 1건 기준 Golden Dataset 구축
+2. evaluator 분리
+3. single-document benchmark 안정화
+4. 그 다음에만 multi-company generalization 재개
+
+현재 다기업 benchmark의 목표는 "삼성전자 1건에서 더 싼 후보를 찾기"가 아니라,  
 **삼성전자 / SK하이닉스 / NAVER 3개 기업에서 screening quality floor를 재현하는 후보를 찾고 기본값 후보를 선택하는 것**이다.
 
 다만 일상적인 실험 루프는 이제 release-grade full run이 아니라,  
@@ -27,10 +44,12 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
 기본 실행 프로파일:
 
 - `benchmarks/profiles/dev_fast.json`
+- `benchmarks/profiles/single_document_dev.json`
 - `benchmarks/profiles/release_generalization.json`
 
 기본 평가셋:
 
+- `benchmarks/golden/samsung_2024_v1.json` for single-document lab
 - `benchmarks/eval_dataset.canonical.json` for `삼성전자`
 - `benchmarks/eval_dataset.skhynix_2024.canonical.json` for `SK하이닉스`
 - `benchmarks/eval_dataset.naver_2024.canonical.json` for `NAVER`
@@ -194,6 +213,8 @@ screening 통과안만 정식 평가로 보낸다.
 
 현재 canonical dataset은 기업별로 8개 이상 문항을 포함하며, 삼성전자 기준 canonical file은 11개 문항을 포함한다.
 
+다음 단계에서는 canonical dataset을 유지하되, 우선 삼성전자 2024 단일 문서에 대해 더 엄격한 Golden Dataset v1을 따로 만든다. 이 Golden Dataset은 현재 canonical dataset보다 schema가 풍부하고, `answer_type`, `expected_refusal`, `reasoning_steps`, `numeric_constraints`, `ground_truth_context_ids`를 포함하는 방향으로 확장한다.
+
 ## Reviewer Artifact
 
 benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 실제 답만 보여주는 용도가 아니다. 현재는 아래 정보를 함께 검수할 수 있어야 한다.
@@ -231,6 +252,9 @@ benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 
 - 다음 단계는 validator 강도 추가보다 `claim_type` / `topic_key` 기반 selection 보강이다.
 
 ## 지표 정의
+
+요약 metric spec은 [evaluation_metrics_v1.md](evaluation_metrics_v1.md)에 따로 정리되어 있다.  
+이 문서에서는 benchmark runner에 현재 연결된 지표와 운영 해석을 중심으로 정리한다.
 
 ### Speed
 

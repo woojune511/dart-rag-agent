@@ -29,13 +29,19 @@
 
 이 구조는 retrieval granularity와 reasoning context의 요구가 다르다는 점을 반영한 것이다.
 
-### 4. evidence-first reasoning을 유지한다
+### 4. answer generation을 evidence compression 문제로 재정의한다
 
-답변을 바로 생성하지 않고 `retrieve -> evidence -> analyze -> cite` 흐름을 거친다.
+초기에는 `retrieve -> evidence -> analyze -> cite` 흐름이었지만, 현재는 `retrieve -> structured evidence -> compress -> validate -> cite` 구조로 이동하고 있다.
 
-이 방식은 근거 없는 요약을 줄이고, 정보가 부족하거나 충돌할 때 이를 명시적으로 드러내는 데 유리하다.
+이 결정은 answer를 free-form generation보다 **근거 압축과 검증의 문제**로 다루기 위한 전환이다.
 
-### 5. 성능 튜닝은 측정 기반으로 진행한다
+### 5. 숫자 질문은 generic faithfulness judge에서 분리한다
+
+숫자 질문은 단위 변환과 표기 차이 때문에 generic `faithfulness` judge만으로는 false fail이 자주 발생한다.
+
+그래서 `numeric_equivalence`, `numeric_grounding`, `numeric_retrieval_support`, `numeric_final_judgement`를 별도 축으로 도입했다.
+
+### 6. 성능 튜닝은 측정 기반으로 진행한다
 
 청크 크기와 contextual ingest 전략은 감이 아니라 실측으로 비교한다.
 
@@ -47,7 +53,7 @@
 
 현재 기본값은 `2500 / 320`이다. 가장 빠른 값이 아니라 품질 하한선을 넘기면서 비용과 시간을 줄인 균형점으로 채택했다.
 
-### 6. 벤치마크는 2단계 구조로 운영한다
+### 7. 벤치마크는 2단계 구조로 운영한다
 
 모든 후보를 비싼 full evaluation으로 보내지 않고, screening에서 저비용 후보를 먼저 거른 뒤 통과안만 정식 평가로 올린다.
 
@@ -58,7 +64,13 @@
 
 이 구조는 API 비용을 통제하면서도 품질 하한선을 엄격하게 유지하기 위한 결정이다.
 
-### 7. 실험 결과 자산은 repo에 남기고, 로컬 상태만 무시한다
+### 8. 먼저 single-document Golden Dataset과 evaluator를 고정한다
+
+최근 방향 전환의 핵심은 multi-company benchmark를 계속 확장하기보다, 삼성전자 2024 사업보고서 1건 기준 Golden Dataset과 evaluator를 먼저 고정하는 것이다.
+
+이 결정은 retrieval / generation tweak를 계속 쌓기 전에, 무엇을 실제 개선으로 볼지 기준선을 먼저 세우기 위한 것이다.
+
+### 9. 실험 결과 자산은 repo에 남기고, 로컬 상태만 무시한다
 
 전역 `*.json` ignore는 제거했다. 대신 아래만 계속 무시한다.
 
