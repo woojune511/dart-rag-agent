@@ -187,10 +187,10 @@ class ValidationOutput(BaseModel):
 class FinancialAgent:
     _SECTION_BIAS_BY_QUERY_TYPE = {
         "numeric_fact": (
+            ("손익계산서", 0.08),
             ("매출 및 수주상황", 0.08),
             ("요약재무정보", 0.06),
             ("연결재무제표", 0.06),
-            ("연결재무제표 주석", 0.06),
         ),
         "business_overview": (
             ("II. 사업의 내용 > 1. 사업의 개요", 0.14),
@@ -288,9 +288,18 @@ class FinancialAgent:
     def _section_bias(self, query_type: str, section_path: str) -> float:
         lowered = (section_path or "").lower()
         bias = 0.0
-        for needle, weight in self._SECTION_BIAS_BY_QUERY_TYPE.get(query_type, ()):
+        # 가장 긴 needle부터 검사하고 첫 매칭에서 break → 구체적인 섹션명이 우선 적용되고 중복 가산 방지
+        for needle, weight in sorted(
+            self._SECTION_BIAS_BY_QUERY_TYPE.get(query_type, ()),
+            key=lambda x: len(x[0]),
+            reverse=True,
+        ):
             if needle.lower() in lowered:
                 bias += weight
+                break
+        # 주석 섹션은 numeric_fact/trend에서 본문 재무제표보다 유용도가 낮으므로 페널티
+        if "주석" in lowered and query_type in self._TABLE_PREFERRED_TYPES:
+            bias -= 0.12
         return bias
 
     def _rerank_docs(self, docs, state: FinancialAgentState):
