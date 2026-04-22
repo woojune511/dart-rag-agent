@@ -88,7 +88,24 @@ retrieve
 
 - retrieval / generation tweak를 계속 쌓는 대신, 무엇을 실제 개선으로 볼지 기준선을 먼저 만든다.
 
-## 6. 비용 통제를 고려한 benchmark 운영
+## 6. seed retrieval을 싸게 보강하는 zero-cost prefix
+
+graph expansion만으로는 잘못 잡힌 seed retrieval을 복구하기 어렵다는 점이 micro benchmark에서 드러났다.
+
+그래서 `plain` 인덱싱에는 LLM 없이도 semantic hint를 주는 `Zero-Cost Prefix`를 도입했다.
+
+핵심 포인트:
+
+- 원문 앞에 `[섹션]`, `[분류]`, `[키워드]`를 hardcoded 문자열로 삽입
+- `위험관리 및 파생거래 -> 리스크 / 시장위험 / 신용위험 / 유동성위험` 같은 alias를 같이 주입
+- `plain + graph expansion`과 조합해 seed retrieval miss를 줄임
+
+의미:
+
+- `contextual_ingest`처럼 청크마다 LLM 요약을 붙이지 않고도, vocabulary mismatch를 크게 완화할 수 있다.
+- 비용을 거의 0으로 유지하면서도 retrieval recall을 회복하는 **도메인 특화 RAG 엔지니어링 결정**이다.
+
+## 7. 비용 통제를 고려한 benchmark 운영
 
 benchmark는 model quality만이 아니라 실험 비용과 반복 속도까지 함께 다룬다.
 

@@ -118,6 +118,75 @@ typed artifact 검증 결과, 이 필드들은 reviewer artifact에서 실제로
 - single-document benchmark profile 추가 완료
 - 다음 단계는 dataset을 `draft -> verified`로 검수하고, single-document runner를 실제 기준선으로 고정하는 것이다
 
+### 0-1. Document-Structure Graph micro benchmark
+
+목표:
+
+- expensive `contextual_ingest` 없이도 retrieval 이후 문서 구조 확장만으로 충분한 context recall을 확보할 수 있는지 본다
+
+현재 구현 범위:
+
+- `retrieve -> expand_via_structure_graph -> evidence`
+- 확장에 사용하는 구조 정보:
+  - `parent_id`
+  - sibling (`sibling_prev`, `sibling_next`)
+  - `table_context`
+- graph는 full GraphRAG가 아니라 **retrieval 후 후처리 확장용 최소 구조 그래프**로 둔다
+
+산출물:
+
+- `benchmarks/profiles/single_document_graph_micro.json`
+- `plain + graph expansion` 실험 결과 1회
+
+비교 대상:
+
+- Control:
+  - `contextual_all_2500_320`
+- Reference:
+  - `plain_1500_200`
+  - `plain_2500_320`
+- Treatment:
+  - `plain_graph_1500_200`
+  - `plain_graph_2500_320`
+
+micro-dataset:
+
+- `q_001` numeric fact
+- `q_004` multi-hop calculation
+- `q_006` business overview
+- `q_009` risk synthesis
+- `q_019` adversarial refusal
+
+핵심 질문:
+
+- graph expansion이 `plain` 대비 `context_recall`과 retrieval support를 실제로 끌어올리는가
+- `contextual_all` 대비 비용은 크게 낮으면서 성능은 어느 정도 유지되는가
+- 1500/200 vs 2500/320 중 어떤 chunking이 graph expansion과 더 잘 맞는가
+
+현재 상태:
+
+- 1차 `graph_micro_2026-04-22`
+  - `plain + graph expansion`만으로는 `contextual_all` 대체 실패
+  - `q_009` 리스크 질문에서 seed retrieval miss가 핵심 병목으로 드러남
+- 2차 `graph_micro_constrained_2026-04-22`
+  - `table -> paragraph prev만 허용`, `sibling_next 제거`, `max_docs=8`
+  - noise는 줄었지만 seed retrieval miss는 해결하지 못함
+- 3차 `graph_micro_prefix_2026-04-22`
+  - `plain` / `plain_graph`에 Zero-Cost Prefix 추가
+  - `q_009`는 plain 계열에서도 `hit@k = 1.0`으로 회복
+  - `q_001` 연결 기준 매출액은 여전히 `연결재무제표 주석` 위주로 retrieve되고 answerable abstention이 남음
+
+현재 판단:
+
+- graph expansion은 retrieval replacement가 아니라 **retrieval 보강 수단**
+- 리스크 질문은 `Zero-Cost Prefix`로 seed retrieval을 먼저 살리는 쪽이 맞음
+- 다음 우선순위는 graph보다 `numeric_fact`의 query target alignment
+  - `연결 기준 매출액`
+  - `연결 손익계산서`
+  - `매출 및 수주상황`
+  - `요약재무정보`
+  를 같은 target family로 다루고, `연결재무제표 주석`은 기본 감점하는 쪽
+
 ### 1. Answer generation 원칙 정리와 rule inventory 정리
 
 목표:

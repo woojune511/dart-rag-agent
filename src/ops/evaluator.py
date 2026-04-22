@@ -132,6 +132,7 @@ class EvalResult:
     calculation_correctness: Optional[float] = None
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
+    retrieved_previews: List[Dict[str, Any]] = field(default_factory=list)
     runtime_evidence: List[Dict[str, Any]] = field(default_factory=list)
     selected_claim_ids: List[str] = field(default_factory=list)
     draft_points: List[str] = field(default_factory=list)
@@ -822,6 +823,33 @@ def _compute_citation_coverage(example: EvalExample, citations: List[str]) -> fl
     return sum(1.0 for matched in checks if matched) / len(checks)
 
 
+def _compact_text_preview(text: str, limit: int = 220) -> str:
+    flattened = " ".join((text or "").split())
+    if len(flattened) <= limit:
+        return flattened
+    return flattened[: max(limit - 3, 0)].rstrip() + "..."
+
+
+def _extract_retrieved_previews(retrieved_docs: List[Any], limit: int = 8, chars: int = 220) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for item in retrieved_docs[:limit]:
+        doc = item[0] if isinstance(item, (tuple, list)) else item
+        metadata = getattr(doc, "metadata", {}) or {}
+        text = getattr(doc, "content", None) or getattr(doc, "page_content", "")
+        rows.append(
+            {
+                "company": metadata.get("company"),
+                "year": metadata.get("year"),
+                "section": metadata.get("section"),
+                "section_path": metadata.get("section_path"),
+                "block_type": metadata.get("block_type"),
+                "graph_relation": metadata.get("graph_relation"),
+                "preview": _compact_text_preview(text, limit=chars),
+            }
+        )
+    return rows
+
+
 def _entity_aliases(example: EvalExample, entity: str) -> List[str]:
     values = [entity]
     alias_values = example.aliases.get(entity, [])
@@ -1132,6 +1160,7 @@ class RAGEvaluator:
             latency_sec=latency,
             citations=citations,
             retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),
+            retrieved_previews=_extract_retrieved_previews(retrieved_docs),
             runtime_evidence=runtime_evidence,
             selected_claim_ids=selected_claim_ids,
             draft_points=draft_points,

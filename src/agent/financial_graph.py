@@ -9,6 +9,7 @@ import time
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from dotenv import load_dotenv
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -80,6 +81,7 @@ class FinancialAgentState(TypedDict):
     years: List[int]
     topic: str
     section_filter: Optional[str]
+    seed_retrieved_docs: List
     retrieved_docs: List
     evidence_bullets: List[str]
     evidence_items: List[Dict[str, Any]]
@@ -201,9 +203,23 @@ class FinancialAgent:
         ),
     }
 
-    def __init__(self, vector_store_manager, k: int = 8):
+    def __init__(self, vector_store_manager, k: int = 8, graph_expansion_config: Optional[Dict[str, Any]] = None):
         self.vsm = vector_store_manager
         self.k = k
+        self.graph_expansion_config = {
+            "enabled": False,
+            "include_parent_context": True,
+            "include_section_lead": True,
+            "include_described_by_paragraph": True,
+            "include_table_context": True,
+            "include_sibling_prev": True,
+            "include_sibling_next": False,
+            "table_sibling_prev_paragraph_only": True,
+            "sibling_window": 1,
+            "max_docs": k,
+        }
+        if graph_expansion_config:
+            self.graph_expansion_config.update(graph_expansion_config)
 
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
@@ -415,7 +431,120 @@ class FinancialAgent:
 
         docs = docs[: self.k]
         logger.info("[retrieve] query_type=%s final %s chunks returned", query_type, len(docs))
-        return {"retrieved_docs": docs}
+        return {"seed_retrieved_docs": docs, "retrieved_docs": docs}
+
+    def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:
+        config = dict(self.graph_expansion_config or {})
+        if not config.get("enabled"):
+            return {}
+
+        seed_docs = list(state.get("retrieved_docs", []) or [])
+        if not seed_docs:
+            return {}
+
+        include_parent_context = bool(config.get("include_parent_context", True))
+        include_section_lead = bool(config.get("include_section_lead", True))
+        include_described_by_paragraph = bool(config.get("include_described_by_paragraph", True))
+        include_table_context = bool(config.get("include_table_context", True))
+        include_sibling_prev = bool(config.get("include_sibling_prev", True))
+        include_sibling_next = bool(config.get("include_sibling_next", False))
+        table_sibling_prev_paragraph_only = bool(config.get("table_sibling_prev_paragraph_only", True))
+        sibling_window = max(0, int(config.get("sibling_window", 1) or 0))
+        max_docs = max(self.k, int(config.get("max_docs", self.k) or self.k))
+
+        expanded: List[Any] = []
+        seen_keys: set[str] = set()
+
+        def add_doc(doc: Document, score: float, relation: str = "") -> None:
+            metadata = dict(doc.metadata or {})
+            key = str(metadata.get("chunk_uid") or metadata.get("graph_relation") or relation or doc.page_content[:80])
+            relation_key = metadata.get("graph_relation") or relation or "seed"
+            dedupe_group = relation_key
+            if relation_key in {"seed", "sibling_prev", "sibling_next"}:
+                dedupe_group = "chunk"
+            dedupe_key = f"{key}::{dedupe_group}"
+            if dedupe_key in seen_keys:
+                return
+            seen_keys.add(dedupe_key)
+            expanded.append((doc, score))
+
+        for doc, score in seed_docs:
+            metadata = dict(doc.metadata or {})
+            parent_id = str(metadata.get("parent_id") or "")
+            chunk_uid = str(metadata.get("chunk_uid") or "")
+            block_type = str(metadata.get("block_type") or "").strip().lower()
+            seed_metadata = dict(metadata)
+            if include_parent_context and parent_id:
+                seed_metadata["graph_seed_with_parent_context"] = True
+            add_doc(Document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
+
+            if include_parent_context and parent_id:
+                parent_text = self.vsm.get_parent(parent_id)
+                if parent_text:
+                    parent_metadata = {
+                        **metadata,
+                        "graph_relation": "parent_context",
+                        "graph_source_chunk_uid": chunk_uid,
+                        "block_type": "parent_context",
+                        "chunk_uid": f"{chunk_uid}::parent_context" if chunk_uid else f"{parent_id}::parent_context",
+                    }
+                    add_doc(Document(page_content=parent_text, metadata=parent_metadata), float(score) - 0.005, "parent_context")
+
+            if include_section_lead and parent_id:
+                section_lead_doc = self.vsm.get_section_lead_doc(parent_id=parent_id, exclude_chunk_uid=chunk_uid)
+                if section_lead_doc is not None:
+                    add_doc(section_lead_doc, float(score) - 0.006, "section_lead")
+
+            if sibling_window > 0 and parent_id and chunk_uid:
+                sibling_docs = self.vsm.get_sibling_docs(parent_id=parent_id, chunk_uid=chunk_uid, window=sibling_window)
+                for offset, sibling_doc in enumerate(sibling_docs, start=1):
+                    sibling_metadata = dict(sibling_doc.metadata or {})
+                    relation = str(sibling_metadata.get("graph_relation") or "sibling").strip()
+                    sibling_block_type = str(sibling_metadata.get("block_type") or "").strip().lower()
+                    if relation == "sibling_prev" and not include_sibling_prev:
+                        continue
+                    if relation == "sibling_next" and not include_sibling_next:
+                        continue
+                    if (
+                        block_type == "table"
+                        and relation == "sibling_prev"
+                        and table_sibling_prev_paragraph_only
+                        and sibling_block_type != "paragraph"
+                    ):
+                        continue
+                    add_doc(sibling_doc, float(score) - 0.01 - (offset * 0.001), relation)
+
+            if include_described_by_paragraph and chunk_uid and str(metadata.get("block_type") or "") == "table":
+                described_by_doc = self.vsm.get_described_by_doc(chunk_uid=chunk_uid)
+                if described_by_doc is not None:
+                    add_doc(described_by_doc, float(score) - 0.004, "described_by_paragraph")
+
+            if include_table_context:
+                table_context = _normalise_spaces(str(metadata.get("table_context") or ""))
+                if table_context:
+                    table_metadata = {
+                        **metadata,
+                        "graph_relation": "table_context",
+                        "graph_source_chunk_uid": chunk_uid,
+                        "block_type": "table_context",
+                        "chunk_uid": f"{chunk_uid}::table_context" if chunk_uid else f"{parent_id}::table_context",
+                    }
+                    add_doc(Document(page_content=table_context, metadata=table_metadata), float(score) - 0.007, "table_context")
+
+        expanded.sort(key=lambda item: item[1], reverse=True)
+        expanded = expanded[:max_docs]
+        logger.info(
+            "[graph_expand] seed=%s expanded=%s parent=%s sibling_prev=%s sibling_next=%s sibling_window=%s table_context=%s max_docs=%s",
+            len(seed_docs),
+            len(expanded),
+            include_parent_context,
+            include_sibling_prev,
+            include_sibling_next,
+            sibling_window,
+            include_table_context,
+            max_docs,
+        )
+        return {"retrieved_docs": expanded}
 
     def _format_context(self, docs) -> str:
         """검색된 자식 청크를 부모 청크(섹션 전체)로 확장해 LLM 컨텍스트 구성.
@@ -434,13 +563,19 @@ class FinancialAgent:
             report_type  = metadata.get("report_type", "?")
             section_path = metadata.get("section_path", metadata.get("section", "?"))
             parent_id    = metadata.get("parent_id")
+            graph_relation = metadata.get("graph_relation")
+            skip_auto_parent = bool(metadata.get("graph_seed_with_parent_context"))
 
             header = (
                 f"[{company} | {year} | {report_type} | {section_path} | score={score:.3f}]"
             )
 
+            if graph_relation:
+                parts.append(f"{header}\n{doc.page_content}")
+                continue
+
             # 부모 청크 우선 사용
-            if parent_id and parent_id not in seen_parents:
+            if parent_id and not skip_auto_parent and parent_id not in seen_parents:
                 parent_text = self.vsm.get_parent(parent_id)
                 if parent_text:
                     seen_parents.add(parent_id)
@@ -459,9 +594,11 @@ class FinancialAgent:
         return "\n\n---\n\n".join(parts)
 
     def _build_source_anchor(self, metadata: Dict[str, Any]) -> str:
+        relation = str(metadata.get("graph_relation") or "").strip()
+        relation_suffix = f" | {relation}" if relation else ""
         return (
             f"[{metadata.get('company', '?')} | {metadata.get('year', '?')} | "
-            f"{metadata.get('section_path', metadata.get('section', '?'))}]"
+            f"{metadata.get('section_path', metadata.get('section', '?'))}{relation_suffix}]"
         )
 
     def _build_evidence_context(self, docs) -> Dict[str, Any]:
@@ -479,12 +616,19 @@ class FinancialAgent:
                 "section": metadata.get("section"),
                 "section_path": metadata.get("section_path", metadata.get("section")),
                 "block_type": metadata.get("block_type"),
+                "graph_relation": metadata.get("graph_relation"),
                 "chunk_uid": metadata.get("chunk_uid"),
                 "parent_id": metadata.get("parent_id"),
             }
 
             parent_id = metadata.get("parent_id")
-            if parent_id and parent_id not in seen_parents:
+            graph_relation = metadata.get("graph_relation")
+            skip_auto_parent = bool(metadata.get("graph_seed_with_parent_context"))
+            if graph_relation:
+                parts.append(f"{anchor}\n{doc.page_content}")
+                continue
+
+            if parent_id and not skip_auto_parent and parent_id not in seen_parents:
                 parent_text = self.vsm.get_parent(parent_id)
                 if parent_text:
                     seen_parents.add(parent_id)
@@ -1093,6 +1237,7 @@ Structured Evidence:
         graph.add_node("classify", self._classify_query)
         graph.add_node("extract", self._extract_entities)
         graph.add_node("retrieve", self._retrieve)
+        graph.add_node("expand", self._expand_via_structure_graph)
         graph.add_node("evidence", self._extract_evidence)
         graph.add_node("compress", self._compress_answer)
         graph.add_node("validate", self._validate_answer)
@@ -1101,7 +1246,8 @@ Structured Evidence:
         graph.set_entry_point("classify")
         graph.add_edge("classify", "extract")
         graph.add_edge("extract", "retrieve")
-        graph.add_edge("retrieve", "evidence")
+        graph.add_edge("retrieve", "expand")
+        graph.add_edge("expand", "evidence")
         graph.add_edge("evidence", "compress")
         graph.add_edge("compress", "validate")
         graph.add_edge("validate", "cite")
@@ -1117,6 +1263,7 @@ Structured Evidence:
             "years": [],
             "topic": "",
             "section_filter": None,
+            "seed_retrieved_docs": [],
             "retrieved_docs": [],
             "evidence_bullets": [],
             "evidence_items": [],
@@ -1139,6 +1286,7 @@ Structured Evidence:
             "years": final["years"],
             "answer": final["answer"],
             "citations": final["citations"],
+            "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
             "retrieved_docs": final["retrieved_docs"],
             "evidence_items": final.get("evidence_items", []),
             "selected_claim_ids": final.get("selected_claim_ids", []),

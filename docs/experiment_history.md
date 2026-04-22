@@ -233,6 +233,72 @@
 
 ---
 
+## Graph Micro + Zero-Cost Prefix (2026-04-22)
+
+참조:
+
+- [graph_micro_2026-04-22](../benchmarks/results/graph_micro_2026-04-22)
+- [graph_micro_constrained_2026-04-22](../benchmarks/results/graph_micro_constrained_2026-04-22)
+- [graph_micro_prefix_2026-04-22](../benchmarks/results/graph_micro_prefix_2026-04-22)
+
+### 코드 / 설정 변화
+
+- `document-structure graph` 추가
+  - `parent_id`
+  - `sibling_prev`, `sibling_next`
+  - `section_lead`
+  - `described_by_paragraph`
+  - `table_context`
+- `retrieve -> expand_via_structure_graph -> evidence` 경로 추가
+- `compact_review.md/html` 추가
+  - 질문 / 예시 답변 / 실제 답변 / retrieved chunks / runtime evidence를 간결하게 검수하기 위한 artifact
+
+### 1차 결과
+
+- `plain + graph expansion`만으로는 `contextual_all` 대체 실패
+- 비용/시간은 크게 줄었지만
+- `q_009` 재무 리스크 질문에서 seed retrieval miss가 반복
+- graph expansion은 잘못 잡힌 `이사회`, `경영진단`, `감사제도` 섹션을 더 증폭시키는 경우가 있었다
+
+### 2차 결과: constrained graph
+
+- 제약 추가:
+  - `table -> paragraph prev만 허용`
+  - `sibling_next 제거`
+  - `max_docs = 8`
+- noise는 줄었지만, seed retrieval miss 자체는 해결하지 못했다
+
+### 3차 결과: zero-cost prefix
+
+- `plain` / `plain_graph` 인덱싱 텍스트 앞에
+  - `[섹션]`
+  - `[분류]`
+  - `[키워드]`
+  를 hardcoded prefix로 삽입
+- 목적: LLM 비용 없이 vocabulary mismatch를 줄여 seed retrieval을 보강
+
+핵심 결과:
+
+- `q_009` 재무 리스크 질문
+  - prefix 후 plain 계열에서도 `hit@k = 1.0`
+  - `plain_graph_1500_200`는 `section_match = 0.75`
+- `q_001` 연결 기준 매출액 질문
+  - 여전히 `연결재무제표 주석` 표들에 많이 쏠림
+  - answerable abstention이 남음
+
+### 해석
+
+- graph expansion은 retrieval replacement가 아니라 **retrieval booster**다
+- `q_009`의 핵심 병목은 graph가 아니라 seed retrieval miss였고, 이는 zero-cost prefix로 크게 개선됐다
+- 반면 `q_001`은 retrieval만의 문제가 아니라
+  - `연결 기준 매출액`
+  - `매출 및 수주상황`
+  - `연결 손익계산서`
+  - `요약재무정보`
+  를 하나의 target family로 보지 못하는 **numeric query planning / target alignment** 문제로 더 좁혀졌다
+
+---
+
 ## v5 / v6 / v7 Faithfulness Follow-up
 
 참조:

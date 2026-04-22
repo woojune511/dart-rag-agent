@@ -143,6 +143,14 @@ full knowledge graph 대신 먼저 **document-structure graph**를 도입하는 
 - table 질문에서 preceding paragraph를 안정적으로 결합 가능
 - answer에서 “직접 근거”와 “배경 근거”를 더 명확히 구분 가능
 
+현재 1차 구현은 full graph가 아니라 **retrieval 후 후처리 확장용 최소 구조 그래프**다.
+
+- `parent_id` 기반 parent context
+- 같은 `parent_id` 안에서의 `sibling_prev` / `sibling_next`
+- parser가 이미 보존하던 `table_context`
+
+즉 실험 목표는 "그래프 자체를 복잡하게 만드는 것"이 아니라, **plain 인덱싱 상태에서도 parent/sibling/table 주변 문맥을 retrieval 이후에 붙여서 contextual ingest의 일부 효과를 대체할 수 있는지**를 보는 것이다.
+
 이건 현재 parent-child 구조의 자연스러운 확장이다.
 
 ## 추천 방향: Structured Evidence Schema

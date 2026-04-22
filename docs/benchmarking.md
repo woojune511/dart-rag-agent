@@ -45,6 +45,7 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
 
 - `benchmarks/profiles/dev_fast.json`
 - `benchmarks/profiles/single_document_dev.json`
+- `benchmarks/profiles/single_document_graph_micro.json`
 - `benchmarks/profiles/release_generalization.json`
 
 기본 평가셋:
@@ -68,6 +69,43 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
 - child chunk 원문만 인덱싱
 - LLM contextualization 없음
 - API calls 0
+
+### `plain + graph expansion`
+
+- 인덱싱은 `plain`과 동일하게 원문만 사용
+- retrieval 이후 `expand_via_structure_graph` 노드가 seed chunk 주변 문맥을 추가
+- 현재 1차 확장 규칙:
+  - `parent_id` 기반 parent context
+  - 같은 `parent_id`의 인접 sibling (`sibling_prev`, `sibling_next`)
+  - parser가 보존한 `table_context`
+- 목표:
+  - 비싼 `contextual_ingest` 없이도 `context_recall`과 evidence 품질을 유지할 수 있는지 검증
+
+현재 메모:
+
+- 1차 graph expansion은 `parent_context + sibling + table_context`를 넓게 붙였고, seed retrieval이 틀린 경우 noise를 증폭시켰다.
+- 현재는 다음 제약을 둔다.
+  - `table` seed의 `sibling_prev`는 `paragraph`만 허용
+  - `sibling_next`는 기본 비활성화
+  - 확장 후 최종 `max_docs = 8`
+- 결론적으로 graph expansion은 **좋은 seed를 보강**하는 도구이지, 잘못 잡힌 seed를 복구하는 도구는 아니다.
+
+### `plain + zero-cost prefix`
+
+- `plain` 인덱싱이지만 원문 앞에 hardcoded metadata prefix를 붙인다.
+- 예:
+  - `[섹션: 위험관리 및 파생거래]`
+  - `[분류: 리스크 / paragraph]`
+  - `[키워드: 리스크, 재무 리스크, 시장위험, 신용위험, 유동성위험]`
+- 목적:
+  - LLM contextual ingest 없이도 vocabulary mismatch를 줄이고
+  - BM25 / embedding 양쪽에서 seed retrieval 명중률을 높이는 것
+
+현재 관찰:
+
+- `q_009` 재무 리스크 질문은 graph만으로는 살리지 못했지만
+- Zero-Cost Prefix 추가 후 plain 계열에서도 `위험관리 및 파생거래`가 seed에서 잡히기 시작했다
+- 반면 `q_001` 연결 기준 매출액은 여전히 `연결재무제표 주석` 쏠림이 남아 있어, prefix만으로는 숫자 질문을 완전히 해결하지 못했다
 
 ### `contextual_all`
 
@@ -151,6 +189,17 @@ screening 통과안만 정식 평가로 보낸다.
 - smoke + screening만 수행
 - 기본적으로 baseline 1개 + 새 후보 1~2개만 돌리는 용도
 
+### `single_document_graph_micro`
+
+- 대상: `삼성전자 2024`
+- 목적: `contextual_all` vs `plain` vs `plain + graph expansion`의 빠른 구조 비교
+- 특징:
+  - full evaluation 비활성화
+  - micro-dataset 5문항만 사용
+  - chunk size fallback 실험 포함 (`1500/200`, `2500/320`)
+  - `contextual_all_2500_320`를 control로 사용
+  - 현재는 Zero-Cost Prefix가 plain 계열에 포함된 상태로 운영
+
 ### `release_generalization`
 
 - 대상: `삼성전자`, `SK하이닉스`, `NAVER`
@@ -231,6 +280,21 @@ benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 
 - top retrieved / citations
 
 이 필드들은 특히 `business_overview`, `risk`처럼 retrieval은 맞는데 answer가 과잉 설명으로 흔들리는 케이스를 디버깅하는 데 중요하다.
+
+추가 artifact:
+
+- `compact_review.md`
+- `compact_review.html`
+
+이 뷰는 모델별 / 질문별로 아래 핵심만 간결하게 보여주기 위한 용도다.
+
+- 질문
+- 예시 답변
+- 실제 답변
+- Retrieved Chunks
+- Runtime Evidence
+- Sentence Checks
+- Selected / Dropped Claims
 
 추가 필드:
 

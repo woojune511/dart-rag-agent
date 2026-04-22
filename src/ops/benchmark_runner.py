@@ -158,6 +158,7 @@ def _build_cache_signature(config: Dict[str, Any]) -> Dict[str, Any]:
         "selective_v2_short_text_threshold": config.get("selective_v2_short_text_threshold"),
         "selective_v2_short_table_threshold": config.get("selective_v2_short_table_threshold"),
         "selective_v2_sections": list(config.get("selective_v2_sections", [])),
+        "use_zero_cost_prefix": bool(config.get("use_zero_cost_prefix", False)),
     }
 
 
@@ -253,6 +254,20 @@ def _resolve_boolean_config(config: Dict[str, Any], key: str, default: bool) -> 
     if value is None:
         return default
     return bool(value)
+
+
+def _build_graph_expansion_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    graph_config = dict(config.get("graph_expansion", {}) or {})
+    enabled = bool(graph_config.get("enabled", False))
+    sibling_window = int(graph_config.get("sibling_window", 1) or 1)
+    max_docs = int(graph_config.get("max_docs", max(int(config.get("k", 8)) * 3, 12)) or max(int(config.get("k", 8)) * 3, 12))
+    return {
+        "enabled": enabled,
+        "include_parent_context": bool(graph_config.get("include_parent_context", True)),
+        "include_table_context": bool(graph_config.get("include_table_context", True)),
+        "sibling_window": max(0, sibling_window),
+        "max_docs": max(int(config.get("k", 8)), max_docs),
+    }
 
 
 def _load_eval_dataset(dataset_path: Path) -> List[EvalExample]:
@@ -500,6 +515,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "latency_sec": result.latency_sec,
                 "citations": result.citations,
                 "retrieved_metadata": result.retrieved_metadata,
+                "retrieved_previews": result.retrieved_previews,
                 "runtime_evidence": result.runtime_evidence,
                 "selected_claim_ids": result.selected_claim_ids,
                 "draft_points": result.draft_points,
@@ -548,6 +564,7 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
                 "answer_preview": answer[:240],
                 "citations": citations,
                 "retrieved_metadata": _extract_retrieved_metadata(retrieved_docs),
+                "retrieved_previews": _extract_retrieved_previews(retrieved_docs),
                 "error": error,
             }
         )
@@ -624,6 +641,7 @@ def _run_screening_eval(
                 "contamination_rate": contamination_rate,
                 "retrieved_count": len(retrieved_docs),
                 "retrieved_metadata": retrieved_metadata,
+                "retrieved_previews": _extract_retrieved_previews(retrieved_docs),
                 "top_retrieved": _summarise_metadata_rows(retrieved_metadata),
                 "failure_flags": failure_flags,
                 "query_type": query_type,
@@ -818,6 +836,49 @@ def _build_index_text(metadata: Dict[str, Any], content: str, context: Optional[
     if context and context.strip():
         lines.insert(0, context.strip())
     return "\n".join(lines) + f"\n\n{content}"
+
+
+def _zero_cost_alias_terms(metadata: Dict[str, Any]) -> List[str]:
+    section = str(metadata.get("section", "")).strip()
+    section_path = str(metadata.get("section_path", section)).strip()
+    block_type = "table" if metadata.get("block_type") == "table" else "paragraph"
+    lowered = f"{section} {section_path}".lower()
+
+    terms: List[str] = [section, section_path]
+    if "위험관리" in section_path or "리스크" in section_path or "risk" in lowered:
+        terms.extend(["리스크", "재무 리스크", "위험관리", "시장위험", "신용위험", "유동성위험"])
+    if any(token in section_path for token in ["매출", "수주", "손익", "재무제표", "연결재무제표"]):
+        terms.extend(["매출", "연결 기준", "재무", "손익", "영업이익", "매출액"])
+    if any(token in section_path for token in ["사업의 개요", "회사의 개요", "주요 제품 및 서비스"]):
+        terms.extend(["주요 사업", "사업 개요", "제품", "서비스", "사업 부문"])
+    if "연구개발" in section_path:
+        terms.extend(["연구개발", "R&D", "투자", "기술 개발"])
+    if metadata.get("table_context"):
+        terms.append("표 설명 문맥")
+    terms.append("표" if block_type == "table" else "문단")
+
+    unique_terms: List[str] = []
+    seen: set[str] = set()
+    for term in terms:
+        cleaned = str(term or "").strip()
+        if not cleaned:
+            continue
+        lowered_term = cleaned.lower()
+        if lowered_term in seen:
+            continue
+        seen.add(lowered_term)
+        unique_terms.append(cleaned)
+    return unique_terms
+
+
+def _build_zero_cost_prefixed_text(metadata: Dict[str, Any], content: str) -> str:
+    prefix_lines = [
+        f"[회사: {metadata.get('company', '?')}] [연도: {metadata.get('year', '?')}] [보고서: {metadata.get('report_type', '?')}]",
+        f"[섹션: {metadata.get('section_path', metadata.get('section', '?'))}]",
+        f"[분류: {metadata.get('section', '?')} / {'table' if metadata.get('block_type') == 'table' else 'paragraph'}]",
+        f"[키워드: {', '.join(_zero_cost_alias_terms(metadata))}]",
+    ]
+    return "\n".join(prefix_lines) + f"\n\n{content}"
 
 
 def _fallback_context(metadata: Dict[str, Any]) -> str:
@@ -1397,6 +1458,35 @@ def _extract_retrieved_metadata(retrieved_docs: List[Any]) -> List[Dict[str, Any
                 "year": metadata.get("year"),
                 "section": metadata.get("section"),
                 "section_path": metadata.get("section_path"),
+                "block_type": metadata.get("block_type"),
+                "graph_relation": metadata.get("graph_relation"),
+            }
+        )
+    return rows
+
+
+def _compact_text_preview(text: str, limit: int = 220) -> str:
+    flattened = " ".join((text or "").split())
+    if len(flattened) <= limit:
+        return flattened
+    return flattened[: max(limit - 3, 0)].rstrip() + "..."
+
+
+def _extract_retrieved_previews(retrieved_docs: List[Any], limit: int = 8, chars: int = 220) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for item in retrieved_docs[:limit]:
+        doc = item[0] if isinstance(item, (tuple, list)) else item
+        metadata = getattr(doc, "metadata", {}) or {}
+        text = getattr(doc, "content", None) or getattr(doc, "page_content", "")
+        rows.append(
+            {
+                "company": metadata.get("company"),
+                "year": metadata.get("year"),
+                "section": metadata.get("section"),
+                "section_path": metadata.get("section_path"),
+                "block_type": metadata.get("block_type"),
+                "graph_relation": metadata.get("graph_relation"),
+                "preview": _compact_text_preview(text, limit=chars),
             }
         )
     return rows
@@ -1464,6 +1554,14 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 section = metadata.get("section_path") or metadata.get("section") or "?"
                 top_retrieved.append(f"{company}/{year}/{section}")
             screening_row = screening_lookup.get(question_result.get("id"), {})
+            retrieved_preview_rows = question_result.get("retrieved_previews") or screening_row.get("retrieved_previews") or []
+            retrieved_previews = []
+            for preview in retrieved_preview_rows:
+                section = preview.get("section_path") or preview.get("section") or "?"
+                block_type = preview.get("block_type") or "?"
+                relation = preview.get("graph_relation") or "seed"
+                body = preview.get("preview") or ""
+                retrieved_previews.append(f"{section} [{block_type} / {relation}] {body}".strip())
             rows.append(
                 {
                     "experiment_id": result["id"],
@@ -1482,6 +1580,7 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "sentence_checks": "\n\n".join(sentence_checks),
                     "actual_answer": question_result.get("answer"),
                     "top_retrieved": " | ".join(top_retrieved),
+                    "retrieved_previews": "\n\n".join(retrieved_previews),
                     "citations": " | ".join(question_result.get("citations", [])),
                     "faithfulness": question_result.get("faithfulness"),
                     "answer_relevancy": question_result.get("answer_relevancy"),
@@ -1531,6 +1630,7 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "sentence_checks",
         "actual_answer",
         "top_retrieved",
+        "retrieved_previews",
         "citations",
         "faithfulness",
         "answer_relevancy",
@@ -1608,6 +1708,10 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "Evidence",
                 "",
                 row["evidence_quotes"] or "-",
+                "",
+                "Retrieved Chunks",
+                "",
+                row["retrieved_previews"] or "-",
                 "",
                 "Runtime Evidence",
                 "",
@@ -2239,11 +2343,22 @@ def _run_ingest(
     batch_size = int(config.get("batch_size", DEFAULT_CONTEXT_BATCH_SIZE))
     if ingest_mode == "plain":
         started_at = time.perf_counter()
-        agent.ingest(chunks)
+        if bool(config.get("use_zero_cost_prefix", False)):
+            texts = [_build_zero_cost_prefixed_text(chunk.metadata, chunk.content) for chunk in chunks]
+            metadatas = [chunk.metadata for chunk in chunks]
+            agent.vsm.add_documents(texts, metadatas)
+        else:
+            agent.ingest(chunks)
         metrics = _build_plain_ingest_metrics(len(chunks), time.perf_counter() - started_at)
+        metrics["use_zero_cost_prefix"] = bool(config.get("use_zero_cost_prefix", False))
         if return_artifacts:
+            texts = (
+                [_build_zero_cost_prefixed_text(chunk.metadata, chunk.content) for chunk in chunks]
+                if bool(config.get("use_zero_cost_prefix", False))
+                else [chunk.content for chunk in chunks]
+            )
             metrics["artifacts"] = {
-                "texts": [chunk.content for chunk in chunks],
+                "texts": texts,
                 "metadatas": [chunk.metadata for chunk in chunks],
                 "parents": {},
             }
@@ -2337,7 +2452,11 @@ def run_screening_experiment(
         persist_directory=str(persist_dir),
         collection_name=collection_name,
     )
-    agent = FinancialAgent(vsm, k=int(config.get("k", 8)))
+    agent = FinancialAgent(
+        vsm,
+        k=int(config.get("k", 8)),
+        graph_expansion_config=_build_graph_expansion_config(config),
+    )
 
     store_cache_hit = (
         reuse_store
@@ -2444,6 +2563,7 @@ def run_screening_experiment(
             "chunk_size": config.get("chunk_size"),
             "chunk_overlap": config.get("chunk_overlap"),
             "ingest_mode": config.get("ingest_mode"),
+            "graph_expansion": _sanitize_settings(config.get("graph_expansion", {})),
             "k": config.get("k", 8),
             "max_workers": config.get("max_workers"),
             "batch_size": config.get("batch_size"),
@@ -2593,7 +2713,11 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
         persist_directory=store_info["persist_directory"],
         collection_name=store_info["collection_name"],
     )
-    agent = FinancialAgent(vsm, k=int(merged_config.get("k", 8)))
+    agent = FinancialAgent(
+        vsm,
+        k=int(merged_config.get("k", 8)),
+        graph_expansion_config=_build_graph_expansion_config(merged_config),
+    )
     evaluator = RAGEvaluator(
         agent,
         dataset_path=str(_normalise_path(merged_config["eval_dataset_path"])),
