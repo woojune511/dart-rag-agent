@@ -1,16 +1,34 @@
 # DART 공시 분석 RAG Agent
 
-DART 전자공시 문서를 수집하고, 기업 공시에 대해 근거 기반 답변을 생성하는 한국어 RAG 분석 프로젝트입니다.  
-현재 시스템은 DART 수집, XML 구조 파싱, 구조 기반 청킹, hybrid retrieval, parent-child/contextual retrieval, evidence-first reasoning, FastAPI/Streamlit 인터페이스, MLflow 기반 평가까지 포함합니다.
+DART 전자공시 문서를 대상으로, **구조를 보존한 retrieval**과 **근거 통제가 가능한 answer generation**을 실험하는 한국어 RAG 시스템입니다.  
+이 프로젝트의 중심은 “LLM에게 문서를 읽히는 것”보다, **비표준 공시 문서를 어떻게 구조화하고, 어떤 평가 기준 위에서 RAG/agent를 개선할 것인가**에 있습니다.
 
-## 핵심 특징
+## 핵심 기술 결정
 
-- DART XML 구조를 직접 해석하는 전용 parser
-- ChromaDB + BM25 + RRF 기반 hybrid retrieval
-- parent-child retrieval과 contextual retrieval 결합
-- evidence-first answer synthesis
-- single-company contamination 방지를 위한 strict metadata filtering
-- benchmark runner 기반 정확도/속도/API 비용 비교 실험
+### 1. 구조 우선 ingestion
+
+- DART XML 전용 parser로 `SECTION-*`, `TITLE`, `P`, `TABLE`, `TABLE-GROUP`를 직접 해석
+- 일반 HTML splitter 대신 **문서 구조를 보존하는 청킹**을 채택
+- parent-child metadata, section path, table context를 retrieval과 citation의 기본 단위로 사용
+
+### 2. 한국어 공시용 retrieval stack
+
+- multilingual embedding + BM25 + RRF hybrid retrieval
+- `chunk_uid` 기반 dedup
+- company / year / section metadata filtering
+- child chunk로 검색하고 parent section으로 reasoning context를 구성하는 **parent-child retrieval**
+
+### 3. answer generation을 free-form generation이 아니라 evidence compression으로 재설계
+
+- `retrieve -> evidence -> compress -> validate -> cite`
+- structured evidence를 먼저 만들고, 답변은 그 근거를 질문 범위에 맞게 압축하는 방식으로 이동 중
+- 최근에는 `selected_claim_ids`, `kept_claim_ids`, `dropped_claim_ids`, `unsupported_sentences` 같은 typed artifact를 남겨, 답변 생성 경로를 추적 가능하게 만들었다
+
+### 4. 평가를 먼저 고정하고 시스템을 바꾸는 방식
+
+- multi-company benchmark 전에 **single-document Golden Dataset**을 먼저 만드는 방향으로 전환
+- 숫자 질문은 generic `faithfulness`만으로 평가하지 않고 numeric evaluator를 별도 분리
+- retrieval / generation / numeric / refusal metric을 분리해, 어떤 실패가 retrieval 문제인지 generation 문제인지 설명 가능하게 만드는 것이 현재의 핵심 방향이다
 
 ## 현재 기본 구조
 
@@ -19,13 +37,14 @@ DART 전자공시 문서를 수집하고, 기업 공시에 대해 근거 기반 
   -> classify
   -> extract
   -> retrieve
-  -> evidence
-  -> analyze
+  -> build_structured_evidence
+  -> compress
+  -> validate
   -> cite
   -> 답변
 ```
 
-검색은 자식 청크 기준으로 수행하고, 답변 컨텍스트는 부모 섹션 텍스트를 우선 사용합니다.
+현재 검색은 child chunk 기준으로 수행하고, reasoning context는 parent section을 우선 사용합니다.
 
 ## 현재 기본값
 
@@ -36,36 +55,18 @@ DART 전자공시 문서를 수집하고, 기업 공시에 대해 근거 기반 
 - Retrieval: Dense + BM25 + RRF + rerank
 - Reasoning: evidence-first
 
-## 현재 benchmark 상태
+## 현재 실험 방향
 
-현재 benchmark는 두 층으로 운영합니다.
+이 프로젝트는 최근 실험을 통해 “더 싼 ingest mode를 찾는 것”보다 **평가 기준을 먼저 고정하는 것**이 더 중요하다는 결론에 도달했습니다.
 
-- `dev_fast`
-  - 삼성전자 1회사, screening only
-  - 빠른 반복 실험용
-- `release_generalization`
-  - 삼성전자 / SK하이닉스 / NAVER
-  - shortlist 후보의 일반화 검증용
+현재 우선순위:
 
-최신 일반화 실험은 [v4_generalization_fix_2026-04-17](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/v4_generalization_fix_2026-04-17/cross_company_summary.md) 입니다.
+1. 삼성전자 2024 사업보고서 기준 single-document Golden Dataset 정리
+2. metric spec 고정
+3. single-document benchmark lab 안정화
+4. 그 다음에만 retrieval / compression / validation을 다시 개선
 
-현재 상태 요약:
-
-- 3개 기업 기준 공통 screening 통과 후보는 아직 없습니다.
-- `contextual_parent_only_2500_320`
-  - 평균 API 호출과 ingest 시간은 크게 줄였지만
-  - numeric / risk / R&D 질문에서 abstention이 반복됩니다.
-- `contextual_selective_v2_2500_320`
-  - 비용 절감 폭은 크지만
-  - business overview / risk retrieval miss가 남아 있습니다.
-- `contextual_parent_hybrid_2500_320`
-  - 품질 보완 효과는 일부 있으나
-  - 평균 비용이 baseline보다 비싸 실익이 약합니다.
-- `contextual_all_2500_320`
-  - 여전히 가장 안정적인 baseline이지만
-  - NAVER business overview와 missing-information에서 실패가 남아 있습니다.
-
-즉 현재는 기본값을 더 싼 후보로 바꾸기보다, `contextual_all_2500_320`을 기준선으로 유지하면서 query-stage 실패와 기업별 retrieval 약점을 줄이는 단계입니다.
+즉 지금의 기준선은 다기업 benchmark보다도, **단일 문서에서 retrieval / generation / numeric / refusal을 어떻게 해석할지 먼저 고정하는 것**입니다.
 
 ## 프로젝트 구조
 
@@ -146,8 +147,11 @@ python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generali
 
 ## 참고 문서
 
+- [docs/technical_highlights.md](docs/technical_highlights.md): 프로젝트 핵심 기술 포인트 요약
+- [DECISIONS.md](DECISIONS.md): 중요한 설계 판단과 근거
+- [docs/benchmarking.md](docs/benchmarking.md): benchmark 구조와 metric 해석
+- [docs/single_document_eval_strategy.md](docs/single_document_eval_strategy.md): 단일 문서 기준선 전략
+- [docs/evaluation_metrics_v1.md](docs/evaluation_metrics_v1.md): metric spec v1
+- [docs/experiment_history.md](docs/experiment_history.md): 버전별 코드/실험 변화와 해석
 - [CONTEXT.md](CONTEXT.md): 현재 상태와 handoff 메모
-- [DECISIONS.md](DECISIONS.md): 핵심 기술 결정 로그
 - [PLAN.md](PLAN.md): 다음 실험 계획
-- [docs/experiment_history.md](docs/experiment_history.md): 버전별 코드/실험 변화와 결과 요약
-- [REVIEW_FINDINGS.md](REVIEW_FINDINGS.md): 코드 리뷰 아카이브

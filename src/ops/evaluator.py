@@ -70,6 +70,17 @@ class EvalExample:
     expected_sections: List[str] = field(default_factory=list)
     evidence: List[EvalEvidence] = field(default_factory=list)
     missing_info_policy: Optional[str] = None
+    document_id: str = ""
+    ground_truth_context_ids: List[str] = field(default_factory=list)
+    ground_truth_evidence_quotes: List[str] = field(default_factory=list)
+    required_entities: List[str] = field(default_factory=list)
+    answer_type: str = ""
+    expected_refusal: bool = False
+    numeric_constraints: Dict[str, Any] = field(default_factory=dict)
+    reasoning_steps: List[str] = field(default_factory=list)
+    aliases: Dict[str, List[str]] = field(default_factory=dict)
+    verification_status: str = ""
+    notes: str = ""
 
     @property
     def canonical_answer_key(self) -> str:
@@ -104,12 +115,21 @@ class EvalResult:
     answer_relevancy: float
     context_recall: float
     retrieval_hit_at_k: float
+    ndcg_at_3: Optional[float]
+    ndcg_at_5: Optional[float]
+    context_precision_at_3: Optional[float]
+    context_precision_at_5: Optional[float]
     section_match_rate: float
     citation_coverage: float
+    entity_coverage: Optional[float]
+    completeness: Optional[float]
     missing_info_compliance: Optional[float]
+    refusal_accuracy: Optional[float]
     retrieved_count: int
     query_type: str
     latency_sec: float
+    absolute_error_rate: Optional[float] = None
+    calculation_correctness: Optional[float] = None
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
     runtime_evidence: List[Dict[str, Any]] = field(default_factory=list)
@@ -557,35 +577,89 @@ def _extract_retrieved_metadata(retrieved_docs: List[Any]) -> List[Dict[str, Any
 
 
 def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
-    expected_sections = item.get("expected_sections") or []
+    expected_sections = item.get("expected_sections") or item.get("ground_truth_context_ids") or []
     if not isinstance(expected_sections, list):
         expected_sections = [expected_sections]
     evidence_rows = item.get("evidence") or []
-    evidence = [
-        EvalEvidence(
-            section_path=str(row.get("section_path", "")),
-            quote=str(row.get("quote", "")),
-            quote_type=str(row.get("quote_type", "verbatim") or "verbatim"),
-            why_it_supports_answer=str(row.get("why_it_supports_answer", "")),
+    evidence: List[EvalEvidence] = []
+    for row in evidence_rows:
+        if not isinstance(row, dict):
+            continue
+        evidence.append(
+            EvalEvidence(
+                section_path=str(row.get("section_path", "")),
+                quote=str(row.get("quote", "")),
+                quote_type=str(row.get("quote_type", "verbatim") or "verbatim"),
+                why_it_supports_answer=str(row.get("why_it_supports_answer", "")),
+            )
         )
-        for row in evidence_rows
-        if isinstance(row, dict)
-    ]
-    ground_truth = str(item.get("ground_truth") or item.get("answer_key") or "")
-    answer_key = str(item.get("answer_key") or ground_truth)
+
+    ground_truth_context_ids = item.get("ground_truth_context_ids") or []
+    if not isinstance(ground_truth_context_ids, list):
+        ground_truth_context_ids = [ground_truth_context_ids]
+
+    ground_truth_evidence_quotes = item.get("ground_truth_evidence_quotes") or []
+    if not isinstance(ground_truth_evidence_quotes, list):
+        ground_truth_evidence_quotes = [ground_truth_evidence_quotes]
+
+    if not evidence and ground_truth_evidence_quotes:
+        fallback_section = str(expected_sections[0] if expected_sections else item.get("section") or "")
+        for index, quote in enumerate(ground_truth_evidence_quotes):
+            context_id = (
+                str(ground_truth_context_ids[index])
+                if index < len(ground_truth_context_ids)
+                else fallback_section
+            )
+            evidence.append(
+                EvalEvidence(
+                    section_path=context_id,
+                    quote=str(quote),
+                    quote_type="verbatim",
+                    why_it_supports_answer="golden dataset evidence quote",
+                )
+            )
+
+    ground_truth = str(
+        item.get("ground_truth")
+        or item.get("ground_truth_answer")
+        or item.get("answer_key")
+        or ""
+    )
+    answer_key = str(item.get("answer_key") or item.get("ground_truth_answer") or ground_truth)
     section = str(item.get("section") or (expected_sections[0] if expected_sections else ""))
+    company = str(item.get("company") or "")
+    year = int(item.get("year") or 0)
+    aliases = item.get("aliases") or {}
+    normalised_aliases: Dict[str, List[str]] = {}
+    if isinstance(aliases, dict):
+        for alias_key, alias_values in aliases.items():
+            if isinstance(alias_values, list):
+                normalised_aliases[str(alias_key)] = [str(value) for value in alias_values if str(value).strip()]
+            elif alias_values:
+                normalised_aliases[str(alias_key)] = [str(alias_values)]
     return EvalExample(
-        id=item["id"],
+        id=str(item.get("id") or item.get("query_id") or ""),
         question=item["question"],
         ground_truth=ground_truth,
-        company=item["company"],
-        year=item["year"],
+        company=company,
+        year=year,
         section=section,
         category=item.get("category"),
         answer_key=answer_key,
         expected_sections=[str(section_value) for section_value in expected_sections if str(section_value).strip()],
         evidence=evidence,
         missing_info_policy=item.get("missing_info_policy"),
+        document_id=str(item.get("document_id") or ""),
+        ground_truth_context_ids=[str(context_id) for context_id in ground_truth_context_ids if str(context_id).strip()],
+        ground_truth_evidence_quotes=[str(quote) for quote in ground_truth_evidence_quotes if str(quote).strip()],
+        required_entities=[str(entity) for entity in (item.get("required_entities") or []) if str(entity).strip()],
+        answer_type=str(item.get("answer_type") or ""),
+        expected_refusal=bool(item.get("expected_refusal", False)),
+        numeric_constraints=dict(item.get("numeric_constraints") or {}),
+        reasoning_steps=[str(step) for step in (item.get("reasoning_steps") or []) if str(step).strip()],
+        aliases=normalised_aliases,
+        verification_status=str(item.get("verification_status") or ""),
+        notes=str(item.get("notes") or ""),
     )
 
 
@@ -652,6 +726,58 @@ def _compute_context_recall(example: EvalExample, contexts: List[str]) -> float:
     return covered / len(sentences)
 
 
+def _doc_relevance(example: EvalExample, metadata: Dict[str, Any]) -> int:
+    expected_sections = _expected_sections_for_example(example)
+    if not expected_sections:
+        return 0
+    company = str(metadata.get("company", "")).lower()
+    year = int(metadata.get("year", 0) or 0)
+    if example.company and company != example.company.lower():
+        return 0
+    if example.year and year != int(example.year):
+        return 0
+    return int(any(_contains_section(metadata, expected_section) for expected_section in expected_sections))
+
+
+def _compute_context_precision_at_k(example: EvalExample, retrieved_docs: List[Any], k: int) -> Optional[float]:
+    expected_sections = _expected_sections_for_example(example)
+    if not expected_sections:
+        return None
+    top_docs = retrieved_docs[:k]
+    if not top_docs:
+        return 0.0
+    relevant = 0
+    for item in top_docs:
+        doc = item[0] if isinstance(item, (tuple, list)) else item
+        metadata = getattr(doc, "metadata", {}) or {}
+        relevant += _doc_relevance(example, metadata)
+    return relevant / len(top_docs)
+
+
+def _compute_ndcg_at_k(example: EvalExample, retrieved_docs: List[Any], k: int) -> Optional[float]:
+    expected_sections = _expected_sections_for_example(example)
+    if not expected_sections:
+        return None
+    top_docs = retrieved_docs[:k]
+    if not top_docs:
+        return 0.0
+    relevances: List[int] = []
+    for item in top_docs:
+        doc = item[0] if isinstance(item, (tuple, list)) else item
+        metadata = getattr(doc, "metadata", {}) or {}
+        relevances.append(_doc_relevance(example, metadata))
+    dcg = 0.0
+    for index, rel in enumerate(relevances, start=1):
+        if rel:
+            dcg += rel / np.log2(index + 1)
+    total_relevant = len(example.ground_truth_context_ids) or len(expected_sections)
+    ideal_count = min(max(total_relevant, 1), len(top_docs))
+    idcg = sum(1.0 / np.log2(index + 1) for index in range(1, ideal_count + 1))
+    if idcg == 0.0:
+        return 0.0
+    return float(dcg / idcg)
+
+
 def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any]) -> float:
     expected_company = example.company.lower()
     expected_sections = _expected_sections_for_example(example)
@@ -696,6 +822,53 @@ def _compute_citation_coverage(example: EvalExample, citations: List[str]) -> fl
     return sum(1.0 for matched in checks if matched) / len(checks)
 
 
+def _entity_aliases(example: EvalExample, entity: str) -> List[str]:
+    values = [entity]
+    alias_values = example.aliases.get(entity, [])
+    for value in alias_values:
+        if value not in values:
+            values.append(value)
+    return [str(value).strip() for value in values if str(value).strip()]
+
+
+def _contains_entity_variant(text: str, variants: List[str]) -> bool:
+    lowered = (text or "").lower()
+    return any(variant.lower() in lowered for variant in variants)
+
+
+def _compute_entity_coverage(example: EvalExample, contexts: List[str]) -> Optional[float]:
+    if not example.required_entities:
+        return None
+    context_blob = "\n".join(contexts)
+    covered = 0
+    for entity in example.required_entities:
+        variants = _entity_aliases(example, entity)
+        if _contains_entity_variant(context_blob, variants):
+            covered += 1
+    return covered / len(example.required_entities)
+
+
+def _compute_completeness(example: EvalExample, answer: str) -> Optional[float]:
+    if example.expected_refusal:
+        return None
+    if not answer.strip():
+        return 0.0
+    if not example.required_entities:
+        if example.answer_type == "numeric":
+            return 1.0 if _extract_numeric_candidates(answer) else 0.0
+        return None
+    covered = 0
+    for entity in example.required_entities:
+        variants = _entity_aliases(example, entity)
+        if _contains_entity_variant(answer, variants):
+            covered += 1
+    entity_score = covered / len(example.required_entities)
+    if example.answer_type == "numeric":
+        numeric_score = 1.0 if _extract_numeric_candidates(answer) else 0.0
+        return max(entity_score, numeric_score)
+    return entity_score
+
+
 def _compute_missing_info_compliance(example: EvalExample, answer: str) -> Optional[float]:
     category = (example.category or "").lower()
     if category != "missing_information":
@@ -711,6 +884,61 @@ def _compute_missing_info_compliance(example: EvalExample, answer: str) -> Optio
         if policy_tokens and len(policy_tokens & answer_tokens) / len(policy_tokens) >= 0.25:
             return 1.0
     return 0.0
+
+
+def _compute_refusal_accuracy(example: EvalExample, answer: str) -> Optional[float]:
+    if not answer.strip():
+        return 0.0 if example.expected_refusal else 0.0
+    looks_missing = _looks_like_missing_answer(answer)
+    if example.expected_refusal:
+        return 1.0 if looks_missing else 0.0
+    if looks_missing:
+        return 0.0
+    return 1.0
+
+
+def _compute_absolute_error_rate(
+    answer: str,
+    answer_key: str,
+    canonical_evidence: List[EvalEvidence],
+) -> Optional[float]:
+    answer_candidates = _extract_numeric_candidates(answer)
+    reference_candidates = _extract_numeric_candidates(answer_key)
+    for evidence in canonical_evidence:
+        reference_candidates.extend(_extract_numeric_candidates(evidence.quote))
+    if not answer_candidates or not reference_candidates:
+        return None
+    best_error: Optional[float] = None
+    for answer_candidate in answer_candidates:
+        left = _safe_float(answer_candidate.get("normalized_value"))
+        if left is None:
+            continue
+        for reference_candidate in reference_candidates:
+            if answer_candidate.get("kind") != reference_candidate.get("kind"):
+                continue
+            right = _safe_float(reference_candidate.get("normalized_value"))
+            if right is None:
+                continue
+            denominator = max(abs(right), 1.0)
+            error = abs(left - right) / denominator
+            if best_error is None or error < best_error:
+                best_error = error
+    return best_error
+
+
+def _compute_calculation_correctness(
+    example: EvalExample,
+    numeric_equivalence: Optional[float],
+    absolute_error_rate: Optional[float],
+) -> Optional[float]:
+    if (example.category or "").lower() != "multi-hop-calculation":
+        return None
+    if numeric_equivalence is not None:
+        return float(numeric_equivalence)
+    if absolute_error_rate is None:
+        return None
+    tolerance = float(example.numeric_constraints.get("tolerance", 0.0) or 0.0)
+    return 1.0 if absolute_error_rate <= tolerance else 0.0
 
 
 class RAGEvaluator:
@@ -835,7 +1063,7 @@ class RAGEvaluator:
         missing_info_compliance = _compute_missing_info_compliance(example, answer)
         numeric_eval: Dict[str, Any] = {}
 
-        if (example.category or "").lower() == "numeric_fact":
+        if (example.answer_type or "").lower() == "numeric" or (example.category or "").lower() == "numeric_fact":
             numeric_eval = _compute_numeric_evaluation(
                 llm=self._llm,
                 example=example,
@@ -843,6 +1071,24 @@ class RAGEvaluator:
                 runtime_evidence=runtime_evidence,
                 retrieval_hit_at_k=retrieval_hit_at_k,
             )
+
+        ndcg_at_3 = _compute_ndcg_at_k(example, retrieved_docs, 3)
+        ndcg_at_5 = _compute_ndcg_at_k(example, retrieved_docs, 5)
+        context_precision_at_3 = _compute_context_precision_at_k(example, retrieved_docs, 3)
+        context_precision_at_5 = _compute_context_precision_at_k(example, retrieved_docs, 5)
+        entity_coverage = _compute_entity_coverage(example, contexts)
+        completeness = _compute_completeness(example, answer)
+        refusal_accuracy = _compute_refusal_accuracy(example, answer)
+        absolute_error_rate = _compute_absolute_error_rate(
+            answer=answer,
+            answer_key=example.canonical_answer_key,
+            canonical_evidence=example.evidence,
+        )
+        calculation_correctness = _compute_calculation_correctness(
+            example=example,
+            numeric_equivalence=numeric_eval.get("numeric_equivalence"),
+            absolute_error_rate=absolute_error_rate,
+        )
 
         if _looks_like_full_abstention_answer(answer) and (example.category or "").lower() != "missing_information":
             # Penalize abstentions on answerable questions even when the judge model is lenient.
@@ -869,9 +1115,18 @@ class RAGEvaluator:
             answer_relevancy=answer_relevancy,
             context_recall=context_recall,
             retrieval_hit_at_k=retrieval_hit_at_k,
+            ndcg_at_3=ndcg_at_3,
+            ndcg_at_5=ndcg_at_5,
+            context_precision_at_3=context_precision_at_3,
+            context_precision_at_5=context_precision_at_5,
             section_match_rate=section_match_rate,
             citation_coverage=citation_coverage,
+            entity_coverage=entity_coverage,
+            completeness=completeness,
             missing_info_compliance=missing_info_compliance,
+            refusal_accuracy=refusal_accuracy,
+            absolute_error_rate=absolute_error_rate,
+            calculation_correctness=calculation_correctness,
             retrieved_count=len(contexts),
             query_type=query_type,
             latency_sec=latency,
@@ -920,8 +1175,15 @@ class RAGEvaluator:
                     "answer_relevancy": result.answer_relevancy,
                     "context_recall": result.context_recall,
                     "retrieval_hit_at_k": result.retrieval_hit_at_k,
+                    "ndcg_at_3": result.ndcg_at_3 or 0.0,
+                    "ndcg_at_5": result.ndcg_at_5 or 0.0,
+                    "context_precision_at_3": result.context_precision_at_3 or 0.0,
+                    "context_precision_at_5": result.context_precision_at_5 or 0.0,
                     "section_match_rate": result.section_match_rate,
                     "citation_coverage": result.citation_coverage,
+                    "entity_coverage": result.entity_coverage or 0.0,
+                    "completeness": result.completeness or 0.0,
+                    "refusal_accuracy": result.refusal_accuracy or 0.0,
                     "latency_sec": result.latency_sec,
                 }
                 if result.numeric_equivalence is not None:
@@ -966,12 +1228,21 @@ class RAGEvaluator:
                 "answer_relevancy": _average("answer_relevancy"),
                 "context_recall": _average("context_recall"),
                 "retrieval_hit_at_k": _average("retrieval_hit_at_k"),
+                "ndcg_at_3": _average_optional("ndcg_at_3"),
+                "ndcg_at_5": _average_optional("ndcg_at_5"),
+                "context_precision_at_3": _average_optional("context_precision_at_3"),
+                "context_precision_at_5": _average_optional("context_precision_at_5"),
                 "section_match_rate": _average("section_match_rate"),
                 "citation_coverage": _average("citation_coverage"),
+                "entity_coverage": _average_optional("entity_coverage"),
+                "completeness": _average_optional("completeness"),
+                "refusal_accuracy": _average_optional("refusal_accuracy"),
                 "numeric_equivalence": _average_optional("numeric_equivalence"),
                 "numeric_grounding": _average_optional("numeric_grounding"),
                 "numeric_retrieval_support": _average_optional("numeric_retrieval_support"),
                 "numeric_confidence": _average_optional("numeric_confidence"),
+                "absolute_error_rate": _average_optional("absolute_error_rate"),
+                "calculation_correctness": _average_optional("calculation_correctness"),
                 "numeric_pass_rate": numeric_pass_rate,
                 "numeric_uncertain_rate": numeric_uncertain_rate,
                 "avg_score": _average("aggregate_score"),
@@ -994,13 +1265,22 @@ class RAGEvaluator:
                             "answer_relevancy": result.answer_relevancy,
                             "context_recall": result.context_recall,
                             "retrieval_hit_at_k": result.retrieval_hit_at_k,
+                            "ndcg_at_3": result.ndcg_at_3,
+                            "ndcg_at_5": result.ndcg_at_5,
+                            "context_precision_at_3": result.context_precision_at_3,
+                            "context_precision_at_5": result.context_precision_at_5,
                             "section_match_rate": result.section_match_rate,
                             "citation_coverage": result.citation_coverage,
+                            "entity_coverage": result.entity_coverage,
+                            "completeness": result.completeness,
+                            "refusal_accuracy": result.refusal_accuracy,
                             "numeric_equivalence": result.numeric_equivalence,
                             "numeric_grounding": result.numeric_grounding,
                             "numeric_retrieval_support": result.numeric_retrieval_support,
                             "numeric_final_judgement": result.numeric_final_judgement,
                             "numeric_confidence": result.numeric_confidence,
+                            "absolute_error_rate": result.absolute_error_rate,
+                            "calculation_correctness": result.calculation_correctness,
                             "missing_info_compliance": result.missing_info_compliance,
                             "latency_sec": result.latency_sec,
                             "query_type": result.query_type,
@@ -1021,8 +1301,13 @@ class RAGEvaluator:
                 "  Answer Relevancy : %.3f\n"
                 "  Context Recall   : %.3f\n"
                 "  Retrieval Hit@k  : %.3f\n"
+                "  NDCG@5           : %s\n"
+                "  Context P@5      : %s\n"
                 "  Section Match    : %.3f\n"
                 "  Citation Coverage: %.3f\n"
+                "  Entity Coverage  : %s\n"
+                "  Completeness     : %s\n"
+                "  Refusal Accuracy : %s\n"
                 "  Numeric Pass Rate: %s\n"
                 "  Avg Score        : %.3f\n"
                 "  Error Rate       : %.1f%%",
@@ -1031,8 +1316,13 @@ class RAGEvaluator:
                 aggregate["answer_relevancy"],
                 aggregate["context_recall"],
                 aggregate["retrieval_hit_at_k"],
+                "-" if aggregate["ndcg_at_5"] is None else f"{aggregate['ndcg_at_5']:.3f}",
+                "-" if aggregate["context_precision_at_5"] is None else f"{aggregate['context_precision_at_5']:.3f}",
                 aggregate["section_match_rate"],
                 aggregate["citation_coverage"],
+                "-" if aggregate["entity_coverage"] is None else f"{aggregate['entity_coverage']:.3f}",
+                "-" if aggregate["completeness"] is None else f"{aggregate['completeness']:.3f}",
+                "-" if aggregate["refusal_accuracy"] is None else f"{aggregate['refusal_accuracy']:.3f}",
                 "-" if aggregate["numeric_pass_rate"] is None else f"{aggregate['numeric_pass_rate']:.3f}",
                 aggregate["avg_score"],
                 aggregate["error_rate"] * 100,

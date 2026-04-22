@@ -2,6 +2,14 @@
 
 이 문서는 다음 스프린트의 우선순위와 성공 조건을 정리한 계획서다.
 
+현재 가장 큰 방향 전환은 다음이다.
+
+- retrieval / generation의 국소 조정보다
+- **단일 문서 Golden Dataset + evaluator 확정**
+  을 먼저 한다
+
+상세 전략은 [single_document_eval_strategy.md](docs/single_document_eval_strategy.md)를 참고한다.
+
 ## 현재 기준선
 
 현재 기본 baseline:
@@ -27,8 +35,26 @@
 
 ## 이번 스프린트 목표
 
-이번 스프린트는 운영 기본값을 바꾸는 단계가 아니다.  
-`v4_generalization_fix_2026-04-17`까지 완료한 현재 목표는 **더 싼 ingest 후보를 새로 찾는 것보다, 현재 저비용 후보가 실패하는 query-stage 패턴을 줄여 다음 일반화 run에서 다시 비교 가능하게 만드는 것**이다.
+이번 스프린트는 운영 기본값을 바꾸는 단계가 아니다.
+
+현재 1순위 목표:
+
+- 삼성전자 2024 사업보고서 1건 기준으로
+- Golden Dataset과 evaluator를 먼저 고정하는 것
+
+즉 다음 단계는
+
+- 더 싼 ingest 후보를 찾는 것
+- 다기업 generalization을 다시 돌리는 것
+
+보다 먼저,
+
+- 질문 taxonomy 확정
+- JSON schema 확정
+- retrieval / generation / numeric / refusal evaluator 확정
+- benchmark runner의 single-document 모드 정리
+
+를 하는 것이다.
 
 추가로, `v6` / `v7` faithfulness 보정 실험을 통해 **question-type별 hardcoded rule을 계속 늘리는 방식은 장기적으로 위험하다**는 점이 분명해졌다. 앞으로는 점수 자체를 올리는 것보다, [answer_generation_principles.md](docs/answer_generation_principles.md)에 정리한 원칙에 맞춰 answer generation 구조를 더 단순하고 설명 가능하게 만드는 것을 우선한다.
 
@@ -61,6 +87,36 @@ typed artifact 검증 결과, 이 필드들은 reviewer artifact에서 실제로
 - 이 문제를 줄인 뒤에도 `contextual_parent_only` 또는 `contextual_selective_v2`가 비용 이점을 유지하는가
 
 ## 우선순위 작업
+
+### 0. Single-document benchmark lab 구축
+
+목표:
+
+- 삼성전자 2024 사업보고서 1건만 대상으로 benchmark 기준선을 다시 세운다
+
+산출물:
+
+- `docs/single_document_eval_strategy.md`
+- `benchmarks/golden/samsung_2024_v1.json`
+- `benchmarks/profiles/single_document_dev.json`
+
+핵심 순서:
+
+1. 질문 taxonomy 확정
+2. JSON schema v1 확정
+3. Golden Dataset 20~30개 구축
+4. category별 evaluator 분리 + metric spec 고정
+5. benchmark runner 연결
+6. 그 다음에만 시스템 개선 재개
+
+현재 진행 상태:
+
+- Golden Dataset `v1 draft` 20문항 생성 완료
+- `docs/evaluation_metrics_v1.md` 추가 완료
+- evaluator loader가 `query_id / ground_truth_answer / ground_truth_context_ids / ground_truth_evidence_quotes`를 읽도록 확장 완료
+- retrieval / generation / numeric / refusal metric v1 1차 구현 완료
+- single-document benchmark profile 추가 완료
+- 다음 단계는 dataset을 `draft -> verified`로 검수하고, single-document runner를 실제 기준선으로 고정하는 것이다
 
 ### 1. Answer generation 원칙 정리와 rule inventory 정리
 
@@ -248,6 +304,11 @@ typed artifact 검증 결과, 이 필드들은 reviewer artifact에서 실제로
 ## 성공 조건
 
 이번 단계의 성공 조건은 “기본값 후보 확정”이 아니라 아래다.
+
+- 삼성전자 2024 기준 단일 문서 Golden Dataset v1이 생길 것
+- 질문 taxonomy와 schema가 문서로 고정될 것
+- `numeric`, `refusal`, `synthesis`가 서로 다른 evaluator path로 해석될 것
+- 이후 retrieval / generation 실험이 이 기준선 위에서만 진행될 것
 
 - 최근 hardcoded answer-stage rule이 어떤 역할을 하는지 문서로 설명 가능할 것
 - benchmark-only 최적화와 운영 기본값 후보를 구분하는 기준이 문서에 명시될 것

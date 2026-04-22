@@ -2,6 +2,21 @@
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## 큰 흐름
+
+버전 흐름을 큰 설계 변화 기준으로 요약하면 다음과 같다.
+
+1. **저비용 ingest 후보 탐색**
+   - `plain`, `parent_only`, `selective` 계열을 비교
+2. **multi-company generalization**
+   - 삼성전자 1건에서 좋아 보이던 후보가 다른 기업에서도 재현되는지 확인
+3. **query-stage / answer-stage failure 분리**
+   - abstention, risk drift, business over-extension을 분리해서 보기 시작
+4. **structured evidence / compression / validation**
+   - answer generation을 free-form generation보다 compression 문제로 재정의
+5. **single-document Golden Dataset + evaluator 우선**
+   - 이제는 multi-company 실험보다, 단일 문서 기준선과 metric을 먼저 고정하는 단계로 이동
+
 ## 보는 법
 
 - 코드 / 실험 설정 변화
@@ -425,3 +440,28 @@
 
 - 이 단계의 목적은 점수 개선이 아니라 **failure analysis를 더 설명 가능하게 만드는 것**이다.
 - 다음 실험부터는 `business_overview` / `risk` 회귀를 “점수 변화”가 아니라 “claim 선택과 제거 흐름”까지 포함해 분석할 수 있어야 한다.
+
+---
+
+## Reset Point: Single-Document Evaluation First
+
+최근 validator, numeric evaluator, typed artifact까지 진행한 뒤 내린 결론은 다음과 같다.
+
+- retrieval / generation의 국소 조정은 계속 가능하다
+- 하지만 그 전에 “무엇을 좋은 답으로 볼 것인가”를 단일 문서에서 먼저 고정해야 한다
+
+이 판단의 이유:
+
+- multi-company benchmark는 parser 차이, section alias 차이, evaluator 차이가 함께 섞인다
+- local rule이 늘어나면 benchmark-specific optimization으로 흐르기 쉽다
+- single-document 기준선이 먼저 있어야 이후 구조 변경을 더 신뢰성 있게 비교할 수 있다
+
+따라서 다음 큰 방향은:
+
+1. 삼성전자 2024 사업보고서 1건 기준 Golden Dataset 구축
+2. 질문 taxonomy 확정
+3. evaluator 분리
+4. single-document benchmark runner 정리
+5. 그 다음에만 retrieval / compression / validation 실험 재개
+
+이 전략은 [single_document_eval_strategy.md](single_document_eval_strategy.md)에 정리했다.
