@@ -488,7 +488,9 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "answer_key": result.answer_key,
                 "expected_sections": result.expected_sections,
                 "evidence": result.evidence,
+                "raw_faithfulness": result.raw_faithfulness,
                 "faithfulness": result.faithfulness,
+                "faithfulness_override_reason": result.faithfulness_override_reason,
                 "answer_relevancy": result.answer_relevancy,
                 "context_recall": result.context_recall,
                 "retrieval_hit_at_k": result.retrieval_hit_at_k,
@@ -500,6 +502,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "citation_coverage": result.citation_coverage,
                 "entity_coverage": result.entity_coverage,
                 "completeness": result.completeness,
+                "completeness_reason": result.completeness_reason,
                 "refusal_accuracy": result.refusal_accuracy,
                 "numeric_equivalence": result.numeric_equivalence,
                 "numeric_grounding": result.numeric_grounding,
@@ -1588,7 +1591,9 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "top_retrieved": " | ".join(top_retrieved),
                     "retrieved_previews": "\n\n".join(retrieved_previews),
                     "citations": " | ".join(question_result.get("citations", [])),
+                    "raw_faithfulness": question_result.get("raw_faithfulness"),
                     "faithfulness": question_result.get("faithfulness"),
+                    "faithfulness_override_reason": question_result.get("faithfulness_override_reason"),
                     "answer_relevancy": question_result.get("answer_relevancy"),
                     "context_recall": question_result.get("context_recall"),
                     "retrieval_hit_at_k": question_result.get("retrieval_hit_at_k"),
@@ -1600,6 +1605,7 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "citation_coverage": question_result.get("citation_coverage"),
                     "entity_coverage": question_result.get("entity_coverage"),
                     "completeness": question_result.get("completeness"),
+                    "completeness_reason": question_result.get("completeness_reason"),
                     "refusal_accuracy": question_result.get("refusal_accuracy"),
                     "numeric_equivalence": question_result.get("numeric_equivalence"),
                     "numeric_grounding": question_result.get("numeric_grounding"),
@@ -1638,7 +1644,9 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "top_retrieved",
         "retrieved_previews",
         "citations",
+        "raw_faithfulness",
         "faithfulness",
+        "faithfulness_override_reason",
         "answer_relevancy",
         "context_recall",
         "retrieval_hit_at_k",
@@ -1650,6 +1658,7 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "citation_coverage",
         "entity_coverage",
         "completeness",
+        "completeness_reason",
         "refusal_accuracy",
         "numeric_equivalence",
         "numeric_grounding",
@@ -1694,9 +1703,13 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 f"- Expected Sections: {row['expected_sections'] or '-'}",
                 f"- Top Retrieved: {row['top_retrieved'] or '-'}",
                 f"- Citations: {row['citations'] or '-'}",
-                f"- Metrics: faithfulness={row['faithfulness']}, relevancy={row['answer_relevancy']}, recall={row['context_recall']}, hit@k={row['retrieval_hit_at_k']}, ndcg@5={row['ndcg_at_5']}, p@5={row['context_precision_at_5']}, section={row['section_match_rate']}, citation={row['citation_coverage']}, entity={row['entity_coverage']}, completeness={row['completeness']}, refusal={row['refusal_accuracy']}",
+                f"- Metrics: raw_faithfulness={row['raw_faithfulness']}, faithfulness={row['faithfulness']}, relevancy={row['answer_relevancy']}, recall={row['context_recall']}, hit@k={row['retrieval_hit_at_k']}, ndcg@5={row['ndcg_at_5']}, p@5={row['context_precision_at_5']}, section={row['section_match_rate']}, citation={row['citation_coverage']}, entity={row['entity_coverage']}, completeness={row['completeness']}, refusal={row['refusal_accuracy']}",
             ]
         )
+        if row.get("faithfulness_override_reason"):
+            lines.append(f"- Faithfulness Override: {row['faithfulness_override_reason']}")
+        if row.get("completeness_reason"):
+            lines.append(f"- Completeness Reason: {row['completeness_reason']}")
         if row.get("numeric_final_judgement"):
             lines.append(
                 f"- Numeric Eval: judgement={row['numeric_final_judgement']}, "

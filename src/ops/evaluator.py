@@ -111,7 +111,9 @@ class EvalResult:
     answer_key: str
     expected_sections: List[str]
     evidence: List[Dict[str, str]]
+    raw_faithfulness: Optional[float]
     faithfulness: float
+    faithfulness_override_reason: Optional[str]
     answer_relevancy: float
     context_recall: float
     retrieval_hit_at_k: float
@@ -123,6 +125,7 @@ class EvalResult:
     citation_coverage: float
     entity_coverage: Optional[float]
     completeness: Optional[float]
+    completeness_reason: Optional[str]
     missing_info_compliance: Optional[float]
     refusal_accuracy: Optional[float]
     retrieved_count: int
@@ -179,7 +182,42 @@ _FAITHFULNESS_PROMPT = """\
 - 0.3: 컨텍스트와 약하게만 연결됨
 - 0.0: 컨텍스트에 없는 내용이 대부분임
 
+예외 규칙:
+- 숫자/단위 표현이 달라도 수학적으로 동치이면 감점하지 마세요.
+- 연도/기수 표기를 사용자가 이해하기 쉽게 풀어쓴 것은 감점하지 마세요.
+- 정보를 압축하거나 요약했더라도 없는 사실을 추가하지 않았다면 감점하지 마세요.
+
 숫자(0.0~1.0)만 답하세요."""
+
+_COMPLETENESS_PROMPT = """\
+다음은 질문, 답변, 그리고 정답 기준 요약입니다.
+답변이 질문 의도에 비해 얼마나 충분하고 친절하게 설명했는지 평가하세요.
+
+[질문]
+{question}
+
+[답변]
+{answer}
+
+[정답 기준 요약]
+{answer_key}
+
+[필수 엔티티]
+{required_entities}
+
+평가 기준:
+- 1.0: 질문이 요구한 핵심 요소를 빠짐없이, 이해하기 쉬운 완전한 문장으로 설명함
+- 0.7: 핵심 요소는 대체로 포함하지만 설명이 다소 짧거나 일부 맥락이 빠짐
+- 0.5: 절반 정도만 답했고 중요한 요소 누락이 있음
+- 0.3: 질문과 관련은 있으나 지나치게 짧거나 핵심 누락이 큼
+- 0.0: 질문 의도에 거의 답하지 못함
+
+다음 JSON만 답하세요.
+{{
+  "score": 0.0,
+  "reason": "짧은 이유"
+}}
+"""
 
 _NUMERIC_GROUNDING_PROMPT = """\
 다음은 숫자 질문에 대한 답변과 근거입니다.
@@ -686,6 +724,38 @@ def _compute_faithfulness(llm: ChatGoogleGenerativeAI, answer: str, contexts: Li
         return 0.5
 
 
+def _compute_completeness_judge(
+    llm: ChatGoogleGenerativeAI,
+    example: EvalExample,
+    answer: str,
+) -> tuple[Optional[float], Optional[str]]:
+    if example.expected_refusal:
+        return None, None
+    if not answer.strip():
+        return 0.0, "답변이 비어 있음"
+
+    required_entities = ", ".join(example.required_entities) if example.required_entities else "-"
+    prompt = _COMPLETENESS_PROMPT.format(
+        question=example.question[:1000],
+        answer=answer[:1500],
+        answer_key=example.canonical_answer_key[:1000],
+        required_entities=required_entities[:500],
+    )
+    try:
+        response = llm.invoke(prompt)
+        text = response.content.strip()
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        payload = json.loads(match.group(0) if match else text)
+        score = payload.get("score")
+        score_value = float(score) if score is not None else None
+        if score_value is not None:
+            score_value = float(np.clip(score_value, 0.0, 1.0))
+        return score_value, str(payload.get("reason") or "").strip() or None
+    except Exception as exc:
+        logger.warning("completeness judge failed: %s", exc)
+        return None, None
+
+
 def _compute_answer_relevancy(
     embeddings: HuggingFaceEmbeddings,
     question: str,
@@ -897,6 +967,17 @@ def _compute_completeness(example: EvalExample, answer: str) -> Optional[float]:
     return entity_score
 
 
+def _should_override_numeric_faithfulness(numeric_eval: Dict[str, Any]) -> bool:
+    if not numeric_eval:
+        return False
+    return (
+        numeric_eval.get("numeric_final_judgement") == "PASS"
+        and numeric_eval.get("numeric_equivalence") == 1.0
+        and numeric_eval.get("numeric_grounding") == 1.0
+        and numeric_eval.get("numeric_retrieval_support") == 1.0
+    )
+
+
 def _compute_missing_info_compliance(example: EvalExample, answer: str) -> Optional[float]:
     category = (example.category or "").lower()
     if category != "missing_information":
@@ -1082,7 +1163,9 @@ class RAGEvaluator:
 
         latency = time.time() - started_at
 
-        faithfulness = _compute_faithfulness(self._llm, answer, contexts)
+        raw_faithfulness = _compute_faithfulness(self._llm, answer, contexts)
+        faithfulness = raw_faithfulness
+        faithfulness_override_reason = None
         answer_relevancy = _compute_answer_relevancy(self._embeddings, example.question, answer)
         context_recall = _compute_context_recall(example, contexts)
         retrieval_hit_at_k = _compute_retrieval_hit_at_k(example, retrieved_docs)
@@ -1099,13 +1182,22 @@ class RAGEvaluator:
                 runtime_evidence=runtime_evidence,
                 retrieval_hit_at_k=retrieval_hit_at_k,
             )
+            if _should_override_numeric_faithfulness(numeric_eval):
+                faithfulness = 1.0
+                faithfulness_override_reason = (
+                    "numeric evaluator PASS (equivalence/grounding/retrieval_support 모두 1.0)로 faithfulness를 1.0으로 보정"
+                )
 
         ndcg_at_3 = _compute_ndcg_at_k(example, retrieved_docs, 3)
         ndcg_at_5 = _compute_ndcg_at_k(example, retrieved_docs, 5)
         context_precision_at_3 = _compute_context_precision_at_k(example, retrieved_docs, 3)
         context_precision_at_5 = _compute_context_precision_at_k(example, retrieved_docs, 5)
         entity_coverage = _compute_entity_coverage(example, contexts)
-        completeness = _compute_completeness(example, answer)
+        completeness, completeness_reason = _compute_completeness_judge(self._llm, example, answer)
+        if completeness is None:
+            completeness = _compute_completeness(example, answer)
+            if completeness is not None and completeness_reason is None:
+                completeness_reason = "heuristic completeness fallback"
         refusal_accuracy = _compute_refusal_accuracy(example, answer)
         absolute_error_rate = _compute_absolute_error_rate(
             answer=answer,
@@ -1121,6 +1213,7 @@ class RAGEvaluator:
         if _looks_like_full_abstention_answer(answer) and (example.category or "").lower() != "missing_information":
             # Penalize abstentions on answerable questions even when the judge model is lenient.
             faithfulness = 0.0
+            faithfulness_override_reason = "answerable question에 대한 full abstention으로 faithfulness를 0.0으로 강등"
             answer_relevancy = min(answer_relevancy, 0.1)
 
         return EvalResult(
@@ -1139,7 +1232,9 @@ class RAGEvaluator:
                 }
                 for evidence in example.evidence
             ],
+            raw_faithfulness=raw_faithfulness,
             faithfulness=faithfulness,
+            faithfulness_override_reason=faithfulness_override_reason,
             answer_relevancy=answer_relevancy,
             context_recall=context_recall,
             retrieval_hit_at_k=retrieval_hit_at_k,
@@ -1151,6 +1246,7 @@ class RAGEvaluator:
             citation_coverage=citation_coverage,
             entity_coverage=entity_coverage,
             completeness=completeness,
+            completeness_reason=completeness_reason,
             missing_info_compliance=missing_info_compliance,
             refusal_accuracy=refusal_accuracy,
             absolute_error_rate=absolute_error_rate,

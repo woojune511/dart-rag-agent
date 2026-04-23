@@ -219,6 +219,39 @@ micro-dataset:
 - `table` 청크에 selective contextualization을 추가하면 `q_001`과 `q_009` 둘 다 더 안정적으로 처리된다.
 - 현재 저비용 품질 후보는 `plain_prefix`보다 `contextual_selective_v2_prefix`가 더 설득력 있다.
 
+### 0-3. Query routing 재설계 준비
+
+목표:
+
+- retrieval / validator 앞단의 query routing variance를 먼저 줄인다
+- `query_type` 하나가 intent와 retrieval format preference를 동시에 결정하는 현재 구조를 정리한다
+
+최근 확인된 문제:
+
+- `contextual_selective_v2_prefix_2500_320` store를 재사용한 직접 실행에서
+  - `주요 재무 리스크는 무엇인가요?`
+  - `회사가 영위하는 주요 사업은 무엇인가요?`
+  질문이 모두 `numeric_fact`로 잘못 분류되는 사례가 확인됐다
+- 이는 retrieval이나 validator 이전에 **query routing 자체가 불안정**하다는 뜻이다
+- 기존에는 `business_overview`가 table penalty를 받는 구조적 충돌도 있었고, 최근 수정으로 이 충돌은 완화했다
+
+다음 단계 준비물:
+
+1. `intent` / `format_preference` 분리 스키마 초안
+2. edge case few-shot 예제 세트
+3. semantic router용 canonical query 세트
+4. `financial_graph.py`에 최소 변경으로 끼울 routing 설계안
+
+방향:
+
+- keyword rule을 계속 늘리지 않는다
+- 초기에는 `few-shot LLM classifier`와 `semantic router`를 함께 준비한다
+- 최종 운영 구조는 병렬보다 **직렬 cascade**를 우선 검토한다
+
+참고:
+
+- [query_routing_rearchitecture.md](docs/query_routing_rearchitecture.md)
+
 ### 1. Answer generation 원칙 정리와 rule inventory 정리
 
 목표:
@@ -440,12 +473,13 @@ micro-dataset:
 
 지금 기준 다음 우선순위는 아래다.
 
-1. numeric evaluator aggregate / reporting 반영
-2. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
-3. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
-4. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
-5. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
-6. NAVER business overview retrieval 실패 원인 정리
-7. missing-information hallucination 억제
-8. 그 다음에 `dev_fast` 기준 재실험
-9. 실패 유형이 줄어든 뒤에만 release generalization 재실행
+1. query routing 재설계 초안 준비
+2. numeric evaluator aggregate / reporting 반영
+3. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
+4. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
+5. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
+6. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
+7. NAVER business overview retrieval 실패 원인 정리
+8. missing-information hallucination 억제
+9. 그 다음에 `dev_fast` 기준 재실험
+10. 실패 유형이 줄어든 뒤에만 release generalization 재실행
