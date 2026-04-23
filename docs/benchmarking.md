@@ -37,6 +37,14 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
 
 최근에는 sentence-level validator와 후처리 정규화를 추가해, `sentence_checks` verdict가 실제 `final_answer`, `unsupported_sentences`, `dropped_claim_ids`에 반영되도록 보강했다. 다만 현재 관찰상 이 validator는 “실제로 pruning을 시작한 단계”이지, 아직 answer quality를 안정적으로 끌어올리는 단계는 아니다.
 
+최근에는 query routing도 retrieval 품질을 결정하는 독립 축으로 보기 시작했다. 현재 benchmark 해석에서는 최소한 아래를 분리해서 보는 것이 중요하다.
+
+- retrieval / ingest
+- evaluator
+- query routing
+
+즉 low-cost 후보의 실패를 모두 retrieval 문제로 보지 않고, `intent / format_preference` routing variance까지 같이 본다.
+
 현재 baseline:
 
 - `contextual_all_2500_320`
@@ -140,9 +148,17 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
   - `사업개요`의 핵심 paragraph
   - `위험관리 및 파생거래` 관련 chunk
   - `매출 및 수주상황` table
-  - `연구개발` 핵심 paragraph
-  - 짧거나 헤더 의존성이 높은 table
+- `연구개발` 핵심 paragraph
+- 짧거나 헤더 의존성이 높은 table
 - 목적: 호출 수를 줄이면서 business/risk miss를 줄이기
+
+### `contextual_selective_v2 + prefix`
+
+- `contextual_selective_v2`에 `Zero-Cost Prefix`를 결합한 모드
+- 현재 low-cost 품질 후보의 중심
+- 해석 포인트:
+  - retrieval만 볼 게 아니라 evaluator / routing 상태와 함께 봐야 함
+  - 특히 `risk` / `business_overview` 질문은 routing variance가 answer quality에 직접적인 영향을 줌
 
 ## 2단계 평가 구조
 
@@ -177,6 +193,16 @@ screening 통과안만 정식 평가로 보낸다.
 - `answer_relevancy`
 - `context_recall`
 - retrieval 계열 지표 재확인
+
+추가 해석 원칙:
+
+- numeric 문항은 `raw_faithfulness`와 최종 `faithfulness`를 분리해서 본다
+- query routing 개편 이후에는 실험 로그에서 최소한
+  - `intent`
+  - `format_preference`
+  - `routing_source`
+  를 확인해야 한다
+- 현재 이 필드는 `results.json`, `review.csv`, `review.md`에 모두 기록된다
 
 ## 실행 프로파일
 

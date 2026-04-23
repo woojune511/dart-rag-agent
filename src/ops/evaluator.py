@@ -130,7 +130,12 @@ class EvalResult:
     refusal_accuracy: Optional[float]
     retrieved_count: int
     query_type: str
+    intent: str
+    format_preference: str
+    routing_source: str
+    routing_confidence: Optional[float]
     latency_sec: float
+    routing_scores: Dict[str, float] = field(default_factory=dict)
     absolute_error_rate: Optional[float] = None
     calculation_correctness: Optional[float] = None
     citations: List[str] = field(default_factory=list)
@@ -1131,6 +1136,11 @@ class RAGEvaluator:
         answer = ""
         contexts: List[str] = []
         query_type = "unknown"
+        intent = "unknown"
+        format_preference = ""
+        routing_source = ""
+        routing_confidence: Optional[float] = None
+        routing_scores: Dict[str, float] = {}
         retrieved_docs: List[Any] = []
         citations: List[str] = []
         runtime_evidence: List[Dict[str, Any]] = []
@@ -1145,6 +1155,11 @@ class RAGEvaluator:
             result = self.agent.run(example.question)
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
+            intent = result.get("intent", query_type or "unknown")
+            format_preference = result.get("format_preference", "")
+            routing_source = result.get("routing_source", "")
+            routing_confidence = _safe_float(result.get("routing_confidence"))
+            routing_scores = dict(result.get("routing_scores", {}) or {})
             retrieved_docs = result.get("retrieved_docs", [])
             citations = result.get("citations", [])
             runtime_evidence = result.get("evidence_items", []) or []
@@ -1253,6 +1268,11 @@ class RAGEvaluator:
             calculation_correctness=calculation_correctness,
             retrieved_count=len(contexts),
             query_type=query_type,
+            intent=intent,
+            format_preference=format_preference,
+            routing_source=routing_source,
+            routing_confidence=routing_confidence,
+            routing_scores=routing_scores,
             latency_sec=latency,
             citations=citations,
             retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),

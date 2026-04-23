@@ -171,6 +171,60 @@
 
 - [query_routing_rearchitecture.md](docs/query_routing_rearchitecture.md)
 
+### 2026-04-23 routing cascade v1
+
+이번 세션에서는 query routing variance를 줄이기 위해 `intent + format_preference` 기반 routing cascade v1을 도입했다.
+
+핵심 변경:
+
+- `query_type` 단일 값 대신 아래 routing state를 추가
+  - `intent`
+  - `format_preference`
+  - `routing_source`
+  - `routing_confidence`
+  - `routing_scores`
+- semantic router fast-path 추가
+  - `benchmarks/golden/query_routing_canonical_v1.json`의 canonical query를 임베딩해 top-1 / margin을 계산
+  - confidence와 margin이 충분하면 LLM 분류를 건너뜀
+- fast-path가 애매할 때만 few-shot LLM fallback 사용
+- retrieval / rerank의 block-type 보정은 이제 `query_type`이 아니라 `format_preference` 기준으로 동작
+
+`dev_fast_focus_routing_cascade_2026-04-23` 결과:
+
+- `contextual_selective_v2_prefix_2500_320`
+  - `faithfulness 0.925`
+  - `answer_relevancy 0.632`
+  - `context_recall 0.625`
+  - `completeness 0.775`
+  - `numeric_pass = 1.000`
+- `risk_analysis_001`
+  - semantic router top-1은 흔들렸지만 fast-path 임계값을 넘지 못해 `llm_fallback`으로 전환
+  - 최종 routing은 `intent=risk`, `format_preference=paragraph`
+- `business_overview_001`
+  - `llm_fallback`이 `business_overview / mixed`로 교정
+- `business_overview_003`
+  - `semantic_fast_path`로 `business_overview / mixed`
+- `numeric_fact_001`
+  - `semantic_fast_path`로 `numeric_fact / table`
+
+현재 해석:
+
+- `risk`, `business_overview`가 `numeric_fact`로 무너지는 현상은 크게 줄었다
+- `contextual_selective_v2_prefix`의 품질도 routing 개선 후 더 좋아졌다
+- 즉 현재 병목은 “무조건 rule을 더 넣는 것”이 아니라
+  - semantic router threshold / canonical query를 계속 보정하고
+  - routing metadata를 활용해 fallback 로그를 다시 router 자산으로 흡수하는 쪽이다
+
+추가로 이번 세션에서 benchmark artifact에도 아래 필드를 노출했다.
+
+- `intent`
+- `format_preference`
+- `routing_source`
+- `routing_confidence`
+- `routing_scores`
+
+즉 이제 `results.json`, `review.csv`, `review.md`에서 질문별 routing trace를 바로 읽을 수 있다.
+
 현재 결과 요약:
 
 - `contextual_all_2500_320`

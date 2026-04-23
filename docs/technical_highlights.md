@@ -140,3 +140,22 @@ benchmark는 model quality만이 아니라 실험 비용과 반복 속도까지 
 의미:
 
 - 실험 비용을 통제하면서도 품질 하한선을 유지하는 실험 운영 구조 자체가 이 프로젝트의 중요한 엔지니어링 결정이다.
+
+## 9. query routing을 retrieval 정책과 분리한 cascade 설계
+
+최근에는 retrieval 품질 저하의 일부 원인이 검색기 자체보다 query routing variance라는 점이 드러났다.
+
+핵심 포인트:
+
+- `query_type` 하나로 모든 정책을 결정하지 않음
+- `intent`
+- `format_preference`
+를 분리해 state로 유지
+- semantic router fast-path
+- few-shot LLM fallback
+- rerank / retrieval block-type 정책은 `format_preference` 기준으로 적용
+
+의미:
+
+- 질문의 의도와 evidence 형식 선호를 분리하면서 table penalty 같은 정책 충돌을 줄인다.
+- 쉬운 질문은 빠르고 저렴하게, 애매한 질문은 fallback으로 정교하게 처리하는 cascade routing은 포트폴리오 관점에서도 설명력이 높은 설계다.

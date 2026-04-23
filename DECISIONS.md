@@ -258,6 +258,49 @@
 결정:
 
 - 기본 운영 baseline은 계속 `contextual_all_2500_320`으로 둔다.
+
+### 결정 56. query routing은 `intent`와 `format_preference`를 분리해 다룬다
+
+배경:
+
+- 기존 `query_type` 하나가 질문 의도와 retrieval 형식 선호를 동시에 결정했다.
+- 이 구조는 `business_overview`가 표를 필요로 하는 질문에서도 table penalty를 받게 만드는 등, retrieval 정책 충돌을 만들었다.
+- 또한 `risk`, `business_overview`, `numeric_fact` 간 variance가 커서 질문에 따라 `numeric_fact`로 과도하게 빨려 들어가는 현상이 반복됐다.
+
+결정:
+
+- routing state에 아래 필드를 별도로 둔다.
+  - `intent`
+  - `format_preference`
+  - `routing_source`
+  - `routing_confidence`
+  - `routing_scores`
+- section bias는 `intent`를 기준으로 계산한다.
+- block-type rerank와 retrieval mix는 `format_preference`를 기준으로 계산한다.
+
+효과:
+
+- 질문의 의도와 evidence 형식 선호를 분리하면서, routing과 retrieval 정책의 결합도가 낮아졌다.
+- 이후 semantic router나 classifier를 교체하더라도 retrieval 정책을 독립적으로 유지할 수 있게 됐다.
+
+### 결정 57. query routing은 병렬 ensemble보다 semantic fast-path + few-shot fallback cascade로 운영한다
+
+배경:
+
+- rule-based를 계속 늘리면 유지보수 비용이 빠르게 증가한다.
+- LLM-only zero-shot 분류는 variance가 컸고, 병렬 ensemble은 conflict resolution과 비용을 동시에 키운다.
+
+결정:
+
+- 1차 방어선으로 semantic router를 둔다.
+  - canonical query 임베딩과 cosine similarity로 top-1 / margin 계산
+- confidence와 margin이 충분할 때만 fast-path로 즉시 라우팅한다.
+- fast-path가 애매할 때만 few-shot LLM classifier를 fallback으로 호출한다.
+
+효과:
+
+- 쉬운 질문은 빠르고 저렴하게 처리하고, 애매한 질문만 LLM이 정교하게 분류하는 구조가 됐다.
+- `risk_analysis_001`처럼 semantic top-1이 흔들리는 질문도 fast-path를 억제하고 LLM fallback으로 교정할 수 있게 됐다.
 - `contextual_parent_only`, `contextual_selective_v2`, `contextual_parent_hybrid`는 benchmark 전용 후보로 유지한다.
 - 다음 최적화 우선순위는 ingest mode 추가보다 아래에 둔다.
   - numeric / risk / R&D abstention 완화

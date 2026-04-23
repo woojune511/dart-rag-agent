@@ -2,10 +2,13 @@
 LangGraph-based DART financial analysis agent.
 """
 
+import json
 import logging
+import math
 import os
 import re
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from dotenv import load_dotenv
@@ -83,6 +86,11 @@ def _strip_anchor_text(text: str) -> str:
 class FinancialAgentState(TypedDict):
     query: str
     query_type: str
+    intent: str
+    format_preference: str
+    routing_source: str
+    routing_confidence: float
+    routing_scores: Dict[str, float]
     companies: List[str]
     years: List[int]
     topic: str
@@ -103,17 +111,21 @@ class FinancialAgentState(TypedDict):
     citations: List[str]
 
 
-class QueryClassification(BaseModel):
-    query_type: Literal["numeric_fact", "business_overview", "risk", "comparison", "trend", "qa"] = Field(
+class QueryRoutingDecision(BaseModel):
+    intent: Literal["numeric_fact", "business_overview", "risk", "comparison", "trend", "qa"] = Field(
         description=(
             "numeric_fact=특정 수치·금액·비율을 묻는 질의 (매출, 영업이익, 부채비율, R&D 비용 등), "
             "business_overview=사업 구조·주요 사업·서비스·제품·고객군 등 기업 개요 설명 질의, "
             "risk=리스크 요인·위험 관리·파생거래 등 리스크 분석 질의, "
             "comparison=두 기업 또는 두 항목 간 비교 질의, "
-            "trend=시계열 변화·추이·성장률 등 기간 분석 질의, "
+            "trend=시계열 변화·추이·성장률·전년 대비 변화 질의, "
             "qa=위 유형에 해당하지 않는 일반 사실·설명 질의"
         )
     )
+    format_preference: Literal["table", "paragraph", "mixed"] = Field(
+        description="retrieval 및 reranking에서 우선할 evidence 형식"
+    )
+    confidence: Optional[float] = Field(default=None, description="0.0~1.0 범위의 분류 확신도")
 
 
 class EntityExtraction(BaseModel):
@@ -191,6 +203,7 @@ class ValidationOutput(BaseModel):
 
 
 class FinancialAgent:
+    _INTENTS = ("numeric_fact", "business_overview", "risk", "comparison", "trend", "qa")
     _SECTION_BIAS_BY_QUERY_TYPE = {
         "numeric_fact": (
             ("손익계산서", 0.08),
@@ -207,6 +220,17 @@ class FinancialAgent:
             ("위험관리 및 파생거래", 0.18),
             ("리스크", 0.10),
         ),
+    }
+
+    _SEMANTIC_FASTPATH_THRESHOLD = 0.86
+    _SEMANTIC_FASTPATH_MARGIN = 0.04
+    _FORMAT_PREFERENCE_BY_INTENT = {
+        "numeric_fact": "table",
+        "business_overview": "mixed",
+        "risk": "paragraph",
+        "comparison": "table",
+        "trend": "table",
+        "qa": "paragraph",
     }
 
     def __init__(self, vector_store_manager, k: int = 8, graph_expansion_config: Optional[Dict[str, Any]] = None):
@@ -232,35 +256,225 @@ class FinancialAgent:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+        self._semantic_router = self._build_semantic_router()
         self.graph = self._build_graph()
 
-    def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
-        structured_llm = self.llm.with_structured_output(QueryClassification)
-        prompt = ChatPromptTemplate.from_template(
-            """다음 기업 공시 질문의 유형을 분류하세요.
+    def _canonical_queries_path(self) -> Path:
+        return Path(__file__).resolve().parents[2] / "benchmarks" / "golden" / "query_routing_canonical_v1.json"
 
-유형 판별 기준:
+    def _default_format_preference(self, intent: str) -> str:
+        return self._FORMAT_PREFERENCE_BY_INTENT.get(intent, "mixed")
+
+    def _build_semantic_router(self) -> Dict[str, Any]:
+        path = self._canonical_queries_path()
+        if not path.exists():
+            logger.warning("[routing] canonical query file not found: %s", path)
+            return {"enabled": False, "examples": []}
+
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            logger.warning("[routing] failed to load canonical query file: %s", exc)
+            return {"enabled": False, "examples": []}
+
+        examples: List[Dict[str, Any]] = []
+        for entry in payload:
+            intent = str(entry.get("id") or "").strip()
+            if intent not in self._INTENTS:
+                continue
+            queries = [str(query).strip() for query in entry.get("queries", []) if str(query).strip()]
+            if not queries:
+                continue
+            try:
+                embeddings = self.vsm.embeddings.embed_documents(queries)
+            except Exception as exc:
+                logger.warning("[routing] failed to embed canonical queries for %s: %s", intent, exc)
+                continue
+            for query, embedding in zip(queries, embeddings):
+                examples.append(
+                    {
+                        "intent": intent,
+                        "query": query,
+                        "embedding": embedding,
+                        "format_preference": self._default_format_preference(intent),
+                    }
+                )
+        logger.info("[routing] semantic router loaded %s canonical queries", len(examples))
+        return {"enabled": bool(examples), "examples": examples}
+
+    def _cosine_similarity(self, left: List[float], right: List[float]) -> float:
+        if not left or not right or len(left) != len(right):
+            return 0.0
+        dot = sum(float(a) * float(b) for a, b in zip(left, right))
+        left_norm = math.sqrt(sum(float(a) * float(a) for a in left))
+        right_norm = math.sqrt(sum(float(b) * float(b) for b in right))
+        if left_norm == 0.0 or right_norm == 0.0:
+            return 0.0
+        return dot / (left_norm * right_norm)
+
+    def _semantic_route(self, query: str) -> Dict[str, Any]:
+        router = self._semantic_router or {}
+        examples = router.get("examples") or []
+        if not router.get("enabled") or not examples:
+            return {
+                "intent": None,
+                "format_preference": None,
+                "confidence": 0.0,
+                "margin": 0.0,
+                "scores": {},
+                "fast_path": False,
+            }
+
+        try:
+            query_embedding = self.vsm.embeddings.embed_query(query)
+        except Exception as exc:
+            logger.warning("[routing] semantic router embed_query failed: %s", exc)
+            return {
+                "intent": None,
+                "format_preference": None,
+                "confidence": 0.0,
+                "margin": 0.0,
+                "scores": {},
+                "fast_path": False,
+            }
+
+        scores: Dict[str, float] = {}
+        best_example_by_intent: Dict[str, Dict[str, Any]] = {}
+        for example in examples:
+            score = self._cosine_similarity(query_embedding, example["embedding"])
+            intent = example["intent"]
+            if score > scores.get(intent, -1.0):
+                scores[intent] = score
+                best_example_by_intent[intent] = example
+
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        if not ranked:
+            return {
+                "intent": None,
+                "format_preference": None,
+                "confidence": 0.0,
+                "margin": 0.0,
+                "scores": {},
+                "fast_path": False,
+            }
+
+        top_intent, top_score = ranked[0]
+        second_score = ranked[1][1] if len(ranked) > 1 else 0.0
+        margin = top_score - second_score
+        best_example = best_example_by_intent.get(top_intent, {})
+        fast_path = top_score >= self._SEMANTIC_FASTPATH_THRESHOLD and margin >= self._SEMANTIC_FASTPATH_MARGIN
+        return {
+            "intent": top_intent,
+            "format_preference": best_example.get("format_preference") or self._default_format_preference(top_intent),
+            "confidence": float(top_score),
+            "margin": float(margin),
+            "scores": {intent: round(score, 4) for intent, score in ranked},
+            "fast_path": fast_path,
+        }
+
+    def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
+        semantic_result = self._semantic_route(state["query"])
+        logger.info(
+            "[classify] semantic intent=%s confidence=%.3f margin=%.3f fast_path=%s scores=%s",
+            semantic_result.get("intent"),
+            semantic_result.get("confidence", 0.0),
+            semantic_result.get("margin", 0.0),
+            semantic_result.get("fast_path"),
+            semantic_result.get("scores", {}),
+        )
+        if semantic_result.get("fast_path") and semantic_result.get("intent"):
+            intent = str(semantic_result["intent"])
+            format_preference = str(
+                semantic_result.get("format_preference") or self._default_format_preference(intent)
+            )
+            logger.info(
+                "[classify] fast-path intent=%s format=%s confidence=%.3f",
+                intent,
+                format_preference,
+                semantic_result.get("confidence", 0.0),
+            )
+            return {
+                "query_type": intent,
+                "intent": intent,
+                "format_preference": format_preference,
+                "routing_source": "semantic_fast_path",
+                "routing_confidence": float(semantic_result.get("confidence") or 0.0),
+                "routing_scores": dict(semantic_result.get("scores") or {}),
+            }
+
+        structured_llm = self.llm.with_structured_output(QueryRoutingDecision)
+        prompt = ChatPromptTemplate.from_template(
+            """다음 기업 공시 질문을 `intent`와 `format_preference`로 분류하세요.
+
+intent 정의:
 - numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 단일 숫자 또는 명확한 수치 목록으로 귀결됨.
-  핵심 구별 기준: 질문이 최종적으로 숫자·비율·금액·규모 같은 표형 수치 답을 요구하는가?
-  numeric_fact 예) "연결 매출액은?", "영업이익률은?", "R&D 비용은 얼마?", "부채비율은?", "EPS는?",
-    "사업부문 간 내부거래 규모는?", "각 부문별 매출 비중은?"
 - business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 구성 등 기업 개요를 묻는 질의.
-  수치를 일부 포함하더라도, 핵심이 기업 구조·구성·제품/서비스 설명이면 business_overview.
-  예) "주요 사업은?", "어떤 제품을 생산하나?", "사업 부문 구성은?", "주요 고객군은?",
-    "몇 개의 자회사를 통해 사업을 영위하나?"
 - risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
-  예) "주요 재무 리스크는?", "환율 위험 관리 방식은?", "사업 리스크 요인은?"
 - comparison : 두 기업 또는 두 항목을 명시적으로 비교하는 질의.
-  예) "삼성전자 vs SK하이닉스 매출 비교", "DX 부문과 DS 부문 매출 차이는?"
 - trend : 시계열 변화·추이·성장률·전년 대비 변화를 묻는 질의.
-  예) "최근 3년 영업이익 추이는?", "매출 성장률 변화는?"
 - qa : 위 유형에 해당하지 않는 일반 사실·설명 질의.
+
+format_preference 정의:
+- table : 표 기반 수치 근거를 우선해야 함
+- paragraph : 설명 문단 근거를 우선해야 함
+- mixed : 표와 문단을 함께 볼 수 있음
+
+[Few-shot 예시]
+Q: 삼성전자의 주요 재무 리스크는 무엇인가요?
+A: intent=risk, format_preference=paragraph
+
+Q: 환율 위험 관리 방식은 어떻게 설명하나요?
+A: intent=risk, format_preference=paragraph
+
+Q: 회사가 영위하는 주요 사업은 무엇인가요?
+A: intent=business_overview, format_preference=mixed
+
+Q: 삼성전자는 어떤 제품과 서비스를 제공하나요?
+A: intent=business_overview, format_preference=mixed
+
+Q: 삼성전자의 연결 기준 매출액은 얼마인가요?
+A: intent=numeric_fact, format_preference=table
+
+Q: 각 부문별 매출 비중은 어떻게 되나요?
+A: intent=numeric_fact, format_preference=table
+
+Q: DX와 DS 부문의 매출 차이는 얼마인가요?
+A: intent=comparison, format_preference=table
+
+Q: 최근 3년 영업이익 추이는 어떻게 변했나요?
+A: intent=trend, format_preference=table
+
+Q: 삼성전자의 설립일은 언제인가요?
+A: intent=qa, format_preference=paragraph
+
+참고 semantic prior:
+- top_intent: {semantic_intent}
+- semantic_confidence: {semantic_confidence}
 
 질문: {query}"""
         )
-        result: QueryClassification = (prompt | structured_llm).invoke({"query": state["query"]})
-        logger.info("[classify] query_type=%s", result.query_type)
-        return {"query_type": result.query_type}
+        result: QueryRoutingDecision = (prompt | structured_llm).invoke(
+            {
+                "query": state["query"],
+                "semantic_intent": semantic_result.get("intent") or "unknown",
+                "semantic_confidence": f"{float(semantic_result.get('confidence') or 0.0):.3f}",
+            }
+        )
+        logger.info(
+            "[classify] slow-path intent=%s format=%s confidence=%s semantic_scores=%s",
+            result.intent,
+            result.format_preference,
+            result.confidence,
+            semantic_result.get("scores", {}),
+        )
+        return {
+            "query_type": result.intent,
+            "intent": result.intent,
+            "format_preference": result.format_preference,
+            "routing_source": "llm_fallback",
+            "routing_confidence": float(result.confidence or semantic_result.get("confidence") or 0.0),
+            "routing_scores": dict(semantic_result.get("scores") or {}),
+        }
 
     def _extract_entities(self, state: FinancialAgentState) -> Dict[str, Any]:
         structured_llm = self.llm.with_structured_output(EntityExtraction)
@@ -286,7 +500,7 @@ class FinancialAgent:
         filtered = [item for item in docs if predicate(item[0])]
         return filtered if filtered else docs
 
-    # query_type별 표 청크 선호 여부
+    # intent별 표 청크 선호 여부
     _TABLE_PREFERRED_TYPES = frozenset(["numeric_fact", "trend"])
     _PARAGRAPH_PREFERRED_TYPES = frozenset(["business_overview", "risk", "qa"])
 
@@ -312,7 +526,8 @@ class FinancialAgent:
         years = {int(year) for year in state.get("years", [])}
         topic_terms = _tokenize_terms(state.get("topic") or state["query"])
         section_filter = (state.get("section_filter") or "").strip()
-        query_type = state.get("query_type", "qa")
+        intent = state.get("intent") or state.get("query_type", "qa")
+        format_preference = state.get("format_preference") or self._default_format_preference(intent)
 
         reranked = []
         for doc, score in docs:
@@ -347,12 +562,12 @@ class FinancialAgent:
                 overlap = len(topic_terms & document_terms) / max(len(topic_terms), 1)
                 boosted += min(overlap, 0.20)
 
-            boosted += self._section_bias(query_type, section_path)
+            boosted += self._section_bias(intent, section_path)
 
-            # block_type 보정: query_type 기반으로 표/단락 선호도 반영
-            if query_type in {"risk", "qa"} and block_type == "table":
+            # block_type 보정: format_preference 기반으로 표/단락 선호도 반영
+            if format_preference == "paragraph" and block_type == "table":
                 boosted -= 0.08
-            elif query_type in self._TABLE_PREFERRED_TYPES and block_type == "paragraph":
+            elif format_preference == "table" and block_type == "paragraph":
                 boosted -= 0.04
 
             reranked.append((doc, boosted))
@@ -424,16 +639,17 @@ class FinancialAgent:
 
         reranked = self._rerank_docs(docs, state)
 
-        # query_type에 따라 표/단락 비율 보장
-        query_type = state.get("query_type", "qa")
-        if query_type in self._TABLE_PREFERRED_TYPES:
+        # format_preference에 따라 표/단락 비율 보장
+        intent = state.get("intent") or state.get("query_type", "qa")
+        format_preference = state.get("format_preference") or self._default_format_preference(intent)
+        if format_preference == "table":
             # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
             tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
             paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
             min_para = min(2, len(paras))
             docs = (tables[: self.k - min_para] + paras[:min_para])
             docs.sort(key=lambda x: x[1], reverse=True)
-        elif query_type in self._PARAGRAPH_PREFERRED_TYPES:
+        elif format_preference == "paragraph":
             # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
             tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
             paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
@@ -444,7 +660,12 @@ class FinancialAgent:
             docs = reranked
 
         docs = docs[: self.k]
-        logger.info("[retrieve] query_type=%s final %s chunks returned", query_type, len(docs))
+        logger.info(
+            "[retrieve] intent=%s format=%s final %s chunks returned",
+            intent,
+            format_preference,
+            len(docs),
+        )
         return {"seed_retrieved_docs": docs, "retrieved_docs": docs}
 
     def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -1297,6 +1518,11 @@ Structured Evidence:
         initial: FinancialAgentState = {
             "query": query,
             "query_type": "",
+            "intent": "",
+            "format_preference": "",
+            "routing_source": "",
+            "routing_confidence": 0.0,
+            "routing_scores": {},
             "companies": [],
             "years": [],
             "topic": "",
@@ -1320,6 +1546,11 @@ Structured Evidence:
         return {
             "query": final["query"],
             "query_type": final["query_type"],
+            "intent": final.get("intent", final["query_type"]),
+            "format_preference": final.get("format_preference", ""),
+            "routing_source": final.get("routing_source", ""),
+            "routing_confidence": final.get("routing_confidence", 0.0),
+            "routing_scores": final.get("routing_scores", {}),
             "companies": final["companies"],
             "years": final["years"],
             "answer": final["answer"],
