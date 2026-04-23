@@ -531,3 +531,51 @@
 5. 그 다음에만 retrieval / compression / validation 실험 재개
 
 이 전략은 [single_document_eval_strategy.md](single_document_eval_strategy.md)에 정리했다.
+
+---
+
+## Prefix + Selective Contextual Retrieval Focus Run (2026-04-23)
+
+참조:
+
+- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md)
+- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json](../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json)
+
+### 코드 / 설정 변화
+
+- `src/ops/benchmark_runner.py`
+  - `contextual_selective_v2` 경로가 `use_zero_cost_prefix`를 함께 받을 수 있도록 확장
+- `benchmarks/profiles/dev_fast_focus.json`
+  - `contextual_selective_v2_prefix_2500_320` 후보 추가
+
+### 핵심 결과
+
+- `plain_prefix_2500_320`
+  - retrieval seed는 강했지만 `numeric_fact_001`에서 “구체적인 수치 정보가 없다”고 답함
+  - `numeric_final_judgement = FAIL`
+- `contextual_selective_v2_prefix_2500_320`
+  - `screen_pass = yes`
+  - `faithfulness 0.675`
+  - `answer_relevancy 0.580`
+  - `context_recall 0.625`
+  - `numeric_pass = 1.000`
+
+질문별 메모:
+
+- `numeric_fact_001`
+  - `plain_prefix`는 실패
+  - `selective_v2_prefix`는 `300조 8,709억원`으로 복구
+- `risk_analysis_001`
+  - `selective_v2_prefix`는 `위험관리 및 파생거래` 중심 retrieval과 grounded answer를 유지
+
+### 해석
+
+- `Zero-Cost Prefix`만으로는 표 기반 숫자 질문의 구조적 희소성을 충분히 복원하지 못한다.
+- `table` 청크에만 선택적으로 contextualization을 주고 prefix를 함께 유지하는 조합이 더 현실적인 타협점이다.
+- 이 시점부터 low-cost 방향의 주력 후보는 `plain_prefix`보다 `contextual_selective_v2_prefix`가 된다.
+
+### 다음 단계
+
+- retrieval / ingest 코드는 잠시 freeze
+- numeric evaluator aggregate / reporting을 먼저 정리
+- 그 다음 `business_overview` / `risk` generation 튜닝으로 넘어가기

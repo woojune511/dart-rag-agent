@@ -187,6 +187,38 @@ micro-dataset:
   - `요약재무정보`
   를 같은 target family로 다루고, `연결재무제표 주석`은 기본 감점하는 쪽
 
+### 0-2. Prefix + Selective Contextual Retrieval
+
+목표:
+
+- `plain + prefix`의 retrieval 보강은 유지하되, 표 기반 숫자 질문에서 필요한 최소 contextualization만 추가
+- 전체 contextual ingest 대신 **선택적 contextualization + zero-cost prefix** 조합의 품질을 확인
+
+현재 상태:
+
+- `dev_fast_focus_selective_prefix_2026-04-23` 실행 완료
+- 새 후보 `contextual_selective_v2_prefix_2500_320` 추가
+  - `ingest_mode = contextual_selective_v2`
+  - `use_zero_cost_prefix = true`
+
+핵심 결과:
+
+- `plain_prefix_2500_320`
+  - retrieval seed는 강하지만 `numeric_fact_001`에서 “구체적인 수치 정보가 없다”고 기권
+  - `numeric_final_judgement = FAIL`
+- `contextual_selective_v2_prefix_2500_320`
+  - `screen_pass = yes`
+  - `faithfulness 0.675`
+  - `answer_relevancy 0.580`
+  - `context_recall 0.625`
+  - `numeric_pass = 1.000`
+
+현재 해석:
+
+- `plain + prefix`만으로는 표 내부 의미를 충분히 복원하지 못한다.
+- `table` 청크에 selective contextualization을 추가하면 `q_001`과 `q_009` 둘 다 더 안정적으로 처리된다.
+- 현재 저비용 품질 후보는 `plain_prefix`보다 `contextual_selective_v2_prefix`가 더 설득력 있다.
+
 ### 1. Answer generation 원칙 정리와 rule inventory 정리
 
 목표:
@@ -408,11 +440,12 @@ micro-dataset:
 
 지금 기준 다음 우선순위는 아래다.
 
-1. answer generation 원칙과 rule inventory 문서화
-2. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
-3. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
-4. NAVER business overview retrieval 실패 원인 정리
-5. missing-information hallucination 억제
-6. numeric evaluator aggregate / reporting 반영
-7. 그 다음에 `dev_fast` 기준 재실험
-8. 실패 유형이 줄어든 뒤에만 release generalization 재실행
+1. numeric evaluator aggregate / reporting 반영
+2. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
+3. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
+4. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
+5. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
+6. NAVER business overview retrieval 실패 원인 정리
+7. missing-information hallucination 억제
+8. 그 다음에 `dev_fast` 기준 재실험
+9. 실패 유형이 줄어든 뒤에만 release generalization 재실행

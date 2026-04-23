@@ -471,3 +471,41 @@ focus run 관찰:
 참조:
 
 - [single_document_eval_strategy.md](docs/single_document_eval_strategy.md)
+
+## 2026-04-23 focused retrieval update
+
+이번 세션에서는 `plain + prefix`의 한계를 확인하고, `prefix + selective contextualization` 조합을 focused benchmark로 비교했다.
+
+실험:
+
+- profile: `benchmarks/profiles/dev_fast_focus.json`
+- output: `benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23`
+- 후보:
+  - `contextual_all_2500_320`
+  - `contextual_parent_only_2500_320`
+  - `plain_prefix_2500_320`
+  - `contextual_selective_v2_prefix_2500_320`
+
+핵심 결과:
+
+- `plain_prefix_2500_320`
+  - retrieval은 강했지만 `numeric_fact_001`에서 “구체적인 수치 정보가 없다”고 답해 `numeric_final_judgement = FAIL`
+- `contextual_selective_v2_prefix_2500_320`
+  - `screen_pass = yes`
+  - `Full Faithfulness 0.675`
+  - `Full Relevancy 0.580`
+  - `Full Recall 0.625`
+  - `numeric_fact_001`은 `300조 8,709억원`으로 복구되어 `numeric_final_judgement = PASS`
+  - `risk_analysis_001`도 `위험관리 및 파생거래` 중심 retrieval과 짧은 grounded answer를 유지
+
+현재 해석:
+
+- `plain + prefix`는 seed retrieval 보강에는 효과가 있다.
+- 하지만 숫자 표처럼 구조적 희소성이 큰 chunk는 prefix만으로 충분하지 않다.
+- `table` 청크에 선택적으로 contextualization을 주고 prefix를 같이 유지하는 혼합 방식이 현재 가장 설득력 있는 low-cost 품질 타협안이다.
+
+다음 우선순위:
+
+1. retrieval / ingest 코드 추가 변경보다 evaluator 튜닝
+2. `numeric_final_judgement = PASS`인 문항과 generic `faithfulness`의 해석 분리
+3. `business_overview` / `risk` 답변을 더 친절하고 완전한 문장으로 만드는 generation 튜닝
