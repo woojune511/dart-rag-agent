@@ -2,6 +2,18 @@
 
 이 문서는 현재 `financial_graph.py`의 query routing 병목과, 다음 단계에서 도입할 routing 재설계 방향을 정리한다.
 
+현재 상태:
+
+- `routing cascade v1` 구현 완료
+  - `intent + format_preference` state 분리
+  - semantic router fast-path
+  - few-shot LLM fallback
+- 현재 남은 일은 구현 자체보다
+  - benchmark artifact 노출
+  - semantic threshold calibration
+  - canonical query set 보강
+  이다
+
 ## 배경
 
 현재 query routing은 아래 두 단계를 LLM에 맡긴다.

@@ -248,6 +248,27 @@ micro-dataset:
 - 초기에는 `few-shot LLM classifier`와 `semantic router`를 함께 준비한다
 - 최종 운영 구조는 병렬보다 **직렬 cascade**를 우선 검토한다
 
+현재 상태:
+
+- `routing cascade v1` 구현 완료
+  - `intent + format_preference` state 분리
+  - semantic router fast-path
+  - few-shot LLM fallback
+- `dev_fast_focus_routing_cascade_2026-04-23` 실행 완료
+- `contextual_selective_v2_prefix_2500_320` 결과:
+  - `faithfulness 0.925`
+  - `answer_relevancy 0.632`
+  - `context_recall 0.625`
+  - `completeness 0.775`
+  - `numeric_pass = 1.000`
+- `risk_analysis_001`와 `business_overview_001`는 fast-path가 애매할 때 fallback에서 올바른 intent로 교정됨
+
+다음 단계:
+
+1. semantic router threshold와 margin을 Golden Set 기준으로 보정
+2. fallback 로그를 canonical query 세트에 다시 흡수
+3. 그 다음에만 generation prompt / validator 추가 튜닝 재개
+
 참고:
 
 - [query_routing_rearchitecture.md](docs/query_routing_rearchitecture.md)

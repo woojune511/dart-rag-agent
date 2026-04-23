@@ -515,6 +515,11 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "missing_info_compliance": result.missing_info_compliance,
                 "retrieved_count": result.retrieved_count,
                 "query_type": result.query_type,
+                "intent": result.intent,
+                "format_preference": result.format_preference,
+                "routing_source": result.routing_source,
+                "routing_confidence": result.routing_confidence,
+                "routing_scores": result.routing_scores,
                 "latency_sec": result.latency_sec,
                 "citations": result.citations,
                 "retrieved_metadata": result.retrieved_metadata,
@@ -1591,6 +1596,12 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "top_retrieved": " | ".join(top_retrieved),
                     "retrieved_previews": "\n\n".join(retrieved_previews),
                     "citations": " | ".join(question_result.get("citations", [])),
+                    "query_type": question_result.get("query_type"),
+                    "intent": question_result.get("intent"),
+                    "format_preference": question_result.get("format_preference"),
+                    "routing_source": question_result.get("routing_source"),
+                    "routing_confidence": question_result.get("routing_confidence"),
+                    "routing_scores": json.dumps(question_result.get("routing_scores", {}), ensure_ascii=False),
                     "raw_faithfulness": question_result.get("raw_faithfulness"),
                     "faithfulness": question_result.get("faithfulness"),
                     "faithfulness_override_reason": question_result.get("faithfulness_override_reason"),
@@ -1644,6 +1655,12 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "top_retrieved",
         "retrieved_previews",
         "citations",
+        "query_type",
+        "intent",
+        "format_preference",
+        "routing_source",
+        "routing_confidence",
+        "routing_scores",
         "raw_faithfulness",
         "faithfulness",
         "faithfulness_override_reason",
@@ -1702,10 +1719,13 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 f"- Answer Key: {row['answer_key']}",
                 f"- Expected Sections: {row['expected_sections'] or '-'}",
                 f"- Top Retrieved: {row['top_retrieved'] or '-'}",
+                f"- Routing: query_type={row['query_type'] or '-'}, intent={row['intent'] or '-'}, format={row['format_preference'] or '-'}, source={row['routing_source'] or '-'}, confidence={row['routing_confidence'] if row['routing_confidence'] is not None else '-'}",
                 f"- Citations: {row['citations'] or '-'}",
                 f"- Metrics: raw_faithfulness={row['raw_faithfulness']}, faithfulness={row['faithfulness']}, relevancy={row['answer_relevancy']}, recall={row['context_recall']}, hit@k={row['retrieval_hit_at_k']}, ndcg@5={row['ndcg_at_5']}, p@5={row['context_precision_at_5']}, section={row['section_match_rate']}, citation={row['citation_coverage']}, entity={row['entity_coverage']}, completeness={row['completeness']}, refusal={row['refusal_accuracy']}",
             ]
         )
+        if row.get("routing_scores"):
+            lines.append(f"- Routing Scores: {row['routing_scores']}")
         if row.get("faithfulness_override_reason"):
             lines.append(f"- Faithfulness Override: {row['faithfulness_override_reason']}")
         if row.get("completeness_reason"):

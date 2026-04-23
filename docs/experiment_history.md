@@ -579,3 +579,56 @@
 - retrieval / ingest 코드는 잠시 freeze
 - numeric evaluator aggregate / reporting을 먼저 정리
 - 그 다음 `business_overview` / `risk` generation 튜닝으로 넘어가기
+
+---
+
+## Evaluator + Routing Cascade v1 (2026-04-23)
+
+참조:
+
+- [dev_fast_focus_eval_tuned_2026-04-23/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_eval_tuned_2026-04-23/삼성전자-2024/summary.md)
+- [dev_fast_focus_routing_cascade_2026-04-23/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_routing_cascade_2026-04-23/삼성전자-2024/summary.md)
+- [query_routing_rearchitecture.md](query_routing_rearchitecture.md)
+
+### 코드 / 설정 변화
+
+- evaluator
+  - numeric PASS 시 generic faithfulness short-circuit
+  - completeness judge 및 reason 추가
+- query routing
+  - `intent + format_preference` state 분리
+  - semantic router fast-path
+  - few-shot LLM fallback
+  - rerank / retrieval block-type 보정을 `format_preference` 기준으로 전환
+
+### 핵심 결과
+
+- evaluator tuning 후
+  - `numeric_fact_001`에서 `raw_faithfulness=0.0`이어도 `faithfulness=1.0` 보정이 실제로 적용됨
+- routing cascade v1 후 `contextual_selective_v2_prefix_2500_320`
+  - `faithfulness 0.925`
+  - `answer_relevancy 0.632`
+  - `context_recall 0.625`
+  - `completeness 0.775`
+  - `numeric_pass 1.000`
+- `risk_analysis_001`
+  - semantic top-1이 흔들려도 fast-path가 억제되고 fallback에서 `risk / paragraph`로 교정
+- `business_overview_001`
+  - fallback에서 `business_overview / mixed`로 교정
+- `business_overview_003`
+  - fast-path로 `business_overview / mixed`
+
+### 해석
+
+- 이 시점부터 병목은 “retrieval 규칙을 더 붙일 것인가”보다
+  - query routing variance를 얼마나 줄일 것인가
+  - routing metadata를 결과에서 어떻게 읽을 것인가
+로 이동했다.
+- selective contextual + prefix 조합의 retrieval 자체는 충분히 유망했고,
+  최종 품질을 흔들던 큰 축 중 하나가 routing variance였음이 확인됐다.
+
+### 다음 단계
+
+- `intent / format_preference / routing_source`를 benchmark artifact에 노출
+- semantic router threshold와 canonical query set을 Golden Set 기준으로 보정
+- fallback 로그를 semantic router 자산으로 다시 흡수
