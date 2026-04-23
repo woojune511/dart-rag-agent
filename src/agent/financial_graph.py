@@ -74,6 +74,12 @@ def _split_sentences(text: str) -> List[str]:
     return [part.strip() for part in parts if part.strip()]
 
 
+def _strip_anchor_text(text: str) -> str:
+    cleaned = re.sub(r"\[[^\]]+\]", " ", text or "")
+    cleaned = re.sub(r"^[*\-\u2022]+\s*", "", cleaned)
+    return _normalise_spaces(cleaned)
+
+
 class FinancialAgentState(TypedDict):
     query: str
     query_type: str
@@ -235,14 +241,13 @@ class FinancialAgent:
 
 유형 판별 기준:
 - numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 단일 숫자 또는 명확한 수치 목록으로 귀결됨.
-  핵심 구별 기준: 수치 자체가 목적인가? 사업 구조 이해가 목적인가?
-  numeric_fact 예) "연결 매출액은?", "영업이익률은?", "R&D 비용은 얼마?", "부채비율은?", "EPS는?"
-  business_overview로 분류해야 할 수치 질문 예) "사업부문 간 내부거래 규모·비중은?" (사업 구조 파악 목적),
-    "자회사는 몇 개?" (사업 구조 파악 목적), "각 부문별 매출 비중은?" (부문 구성 이해 목적)
+  핵심 구별 기준: 질문이 최종적으로 숫자·비율·금액·규모 같은 표형 수치 답을 요구하는가?
+  numeric_fact 예) "연결 매출액은?", "영업이익률은?", "R&D 비용은 얼마?", "부채비율은?", "EPS는?",
+    "사업부문 간 내부거래 규모는?", "각 부문별 매출 비중은?"
 - business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 구성 등 기업 개요를 묻는 질의.
-  수치를 포함하더라도 사업 구조 파악이 목적이면 business_overview.
+  수치를 일부 포함하더라도, 핵심이 기업 구조·구성·제품/서비스 설명이면 business_overview.
   예) "주요 사업은?", "어떤 제품을 생산하나?", "사업 부문 구성은?", "주요 고객군은?",
-    "사업부문 간 매출 비중은?", "몇 개의 자회사를 통해 사업을 영위하나?"
+    "몇 개의 자회사를 통해 사업을 영위하나?"
 - risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
   예) "주요 재무 리스크는?", "환율 위험 관리 방식은?", "사업 리스크 요인은?"
 - comparison : 두 기업 또는 두 항목을 명시적으로 비교하는 질의.
@@ -345,7 +350,7 @@ class FinancialAgent:
             boosted += self._section_bias(query_type, section_path)
 
             # block_type 보정: query_type 기반으로 표/단락 선호도 반영
-            if query_type in self._PARAGRAPH_PREFERRED_TYPES and block_type == "table":
+            if query_type in {"risk", "qa"} and block_type == "table":
                 boosted -= 0.08
             elif query_type in self._TABLE_PREFERRED_TYPES and block_type == "paragraph":
                 boosted -= 0.04
@@ -807,6 +812,7 @@ class FinancialAgent:
             if not sentence or sentence in seen_sentences:
                 continue
             seen_sentences.add(sentence)
+            normalized_sentence = _strip_anchor_text(sentence)
 
             verdict = str(entry.get("verdict", "keep") or "keep").strip()
             reason = _normalise_spaces(str(entry.get("reason", "")))
@@ -825,11 +831,25 @@ class FinancialAgent:
 
             support_text = self._sentence_support_text(supporting_claim_ids, evidence_lookup)
             support_tokens = _tokenize_terms(support_text)
-            sentence_tokens = _tokenize_terms(sentence)
+            sentence_tokens = _tokenize_terms(normalized_sentence)
+            overlap_ratio = len(sentence_tokens & support_tokens) / max(len(sentence_tokens), 1)
+            aggregate_supported = (
+                query_type in {"business_overview", "risk"}
+                and bool(supporting_claim_ids)
+                and (
+                    overlap_ratio >= 0.2
+                    or len(supporting_claim_ids) >= 2
+                    or (query_type == "risk" and len(sentence_tokens) <= 8 and len(sentence_tokens & support_tokens) >= 1)
+                )
+            )
 
             if verdict == "keep" and self._is_intro_sentence(sentence) and index < len(raw_checks) - 1:
-                verdict = "drop_redundant"
-                reason = reason or "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거"
+                if query_type in {"business_overview", "risk"} and supporting_claim_ids:
+                    verdict = "keep"
+                    reason = reason or "요약형 질문의 도입 문장으로 유지"
+                else:
+                    verdict = "drop_redundant"
+                    reason = reason or "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거"
 
             if verdict == "keep" and previous_keep_signature and tuple(supporting_claim_ids) == previous_keep_signature:
                 overlap = len(sentence_tokens & previous_keep_tokens) / max(len(sentence_tokens | previous_keep_tokens), 1)
@@ -837,9 +857,16 @@ class FinancialAgent:
                     verdict = "drop_redundant"
                     reason = reason or "같은 claim을 반복 설명함"
 
+            if verdict in {"drop_overextended", "drop_unsupported"} and aggregate_supported:
+                verdict = "keep"
+                reason = reason or "여러 evidence의 합집합을 요약한 supported 문장"
+
+            if verdict == "drop_redundant" and query_type in {"business_overview", "risk"} and self._is_intro_sentence(sentence) and supporting_claim_ids:
+                verdict = "keep"
+                reason = reason or "요약형 질문의 도입 문장으로 유지"
+
             if verdict == "keep" and query_type in {"business_overview", "risk"} and support_tokens:
-                overlap = len(sentence_tokens & support_tokens) / max(len(sentence_tokens), 1)
-                if overlap < 0.35 and len(sentence_tokens) >= 5:
+                if overlap_ratio < 0.2 and len(sentence_tokens) >= 5 and len(supporting_claim_ids) <= 1:
                     verdict = "drop_overextended"
                     reason = reason or "근거 claim보다 과도하게 일반화되거나 확장됨"
 
@@ -1144,6 +1171,8 @@ Validator 규칙:
 - 질문에 직접 필요하지 않은 배경 설명은 삭제하세요.
 - 숫자, 단위, 비율은 evidence의 quote_span 또는 claim 표기를 그대로 유지하세요.
 - risk: evidence에 없는 상위 taxonomy나 재분류를 만들지 마세요.
+- business_overview / risk: 여러 evidence에 흩어진 정보를 하나의 문장이나 bullet로 종합한 경우, 각 표현이 evidence 합집합으로 뒷받침되면 supported로 판단하세요.
+- business_overview / risk: 특정 문장이 단일 evidence와 1:1로 대응하지 않아도, supporting_claim_ids의 합집합이 그 문장을 직접 지지하면 keep 할 수 있습니다.
 - duplicated claim은 하나만 남기세요.
 - 가능한 한 기존 source_anchor는 유지하세요.
 - 초안을 문장 단위로 나눈 뒤 각 문장을 아래 verdict 중 하나로 판정하세요.

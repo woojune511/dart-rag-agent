@@ -120,6 +120,57 @@
 - 리스크 질문은 seed retrieval 보강이 우선이고
 - 숫자 질문은 retrieval 이후에도 `query target alignment`와 evidence extraction이 별도 병목이다
 
+### 2026-04-23 evaluator / validator / routing 점검
+
+이번 세션에서는 retrieval 이후와 그 앞단을 다시 분리해 확인했다.
+
+1. evaluator
+- `numeric_final_judgement = PASS`이고
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  인 경우 generic `faithfulness`를 `1.0`으로 short-circuit하는 보정 로직을 추가했다
+- `completeness`는 별도 judge와 reason을 남기도록 확장했다
+- focused benchmark 재실행 결과
+  - `raw_faithfulness = 0.0`
+  - `faithfulness = 1.0`
+  - `Faithfulness Override = ...`
+  가 `numeric_fact_001`에 실제로 기록되는 것을 확인했다
+
+2. validator
+- `risk` / `business_overview`에서는 여러 evidence의 합집합을 요약한 문장도 supported로 인정하도록 validator 프롬프트를 완화했다
+- `_normalise_sentence_checks()`의 deterministic pruning도
+  - anchor 텍스트 제거
+  - aggregate-supported 문장 keep 허용
+  - intro sentence 완화
+  방향으로 조정했다
+- 다만 직접 실행으로 확인해 보니, selective-prefix 후보의 재무 리스크 실패는 validator 단독 문제가 아니었다
+
+3. query routing
+- 기존 `business_overview`가 table penalty를 받는 구조적 충돌은 수정했다
+  - `business_overview`는 더 이상 table penalty를 받지 않음
+  - `_classify_query` 프롬프트에서 `매출 비중`, `규모` 같은 질문은 `numeric_fact` 쪽으로 문구를 조정
+- 하지만 직접 실행 결과:
+  - `주요 재무 리스크는 무엇인가요?`
+  - `회사가 영위하는 주요 사업은 무엇인가요?`
+  둘 다 `numeric_fact`로 잘못 분류되는 사례가 다시 확인됐다
+
+현재 판단:
+
+- retrieval / validator 병목 일부는 해소했지만
+- 지금 더 큰 병목은 **query routing variance**
+- 따라서 다음 단계는 rule 추가보다
+  - `intent`
+  - `format_preference`
+  를 분리한 routing 재설계와
+  - `few-shot LLM classifier`
+  - `semantic router`
+  준비 쪽으로 이동한다
+
+참고:
+
+- [query_routing_rearchitecture.md](docs/query_routing_rearchitecture.md)
+
 현재 결과 요약:
 
 - `contextual_all_2500_320`
