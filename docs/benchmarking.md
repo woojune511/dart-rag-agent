@@ -572,6 +572,28 @@ benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 
 - 숫자 질문에서는 generic judge보다 numeric evaluator가 더 신뢰할 수 있는 해석 축이다.
 - 따라서 이후 benchmark 해석과 summary도 이 기준을 더 직접 반영해야 한다.
 
+`dev_fast_focus_selective_prefix_2026-04-23`의 핵심 결과:
+
+- 비교 후보:
+  - `contextual_all_2500_320`
+  - `contextual_parent_only_2500_320`
+  - `plain_prefix_2500_320`
+  - `contextual_selective_v2_prefix_2500_320`
+- `plain_prefix_2500_320`
+  - retrieval seed 보강은 잘 됐지만 `numeric_fact_001`에서 “구체적인 수치 정보가 없다”고 답해 `numeric_final_judgement = FAIL`
+- `contextual_selective_v2_prefix_2500_320`
+  - `screen_pass = yes`
+  - `faithfulness 0.675`
+  - `answer_relevancy 0.580`
+  - `context_recall 0.625`
+  - `numeric_pass = 1.000`
+
+현재 해석:
+
+- `plain + prefix`는 seed retrieval 복구에는 강하다.
+- 하지만 표 기반 숫자 질문은 prefix만으로 충분하지 않고, `table` 청크에 selective contextualization을 함께 주는 조합이 더 안정적이다.
+- 이 조합은 전체 contextual ingest를 돌리지 않고도 `q_001`과 `q_009`를 동시에 살리는 현재 기준의 가장 유망한 low-cost 후보다.
+
 `v4_generalization_fix_2026-04-17`의 핵심 결과:
 
 - `run_status = completed`

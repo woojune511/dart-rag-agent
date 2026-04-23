@@ -1384,6 +1384,7 @@ def _benchmark_selective_v2_ingest(
     short_text_threshold: int = 700,
     targeted_sections: Optional[List[str]] = None,
     short_table_threshold: int = 1600,
+    use_zero_cost_prefix: bool = False,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
@@ -1410,10 +1411,14 @@ def _benchmark_selective_v2_ingest(
         log_label="benchmark_contextual_selective_v2",
     )
 
-    texts = [
-        _build_index_text(chunk.metadata, chunk.content, contexts.get(idx))
-        for idx, chunk in enumerate(chunks)
-    ]
+    texts = []
+    for idx, chunk in enumerate(chunks):
+        context = contexts.get(idx)
+        if use_zero_cost_prefix:
+            base = _build_zero_cost_prefixed_text(chunk.metadata, chunk.content)
+            texts.append((context.strip() + "\n\n" + base) if context and context.strip() else base)
+        else:
+            texts.append(_build_index_text(chunk.metadata, chunk.content, context))
     metadatas = [chunk.metadata for chunk in chunks]
     agent.vsm.add_documents(texts, metadatas)
 
@@ -1425,6 +1430,7 @@ def _benchmark_selective_v2_ingest(
         "selector_reason_counts": _count_reason_counts(selected_reasons),
         "parent_context_calls": 0,
         "child_context_calls": len(items),
+        "use_zero_cost_prefix": use_zero_cost_prefix,
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
     }
@@ -2410,6 +2416,7 @@ def _run_ingest(
             short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
             targeted_sections=list(config.get("selective_v2_sections", [])),
             short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
+            use_zero_cost_prefix=bool(config.get("use_zero_cost_prefix", False)),
             return_artifacts=return_artifacts,
         )
     raise ValueError(f"Unsupported ingest_mode: {ingest_mode}")

@@ -40,7 +40,8 @@
   "candidate_ids": [
     "contextual_all_2500_320",
     "contextual_parent_only_2500_320",
-    "plain_prefix_2500_320"
+    "plain_prefix_2500_320",
+    "contextual_selective_v2_prefix_2500_320"
   ],
   "screening": {
     "baseline_experiment_id": "contextual_all_2500_320",
@@ -51,7 +52,8 @@
     "always_include_full_eval_ids": [
       "contextual_all_2500_320",
       "contextual_parent_only_2500_320",
-      "plain_prefix_2500_320"
+      "plain_prefix_2500_320",
+      "contextual_selective_v2_prefix_2500_320"
     ],
     "section_aliases": {
       "numeric_fact": [
@@ -128,6 +130,13 @@
       "chunk_size": 2500,
       "chunk_overlap": 320,
       "ingest_mode": "plain",
+      "use_zero_cost_prefix": true
+    },
+    {
+      "id": "contextual_selective_v2_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "contextual_selective_v2",
       "use_zero_cost_prefix": true
     }
   ]
