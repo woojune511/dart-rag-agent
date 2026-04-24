@@ -431,6 +431,28 @@ micro-dataset:
   - 상위 taxonomy claim과 하위 risk item claim을 동시에 다 넣지 않기
 - top-N evidence selection 대신 group-wise selection 도입
 
+### 8. Query routing calibration 운영
+
+목표:
+
+- semantic router threshold를 감으로 조정하지 않기
+- held-out routing 셋으로 fast-path coverage / accuracy를 측정하기
+- `business_overview`, `risk`, `numeric_fact` 혼동쌍은 전역 threshold가 아니라 safety-first guard로 다루기
+
+자산:
+
+- `benchmarks/golden/query_routing_eval_v1.json`
+- `src/ops/calibrate_query_router.py`
+
+현재 판단:
+
+- 전역 threshold 완화(`0.76 / 0.04`)는 held-out calibration 기준으로는 좋아 보였지만, 실제 benchmark에서 `risk_analysis_001` false positive를 유발했다
+- 따라서 다음 운영 기준은
+  - canonical query 보강
+  - confusion-pair dynamic margin
+  - few-shot fallback
+  의 조합이다
+
 ## 측정 항목
 
 ### 품질
@@ -494,13 +516,14 @@ micro-dataset:
 
 지금 기준 다음 우선순위는 아래다.
 
-1. query routing 재설계 초안 준비
-2. numeric evaluator aggregate / reporting 반영
-3. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
-4. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
-5. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
-6. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
-7. NAVER business overview retrieval 실패 원인 정리
-8. missing-information hallucination 억제
-9. 그 다음에 `dev_fast` 기준 재실험
-10. 실패 유형이 줄어든 뒤에만 release generalization 재실행
+1. `numeric_fact` evidence extraction / target alignment 개선
+2. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
+3. semantic router fallback 로그를 canonical query 세트에 다시 흡수
+4. numeric evaluator aggregate / reporting 반영
+5. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
+6. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
+7. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
+8. NAVER business overview retrieval 실패 원인 정리
+9. missing-information hallucination 억제
+10. 그 다음에 `dev_fast` 기준 재실험
+11. 실패 유형이 줄어든 뒤에만 release generalization 재실행

@@ -203,6 +203,14 @@ screening 통과안만 정식 평가로 보낸다.
   - `routing_source`
   를 확인해야 한다
 - 현재 이 필드는 `results.json`, `review.csv`, `review.md`에 모두 기록된다
+- semantic router 보정 시에는 전역 threshold만 보지 않는다
+  - `query_routing_eval_v1.json`으로 held-out calibration을 먼저 돌리고
+  - 실제 benchmark에서 confusion pair false positive가 없는지 다시 확인해야 한다
+- 현재 경험상 `business_overview`, `risk`, `numeric_fact`는
+  - canonical query 품질
+  - confusion-pair dynamic margin
+  - few-shot fallback
+  을 함께 봐야 한다
 
 ## 실행 프로파일
 

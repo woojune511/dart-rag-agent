@@ -1,0 +1,2224 @@
+{
+  "current": {
+    "score_threshold": 0.86,
+    "margin_threshold": 0.04,
+    "total_examples": 30,
+    "fast_path_total": 23,
+    "fallback_total": 7,
+    "fast_path_coverage": 0.7667,
+    "fast_path_correct": 23,
+    "fast_path_accuracy": 1.0,
+    "per_intent": {
+      "numeric_fact": {
+        "fast_total": 3,
+        "correct": 3,
+        "mismatches": []
+      },
+      "business_overview": {
+        "fast_total": 5,
+        "correct": 5,
+        "mismatches": []
+      },
+      "risk": {
+        "fast_total": 4,
+        "correct": 4,
+        "mismatches": []
+      },
+      "comparison": {
+        "fast_total": 4,
+        "correct": 4,
+        "mismatches": []
+      },
+      "trend": {
+        "fast_total": 3,
+        "correct": 3,
+        "mismatches": []
+      },
+      "qa": {
+        "fast_total": 4,
+        "correct": 4,
+        "mismatches": []
+      }
+    }
+  },
+  "recommended": {
+    "score_threshold": 0.76,
+    "margin_threshold": 0.04,
+    "total_examples": 30,
+    "fast_path_total": 26,
+    "fallback_total": 4,
+    "fast_path_coverage": 0.8667,
+    "fast_path_correct": 26,
+    "fast_path_accuracy": 1.0,
+    "per_intent": {
+      "numeric_fact": {
+        "fast_total": 3,
+        "correct": 3,
+        "mismatches": []
+      },
+      "business_overview": {
+        "fast_total": 5,
+        "correct": 5,
+        "mismatches": []
+      },
+      "risk": {
+        "fast_total": 5,
+        "correct": 5,
+        "mismatches": []
+      },
+      "comparison": {
+        "fast_total": 5,
+        "correct": 5,
+        "mismatches": []
+      },
+      "trend": {
+        "fast_total": 3,
+        "correct": 3,
+        "mismatches": []
+      },
+      "qa": {
+        "fast_total": 5,
+        "correct": 5,
+        "mismatches": []
+      }
+    }
+  },
+  "results": [
+    {
+      "score_threshold": 0.76,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 28,
+      "fallback_total": 2,
+      "fast_path_coverage": 0.9333,
+      "fast_path_correct": 26,
+      "fast_path_accuracy": 0.9286,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_002",
+              "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+              "predicted_intent": "comparison",
+              "score": 0.8517,
+              "margin": 0.0143
+            }
+          ]
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.76,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 27,
+      "fallback_total": 3,
+      "fast_path_coverage": 0.9,
+      "fast_path_correct": 26,
+      "fast_path_accuracy": 0.963,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.76,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 26,
+      "fallback_total": 4,
+      "fast_path_coverage": 0.8667,
+      "fast_path_correct": 26,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.76,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 25,
+      "fallback_total": 5,
+      "fast_path_coverage": 0.8333,
+      "fast_path_correct": 25,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.76,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 24,
+      "fallback_total": 6,
+      "fast_path_coverage": 0.8,
+      "fast_path_correct": 24,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.76,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 24,
+      "fallback_total": 6,
+      "fast_path_coverage": 0.8,
+      "fast_path_correct": 24,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.78,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 27,
+      "fallback_total": 3,
+      "fast_path_coverage": 0.9,
+      "fast_path_correct": 25,
+      "fast_path_accuracy": 0.9259,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_002",
+              "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+              "predicted_intent": "comparison",
+              "score": 0.8517,
+              "margin": 0.0143
+            }
+          ]
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.78,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 26,
+      "fallback_total": 4,
+      "fast_path_coverage": 0.8667,
+      "fast_path_correct": 25,
+      "fast_path_accuracy": 0.9615,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.78,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 25,
+      "fallback_total": 5,
+      "fast_path_coverage": 0.8333,
+      "fast_path_correct": 25,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.78,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 24,
+      "fallback_total": 6,
+      "fast_path_coverage": 0.8,
+      "fast_path_correct": 24,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.78,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.78,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.8,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 25,
+      "fallback_total": 5,
+      "fast_path_coverage": 0.8333,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 0.92,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_002",
+              "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+              "predicted_intent": "comparison",
+              "score": 0.8517,
+              "margin": 0.0143
+            }
+          ]
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.8,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 24,
+      "fallback_total": 6,
+      "fast_path_coverage": 0.8,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 0.9583,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.8,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.8,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 22,
+      "fallback_total": 8,
+      "fast_path_coverage": 0.7333,
+      "fast_path_correct": 22,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.8,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.8,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.82,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 25,
+      "fallback_total": 5,
+      "fast_path_coverage": 0.8333,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 0.92,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_002",
+              "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+              "predicted_intent": "comparison",
+              "score": 0.8517,
+              "margin": 0.0143
+            }
+          ]
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.82,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 24,
+      "fallback_total": 6,
+      "fast_path_coverage": 0.8,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 0.9583,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.82,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.82,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 22,
+      "fallback_total": 8,
+      "fast_path_coverage": 0.7333,
+      "fast_path_correct": 22,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.82,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.82,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.84,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 25,
+      "fallback_total": 5,
+      "fast_path_coverage": 0.8333,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 0.92,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_002",
+              "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+              "predicted_intent": "comparison",
+              "score": 0.8517,
+              "margin": 0.0143
+            }
+          ]
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.84,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 24,
+      "fallback_total": 6,
+      "fast_path_coverage": 0.8,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 0.9583,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 4,
+          "correct": 3,
+          "mismatches": [
+            {
+              "query_id": "route_eval_024",
+              "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+              "predicted_intent": "comparison",
+              "score": 0.8465,
+              "margin": 0.0209
+            }
+          ]
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.84,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.84,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 22,
+      "fallback_total": 8,
+      "fast_path_coverage": 0.7333,
+      "fast_path_correct": 22,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.84,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.84,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.86,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.86,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.86,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 23,
+      "fallback_total": 7,
+      "fast_path_coverage": 0.7667,
+      "fast_path_correct": 23,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.86,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 22,
+      "fallback_total": 8,
+      "fast_path_coverage": 0.7333,
+      "fast_path_correct": 22,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.86,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.86,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 5,
+          "correct": 5,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.88,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.88,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.88,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.88,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 21,
+      "fallback_total": 9,
+      "fast_path_coverage": 0.7,
+      "fast_path_correct": 21,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.88,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 20,
+      "fallback_total": 10,
+      "fast_path_coverage": 0.6667,
+      "fast_path_correct": 20,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.88,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 20,
+      "fallback_total": 10,
+      "fast_path_coverage": 0.6667,
+      "fast_path_correct": 20,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.9,
+      "margin_threshold": 0.0,
+      "total_examples": 30,
+      "fast_path_total": 18,
+      "fallback_total": 12,
+      "fast_path_coverage": 0.6,
+      "fast_path_correct": 18,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.9,
+      "margin_threshold": 0.02,
+      "total_examples": 30,
+      "fast_path_total": 18,
+      "fallback_total": 12,
+      "fast_path_coverage": 0.6,
+      "fast_path_correct": 18,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.9,
+      "margin_threshold": 0.04,
+      "total_examples": 30,
+      "fast_path_total": 18,
+      "fallback_total": 12,
+      "fast_path_coverage": 0.6,
+      "fast_path_correct": 18,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.9,
+      "margin_threshold": 0.06,
+      "total_examples": 30,
+      "fast_path_total": 18,
+      "fallback_total": 12,
+      "fast_path_coverage": 0.6,
+      "fast_path_correct": 18,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.9,
+      "margin_threshold": 0.08,
+      "total_examples": 30,
+      "fast_path_total": 17,
+      "fallback_total": 13,
+      "fast_path_coverage": 0.5667,
+      "fast_path_correct": 17,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 1,
+          "correct": 1,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    },
+    {
+      "score_threshold": 0.9,
+      "margin_threshold": 0.1,
+      "total_examples": 30,
+      "fast_path_total": 17,
+      "fallback_total": 13,
+      "fast_path_coverage": 0.5667,
+      "fast_path_correct": 17,
+      "fast_path_accuracy": 1.0,
+      "per_intent": {
+        "numeric_fact": {
+          "fast_total": 2,
+          "correct": 2,
+          "mismatches": []
+        },
+        "business_overview": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "risk": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        },
+        "comparison": {
+          "fast_total": 3,
+          "correct": 3,
+          "mismatches": []
+        },
+        "trend": {
+          "fast_total": 1,
+          "correct": 1,
+          "mismatches": []
+        },
+        "qa": {
+          "fast_total": 4,
+          "correct": 4,
+          "mismatches": []
+        }
+      }
+    }
+  ]
+}

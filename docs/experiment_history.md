@@ -632,3 +632,53 @@
 - `intent / format_preference / routing_source`를 benchmark artifact에 노출
 - semantic router threshold와 canonical query set을 Golden Set 기준으로 보정
 - fallback 로그를 semantic router 자산으로 다시 흡수
+
+## Routing Calibration + Ambiguity Guard (2026-04-24)
+
+참조:
+
+- [query_router_calibration_2026-04-24/summary.md](../benchmarks/results/query_router_calibration_2026-04-24/summary.md)
+- [query_router_calibration_guard_2026-04-24/summary.md](../benchmarks/results/query_router_calibration_guard_2026-04-24/summary.md)
+- [dev_fast_focus_routing_calibrated_2026-04-24/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_routing_calibrated_2026-04-24/삼성전자-2024/summary.md)
+- [dev_fast_focus_routing_guard_2026-04-24/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_routing_guard_2026-04-24/삼성전자-2024/summary.md)
+
+### 코드 / 설정 변화
+
+- `benchmarks/golden/query_routing_eval_v1.json`
+  - held-out routing 검증셋 추가
+- `src/ops/calibrate_query_router.py`
+  - semantic router score / margin calibration 스크립트 추가
+- `benchmarks/golden/query_routing_canonical_v1.json`
+  - risk canonical query 2개 추가
+- `src/agent/financial_graph.py`
+  - 전역 threshold 완화 시도
+  - confusion-pair dynamic margin guard 추가
+
+### 핵심 결과
+
+1. 전역 threshold 완화만 적용한 run
+   - calibration 기준으로는
+     - coverage `0.733 -> 0.833`
+     - accuracy `1.000 -> 1.000`
+   - 하지만 실제 `dev_fast_focus_routing_calibrated_2026-04-24`에서는
+     - `risk_analysis_001`이 `business_overview / mixed / semantic_fast_path`로 오분류
+     - selective-prefix 품질이 오히려 악화
+
+2. ambiguity guard + risk canonical 보강 적용 후
+   - `dev_fast_focus_routing_guard_2026-04-24`에서
+     - `risk_analysis_001`이 다시 `risk / paragraph / semantic_fast_path`로 복구
+     - `business_overview_001`은 애매해서 `llm_fallback`으로 전환
+   - 즉 전역 threshold보다
+     - canonical query 품질
+     - confusion pair margin
+     - few-shot fallback
+     의 조합이 더 안정적이었다
+
+### 해석
+
+- semantic router는 전역 threshold sweep만으로 운영하기 어렵다
+- 특히 `business_overview`, `risk`, `numeric_fact`는 class boundary보다 **confusion pair safety**가 더 중요하다
+- routing은 다시 안정화됐고, 현재 병목은
+  - `numeric_fact` evidence extraction
+  - `risk` / `business_overview` generation completeness
+  쪽으로 이동했다
