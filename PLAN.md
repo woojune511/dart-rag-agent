@@ -254,6 +254,10 @@ micro-dataset:
   - `intent + format_preference` state 분리
   - semantic router fast-path
   - few-shot LLM fallback
+- `routing cascade v1.5` 구현 완료
+  - `src/routing/query_router.py`로 runtime routing 분리
+  - `src/routing/types.py`로 routing contract 고정
+  - calibration script가 shared routing helper 재사용
 - `dev_fast_focus_routing_cascade_2026-04-23` 실행 완료
 - `contextual_selective_v2_prefix_2500_320` 결과:
   - `faithfulness 0.925`
@@ -265,9 +269,10 @@ micro-dataset:
 
 다음 단계:
 
-1. semantic router threshold와 margin을 Golden Set 기준으로 보정
-2. fallback 로그를 canonical query 세트에 다시 흡수
-3. 그 다음에만 generation prompt / validator 추가 튜닝 재개
+1. fallback 로그를 canonical query 세트에 다시 흡수
+2. 라우터 전용 테스트셋과 confusion-pair 회귀 테스트 추가
+3. threshold / ambiguity guard를 held-out 셋 기준으로 다시 보정
+4. 그 다음에만 generation prompt / validator 추가 튜닝 재개
 
 참고:
 
@@ -516,14 +521,24 @@ micro-dataset:
 
 지금 기준 다음 우선순위는 아래다.
 
-1. `numeric_fact` evidence extraction / target alignment 개선
-2. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
-3. semantic router fallback 로그를 canonical query 세트에 다시 흡수
-4. numeric evaluator aggregate / reporting 반영
-5. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
-6. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
-7. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
-8. NAVER business overview retrieval 실패 원인 정리
-9. missing-information hallucination 억제
-10. 그 다음에 `dev_fast` 기준 재실험
-11. 실패 유형이 줄어든 뒤에만 release generalization 재실행
+1. 기본 실험 후보는 `contextual_selective_v2_prefix_2500_320`로 고정
+2. `numeric_fact` evidence extraction / target alignment 개선
+3. `business_overview` / `risk` generation 프롬프트 및 validator 튜닝
+4. semantic router fallback 로그를 canonical query 세트에 다시 흡수
+5. numeric evaluator aggregate / reporting 반영
+6. `numeric_final_judgement = PASS`와 generic `faithfulness` 불일치 보정 정책 정리
+7. typed compression / validation output이 reviewer artifact에서 실제로 해석 가능한지 검증
+8. query-stage abstention을 유발하는 evidence / analyze 단계 패턴 점검
+9. NAVER business overview retrieval 실패 원인 정리
+10. missing-information hallucination 억제
+11. 그 다음에 `dev_fast` 기준 재실험
+12. 실패 유형이 줄어든 뒤에만 release generalization 재실행
+
+운영 원칙:
+
+- 앞으로는 **chunking 방식 비교, canonical A-B, 라우팅 calibration** 같은 명시적 비교 실험이 아닐 때는
+  - `contextual_selective_v2_prefix_2500_320`
+  를 기본 후보로 사용한다
+- 즉 benchmark 질문은 더 이상 `contextual_all` vs 다수 후보를 매번 넓게 비교하기보다
+  - 현재 최유력 운영 후보를 기준선으로 두고
+  - 필요한 축만 분리해서 실험한다

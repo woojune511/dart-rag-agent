@@ -1,0 +1,136 @@
+[
+  {
+    "case_id": "conf_risk_001",
+    "query": "주요 재무 리스크는 무엇인가요?",
+    "expected_intent": "risk",
+    "expected_format_preference": "paragraph",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "business_overview-risk",
+    "note": "대표 risk 질문"
+  },
+  {
+    "case_id": "conf_risk_002",
+    "query": "사업보고서에서 위험관리 항목을 요약해줘.",
+    "expected_intent": "risk",
+    "expected_format_preference": "paragraph",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "business_overview-risk",
+    "note": "요약형 risk 질문"
+  },
+  {
+    "case_id": "conf_overview_001",
+    "query": "회사가 영위하는 주요 사업은 무엇인가요?",
+    "expected_intent": "business_overview",
+    "expected_format_preference": "mixed",
+    "confusion_pair": "business_overview-risk",
+    "note": "대표 overview 질문"
+  },
+  {
+    "case_id": "conf_overview_002",
+    "query": "삼성전자는 어떤 제품과 서비스를 제공하나요?",
+    "expected_intent": "business_overview",
+    "expected_format_preference": "mixed",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "business_overview-risk",
+    "note": "제품/서비스 overview"
+  },
+  {
+    "case_id": "conf_numeric_001",
+    "query": "각 부문별 매출 비중은 어떻게 되나요?",
+    "expected_intent": "numeric_fact",
+    "expected_format_preference": "table",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "business_overview-numeric_fact",
+    "note": "overview처럼 읽히기 쉬운 숫자 질문"
+  },
+  {
+    "case_id": "conf_numeric_002",
+    "query": "사업부문 간 내부거래 규모는 얼마인가요?",
+    "expected_intent": "numeric_fact",
+    "expected_format_preference": "table",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "business_overview-numeric_fact",
+    "note": "규모 표현 포함"
+  },
+  {
+    "case_id": "conf_numeric_003",
+    "query": "삼성전자의 2024년 매출액은 숫자 말고 줄글로 길게 설명해줘.",
+    "expected_intent": "numeric_fact",
+    "expected_format_preference": "paragraph",
+    "expected_routing_source": "llm_fallback",
+    "confusion_pair": "numeric_fact-qa",
+    "note": "안티패턴: intent와 format 분리 필요"
+  },
+  {
+    "case_id": "conf_overview_003",
+    "query": "주요 사업을 설명하되 숫자는 빼고 말해줘.",
+    "expected_intent": "business_overview",
+    "expected_format_preference": "paragraph",
+    "expected_routing_source": "llm_fallback",
+    "confusion_pair": "business_overview-numeric_fact",
+    "note": "안티패턴: 서술형 강제"
+  },
+  {
+    "case_id": "conf_overview_004",
+    "query": "삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?",
+    "expected_intent": "business_overview",
+    "expected_format_preference": "mixed",
+    "expected_routing_source": "llm_fallback",
+    "confusion_pair": "business_overview-numeric_fact",
+    "note": "개수를 묻지만 기업 구조 설명을 요구하는 질문"
+  },
+  {
+    "case_id": "conf_overview_005",
+    "query": "삼성전자의 연결대상 종속기업은 총 몇 개인가요?",
+    "expected_intent": "business_overview",
+    "expected_format_preference": "mixed",
+    "expected_routing_source": "llm_fallback",
+    "confusion_pair": "business_overview-numeric_fact",
+    "note": "연결대상 종속기업 수 질문"
+  },
+  {
+    "case_id": "conf_comparison_001",
+    "query": "DX와 DS 부문의 매출 차이는 얼마인가요?",
+    "expected_intent": "comparison",
+    "expected_format_preference": "table",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "comparison-numeric_fact",
+    "note": "numeric과 가까운 비교 질문"
+  },
+  {
+    "case_id": "conf_trend_001",
+    "query": "최근 3년 영업이익 추이는 어떻게 변했나요?",
+    "expected_intent": "trend",
+    "expected_format_preference": "table",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "trend-numeric_fact",
+    "note": "시계열 추세 질문"
+  },
+  {
+    "case_id": "conf_qa_001",
+    "query": "삼성전자의 설립일은 언제인가요?",
+    "expected_intent": "qa",
+    "expected_format_preference": "paragraph",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "qa-business_overview",
+    "note": "기본 사실 질문"
+  },
+  {
+    "case_id": "conf_qa_002",
+    "query": "회사의 임직원 수는 총 몇 명인가요?",
+    "expected_intent": "qa",
+    "expected_format_preference": "paragraph",
+    "expected_routing_source": "llm_fallback",
+    "confusion_pair": "qa-numeric_fact",
+    "note": "개수를 묻지만 일반 기업 정보에 해당하는 질문"
+  },
+  {
+    "case_id": "conf_numeric_004",
+    "query": "영업이익률은 몇 퍼센트인가요?",
+    "expected_intent": "numeric_fact",
+    "expected_format_preference": "table",
+    "expected_routing_source": "semantic_fast_path",
+    "confusion_pair": "numeric_fact-qa",
+    "note": "대표 numeric 질문"
+  }
+]

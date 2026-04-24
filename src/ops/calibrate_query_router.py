@@ -5,15 +5,16 @@ import json
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Tuple
 
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from src.routing import cosine_similarity, default_canonical_queries_path, load_canonical_routing_examples
 from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CANONICAL_PATH = ROOT / "benchmarks" / "golden" / "query_routing_canonical_v1.json"
+DEFAULT_CANONICAL_PATH = default_canonical_queries_path()
 DEFAULT_EVAL_PATH = ROOT / "benchmarks" / "golden" / "query_routing_eval_v1.json"
 DEFAULT_OUTPUT_DIR = ROOT / "benchmarks" / "results"
 
@@ -31,30 +32,12 @@ class ExampleScore:
     margin: float
     scores: Dict[str, float]
 
-
-def _cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
-    if not left or not right or len(left) != len(right):
-        return 0.0
-    dot = sum(float(a) * float(b) for a, b in zip(left, right))
-    left_norm = sum(float(a) * float(a) for a in left) ** 0.5
-    right_norm = sum(float(b) * float(b) for b in right) ** 0.5
-    if left_norm == 0.0 or right_norm == 0.0:
-        return 0.0
-    return dot / (left_norm * right_norm)
-
-
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _load_canonical_examples(path: Path) -> List[Dict[str, Any]]:
-    payload = _load_json(path)
-    examples: List[Dict[str, Any]] = []
-    for entry in payload:
-        intent = str(entry.get("id") or "").strip()
-        queries = [str(query).strip() for query in entry.get("queries", []) if str(query).strip()]
-        for query in queries:
-            examples.append({"intent": intent, "query": query})
+    examples = load_canonical_routing_examples(path)
     if not examples:
         raise ValueError(f"No canonical routing queries found in {path}")
     return examples
@@ -109,7 +92,7 @@ def _score_examples(
         best_score_by_intent: Dict[str, float] = {}
         for canonical in enriched_canonical:
             intent = canonical["intent"]
-            score = _cosine_similarity(query_vector, canonical["embedding"])
+            score = cosine_similarity(query_vector, canonical["embedding"])
             if score > best_score_by_intent.get(intent, float("-inf")):
                 best_score_by_intent[intent] = score
 

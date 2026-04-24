@@ -1,0 +1,11 @@
+{
+  "canonical_path": "benchmarks\\golden\\query_routing_canonical_v1.json",
+  "cases_path": "benchmarks\\golden\\routing_confusion_cases_v1.json",
+  "total_cases": 12,
+  "intent_accuracy": 1.0,
+  "format_accuracy": 1.0,
+  "routing_source_accuracy": 1.0,
+  "semantic_top1_accuracy": 0.9166666666666666,
+  "fast_path_count": 10,
+  "fallback_count": 2
+}
