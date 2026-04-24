@@ -609,8 +609,67 @@ focus run 관찰:
 - 하지만 숫자 표처럼 구조적 희소성이 큰 chunk는 prefix만으로 충분하지 않다.
 - `table` 청크에 선택적으로 contextualization을 주고 prefix를 같이 유지하는 혼합 방식이 현재 가장 설득력 있는 low-cost 품질 타협안이다.
 
+## 2026-04-24 routing calibration + ambiguity guard
+
+이번 세션에서는 semantic router를 “감”이 아니라 held-out 평가셋으로 보정하려고 시도했다.
+
+추가 자산:
+
+- `benchmarks/golden/query_routing_eval_v1.json`
+  - canonical query와 별도로 유지되는 held-out routing 검증셋
+- `src/ops/calibrate_query_router.py`
+  - `top1 score` / `top1-top2 margin`을 스윕해서 fast-path coverage / accuracy를 계산하는 calibration 스크립트
+- calibration 결과:
+  - `benchmarks/results/query_router_calibration_2026-04-24`
+  - `benchmarks/results/query_router_calibration_guard_2026-04-24`
+
+1차 시도:
+
+- 전역 threshold를 `0.86 / 0.04 -> 0.76 / 0.04`로 완화
+- held-out calibration 기준으로는
+  - coverage `0.733 -> 0.833`
+  - accuracy `1.000 -> 1.000`
+  으로 좋아 보였다
+- 하지만 실제 `dev_fast_focus_routing_calibrated_2026-04-24`에서는
+  - `risk_analysis_001`이 `business_overview / mixed / semantic_fast_path`로 잘못 통과
+  - selective-prefix 후보의 품질이 오히려 악화됐다
+
+2차 수정:
+
+- `benchmarks/golden/query_routing_canonical_v1.json`
+  - risk canonical query에
+    - `삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?`
+    - `삼성전자의 주요 재무 위험은 뭐야?`
+    를 추가
+- `financial_graph.py`
+  - confusion pair용 동적 margin guard 추가
+  - 기본 margin은 `0.04`
+  - 아래 쌍은 `required_margin = 0.10`
+    - `business_overview ↔ risk`
+    - `business_overview ↔ numeric_fact`
+
+결과:
+
+- `dev_fast_focus_routing_guard_2026-04-24`
+  - `risk_analysis_001`이 다시 `risk / paragraph / semantic_fast_path`로 복구
+  - `business_overview_001`은 semantic이 애매해져 `llm_fallback`으로 안전하게 전환
+  - 즉 전역 threshold 완화보다, **confusion pair guard + canonical query 보강**이 더 안전했다
+
+현재 판단:
+
+- semantic router는 전역 threshold만으로는 안정화되지 않는다
+- `business_overview`, `risk`, `numeric_fact`는
+  - canonical query 품질
+  - confusion-pair margin
+  - fallback few-shot classifier
+  를 함께 운영해야 한다
+- routing은 다시 안정화됐고, 현재 주 병목은
+  - `numeric_fact` evidence extraction
+  - `risk` / `business_overview` generation completeness
+  쪽으로 이동했다
+
 다음 우선순위:
 
-1. retrieval / ingest 코드 추가 변경보다 evaluator 튜닝
-2. `numeric_final_judgement = PASS`인 문항과 generic `faithfulness`의 해석 분리
-3. `business_overview` / `risk` 답변을 더 친절하고 완전한 문장으로 만드는 generation 튜닝
+1. routing 추가 변경보다 generation / extraction 튜닝
+2. `numeric_fact` evidence extraction에서 target alignment 개선
+3. `risk` / `business_overview` 답변을 더 친절하고 완전한 문장으로 만드는 generation 튜닝

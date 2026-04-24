@@ -222,8 +222,16 @@ class FinancialAgent:
         ),
     }
 
-    _SEMANTIC_FASTPATH_THRESHOLD = 0.86
+    # Calibrated on benchmarks/golden/query_routing_eval_v1.json.
+    # Keep the margin conservative and relax only the top-1 score so we
+    # expand fast-path coverage without letting ambiguous queries skip the LLM.
+    _SEMANTIC_FASTPATH_THRESHOLD = 0.76
     _SEMANTIC_FASTPATH_MARGIN = 0.04
+    _SEMANTIC_CONFUSION_PAIR_MARGIN = 0.10
+    _SEMANTIC_CONFUSION_PAIRS = {
+        frozenset({"business_overview", "risk"}),
+        frozenset({"business_overview", "numeric_fact"}),
+    }
     _FORMAT_PREFERENCE_BY_INTENT = {
         "numeric_fact": "table",
         "business_overview": "mixed",
@@ -360,14 +368,23 @@ class FinancialAgent:
 
         top_intent, top_score = ranked[0]
         second_score = ranked[1][1] if len(ranked) > 1 else 0.0
+        second_intent = ranked[1][0] if len(ranked) > 1 else ""
         margin = top_score - second_score
         best_example = best_example_by_intent.get(top_intent, {})
-        fast_path = top_score >= self._SEMANTIC_FASTPATH_THRESHOLD and margin >= self._SEMANTIC_FASTPATH_MARGIN
+        confusion_pair = frozenset({top_intent, second_intent})
+        required_margin = (
+            self._SEMANTIC_CONFUSION_PAIR_MARGIN
+            if confusion_pair in self._SEMANTIC_CONFUSION_PAIRS
+            else self._SEMANTIC_FASTPATH_MARGIN
+        )
+        fast_path = top_score >= self._SEMANTIC_FASTPATH_THRESHOLD and margin >= required_margin
         return {
             "intent": top_intent,
             "format_preference": best_example.get("format_preference") or self._default_format_preference(top_intent),
             "confidence": float(top_score),
             "margin": float(margin),
+            "required_margin": float(required_margin),
+            "second_intent": second_intent,
             "scores": {intent: round(score, 4) for intent, score in ranked},
             "fast_path": fast_path,
         }
@@ -375,10 +392,12 @@ class FinancialAgent:
     def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
         semantic_result = self._semantic_route(state["query"])
         logger.info(
-            "[classify] semantic intent=%s confidence=%.3f margin=%.3f fast_path=%s scores=%s",
+            "[classify] semantic intent=%s second=%s confidence=%.3f margin=%.3f required_margin=%.3f fast_path=%s scores=%s",
             semantic_result.get("intent"),
+            semantic_result.get("second_intent"),
             semantic_result.get("confidence", 0.0),
             semantic_result.get("margin", 0.0),
+            semantic_result.get("required_margin", self._SEMANTIC_FASTPATH_MARGIN),
             semantic_result.get("fast_path"),
             semantic_result.get("scores", {}),
         )

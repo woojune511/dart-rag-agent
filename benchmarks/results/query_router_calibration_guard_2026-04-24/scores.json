@@ -1,0 +1,572 @@
+[
+  {
+    "query_id": "route_eval_001",
+    "query": "2024년 삼성전자의 연결 매출은 얼마야?",
+    "true_intent": "numeric_fact",
+    "true_format_preference": "table",
+    "top_intent": "numeric_fact",
+    "top_score": 0.895871,
+    "second_intent": "risk",
+    "second_score": 0.693784,
+    "margin": 0.202087,
+    "scores": {
+      "numeric_fact": 0.895871,
+      "risk": 0.693784,
+      "comparison": 0.679856,
+      "business_overview": 0.609621,
+      "qa": 0.565743,
+      "trend": 0.454674
+    }
+  },
+  {
+    "query_id": "route_eval_002",
+    "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+    "true_intent": "numeric_fact",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.851724,
+    "second_intent": "numeric_fact",
+    "second_score": 0.837409,
+    "margin": 0.014316,
+    "scores": {
+      "comparison": 0.851724,
+      "numeric_fact": 0.837409,
+      "risk": 0.70928,
+      "business_overview": 0.701953,
+      "trend": 0.554442,
+      "qa": 0.519186
+    }
+  },
+  {
+    "query_id": "route_eval_003",
+    "query": "부문별 매출 비중을 숫자로 알려줘.",
+    "true_intent": "numeric_fact",
+    "true_format_preference": "table",
+    "top_intent": "numeric_fact",
+    "top_score": 0.905813,
+    "second_intent": "comparison",
+    "second_score": 0.793795,
+    "margin": 0.112018,
+    "scores": {
+      "numeric_fact": 0.905813,
+      "comparison": 0.793795,
+      "trend": 0.716592,
+      "business_overview": 0.646248,
+      "risk": 0.562888,
+      "qa": 0.491503
+    }
+  },
+  {
+    "query_id": "route_eval_004",
+    "query": "설비투자 금액은 얼마인지 보고 싶어.",
+    "true_intent": "numeric_fact",
+    "true_format_preference": "table",
+    "top_intent": "trend",
+    "top_score": 0.602038,
+    "second_intent": "numeric_fact",
+    "second_score": 0.496537,
+    "margin": 0.105501,
+    "scores": {
+      "trend": 0.602038,
+      "numeric_fact": 0.496537,
+      "qa": 0.489096,
+      "business_overview": 0.485885,
+      "comparison": 0.476429,
+      "risk": 0.469623
+    }
+  },
+  {
+    "query_id": "route_eval_005",
+    "query": "요약재무정보 기준 총매출 규모는 어느 정도야?",
+    "true_intent": "numeric_fact",
+    "true_format_preference": "table",
+    "top_intent": "numeric_fact",
+    "top_score": 0.948383,
+    "second_intent": "comparison",
+    "second_score": 0.620195,
+    "margin": 0.328188,
+    "scores": {
+      "numeric_fact": 0.948383,
+      "comparison": 0.620195,
+      "risk": 0.588422,
+      "trend": 0.542972,
+      "qa": 0.510177,
+      "business_overview": 0.490965
+    }
+  },
+  {
+    "query_id": "route_eval_006",
+    "query": "삼성전자가 하는 핵심 사업을 설명해줘.",
+    "true_intent": "business_overview",
+    "true_format_preference": "mixed",
+    "top_intent": "business_overview",
+    "top_score": 0.951041,
+    "second_intent": "risk",
+    "second_score": 0.717877,
+    "margin": 0.233164,
+    "scores": {
+      "business_overview": 0.951041,
+      "risk": 0.717877,
+      "qa": 0.673558,
+      "comparison": 0.666302,
+      "numeric_fact": 0.662671,
+      "trend": 0.423633
+    }
+  },
+  {
+    "query_id": "route_eval_007",
+    "query": "주요 제품과 서비스 구성이 어떻게 돼?",
+    "true_intent": "business_overview",
+    "true_format_preference": "mixed",
+    "top_intent": "business_overview",
+    "top_score": 0.947291,
+    "second_intent": "risk",
+    "second_score": 0.617993,
+    "margin": 0.329298,
+    "scores": {
+      "business_overview": 0.947291,
+      "risk": 0.617993,
+      "comparison": 0.535511,
+      "numeric_fact": 0.525883,
+      "qa": 0.412321,
+      "trend": 0.369718
+    }
+  },
+  {
+    "query_id": "route_eval_008",
+    "query": "이 회사는 어떤 고객과 시장을 대상으로 사업하나?",
+    "true_intent": "business_overview",
+    "true_format_preference": "mixed",
+    "top_intent": "business_overview",
+    "top_score": 0.862804,
+    "second_intent": "qa",
+    "second_score": 0.707136,
+    "margin": 0.155669,
+    "scores": {
+      "business_overview": 0.862804,
+      "qa": 0.707136,
+      "risk": 0.691692,
+      "numeric_fact": 0.563566,
+      "comparison": 0.552874,
+      "trend": 0.451826
+    }
+  },
+  {
+    "query_id": "route_eval_009",
+    "query": "삼성전자의 사업 포트폴리오를 간단히 정리해줘.",
+    "true_intent": "business_overview",
+    "true_format_preference": "mixed",
+    "top_intent": "business_overview",
+    "top_score": 0.884534,
+    "second_intent": "risk",
+    "second_score": 0.777665,
+    "margin": 0.106869,
+    "scores": {
+      "business_overview": 0.884534,
+      "risk": 0.777665,
+      "comparison": 0.718719,
+      "numeric_fact": 0.710261,
+      "qa": 0.666568,
+      "trend": 0.435638
+    }
+  },
+  {
+    "query_id": "route_eval_010",
+    "query": "글로벌 사업 구조와 종속기업 구성을 어떻게 설명할 수 있어?",
+    "true_intent": "business_overview",
+    "true_format_preference": "mixed",
+    "top_intent": "business_overview",
+    "top_score": 0.975666,
+    "second_intent": "risk",
+    "second_score": 0.667856,
+    "margin": 0.30781,
+    "scores": {
+      "business_overview": 0.975666,
+      "risk": 0.667856,
+      "numeric_fact": 0.660056,
+      "comparison": 0.530678,
+      "trend": 0.484289,
+      "qa": 0.481282
+    }
+  },
+  {
+    "query_id": "route_eval_011",
+    "query": "삼성전자의 주요 재무 위험은 뭐야?",
+    "true_intent": "risk",
+    "true_format_preference": "paragraph",
+    "top_intent": "risk",
+    "top_score": 1.0,
+    "second_intent": "business_overview",
+    "second_score": 0.697892,
+    "margin": 0.302108,
+    "scores": {
+      "risk": 1.0,
+      "business_overview": 0.697892,
+      "comparison": 0.652403,
+      "numeric_fact": 0.64741,
+      "qa": 0.44222,
+      "trend": 0.427303
+    }
+  },
+  {
+    "query_id": "route_eval_012",
+    "query": "환율 변동 위험은 어떻게 관리한다고 하나?",
+    "true_intent": "risk",
+    "true_format_preference": "paragraph",
+    "top_intent": "risk",
+    "top_score": 0.91132,
+    "second_intent": "trend",
+    "second_score": 0.602881,
+    "margin": 0.308439,
+    "scores": {
+      "risk": 0.91132,
+      "trend": 0.602881,
+      "comparison": 0.558698,
+      "numeric_fact": 0.525257,
+      "qa": 0.378096,
+      "business_overview": 0.230923
+    }
+  },
+  {
+    "query_id": "route_eval_013",
+    "query": "신용위험 관리 방식을 설명해줘.",
+    "true_intent": "risk",
+    "true_format_preference": "paragraph",
+    "top_intent": "risk",
+    "top_score": 0.788128,
+    "second_intent": "trend",
+    "second_score": 0.373396,
+    "margin": 0.414732,
+    "scores": {
+      "risk": 0.788128,
+      "trend": 0.373396,
+      "numeric_fact": 0.364435,
+      "comparison": 0.345649,
+      "business_overview": 0.316061,
+      "qa": 0.269549
+    }
+  },
+  {
+    "query_id": "route_eval_014",
+    "query": "유동성위험 관련 설명을 요약해줘.",
+    "true_intent": "risk",
+    "true_format_preference": "paragraph",
+    "top_intent": "risk",
+    "top_score": 0.902454,
+    "second_intent": "trend",
+    "second_score": 0.414717,
+    "margin": 0.487737,
+    "scores": {
+      "risk": 0.902454,
+      "trend": 0.414717,
+      "comparison": 0.309637,
+      "numeric_fact": 0.296777,
+      "business_overview": 0.268656,
+      "qa": 0.219146
+    }
+  },
+  {
+    "query_id": "route_eval_015",
+    "query": "사업보고서에서 말하는 위험관리 항목은 뭐가 있어?",
+    "true_intent": "risk",
+    "true_format_preference": "paragraph",
+    "top_intent": "risk",
+    "top_score": 0.994991,
+    "second_intent": "qa",
+    "second_score": 0.561808,
+    "margin": 0.433183,
+    "scores": {
+      "risk": 0.994991,
+      "qa": 0.561808,
+      "numeric_fact": 0.541579,
+      "trend": 0.472798,
+      "business_overview": 0.469976,
+      "comparison": 0.469394
+    }
+  },
+  {
+    "query_id": "route_eval_016",
+    "query": "DX와 DS 가운데 매출이 얼마나 차이 나?",
+    "true_intent": "comparison",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.984053,
+    "second_intent": "business_overview",
+    "second_score": 0.831769,
+    "margin": 0.152283,
+    "scores": {
+      "comparison": 0.984053,
+      "business_overview": 0.831769,
+      "numeric_fact": 0.563977,
+      "trend": 0.446701,
+      "risk": 0.341241,
+      "qa": 0.242793
+    }
+  },
+  {
+    "query_id": "route_eval_017",
+    "query": "올해와 작년 연구개발비 차이를 비교해줘.",
+    "true_intent": "comparison",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.787594,
+    "second_intent": "trend",
+    "second_score": 0.633987,
+    "margin": 0.153608,
+    "scores": {
+      "comparison": 0.787594,
+      "trend": 0.633987,
+      "numeric_fact": 0.584631,
+      "risk": 0.364289,
+      "qa": 0.352375,
+      "business_overview": 0.323818
+    }
+  },
+  {
+    "query_id": "route_eval_018",
+    "query": "연결 기준 매출과 별도 기준 매출 차이는 얼마야?",
+    "true_intent": "comparison",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.985594,
+    "second_intent": "numeric_fact",
+    "second_score": 0.739201,
+    "margin": 0.246392,
+    "scores": {
+      "comparison": 0.985594,
+      "numeric_fact": 0.739201,
+      "trend": 0.562163,
+      "business_overview": 0.45731,
+      "risk": 0.456032,
+      "qa": 0.349905
+    }
+  },
+  {
+    "query_id": "route_eval_019",
+    "query": "국내 매출과 해외 매출 비중을 비교해줘.",
+    "true_intent": "comparison",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.982152,
+    "second_intent": "numeric_fact",
+    "second_score": 0.816904,
+    "margin": 0.165248,
+    "scores": {
+      "comparison": 0.982152,
+      "numeric_fact": 0.816904,
+      "trend": 0.806811,
+      "business_overview": 0.552376,
+      "risk": 0.520041,
+      "qa": 0.296607
+    }
+  },
+  {
+    "query_id": "route_eval_020",
+    "query": "두 부문 중 어느 쪽 매출이 더 큰지 알려줘.",
+    "true_intent": "comparison",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.863707,
+    "second_intent": "numeric_fact",
+    "second_score": 0.814235,
+    "margin": 0.049472,
+    "scores": {
+      "comparison": 0.863707,
+      "numeric_fact": 0.814235,
+      "trend": 0.686132,
+      "business_overview": 0.639248,
+      "risk": 0.513234,
+      "qa": 0.330635
+    }
+  },
+  {
+    "query_id": "route_eval_021",
+    "query": "최근 몇 년간 영업이익 흐름이 어떻게 바뀌었어?",
+    "true_intent": "trend",
+    "true_format_preference": "table",
+    "top_intent": "trend",
+    "top_score": 0.887146,
+    "second_intent": "comparison",
+    "second_score": 0.707126,
+    "margin": 0.180019,
+    "scores": {
+      "trend": 0.887146,
+      "comparison": 0.707126,
+      "numeric_fact": 0.678832,
+      "business_overview": 0.521552,
+      "risk": 0.453366,
+      "qa": 0.420486
+    }
+  },
+  {
+    "query_id": "route_eval_022",
+    "query": "전년 대비 매출 성장세가 어떻게 달라졌는지 보고 싶어.",
+    "true_intent": "trend",
+    "true_format_preference": "table",
+    "top_intent": "trend",
+    "top_score": 0.932829,
+    "second_intent": "comparison",
+    "second_score": 0.856097,
+    "margin": 0.076732,
+    "scores": {
+      "trend": 0.932829,
+      "comparison": 0.856097,
+      "numeric_fact": 0.681198,
+      "business_overview": 0.527575,
+      "risk": 0.404272,
+      "qa": 0.334151
+    }
+  },
+  {
+    "query_id": "route_eval_023",
+    "query": "최근 3년 R&D 투자 추이를 정리해줘.",
+    "true_intent": "trend",
+    "true_format_preference": "table",
+    "top_intent": "trend",
+    "top_score": 0.950486,
+    "second_intent": "comparison",
+    "second_score": 0.629089,
+    "margin": 0.321397,
+    "scores": {
+      "trend": 0.950486,
+      "comparison": 0.629089,
+      "numeric_fact": 0.621759,
+      "risk": 0.469123,
+      "business_overview": 0.454735,
+      "qa": 0.345941
+    }
+  },
+  {
+    "query_id": "route_eval_024",
+    "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+    "true_intent": "trend",
+    "true_format_preference": "table",
+    "top_intent": "comparison",
+    "top_score": 0.846483,
+    "second_intent": "trend",
+    "second_score": 0.825543,
+    "margin": 0.02094,
+    "scores": {
+      "comparison": 0.846483,
+      "trend": 0.825543,
+      "numeric_fact": 0.648955,
+      "risk": 0.497449,
+      "business_overview": 0.449801,
+      "qa": 0.372096
+    }
+  },
+  {
+    "query_id": "route_eval_025",
+    "query": "연도별 실적 흐름을 한 번에 보여줘.",
+    "true_intent": "trend",
+    "true_format_preference": "table",
+    "top_intent": "trend",
+    "top_score": 0.687396,
+    "second_intent": "risk",
+    "second_score": 0.456432,
+    "margin": 0.230965,
+    "scores": {
+      "trend": 0.687396,
+      "risk": 0.456432,
+      "qa": 0.431036,
+      "business_overview": 0.360809,
+      "comparison": 0.348555,
+      "numeric_fact": 0.283054
+    }
+  },
+  {
+    "query_id": "route_eval_026",
+    "query": "삼성전자는 언제 설립됐어?",
+    "true_intent": "qa",
+    "true_format_preference": "paragraph",
+    "top_intent": "qa",
+    "top_score": 0.975525,
+    "second_intent": "business_overview",
+    "second_score": 0.646404,
+    "margin": 0.329121,
+    "scores": {
+      "qa": 0.975525,
+      "business_overview": 0.646404,
+      "risk": 0.553704,
+      "numeric_fact": 0.530928,
+      "comparison": 0.442712,
+      "trend": 0.293182
+    }
+  },
+  {
+    "query_id": "route_eval_027",
+    "query": "본사 위치가 어디야?",
+    "true_intent": "qa",
+    "true_format_preference": "paragraph",
+    "top_intent": "qa",
+    "top_score": 0.915574,
+    "second_intent": "risk",
+    "second_score": 0.415049,
+    "margin": 0.500524,
+    "scores": {
+      "qa": 0.915574,
+      "risk": 0.415049,
+      "numeric_fact": 0.354933,
+      "business_overview": 0.282082,
+      "trend": 0.282032,
+      "comparison": 0.1366
+    }
+  },
+  {
+    "query_id": "route_eval_028",
+    "query": "대표이사는 누구인지 알려줘.",
+    "true_intent": "qa",
+    "true_format_preference": "paragraph",
+    "top_intent": "qa",
+    "top_score": 0.979128,
+    "second_intent": "risk",
+    "second_score": 0.445075,
+    "margin": 0.534053,
+    "scores": {
+      "qa": 0.979128,
+      "risk": 0.445075,
+      "business_overview": 0.438469,
+      "comparison": 0.311091,
+      "numeric_fact": 0.2946,
+      "trend": 0.232006
+    }
+  },
+  {
+    "query_id": "route_eval_029",
+    "query": "회계감사인은 누구로 되어 있어?",
+    "true_intent": "qa",
+    "true_format_preference": "paragraph",
+    "top_intent": "qa",
+    "top_score": 0.98672,
+    "second_intent": "risk",
+    "second_score": 0.605207,
+    "margin": 0.381513,
+    "scores": {
+      "qa": 0.98672,
+      "risk": 0.605207,
+      "business_overview": 0.498176,
+      "numeric_fact": 0.490064,
+      "comparison": 0.414539,
+      "trend": 0.3755
+    }
+  },
+  {
+    "query_id": "route_eval_030",
+    "query": "정기주주총회 일정은 언제였어?",
+    "true_intent": "qa",
+    "true_format_preference": "paragraph",
+    "top_intent": "qa",
+    "top_score": 0.778276,
+    "second_intent": "trend",
+    "second_score": 0.351412,
+    "margin": 0.426863,
+    "scores": {
+      "qa": 0.778276,
+      "trend": 0.351412,
+      "risk": 0.347518,
+      "comparison": 0.345868,
+      "numeric_fact": 0.316249,
+      "business_overview": 0.216145
+    }
+  }
+]

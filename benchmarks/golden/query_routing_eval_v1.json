@@ -1,0 +1,182 @@
+[
+  {
+    "query_id": "route_eval_001",
+    "query": "2024년 삼성전자의 연결 매출은 얼마야?",
+    "intent": "numeric_fact",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_002",
+    "query": "삼성전자의 영업이익률은 몇 %로 봐야 해?",
+    "intent": "numeric_fact",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_003",
+    "query": "부문별 매출 비중을 숫자로 알려줘.",
+    "intent": "numeric_fact",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_004",
+    "query": "설비투자 금액은 얼마인지 보고 싶어.",
+    "intent": "numeric_fact",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_005",
+    "query": "요약재무정보 기준 총매출 규모는 어느 정도야?",
+    "intent": "numeric_fact",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_006",
+    "query": "삼성전자가 하는 핵심 사업을 설명해줘.",
+    "intent": "business_overview",
+    "format_preference": "mixed"
+  },
+  {
+    "query_id": "route_eval_007",
+    "query": "주요 제품과 서비스 구성이 어떻게 돼?",
+    "intent": "business_overview",
+    "format_preference": "mixed"
+  },
+  {
+    "query_id": "route_eval_008",
+    "query": "이 회사는 어떤 고객과 시장을 대상으로 사업하나?",
+    "intent": "business_overview",
+    "format_preference": "mixed"
+  },
+  {
+    "query_id": "route_eval_009",
+    "query": "삼성전자의 사업 포트폴리오를 간단히 정리해줘.",
+    "intent": "business_overview",
+    "format_preference": "mixed"
+  },
+  {
+    "query_id": "route_eval_010",
+    "query": "글로벌 사업 구조와 종속기업 구성을 어떻게 설명할 수 있어?",
+    "intent": "business_overview",
+    "format_preference": "mixed"
+  },
+  {
+    "query_id": "route_eval_011",
+    "query": "삼성전자의 주요 재무 위험은 뭐야?",
+    "intent": "risk",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_012",
+    "query": "환율 변동 위험은 어떻게 관리한다고 하나?",
+    "intent": "risk",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_013",
+    "query": "신용위험 관리 방식을 설명해줘.",
+    "intent": "risk",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_014",
+    "query": "유동성위험 관련 설명을 요약해줘.",
+    "intent": "risk",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_015",
+    "query": "사업보고서에서 말하는 위험관리 항목은 뭐가 있어?",
+    "intent": "risk",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_016",
+    "query": "DX와 DS 가운데 매출이 얼마나 차이 나?",
+    "intent": "comparison",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_017",
+    "query": "올해와 작년 연구개발비 차이를 비교해줘.",
+    "intent": "comparison",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_018",
+    "query": "연결 기준 매출과 별도 기준 매출 차이는 얼마야?",
+    "intent": "comparison",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_019",
+    "query": "국내 매출과 해외 매출 비중을 비교해줘.",
+    "intent": "comparison",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_020",
+    "query": "두 부문 중 어느 쪽 매출이 더 큰지 알려줘.",
+    "intent": "comparison",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_021",
+    "query": "최근 몇 년간 영업이익 흐름이 어떻게 바뀌었어?",
+    "intent": "trend",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_022",
+    "query": "전년 대비 매출 성장세가 어떻게 달라졌는지 보고 싶어.",
+    "intent": "trend",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_023",
+    "query": "최근 3년 R&D 투자 추이를 정리해줘.",
+    "intent": "trend",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_024",
+    "query": "설비투자 규모가 최근 몇 년 동안 어떻게 변했지?",
+    "intent": "trend",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_025",
+    "query": "연도별 실적 흐름을 한 번에 보여줘.",
+    "intent": "trend",
+    "format_preference": "table"
+  },
+  {
+    "query_id": "route_eval_026",
+    "query": "삼성전자는 언제 설립됐어?",
+    "intent": "qa",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_027",
+    "query": "본사 위치가 어디야?",
+    "intent": "qa",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_028",
+    "query": "대표이사는 누구인지 알려줘.",
+    "intent": "qa",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_029",
+    "query": "회계감사인은 누구로 되어 있어?",
+    "intent": "qa",
+    "format_preference": "paragraph"
+  },
+  {
+    "query_id": "route_eval_030",
+    "query": "정기주주총회 일정은 언제였어?",
+    "intent": "qa",
+    "format_preference": "paragraph"
+  }
+]
