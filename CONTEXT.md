@@ -189,6 +189,14 @@
 - fast-path가 애매할 때만 few-shot LLM fallback 사용
 - retrieval / rerank의 block-type 보정은 이제 `query_type`이 아니라 `format_preference` 기준으로 동작
 
+후속 리팩터링으로 routing runtime은 `financial_graph.py` 내부 보조 함수가 아니라 독립 모듈로 분리했다.
+
+- `src/routing/query_router.py`
+- `src/routing/types.py`
+- `src/routing/__init__.py`
+
+즉 routing은 이제 별도 코드, 별도 스키마, 별도 calibration 자산을 가진 코어 모듈로 취급한다.
+
 `dev_fast_focus_routing_cascade_2026-04-23` 결과:
 
 - `contextual_selective_v2_prefix_2500_320`
@@ -668,8 +676,74 @@ focus run 관찰:
   - `risk` / `business_overview` generation completeness
   쪽으로 이동했다
 
+추가 메모:
+
+- 현재 `6-intent`
+  - `numeric_fact`
+  - `business_overview`
+  - `risk`
+  - `comparison`
+  - `trend`
+  - `qa`
+  구조는 유지한다
+- 이 분류는 DART 질문을 downstream 행동과 연결하기에 충분히 실무적이라고 판단한다
+- 다만 장기적으로는 아래를 확장 후보로 기억한다
+  - `comparison + trend -> complex_numeric/calculation`
+  - `governance / corporate_info`
+  - `r_and_d`
+- 지금은 intent 수를 늘리기보다
+  - canonical query 정리
+  - confusion pair 회귀 테스트
+  - fallback 로그 플라이휠
+  을 먼저 안정화하는 것이 우선이다
+
 다음 우선순위:
 
 1. routing 추가 변경보다 generation / extraction 튜닝
 2. `numeric_fact` evidence extraction에서 target alignment 개선
 3. `risk` / `business_overview` 답변을 더 친절하고 완전한 문장으로 만드는 generation 튜닝
+
+## 2026-04-24 fallback anti-pattern patch
+
+`query_routing_canonical_v2`를 바로 runtime 기본값으로 올리기 전에, 실제 `dev_fast_focus`에서는 semantic router보다 **LLM fallback few-shot**이 더 큰 오분류 원인임이 확인됐다.
+
+대표 사례:
+
+- `삼성전자의 연결대상 종속기업은 총 몇 개인가요?`
+- `회사의 임직원 수는 총 몇 명인가요?`
+
+이 질문들은 `"몇 개"`, `"몇 명"`이라는 표면형 때문에 fallback LLM이 `numeric_fact`로 과잉 분류하기 쉬웠다.
+
+조치:
+
+- `src/routing/query_router.py`
+  - fallback few-shot에 anti-pattern 예제 추가
+- `benchmarks/golden/routing_confusion_cases_v1.json`
+  - semantic-only가 아니라 **최종 routing 결과 기준** confusion 회귀 케이스로 확장
+- `src/ops/check_routing_confusions.py`
+  - semantic top-1 / final intent / final routing source를 모두 기록
+
+결과:
+
+- `routing_confusion_check_v1_fallback_patch_2026-04-24`
+  - `intent_accuracy = 1.000`
+  - `format_accuracy = 1.000`
+  - 일부 불일치는 `llm_fallback` 대신 `semantic_fast_path`로도 안전하게 맞춘 케이스에 한정
+- `dev_fast_focus_fallback_patch_2026-04-24`
+  - `contextual_selective_v2_prefix_2500_320`
+    - `Full Faithfulness 1.000`
+    - `Full Completeness 0.600`
+    - `Numeric Pass 1.000`
+  - `business_overview_003`는 다시 `business_overview / mixed`로 안정화
+
+현재 운영 해석:
+
+- 라우팅은 이제
+  - semantic fast-path
+  - confusion-pair guard
+  - few-shot fallback anti-pattern patch
+  의 조합으로 본다
+- `canonical_v2`는 유망한 자산이지만, 아직 runtime 기본값으로 승격하진 않았다
+- 앞으로는 chunking / canonical A-B / 라우팅 calibration처럼 질문이 분명한 비교 실험이 아닐 때는
+  - `contextual_selective_v2_prefix_2500_320`
+  를 기본 실험 후보로 사용한다

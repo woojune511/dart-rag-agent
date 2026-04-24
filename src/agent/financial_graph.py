@@ -4,11 +4,9 @@ LangGraph-based DART financial analysis agent.
 
 import json
 import logging
-import math
 import os
 import re
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from dotenv import load_dotenv
@@ -18,6 +16,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
+from src.routing import QueryRouter, default_format_preference
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -111,23 +110,6 @@ class FinancialAgentState(TypedDict):
     citations: List[str]
 
 
-class QueryRoutingDecision(BaseModel):
-    intent: Literal["numeric_fact", "business_overview", "risk", "comparison", "trend", "qa"] = Field(
-        description=(
-            "numeric_fact=특정 수치·금액·비율을 묻는 질의 (매출, 영업이익, 부채비율, R&D 비용 등), "
-            "business_overview=사업 구조·주요 사업·서비스·제품·고객군 등 기업 개요 설명 질의, "
-            "risk=리스크 요인·위험 관리·파생거래 등 리스크 분석 질의, "
-            "comparison=두 기업 또는 두 항목 간 비교 질의, "
-            "trend=시계열 변화·추이·성장률·전년 대비 변화 질의, "
-            "qa=위 유형에 해당하지 않는 일반 사실·설명 질의"
-        )
-    )
-    format_preference: Literal["table", "paragraph", "mixed"] = Field(
-        description="retrieval 및 reranking에서 우선할 evidence 형식"
-    )
-    confidence: Optional[float] = Field(default=None, description="0.0~1.0 범위의 분류 확신도")
-
-
 class EntityExtraction(BaseModel):
     companies: List[str] = Field(default_factory=list, description="질문에 등장한 기업명 목록")
     years: List[int] = Field(default_factory=list, description="질문에 등장한 연도 목록")
@@ -203,7 +185,6 @@ class ValidationOutput(BaseModel):
 
 
 class FinancialAgent:
-    _INTENTS = ("numeric_fact", "business_overview", "risk", "comparison", "trend", "qa")
     _SECTION_BIAS_BY_QUERY_TYPE = {
         "numeric_fact": (
             ("손익계산서", 0.08),
@@ -220,25 +201,6 @@ class FinancialAgent:
             ("위험관리 및 파생거래", 0.18),
             ("리스크", 0.10),
         ),
-    }
-
-    # Calibrated on benchmarks/golden/query_routing_eval_v1.json.
-    # Keep the margin conservative and relax only the top-1 score so we
-    # expand fast-path coverage without letting ambiguous queries skip the LLM.
-    _SEMANTIC_FASTPATH_THRESHOLD = 0.76
-    _SEMANTIC_FASTPATH_MARGIN = 0.04
-    _SEMANTIC_CONFUSION_PAIR_MARGIN = 0.10
-    _SEMANTIC_CONFUSION_PAIRS = {
-        frozenset({"business_overview", "risk"}),
-        frozenset({"business_overview", "numeric_fact"}),
-    }
-    _FORMAT_PREFERENCE_BY_INTENT = {
-        "numeric_fact": "table",
-        "business_overview": "mixed",
-        "risk": "paragraph",
-        "comparison": "table",
-        "trend": "table",
-        "qa": "paragraph",
     }
 
     def __init__(self, vector_store_manager, k: int = 8, graph_expansion_config: Optional[Dict[str, Any]] = None):
@@ -264,235 +226,21 @@ class FinancialAgent:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
-        self._semantic_router = self._build_semantic_router()
+        self.query_router = QueryRouter(embeddings=self.vsm.embeddings, llm=self.llm)
         self.graph = self._build_graph()
 
-    def _canonical_queries_path(self) -> Path:
-        return Path(__file__).resolve().parents[2] / "benchmarks" / "golden" / "query_routing_canonical_v1.json"
-
     def _default_format_preference(self, intent: str) -> str:
-        return self._FORMAT_PREFERENCE_BY_INTENT.get(intent, "mixed")
-
-    def _build_semantic_router(self) -> Dict[str, Any]:
-        path = self._canonical_queries_path()
-        if not path.exists():
-            logger.warning("[routing] canonical query file not found: %s", path)
-            return {"enabled": False, "examples": []}
-
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            logger.warning("[routing] failed to load canonical query file: %s", exc)
-            return {"enabled": False, "examples": []}
-
-        examples: List[Dict[str, Any]] = []
-        for entry in payload:
-            intent = str(entry.get("id") or "").strip()
-            if intent not in self._INTENTS:
-                continue
-            queries = [str(query).strip() for query in entry.get("queries", []) if str(query).strip()]
-            if not queries:
-                continue
-            try:
-                embeddings = self.vsm.embeddings.embed_documents(queries)
-            except Exception as exc:
-                logger.warning("[routing] failed to embed canonical queries for %s: %s", intent, exc)
-                continue
-            for query, embedding in zip(queries, embeddings):
-                examples.append(
-                    {
-                        "intent": intent,
-                        "query": query,
-                        "embedding": embedding,
-                        "format_preference": self._default_format_preference(intent),
-                    }
-                )
-        logger.info("[routing] semantic router loaded %s canonical queries", len(examples))
-        return {"enabled": bool(examples), "examples": examples}
-
-    def _cosine_similarity(self, left: List[float], right: List[float]) -> float:
-        if not left or not right or len(left) != len(right):
-            return 0.0
-        dot = sum(float(a) * float(b) for a, b in zip(left, right))
-        left_norm = math.sqrt(sum(float(a) * float(a) for a in left))
-        right_norm = math.sqrt(sum(float(b) * float(b) for b in right))
-        if left_norm == 0.0 or right_norm == 0.0:
-            return 0.0
-        return dot / (left_norm * right_norm)
-
-    def _semantic_route(self, query: str) -> Dict[str, Any]:
-        router = self._semantic_router or {}
-        examples = router.get("examples") or []
-        if not router.get("enabled") or not examples:
-            return {
-                "intent": None,
-                "format_preference": None,
-                "confidence": 0.0,
-                "margin": 0.0,
-                "scores": {},
-                "fast_path": False,
-            }
-
-        try:
-            query_embedding = self.vsm.embeddings.embed_query(query)
-        except Exception as exc:
-            logger.warning("[routing] semantic router embed_query failed: %s", exc)
-            return {
-                "intent": None,
-                "format_preference": None,
-                "confidence": 0.0,
-                "margin": 0.0,
-                "scores": {},
-                "fast_path": False,
-            }
-
-        scores: Dict[str, float] = {}
-        best_example_by_intent: Dict[str, Dict[str, Any]] = {}
-        for example in examples:
-            score = self._cosine_similarity(query_embedding, example["embedding"])
-            intent = example["intent"]
-            if score > scores.get(intent, -1.0):
-                scores[intent] = score
-                best_example_by_intent[intent] = example
-
-        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-        if not ranked:
-            return {
-                "intent": None,
-                "format_preference": None,
-                "confidence": 0.0,
-                "margin": 0.0,
-                "scores": {},
-                "fast_path": False,
-            }
-
-        top_intent, top_score = ranked[0]
-        second_score = ranked[1][1] if len(ranked) > 1 else 0.0
-        second_intent = ranked[1][0] if len(ranked) > 1 else ""
-        margin = top_score - second_score
-        best_example = best_example_by_intent.get(top_intent, {})
-        confusion_pair = frozenset({top_intent, second_intent})
-        required_margin = (
-            self._SEMANTIC_CONFUSION_PAIR_MARGIN
-            if confusion_pair in self._SEMANTIC_CONFUSION_PAIRS
-            else self._SEMANTIC_FASTPATH_MARGIN
-        )
-        fast_path = top_score >= self._SEMANTIC_FASTPATH_THRESHOLD and margin >= required_margin
-        return {
-            "intent": top_intent,
-            "format_preference": best_example.get("format_preference") or self._default_format_preference(top_intent),
-            "confidence": float(top_score),
-            "margin": float(margin),
-            "required_margin": float(required_margin),
-            "second_intent": second_intent,
-            "scores": {intent: round(score, 4) for intent, score in ranked},
-            "fast_path": fast_path,
-        }
+        return default_format_preference(intent)
 
     def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
-        semantic_result = self._semantic_route(state["query"])
-        logger.info(
-            "[classify] semantic intent=%s second=%s confidence=%.3f margin=%.3f required_margin=%.3f fast_path=%s scores=%s",
-            semantic_result.get("intent"),
-            semantic_result.get("second_intent"),
-            semantic_result.get("confidence", 0.0),
-            semantic_result.get("margin", 0.0),
-            semantic_result.get("required_margin", self._SEMANTIC_FASTPATH_MARGIN),
-            semantic_result.get("fast_path"),
-            semantic_result.get("scores", {}),
-        )
-        if semantic_result.get("fast_path") and semantic_result.get("intent"):
-            intent = str(semantic_result["intent"])
-            format_preference = str(
-                semantic_result.get("format_preference") or self._default_format_preference(intent)
-            )
-            logger.info(
-                "[classify] fast-path intent=%s format=%s confidence=%.3f",
-                intent,
-                format_preference,
-                semantic_result.get("confidence", 0.0),
-            )
-            return {
-                "query_type": intent,
-                "intent": intent,
-                "format_preference": format_preference,
-                "routing_source": "semantic_fast_path",
-                "routing_confidence": float(semantic_result.get("confidence") or 0.0),
-                "routing_scores": dict(semantic_result.get("scores") or {}),
-            }
-
-        structured_llm = self.llm.with_structured_output(QueryRoutingDecision)
-        prompt = ChatPromptTemplate.from_template(
-            """다음 기업 공시 질문을 `intent`와 `format_preference`로 분류하세요.
-
-intent 정의:
-- numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 단일 숫자 또는 명확한 수치 목록으로 귀결됨.
-- business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 구성 등 기업 개요를 묻는 질의.
-- risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
-- comparison : 두 기업 또는 두 항목을 명시적으로 비교하는 질의.
-- trend : 시계열 변화·추이·성장률·전년 대비 변화를 묻는 질의.
-- qa : 위 유형에 해당하지 않는 일반 사실·설명 질의.
-
-format_preference 정의:
-- table : 표 기반 수치 근거를 우선해야 함
-- paragraph : 설명 문단 근거를 우선해야 함
-- mixed : 표와 문단을 함께 볼 수 있음
-
-[Few-shot 예시]
-Q: 삼성전자의 주요 재무 리스크는 무엇인가요?
-A: intent=risk, format_preference=paragraph
-
-Q: 환율 위험 관리 방식은 어떻게 설명하나요?
-A: intent=risk, format_preference=paragraph
-
-Q: 회사가 영위하는 주요 사업은 무엇인가요?
-A: intent=business_overview, format_preference=mixed
-
-Q: 삼성전자는 어떤 제품과 서비스를 제공하나요?
-A: intent=business_overview, format_preference=mixed
-
-Q: 삼성전자의 연결 기준 매출액은 얼마인가요?
-A: intent=numeric_fact, format_preference=table
-
-Q: 각 부문별 매출 비중은 어떻게 되나요?
-A: intent=numeric_fact, format_preference=table
-
-Q: DX와 DS 부문의 매출 차이는 얼마인가요?
-A: intent=comparison, format_preference=table
-
-Q: 최근 3년 영업이익 추이는 어떻게 변했나요?
-A: intent=trend, format_preference=table
-
-Q: 삼성전자의 설립일은 언제인가요?
-A: intent=qa, format_preference=paragraph
-
-참고 semantic prior:
-- top_intent: {semantic_intent}
-- semantic_confidence: {semantic_confidence}
-
-질문: {query}"""
-        )
-        result: QueryRoutingDecision = (prompt | structured_llm).invoke(
-            {
-                "query": state["query"],
-                "semantic_intent": semantic_result.get("intent") or "unknown",
-                "semantic_confidence": f"{float(semantic_result.get('confidence') or 0.0):.3f}",
-            }
-        )
-        logger.info(
-            "[classify] slow-path intent=%s format=%s confidence=%s semantic_scores=%s",
-            result.intent,
-            result.format_preference,
-            result.confidence,
-            semantic_result.get("scores", {}),
-        )
+        result = self.query_router.route(state["query"])
         return {
             "query_type": result.intent,
             "intent": result.intent,
             "format_preference": result.format_preference,
-            "routing_source": "llm_fallback",
-            "routing_confidence": float(result.confidence or semantic_result.get("confidence") or 0.0),
-            "routing_scores": dict(semantic_result.get("scores") or {}),
+            "routing_source": result.routing_source,
+            "routing_confidence": float(result.routing_confidence or 0.0),
+            "routing_scores": dict(result.routing_scores or {}),
         }
 
     def _extract_entities(self, state: FinancialAgentState) -> Dict[str, Any]:

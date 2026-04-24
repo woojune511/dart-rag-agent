@@ -44,8 +44,12 @@
 이유: 제품/서비스 개요를 묻는다.
 
 **Q:** 삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?  
-**A:** `intent=business_overview`, `format_preference=paragraph`  
+**A:** `intent=business_overview`, `format_preference=mixed`  
 이유: 숫자가 있지만 핵심은 기업 구조 설명이다.
+
+**Q:** 삼성전자의 연결대상 종속기업은 총 몇 개인가요?  
+**A:** `intent=business_overview`, `format_preference=mixed`  
+이유: '몇 개'를 묻지만 재무 실적 수치가 아니라 기업 구조와 연결 범위를 묻는다.
 
 ### Numeric Fact
 
@@ -91,6 +95,10 @@
 **A:** `intent=qa`, `format_preference=paragraph`  
 이유: 단순 사실 질의다.
 
+**Q:** 회사의 임직원 수는 총 몇 명인가요?  
+**A:** `intent=qa`, `format_preference=paragraph`  
+이유: 개수를 묻지만 재무 실적 수치가 아니라 기업 일반 정보 질의다.
+
 ## 프롬프트 주입 초안
 
 ```text
@@ -101,8 +109,14 @@ A: intent=risk, format_preference=paragraph
 Q: 회사가 영위하는 주요 사업은 무엇인가요?
 A: intent=business_overview, format_preference=mixed
 
+Q: 삼성전자의 연결대상 종속기업은 총 몇 개인가요?
+A: intent=business_overview, format_preference=mixed
+
 Q: 각 부문별 매출 비중은 어떻게 되나요?
 A: intent=numeric_fact, format_preference=table
+
+Q: 회사의 임직원 수는 총 몇 명인가요?
+A: intent=qa, format_preference=paragraph
 
 Q: DX와 DS 부문의 매출 차이는 얼마인가요?
 A: intent=comparison, format_preference=table
