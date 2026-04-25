@@ -206,11 +206,14 @@ classify
   -> extract
   -> retrieve
   -> expand_via_structure_graph
-  -> build_structured_evidence
-  -> compress_answer
-  -> validate_answer
-  -> cite
+  -> [intent == numeric_fact] -> numeric_extractor -> cite
+  -> [그 외]                  -> build_structured_evidence
+                               -> compress_answer
+                               -> validate_answer
+                               -> cite
 ```
+
+`numeric_fact`는 `compress → validate` 컨베이어를 bypass하고 전용 `numeric_extractor` 노드로 처리한다. 이 노드는 당기/전기, 연결/별도, 단위를 CoT로 먼저 확인하고 raw_value를 추출한다. 자세한 배경은 결정 60 및 [numeric_evaluation_architecture.md](numeric_evaluation_architecture.md)를 참고한다.
 
 기존 구조와의 차이는 다음이다.
 

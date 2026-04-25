@@ -682,3 +682,35 @@
   - `numeric_fact` evidence extraction
   - `risk` / `business_overview` generation completeness
   쪽으로 이동했다
+
+## Numeric Extractor Node (2026-04-26)
+
+참조:
+
+- [numeric_extractor_v2_2026-04-26/삼성전자-2024/summary.md](../benchmarks/results/numeric_extractor_v2_2026-04-26/삼성전자-2024/summary.md)
+
+### 코드 / 설정 변화
+
+- `src/agent/financial_graph.py`
+  - `NumericExtraction` Pydantic 스키마 추가 (`period_check`, `consolidation_check`, `unit`, `raw_value`, `final_value`)
+  - `_extract_numeric_fact` 노드: `compress → validate` bypass, CoT structured output으로 수치 추출
+  - `_route_after_expand`: `intent == "numeric_fact"` → `numeric_extractor` → `cite` 분기
+
+### 핵심 결과
+
+| 실험 | numeric_pass | faithfulness | ingest cost |
+|---|---|---|---|
+| contextual_all | 1.000 | 0.700 | $0.919 |
+| contextual_parent_only | 1.000 | 0.875 | $0.130 |
+| plain_prefix | 0.000 | 0.454 | $0.000 |
+| selective_v2_prefix | **1.000** | 0.825 | $0.401 |
+
+- `selective_v2_prefix`: routing_guard 대비 FAIL → PASS 회복
+- `plain_prefix`: UNCERTAIN 지속 — plain chunk에 수치 추출 실패, 별도 추적 필요
+
+### 해석
+
+- `compress → validate` 파이프라인은 표 기반 숫자 추출에 구조적으로 취약하다
+- `numeric_extractor`는 당기/전기, 연결/별도, 단위를 CoT로 먼저 확인하고 raw_value를 추출
+- grounding judge는 numeric_extractor가 생성한 synthetic evidence_item 기준으로 판정
+- `plain_prefix`의 numeric_fact 실패는 ingest-side 문제로 별도 추적

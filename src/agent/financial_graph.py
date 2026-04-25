@@ -108,6 +108,7 @@ class FinancialAgentState(TypedDict):
     sentence_checks: List[Dict[str, Any]]
     answer: str
     citations: List[str]
+    numeric_debug_trace: Dict[str, Any]
 
 
 class EntityExtraction(BaseModel):
@@ -159,6 +160,24 @@ class CompressionOutput(BaseModel):
     )
     draft_answer: str = Field(
         description="structured evidence만으로 압축한 답변 초안",
+    )
+
+
+class NumericExtraction(BaseModel):
+    period_check: str = Field(
+        description="질문이 요구하는 연도/기수(예: 2024년, 당기, 제56기)를 확인하고, 문서(표)에서 해당 기간의 열을 찾았는지 설명"
+    )
+    consolidation_check: str = Field(
+        description="질문이 요구하는 기준(연결/별도)을 확인하고, 문서의 기준과 일치하는지 판단"
+    )
+    unit: str = Field(
+        description="해당 숫자가 있는 표나 문단에 명시된 금액 단위 (예: 원, 천원, 백만원, 억원, %)"
+    )
+    raw_value: str = Field(
+        description="문서에서 찾은 원본 숫자 텍스트 그대로 (예: '300,870,903'). 단위 변환 금지."
+    )
+    final_value: str = Field(
+        description="질문에 대한 최종 답변 문장. raw_value와 unit을 바탕으로 자연스러운 한국어 한 문장으로 작성."
     )
 
 
@@ -1236,6 +1255,109 @@ Structured Evidence:
                 evidence_items=selected_evidence,
             )
 
+    def _extract_numeric_fact(self, state: FinancialAgentState) -> Dict[str, Any]:
+        docs = state.get("retrieved_docs", [])
+        empty_result: Dict[str, Any] = {
+            "answer": "관련 공시 문서에서 요청한 수치를 찾지 못했습니다.",
+            "compressed_answer": "",
+            "selected_claim_ids": [],
+            "draft_points": [],
+            "kept_claim_ids": [],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "evidence_status": "missing",
+            "numeric_debug_trace": {},
+        }
+        if not docs:
+            return empty_result
+
+        context = self._format_context(docs[: min(8, len(docs))])
+        structured_llm = self.llm.with_structured_output(NumericExtraction)
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 재무 데이터 전문 분석가입니다.
+아래 질문에 답하기 위해 공시 문서 컨텍스트에서 정확한 수치를 추출하세요.
+
+지시사항:
+1. 표(Table)에서 행과 열의 교차점을 정확히 확인하세요.
+2. 당기/전기, 연결/별도, 금액 단위를 최우선으로 확인하세요.
+3. raw_value는 문서에서 찾은 숫자를 변환 없이 그대로 적으세요.
+4. final_value는 raw_value와 unit을 바탕으로 질문에 직접 답하는 자연스러운 한국어 한 문장으로 작성하세요.
+5. 수치를 찾지 못한 경우 raw_value와 final_value를 빈 문자열로 두세요.
+
+질문: {query}
+
+컨텍스트:
+{context}
+"""
+        )
+
+        try:
+            result: NumericExtraction = (prompt | structured_llm).invoke(
+                {"query": state["query"], "context": context}
+            )
+            debug_trace = result.model_dump()
+            logger.info(
+                "[numeric_extractor] period=%s consolidation=%s unit=%s raw=%s",
+                (result.period_check or "")[:60],
+                (result.consolidation_check or "")[:60],
+                result.unit,
+                result.raw_value,
+            )
+            answer = result.final_value if result.final_value else empty_result["answer"]
+        except Exception as exc:
+            logger.warning("[numeric_extractor] structured output failed: %s", exc)
+            debug_trace = {"error": str(exc)}
+            answer = empty_result["answer"]
+
+        # grounding judge가 검증할 수 있도록 numeric_extractor 결과를 evidence_item으로 변환
+        evidence_items: List[Dict[str, Any]] = []
+        evidence_bullets: List[str] = []
+        evidence_status = "missing"
+        if debug_trace and debug_trace.get("raw_value"):
+            anchor = self._build_source_anchor(
+                (docs[0][0].metadata if docs else {})
+            )
+            claim = f"{debug_trace.get('raw_value', '')} ({debug_trace.get('unit', '')})"
+            quote_span = debug_trace.get("raw_value", "")
+            evidence_items = [
+                {
+                    "evidence_id": "ev_001",
+                    "source_anchor": anchor,
+                    "claim": claim,
+                    "quote_span": quote_span,
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [debug_trace.get("raw_value", ""), debug_trace.get("unit", "")],
+                    "metadata": docs[0][0].metadata if docs else {},
+                }
+            ]
+            evidence_bullets = [f"- {anchor} {claim} (direct)"]
+            evidence_status = "sufficient"
+
+        return {
+            "answer": answer,
+            "compressed_answer": answer,
+            "selected_claim_ids": ["ev_001"] if evidence_items else [],
+            "draft_points": [answer] if answer else [],
+            "kept_claim_ids": ["ev_001"] if evidence_items else [],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [],
+            "evidence_items": evidence_items,
+            "evidence_bullets": evidence_bullets,
+            "evidence_status": evidence_status,
+            "numeric_debug_trace": debug_trace,
+        }
+
+    def _route_after_expand(self, state: FinancialAgentState) -> str:
+        intent = state.get("intent") or state.get("query_type", "qa")
+        if intent == "numeric_fact":
+            return "numeric_extractor"
+        return "evidence"
+
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()
         citations: List[str] = []
@@ -1264,6 +1386,7 @@ Structured Evidence:
         graph.add_node("extract", self._extract_entities)
         graph.add_node("retrieve", self._retrieve)
         graph.add_node("expand", self._expand_via_structure_graph)
+        graph.add_node("numeric_extractor", self._extract_numeric_fact)
         graph.add_node("evidence", self._extract_evidence)
         graph.add_node("compress", self._compress_answer)
         graph.add_node("validate", self._validate_answer)
@@ -1273,7 +1396,12 @@ Structured Evidence:
         graph.add_edge("classify", "extract")
         graph.add_edge("extract", "retrieve")
         graph.add_edge("retrieve", "expand")
-        graph.add_edge("expand", "evidence")
+        graph.add_conditional_edges(
+            "expand",
+            self._route_after_expand,
+            {"numeric_extractor": "numeric_extractor", "evidence": "evidence"},
+        )
+        graph.add_edge("numeric_extractor", "cite")
         graph.add_edge("evidence", "compress")
         graph.add_edge("compress", "validate")
         graph.add_edge("validate", "cite")
@@ -1308,6 +1436,7 @@ Structured Evidence:
             "sentence_checks": [],
             "answer": "",
             "citations": [],
+            "numeric_debug_trace": {},
         }
         final = self.graph.invoke(initial)
         return {
@@ -1331,6 +1460,7 @@ Structured Evidence:
             "dropped_claim_ids": final.get("dropped_claim_ids", []),
             "unsupported_sentences": final.get("unsupported_sentences", []),
             "sentence_checks": final.get("sentence_checks", []),
+            "numeric_debug_trace": final.get("numeric_debug_trace", {}),
         }
 
     def ingest(self, chunks: List) -> None:

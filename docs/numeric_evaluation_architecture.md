@@ -304,18 +304,20 @@ question
   - `Retrieval Support Check`
   - `Conflict Resolver`
   가 `numeric_fact` path에 1차 구현됨
+- **Generation-side 분리 (결정 60, 2026-04-26)**
+  - `numeric_extractor` 노드가 `compress → validate`를 bypass하고 직접 수치 추출
+  - `NumericExtraction` Pydantic 스키마로 period/consolidation/unit/raw_value CoT 강제
+  - `selective_v2_prefix` 기준 `numeric_fact_001`: FAIL → PASS 회복
 
-삼성전자 `numeric_fact_001` 재검증 기준:
+삼성전자 `numeric_fact_001` 기준 (`numeric_extractor_v2_2026-04-26`):
 
-- generic `faithfulness = 0.0`
-- `numeric_final_judgement = PASS`
-
-즉 설계 문서 수준을 넘어서, 이미 false fail을 줄이는 방향의 최소 구현은 들어간 상태다.
+- `numeric_final_judgement = PASS` (contextual_all, contextual_parent_only, selective_v2_prefix)
+- `plain_prefix`: UNCERTAIN 지속 — ingest-side 문제로 별도 추적
 
 남은 단계:
 
+- `plain_prefix`의 numeric_fact 실패 원인 파악 (plain chunk에 table row가 수치를 포함하지 않는 문제)
 - aggregate / summary에서 `numeric_final_judgement`를 더 전면에 반영
-- `PASS / FAIL / UNCERTAIN` 해석 규칙 정교화
 - cross-company summary 및 winner selection 해석에 numeric evaluator 반영
 
 ## Trade-offs
