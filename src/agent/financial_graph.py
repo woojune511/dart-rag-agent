@@ -126,6 +126,13 @@ class EntityExtraction(BaseModel):
 
 class EvidenceItem(BaseModel):
     source_anchor: str = Field(description="근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]")
+    parent_category: Optional[str] = Field(
+        default=None,
+        description=(
+            "해당 근거가 속한 상위 범주 레이블. "
+            "예: '시장위험', 'DS부문'. 문서에 명시된 상위 범주가 없으면 None."
+        ),
+    )
     claim: str = Field(description="질문에 직접적으로 도움이 되는 근거 진술")
     support_level: Literal["direct", "partial", "context"] = Field(
         description="direct=직접 근거, partial=부분 근거, context=배경 설명"
@@ -684,7 +691,7 @@ class FinancialAgent:
                 seen_terms.add(cleaned)
                 allowed_terms.append(cleaned)
 
-        return {
+        result: Dict[str, Any] = {
             "evidence_id": f"ev_{index:03d}",
             "source_anchor": item.source_anchor,
             "claim": item.claim,
@@ -694,6 +701,9 @@ class FinancialAgent:
             "allowed_terms": allowed_terms,
             "metadata": metadata,
         }
+        if item.parent_category:
+            result["parent_category"] = item.parent_category.strip()
+        return result
 
     def _sort_evidence_items(self, evidence_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         relevance_order = {"high": 0, "medium": 1, "low": 2}
@@ -722,6 +732,10 @@ class FinancialAgent:
                     f"  source_anchor: {item.get('source_anchor', '?')}",
                     f"  support_level: {item.get('support_level', '?')}",
                     f"  question_relevance: {item.get('question_relevance', '?')}",
+                ]
+                if item.get("parent_category"):
+                    lines.append(f"  parent_category: {item['parent_category']}")
+                lines += [
                     f"  claim: {item.get('claim', '')}",
                 ]
                 if quote_span:
@@ -937,12 +951,16 @@ class FinancialAgent:
             "business_overview": (
                 "질문에 직접 필요한 사업 구조를 정리하되, 각 부문을 설명할 때 "
                 "근거에 등장하는 구체적인 예시(제품명, 주요 역할 등)를 생략하지 말고 포함하세요. "
-                "같은 사실을 반복하거나 evidence에 없는 배경 설명은 빼세요."
+                "같은 사실을 반복하거나 evidence에 없는 배경 설명은 빼세요. "
+                "evidence에 parent_category가 명시된 항목들은 해당 상위 부문을 먼저 적고 "
+                "그 아래에 하위 항목을 묶어서 구조화하세요."
             ),
             "risk": (
                 "근거에 있는 리스크 항목만 추출하세요. 각 항목을 나열할 때 이름만 적지 말고, "
                 "근거에 있는 구체적인 정의나 영향을 한 줄씩 함께 요약하세요. "
-                "새 taxonomy를 만들거나 상위 범주로 재구성하지 마세요."
+                "evidence에 parent_category가 명시된 항목들은 해당 상위 범주(예: 시장위험)를 먼저 적고 "
+                "그 아래에 하위 항목을 묶어서 구조화하세요. "
+                "evidence에 없는 새로운 상위 범주를 만들지 마세요."
             ),
             "comparison": "각 항목을 나란히 비교하되, evidence에 직접 있는 차이만 정리하세요.",
             "trend": "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요.",
@@ -978,13 +996,28 @@ class FinancialAgent:
         query_type = state.get("query_type", "qa")
         evidence_context = self._build_evidence_context(docs[: min(8, len(docs))])
         anchor_lookup = evidence_context["anchor_lookup"]
-        extra_rules = (
-            "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
-            "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
-            "\n- [중요] 컨텍스트에 여러 개의 독립적인 리스크 항목이 나열되어 있다면, "
-            "임의로 그룹화하거나 생략하지 마세요. "
-            "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-        ) if query_type == "risk" else ""
+        if query_type == "risk":
+            extra_rules = (
+                "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
+                "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
+                "\n- [중요] 컨텍스트에 여러 개의 독립적인 리스크 항목이 나열되어 있다면, "
+                "임의로 그룹화하거나 생략하지 마세요. "
+                "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
+                "\n- 문서에서 여러 하위 항목이 상위 범주 아래 묶여 있다면(예: '시장위험' 아래 환율변동위험·이자율변동위험·주가변동위험), "
+                "각 하위 항목의 parent_category 필드에 해당 상위 범주 명칭을 그대로 적으세요. "
+                "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
+            )
+        elif query_type == "business_overview":
+            extra_rules = (
+                "\n- [중요] 컨텍스트에 여러 개의 독립적인 사업 부문이나 항목이 나열되어 있다면, "
+                "임의로 그룹화하거나 생략하지 마세요. "
+                "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
+                "\n- 문서에서 여러 하위 항목이 상위 부문 아래 묶여 있다면(예: 'DS부문' 아래 메모리·시스템반도체·파운드리), "
+                "각 하위 항목의 parent_category 필드에 해당 상위 부문 명칭을 그대로 적으세요. "
+                "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
+            )
+        else:
+            extra_rules = ""
         prompt = ChatPromptTemplate.from_template(
             """당신은 기업 공시 분석 보조자입니다.
 질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.

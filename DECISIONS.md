@@ -1087,3 +1087,56 @@ extra_rules = (
 - exhaustive extraction 규칙을 유지한다.
 - risk completeness 0.7은 현 시점 허용 범위로 본다. 1.0을 안정적으로 달성하려면 evidence extraction을 deterministic하게 만들거나 (regex+LLM hybrid), 또는 retrieval이 더 완전한 리스크 섹션을 가져오는 방향이 필요하다.
 - risk faithfulness 0.3 문제는 evaluator 구조 한계로 현 단계에서는 수정하지 않는다.
+
+---
+
+## 결정 63 — `EvidenceItem`에 `parent_category` 필드를 추가해 계층 구조를 명시적 메타데이터로 전달한다
+
+**문제**: `exhaustive_extraction_2026-04-26` 결과 분석에서 risk completeness가 0.7에서 멈추는 원인을 파악했다. `completeness_reason`을 실제로 읽어보면, 항목(환율변동위험·이자율변동위험·주가변동위험·신용위험·유동성위험)은 모두 추출되어 있는데도 0.7이 나오는 이유가 두 가지였다:
+
+1. **계층 레이블 손실**: `_extract_evidence`가 하위 항목들을 독립 EvidenceItem으로 뽑으면서 "이 세 개가 시장위험의 하위 항목"이라는 상위 범주 정보가 소실된다. `_compress_answer`는 flat list를 받으므로 계층을 복원하지 못하고 `[환율변동위험, 이자율변동위험, 주가변동위험, 신용위험, 유동성위험]`을 동등한 peer로 나열한다. answer_key는 `시장위험(→ 3개 하위), 신용위험, 유동성위험`의 계층 구조를 기대하므로 completeness judge가 차감한다.
+
+2. **범위 이탈**: `자본위험`이 공시에는 실제로 존재하는 항목이지만 answer_key에 없어서 judge가 scope 이탈로 차감한다.
+
+**왜 Option A(compress guidance만 수정)가 부족한가**: compress에게 "같은 부모를 공유하면 묶어라"고 지시해도 LLM이 flat text에서 부모를 추론해야 하므로 비결정성이 다시 살아난다. 계층 정보는 extraction 단계에서 구조화된 메타데이터로 명시적으로 넘겨야 한다.
+
+**수정** (`src/agent/financial_graph.py`):
+
+1. **`EvidenceItem` 스키마 확장**:
+   ```python
+   parent_category: Optional[str] = Field(
+       default=None,
+       description="해당 근거가 속한 상위 범주 레이블. 예: '시장위험', 'DS부문'. 문서에 명시된 상위 범주가 없으면 None."
+   )
+   ```
+
+2. **`_extract_evidence` extra_rules 확장**:
+   - `risk`: 기존 exhaustive 규칙 유지 + parent_category 태깅 지시 추가
+     - "여러 하위 항목이 상위 범주 아래 묶여 있다면(예: '시장위험' 아래 환율·이자율·주가변동위험), 각 하위 항목의 parent_category 필드에 해당 상위 범주 명칭을 그대로 적으세요"
+   - `business_overview`: exhaustive + parent_category 규칙 신규 추가
+
+3. **`_build_runtime_evidence_item`**: `parent_category`가 있을 때만 dict에 포함 (None이면 키 생략)
+
+4. **`_format_evidence_for_prompt`**: `parent_category`가 있는 항목에만 `parent_category: ...` 라인 렌더링
+
+5. **`_compression_guidance` (risk / business_overview)**:
+   - "evidence에 parent_category가 명시된 항목들은 해당 상위 범주를 먼저 적고 하위 항목을 묶어서 구조화"
+
+**기대 효과**:
+
+extract 단계 출력이 아래처럼 명시적 계층 태그를 포함하게 된다:
+
+```
+- evidence_id: ev_001
+  parent_category: 시장위험
+  claim: 환율변동위험 — 기능통화 외의 통화로 표시된 자산·부채 환산 과정에서 환율 변동이 손익에 영향
+- evidence_id: ev_002
+  parent_category: 시장위험
+  claim: 이자율변동위험 — 변동금리 차입금 보유로 인한 금융비용 변동 위험
+- evidence_id: ev_004
+  claim: 신용위험 — 거래 상대방 채무불이행 시 금융자산 손실 위험
+```
+
+compress는 이 태그를 보고 `시장위험 > [환율변동위험, 이자율변동위험, 주가변동위험]`로 계층 구조를 명확히 복원할 수 있다.
+
+**다음 단계**: 벤치마크를 재실행해 risk_analysis_001 completeness가 0.7 → 1.0으로 개선되는지 확인한다.
