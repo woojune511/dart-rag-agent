@@ -732,9 +732,19 @@ class FinancialAgent:
             return "\n\n".join(parts)
         return "\n".join(evidence_bullets)
 
-    def _select_evidence_for_compression(self, evidence_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    # enumeration 질문은 항목이 많아 기본 cap=6이 부족할 수 있음
+    _EVIDENCE_CAP_BY_QUERY_TYPE: Dict[str, int] = {
+        "risk": 10,
+        "business_overview": 8,
+        "comparison": 8,
+    }
+
+    def _select_evidence_for_compression(
+        self, evidence_items: List[Dict[str, Any]], query_type: str = "qa"
+    ) -> List[Dict[str, Any]]:
         if not evidence_items:
             return []
+        limit = self._EVIDENCE_CAP_BY_QUERY_TYPE.get(query_type, 6)
         ranked = self._sort_evidence_items(evidence_items)
         high_priority = [item for item in ranked if item.get("question_relevance") == "high"]
         medium_priority = [item for item in ranked if item.get("question_relevance") == "medium"]
@@ -744,9 +754,9 @@ class FinancialAgent:
         for pool in (high_priority, medium_priority, low_priority):
             for item in pool:
                 selected.append(item)
-                if len(selected) >= 6:
+                if len(selected) >= limit:
                     return selected
-        return selected[:6]
+        return selected[:limit]
 
     def _filter_evidence_by_ids(
         self,
@@ -925,11 +935,14 @@ class FinancialAgent:
                 "동일 값을 다른 단위나 다른 숫자 표기로 바꾸지 마세요."
             ),
             "business_overview": (
-                "질문에 직접 필요한 사업 구조만 간단히 정리하세요. 같은 사실을 반복하지 말고, "
-                "질문이 묻지 않은 배경 설명이나 예시는 빼세요."
+                "질문에 직접 필요한 사업 구조를 정리하되, 각 부문을 설명할 때 "
+                "근거에 등장하는 구체적인 예시(제품명, 주요 역할 등)를 생략하지 말고 포함하세요. "
+                "같은 사실을 반복하거나 evidence에 없는 배경 설명은 빼세요."
             ),
             "risk": (
-                "근거에 있는 리스크 항목만 나열하세요. 새 taxonomy를 만들거나 상위 범주로 재구성하지 마세요."
+                "근거에 있는 리스크 항목만 추출하세요. 각 항목을 나열할 때 이름만 적지 말고, "
+                "근거에 있는 구체적인 정의나 영향을 한 줄씩 함께 요약하세요. "
+                "새 taxonomy를 만들거나 상위 범주로 재구성하지 마세요."
             ),
             "comparison": "각 항목을 나란히 비교하되, evidence에 직접 있는 차이만 정리하세요.",
             "trend": "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요.",
@@ -937,8 +950,8 @@ class FinancialAgent:
         }
         output_styles = {
             "numeric_fact": "최대 1문장.",
-            "business_overview": "최대 3개 bullet 또는 2문장.",
-            "risk": "bullet 위주, 항목 수는 evidence 범위를 넘기지 말 것.",
+            "business_overview": "각 부문의 구체적 제품/역할이 포함된 3~5개의 bullet.",
+            "risk": "항목별로 이름과 짧은 설명(1~2줄)이 함께 있는 bullet. 항목 수는 evidence 범위를 넘기지 말 것.",
             "comparison": "짧은 bullet 비교.",
             "trend": "2~4문장.",
             "qa": "짧고 직접적으로.",
@@ -968,6 +981,9 @@ class FinancialAgent:
         extra_rules = (
             "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
             "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
+            "\n- [중요] 컨텍스트에 여러 개의 독립적인 리스크 항목이 나열되어 있다면, "
+            "임의로 그룹화하거나 생략하지 마세요. "
+            "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
         ) if query_type == "risk" else ""
         prompt = ChatPromptTemplate.from_template(
             """당신은 기업 공시 분석 보조자입니다.
@@ -1076,7 +1092,7 @@ class FinancialAgent:
         coverage = state.get("evidence_status", "sparse")
         query = state["query"]
         query_type = state.get("query_type", "qa")
-        selected_evidence = self._select_evidence_for_compression(evidence_items)
+        selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
         guidance = self._compression_guidance(query_type, query, coverage)
 
@@ -1092,7 +1108,7 @@ Compression 규칙:
 - allowed_terms에 없는 새로운 분류명이나 핵심 용어는 만들지 마세요.
 - 질문이 요구하지 않은 배경 설명, 예시, 장황한 연결 문장은 넣지 마세요.
 - 가능한 한 중복 claim을 합치고, 같은 사실은 한 번만 말하세요.
-- 핵심 주장에는 source_anchor를 자연스럽게 반영하세요.
+- draft_answer와 draft_points 안에 `[회사 | 연도 | ...]` 형태의 source_anchor 원문을 절대 그대로 쓰지 마세요. 출처 추적은 selected_claim_ids로만 수행합니다.
 {coverage_note}
 
 질문 유형 지침:
@@ -1159,14 +1175,14 @@ Structured Evidence:
                 "answer": compressed_answer,
             }
 
+        query_type = state.get("query_type", "qa")
         evidence_items = state.get("evidence_items", [])
         evidence_bullets = state.get("evidence_bullets", [])
         selected_claim_ids = state.get("selected_claim_ids", [])
         selected_evidence = self._filter_evidence_by_ids(evidence_items, selected_claim_ids)
         if not selected_evidence:
-            selected_evidence = self._select_evidence_for_compression(evidence_items)
+            selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
-        query_type = state.get("query_type", "qa")
 
         structured_llm = self.llm.with_structured_output(ValidationOutput)
         validator_prompt = ChatPromptTemplate.from_template(
