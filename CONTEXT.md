@@ -747,3 +747,26 @@ focus run 관찰:
 - 앞으로는 chunking / canonical A-B / 라우팅 calibration처럼 질문이 분명한 비교 실험이 아닐 때는
   - `contextual_selective_v2_prefix_2500_320`
   를 기본 실험 후보로 사용한다
+
+## 2026-04-27 risk answer key / evaluator 점검
+
+이번 세션에서는 `timeout` / `concurrency` 이슈를 피하기 위해 후보를 하나로 줄인 `dev_fast_focus_selective_serial_2026-04-27`을 실행했고, full eval을 끝까지 완료했다.
+
+핵심 관찰:
+
+- `risk_analysis_001`은 실제 run에서 `risk / paragraph / semantic_fast_path`로 정상 라우팅되었고, `parent_category=시장위험` 구조도 보존됐다.
+- 최종 답변에는 `시장위험`, `신용위험`, `유동성위험`뿐 아니라 `이자율변동위험`, `주가변동위험`, `자본위험` 같은 grounded extra detail도 포함됐다.
+
+이후 evaluator 쪽에서 `allowed_grounded_extras`를 도입해 `risk_analysis_001`에 아래 항목을 허용 추가 정보로 기록했다.
+
+- `이자율변동위험`
+- `주가변동위험`
+- `자본위험`
+
+하지만 가장 작은 evaluator-only 재실험에서는, 이미 저장된 `risk_analysis_001` 답변을 completeness judge에 다시 넣었을 때 `allowed_grounded_extras` 유무와 관계없이 점수가 둘 다 `1.0`이었다.
+
+해석:
+
+- 이 패치는 현재 케이스의 점수를 실제로 구해준 결정적 해결책은 아니다.
+- 현재 judge는 이미 grounded extra detail을 상당 부분 허용하고 있다.
+- 따라서 `allowed_grounded_extras`는 당분간 **임시 안전장치**로만 간주하고, 장기적으로는 질문별 whitelist 대신 **"핵심 정답을 모두 포함했고 추가 내용이 retrieved context에 grounded되어 있으면 감점하지 않는다"**는 principle-based evaluator로 정리하는 쪽이 더 적절하다.

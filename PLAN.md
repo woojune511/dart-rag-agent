@@ -542,3 +542,9 @@ micro-dataset:
 - 즉 benchmark 질문은 더 이상 `contextual_all` vs 다수 후보를 매번 넓게 비교하기보다
   - 현재 최유력 운영 후보를 기준선으로 두고
   - 필요한 축만 분리해서 실험한다
+
+## 추가 메모 — evaluator patch의 성격
+
+- `risk_analysis_001`에 넣은 `allowed_grounded_extras`는 현재 기준 **임시 안전장치**다.
+- 가장 작은 evaluator-only 재실험에서는 이 필드 유무와 관계없이 completeness가 둘 다 `1.0`이었으므로, 이 패치를 현재 스프린트의 핵심 해결책으로 간주하지 않는다.
+- 다음 evaluator 개편 때는 질문별 whitelist를 더 늘리기보다, **핵심 정답을 모두 포함했고 추가 내용이 retrieved context에 grounded되어 있으면 감점하지 않는 principle-based completeness judge**로 정리하는 것을 목표로 한다.

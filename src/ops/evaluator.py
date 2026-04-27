@@ -74,6 +74,7 @@ class EvalExample:
     ground_truth_context_ids: List[str] = field(default_factory=list)
     ground_truth_evidence_quotes: List[str] = field(default_factory=list)
     required_entities: List[str] = field(default_factory=list)
+    allowed_grounded_extras: List[str] = field(default_factory=list)
     answer_type: str = ""
     expected_refusal: bool = False
     numeric_constraints: Dict[str, Any] = field(default_factory=dict)
@@ -210,12 +211,20 @@ _COMPLETENESS_PROMPT = """\
 [필수 엔티티]
 {required_entities}
 
+[허용되는 추가 grounded 항목]
+{allowed_grounded_extras}
+
 평가 기준:
 - 1.0: 질문이 요구한 핵심 요소를 빠짐없이, 이해하기 쉬운 완전한 문장으로 설명함
 - 0.7: 핵심 요소는 대체로 포함하지만 설명이 다소 짧거나 일부 맥락이 빠짐
 - 0.5: 절반 정도만 답했고 중요한 요소 누락이 있음
 - 0.3: 질문과 관련은 있으나 지나치게 짧거나 핵심 누락이 큼
 - 0.0: 질문 의도에 거의 답하지 못함
+
+중요 규칙:
+- 정답 기준 요약은 핵심 정답 스케치입니다.
+- 허용되는 추가 grounded 항목은 답변에 포함되어도 감점하지 말고, 빠져 있어도 감점하지 마세요.
+- 핵심 요소를 모두 충족한 답변이라면, 문서에 실제로 근거가 있는 추가 설명 때문에 completeness를 깎지 마세요.
 
 다음 JSON만 답하세요.
 {{
@@ -697,6 +706,11 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
         ground_truth_context_ids=[str(context_id) for context_id in ground_truth_context_ids if str(context_id).strip()],
         ground_truth_evidence_quotes=[str(quote) for quote in ground_truth_evidence_quotes if str(quote).strip()],
         required_entities=[str(entity) for entity in (item.get("required_entities") or []) if str(entity).strip()],
+        allowed_grounded_extras=[
+            str(entity)
+            for entity in (item.get("allowed_grounded_extras") or [])
+            if str(entity).strip()
+        ],
         answer_type=str(item.get("answer_type") or ""),
         expected_refusal=bool(item.get("expected_refusal", False)),
         numeric_constraints=dict(item.get("numeric_constraints") or {}),
@@ -740,11 +754,13 @@ def _compute_completeness_judge(
         return 0.0, "답변이 비어 있음"
 
     required_entities = ", ".join(example.required_entities) if example.required_entities else "-"
+    allowed_grounded_extras = ", ".join(example.allowed_grounded_extras) if example.allowed_grounded_extras else "-"
     prompt = _COMPLETENESS_PROMPT.format(
         question=example.question[:1000],
         answer=answer[:1500],
         answer_key=example.canonical_answer_key[:1000],
         required_entities=required_entities[:500],
+        allowed_grounded_extras=allowed_grounded_extras[:500],
     )
     try:
         response = llm.invoke(prompt)

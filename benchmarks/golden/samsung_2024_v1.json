@@ -336,6 +336,11 @@
       "신용위험",
       "유동성위험"
     ],
+    "allowed_grounded_extras": [
+      "이자율변동위험",
+      "주가변동위험",
+      "자본위험"
+    ],
     "answer_type": "summary",
     "expected_refusal": false,
     "reasoning_steps": [
@@ -349,7 +354,7 @@
       ]
     },
     "verification_status": "draft",
-    "notes": "risk synthesis 문항",
+    "notes": "risk synthesis 문항. 핵심 정답은 시장위험/신용위험/유동성위험이며, 이자율변동위험·주가변동위험·자본위험은 grounded extra detail로 허용한다.",
     "company": "삼성전자",
     "year": 2024,
     "expected_sections": [
