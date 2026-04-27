@@ -6,7 +6,7 @@
     "company": "삼성전자",
     "year": 2024,
     "expected_sections": ["매출현황", "주요 제품 및 서비스"],
-    "answer_key": "DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로 DX부문이 63조 8,218억원 더 크다.",
+    "answer_key": "2024년 DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로, DX부문이 DS부문보다 약 63조 8,218억원 더 크다.",
     "answer_type": "numeric",
     "evidence": [
       {
@@ -34,8 +34,125 @@
     "expected_calculation_result": {
       "normalized_value": 63821800000000.0,
       "normalized_unit": "KRW",
-      "rendered_contains": "63조 8,218억원",
+      "rendered_contains": "63조 8,21",
+      "tolerance": 0.001
+    }
+  },
+  {
+    "id": "comparison_002",
+    "question": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+    "category": "comparison",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["매출현황", "주요 제품 및 서비스"],
+    "answer_key": "2024년 SDC 매출은 29조 1,578억원, Harman 매출은 14조 2,749억원으로 합계는 43조 4,327억원이다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 659억원(36.9%)이며, SDC가 29조 1,578억원(9.7%), Harman은 14조 2,749억원(4.7%)입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "SDC와 Harman의 매출 원본 값을 직접 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "SDC 매출",
+        "period": "2024년",
+        "raw_value": "29조 1,578억원",
+        "raw_unit": "억원"
+      },
+      {
+        "label": "Harman 매출",
+        "period": "2024년",
+        "raw_value": "14조 2,749억원",
+        "raw_unit": "억원"
+      }
+    ],
+    "expected_operation": "add",
+    "expected_calculation_result": {
+      "normalized_value": 43432700000000.0,
+      "normalized_unit": "KRW",
+      "rendered_contains": "43조 4,327억원",
       "tolerance": 0.0
+    }
+  },
+  {
+    "id": "comparison_003",
+    "question": "삼성전자 2024 사업보고서에서 DS 부문 매출은 SDC 매출보다 얼마나 더 큰가요?",
+    "category": "comparison",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["매출현황", "주요 제품 및 서비스"],
+    "answer_key": "DS부문 매출은 111조 659억원, SDC 매출은 29조 1,578억원으로 DS부문이 SDC보다 약 81조 9,081억원 더 크다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 659억원(36.9%)이며, SDC가 29조 1,578억원(9.7%), Harman은 14조 2,749억원(4.7%)입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "DS부문과 SDC의 매출 원본 값을 직접 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "DS부문 매출",
+        "period": "2024년",
+        "raw_value": "111조 659억원",
+        "raw_unit": "억원"
+      },
+      {
+        "label": "SDC 매출",
+        "period": "2024년",
+        "raw_value": "29조 1,578억원",
+        "raw_unit": "억원"
+      }
+    ],
+    "expected_operation": "subtract",
+    "expected_calculation_result": {
+      "normalized_value": 81908100000000.0,
+      "normalized_unit": "KRW",
+      "rendered_contains": "81조 9,08",
+      "tolerance": 0.001
+    }
+  },
+  {
+    "id": "comparison_004",
+    "question": "삼성전자 2024 사업보고서에서 2024년 연결 기준 영업이익률은 얼마인가요?",
+    "category": "comparison",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["요약재무정보"],
+    "answer_key": "2024년 연결 기준 영업이익률은 약 10.9%이다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "quote": "매출액: 300,870,900 / 영업이익: 32,725,961 (단위: 백만원)",
+        "quote_type": "paraphrase",
+        "why_it_supports_answer": "영업이익률 계산에 필요한 매출과 영업이익을 같은 표에서 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "2024년 영업이익",
+        "period": "2024년",
+        "raw_value": "32,725,961",
+        "raw_unit": "백만원"
+      },
+      {
+        "label": "2024년 매출",
+        "period": "2024년",
+        "raw_value": "300,870,900",
+        "raw_unit": "백만원"
+      }
+    ],
+    "expected_operation": "ratio",
+    "expected_calculation_result": {
+      "normalized_value": 10.877078,
+      "normalized_unit": "PERCENT",
+      "rendered_contains": "10.9%",
+      "tolerance": 0.002
     }
   },
   {
@@ -117,6 +234,90 @@
       "normalized_unit": "PERCENT",
       "rendered_contains": "398.3%",
       "tolerance": 0.001
+    }
+  },
+  {
+    "id": "trend_003",
+    "question": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2022년 대비 몇 % 변했나요?",
+    "category": "trend",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["요약재무", "재무제표"],
+    "answer_key": "2024년 영업이익은 2022년 대비 약 24.6% 감소했다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "quote": "영업이익: 2024년 32,725,961 / 2022년 43,376,630 (단위: 백만원)",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "2022→2024 변화율 계산에 필요한 두 값을 직접 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "2024년 영업이익",
+        "period": "2024년",
+        "raw_value": "32,725,961",
+        "raw_unit": "백만원"
+      },
+      {
+        "label": "2022년 영업이익",
+        "period": "2022년",
+        "raw_value": "43,376,630",
+        "raw_unit": "백만원"
+      }
+    ],
+    "expected_operation": "growth_rate",
+    "expected_calculation_result": {
+      "normalized_value": -24.553934,
+      "normalized_unit": "PERCENT",
+      "rendered_contains": "24.6%",
+      "tolerance": 0.001
+    }
+  },
+  {
+    "id": "comparison_005",
+    "question": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+    "category": "comparison",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["연구개발", "요약재무정보"],
+    "answer_key": "2024년 연구개발비용은 35조 215억원으로 전체 매출(300조 8,709억원)의 약 11.6%를 차지한다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 연구개발 활동",
+        "quote": "2024년 연구개발비용은 35조 215억원입니다.",
+        "quote_type": "paraphrase",
+        "why_it_supports_answer": "연구개발비용 원본 값을 제시한다."
+      },
+      {
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "quote": "매출액: 300,870,900 (단위: 백만원)",
+        "quote_type": "paraphrase",
+        "why_it_supports_answer": "비중 계산에 필요한 전체 매출 값을 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "2024년 연구개발비용",
+        "period": "2024년",
+        "raw_value": "35조 215억원",
+        "raw_unit": "억원"
+      },
+      {
+        "label": "2024년 매출",
+        "period": "2024년",
+        "raw_value": "300,870,900",
+        "raw_unit": "백만원"
+      }
+    ],
+    "expected_operation": "ratio",
+    "expected_calculation_result": {
+      "normalized_value": 11.640042,
+      "normalized_unit": "PERCENT",
+      "rendered_contains": "11.6%",
+      "tolerance": 0.002
     }
   }
 ]

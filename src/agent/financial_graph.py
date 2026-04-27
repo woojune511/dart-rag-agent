@@ -125,7 +125,8 @@ class EntityExtraction(BaseModel):
         default=None,
         description=(
             "관련 섹션 레이블 하나. 예: 리스크, 재무제표, 연결재무제표, 요약재무, 재무주석, "
-            "사업개요, 주요제품, 원재료, 매출현황, 연구개발, 경영진단, 임원현황, 이사회, 주주현황, 계열회사"
+            "사업개요, 주요제품, 원재료, 매출현황, 연구개발, 경영진단, 임원현황, 이사회, 주주현황, 계열회사. "
+            "단, 두 개 이상의 서로 다른 섹션 데이터가 모두 필요한 질문(비율·비중·이익률 등 분자/분모가 다른 섹션에 있는 경우)은 None을 반환하세요."
         ),
     )
 
@@ -418,7 +419,11 @@ def _extract_period_sort_key(period: str) -> int:
 
 
 def _format_korean_won_compact(value: float) -> str:
-    amount = int(round(abs(value)))
+    # 1억 이상이면 억 단위에서 반올림, 미만이면 원 단위 그대로
+    if abs(value) >= 100_000_000:
+        amount = int(round(abs(value) / 100_000_000)) * 100_000_000
+    else:
+        amount = int(round(abs(value)))
     negative = value < 0
     jo = amount // 1_0000_0000_0000
     amount %= 1_0000_0000_0000
@@ -484,6 +489,9 @@ def _retrieval_hint_from_topic(topic: str, intent: str) -> str:
         hints.extend(["매출 및 수주상황", "손익계산서"])
     if "연구개발" in text:
         hints.append("연구개발")
+        # R&D 비중/비율 질문은 분모(총 매출)가 요약재무정보에 있으므로 함께 힌트 추가
+        if any(kw in text for kw in ("비중", "비율", "이익률", "차지")):
+            hints.append("요약재무정보")
     if "설비투자" in text or "투자" in text:
         hints.extend(["요약재무정보", "재무제표"])
     return " ".join(dict.fromkeys(hints))
@@ -521,8 +529,10 @@ class FinancialAgent:
         ),
         "comparison": (
             ("매출 및 수주상황", 0.10),
+            ("연구개발 활동", 0.10),
+            ("연구개발", 0.08),
             ("손익계산서", 0.08),
-            ("요약재무정보", 0.08),
+            ("요약재무정보", 0.10),
             ("연결재무제표", 0.06),
         ),
         "business_overview": (
@@ -1748,8 +1758,8 @@ Structured Evidence:
 - 여러 번 나눠 찾지 말고, 필요한 피연산자를 한 번의 호출로 모두 찾으세요.
 - operand_id는 비워도 됩니다. 코드는 이후에 고유 ID를 부여합니다.
 - 각 operand는 반드시 evidence_id와 source_anchor를 포함하세요.
-- raw_value는 문서에 있는 숫자 표현 그대로 적으세요.
-- raw_unit은 숫자 바로 옆 단위를 적으세요. 예: 조원, 억원, 백만원, %, 개
+- raw_value는 문서에 있는 숫자 표현 그대로 적으세요. '111조 659억원'처럼 조+억 복합 표기는 절대 억원이나 조원으로 변환하지 말고 원문 그대로 적으세요. 변환하면 반올림 오차가 발생합니다.
+- raw_unit은 숫자 바로 옆 단위를 적으세요. 복합 표기('111조 659억원')는 raw_unit을 '억원'으로 적지 말고, raw_value에 원문 전체를 넣고 raw_unit은 '원'으로 적으세요.
 - normalized_value와 normalized_unit은 추정해서 채워도 되지만, 이후 코드가 다시 검증합니다.
 - 비교/추세 질문은 질문 해결에 꼭 필요한 숫자만 추출하세요.
 - 추이(trend) 질문이고 evidence에 3개 이상의 연도/기간 수치가 보이면, 가능한 한 3개 이상 기간의 피연산자를 빠짐없이 추출하세요.
@@ -1926,6 +1936,38 @@ Structured Evidence:
             }
 
         if mode == "none" or not variable_bindings:
+            # 단일 PERCENT 피연산자이고 operation이 ratio/comparison이면 이미 계산된 값으로 passthrough
+            all_operands = list(operands.values())
+            if (
+                len(all_operands) == 1
+                and (all_operands[0].get("normalized_unit") or "").upper() in {"PERCENT", "%", "퍼센트"}
+                and all_operands[0].get("normalized_value") is not None
+            ):
+                single = all_operands[0]
+                result_val = float(single["normalized_value"])
+                rendered = f"{result_val:.1f}%"
+                ev_id = str(single.get("evidence_id") or "")
+                logger.info("[calculator] passthrough single PERCENT operand result=%s", rendered)
+                return {
+                    "answer": "",
+                    "compressed_answer": "",
+                    "selected_claim_ids": [ev_id] if ev_id else [],
+                    "draft_points": [],
+                    "kept_claim_ids": [ev_id] if ev_id else [],
+                    "dropped_claim_ids": [],
+                    "unsupported_sentences": [],
+                    "sentence_checks": [],
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": result_val,
+                        "result_unit": "%",
+                        "rendered_value": rendered,
+                        "formatted_result": "",
+                        "series": [],
+                        "derived_metrics": {"operand_labels": [str(single.get("label") or "")]},
+                        "explanation": explanation or "문서에 이미 계산된 비율 수치를 직접 사용",
+                    },
+                }
             return _fail("insufficient_operands", explanation or "no operation or operands")
 
         if not ordered_ids:
@@ -2108,6 +2150,11 @@ Structured Evidence:
             direction_hint = "더 큽니다" if result_val > 0 else "더 작습니다" if result_val < 0 else "동일합니다"
         else:
             direction_hint = ""
+
+        # direction_hint가 방향을 표현할 때 rendered_value의 부호는 중복 — 제거
+        if direction_hint and result_val < 0:
+            rv = str(calculation_result.get("rendered_value") or "")
+            calculation_result["rendered_value"] = rv.lstrip("-")
 
         if str(calculation_result.get("status") or "") != "ok":
             fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."

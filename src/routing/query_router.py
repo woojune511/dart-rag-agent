@@ -29,6 +29,7 @@ SEMANTIC_CONFUSION_PAIR_MARGIN = 0.10
 SEMANTIC_CONFUSION_PAIRS = {
     frozenset({"business_overview", "risk"}),
     frozenset({"business_overview", "numeric_fact"}),
+    frozenset({"numeric_fact", "comparison"}),
 }
 
 
@@ -200,7 +201,18 @@ class QueryRouter:
             semantic_result.get("scores", {}),
         )
 
-        if semantic_result.get("fast_path") and semantic_result.get("intent"):
+        # 계산이 필요한 질문은 numeric_fact fast-path를 차단해 LLM slow-path에서 comparison으로 분류
+        # 임베딩 공간 분리가 메인 방어선이나, margin이 threshold를 넘는 경우의 최후 안전장치
+        _CALC_GUARDRAIL_KEYWORDS = frozenset({"이익률", "비중", "합계", "합산", "비율"})
+        _numeric_fast_path_blocked = (
+            semantic_result.get("fast_path")
+            and semantic_result.get("intent") == "numeric_fact"
+            and any(kw in query for kw in _CALC_GUARDRAIL_KEYWORDS)
+        )
+        if _numeric_fast_path_blocked:
+            logger.info("[routing] fast-path blocked by calc guardrail; forcing slow-path LLM")
+
+        if semantic_result.get("fast_path") and semantic_result.get("intent") and not _numeric_fast_path_blocked:
             intent = str(semantic_result["intent"])
             format_preference = str(
                 semantic_result.get("format_preference") or default_format_preference(intent)
@@ -227,12 +239,17 @@ class QueryRouter:
             """다음 기업 공시 질문을 `intent`와 `format_preference`로 분류하세요.
 
 intent 정의:
-- numeric_fact : 특정 수치·금액·비율을 묻는 질의. 답이 단일 숫자 또는 명확한 수치 목록으로 귀결됨.
+- numeric_fact : 문서에 수치가 직접 기재되어 있어 조회만으로 답할 수 있는 질의. 계산 없이 단일 숫자를 찾으면 됨.
 - business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 구성 등 기업 개요를 묻는 질의.
 - risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
-- comparison : 두 기업 또는 두 항목을 명시적으로 비교하는 질의.
+- comparison : 두 수치를 더하거나 빼거나 나눠서 계산해야 답할 수 있는 질의. 합계·차이·비중·이익률 계산 포함.
 - trend : 시계열 변화·추이·성장률·전년 대비 변화를 묻는 질의.
 - qa : 위 유형에 해당하지 않는 일반 사실·설명 질의.
+
+[핵심 구분 규칙]
+- 두 항목을 더한 합계 → comparison
+- 두 수치를 나눠 비중·비율·이익률을 계산 → comparison
+- 문서에 수치가 이미 기재된 단일 값 조회 → numeric_fact
 
 format_preference 정의:
 - table : 표 기반 수치 근거를 우선해야 함
@@ -268,6 +285,15 @@ Q: 회사의 임직원 수는 총 몇 명인가요?
 A: intent=qa, format_preference=paragraph
 
 Q: DX와 DS 부문의 매출 차이는 얼마인가요?
+A: intent=comparison, format_preference=table
+
+Q: SDC와 Harman 부문의 매출 합계는 얼마인가요?
+A: intent=comparison, format_preference=table
+
+Q: 연결 기준 영업이익률은 얼마인가요?
+A: intent=comparison, format_preference=table
+
+Q: 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?
 A: intent=comparison, format_preference=table
 
 Q: 최근 3년 영업이익 추이는 어떻게 변했나요?

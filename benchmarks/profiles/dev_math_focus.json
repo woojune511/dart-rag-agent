@@ -5,7 +5,7 @@
     "max_workers": 1,
     "batch_size": 2,
     "eval_mode": "question_ids",
-    "eval_limit": 3,
+    "eval_limit": 8,
     "reuse_store": true,
     "reuse_context_cache": true,
     "force_reindex": false,
@@ -26,8 +26,13 @@
     "mlflow_experiment_name": "dart_rag_benchmark_dev_math_focus",
     "question_ids": [
       "comparison_001",
+      "comparison_002",
+      "comparison_003",
+      "comparison_004",
+      "comparison_005",
       "trend_001",
-      "trend_002"
+      "trend_002",
+      "trend_003"
     ]
   },
   "candidate_ids": [
@@ -46,11 +51,16 @@
   "full_evaluation": {
     "enabled": true,
     "eval_mode": "question_ids",
-    "eval_limit": 3,
+    "eval_limit": 8,
     "question_ids": [
       "comparison_001",
+      "comparison_002",
+      "comparison_003",
+      "comparison_004",
+      "comparison_005",
       "trend_001",
-      "trend_002"
+      "trend_002",
+      "trend_003"
     ]
   },
   "company_runs": [
