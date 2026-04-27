@@ -1879,7 +1879,9 @@ Structured Evidence:
             if unit == "천원":
                 return f"{value / 1_000:.4f}".rstrip("0").rstrip(".")
             return f"{value:,.0f}"
-        if normalized_unit in {"PERCENT", "COUNT", "USD"}:
+        if (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}:
+            return f"{value:.1f}"
+        if normalized_unit in {"COUNT", "USD"}:
             return f"{value:,.4f}".rstrip("0").rstrip(".")
         return f"{value}"
 
@@ -1996,9 +1998,11 @@ Structured Evidence:
                 result_value = _safe_eval_formula(formula, env)
                 if result_unit == "%":
                     normalized_unit = "PERCENT"
-                rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
-                if normalized_unit == "PERCENT" and not rendered_value.endswith("%"):
-                    rendered_value += "%"
+                _is_percent = (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}
+                if _is_percent:
+                    rendered_value = f"{result_value:.1f}%"
+                else:
+                    rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
                 logger.info("[calculator] mode=%s op=%s result=%s%s", mode, operation, rendered_value, result_unit)
                 return {
                     "answer": "",
@@ -2095,6 +2099,16 @@ Structured Evidence:
         if not calculation_result:
             return {"answer": "", "compressed_answer": "", "draft_points": []}
 
+        # direction_hint: Python에서 결정론적으로 계산 — LLM에게 부호 판단 위임하지 않음
+        operation = str(plan.get("operation") or "")
+        result_val = float(calculation_result.get("result_value") or 0)
+        if operation == "growth_rate":
+            direction_hint = "증가" if result_val > 0 else "감소" if result_val < 0 else "변동 없음"
+        elif operation == "subtract":
+            direction_hint = "더 큽니다" if result_val > 0 else "더 작습니다" if result_val < 0 else "동일합니다"
+        else:
+            direction_hint = ""
+
         if str(calculation_result.get("status") or "") != "ok":
             fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
             return {
@@ -2107,16 +2121,19 @@ Structured Evidence:
         prompt = ChatPromptTemplate.from_template(
             """당신은 한국 기업 공시(DART) 계산 결과를 사용자 친화적인 한국어로 렌더링하는 분석가입니다.
 
-[Strict Grounding]
-- 당신은 제공된 CalculationPlan, CalculationResult, operand labels/series의 숫자만 사용하여 답변을 작성해야 합니다.
-- 데이터에 없는 새로운 연도, 새로운 금액, 스스로 다시 계산한 비율을 절대 지어내지 마세요.
-- 답변에 등장하는 모든 숫자 표현은 입력 JSON에서 직접 추적 가능해야 합니다.
-- trend를 해석할 때(예: 상승, 하락, 반등, 변동성 존재)는 반드시 series 또는 derived_metrics에 존재하는 명확한 수치 변화를 근거로 표현하세요.
-- operand label은 필요하면 조금 자연스럽게 풀어쓸 수 있지만, 새로운 항목명을 만들지 마세요.
+[렌더링 규칙]
+- CalculationResult의 rendered_value를 그대로 사용하세요. 숫자를 다시 계산하거나 형식을 바꾸지 마세요.
+- operand label에 포함된 연도·기간 정보(예: '2024년', '2023년', '1분기')는 반드시 그대로 유지하세요. '2024년 영업이익'을 '영업이익'으로 줄이지 마세요.
+- direction_hint가 제공된 경우, 그 단어를 그대로 사용하세요. 임의로 '변동', '차이' 등 중립적 표현으로 바꾸지 마세요.
+- time_series 해석(상승·하락·반등 등)은 series 또는 derived_metrics의 수치 변화를 근거로 표현하세요.
+- 데이터에 없는 새로운 연도, 금액, 비율을 만들지 마세요.
 - 질문에 직접 답하는 1~2문장만 작성하세요.
 
 질문:
 {query}
+
+Direction Hint (방향 판단 결과, 비어 있으면 무시):
+{direction_hint}
 
 CalculationPlan:
 {plan_json}
@@ -2134,6 +2151,7 @@ Operands:
             rendered: CalculationRenderOutput = (prompt | structured_llm).invoke(
                 {
                     "query": state["query"],
+                    "direction_hint": direction_hint,
                     "plan_json": json.dumps(plan, ensure_ascii=False, indent=2),
                     "result_json": json.dumps(calculation_result, ensure_ascii=False, indent=2),
                     "operands_json": json.dumps(operands, ensure_ascii=False, indent=2),
