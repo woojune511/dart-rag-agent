@@ -80,6 +80,9 @@ class EvalExample:
     numeric_constraints: Dict[str, Any] = field(default_factory=dict)
     reasoning_steps: List[str] = field(default_factory=list)
     aliases: Dict[str, List[str]] = field(default_factory=dict)
+    expected_operands: List[Dict[str, Any]] = field(default_factory=list)
+    expected_operation: str = ""
+    expected_calculation_result: Dict[str, Any] = field(default_factory=dict)
     verification_status: str = ""
     notes: str = ""
 
@@ -138,6 +141,11 @@ class EvalResult:
     latency_sec: float
     routing_scores: Dict[str, float] = field(default_factory=dict)
     absolute_error_rate: Optional[float] = None
+    operand_selection_correctness: Optional[float] = None
+    unit_consistency_pass: Optional[float] = None
+    numeric_result_correctness: Optional[float] = None
+    trend_interpretation_correctness: Optional[float] = None
+    grounded_rendering_correctness: Optional[float] = None
     calculation_correctness: Optional[float] = None
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
@@ -155,6 +163,9 @@ class EvalResult:
     numeric_final_judgement: Optional[str] = None
     numeric_confidence: Optional[float] = None
     numeric_debug: Dict[str, Any] = field(default_factory=dict)
+    calculation_operands: List[Dict[str, Any]] = field(default_factory=list)
+    calculation_plan: Dict[str, Any] = field(default_factory=dict)
+    calculation_result: Dict[str, Any] = field(default_factory=dict)
     missing_info_policy: Optional[str] = None
     error: Optional[str] = None
 
@@ -267,6 +278,64 @@ _NUMERIC_GROUNDING_PROMPT = """\
 }}
 """
 
+_TREND_INTERPRETATION_PROMPT = """\
+다음은 계산 노드가 만든 시계열 결과와 사용자의 질문, 그리고 최종 답변입니다.
+답변의 추세 해석이 계산 결과와 일치하는지 평가하세요.
+
+중요 규칙:
+- 오직 series와 derived_metrics에 있는 수치 변화를 기준으로 판단하세요.
+- "하락 후 반등", "감소 후 증가", "회복", "상승세"처럼 표현은 다양할 수 있으므로 의미가 같으면 정답으로 인정하세요.
+- 답변 문구가 정답 기준과 완전히 동일할 필요는 없습니다.
+- 새로운 숫자를 지어냈는지는 여기서 보지 말고, 오직 추세 해석의 타당성만 보세요.
+
+[질문]
+{question}
+
+[정답 기대 해석]
+{expected_direction}
+
+[CalculationResult]
+{result_json}
+
+[답변]
+{answer}
+
+다음 JSON만 답하세요.
+{{
+  "score": 0.0,
+  "reason": "짧은 이유"
+}}
+"""
+
+_GROUNDED_RENDERING_PROMPT = """\
+다음은 계산 노드가 만든 구조화된 계산 결과와 최종 답변입니다.
+최종 답변이 CalculationResult/Operands에 있는 금액과 비율만 사용해 작성되었는지 평가하세요.
+
+중요 규칙:
+- 연도(2022, 2023, 2024 등), 기수, 분기, 항목 이름에 포함된 숫자는 검증 대상이 아닙니다.
+- 오직 금액(원, 억원, 조원, 백만원 등)과 비율(%)이 grounded 되어 있는지만 보세요.
+- 반올림이나 단위 변환으로 의미가 같은 경우는 grounded로 인정하세요.
+- 답변이 새로운 금액이나 비율을 만들어냈다면 not_grounded입니다.
+
+[질문]
+{question}
+
+[Operands]
+{operands_json}
+
+[CalculationResult]
+{result_json}
+
+[답변]
+{answer}
+
+다음 JSON만 답하세요.
+{{
+  "score": 0.0,
+  "reason": "짧은 이유"
+}}
+"""
+
 
 def _tokenize_ko(text: str) -> set[str]:
     tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
@@ -304,6 +373,60 @@ def _parse_number(value: str) -> Optional[float]:
         return float(cleaned)
     except ValueError:
         return None
+
+
+def _extract_composite_krw_value(text: str) -> Optional[float]:
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    composite = re.search(r"(?P<jo>[\d,]+(?:\.\d+)?)\s*조\s*(?P<eok>[\d,]+(?:\.\d+)?)\s*억", cleaned)
+    if composite:
+        jo = _parse_number(composite.group("jo"))
+        eok = _parse_number(composite.group("eok"))
+        if jo is None or eok is None:
+            return None
+        return jo * 1_0000_0000_0000 + eok * 100_000_000
+    only_jo = re.search(r"(?P<jo>[\d,]+(?:\.\d+)?)\s*조\s*원?", cleaned)
+    if only_jo:
+        jo = _parse_number(only_jo.group("jo"))
+        if jo is not None:
+            return jo * 1_0000_0000_0000
+    return None
+
+
+def _normalise_math_operand_value(raw_value: str, raw_unit: str) -> Tuple[Optional[float], str]:
+    unit = re.sub(r"\s+", "", str(raw_unit or "")).lower()
+    composite_krw = _extract_composite_krw_value(raw_value)
+    if composite_krw is not None:
+        return composite_krw, "KRW"
+
+    value = _parse_number(raw_value)
+    if value is None:
+        return None, "UNKNOWN"
+
+    krw_scale = {
+        "원": 1.0,
+        "천원": 1_000.0,
+        "백만원": 1_000_000.0,
+        "억원": 100_000_000.0,
+        "조원": 1_0000_0000_0000.0,
+    }
+    usd_scale = {
+        "usd": 1.0,
+        "$": 1.0,
+        "달러": 1.0,
+        "백만달러": 1_000_000.0,
+    }
+    count_units = {"개", "명", "곳", "사"}
+    percent_units = {"%", "퍼센트"}
+
+    if unit in krw_scale:
+        return value * krw_scale[unit], "KRW"
+    if unit in usd_scale:
+        return value * usd_scale[unit], "USD"
+    if unit in count_units:
+        return value, "COUNT"
+    if unit in percent_units:
+        return value, "PERCENT"
+    return value, "UNKNOWN"
 
 
 def _is_overlapping(start: int, end: int, spans: List[Tuple[int, int]]) -> bool:
@@ -716,6 +839,13 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
         numeric_constraints=dict(item.get("numeric_constraints") or {}),
         reasoning_steps=[str(step) for step in (item.get("reasoning_steps") or []) if str(step).strip()],
         aliases=normalised_aliases,
+        expected_operands=[
+            dict(row)
+            for row in (item.get("expected_operands") or [])
+            if isinstance(row, dict)
+        ],
+        expected_operation=str(item.get("expected_operation") or ""),
+        expected_calculation_result=dict(item.get("expected_calculation_result") or {}),
         verification_status=str(item.get("verification_status") or ""),
         notes=str(item.get("notes") or ""),
     )
@@ -764,9 +894,7 @@ def _compute_completeness_judge(
     )
     try:
         response = llm.invoke(prompt)
-        text = response.content.strip()
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        payload = json.loads(match.group(0) if match else text)
+        payload = _extract_json_object(getattr(response, "content", ""))
         score = payload.get("score")
         score_value = float(score) if score is not None else None
         if score_value is not None:
@@ -999,6 +1127,22 @@ def _should_override_numeric_faithfulness(numeric_eval: Dict[str, Any]) -> bool:
     )
 
 
+def _extract_json_object(text: str) -> Dict[str, Any]:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return {}
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if not match:
+            return {}
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return {}
+
+
 def _compute_missing_info_compliance(example: EvalExample, answer: str) -> Optional[float]:
     category = (example.category or "").lower()
     if category != "missing_information":
@@ -1056,19 +1200,224 @@ def _compute_absolute_error_rate(
     return best_error
 
 
-def _compute_calculation_correctness(
+def _default_calculation_absolute_tolerance(unit: str) -> float:
+    normalized = str(unit or "").strip().upper()
+    if normalized == "KRW":
+        return 100_000_000.0
+    if normalized == "PERCENT":
+        return 0.1
+    if normalized == "COUNT":
+        return 1.0
+    return 0.0
+
+
+def _compute_numeric_result_correctness(
     example: EvalExample,
-    numeric_equivalence: Optional[float],
-    absolute_error_rate: Optional[float],
+    calculation_result: Dict[str, Any],
 ) -> Optional[float]:
-    if (example.category or "").lower() != "multi-hop-calculation":
+    expected = dict(example.expected_calculation_result or {})
+    expected_value = _safe_float(expected.get("normalized_value"))
+    if expected_value is None:
         return None
-    if numeric_equivalence is not None:
-        return float(numeric_equivalence)
-    if absolute_error_rate is None:
+    if str(calculation_result.get("status") or "") != "ok":
+        return 0.0
+    actual_value = _safe_float(calculation_result.get("result_value"))
+    if actual_value is None:
+        return 0.0
+
+    relative_tolerance = float(expected.get("tolerance", 0.0) or 0.0)
+    expected_unit = str(expected.get("normalized_unit") or calculation_result.get("result_unit") or "")
+    absolute_tolerance = _default_calculation_absolute_tolerance(expected_unit)
+    absolute_error = abs(actual_value - expected_value)
+    if absolute_error <= absolute_tolerance:
+        return 1.0
+
+    denominator = max(abs(expected_value), 1.0)
+    relative_error = absolute_error / denominator
+    return 1.0 if relative_error <= relative_tolerance else 0.0
+
+
+def _compute_trend_interpretation_correctness(
+    llm: ChatGoogleGenerativeAI,
+    example: EvalExample,
+    answer: str,
+    calculation_result: Dict[str, Any],
+) -> tuple[Optional[float], Optional[str]]:
+    expected = dict(example.expected_calculation_result or {})
+    expected_direction = str(expected.get("direction") or "").strip()
+    if not expected_direction:
+        return None, None
+    if str(calculation_result.get("status") or "") != "ok":
+        return 0.0, "계산 결과가 유효하지 않음"
+    prompt = _TREND_INTERPRETATION_PROMPT.format(
+        question=example.question,
+        expected_direction=expected_direction,
+        result_json=json.dumps(calculation_result, ensure_ascii=False, indent=2),
+        answer=answer[:1500],
+    )
+    try:
+        response = llm.invoke(prompt)
+        payload = _extract_json_object(getattr(response, "content", ""))
+        score = _safe_float(payload.get("score"))
+        reason = str(payload.get("reason") or "").strip() or None
+        return (float(np.clip(score, 0.0, 1.0)) if score is not None else 0.5), reason
+    except Exception as exc:
+        logger.warning("trend interpretation judge failed: %s", exc)
+        return 0.5, str(exc)
+
+
+def _compute_grounded_rendering_correctness(
+    llm: ChatGoogleGenerativeAI,
+    example: EvalExample,
+    answer: str,
+    calculation_operands: List[Dict[str, Any]],
+    calculation_result: Dict[str, Any],
+) -> tuple[Optional[float], Optional[str]]:
+    if not calculation_result or str(calculation_result.get("status") or "") != "ok":
+        return None, None
+    if not answer.strip():
+        return 0.0, "답변이 비어 있음"
+    prompt = _GROUNDED_RENDERING_PROMPT.format(
+        question=example.question,
+        operands_json=json.dumps(calculation_operands, ensure_ascii=False, indent=2),
+        result_json=json.dumps(calculation_result, ensure_ascii=False, indent=2),
+        answer=answer[:1500],
+    )
+    try:
+        response = llm.invoke(prompt)
+        payload = _extract_json_object(getattr(response, "content", ""))
+        score = _safe_float(payload.get("score"))
+        reason = str(payload.get("reason") or "").strip() or None
+        return (float(np.clip(score, 0.0, 1.0)) if score is not None else 0.5), reason
+    except Exception as exc:
+        logger.warning("grounded rendering judge failed: %s", exc)
+        return 0.5, str(exc)
+
+
+def _compute_calculation_correctness(
+    numeric_result_correctness: Optional[float],
+    trend_interpretation_correctness: Optional[float],
+    grounded_rendering_correctness: Optional[float],
+) -> Optional[float]:
+    checks = [
+        value
+        for value in (
+            numeric_result_correctness,
+            trend_interpretation_correctness,
+            grounded_rendering_correctness,
+        )
+        if value is not None
+    ]
+    if not checks:
         return None
-    tolerance = float(example.numeric_constraints.get("tolerance", 0.0) or 0.0)
-    return 1.0 if absolute_error_rate <= tolerance else 0.0
+    return float(sum(checks) / len(checks))
+
+
+def _normalise_period_text(text: Any) -> str:
+    return re.sub(r"\s+", "", str(text or "")).strip().lower()
+
+
+def _normalise_label_text(text: Any) -> str:
+    cleaned = str(text or "").strip().lower()
+    cleaned = re.sub(r"\s+", "", cleaned)
+    cleaned = cleaned.replace("(", "").replace(")", "")
+    return cleaned
+
+
+def _labels_match(expected_label: str, actual_label: str) -> bool:
+    expected = _normalise_label_text(expected_label)
+    actual = _normalise_label_text(actual_label)
+    if not expected or not actual:
+        return True
+    return expected == actual or expected in actual or actual in expected
+
+
+def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
+    expected_period = _normalise_period_text(expected.get("period"))
+    actual_period = _normalise_period_text(actual.get("period"))
+    if expected_period and actual_period and expected_period != actual_period:
+        return False
+
+    expected_label = str(expected.get("label") or "")
+    actual_label = str(actual.get("label") or "")
+    if expected_label and actual_label and not _labels_match(expected_label, actual_label):
+        return False
+
+    expected_value, expected_unit = _normalise_math_operand_value(
+        str(expected.get("raw_value") or ""),
+        str(expected.get("raw_unit") or ""),
+    )
+    actual_value = _safe_float(actual.get("normalized_value"))
+    actual_unit = str(actual.get("normalized_unit") or "").strip()
+    if expected_value is not None and actual_value is not None:
+        if expected_unit and actual_unit and expected_unit != actual_unit:
+            return False
+        denominator = max(abs(expected_value), 1.0)
+        if abs(actual_value - expected_value) / denominator > 1e-4:
+            return False
+    return True
+
+
+def _compute_operand_selection_correctness(
+    example: EvalExample,
+    calculation_operands: List[Dict[str, Any]],
+) -> Optional[float]:
+    expected_operands = list(example.expected_operands or [])
+    if not expected_operands:
+        return None
+    if not calculation_operands:
+        return 0.0
+
+    unmatched_actual_indices = list(range(len(calculation_operands)))
+    matched = 0
+    for expected in expected_operands:
+        match_index: Optional[int] = None
+        for actual_index in unmatched_actual_indices:
+            if _operand_matches(expected, calculation_operands[actual_index]):
+                match_index = actual_index
+                break
+        if match_index is not None:
+            matched += 1
+            unmatched_actual_indices.remove(match_index)
+    return matched / len(expected_operands)
+
+
+def _compute_unit_consistency_pass(
+    calculation_operands: List[Dict[str, Any]],
+    calculation_plan: Dict[str, Any],
+) -> Optional[float]:
+    if not calculation_operands or not calculation_plan:
+        return None
+    operand_lookup = {
+        str(operand.get("operand_id") or ""): operand
+        for operand in calculation_operands
+        if operand.get("operand_id")
+    }
+    ordered_ids = [str(value) for value in (calculation_plan.get("ordered_operand_ids") or []) if str(value).strip()]
+    operands = [operand_lookup[operand_id] for operand_id in ordered_ids if operand_id in operand_lookup]
+    if not operands:
+        operands = calculation_operands
+    if len(operands) < 2:
+        return 0.0
+
+    base_unit = str(operands[0].get("normalized_unit") or "").strip()
+    if not base_unit or base_unit == "UNKNOWN":
+        return 0.0
+
+    for operand in operands:
+        raw_value = str(operand.get("raw_value") or "")
+        raw_unit = str(operand.get("raw_unit") or "")
+        recomputed_value, recomputed_unit = _normalise_math_operand_value(raw_value, raw_unit)
+        actual_value = _safe_float(operand.get("normalized_value"))
+        actual_unit = str(operand.get("normalized_unit") or "").strip()
+        if recomputed_value is None or actual_value is None:
+            return 0.0
+        if actual_unit != recomputed_unit or actual_unit != base_unit:
+            return 0.0
+        denominator = max(abs(recomputed_value), 1.0)
+        if abs(actual_value - recomputed_value) / denominator > 1e-9:
+            return 0.0
+    return 1.0
 
 
 class RAGEvaluator:
@@ -1166,6 +1515,9 @@ class RAGEvaluator:
         dropped_claim_ids: List[str] = []
         unsupported_sentences: List[str] = []
         sentence_checks: List[Dict[str, Any]] = []
+        calculation_operands: List[Dict[str, Any]] = []
+        calculation_plan: Dict[str, Any] = {}
+        calculation_result: Dict[str, Any] = {}
 
         try:
             result = self.agent.run(example.question)
@@ -1185,6 +1537,9 @@ class RAGEvaluator:
             dropped_claim_ids = result.get("dropped_claim_ids", []) or []
             unsupported_sentences = result.get("unsupported_sentences", []) or []
             sentence_checks = result.get("sentence_checks", []) or []
+            calculation_operands = result.get("calculation_operands", []) or []
+            calculation_plan = result.get("calculation_plan", {}) or {}
+            calculation_result = result.get("calculation_result", {}) or {}
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
@@ -1235,11 +1590,43 @@ class RAGEvaluator:
             answer_key=example.canonical_answer_key,
             canonical_evidence=example.evidence,
         )
-        calculation_correctness = _compute_calculation_correctness(
+        operand_selection_correctness = _compute_operand_selection_correctness(
             example=example,
-            numeric_equivalence=numeric_eval.get("numeric_equivalence"),
-            absolute_error_rate=absolute_error_rate,
+            calculation_operands=calculation_operands,
         )
+        unit_consistency_pass = _compute_unit_consistency_pass(
+            calculation_operands=calculation_operands,
+            calculation_plan=calculation_plan,
+        )
+        numeric_result_correctness = _compute_numeric_result_correctness(
+            example=example,
+            calculation_result=calculation_result,
+        )
+        trend_interpretation_correctness, trend_reason = _compute_trend_interpretation_correctness(
+            llm=self._llm,
+            example=example,
+            answer=answer,
+            calculation_result=calculation_result,
+        )
+        grounded_rendering_correctness, grounded_reason = _compute_grounded_rendering_correctness(
+            llm=self._llm,
+            example=example,
+            answer=answer,
+            calculation_operands=calculation_operands,
+            calculation_result=calculation_result,
+        )
+        calculation_correctness = _compute_calculation_correctness(
+            numeric_result_correctness=numeric_result_correctness,
+            trend_interpretation_correctness=trend_interpretation_correctness,
+            grounded_rendering_correctness=grounded_rendering_correctness,
+        )
+        if calculation_result:
+            derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+            if trend_reason:
+                derived_metrics["trend_judge_reason"] = trend_reason
+            if grounded_reason:
+                derived_metrics["grounded_rendering_reason"] = grounded_reason
+            calculation_result["derived_metrics"] = derived_metrics
 
         if _looks_like_full_abstention_answer(answer) and (example.category or "").lower() != "missing_information":
             # Penalize abstentions on answerable questions even when the judge model is lenient.
@@ -1281,6 +1668,11 @@ class RAGEvaluator:
             missing_info_compliance=missing_info_compliance,
             refusal_accuracy=refusal_accuracy,
             absolute_error_rate=absolute_error_rate,
+            operand_selection_correctness=operand_selection_correctness,
+            unit_consistency_pass=unit_consistency_pass,
+            numeric_result_correctness=numeric_result_correctness,
+            trend_interpretation_correctness=trend_interpretation_correctness,
+            grounded_rendering_correctness=grounded_rendering_correctness,
             calculation_correctness=calculation_correctness,
             retrieved_count=len(contexts),
             query_type=query_type,
@@ -1306,6 +1698,9 @@ class RAGEvaluator:
             numeric_final_judgement=numeric_eval.get("numeric_final_judgement"),
             numeric_confidence=numeric_eval.get("numeric_confidence"),
             numeric_debug=numeric_eval.get("numeric_debug", {}),
+            calculation_operands=calculation_operands,
+            calculation_plan=calculation_plan,
+            calculation_result=calculation_result,
             missing_info_policy=example.missing_info_policy,
             error=error,
         )
@@ -1355,6 +1750,18 @@ class RAGEvaluator:
                     metrics["numeric_retrieval_support"] = result.numeric_retrieval_support
                 if result.numeric_confidence is not None:
                     metrics["numeric_confidence"] = result.numeric_confidence
+                if result.operand_selection_correctness is not None:
+                    metrics["operand_selection_correctness"] = result.operand_selection_correctness
+                if result.unit_consistency_pass is not None:
+                    metrics["unit_consistency_pass"] = result.unit_consistency_pass
+                if result.numeric_result_correctness is not None:
+                    metrics["numeric_result_correctness"] = result.numeric_result_correctness
+                if result.trend_interpretation_correctness is not None:
+                    metrics["trend_interpretation_correctness"] = result.trend_interpretation_correctness
+                if result.grounded_rendering_correctness is not None:
+                    metrics["grounded_rendering_correctness"] = result.grounded_rendering_correctness
+                if result.calculation_correctness is not None:
+                    metrics["calculation_correctness"] = result.calculation_correctness
                 mlflow.log_metrics(metrics, step=index)
 
             valid_results = [result for result in results if result.error is None]
@@ -1403,6 +1810,11 @@ class RAGEvaluator:
                 "numeric_retrieval_support": _average_optional("numeric_retrieval_support"),
                 "numeric_confidence": _average_optional("numeric_confidence"),
                 "absolute_error_rate": _average_optional("absolute_error_rate"),
+                "operand_selection_correctness": _average_optional("operand_selection_correctness"),
+                "unit_consistency_pass": _average_optional("unit_consistency_pass"),
+                "numeric_result_correctness": _average_optional("numeric_result_correctness"),
+                "trend_interpretation_correctness": _average_optional("trend_interpretation_correctness"),
+                "grounded_rendering_correctness": _average_optional("grounded_rendering_correctness"),
                 "calculation_correctness": _average_optional("calculation_correctness"),
                 "numeric_pass_rate": numeric_pass_rate,
                 "numeric_uncertain_rate": numeric_uncertain_rate,
@@ -1441,6 +1853,11 @@ class RAGEvaluator:
                             "numeric_final_judgement": result.numeric_final_judgement,
                             "numeric_confidence": result.numeric_confidence,
                             "absolute_error_rate": result.absolute_error_rate,
+                            "operand_selection_correctness": result.operand_selection_correctness,
+                            "unit_consistency_pass": result.unit_consistency_pass,
+                            "numeric_result_correctness": result.numeric_result_correctness,
+                            "trend_interpretation_correctness": result.trend_interpretation_correctness,
+                            "grounded_rendering_correctness": result.grounded_rendering_correctness,
                             "calculation_correctness": result.calculation_correctness,
                             "missing_info_compliance": result.missing_info_compliance,
                             "latency_sec": result.latency_sec,

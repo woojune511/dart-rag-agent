@@ -770,3 +770,78 @@ focus run 관찰:
 - 이 패치는 현재 케이스의 점수를 실제로 구해준 결정적 해결책은 아니다.
 - 현재 judge는 이미 grounded extra detail을 상당 부분 허용하고 있다.
 - 따라서 `allowed_grounded_extras`는 당분간 **임시 안전장치**로만 간주하고, 장기적으로는 질문별 whitelist 대신 **"핵심 정답을 모두 포함했고 추가 내용이 retrieved context에 grounded되어 있으면 감점하지 않는다"**는 principle-based evaluator로 정리하는 쪽이 더 적절하다.
+
+## 2026-04-27 계산 노드 / math evaluator 업데이트
+
+이번 세션에서는 `comparison / trend` 질문을 위해 계산 경로를 한 단계 더 일반화했다.
+
+핵심 변경:
+
+- 계산 경로를 `operand_extractor -> formula_planner -> calculator(AST safe eval) -> calc_render`로 전환
+- `calculation_plan`은 이제
+  - `mode`
+  - `variable_bindings`
+  - `formula`
+  - `pairwise_formula`
+  중심으로 동작
+- `operation`은 남아 있지만, 실제 계산을 지시하는 핵심 필드가 아니라 로그/평가용 힌트에 가깝다
+- calculator는 `eval()`을 쓰지 않고, 허용된 AST 노드와 제한된 기본 수학 함수만 실행한다
+- `trend`는 rule-based 방향 라벨을 파이썬에서 만들지 않고
+  - `series`
+  - `derived_metrics.yoy_growth_rates`
+  를 계산 결과 JSON으로 남기고, 최종 해석은 renderer LLM이 담당한다
+
+직접 확인한 질문:
+
+- `DX와 DS 부문의 매출 차이`
+  - formula: `A - B`
+  - 정상 답변 생성
+- `최근 3년 영업이익 추이`
+  - formula: `((C - A) / A) * 100`
+  - pairwise_formula: `((CURR - PREV) / PREV) * 100`
+  - series 기반 자연어 설명 생성
+- `2024년 영업이익은 2023년 대비 몇 % 증가했나요?`
+  - formula: `((A - B) / B) * 100`
+  - 증가율 계산 정상
+
+새 자산:
+
+- `benchmarks/eval_dataset.math_focus.json`
+- `benchmarks/profiles/dev_math_focus.json`
+
+새 계산 전용 평가 축:
+
+- `operand_selection_correctness`
+- `unit_consistency_pass`
+- `numeric_result_correctness`
+- `trend_interpretation_correctness`
+- `grounded_rendering_correctness`
+- `calculation_correctness`
+
+평가 철학:
+
+- 계산 본질은 엄격하게 본다
+  - operand 선택
+  - 단위 정규화
+  - 최종 수치 결과
+- 표현은 더 유연하게 본다
+  - trend 해석은 LLM judge가 `series`와 `yoy_growth_rates`를 보고 판단
+  - grounded rendering은 LLM judge가 금액/비율만 검증하고, 연도 숫자는 예외로 둔다
+- `expected_operation == actual_operation` 같은 문자열 의존은 축소했다
+
+기존 selective store 재사용 evaluator-only 결과:
+
+- `benchmarks/results/dev_math_focus_formula_reuse_evaltuned_2026-04-27`
+- aggregate:
+  - `operand_selection_correctness = 1.0`
+  - `unit_consistency_pass = 1.0`
+  - `numeric_result_correctness = 1.0`
+  - `trend_interpretation_correctness = 1.0`
+  - `grounded_rendering_correctness = 1.0`
+  - `calculation_correctness = 1.0`
+
+현재 해석:
+
+- formula planner + AST 계산 전환 자체는 성공
+- math pipeline의 현재 병목은 계산보다 retrieval/evidence source choice 쪽에 더 가깝다
+- 특히 comparison의 값 차이는 source section 차이(예: `경영진단` vs `매출 및 수주상황`)에 따라 반올림 오차가 생길 수 있으므로, evaluator는 실무적 허용 오차를 두고 해석한다

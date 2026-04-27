@@ -511,6 +511,11 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "numeric_confidence": result.numeric_confidence,
                 "numeric_debug": result.numeric_debug,
                 "absolute_error_rate": result.absolute_error_rate,
+                "operand_selection_correctness": result.operand_selection_correctness,
+                "unit_consistency_pass": result.unit_consistency_pass,
+                "numeric_result_correctness": result.numeric_result_correctness,
+                "trend_interpretation_correctness": result.trend_interpretation_correctness,
+                "grounded_rendering_correctness": result.grounded_rendering_correctness,
                 "calculation_correctness": result.calculation_correctness,
                 "missing_info_compliance": result.missing_info_compliance,
                 "retrieved_count": result.retrieved_count,
@@ -531,6 +536,9 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "dropped_claim_ids": result.dropped_claim_ids,
                 "unsupported_sentences": result.unsupported_sentences,
                 "sentence_checks": result.sentence_checks,
+                "calculation_operands": result.calculation_operands,
+                "calculation_plan": result.calculation_plan,
+                "calculation_result": result.calculation_result,
                 "missing_info_policy": result.missing_info_policy,
                 "error": result.error,
             }
@@ -1624,7 +1632,15 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "numeric_final_judgement": question_result.get("numeric_final_judgement"),
                     "numeric_confidence": question_result.get("numeric_confidence"),
                     "absolute_error_rate": question_result.get("absolute_error_rate"),
+                    "operand_selection_correctness": question_result.get("operand_selection_correctness"),
+                    "unit_consistency_pass": question_result.get("unit_consistency_pass"),
+                    "numeric_result_correctness": question_result.get("numeric_result_correctness"),
+                    "trend_interpretation_correctness": question_result.get("trend_interpretation_correctness"),
+                    "grounded_rendering_correctness": question_result.get("grounded_rendering_correctness"),
                     "calculation_correctness": question_result.get("calculation_correctness"),
+                    "calculation_operands": json.dumps(question_result.get("calculation_operands", []), ensure_ascii=False),
+                    "calculation_plan": json.dumps(question_result.get("calculation_plan", {}), ensure_ascii=False),
+                    "calculation_result": json.dumps(question_result.get("calculation_result", {}), ensure_ascii=False),
                     "missing_info_compliance": question_result.get("missing_info_compliance"),
                     "missing_info_policy": question_result.get("missing_info_policy"),
                     "error": question_result.get("error"),
@@ -1683,7 +1699,15 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "numeric_final_judgement",
         "numeric_confidence",
         "absolute_error_rate",
+        "operand_selection_correctness",
+        "unit_consistency_pass",
+        "numeric_result_correctness",
+        "trend_interpretation_correctness",
+        "grounded_rendering_correctness",
         "calculation_correctness",
+        "calculation_operands",
+        "calculation_plan",
+        "calculation_result",
         "missing_info_compliance",
         "missing_info_policy",
         "error",
@@ -1735,7 +1759,10 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 f"- Numeric Eval: judgement={row['numeric_final_judgement']}, "
                 f"equivalence={row['numeric_equivalence']}, grounding={row['numeric_grounding']}, "
                 f"retrieval_support={row['numeric_retrieval_support']}, confidence={row['numeric_confidence']}, "
-                f"abs_error={row['absolute_error_rate']}, calc={row['calculation_correctness']}"
+                f"abs_error={row['absolute_error_rate']}, operand={row['operand_selection_correctness']}, "
+                f"unit={row['unit_consistency_pass']}, result={row['numeric_result_correctness']}, "
+                f"trend={row['trend_interpretation_correctness']}, grounded={row['grounded_rendering_correctness']}, "
+                f"calc={row['calculation_correctness']}"
             )
         if row.get("missing_info_policy"):
             lines.append(f"- Missing Info Policy: {row['missing_info_policy']}")
@@ -1755,6 +1782,18 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "Runtime Evidence",
                 "",
                 row["runtime_evidence"] or "-",
+                "",
+                "Calculation Operands",
+                "",
+                row.get("calculation_operands") or "-",
+                "",
+                "Calculation Plan",
+                "",
+                row.get("calculation_plan") or "-",
+                "",
+                "Calculation Result",
+                "",
+                row.get("calculation_result") or "-",
                 "",
                 "Selected Claims",
                 "",
@@ -1902,11 +1941,16 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
           "full_retrieval_hit_at_k",
           "full_section_match_rate",
           "full_citation_coverage",
-          "full_numeric_pass_rate",
-          "full_absolute_error_rate",
-          "full_calculation_correctness",
-          "full_avg_score",
-          "full_avg_latency",
+        "full_numeric_pass_rate",
+        "full_absolute_error_rate",
+        "full_operand_selection_correctness",
+        "full_unit_consistency_pass",
+        "full_numeric_result_correctness",
+        "full_trend_interpretation_correctness",
+        "full_grounded_rendering_correctness",
+        "full_calculation_correctness",
+        "full_avg_score",
+        "full_avg_latency",
     ]
     with open(path, "w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -1966,6 +2010,11 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
                       "full_citation_coverage": full.get("citation_coverage"),
                       "full_numeric_pass_rate": full.get("numeric_pass_rate"),
                       "full_absolute_error_rate": full.get("absolute_error_rate"),
+                      "full_operand_selection_correctness": full.get("operand_selection_correctness"),
+                      "full_unit_consistency_pass": full.get("unit_consistency_pass"),
+                      "full_numeric_result_correctness": full.get("numeric_result_correctness"),
+                      "full_trend_interpretation_correctness": full.get("trend_interpretation_correctness"),
+                      "full_grounded_rendering_correctness": full.get("grounded_rendering_correctness"),
                       "full_calculation_correctness": full.get("calculation_correctness"),
                       "full_avg_score": full.get("avg_score"),
                       "full_avg_latency": full.get("avg_latency"),

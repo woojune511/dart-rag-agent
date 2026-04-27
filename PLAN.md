@@ -543,6 +543,24 @@ micro-dataset:
   - 현재 최유력 운영 후보를 기준선으로 두고
   - 필요한 축만 분리해서 실험한다
 
+## 다음 단계 — 계산 노드 이후
+
+현재 계산 경로는 다음 상태까지 도달했다.
+
+- `comparison / trend`는 `formula planner + safe AST evaluator` 경로로 동작
+- `dev_math_focus`와 selective store 재사용 evaluator-only run에서 계산 전용 점수는 정상화됨
+
+다음 우선순위는 아래다.
+
+1. `comparison / trend` 질문을 Golden Dataset 안에서 더 늘리고, math focus 질문셋을 5~10문항으로 확장
+2. `formula planner`가 생성하는 operand source를 더 안정화
+   - 같은 질문에서 `경영진단` vs `매출 및 수주상황`처럼 source section이 흔들리는 케이스 줄이기
+3. `growth_rate` / `ratio`의 evidence source preference 정리
+4. 계산 노드 스프린트가 안정화되면 다음 구조 개선 후보 중 하나로 이동
+   - `REFERENCE_NOTE` 그래프 엣지
+   - `typed claim assembly`
+   - `governance / r_and_d` intent 확장 검토
+
 ## 추가 메모 — evaluator patch의 성격
 
 - `risk_analysis_001`에 넣은 `allowed_grounded_extras`는 현재 기준 **임시 안전장치**다.

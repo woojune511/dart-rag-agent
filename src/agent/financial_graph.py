@@ -2,8 +2,10 @@
 LangGraph-based DART financial analysis agent.
 """
 
+import ast
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -109,6 +111,10 @@ class FinancialAgentState(TypedDict):
     answer: str
     citations: List[str]
     numeric_debug_trace: Dict[str, Any]
+    calculation_operands: List[Dict[str, Any]]
+    calculation_plan: Dict[str, Any]
+    calculation_result: Dict[str, Any]
+    calculation_debug_trace: Dict[str, Any]
 
 
 class EntityExtraction(BaseModel):
@@ -188,6 +194,301 @@ class NumericExtraction(BaseModel):
     )
 
 
+class CalculationOperand(BaseModel):
+    operand_id: str = Field(description="계산용 고유 피연산자 ID. 예: op_001")
+    evidence_id: str = Field(description="이 숫자가 추출된 evidence_id")
+    source_anchor: str = Field(description="근거 출처 앵커")
+    label: str = Field(description="피연산자의 의미 있는 레이블. 예: DX부문 매출, DS부문 매출, 2024년 영업이익")
+    raw_value: str = Field(description="문서에서 읽은 원본 숫자 문자열. 예: 174조 8,877억원, 16.2, 228")
+    raw_unit: str = Field(description="원본 숫자의 단위. 예: 조원, 억원, 백만원, %, 개")
+    normalized_value: Optional[float] = Field(
+        default=None,
+        description="코드에서 다시 검증 가능한 기본 단위 값. KRW는 원, PERCENT는 퍼센트포인트, COUNT는 절대 개수 기준."
+    )
+    normalized_unit: Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"] = Field(
+        default="UNKNOWN",
+        description="정규화된 단위 계열"
+    )
+    period: str = Field(default="", description="이 숫자가 대응하는 기간/기수. 예: 2024년, 2023년, 당기, 전기")
+
+
+class OperandExtraction(BaseModel):
+    coverage: Literal["sufficient", "partial", "missing"] = Field(
+        description="질문 계산에 필요한 피연산자를 충분히 찾았는지 여부"
+    )
+    operands: List[CalculationOperand] = Field(default_factory=list)
+
+
+class FormulaVariableBinding(BaseModel):
+    variable: str = Field(description="수식에서 사용할 변수명. 예: A, B, C")
+    operand_id: str = Field(description="이 변수에 바인딩할 operand_id")
+
+
+class CalculationPlan(BaseModel):
+    mode: Literal["single_value", "time_series", "none"] = Field(
+        description="단일 계산인지, 시계열 계산인지, 계산 불가인지"
+    )
+    operation: str = Field(
+        default="",
+        description="평가/로그용 연산 힌트. 예: subtract, growth_rate, time_series_trend"
+    )
+    ordered_operand_ids: List[str] = Field(
+        default_factory=list,
+        description="연산 순서가 중요한 경우를 위해 순서를 보존한 피연산자 목록"
+    )
+    variable_bindings: List[FormulaVariableBinding] = Field(
+        default_factory=list,
+        description="수식에서 사용할 변수와 operand_id의 매핑"
+    )
+    formula: str = Field(
+        default="",
+        description="A, B, C ... 같은 변수만 사용한 안전한 계산식"
+    )
+    pairwise_formula: str = Field(
+        default="",
+        description="time_series 모드에서 PREV와 CURR 두 변수로 인접 시점 변화를 계산하는 식"
+    )
+    result_unit: str = Field(
+        default="",
+        description="최종 답변에 사용할 단위. 예: 억원, 원, %, 개"
+    )
+    operation_text: str = Field(
+        default="",
+        description="연산 순서를 사람이 읽을 수 있게 표현한 짧은 설명. 예: current_year - previous_year"
+    )
+    explanation: str = Field(
+        default="",
+        description="이 연산을 선택한 이유를 한 문장으로 설명"
+    )
+
+
+class CalculationResult(BaseModel):
+    status: Literal["ok", "insufficient_operands", "zero_division", "unsupported_operation", "unit_mismatch", "parse_error"] = Field(
+        description="계산 수행 상태"
+    )
+    result_value: Optional[float] = Field(default=None, description="정규화 단위 기준 계산 결과")
+    result_unit: str = Field(default="", description="최종 답변 단위")
+    rendered_value: str = Field(default="", description="사용자 응답에 들어갈 값 표현")
+    formatted_result: str = Field(default="", description="프레젠테이션 계층에서 바로 사용할 수 있는 렌더링 결과")
+    series: List[Dict[str, Any]] = Field(default_factory=list, description="기간/항목별 계산 입력 시계열 또는 순서 데이터")
+    derived_metrics: Dict[str, Any] = Field(default_factory=dict, description="계산 과정에서 파생된 보조 지표")
+    explanation: str = Field(default="", description="계산 또는 실패 이유 설명")
+
+
+class CalculationRenderOutput(BaseModel):
+    final_answer: str = Field(description="CalculationResult와 operand labels만 사용해 작성한 최종 답변")
+
+
+def _parse_number_text(text: str) -> Optional[float]:
+    cleaned = str(text or "").replace(",", "").strip()
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+_ALLOWED_FORMULA_FUNCTIONS: Dict[str, Any] = {
+    "min": min,
+    "max": max,
+    "abs": abs,
+    "round": round,
+    "log": math.log,
+    "exp": math.exp,
+}
+
+
+def _safe_eval_formula(expression: str, variables: Dict[str, float]) -> float:
+    tree = ast.parse(expression, mode="eval")
+
+    def _eval(node: ast.AST) -> float:
+        if isinstance(node, ast.Expression):
+            return _eval(node.body)
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, (int, float)):
+                return float(node.value)
+            raise ValueError("non-numeric constant")
+        if isinstance(node, ast.Name):
+            if node.id in variables:
+                return float(variables[node.id])
+            raise ValueError(f"unknown variable: {node.id}")
+        if isinstance(node, ast.UnaryOp):
+            operand = _eval(node.operand)
+            if isinstance(node.op, ast.UAdd):
+                return +operand
+            if isinstance(node.op, ast.USub):
+                return -operand
+            raise ValueError("unsupported unary operator")
+        if isinstance(node, ast.BinOp):
+            left = _eval(node.left)
+            right = _eval(node.right)
+            if isinstance(node.op, ast.Add):
+                return left + right
+            if isinstance(node.op, ast.Sub):
+                return left - right
+            if isinstance(node.op, ast.Mult):
+                return left * right
+            if isinstance(node.op, ast.Div):
+                if right == 0.0:
+                    raise ZeroDivisionError("division by zero")
+                return left / right
+            if isinstance(node.op, ast.Pow):
+                return left ** right
+            raise ValueError("unsupported binary operator")
+        if isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name):
+                raise ValueError("unsupported function call")
+            fn = _ALLOWED_FORMULA_FUNCTIONS.get(node.func.id)
+            if fn is None:
+                raise ValueError(f"unsupported function: {node.func.id}")
+            if node.keywords:
+                raise ValueError("keyword args are not allowed")
+            args = [_eval(arg) for arg in node.args]
+            return float(fn(*args))
+        raise ValueError(f"unsupported AST node: {type(node).__name__}")
+
+    return float(_eval(tree))
+
+
+def _extract_composite_krw(text: str) -> Optional[float]:
+    cleaned = _normalise_spaces(text)
+    composite = re.search(r"(?P<jo>[\d,]+(?:\.\d+)?)\s*조\s*(?P<eok>[\d,]+(?:\.\d+)?)\s*억", cleaned)
+    if composite:
+        jo = _parse_number_text(composite.group("jo"))
+        eok = _parse_number_text(composite.group("eok"))
+        if jo is None or eok is None:
+            return None
+        return jo * 1_0000_0000_0000 + eok * 100_000_000
+    only_jo = re.search(r"(?P<jo>[\d,]+(?:\.\d+)?)\s*조\s*원?", cleaned)
+    if only_jo:
+        jo = _parse_number_text(only_jo.group("jo"))
+        if jo is not None:
+            return jo * 1_0000_0000_0000
+    return None
+
+
+def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[float], str]:
+    unit = _normalise_spaces(raw_unit).lower()
+    composite_krw = _extract_composite_krw(raw_value)
+    if composite_krw is not None:
+        return composite_krw, "KRW"
+
+    value = _parse_number_text(raw_value)
+    if value is None:
+        return None, "UNKNOWN"
+
+    krw_scale = {
+        "원": 1.0,
+        "천원": 1_000.0,
+        "백만원": 1_000_000.0,
+        "억원": 100_000_000.0,
+        "조원": 1_0000_0000_0000.0,
+    }
+    usd_scale = {
+        "usd": 1.0,
+        "$": 1.0,
+        "달러": 1.0,
+        "백만달러": 1_000_000.0,
+    }
+    count_units = {"개", "명", "곳", "사"}
+    percent_units = {"%", "퍼센트"}
+
+    if unit in krw_scale:
+        return value * krw_scale[unit], "KRW"
+    if unit in usd_scale:
+        return value * usd_scale[unit], "USD"
+    if unit in count_units:
+        return value, "COUNT"
+    if unit in percent_units:
+        return value, "PERCENT"
+    return value, "UNKNOWN"
+
+
+def _extract_period_sort_key(period: str) -> int:
+    text = _normalise_spaces(period)
+    year_match = re.search(r"(19|20)\d{2}", text)
+    if year_match:
+        return int(year_match.group(0))
+    if "당기" in text:
+        return 9999
+    if "전기" in text:
+        return 9998
+    return -1
+
+
+def _format_korean_won_compact(value: float) -> str:
+    amount = int(round(abs(value)))
+    negative = value < 0
+    jo = amount // 1_0000_0000_0000
+    amount %= 1_0000_0000_0000
+    eok = amount // 100_000_000
+    amount %= 100_000_000
+    man = amount // 10_000
+
+    parts: List[str] = []
+    if jo:
+        parts.append(f"{jo}조")
+    if eok:
+        parts.append(f"{eok:,}억원")
+    elif jo:
+        parts.append("0억원")
+    elif man:
+        parts.append(f"{man:,}만원")
+    else:
+        parts.append(f"{int(round(abs(value))):,}원")
+
+    rendered = " ".join(parts)
+    return f"-{rendered}" if negative else rendered
+
+
+def _display_operand_label(label: str) -> str:
+    text = _normalise_spaces(label)
+    text = re.sub(r"^\d{4}년\s*", "", text)
+    text = re.sub(r"^삼성전자\s*", "", text)
+    return text
+
+
+def _strip_rerank_metadata(text: str) -> str:
+    raw = str(text or "")
+    raw = re.sub(r"\[[^\]]+\]", " ", raw)
+    raw = re.sub(r"\s+", " ", raw)
+    return raw.strip()
+
+
+def _metric_terms_from_topic(topic: str) -> set[str]:
+    text = _normalise_spaces(topic)
+    known_terms = [
+        "영업이익",
+        "매출",
+        "연구개발비",
+        "연구개발",
+        "당기순이익",
+        "순이익",
+        "설비투자",
+        "투자",
+        "비용",
+        "수익",
+    ]
+    return {term for term in known_terms if term in text}
+
+
+def _retrieval_hint_from_topic(topic: str, intent: str) -> str:
+    if intent not in {"comparison", "trend"}:
+        return ""
+    text = _normalise_spaces(topic)
+    hints: List[str] = []
+    if "영업이익" in text or "당기순이익" in text or "순이익" in text:
+        hints.extend(["손익계산서", "요약재무정보"])
+    if "매출" in text or "수익" in text:
+        hints.extend(["매출 및 수주상황", "손익계산서"])
+    if "연구개발" in text:
+        hints.append("연구개발")
+    if "설비투자" in text or "투자" in text:
+        hints.extend(["요약재무정보", "재무제표"])
+    return " ".join(dict.fromkeys(hints))
+
+
 class ValidationOutput(BaseModel):
     kept_claim_ids: List[str] = Field(
         default_factory=list,
@@ -218,6 +519,12 @@ class FinancialAgent:
             ("요약재무정보", 0.06),
             ("연결재무제표", 0.06),
         ),
+        "comparison": (
+            ("매출 및 수주상황", 0.10),
+            ("손익계산서", 0.08),
+            ("요약재무정보", 0.08),
+            ("연결재무제표", 0.06),
+        ),
         "business_overview": (
             ("II. 사업의 내용 > 1. 사업의 개요", 0.14),
             ("II. 사업의 내용 > 2. 주요 제품 및 서비스", 0.10),
@@ -226,6 +533,12 @@ class FinancialAgent:
         "risk": (
             ("위험관리 및 파생거래", 0.18),
             ("리스크", 0.10),
+        ),
+        "trend": (
+            ("손익계산서", 0.12),
+            ("요약재무정보", 0.12),
+            ("연결재무제표", 0.08),
+            ("재무제표", 0.06),
         ),
     }
 
@@ -321,6 +634,7 @@ class FinancialAgent:
         section_filter = (state.get("section_filter") or "").strip()
         intent = state.get("intent") or state.get("query_type", "qa")
         format_preference = state.get("format_preference") or self._default_format_preference(intent)
+        metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
 
         reranked = []
         for doc, score in docs:
@@ -330,10 +644,11 @@ class FinancialAgent:
             section = str(metadata.get("section", ""))
             section_path = str(metadata.get("section_path", section))
             block_type = metadata.get("block_type", "")
+            body_text = _strip_rerank_metadata(doc.page_content)
             document_terms = _tokenize_terms(
                 " ".join(
                     [
-                        doc.page_content,
+                        body_text,
                         section,
                         section_path,
                         str(metadata.get("table_context") or ""),
@@ -354,6 +669,12 @@ class FinancialAgent:
             if topic_terms and document_terms:
                 overlap = len(topic_terms & document_terms) / max(len(topic_terms), 1)
                 boosted += min(overlap, 0.20)
+            if intent in {"comparison", "trend"} and metric_terms:
+                metric_hit = sum(1 for term in metric_terms if term in body_text or term in section_path)
+                if metric_hit:
+                    boosted += min(0.16 + 0.05 * metric_hit, 0.30)
+                else:
+                    boosted -= 0.20
 
             boosted += self._section_bias(intent, section_path)
 
@@ -373,6 +694,7 @@ class FinancialAgent:
         companies = state.get("companies", [])
         years = state.get("years", [])
         section_filter = state.get("section_filter")
+        intent = state.get("intent") or state.get("query_type", "qa")
 
         conditions = []
         if companies:
@@ -394,7 +716,10 @@ class FinancialAgent:
         else:
             where_filter = {"$and": conditions}
 
+        retrieval_hint = _retrieval_hint_from_topic(state.get("topic") or query, intent)
         enriched_query = f"{' '.join(companies)} {query}" if companies else query
+        if retrieval_hint:
+            enriched_query = f"{enriched_query} {retrieval_hint}".strip()
         docs = self.vsm.search(enriched_query, k=self.k * 4, where_filter=where_filter)
 
         logger.info(
@@ -1401,11 +1726,445 @@ Structured Evidence:
             "numeric_debug_trace": debug_trace,
         }
 
+    def _extract_calculation_operands(self, state: FinancialAgentState) -> Dict[str, Any]:
+        evidence_items = state.get("evidence_items", [])
+        evidence_bullets = state.get("evidence_bullets", [])
+        query = state["query"]
+        empty_result: Dict[str, Any] = {
+            "calculation_operands": [],
+            "calculation_debug_trace": {"coverage": "missing"},
+            "answer": "",
+        }
+        if not evidence_items:
+            return empty_result
+
+        structured_llm = self.llm.with_structured_output(OperandExtraction)
+        evidence_text = self._format_evidence_for_prompt(evidence_items, evidence_bullets)
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 재무 계산을 위한 피연산자 추출기입니다.
+질문을 풀기 위해 필요한 숫자만 single-shot으로 한 번에 추출하세요.
+
+규칙:
+- 여러 번 나눠 찾지 말고, 필요한 피연산자를 한 번의 호출로 모두 찾으세요.
+- operand_id는 비워도 됩니다. 코드는 이후에 고유 ID를 부여합니다.
+- 각 operand는 반드시 evidence_id와 source_anchor를 포함하세요.
+- raw_value는 문서에 있는 숫자 표현 그대로 적으세요.
+- raw_unit은 숫자 바로 옆 단위를 적으세요. 예: 조원, 억원, 백만원, %, 개
+- normalized_value와 normalized_unit은 추정해서 채워도 되지만, 이후 코드가 다시 검증합니다.
+- 비교/추세 질문은 질문 해결에 꼭 필요한 숫자만 추출하세요.
+- 추이(trend) 질문이고 evidence에 3개 이상의 연도/기간 수치가 보이면, 가능한 한 3개 이상 기간의 피연산자를 빠짐없이 추출하세요.
+- 수치가 없는 descriptive evidence는 operand로 만들지 마세요.
+
+질문: {query}
+
+Structured Evidence:
+{evidence}
+"""
+        )
+        try:
+            extracted: OperandExtraction = (prompt | structured_llm).invoke(
+                {"query": query, "evidence": evidence_text}
+            )
+            operand_rows: List[Dict[str, Any]] = []
+            for index, item in enumerate(extracted.operands, start=1):
+                normalized_value, normalized_unit = _normalise_operand_value(item.raw_value, item.raw_unit)
+                row = item.model_dump()
+                row["operand_id"] = f"op_{index:03d}"
+                row["normalized_value"] = normalized_value
+                row["normalized_unit"] = normalized_unit
+                operand_rows.append(row)
+            logger.info("[calc_operands] coverage=%s operands=%s", extracted.coverage, len(operand_rows))
+            return {
+                "calculation_operands": operand_rows,
+                "calculation_debug_trace": {
+                    "coverage": extracted.coverage,
+                    "operands": operand_rows,
+                },
+            }
+        except Exception as exc:
+            logger.warning("[calc_operands] structured output failed: %s", exc)
+            return {
+                "calculation_operands": [],
+                "calculation_debug_trace": {"coverage": "missing", "error": str(exc)},
+            }
+
+    def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
+        operands = state.get("calculation_operands", [])
+        query = state["query"]
+        if not operands:
+            return {
+                "calculation_plan": {
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "formula": "",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "",
+                    "explanation": "no operands",
+                }
+            }
+
+        structured_llm = self.llm.with_structured_output(CalculationPlan)
+        operands_text = "\n".join(
+            f"- operand_id={row.get('operand_id')} | evidence_id={row.get('evidence_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')} | normalized={row.get('normalized_value')} {row.get('normalized_unit')} | period={row.get('period', '')}"
+            for row in operands
+        )
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 재무 계산 계획기입니다.
+질문과 피연산자 목록을 보고 변수 바인딩과 계산식을 작성하세요.
+
+규칙:
+- variable_bindings에는 반드시 아래 피연산자 목록의 operand_id만 넣으세요.
+- 각 binding의 variable은 A, B, C, D, E, F 중 하나만 사용하세요.
+- ordered_operand_ids는 variable_bindings와 같은 순서로 넣으세요.
+- operation은 로그/평가용 힌트입니다. subtract, add, ratio, growth_rate, max, min, time_series_trend, none 중 가장 가까운 값을 넣으세요.
+- 실제 계산은 formula와 pairwise_formula로 표현합니다.
+- formula에는 숫자 상수와 변수(A, B, C...) 그리고 +, -, *, /, **, min(), max(), abs(), round(), log(), exp()만 사용할 수 있습니다.
+- mode=single_value 이면 formula로 단일 결과를 계산하세요.
+- mode=time_series 이면 variable_bindings를 시계열 순서로 배치하고, formula에는 전체 흐름을 대표하는 계산식(예: ((C - A) / A) * 100)을, pairwise_formula에는 인접 시점 계산식(예: ((CURR - PREV) / PREV) * 100)을 적으세요.
+- 최근 3년/연도별/추이 질문처럼 3개 이상 기간 데이터가 있을 때는 mode=time_series 와 operation=time_series_trend 를 우선 사용하세요.
+- 질문을 풀 수 없으면 mode=none, operation=none 으로 두세요.
+- result_unit은 최종 답변 단위를 적으세요. 예: 억원, 원, %, 개
+
+질문: {query}
+
+사용 가능한 피연산자:
+{operands}
+"""
+        )
+        try:
+            plan: CalculationPlan = (prompt | structured_llm).invoke(
+                {"query": query, "operands": operands_text}
+            )
+            plan_data = plan.model_dump()
+            bindings = plan_data.get("variable_bindings") or []
+            if not plan_data.get("ordered_operand_ids") and bindings:
+                plan_data["ordered_operand_ids"] = [str(binding.get("operand_id") or "") for binding in bindings if str(binding.get("operand_id") or "").strip()]
+            if not bindings and plan_data.get("ordered_operand_ids"):
+                plan_data["variable_bindings"] = [
+                    {"variable": chr(ord("A") + index), "operand_id": operand_id}
+                    for index, operand_id in enumerate(plan_data.get("ordered_operand_ids") or [])
+                ]
+            logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
+            return {"calculation_plan": plan_data}
+        except Exception as exc:
+            logger.warning("[formula_plan] structured output failed: %s", exc)
+            return {
+                "calculation_plan": {
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "formula": "",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "",
+                    "explanation": str(exc),
+                }
+            }
+
+    def _format_calculation_value(self, value: float, result_unit: str, normalized_unit: str) -> str:
+        unit = _normalise_spaces(result_unit)
+        if normalized_unit == "KRW":
+            if unit in {"원", "천원", "백만원", "억원", "조원", ""}:
+                return _format_korean_won_compact(value)
+            if unit == "조원":
+                return f"{value / 1_0000_0000_0000:.4f}".rstrip("0").rstrip(".")
+            if unit == "억원":
+                return f"{value / 100_000_000:.4f}".rstrip("0").rstrip(".")
+            if unit == "백만원":
+                return f"{value / 1_000_000:.4f}".rstrip("0").rstrip(".")
+            if unit == "천원":
+                return f"{value / 1_000:.4f}".rstrip("0").rstrip(".")
+            return f"{value:,.0f}"
+        if normalized_unit in {"PERCENT", "COUNT", "USD"}:
+            return f"{value:,.4f}".rstrip("0").rstrip(".")
+        return f"{value}"
+
+    def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
+        operands = {row.get("operand_id"): row for row in state.get("calculation_operands", [])}
+        plan = state.get("calculation_plan") or {}
+        operation = str(plan.get("operation") or "none")
+        mode = str(plan.get("mode") or "none")
+        ordered_ids = [operand_id for operand_id in (plan.get("ordered_operand_ids") or []) if operand_id in operands]
+        variable_bindings = [
+            binding for binding in (plan.get("variable_bindings") or [])
+            if str(binding.get("operand_id") or "") in operands and str(binding.get("variable") or "").strip()
+        ]
+        formula = str(plan.get("formula") or "").strip()
+        pairwise_formula = str(plan.get("pairwise_formula") or "").strip()
+        result_unit = str(plan.get("result_unit") or "")
+        explanation = str(plan.get("explanation") or "")
+        selected_evidence_ids: List[str] = []
+        source_normalized_unit = ""
+
+        def _fail(status: str, reason: str) -> Dict[str, Any]:
+            fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
+            return {
+                "answer": fallback,
+                "compressed_answer": fallback,
+                "selected_claim_ids": selected_evidence_ids,
+                "draft_points": [],
+                "kept_claim_ids": selected_evidence_ids,
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_result": {
+                    "status": status,
+                    "result_value": None,
+                    "result_unit": result_unit,
+                    "rendered_value": "",
+                    "formatted_result": "",
+                    "series": [],
+                    "derived_metrics": {},
+                    "explanation": reason,
+                },
+            }
+
+        if mode == "none" or not variable_bindings:
+            return _fail("insufficient_operands", explanation or "no operation or operands")
+
+        if not ordered_ids:
+            ordered_ids = [str(binding.get("operand_id") or "") for binding in variable_bindings]
+
+        ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
+        selected_evidence_ids = list(
+            dict.fromkeys(str(row.get("evidence_id")) for row in ordered_operands if row.get("evidence_id"))
+        )
+        units = {row.get("normalized_unit") for row in ordered_operands}
+        if len(units) != 1:
+            return _fail("unit_mismatch", f"unit families differ: {sorted(str(unit) for unit in units)}")
+        normalized_unit = str(next(iter(units)))
+        source_normalized_unit = normalized_unit
+        values = [row.get("normalized_value") for row in ordered_operands]
+        if any(value is None for value in values):
+            return _fail("parse_error", "one or more operands could not be normalized")
+
+        try:
+            result_value: Optional[float]
+            derived_metrics: Dict[str, Any] = {}
+            result_series: List[Dict[str, Any]] = []
+            env: Dict[str, float] = {}
+            for binding in variable_bindings:
+                variable = str(binding.get("variable") or "").strip()
+                operand_id = str(binding.get("operand_id") or "").strip()
+                operand = operands.get(operand_id)
+                if not variable or operand is None or operand.get("normalized_value") is None:
+                    return _fail("parse_error", f"invalid variable binding: {binding}")
+                env[variable] = float(operand.get("normalized_value"))
+
+            if mode == "time_series":
+                if len(variable_bindings) < 2:
+                    return _fail("insufficient_operands", "time_series needs at least 2 operands")
+                ordered_operands = sorted(
+                    [operands[str(binding.get("operand_id"))] for binding in variable_bindings],
+                    key=lambda row: _extract_period_sort_key(str(row.get("period") or "")),
+                )
+                selected_evidence_ids = list(
+                    dict.fromkeys(str(row.get("evidence_id")) for row in ordered_operands if row.get("evidence_id"))
+                )
+                labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
+                metric_names = [re.sub(r"^\d{4}년\s*", "", label).strip() for label in labels]
+                metric_name = metric_names[0] if metric_names else "지표"
+                for row in ordered_operands:
+                    point_value = float(row.get("normalized_value"))
+                    point_rendered = self._format_calculation_value(point_value, str(row.get("raw_unit") or row.get("result_unit") or ""), normalized_unit)
+                    result_series.append(
+                        {
+                            "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                            "period": str(row.get("period") or ""),
+                            "raw_value": str(row.get("raw_value") or ""),
+                            "raw_unit": str(row.get("raw_unit") or ""),
+                            "normalized_value": point_value,
+                            "normalized_unit": normalized_unit,
+                            "rendered_value": point_rendered,
+                        }
+                    )
+                yoy_growth_rates: List[Optional[float]] = [None]
+                if pairwise_formula:
+                    for previous_row, current_row in zip(ordered_operands, ordered_operands[1:]):
+                        prev_value = float(previous_row.get("normalized_value"))
+                        curr_value = float(current_row.get("normalized_value"))
+                        try:
+                            yoy_growth_rates.append(_safe_eval_formula(pairwise_formula, {"PREV": prev_value, "CURR": curr_value}))
+                        except ZeroDivisionError:
+                            yoy_growth_rates.append(None)
+                if not formula:
+                    return _fail("parse_error", "missing trend formula")
+                result_value = _safe_eval_formula(formula, env)
+                if result_unit == "%":
+                    normalized_unit = "PERCENT"
+                rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
+                if normalized_unit == "PERCENT" and not rendered_value.endswith("%"):
+                    rendered_value += "%"
+                logger.info("[calculator] mode=%s op=%s result=%s%s", mode, operation, rendered_value, result_unit)
+                return {
+                    "answer": "",
+                    "compressed_answer": "",
+                    "selected_claim_ids": selected_evidence_ids,
+                    "draft_points": [],
+                    "kept_claim_ids": selected_evidence_ids,
+                    "dropped_claim_ids": [],
+                    "unsupported_sentences": [],
+                    "sentence_checks": [],
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": result_value,
+                        "result_unit": result_unit,
+                        "rendered_value": rendered_value,
+                        "formatted_result": "",
+                        "series": result_series,
+                        "derived_metrics": {
+                            "metric_name": metric_name,
+                            "yoy_growth_rates": yoy_growth_rates,
+                            "formula": formula,
+                            "pairwise_formula": pairwise_formula,
+                        },
+                        "explanation": explanation or str(plan.get("operation_text") or operation or mode),
+                    },
+                }
+
+            if not formula:
+                return _fail("parse_error", "missing scalar formula")
+            result_value = _safe_eval_formula(formula, env)
+            if result_unit == "%":
+                normalized_unit = "PERCENT"
+        except Exception as exc:
+            if isinstance(exc, ZeroDivisionError):
+                return _fail("zero_division", str(exc))
+            return _fail("parse_error", str(exc))
+
+        rendered_value = self._format_calculation_value(result_value, result_unit or "", normalized_unit)
+        if normalized_unit == "KRW":
+            rendered_with_unit = rendered_value
+        elif result_unit:
+            rendered_with_unit = f"{rendered_value}{result_unit}"
+        else:
+            rendered_with_unit = rendered_value
+        labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
+        result_series = []
+        for row in ordered_operands:
+            point_value = float(row.get("normalized_value"))
+            point_rendered = self._format_calculation_value(
+                point_value,
+                str(row.get("raw_unit") or row.get("result_unit") or ""),
+                source_normalized_unit,
+            )
+            result_series.append(
+                {
+                    "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                    "period": str(row.get("period") or ""),
+                    "raw_value": str(row.get("raw_value") or ""),
+                    "raw_unit": str(row.get("raw_unit") or ""),
+                    "normalized_value": point_value,
+                    "normalized_unit": source_normalized_unit,
+                    "rendered_value": point_rendered,
+                }
+            )
+        logger.info("[calculator] op=%s result=%s%s", operation, rendered_value, result_unit)
+        return {
+            "answer": "",
+            "compressed_answer": "",
+            "selected_claim_ids": selected_evidence_ids,
+            "draft_points": [],
+            "kept_claim_ids": selected_evidence_ids,
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [],
+            "calculation_result": {
+                "status": "ok",
+                "result_value": result_value,
+                "result_unit": result_unit,
+                "rendered_value": rendered_with_unit,
+                "formatted_result": "",
+                "series": result_series,
+                "derived_metrics": {
+                    "operand_labels": labels,
+                    "formula": formula,
+                },
+                "explanation": explanation or str(plan.get("operation_text") or operation or mode),
+            },
+        }
+
+    def _render_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
+        calculation_result = dict(state.get("calculation_result") or {})
+        plan = dict(state.get("calculation_plan") or {})
+        operands = list(state.get("calculation_operands") or [])
+        if not calculation_result:
+            return {"answer": "", "compressed_answer": "", "draft_points": []}
+
+        if str(calculation_result.get("status") or "") != "ok":
+            fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
+            return {
+                "answer": fallback,
+                "compressed_answer": fallback,
+                "draft_points": [fallback],
+            }
+
+        structured_llm = self.llm.with_structured_output(CalculationRenderOutput)
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 한국 기업 공시(DART) 계산 결과를 사용자 친화적인 한국어로 렌더링하는 분석가입니다.
+
+[Strict Grounding]
+- 당신은 제공된 CalculationPlan, CalculationResult, operand labels/series의 숫자만 사용하여 답변을 작성해야 합니다.
+- 데이터에 없는 새로운 연도, 새로운 금액, 스스로 다시 계산한 비율을 절대 지어내지 마세요.
+- 답변에 등장하는 모든 숫자 표현은 입력 JSON에서 직접 추적 가능해야 합니다.
+- trend를 해석할 때(예: 상승, 하락, 반등, 변동성 존재)는 반드시 series 또는 derived_metrics에 존재하는 명확한 수치 변화를 근거로 표현하세요.
+- operand label은 필요하면 조금 자연스럽게 풀어쓸 수 있지만, 새로운 항목명을 만들지 마세요.
+- 질문에 직접 답하는 1~2문장만 작성하세요.
+
+질문:
+{query}
+
+CalculationPlan:
+{plan_json}
+
+CalculationResult:
+{result_json}
+
+Operands:
+{operands_json}
+
+반드시 final_answer만 채우세요.
+"""
+        )
+        try:
+            rendered: CalculationRenderOutput = (prompt | structured_llm).invoke(
+                {
+                    "query": state["query"],
+                    "plan_json": json.dumps(plan, ensure_ascii=False, indent=2),
+                    "result_json": json.dumps(calculation_result, ensure_ascii=False, indent=2),
+                    "operands_json": json.dumps(operands, ensure_ascii=False, indent=2),
+                }
+            )
+            answer = _normalise_spaces(rendered.final_answer)
+        except Exception as exc:
+            logger.warning("[calc_renderer] structured output failed, using deterministic fallback: %s", exc)
+            answer = str(calculation_result.get("rendered_value") or calculation_result.get("formatted_result") or "").strip()
+            if not answer:
+                answer = "질문에 필요한 수치를 계산했지만 자연어 답변을 생성하지 못했습니다."
+
+        calculation_result["formatted_result"] = answer
+        return {
+            "answer": answer,
+            "compressed_answer": answer,
+            "draft_points": [answer] if answer else [],
+            "calculation_result": calculation_result,
+        }
+
     def _route_after_expand(self, state: FinancialAgentState) -> str:
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent == "numeric_fact":
             return "numeric_extractor"
         return "evidence"
+
+    def _route_after_evidence(self, state: FinancialAgentState) -> str:
+        intent = state.get("intent") or state.get("query_type", "qa")
+        if intent in {"comparison", "trend"}:
+            return "operand_extractor"
+        return "compress"
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()
@@ -1437,6 +2196,10 @@ Structured Evidence:
         graph.add_node("expand", self._expand_via_structure_graph)
         graph.add_node("numeric_extractor", self._extract_numeric_fact)
         graph.add_node("evidence", self._extract_evidence)
+        graph.add_node("operand_extractor", self._extract_calculation_operands)
+        graph.add_node("formula_planner", self._plan_formula_calculation)
+        graph.add_node("calculator", self._execute_calculation)
+        graph.add_node("calc_render", self._render_calculation_answer)
         graph.add_node("compress", self._compress_answer)
         graph.add_node("validate", self._validate_answer)
         graph.add_node("cite", self._format_citations)
@@ -1451,7 +2214,15 @@ Structured Evidence:
             {"numeric_extractor": "numeric_extractor", "evidence": "evidence"},
         )
         graph.add_edge("numeric_extractor", "cite")
-        graph.add_edge("evidence", "compress")
+        graph.add_conditional_edges(
+            "evidence",
+            self._route_after_evidence,
+            {"operand_extractor": "operand_extractor", "compress": "compress"},
+        )
+        graph.add_edge("operand_extractor", "formula_planner")
+        graph.add_edge("formula_planner", "calculator")
+        graph.add_edge("calculator", "calc_render")
+        graph.add_edge("calc_render", "cite")
         graph.add_edge("compress", "validate")
         graph.add_edge("validate", "cite")
         graph.add_edge("cite", END)
@@ -1486,6 +2257,10 @@ Structured Evidence:
             "answer": "",
             "citations": [],
             "numeric_debug_trace": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "calculation_debug_trace": {},
         }
         final = self.graph.invoke(initial)
         return {
@@ -1510,6 +2285,10 @@ Structured Evidence:
             "unsupported_sentences": final.get("unsupported_sentences", []),
             "sentence_checks": final.get("sentence_checks", []),
             "numeric_debug_trace": final.get("numeric_debug_trace", {}),
+            "calculation_operands": final.get("calculation_operands", []),
+            "calculation_plan": final.get("calculation_plan", {}),
+            "calculation_result": final.get("calculation_result", {}),
+            "calculation_debug_trace": final.get("calculation_debug_trace", {}),
         }
 
     def ingest(self, chunks: List) -> None:

@@ -1,0 +1,2358 @@
+{
+  "config_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\profiles\\dev_math_focus.json",
+  "mode": "multi_company",
+  "run_status": "completed",
+  "completed_companies": [
+    "samsung_2024"
+  ],
+  "pending_companies": [],
+  "recorded_matrix": {
+    "defaults": {
+      "k": 8,
+      "ingest_mode": "contextual_selective_v2",
+      "max_workers": 1,
+      "batch_size": 2,
+      "eval_mode": "question_ids",
+      "eval_limit": 3,
+      "reuse_store": true,
+      "reuse_context_cache": true,
+      "force_reindex": false,
+      "use_zero_cost_prefix": true,
+      "pricing": {
+        "input_per_million_tokens_usd": 0.3,
+        "output_per_million_tokens_usd": 2.5
+      },
+      "selective_v2_short_text_threshold": 700,
+      "selective_v2_short_table_threshold": 1600,
+      "selective_v2_sections": [
+        "사업개요",
+        "위험관리 및 파생거래",
+        "매출 및 수주상황",
+        "연구개발",
+        "요약재무정보"
+      ],
+      "mlflow_experiment_name": "dart_rag_benchmark_dev_math_focus",
+      "question_ids": [
+        "comparison_001",
+        "trend_001",
+        "trend_002"
+      ]
+    },
+    "screening": {
+      "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+      "parallel_experiments": 1,
+      "retrieval_hit_drop_threshold": 0.1,
+      "section_match_drop_threshold": 0.15,
+      "max_full_eval_candidates": 0,
+      "always_include_full_eval_ids": [
+        "contextual_selective_v2_prefix_2500_320"
+      ]
+    },
+    "full_evaluation": {
+      "enabled": true,
+      "eval_mode": "question_ids",
+      "eval_limit": 3,
+      "question_ids": [
+        "comparison_001",
+        "trend_001",
+        "trend_002"
+      ]
+    },
+    "experiments": [
+      {
+        "id": "contextual_selective_v2_prefix_2500_320",
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_selective_v2",
+        "use_zero_cost_prefix": true
+      }
+    ],
+    "company_runs": [
+      {
+        "id": "samsung_2024",
+        "defaults": {
+          "metadata": {
+            "company": "삼성전자",
+            "stock_code": "005930",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250311001085"
+          },
+          "smoke_queries": [
+            {
+              "query": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+              "category": "comparison",
+              "expected_company": "삼성전자",
+              "expected_year": 2024
+            },
+            {
+              "query": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+              "category": "trend",
+              "expected_company": "삼성전자",
+              "expected_year": 2024
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "company_runs": [
+    {
+      "company_id": "samsung_2024",
+      "company_label": "삼성전자 2024",
+      "output_dir": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_math_focus_2026-04-27\\삼성전자-2024",
+      "full_eval_candidates": [
+        "contextual_selective_v2_prefix_2500_320"
+      ],
+      "results": [
+        {
+          "id": "contextual_selective_v2_prefix_2500_320",
+          "config": {
+            "chunk_size": 2500,
+            "chunk_overlap": 320,
+            "ingest_mode": "contextual_selective_v2",
+            "graph_expansion": {},
+            "k": 8,
+            "max_workers": 1,
+            "batch_size": 2,
+            "collection_name": "dart_reports_v2_contextual-selective-v2-prefix-2500-320",
+            "parent_hybrid_short_text_threshold": null,
+            "parent_hybrid_sections": [],
+            "selective_short_text_threshold": null,
+            "selective_sections": [],
+            "selective_v2_short_text_threshold": 700,
+            "selective_v2_short_table_threshold": 1600,
+            "selective_v2_sections": [
+              "사업개요",
+              "위험관리 및 파생거래",
+              "매출 및 수주상황",
+              "연구개발",
+              "요약재무정보"
+            ],
+            "section_aliases": {}
+          },
+          "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\삼성전자\\2024_사업보고서_20250311001085.html",
+          "metadata": {
+            "company": "삼성전자",
+            "stock_code": "005930",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250311001085"
+          },
+          "recorded_settings": {
+            "experiment": {
+              "k": 8,
+              "ingest_mode": "contextual_selective_v2",
+              "max_workers": 1,
+              "batch_size": 2,
+              "eval_mode": "question_ids",
+              "eval_limit": 3,
+              "reuse_store": true,
+              "reuse_context_cache": true,
+              "force_reindex": false,
+              "use_zero_cost_prefix": true,
+              "pricing": {
+                "input_per_million_tokens_usd": 0.3,
+                "output_per_million_tokens_usd": 2.5
+              },
+              "selective_v2_short_text_threshold": 700,
+              "selective_v2_short_table_threshold": 1600,
+              "selective_v2_sections": [
+                "사업개요",
+                "위험관리 및 파생거래",
+                "매출 및 수주상황",
+                "연구개발",
+                "요약재무정보"
+              ],
+              "mlflow_experiment_name": "dart_rag_benchmark_dev_math_focus",
+              "question_ids": [
+                "comparison_001",
+                "trend_001",
+                "trend_002"
+              ],
+              "metadata": {
+                "company": "삼성전자",
+                "stock_code": "005930",
+                "year": 2024,
+                "report_type": "사업보고서",
+                "rcept_no": "20250311001085"
+              },
+              "smoke_queries": [
+                {
+                  "query": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                  "category": "comparison",
+                  "expected_company": "삼성전자",
+                  "expected_year": 2024
+                },
+                {
+                  "query": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+                  "category": "trend",
+                  "expected_company": "삼성전자",
+                  "expected_year": 2024
+                }
+              ],
+              "id": "contextual_selective_v2_prefix_2500_320",
+              "chunk_size": 2500,
+              "chunk_overlap": 320
+            },
+            "screening": {
+              "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+              "parallel_experiments": 1,
+              "retrieval_hit_drop_threshold": 0.1,
+              "section_match_drop_threshold": 0.15,
+              "max_full_eval_candidates": 0,
+              "always_include_full_eval_ids": [
+                "contextual_selective_v2_prefix_2500_320"
+              ]
+            },
+            "full_evaluation": {
+              "enabled": true,
+              "eval_mode": "question_ids",
+              "eval_limit": 3,
+              "question_ids": [
+                "comparison_001",
+                "trend_001",
+                "trend_002"
+              ]
+            }
+          },
+          "store": {
+            "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_math_focus_2026-04-27\\삼성전자-2024\\stores\\contextual-selective-v2-prefix-2500-320",
+            "collection_name": "dart_reports_v2_contextual-selective-v2-prefix-2500-320"
+          },
+          "parse": {
+            "elapsed_sec": 0.9789719000691548,
+            "chunk_count": 300
+          },
+          "ingest": {
+            "mode": "contextual_selective_v2",
+            "chunks": 300,
+            "stored_parent_chunks": 40,
+            "contextualized_chunks": 128,
+            "selector_reason_counts": {
+              "context_dependent_table": 73,
+              "risk_section_chunk": 3,
+              "short_table": 50,
+              "short_targeted_paragraph": 2
+            },
+            "parent_context_calls": 0,
+            "child_context_calls": 128,
+            "use_zero_cost_prefix": true,
+            "api_calls": 0,
+            "fallback_count": 0,
+            "prompt_chars": 61564,
+            "response_chars": 4738,
+            "prompt_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "max_workers": 1,
+            "batch_size": 2,
+            "elapsed_sec": 0.0,
+            "cache_hit": true,
+            "cached_source_api_calls": 128,
+            "cached_source_prompt_tokens": 38206,
+            "cached_source_output_tokens": 156083
+          },
+          "cache": {
+            "cache_hit": true,
+            "cache_level": "store",
+            "force_reindex": false,
+            "reuse_store": true,
+            "reuse_context_cache": true,
+            "signature": {
+              "schema_version": 1,
+              "company": "삼성전자",
+              "year": 2024,
+              "report_type": "사업보고서",
+              "rcept_no": "20250311001085",
+              "chunk_size": 2500,
+              "chunk_overlap": 320,
+              "ingest_mode": "contextual_selective_v2",
+              "k": 8,
+              "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
+              "runner_signature": "4245e8430db80e86a34e26d3b495000396af58ebe8041d1df109056b1fc3720c",
+              "parent_hybrid_short_text_threshold": null,
+              "parent_hybrid_sections": [],
+              "selective_short_text_threshold": null,
+              "selective_sections": [],
+              "selective_v2_short_text_threshold": 700,
+              "selective_v2_short_table_threshold": 1600,
+              "selective_v2_sections": [
+                "사업개요",
+                "위험관리 및 파생거래",
+                "매출 및 수주상황",
+                "연구개발",
+                "요약재무정보"
+              ],
+              "use_zero_cost_prefix": true
+            }
+          },
+          "estimated_ingest_cost_usd": 0.0,
+          "smoke": {
+            "queries": [
+              {
+                "query": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                "category": "comparison",
+                "expected_company": "삼성전자",
+                "expected_year": 2024,
+                "latency_sec": 14.415385400061496,
+                "query_type": "comparison",
+                "retrieved_count": 8,
+                "citation_count": 8,
+                "answer": "DX부문 매출은(는) DS부문 매출보다 63조 8,218억원 더 큽니다.",
+                "answer_preview": "DX부문 매출은(는) DS부문 매출보다 63조 8,218억원 더 큽니다.",
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.097)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.096)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.095)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.094)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 1.033)",
+                  "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 1.000)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.996)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "대주주거래",
+                    "section_path": "X. 대주주 등과의 거래내용",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 순..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. Sam..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "대주주거래",
+                    "section_path": "X. 대주주 등과의 거래내용",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "대주주 등과의 2024년 영업거래 현황을 공시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: X. 대주주 등과의 거래내용] [분류: 대주주거래 / table] [키워드: 대주주거래, X. 대주주 등과의 거래내용, 표 설명 문맥, 표] ※ 별도 기준입니다.※ 거래일자는 최근 거래일자 기준입니다.※ 거래금액은 시장 및 가치평가 등을 거쳐 적절히 산정되었으며,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] SDC의 제56기 매출은 29조 1,578억원으로전년 대비 1조 8,176억원(5.9%) 감소하였으며, 영업이익은 전년 대비 1조 8,330억원(32.9%)..."
+                  }
+                ],
+                "error": null
+              },
+              {
+                "query": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+                "category": "trend",
+                "expected_company": "삼성전자",
+                "expected_year": 2024,
+                "latency_sec": 17.464999299962074,
+                "query_type": "trend",
+                "retrieved_count": 8,
+                "citation_count": 8,
+                "answer": "영업이익 추이는 하락 후 반등입니다. 2022년: 43조 3,766억원; 2023년: 6조 5,669억원; 2024년: 32조 7,259억원",
+                "answer_preview": "영업이익 추이는 하락 후 반등입니다. 2022년: 43조 3,766억원; 2023년: 6조 5,669억원; 2024년: 32조 7,259억원",
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.160)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.155)",
+                  "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 0.707)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.686)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.586)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.505)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.382)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 2. 연결재무제표] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "삼성전자 그룹의 요약된 연결 재무 정보를 제시하여 전체 재무 현황을 한눈에 파악하게 합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / paragraph] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 문단] 가. 요약연결재무정보 (단위 : 백만원)"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 당사는 통화별 자산과 부채규모를 일치하는 수준으로 유지하여 환율변동 영향을 최소화하는데 주력하고 있습니다. 이를 위해 수출입 등의 경상거래 및 예금, 차입..."
+                  }
+                ],
+                "error": null
+              }
+            ],
+            "summary": {
+              "count": 2,
+              "avg_latency_sec": 15.940192350011785,
+              "avg_retrieved_count": 8.0,
+              "avg_citation_count": 8.0
+            }
+          },
+          "screening_eval": {
+            "question_count": 3,
+            "aggregate": {
+              "retrieval_hit_at_k": 0.6666666666666666,
+              "section_match_rate": 0.4583333333333333,
+              "citation_coverage": 0.8888888888888888,
+              "contamination_rate": 0.0,
+              "avg_latency": 18.385894000025775,
+              "error_rate": 0.0,
+              "failure_examples": [
+                {
+                  "id": "comparison_001",
+                  "category": "comparison",
+                  "failure_flags": [
+                    "hit_at_k_zero",
+                    "section_match_zero"
+                  ],
+                  "top_retrieved": [
+                    "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  ]
+                }
+              ]
+            },
+            "per_question": [
+              {
+                "id": "comparison_001",
+                "question": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                "category": "comparison",
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "매출현황",
+                "expected_sections": [
+                  "매출현황",
+                  "주요 제품 및 서비스"
+                ],
+                "answer_key": "DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로 DX부문이 63조 8,218억원 더 크다.",
+                "answer_preview": "DX부문 매출은(는) DS부문 매출보다 63조 8,218억원 더 큽니다.",
+                "retrieval_hit_at_k": 0.0,
+                "section_match_rate": 0.0,
+                "citation_coverage": 0.6666666666666666,
+                "contamination_rate": 0.0,
+                "retrieved_count": 8,
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "대주주거래",
+                    "section_path": "X. 대주주 등과의 거래내용",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 순..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. Sam..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "대주주거래",
+                    "section_path": "X. 대주주 등과의 거래내용",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "대주주 등과의 2024년 영업거래 현황을 공시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: X. 대주주 등과의 거래내용] [분류: 대주주거래 / table] [키워드: 대주주거래, X. 대주주 등과의 거래내용, 표 설명 문맥, 표] ※ 별도 기준입니다.※ 거래일자는 최근 거래일자 기준입니다.※ 거래금액은 시장 및 가치평가 등을 거쳐 적절히 산정되었으며,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] SDC의 제56기 매출은 29조 1,578억원으로전년 대비 1조 8,176억원(5.9%) 감소하였으며, 영업이익은 전년 대비 1조 8,330억원(32.9%)..."
+                  }
+                ],
+                "top_retrieved": [
+                  "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                ],
+                "failure_flags": [
+                  "hit_at_k_zero",
+                  "section_match_zero"
+                ],
+                "query_type": "comparison",
+                "latency_sec": 15.344563200022094,
+                "error": null
+              },
+              {
+                "id": "trend_001",
+                "question": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+                "category": "trend",
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "expected_sections": [
+                  "요약재무",
+                  "재무제표"
+                ],
+                "answer_key": "영업이익은 2022년 43조 3,766억원에서 2023년 6조 5,669억원으로 급감한 뒤, 2024년 32조 7,259억원으로 반등했다.",
+                "answer_preview": "영업이익 추이는 하락 후 반등입니다. 2022년: 43조 3,766억원; 2023년: 6조 5,669억원; 2024년: 32조 7,259억원",
+                "retrieval_hit_at_k": 1.0,
+                "section_match_rate": 0.75,
+                "citation_coverage": 1.0,
+                "contamination_rate": 0.0,
+                "retrieved_count": 8,
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 2. 연결재무제표] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "삼성전자 그룹의 요약된 연결 재무 정보를 제시하여 전체 재무 현황을 한눈에 파악하게 합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / paragraph] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 문단] 가. 요약연결재무정보 (단위 : 백만원)"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 당사는 통화별 자산과 부채규모를 일치하는 수준으로 유지하여 환율변동 영향을 최소화하는데 주력하고 있습니다. 이를 위해 수출입 등의 경상거래 및 예금, 차입..."
+                  }
+                ],
+                "top_retrieved": [
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/VII. 주주에 관한 사항"
+                ],
+                "failure_flags": [],
+                "query_type": "trend",
+                "latency_sec": 19.006467400002293,
+                "error": null
+              },
+              {
+                "id": "trend_002",
+                "question": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2023년 대비 몇 % 증가했나요?",
+                "category": "trend",
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무",
+                "expected_sections": [
+                  "요약재무",
+                  "재무제표"
+                ],
+                "answer_key": "2024년 영업이익은 2023년 대비 약 398.3% 증가했다.",
+                "answer_preview": "영업이익은(는) 영업이익 대비 398.3402% 변동했습니다.",
+                "retrieval_hit_at_k": 1.0,
+                "section_match_rate": 0.625,
+                "citation_coverage": 1.0,
+                "contamination_rate": 0.0,
+                "retrieved_count": 8,
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 1. 예측정보에 대한 주의사항 본 자료는 미래에 대한 '예측정보'를 포함하고 있습니다.이는 과거가 아닌 미래의 사건과 관계된 것으로 회사의 향후 예상되는 경..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 2. 연결재무제표] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  }
+                ],
+                "top_retrieved": [
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/VII. 주주에 관한 사항"
+                ],
+                "failure_flags": [],
+                "query_type": "trend",
+                "latency_sec": 20.806651400052942,
+                "error": null
+              }
+            ]
+          },
+          "screen_pass": true,
+          "screen_failure_reasons": [],
+          "full_eval": {
+            "question_count": 3,
+            "aggregate": {
+              "faithfulness": 0.6666666666666666,
+              "answer_relevancy": 0.5906614614989224,
+              "context_recall": 0.7777777777777777,
+              "retrieval_hit_at_k": 0.6666666666666666,
+              "ndcg_at_3": 0.6666666666666666,
+              "ndcg_at_5": 0.8337552784472958,
+              "context_precision_at_3": 0.4444444444444444,
+              "context_precision_at_5": 0.4000000000000001,
+              "section_match_rate": 0.4583333333333333,
+              "citation_coverage": 0.8888888888888888,
+              "entity_coverage": null,
+              "completeness": 0.5666666666666667,
+              "refusal_accuracy": 1.0,
+              "numeric_equivalence": 0.5,
+              "numeric_grounding": 0.5,
+              "numeric_retrieval_support": 0.5,
+              "numeric_confidence": 0.85,
+              "absolute_error_rate": 3.36429826763497e-05,
+              "operand_selection_correctness": 1.0,
+              "unit_consistency_pass": 1.0,
+              "calculation_correctness": 0.8888888888888888,
+              "numeric_pass_rate": 0.0,
+              "numeric_uncertain_rate": 0.0,
+              "avg_score": 0.6748324658053759,
+              "avg_latency": 17.941420157750446,
+              "error_rate": 0.0
+            },
+            "per_question": [
+              {
+                "id": "comparison_001",
+                "question": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                "answer": "DX 부문 매출은(는) DS 부문 매출보다 63조 8,218억원 더 큽니다.",
+                "ground_truth": "DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로 DX부문이 63조 8,218억원 더 크다.",
+                "answer_key": "DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로 DX부문이 63조 8,218억원 더 크다.",
+                "expected_sections": [
+                  "매출현황",
+                  "주요 제품 및 서비스"
+                ],
+                "evidence": [
+                  {
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 659억원(36.9%)입니다.",
+                    "quote_type": "verbatim",
+                    "why_it_supports_answer": "DX와 DS 부문의 매출 원본 값을 직접 제시한다."
+                  }
+                ],
+                "raw_faithfulness": 0.0,
+                "faithfulness": 0.0,
+                "faithfulness_override_reason": null,
+                "answer_relevancy": 0.6795934952665037,
+                "context_recall": 0.3333333333333333,
+                "retrieval_hit_at_k": 0.0,
+                "ndcg_at_3": 0.0,
+                "ndcg_at_5": 0.0,
+                "context_precision_at_3": 0.0,
+                "context_precision_at_5": 0.0,
+                "section_match_rate": 0.0,
+                "citation_coverage": 0.6666666666666666,
+                "entity_coverage": null,
+                "completeness": 1.0,
+                "completeness_reason": "질문은 DX와 DS 부문의 '매출 차이'를 묻고 있으며, 답변은 이 핵심 요소를 정확한 수치와 함께 완전한 문장으로 설명했습니다. 정답 기준 요약에 포함된 각 부문의 개별 매출액은 답변에 포함되면 더 친절할 수 있는 '추가 설명'이지만, 질문의 핵심 요구사항은 아니므로, 이를 포함하지 않았다고 해서 감점하지 않습니다.",
+                "refusal_accuracy": 1.0,
+                "numeric_equivalence": 1.0,
+                "numeric_grounding": 1.0,
+                "numeric_retrieval_support": 0.0,
+                "numeric_final_judgement": "FAIL",
+                "numeric_confidence": 0.7,
+                "numeric_debug": {
+                  "equivalence": {
+                    "answer_candidates": [
+                      {
+                        "value_text": "63조 8,218억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 63821800000000.0,
+                        "span": [
+                          24,
+                          35
+                        ]
+                      }
+                    ],
+                    "reference_candidates": [
+                      {
+                        "value_text": "174조 8,877억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 174887700000000.0,
+                        "span": [
+                          9,
+                          21
+                        ]
+                      },
+                      {
+                        "value_text": "111조 659억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 111065900000000.0,
+                        "span": [
+                          32,
+                          42
+                        ]
+                      },
+                      {
+                        "value_text": "63조 8,218억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 63821800000000.0,
+                        "span": [
+                          51,
+                          62
+                        ]
+                      },
+                      {
+                        "value_text": "174조 8,877억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 174887700000000.0,
+                        "span": [
+                          17,
+                          29
+                        ]
+                      },
+                      {
+                        "value_text": "58.1%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 58.1,
+                        "span": [
+                          30,
+                          35
+                        ]
+                      },
+                      {
+                        "value_text": "111조 659억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 111065900000000.0,
+                        "span": [
+                          45,
+                          55
+                        ]
+                      },
+                      {
+                        "value_text": "36.9%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 36.9,
+                        "span": [
+                          56,
+                          61
+                        ]
+                      }
+                    ],
+                    "matched_pair": {
+                      "answer": {
+                        "value_text": "63조 8,218억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 63821800000000.0,
+                        "span": [
+                          24,
+                          35
+                        ]
+                      },
+                      "reference": {
+                        "value_text": "63조 8,218억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 63821800000000.0,
+                        "span": [
+                          51,
+                          62
+                        ]
+                      }
+                    },
+                    "reason": "equivalent_value"
+                  },
+                  "grounding": {
+                    "verdict": "grounded",
+                    "confidence": 1.0,
+                    "reason": "런타임 근거의 'claim'에 명시된 DX 부문 매출(174조 8,877억원)과 DS 부문 매출(111조 659억 5천만원)을 사용하여 차이를 계산하면 63조 8,217억 5천만원이 나옵니다. 이를 가장 가까운 억원으로 반올림하면 63조 8,218억원이 되어 답변의 핵심 숫자 주장과 일치합니다.",
+                    "raw_response": "{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거의 'claim'에 명시된 DX 부문 매출(174조 8,877억원)과 DS 부문 매출(111조 659억 5천만원)을 사용하여 차이를 계산하면 63조 8,217억 5천만원이 나옵니다. 이를 가장 가까운 억원으로 반올림하면 63조 8,218억원이 되어 답변의 핵심 숫자 주장과 일치합니다.\"\n}"
+                  }
+                },
+                "absolute_error_rate": 0.0,
+                "operand_selection_correctness": 1.0,
+                "unit_consistency_pass": 1.0,
+                "calculation_correctness": 1.0,
+                "missing_info_compliance": null,
+                "retrieved_count": 8,
+                "query_type": "comparison",
+                "intent": "comparison",
+                "format_preference": "table",
+                "routing_source": "semantic_fast_path",
+                "routing_confidence": 0.8983145591613515,
+                "routing_scores": {
+                  "comparison": 0.8983,
+                  "business_overview": 0.7457,
+                  "numeric_fact": 0.6891,
+                  "risk": 0.6295,
+                  "trend": 0.5152,
+                  "qa": 0.4096
+                },
+                "latency_sec": 14.984354496002197,
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.097)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.096)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.095)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.094)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 1.033)",
+                  "[삼성전자] 2024년 사업보고서 / X. 대주주 등과의 거래내용 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 1.000)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.996)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "대주주거래",
+                    "section_path": "X. 대주주 등과의 거래내용"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 순..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. Sam..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "대주주거래",
+                    "section_path": "X. 대주주 등과의 거래내용",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "대주주 등과의 2024년 영업거래 현황을 공시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: X. 대주주 등과의 거래내용] [분류: 대주주거래 / table] [키워드: 대주주거래, X. 대주주 등과의 거래내용, 표 설명 문맥, 표] ※ 별도 기준입니다.※ 거래일자는 최근 거래일자 기준입니다.※ 거래금액은 시장 및 가치평가 등을 거쳐 적절히 산정되었으며,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] SDC의 제56기 매출은 29조 1,578억원으로전년 대비 1조 8,176억원(5.9%) 감소하였으며, 영업이익은 전년 대비 1조 8,330억원(32.9%)..."
+                  }
+                ],
+                "runtime_evidence": [
+                  {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "claim": "2024년 삼성전자 DX 부문의 매출은 174조 8,877억원이고, DS 부문의 매출은 111조 659억 5천만원입니다.",
+                    "quote_span": "매출 | DX 부문 | 174,887,683 | 58.1% | 169,992,337 | 65.7% | 4,895,346 | 2.9% DS 부문 | 111,065,950 | 36.9% | 66,594,471 | 25.7% | 44,471,479 | 66.8%",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [
+                      "2024년",
+                      "삼성전자",
+                      "DX 부문",
+                      "매출",
+                      "174조 8,877억원",
+                      "DS 부문",
+                      "111조 659억 5천만원"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "경영진단",
+                      "section_path": "IV. 이사의 경영진단 및 분석의견",
+                      "block_type": "paragraph",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:127:5",
+                      "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                    },
+                    "parent_category": "부문별 영업실적 분석"
+                  }
+                ],
+                "selected_claim_ids": [
+                  "ev_001"
+                ],
+                "draft_points": [
+                  "DX 부문 매출은(는) DS 부문 매출보다 63조 8,218억원 더 큽니다."
+                ],
+                "kept_claim_ids": [
+                  "ev_001"
+                ],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_operands": [
+                  {
+                    "operand_id": "op_001",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "label": "2024년 DX 부문 매출",
+                    "raw_value": "174조 8,877억원",
+                    "raw_unit": "조원",
+                    "normalized_value": 174887700000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2024년"
+                  },
+                  {
+                    "operand_id": "op_002",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "label": "2024년 DS 부문 매출",
+                    "raw_value": "111조 659억 5천만원",
+                    "raw_unit": "조원",
+                    "normalized_value": 111065900000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2024년"
+                  }
+                ],
+                "calculation_plan": {
+                  "operation": "subtract",
+                  "ordered_operand_ids": [
+                    "op_001",
+                    "op_002"
+                  ],
+                  "result_unit": "억원",
+                  "operation_text": "DX 부문 매출 - DS 부문 매출",
+                  "explanation": "DX 부문과 DS 부문의 매출 차이를 계산하기 위해 뺄셈 연산을 수행합니다."
+                },
+                "calculation_result": {
+                  "status": "ok",
+                  "result_value": 63821800000000.0,
+                  "result_unit": "억원",
+                  "rendered_value": "63조 8,218억원",
+                  "formatted_result": "DX 부문 매출은(는) DS 부문 매출보다 63조 8,218억원 더 큽니다.",
+                  "explanation": "DX 부문과 DS 부문의 매출 차이를 계산하기 위해 뺄셈 연산을 수행합니다."
+                },
+                "missing_info_policy": null,
+                "error": null
+              },
+              {
+                "id": "trend_001",
+                "question": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+                "answer": "영업이익 추이는 하락 후 반등입니다. 2022년: 43조 3,766억원; 2023년: 6조 5,669억원; 2024년: 32조 7,259억원",
+                "ground_truth": "영업이익은 2022년 43조 3,766억원에서 2023년 6조 5,669억원으로 급감한 뒤, 2024년 32조 7,259억원으로 반등했다.",
+                "answer_key": "영업이익은 2022년 43조 3,766억원에서 2023년 6조 5,669억원으로 급감한 뒤, 2024년 32조 7,259억원으로 반등했다.",
+                "expected_sections": [
+                  "요약재무",
+                  "재무제표"
+                ],
+                "evidence": [
+                  {
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "quote": "영업이익: 2024년 32,725,961 / 2023년 6,566,976 / 2022년 43,376,630 (단위: 백만원)",
+                    "quote_type": "verbatim",
+                    "why_it_supports_answer": "최근 3개년 영업이익 series를 직접 제시한다."
+                  }
+                ],
+                "raw_faithfulness": 1.0,
+                "faithfulness": 1.0,
+                "faithfulness_override_reason": null,
+                "answer_relevancy": 0.6796737162920036,
+                "context_recall": 1.0,
+                "retrieval_hit_at_k": 1.0,
+                "ndcg_at_3": 1.0,
+                "ndcg_at_5": 1.501265835341887,
+                "context_precision_at_3": 0.6666666666666666,
+                "context_precision_at_5": 0.8,
+                "section_match_rate": 0.75,
+                "citation_coverage": 1.0,
+                "entity_coverage": null,
+                "completeness": 0.7,
+                "completeness_reason": "핵심 정보(추이 및 3년간 수치)는 모두 포함되었으나, 설명이 정답 기준만큼 상세하거나 유기적으로 연결된 문장으로 제시되지 않았습니다. 특히 '급감'과 같은 상세한 추이 설명이 빠져있습니다.",
+                "refusal_accuracy": 1.0,
+                "numeric_equivalence": null,
+                "numeric_grounding": null,
+                "numeric_retrieval_support": null,
+                "numeric_final_judgement": null,
+                "numeric_confidence": null,
+                "numeric_debug": {},
+                "absolute_error_rate": 0.0,
+                "operand_selection_correctness": 1.0,
+                "unit_consistency_pass": 1.0,
+                "calculation_correctness": 1.0,
+                "missing_info_compliance": null,
+                "retrieved_count": 8,
+                "query_type": "trend",
+                "intent": "trend",
+                "format_preference": "table",
+                "routing_source": "llm_fallback",
+                "routing_confidence": 0.778,
+                "routing_scores": {
+                  "trend": 0.7782,
+                  "risk": 0.7611,
+                  "comparison": 0.759,
+                  "numeric_fact": 0.6912,
+                  "business_overview": 0.6176,
+                  "qa": 0.5264
+                },
+                "latency_sec": 19.35816192626953,
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.160)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.155)",
+                  "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 0.707)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.686)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.586)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / paragraph (score: 0.505)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.382)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 2. 연결재무제표] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "삼성전자 그룹의 요약된 연결 재무 정보를 제시하여 전체 재무 현황을 한눈에 파악하게 합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / paragraph] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 문단] 가. 요약연결재무정보 (단위 : 백만원)"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 당사는 통화별 자산과 부채규모를 일치하는 수준으로 유지하여 환율변동 영향을 최소화하는데 주력하고 있습니다. 이를 위해 수출입 등의 경상거래 및 예금, 차입..."
+                  }
+                ],
+                "runtime_evidence": [
+                  {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "claim": "삼성전자의 연결기준 영업이익은 2022년 43,376,630 백만원, 2023년 6,566,976 백만원, 2024년 32,725,961 백만원으로 변동했습니다.",
+                    "quote_span": "영업이익 | 32,725,961 | 6,566,976 | 43,376,630",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [
+                      "영업이익",
+                      "2022년",
+                      "2023년",
+                      "2024년",
+                      "백만원"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "요약재무",
+                      "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                      "block_type": "paragraph",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:31:0",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 1. 요약재무정보"
+                    }
+                  }
+                ],
+                "selected_claim_ids": [
+                  "ev_001"
+                ],
+                "draft_points": [
+                  "영업이익 추이는 하락 후 반등입니다. 2022년: 43조 3,766억원; 2023년: 6조 5,669억원; 2024년: 32조 7,259억원"
+                ],
+                "kept_claim_ids": [
+                  "ev_001"
+                ],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_operands": [
+                  {
+                    "operand_id": "op_001",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "label": "2022년 영업이익",
+                    "raw_value": "43,376,630",
+                    "raw_unit": "백만원",
+                    "normalized_value": 43376630000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2022년"
+                  },
+                  {
+                    "operand_id": "op_002",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "label": "2023년 영업이익",
+                    "raw_value": "6,566,976",
+                    "raw_unit": "백만원",
+                    "normalized_value": 6566976000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023년"
+                  },
+                  {
+                    "operand_id": "op_003",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "label": "2024년 영업이익",
+                    "raw_value": "32,725,961",
+                    "raw_unit": "백만원",
+                    "normalized_value": 32725961000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2024년"
+                  }
+                ],
+                "calculation_plan": {
+                  "operation": "time_series_trend",
+                  "ordered_operand_ids": [
+                    "op_001",
+                    "op_002",
+                    "op_003"
+                  ],
+                  "result_unit": "백만원",
+                  "operation_text": "2022년, 2023년, 2024년 영업이익 추이 분석",
+                  "explanation": "최근 3년간의 영업이익 변화 추이를 파악하기 위해 시계열 추이 분석 연산을 선택했습니다."
+                },
+                "calculation_result": {
+                  "status": "ok",
+                  "result_value": -24.5539337657167,
+                  "result_unit": "백만원",
+                  "rendered_value": "-24.5539%",
+                  "formatted_result": "영업이익 추이는 하락 후 반등입니다. 2022년: 43조 3,766억원; 2023년: 6조 5,669억원; 2024년: 32조 7,259억원",
+                  "explanation": "최근 3년간의 영업이익 변화 추이를 파악하기 위해 시계열 추이 분석 연산을 선택했습니다."
+                },
+                "missing_info_policy": null,
+                "error": null
+              },
+              {
+                "id": "trend_002",
+                "question": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2023년 대비 몇 % 증가했나요?",
+                "answer": "영업이익은(는) 영업이익 대비 398.3402% 변동했습니다.",
+                "ground_truth": "2024년 영업이익은 2023년 대비 약 398.3% 증가했다.",
+                "answer_key": "2024년 영업이익은 2023년 대비 약 398.3% 증가했다.",
+                "expected_sections": [
+                  "요약재무",
+                  "재무제표"
+                ],
+                "evidence": [
+                  {
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "quote": "영업이익: 2024년 32,725,961 / 2023년 6,566,976 (단위: 백만원)",
+                    "quote_type": "verbatim",
+                    "why_it_supports_answer": "전년 대비 증가율 계산에 필요한 두 값을 직접 제시한다."
+                  }
+                ],
+                "raw_faithfulness": 1.0,
+                "faithfulness": 1.0,
+                "faithfulness_override_reason": null,
+                "answer_relevancy": 0.41271717293825994,
+                "context_recall": 1.0,
+                "retrieval_hit_at_k": 1.0,
+                "ndcg_at_3": 1.0,
+                "ndcg_at_5": 1.0,
+                "context_precision_at_3": 0.6666666666666666,
+                "context_precision_at_5": 0.4,
+                "section_match_rate": 0.625,
+                "citation_coverage": 1.0,
+                "entity_coverage": null,
+                "completeness": 0.0,
+                "completeness_reason": "답변은 질문에서 요구한 회사, 보고서, 비교 연도(2024년 대비 2023년) 등 핵심 맥락 정보를 완전히 누락했습니다. 또한 '영업이익은(는) 영업이익 대비'라는 표현은 매우 혼란스러우며, '증가' 대신 '변동'이라는 모호한 표현을 사용하여 질문 의도에 거의 답하지 못했습니다.",
+                "refusal_accuracy": 1.0,
+                "numeric_equivalence": 0.0,
+                "numeric_grounding": 0.0,
+                "numeric_retrieval_support": 1.0,
+                "numeric_final_judgement": "FAIL",
+                "numeric_confidence": 1.0,
+                "numeric_debug": {
+                  "equivalence": {
+                    "answer_candidates": [
+                      {
+                        "value_text": "398.3402%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 398.3402,
+                        "span": [
+                          17,
+                          26
+                        ]
+                      }
+                    ],
+                    "reference_candidates": [
+                      {
+                        "value_text": "398.3%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 398.3,
+                        "span": [
+                          23,
+                          29
+                        ]
+                      }
+                    ],
+                    "matched_pair": null,
+                    "reason": "no_equivalent_value"
+                  },
+                  "grounding": {
+                    "verdict": "not_grounded",
+                    "confidence": 1.0,
+                    "reason": "근거에는 '398.3%'로 명시되어 있으나, 답변은 '398.3402%'로 소수점 이하 자릿수가 달라 근거에 직접적으로 뒷받침되지 않습니다.",
+                    "raw_response": "```json\n{\n  \"verdict\": \"not_grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에는 '398.3%'로 명시되어 있으나, 답변은 '398.3402%'로 소수점 이하 자릿수가 달라 근거에 직접적으로 뒷받침되지 않습니다.\"\n}\n```"
+                  }
+                },
+                "absolute_error_rate": 0.00010092894802904911,
+                "operand_selection_correctness": 1.0,
+                "unit_consistency_pass": 1.0,
+                "calculation_correctness": 0.6666666666666666,
+                "missing_info_compliance": null,
+                "retrieved_count": 8,
+                "query_type": "trend",
+                "intent": "trend",
+                "format_preference": "table",
+                "routing_source": "llm_fallback",
+                "routing_confidence": 0.95,
+                "routing_scores": {
+                  "risk": 0.7294,
+                  "numeric_fact": 0.7167,
+                  "comparison": 0.7047,
+                  "trend": 0.6172,
+                  "business_overview": 0.5746,
+                  "qa": 0.4487
+                },
+                "latency_sec": 19.481744050979614,
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.160)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.157)",
+                  "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 1.031)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.996)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.994)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 2. 연결재무제표 / table (score: 0.705)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.684)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.584)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 1. 예측정보에 대한 주의사항 본 자료는 미래에 대한 '예측정보'를 포함하고 있습니다.이는 과거가 아닌 미래의 사건과 관계된 것으로 회사의 향후 예상되는 경..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 2. 연결재무제표] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  }
+                ],
+                "runtime_evidence": [
+                  {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "claim": "삼성전자의 2024년 연결기준 영업이익은 32조 7,260억원으로 2023년 6조 5,670억원 대비 398.3% 증가했습니다.",
+                    "quote_span": "영업이익은 전년 대비 26조 1,590억원(398.3%) 증가한 32조 7,260억원을 기록하였습니다.",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [
+                      "영업이익",
+                      "2024년",
+                      "2023년",
+                      "398.3%",
+                      "증가"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "경영진단",
+                      "section_path": "IV. 이사의 경영진단 및 분석의견",
+                      "block_type": "paragraph",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:122:0",
+                      "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                    }
+                  }
+                ],
+                "selected_claim_ids": [
+                  "ev_001"
+                ],
+                "draft_points": [
+                  "영업이익은(는) 영업이익 대비 398.3402% 변동했습니다."
+                ],
+                "kept_claim_ids": [
+                  "ev_001"
+                ],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_operands": [
+                  {
+                    "operand_id": "op_001",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "label": "2024년 영업이익",
+                    "raw_value": "32조 7,260억원",
+                    "raw_unit": "조원",
+                    "normalized_value": 32726000000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2024년"
+                  },
+                  {
+                    "operand_id": "op_002",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "label": "2023년 영업이익",
+                    "raw_value": "6조 5,670억원",
+                    "raw_unit": "조원",
+                    "normalized_value": 6567000000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023년"
+                  }
+                ],
+                "calculation_plan": {
+                  "operation": "growth_rate",
+                  "ordered_operand_ids": [
+                    "op_001",
+                    "op_002"
+                  ],
+                  "result_unit": "%",
+                  "operation_text": "(2024년 영업이익 - 2023년 영업이익) / 2023년 영업이익",
+                  "explanation": "2024년 영업이익이 2023년 대비 몇 % 증가했는지 묻는 질문이므로 성장률 연산을 사용합니다."
+                },
+                "calculation_result": {
+                  "status": "ok",
+                  "result_value": 398.3401857773717,
+                  "result_unit": "%",
+                  "rendered_value": "398.3402%",
+                  "formatted_result": "영업이익은(는) 영업이익 대비 398.3402% 변동했습니다.",
+                  "explanation": "2024년 영업이익이 2023년 대비 몇 % 증가했는지 묻는 질문이므로 성장률 연산을 사용합니다."
+                },
+                "missing_info_policy": null,
+                "error": null
+              }
+            ]
+          },
+          "comparison_to_baseline": {
+            "api_call_reduction_ratio": null,
+            "ingest_time_reduction_ratio": null,
+            "estimated_cost_reduction_ratio": null
+          }
+        }
+      ],
+      "recorded_matrix": {
+        "mode": "company_run",
+        "company_run": {
+          "id": "samsung_2024",
+          "label": "삼성전자 2024",
+          "defaults": {
+            "metadata": {
+              "company": "삼성전자",
+              "stock_code": "005930",
+              "year": 2024,
+              "report_type": "사업보고서",
+              "rcept_no": "20250311001085"
+            },
+            "smoke_queries": [
+              {
+                "query": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                "category": "comparison",
+                "expected_company": "삼성전자",
+                "expected_year": 2024
+              },
+              {
+                "query": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+                "category": "trend",
+                "expected_company": "삼성전자",
+                "expected_year": 2024
+              }
+            ]
+          },
+          "experiments": [
+            {
+              "id": "contextual_selective_v2_prefix_2500_320",
+              "chunk_size": 2500,
+              "chunk_overlap": 320,
+              "ingest_mode": "contextual_selective_v2",
+              "use_zero_cost_prefix": true
+            }
+          ]
+        },
+        "defaults": {
+          "k": 8,
+          "ingest_mode": "contextual_selective_v2",
+          "max_workers": 1,
+          "batch_size": 2,
+          "eval_mode": "question_ids",
+          "eval_limit": 3,
+          "reuse_store": true,
+          "reuse_context_cache": true,
+          "force_reindex": false,
+          "use_zero_cost_prefix": true,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발",
+            "요약재무정보"
+          ],
+          "mlflow_experiment_name": "dart_rag_benchmark_dev_math_focus",
+          "question_ids": [
+            "comparison_001",
+            "trend_001",
+            "trend_002"
+          ]
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+          "parallel_experiments": 1,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 0,
+          "always_include_full_eval_ids": [
+            "contextual_selective_v2_prefix_2500_320"
+          ]
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "question_ids",
+          "eval_limit": 3,
+          "question_ids": [
+            "comparison_001",
+            "trend_001",
+            "trend_002"
+          ]
+        }
+      }
+    }
+  ],
+  "cross_company_summary": [
+    {
+      "company_id": "samsung_2024",
+      "company": "삼성전자 2024",
+      "experiment_id": "contextual_selective_v2_prefix_2500_320",
+      "screen_pass": true,
+      "critical_category_miss_count": 0,
+      "retrieval_hit_at_k": 0.6666666666666666,
+      "section_match_rate": 0.4583333333333333,
+      "citation_coverage": 0.8888888888888888,
+      "contamination_rate": 0.0,
+      "api_calls": 0,
+      "estimated_ingest_cost_usd": 0.0,
+      "ingest_elapsed_sec": 0.0,
+      "api_call_reduction_ratio": null,
+      "ingest_time_reduction_ratio": null,
+      "estimated_cost_reduction_ratio": null,
+      "full_faithfulness": 0.6666666666666666,
+      "full_context_recall": 0.7777777777777777,
+      "full_answer_relevancy": 0.5906614614989224,
+      "full_retrieval_hit_at_k": 0.6666666666666666,
+      "full_section_match_rate": 0.4583333333333333,
+      "full_citation_coverage": 0.8888888888888888,
+      "full_avg_score": 0.6748324658053759,
+      "screen_failure_reasons": [],
+      "screen_failure_examples": [
+        {
+          "id": "comparison_001",
+          "category": "comparison",
+          "failure_flags": [
+            "hit_at_k_zero",
+            "section_match_zero"
+          ],
+          "top_retrieved": [
+            "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+          ]
+        }
+      ],
+      "ingest_mode": "contextual_selective_v2",
+      "chunk_size": 2500,
+      "chunk_overlap": 320
+    }
+  ],
+  "winner_ranking": [
+    {
+      "experiment_id": "contextual_selective_v2_prefix_2500_320",
+      "company_count": 1,
+      "pass_count": 1,
+      "critical_category_miss_count": 0,
+      "avg_api_call_reduction_ratio": null,
+      "avg_ingest_time_reduction_ratio": null,
+      "avg_estimated_cost_reduction_ratio": null,
+      "avg_full_faithfulness": 0.6666666666666666,
+      "avg_full_context_recall": 0.7777777777777777,
+      "screen_failures": []
+    }
+  ]
+}

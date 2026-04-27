@@ -1,0 +1,312 @@
+[
+  {
+    "id": "comparison_001",
+    "question": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+    "answer": "삼성전자 2024년 사업보고서에서 DX 부문 매출과 DS 부문 매출의 차이는 63조 8,217억원입니다.",
+    "faithfulness": 0.0,
+    "answer_relevancy": 0.8973161289403159,
+    "context_recall": 0.3333333333333333,
+    "completeness": 0.7,
+    "operand_selection_correctness": 1.0,
+    "unit_consistency_pass": 1.0,
+    "calculation_correctness": 0.3333333333333333,
+    "calculation_plan": {
+      "mode": "single_value",
+      "operation": "subtract",
+      "ordered_operand_ids": [
+        "op_001",
+        "op_002"
+      ],
+      "variable_bindings": [
+        {
+          "variable": "A",
+          "operand_id": "op_001"
+        },
+        {
+          "variable": "B",
+          "operand_id": "op_002"
+        }
+      ],
+      "formula": "A - B",
+      "pairwise_formula": "",
+      "result_unit": "원",
+      "operation_text": "DX 부문 매출 - DS 부문 매출",
+      "explanation": "2024년 삼성전자 DX 부문 매출과 DS 부문 매출의 차이를 계산합니다."
+    },
+    "calculation_result": {
+      "status": "ok",
+      "result_value": 63821733000000.0,
+      "result_unit": "원",
+      "rendered_value": "63조 8,217억원",
+      "formatted_result": "삼성전자 2024년 사업보고서에서 DX 부문 매출과 DS 부문 매출의 차이는 63조 8,217억원입니다.",
+      "series": [
+        {
+          "label": "DX 부문 매출",
+          "period": "2024년",
+          "raw_value": "174,887,683",
+          "raw_unit": "백만원",
+          "normalized_value": 174887683000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "174조 8,876억원"
+        },
+        {
+          "label": "DS 부문 매출",
+          "period": "2024년",
+          "raw_value": "111,065,950",
+          "raw_unit": "백만원",
+          "normalized_value": 111065950000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "111조 659억원"
+        }
+      ],
+      "derived_metrics": {
+        "operand_labels": [
+          "DX 부문 매출",
+          "DS 부문 매출"
+        ],
+        "formula": "A - B"
+      },
+      "explanation": "2024년 삼성전자 DX 부문 매출과 DS 부문 매출의 차이를 계산합니다."
+    },
+    "calculation_operands": [
+      {
+        "operand_id": "op_001",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "label": "DX 부문 매출",
+        "raw_value": "174,887,683",
+        "raw_unit": "백만원",
+        "normalized_value": 174887683000000.0,
+        "normalized_unit": "KRW",
+        "period": "2024년"
+      },
+      {
+        "operand_id": "op_002",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "label": "DS 부문 매출",
+        "raw_value": "111,065,950",
+        "raw_unit": "백만원",
+        "normalized_value": 111065950000000.0,
+        "normalized_unit": "KRW",
+        "period": "2024년"
+      }
+    ]
+  },
+  {
+    "id": "trend_001",
+    "question": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
+    "answer": "삼성전자의 영업이익은 2022년 43조 3,766억원에서 2023년 6조 5,669억원으로 84.86% 감소했으나, 2024년에는 32조 7,259억원으로 398.34% 증가하며 반등했습니다.",
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.7483073106933615,
+    "context_recall": 1.0,
+    "completeness": 1.0,
+    "operand_selection_correctness": 1.0,
+    "unit_consistency_pass": 1.0,
+    "calculation_correctness": 0.5,
+    "calculation_plan": {
+      "mode": "time_series",
+      "operation": "time_series_trend",
+      "ordered_operand_ids": [
+        "op_001",
+        "op_002",
+        "op_003"
+      ],
+      "variable_bindings": [
+        {
+          "variable": "A",
+          "operand_id": "op_001"
+        },
+        {
+          "variable": "B",
+          "operand_id": "op_002"
+        },
+        {
+          "variable": "C",
+          "operand_id": "op_003"
+        }
+      ],
+      "formula": "((C - A) / A) * 100",
+      "pairwise_formula": "((CURR - PREV) / PREV) * 100",
+      "result_unit": "%",
+      "operation_text": "연도별 영업이익 증감률",
+      "explanation": "최근 3년간의 영업이익 추이를 파악하기 위해 연도별 증감률을 계산합니다."
+    },
+    "calculation_result": {
+      "status": "ok",
+      "result_value": -24.5539337657167,
+      "result_unit": "%",
+      "rendered_value": "-24.5539%",
+      "formatted_result": "삼성전자의 영업이익은 2022년 43조 3,766억원에서 2023년 6조 5,669억원으로 84.86% 감소했으나, 2024년에는 32조 7,259억원으로 398.34% 증가하며 반등했습니다.",
+      "series": [
+        {
+          "label": "영업이익",
+          "period": "2022년",
+          "raw_value": "43,376,630",
+          "raw_unit": "백만원",
+          "normalized_value": 43376630000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "43조 3,766억원"
+        },
+        {
+          "label": "영업이익",
+          "period": "2023년",
+          "raw_value": "6,566,976",
+          "raw_unit": "백만원",
+          "normalized_value": 6566976000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "6조 5,669억원"
+        },
+        {
+          "label": "영업이익",
+          "period": "2024년",
+          "raw_value": "32,725,961",
+          "raw_unit": "백만원",
+          "normalized_value": 32725961000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "32조 7,259억원"
+        }
+      ],
+      "derived_metrics": {
+        "metric_name": "영업이익",
+        "yoy_growth_rates": [
+          null,
+          -84.86056662308712,
+          398.3414131557661
+        ],
+        "formula": "((C - A) / A) * 100",
+        "pairwise_formula": "((CURR - PREV) / PREV) * 100"
+      },
+      "explanation": "최근 3년간의 영업이익 추이를 파악하기 위해 연도별 증감률을 계산합니다."
+    },
+    "calculation_operands": [
+      {
+        "operand_id": "op_001",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        "label": "2022년 영업이익",
+        "raw_value": "43,376,630",
+        "raw_unit": "백만원",
+        "normalized_value": 43376630000000.0,
+        "normalized_unit": "KRW",
+        "period": "2022년"
+      },
+      {
+        "operand_id": "op_002",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        "label": "2023년 영업이익",
+        "raw_value": "6,566,976",
+        "raw_unit": "백만원",
+        "normalized_value": 6566976000000.0,
+        "normalized_unit": "KRW",
+        "period": "2023년"
+      },
+      {
+        "operand_id": "op_003",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        "label": "2024년 영업이익",
+        "raw_value": "32,725,961",
+        "raw_unit": "백만원",
+        "normalized_value": 32725961000000.0,
+        "normalized_unit": "KRW",
+        "period": "2024년"
+      }
+    ]
+  },
+  {
+    "id": "trend_002",
+    "question": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2023년 대비 몇 % 증가했나요?",
+    "answer": "삼성전자의 2024년 영업이익(32조 7,260억원)은 2023년 영업이익(6조 5,670억원) 대비 398.3402% 증가했습니다.",
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.8499624166591307,
+    "context_recall": 1.0,
+    "completeness": 1.0,
+    "operand_selection_correctness": 1.0,
+    "unit_consistency_pass": 1.0,
+    "calculation_correctness": 0.6666666666666666,
+    "calculation_plan": {
+      "mode": "single_value",
+      "operation": "growth_rate",
+      "ordered_operand_ids": [
+        "op_001",
+        "op_002"
+      ],
+      "variable_bindings": [
+        {
+          "variable": "A",
+          "operand_id": "op_001"
+        },
+        {
+          "variable": "B",
+          "operand_id": "op_002"
+        }
+      ],
+      "formula": "((A - B) / B) * 100",
+      "pairwise_formula": "",
+      "result_unit": "%",
+      "operation_text": "2024년 영업이익 - 2023년 영업이익 / 2023년 영업이익 * 100",
+      "explanation": "2024년 영업이익이 2023년 대비 얼마나 증가했는지 백분율로 계산합니다."
+    },
+    "calculation_result": {
+      "status": "ok",
+      "result_value": 398.3401857773717,
+      "result_unit": "%",
+      "rendered_value": "398.3402%",
+      "formatted_result": "삼성전자의 2024년 영업이익(32조 7,260억원)은 2023년 영업이익(6조 5,670억원) 대비 398.3402% 증가했습니다.",
+      "series": [
+        {
+          "label": "영업이익",
+          "period": "2024년",
+          "raw_value": "32조 7,260억원",
+          "raw_unit": "조원",
+          "normalized_value": 32726000000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "32조 7,260억원"
+        },
+        {
+          "label": "영업이익",
+          "period": "2023년",
+          "raw_value": "6조 5,670억원",
+          "raw_unit": "조원",
+          "normalized_value": 6567000000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "6조 5,670억원"
+        }
+      ],
+      "derived_metrics": {
+        "operand_labels": [
+          "영업이익",
+          "영업이익"
+        ],
+        "formula": "((A - B) / B) * 100"
+      },
+      "explanation": "2024년 영업이익이 2023년 대비 얼마나 증가했는지 백분율로 계산합니다."
+    },
+    "calculation_operands": [
+      {
+        "operand_id": "op_001",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "label": "2024년 영업이익",
+        "raw_value": "32조 7,260억원",
+        "raw_unit": "조원",
+        "normalized_value": 32726000000000.0,
+        "normalized_unit": "KRW",
+        "period": "2024년"
+      },
+      {
+        "operand_id": "op_002",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "label": "2023년 영업이익",
+        "raw_value": "6조 5,670억원",
+        "raw_unit": "조원",
+        "normalized_value": 6567000000000.0,
+        "normalized_unit": "KRW",
+        "period": "2023년"
+      }
+    ]
+  }
+]
