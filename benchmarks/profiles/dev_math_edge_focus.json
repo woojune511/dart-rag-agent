@@ -2,10 +2,10 @@
   "defaults": {
     "k": 8,
     "ingest_mode": "contextual_selective_v2",
-    "max_workers": 1,
-    "batch_size": 2,
+    "max_workers": 4,
+    "batch_size": 4,
     "eval_mode": "question_ids",
-    "eval_limit": 10,
+    "eval_limit": 3,
     "reuse_store": true,
     "reuse_context_cache": true,
     "force_reindex": false,
@@ -23,18 +23,11 @@
       "연구개발",
       "요약재무정보"
     ],
-    "mlflow_experiment_name": "dart_rag_benchmark_dev_math_focus",
+    "mlflow_experiment_name": "dart_rag_benchmark_dev_math_edge_focus",
     "question_ids": [
-      "comparison_001",
-      "comparison_002",
-      "comparison_003",
-      "comparison_004",
       "comparison_005",
       "comparison_006",
-      "comparison_007",
-      "trend_001",
-      "trend_002",
-      "trend_003"
+      "comparison_007"
     ]
   },
   "candidate_ids": [
@@ -53,18 +46,11 @@
   "full_evaluation": {
     "enabled": true,
     "eval_mode": "question_ids",
-    "eval_limit": 10,
+    "eval_limit": 3,
     "question_ids": [
-      "comparison_001",
-      "comparison_002",
-      "comparison_003",
-      "comparison_004",
       "comparison_005",
       "comparison_006",
-      "comparison_007",
-      "trend_001",
-      "trend_002",
-      "trend_003"
+      "comparison_007"
     ]
   },
   "company_runs": [
@@ -82,14 +68,8 @@
         "eval_dataset_path": "benchmarks/eval_dataset.math_focus.json",
         "smoke_queries": [
           {
-            "query": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+            "query": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
             "category": "comparison",
-            "expected_company": "삼성전자",
-            "expected_year": 2024
-          },
-          {
-            "query": "삼성전자 2024 사업보고서에서 최근 3년 영업이익 추이는 어떻게 변했나요?",
-            "category": "trend",
             "expected_company": "삼성전자",
             "expected_year": 2024
           }

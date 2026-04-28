@@ -319,5 +319,83 @@
       "rendered_contains": "11.6%",
       "tolerance": 0.002
     }
+  },
+  {
+    "id": "comparison_006",
+    "question": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
+    "category": "comparison",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["연구개발"],
+    "answer_key": "2024년 연구개발비 / 매출액 비중은 11.6%, 2023년은 10.9%로 2024년이 0.7%p 더 높다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "II. 사업의 내용 > 6. 연구개발 활동",
+        "quote": "연구개발비 / 매출액 비율: 2024년 11.6% / 2023년 10.9% / 2022년 8.2%",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "동일 표에서 2024년과 2023년의 연구개발비 비중을 직접 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "2024년 연구개발비 / 매출액 비율",
+        "period": "2024년",
+        "raw_value": "11.6",
+        "raw_unit": "%"
+      },
+      {
+        "label": "2023년 연구개발비 / 매출액 비율",
+        "period": "2023년",
+        "raw_value": "10.9",
+        "raw_unit": "%"
+      }
+    ],
+    "expected_operation": "subtract",
+    "expected_calculation_result": {
+      "normalized_value": 0.7,
+      "normalized_unit": "PERCENT",
+      "rendered_contains": "0.7%p",
+      "tolerance": 0.0001
+    }
+  },
+  {
+    "id": "comparison_007",
+    "question": "삼성전자 2024 사업보고서에서 2023년 영업이익은 2022년 영업이익보다 얼마나 더 작은가요?",
+    "category": "comparison",
+    "company": "삼성전자",
+    "year": 2024,
+    "expected_sections": ["요약재무정보"],
+    "answer_key": "2023년 영업이익은 6조 5,669억원, 2022년 영업이익은 43조 3,766억원으로 2023년이 2022년보다 약 36조 8,097억원 더 작다.",
+    "answer_type": "numeric",
+    "evidence": [
+      {
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "quote": "영업이익: 2023년 6,566,976 / 2022년 43,376,630 (단위: 백만원)",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "2023년과 2022년 영업이익 값을 직접 제시한다."
+      }
+    ],
+    "expected_operands": [
+      {
+        "label": "2023년 영업이익",
+        "period": "2023년",
+        "raw_value": "6,566,976",
+        "raw_unit": "백만원"
+      },
+      {
+        "label": "2022년 영업이익",
+        "period": "2022년",
+        "raw_value": "43,376,630",
+        "raw_unit": "백만원"
+      }
+    ],
+    "expected_operation": "subtract",
+    "expected_calculation_result": {
+      "normalized_value": -36809654000000.0,
+      "normalized_unit": "KRW",
+      "rendered_contains": "36조 8,09",
+      "tolerance": 0.001
+    }
   }
 ]

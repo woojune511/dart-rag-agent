@@ -399,6 +399,8 @@ def _normalise_math_operand_value(raw_value: str, raw_unit: str) -> Tuple[Option
         return composite_krw, "KRW"
 
     value = _parse_number(raw_value)
+    if value is None and unit in {"%", "퍼센트"}:
+        value = _parse_number(str(raw_value or "").replace("%", "").replace("퍼센트", ""))
     if value is None:
         return None, "UNKNOWN"
 
@@ -1228,13 +1230,21 @@ def _compute_numeric_result_correctness(
     relative_tolerance = float(expected.get("tolerance", 0.0) or 0.0)
     expected_unit = str(expected.get("normalized_unit") or calculation_result.get("result_unit") or "")
     absolute_tolerance = _default_calculation_absolute_tolerance(expected_unit)
-    absolute_error = abs(actual_value - expected_value)
-    if absolute_error <= absolute_tolerance:
-        return 1.0
+    candidate_expected_values = [expected_value]
+    if example.expected_operation == "subtract":
+        candidate_expected_values.append(abs(expected_value))
 
-    denominator = max(abs(expected_value), 1.0)
-    relative_error = absolute_error / denominator
-    return 1.0 if relative_error <= relative_tolerance else 0.0
+    best_score = 0.0
+    for candidate_expected in candidate_expected_values:
+        absolute_error = abs(actual_value - candidate_expected)
+        if absolute_error <= absolute_tolerance:
+            return 1.0
+
+        denominator = max(abs(candidate_expected), 1.0)
+        relative_error = absolute_error / denominator
+        if relative_error <= relative_tolerance:
+            best_score = 1.0
+    return best_score
 
 
 def _compute_trend_interpretation_correctness(

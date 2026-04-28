@@ -566,3 +566,36 @@ micro-dataset:
 - `risk_analysis_001`에 넣은 `allowed_grounded_extras`는 현재 기준 **임시 안전장치**다.
 - 가장 작은 evaluator-only 재실험에서는 이 필드 유무와 관계없이 completeness가 둘 다 `1.0`이었으므로, 이 패치를 현재 스프린트의 핵심 해결책으로 간주하지 않는다.
 - 다음 evaluator 개편 때는 질문별 whitelist를 더 늘리기보다, **핵심 정답을 모두 포함했고 추가 내용이 retrieved context에 grounded되어 있으면 감점하지 않는 principle-based completeness judge**로 정리하는 것을 목표로 한다.
+
+## 다음 단계 — math pipeline 정리 스프린트
+
+이번 스프린트의 목표는 계산 기능을 더 늘리는 것이 아니다.
+현재 `comparison / trend / ratio / percent` 경로에서
+누적된 duct tape를 분리하고, 무엇을 남기고 무엇을 걷어낼지 정리하는 것이다.
+
+핵심 원칙:
+
+- 더 이상 planner / evaluator / renderer에 증상 대응 패치를 쌓지 않는다
+- 먼저 `debug_math_workflow.py`로 실패 층을 확정한다
+- retrieval/source 문제는 retrieval/source에서 해결한다
+
+우선순위:
+
+1. `comparison_005`, `comparison_006`류 질문에서 retrieval/source miss가 왜 생기는지 debug-first로 확인
+2. metric-specific hardcoding을 설정 기반 지식으로 옮길 준비
+   - `financial_ontology.json` 초안
+3. ratio row / component row 추출을 fallback이 아니라 planning용 기본 candidate input으로 옮기는 스파이크
+4. `연구개발 활동` 보조 seed 같은 rescue path를 ontology-driven multi-query expansion으로 대체 가능한지 실험
+5. `direction_hint`는 유지하되 renderer의 operation 의존을 더 늘리지 않는지 점검
+
+참고:
+
+- [math_pipeline_refactor_plan.md](docs/math_pipeline_refactor_plan.md)
+
+현재는 아래를 하지 않는다:
+
+- full GraphRAG
+- self-correction loop
+- cross-document reasoning
+- table-to-sql
+- operation별 renderer template 확장

@@ -845,3 +845,58 @@ focus run 관찰:
 - formula planner + AST 계산 전환 자체는 성공
 - math pipeline의 현재 병목은 계산보다 retrieval/evidence source choice 쪽에 더 가깝다
 - 특히 comparison의 값 차이는 source section 차이(예: `경영진단` vs `매출 및 수주상황`)에 따라 반올림 오차가 생길 수 있으므로, evaluator는 실무적 허용 오차를 두고 해석한다
+
+## 2026-04-28 math pipeline 회고와 retrieval 병목 확인
+
+이번 세션에서는 `comparison_005`, `comparison_006`을 여러 층에서 패치하기보다,
+실제 워크플로를 짧게 재현하는 디버그 스크립트를 먼저 만들었다.
+
+추가 자산:
+
+- `src/ops/debug_math_workflow.py`
+- `benchmarks/results/debug_math_workflow_2026-04-28.json`
+- `benchmarks/results/debug_math_workflow_after_retrieval_patch_2026-04-28.json`
+
+핵심 관찰:
+
+- `comparison_005`, `comparison_006` 실패 원인은 planner나 calculator가 아니었다
+- 두 질문 모두 초기 분석에서는
+  - `ratio_row_candidates = 0`
+  - `component_candidates = 0`
+  로 확인되었다
+- 즉 `% row`나 `연구개발비용 row`가 candidate 단계에 아예 올라오지 않았고,
+  그 뒤 단계는 할 일이 없었다
+- 더 구체적으로는, seed retrieval 상위 후보에
+  - `II. 사업의 내용 > 6. 연구개발 활동`
+  섹션이 포함되지 않는 것이 핵심 병목이었다
+
+이 확인 뒤 retrieval 한 층만 보강했다.
+
+- `연구개발 + 비율/비중/%/%p` 질문이면
+  - 일반 retrieval 결과와 별도로
+  - `연구개발 활동` 계열 섹션을 보조 seed로 merge
+
+결과:
+
+- `dev_math_edge_focus_retrievalfixed_2026-04-28`
+  - `comparison_005`, `comparison_006`, `comparison_007` 모두 회복
+  - `Faithfulness 1.000`
+  - `Completeness 1.000`
+  - `Numeric Pass Rate 1.000`
+
+이번 세션의 가장 중요한 판단:
+
+- 최근 math path에는 구조 개선과 duct tape가 섞여 있었다
+- 특히 `%`, `비중`, `연구개발`, `영업이익률` 계열은
+  - retrieval source miss를 planner / evaluator / fallback으로 덮으려는 패치가 누적됐다
+- 앞으로는
+  1. 먼저 debug workflow로 실패 층을 확정하고
+  2. 그 층만 수정하고
+  3. 같은 debug workflow로 다시 확인한 뒤
+  4. 마지막에 benchmark를 돌리는 방식으로 전환한다
+
+추가 메모:
+
+- `direction_hint`처럼 부호/대소 관계를 파이썬이 확정하는 역할은 유지한다
+- 반면 metric-specific source choice, `%p` 질문 해석, section supplement 같은 로직은 장기적으로 코드에서 비워내야 한다
+- 관련 회고와 실험 계획은 [math_pipeline_refactor_plan.md](docs/math_pipeline_refactor_plan.md)에 정리했다

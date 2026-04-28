@@ -1,0 +1,2483 @@
+{
+  "config_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\profiles\\dev_math_edge_focus.json",
+  "mode": "multi_company",
+  "run_status": "completed",
+  "completed_companies": [
+    "samsung_2024"
+  ],
+  "pending_companies": [],
+  "recorded_matrix": {
+    "defaults": {
+      "k": 8,
+      "ingest_mode": "contextual_selective_v2",
+      "max_workers": 4,
+      "batch_size": 4,
+      "eval_mode": "question_ids",
+      "eval_limit": 3,
+      "reuse_store": true,
+      "reuse_context_cache": true,
+      "force_reindex": false,
+      "use_zero_cost_prefix": true,
+      "pricing": {
+        "input_per_million_tokens_usd": 0.3,
+        "output_per_million_tokens_usd": 2.5
+      },
+      "selective_v2_short_text_threshold": 700,
+      "selective_v2_short_table_threshold": 1600,
+      "selective_v2_sections": [
+        "사업개요",
+        "위험관리 및 파생거래",
+        "매출 및 수주상황",
+        "연구개발",
+        "요약재무정보"
+      ],
+      "mlflow_experiment_name": "dart_rag_benchmark_dev_math_edge_focus",
+      "question_ids": [
+        "comparison_005",
+        "comparison_006",
+        "comparison_007"
+      ]
+    },
+    "screening": {
+      "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+      "parallel_experiments": 1,
+      "retrieval_hit_drop_threshold": 0.1,
+      "section_match_drop_threshold": 0.15,
+      "max_full_eval_candidates": 0,
+      "always_include_full_eval_ids": [
+        "contextual_selective_v2_prefix_2500_320"
+      ]
+    },
+    "full_evaluation": {
+      "enabled": true,
+      "eval_mode": "question_ids",
+      "eval_limit": 3,
+      "question_ids": [
+        "comparison_005",
+        "comparison_006",
+        "comparison_007"
+      ]
+    },
+    "experiments": [
+      {
+        "id": "contextual_selective_v2_prefix_2500_320",
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "contextual_selective_v2",
+        "use_zero_cost_prefix": true
+      }
+    ],
+    "company_runs": [
+      {
+        "id": "samsung_2024",
+        "defaults": {
+          "metadata": {
+            "company": "삼성전자",
+            "stock_code": "005930",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250311001085"
+          },
+          "smoke_queries": [
+            {
+              "query": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+              "category": "comparison",
+              "expected_company": "삼성전자",
+              "expected_year": 2024
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "company_runs": [
+    {
+      "company_id": "samsung_2024",
+      "company_label": "삼성전자 2024",
+      "output_dir": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_math_edge_focus_fix_2026-04-28\\삼성전자-2024",
+      "full_eval_candidates": [
+        "contextual_selective_v2_prefix_2500_320"
+      ],
+      "results": [
+        {
+          "id": "contextual_selective_v2_prefix_2500_320",
+          "config": {
+            "chunk_size": 2500,
+            "chunk_overlap": 320,
+            "ingest_mode": "contextual_selective_v2",
+            "graph_expansion": {},
+            "k": 8,
+            "max_workers": 4,
+            "batch_size": 4,
+            "collection_name": "dart_reports_v2_contextual-selective-v2-prefix-2500-320",
+            "parent_hybrid_short_text_threshold": null,
+            "parent_hybrid_sections": [],
+            "selective_short_text_threshold": null,
+            "selective_sections": [],
+            "selective_v2_short_text_threshold": 700,
+            "selective_v2_short_table_threshold": 1600,
+            "selective_v2_sections": [
+              "사업개요",
+              "위험관리 및 파생거래",
+              "매출 및 수주상황",
+              "연구개발",
+              "요약재무정보"
+            ],
+            "section_aliases": {}
+          },
+          "report_path": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\data\\reports\\삼성전자\\2024_사업보고서_20250311001085.html",
+          "metadata": {
+            "company": "삼성전자",
+            "stock_code": "005930",
+            "year": 2024,
+            "report_type": "사업보고서",
+            "rcept_no": "20250311001085"
+          },
+          "recorded_settings": {
+            "experiment": {
+              "k": 8,
+              "ingest_mode": "contextual_selective_v2",
+              "max_workers": 4,
+              "batch_size": 4,
+              "eval_mode": "question_ids",
+              "eval_limit": 3,
+              "reuse_store": true,
+              "reuse_context_cache": true,
+              "force_reindex": false,
+              "use_zero_cost_prefix": true,
+              "pricing": {
+                "input_per_million_tokens_usd": 0.3,
+                "output_per_million_tokens_usd": 2.5
+              },
+              "selective_v2_short_text_threshold": 700,
+              "selective_v2_short_table_threshold": 1600,
+              "selective_v2_sections": [
+                "사업개요",
+                "위험관리 및 파생거래",
+                "매출 및 수주상황",
+                "연구개발",
+                "요약재무정보"
+              ],
+              "mlflow_experiment_name": "dart_rag_benchmark_dev_math_edge_focus",
+              "question_ids": [
+                "comparison_005",
+                "comparison_006",
+                "comparison_007"
+              ],
+              "metadata": {
+                "company": "삼성전자",
+                "stock_code": "005930",
+                "year": 2024,
+                "report_type": "사업보고서",
+                "rcept_no": "20250311001085"
+              },
+              "smoke_queries": [
+                {
+                  "query": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                  "category": "comparison",
+                  "expected_company": "삼성전자",
+                  "expected_year": 2024
+                }
+              ],
+              "id": "contextual_selective_v2_prefix_2500_320",
+              "chunk_size": 2500,
+              "chunk_overlap": 320
+            },
+            "screening": {
+              "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+              "parallel_experiments": 1,
+              "retrieval_hit_drop_threshold": 0.1,
+              "section_match_drop_threshold": 0.15,
+              "max_full_eval_candidates": 0,
+              "always_include_full_eval_ids": [
+                "contextual_selective_v2_prefix_2500_320"
+              ]
+            },
+            "full_evaluation": {
+              "enabled": true,
+              "eval_mode": "question_ids",
+              "eval_limit": 3,
+              "question_ids": [
+                "comparison_005",
+                "comparison_006",
+                "comparison_007"
+              ]
+            }
+          },
+          "store": {
+            "persist_directory": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_math_edge_focus_fix_2026-04-28\\삼성전자-2024\\stores\\contextual-selective-v2-prefix-2500-320",
+            "collection_name": "dart_reports_v2_contextual-selective-v2-prefix-2500-320"
+          },
+          "parse": {
+            "elapsed_sec": 0.32829139998648316,
+            "chunk_count": 300
+          },
+          "ingest": {
+            "mode": "contextual_selective_v2",
+            "chunks": 300,
+            "stored_parent_chunks": 40,
+            "contextualized_chunks": 128,
+            "selector_reason_counts": {
+              "context_dependent_table": 73,
+              "risk_section_chunk": 3,
+              "short_table": 50,
+              "short_targeted_paragraph": 2
+            },
+            "parent_context_calls": 0,
+            "child_context_calls": 128,
+            "use_zero_cost_prefix": true,
+            "api_calls": 128,
+            "fallback_count": 0,
+            "prompt_chars": 61564,
+            "response_chars": 4715,
+            "prompt_tokens": 38206,
+            "output_tokens": 158282,
+            "total_tokens": 196488,
+            "max_workers": 4,
+            "batch_size": 4,
+            "elapsed_sec": 268.98322039993946
+          },
+          "cache": {
+            "cache_hit": false,
+            "cache_level": "none",
+            "force_reindex": false,
+            "reuse_store": true,
+            "reuse_context_cache": true,
+            "signature": {
+              "schema_version": 1,
+              "company": "삼성전자",
+              "year": 2024,
+              "report_type": "사업보고서",
+              "rcept_no": "20250311001085",
+              "chunk_size": 2500,
+              "chunk_overlap": 320,
+              "ingest_mode": "contextual_selective_v2",
+              "k": 8,
+              "parser_signature": "8e038f4db887da63e93fc9cc1dd41273a5588940999fd178c931cf00bfefff53",
+              "runner_signature": "1d39a34224c99c0252b6a7654dea8754c353fcb318d929f852165fa2c5b48136",
+              "parent_hybrid_short_text_threshold": null,
+              "parent_hybrid_sections": [],
+              "selective_short_text_threshold": null,
+              "selective_sections": [],
+              "selective_v2_short_text_threshold": 700,
+              "selective_v2_short_table_threshold": 1600,
+              "selective_v2_sections": [
+                "사업개요",
+                "위험관리 및 파생거래",
+                "매출 및 수주상황",
+                "연구개발",
+                "요약재무정보"
+              ],
+              "use_zero_cost_prefix": true
+            }
+          },
+          "estimated_ingest_cost_usd": 0.40716680000000005,
+          "smoke": {
+            "queries": [
+              {
+                "query": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                "category": "comparison",
+                "expected_company": "삼성전자",
+                "expected_year": 2024,
+                "latency_sec": 17.026208400027826,
+                "query_type": "comparison",
+                "retrieved_count": 8,
+                "citation_count": 8,
+                "answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                "answer_preview": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.090)",
+                  "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.086)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.993)",
+                  "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.961)",
+                  "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.960)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.933)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.930)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "수준 3 금융상품 공정가치 평가의 주요 관측불가능 투입변수를 공개한다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "재무제표상 금융자산 공정가치 평가의 상세 근거를 제시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 측정 전체 공정가치 자..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 - 고성능 그래픽 게임, 4K/8K 고화질 비디오 등 초고속 데이터 처리 작업이 요구..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  }
+                ],
+                "error": null
+              }
+            ],
+            "summary": {
+              "count": 1,
+              "avg_latency_sec": 17.026208400027826,
+              "avg_retrieved_count": 8.0,
+              "avg_citation_count": 8.0
+            }
+          },
+          "screening_eval": {
+            "question_count": 3,
+            "aggregate": {
+              "retrieval_hit_at_k": 1.0,
+              "section_match_rate": 0.2916666666666667,
+              "citation_coverage": 1.0,
+              "contamination_rate": 0.0,
+              "avg_latency": 21.54488113336265,
+              "error_rate": 0.0,
+              "failure_examples": []
+            },
+            "per_question": [
+              {
+                "id": "comparison_005",
+                "question": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                "category": "comparison",
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연구개발",
+                "expected_sections": [
+                  "연구개발",
+                  "요약재무정보"
+                ],
+                "answer_key": "2024년 연구개발비용은 35조 215억원으로 전체 매출(300조 8,709억원)의 약 11.6%를 차지한다.",
+                "answer_preview": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                "retrieval_hit_at_k": 1.0,
+                "section_match_rate": 0.5,
+                "citation_coverage": 1.0,
+                "contamination_rate": 0.0,
+                "retrieved_count": 8,
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "수준 3 금융상품 공정가치 평가의 주요 관측불가능 투입변수를 공개한다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "재무제표상 금융자산 공정가치 평가의 상세 근거를 제시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 측정 전체 공정가치 자..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 - 고성능 그래픽 게임, 4K/8K 고화질 비디오 등 초고속 데이터 처리 작업이 요구..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  }
+                ],
+                "top_retrieved": [
+                  "삼성전자/2024/III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                  "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 5. 재무제표 주석"
+                ],
+                "failure_flags": [],
+                "query_type": "comparison",
+                "latency_sec": 16.353944100090303,
+                "error": null
+              },
+              {
+                "id": "comparison_006",
+                "question": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
+                "category": "comparison",
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "연구개발",
+                "expected_sections": [
+                  "연구개발"
+                ],
+                "answer_key": "2024년 연구개발비 / 매출액 비중은 11.6%, 2023년은 10.9%로 2024년이 0.7%p 더 높다.",
+                "answer_preview": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                "retrieval_hit_at_k": 1.0,
+                "section_match_rate": 0.125,
+                "citation_coverage": 1.0,
+                "contamination_rate": 0.0,
+                "retrieved_count": 8,
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼성바..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "종속/관계기업 투자자산의 변동 내역과 현황을 상세히 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 가. 당기 및 전기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인 주식 소유로 회사의 지배구조를 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위 : 주,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대..."
+                  }
+                ],
+                "top_retrieved": [
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/II. 사업의 내용 > 4. 매출 및 수주상황"
+                ],
+                "failure_flags": [],
+                "query_type": "comparison",
+                "latency_sec": 15.810175499995239,
+                "error": null
+              },
+              {
+                "id": "comparison_007",
+                "question": "삼성전자 2024 사업보고서에서 2023년 영업이익은 2022년 영업이익보다 얼마나 더 작은가요?",
+                "category": "comparison",
+                "company": "삼성전자",
+                "year": 2024,
+                "section": "요약재무정보",
+                "expected_sections": [
+                  "요약재무정보"
+                ],
+                "answer_key": "2023년 영업이익은 6조 5,669억원, 2022년 영업이익은 43조 3,766억원으로 2023년이 2022년보다 약 36조 8,097억원 더 작다.",
+                "answer_preview": "삼성전자의 2023년 영업이익은 2022년 영업이익보다 36조 8,097억원 더 작습니다.",
+                "retrieval_hit_at_k": 1.0,
+                "section_match_rate": 0.25,
+                "citation_coverage": 1.0,
+                "contamination_rate": 0.0,
+                "retrieved_count": 8,
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인 주식 소유로 회사의 지배구조를 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위 : 주,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 1. 예측정보에 대한 주의사항 본 자료는 미래에 대한 '예측정보'를 포함하고 있습니다.이는 과거가 아닌 미래의 사건과 관계된 것으로 회사의 향후 예상되는 경..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 기..."
+                  }
+                ],
+                "top_retrieved": [
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/III. 재무에 관한 사항 > 1. 요약재무정보",
+                  "삼성전자/2024/VII. 주주에 관한 사항"
+                ],
+                "failure_flags": [],
+                "query_type": "comparison",
+                "latency_sec": 32.47052380000241,
+                "error": null
+              }
+            ]
+          },
+          "screen_pass": true,
+          "screen_failure_reasons": [],
+          "full_eval": {
+            "question_count": 3,
+            "aggregate": {
+              "faithfulness": 1.0,
+              "answer_relevancy": 0.38019418078747363,
+              "context_recall": 0.8333333333333334,
+              "retrieval_hit_at_k": 1.0,
+              "ndcg_at_3": 0.5436432511904858,
+              "ndcg_at_5": 0.6227091554469179,
+              "context_precision_at_3": 0.2222222222222222,
+              "context_precision_at_5": 0.20000000000000004,
+              "section_match_rate": 0.2916666666666667,
+              "citation_coverage": 1.0,
+              "entity_coverage": null,
+              "completeness": 0.3333333333333333,
+              "refusal_accuracy": 1.0,
+              "numeric_equivalence": 1.0,
+              "numeric_grounding": 1.0,
+              "numeric_retrieval_support": 1.0,
+              "numeric_confidence": 1.0,
+              "absolute_error_rate": 0.0,
+              "operand_selection_correctness": 0.3333333333333333,
+              "unit_consistency_pass": 1.0,
+              "numeric_result_correctness": 0.3333333333333333,
+              "trend_interpretation_correctness": null,
+              "grounded_rendering_correctness": 1.0,
+              "calculation_correctness": 0.3333333333333333,
+              "numeric_pass_rate": 0.3333333333333333,
+              "numeric_uncertain_rate": 0.6666666666666666,
+              "avg_score": 0.7508656967979123,
+              "avg_latency": 19.307719866434734,
+              "error_rate": 0.0
+            },
+            "per_question": [
+              {
+                "id": "comparison_005",
+                "question": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                "answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                "ground_truth": "2024년 연구개발비용은 35조 215억원으로 전체 매출(300조 8,709억원)의 약 11.6%를 차지한다.",
+                "answer_key": "2024년 연구개발비용은 35조 215억원으로 전체 매출(300조 8,709억원)의 약 11.6%를 차지한다.",
+                "expected_sections": [
+                  "연구개발",
+                  "요약재무정보"
+                ],
+                "evidence": [
+                  {
+                    "section_path": "II. 사업의 내용 > 6. 연구개발 활동",
+                    "quote": "2024년 연구개발비용은 35조 215억원입니다.",
+                    "quote_type": "paraphrase",
+                    "why_it_supports_answer": "연구개발비용 원본 값을 제시한다."
+                  },
+                  {
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "quote": "매출액: 300,870,900 (단위: 백만원)",
+                    "quote_type": "paraphrase",
+                    "why_it_supports_answer": "비중 계산에 필요한 전체 매출 값을 제시한다."
+                  }
+                ],
+                "raw_faithfulness": 1.0,
+                "faithfulness": 1.0,
+                "faithfulness_override_reason": null,
+                "answer_relevancy": 0.12996133731645765,
+                "context_recall": 0.5,
+                "retrieval_hit_at_k": 1.0,
+                "ndcg_at_3": 0.0,
+                "ndcg_at_5": 0.23719771276929622,
+                "context_precision_at_3": 0.0,
+                "context_precision_at_5": 0.2,
+                "section_match_rate": 0.5,
+                "citation_coverage": 1.0,
+                "entity_coverage": null,
+                "completeness": 0.0,
+                "completeness_reason": "질문 의도인 연구개발비용 비중을 전혀 답하지 못하고, 필요한 정보를 확보하지 못했다고만 답변했습니다.",
+                "refusal_accuracy": 1.0,
+                "numeric_equivalence": null,
+                "numeric_grounding": 1.0,
+                "numeric_retrieval_support": 1.0,
+                "numeric_final_judgement": "UNCERTAIN",
+                "numeric_confidence": 1.0,
+                "numeric_debug": {
+                  "equivalence": {
+                    "answer_candidates": [],
+                    "reference_candidates": [
+                      {
+                        "value_text": "35조 215억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 35021500000000.0,
+                        "span": [
+                          14,
+                          23
+                        ]
+                      },
+                      {
+                        "value_text": "300조 8,709억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 300870900000000.0,
+                        "span": [
+                          32,
+                          44
+                        ]
+                      },
+                      {
+                        "value_text": "11.6%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 11.6,
+                        "span": [
+                          49,
+                          54
+                        ]
+                      },
+                      {
+                        "value_text": "35조 215억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 35021500000000.0,
+                        "span": [
+                          14,
+                          23
+                        ]
+                      }
+                    ],
+                    "matched_pair": null,
+                    "reason": "missing_candidates"
+                  },
+                  "grounding": {
+                    "verdict": "grounded",
+                    "confidence": 1.0,
+                    "reason": "제공된 Runtime Evidence에는 질문에 필요한 '2024년 연구개발비용'과 '전체 매출'에 대한 구체적인 수치가 포함되어 있지 않습니다. 따라서 답변이 '질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했다'고 주장하는 것은 Runtime Evidence의 내용에 직접적으로 뒷받침됩니다.",
+                    "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"제공된 Runtime Evidence에는 질문에 필요한 '2024년 연구개발비용'과 '전체 매출'에 대한 구체적인 수치가 포함되어 있지 않습니다. 따라서 답변이 '질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했다'고 주장하는 것은 Runtime Evidence의 내용에 직접적으로 뒷받침됩니다.\"\n}\n```"
+                  }
+                },
+                "absolute_error_rate": null,
+                "operand_selection_correctness": 0.0,
+                "unit_consistency_pass": null,
+                "numeric_result_correctness": 0.0,
+                "trend_interpretation_correctness": null,
+                "grounded_rendering_correctness": null,
+                "calculation_correctness": 0.0,
+                "missing_info_compliance": null,
+                "retrieved_count": 8,
+                "query_type": "comparison",
+                "intent": "comparison",
+                "format_preference": "table",
+                "routing_source": "llm_fallback",
+                "routing_confidence": 0.8213039405965301,
+                "routing_scores": {
+                  "comparison": 0.8213,
+                  "numeric_fact": 0.7862,
+                  "risk": 0.7223,
+                  "business_overview": 0.5953,
+                  "trend": 0.5645,
+                  "qa": 0.4585
+                },
+                "latency_sec": 15.774571418762207,
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 1.090)",
+                  "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.086)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.993)",
+                  "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.961)",
+                  "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.960)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.933)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.930)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "수준 3 금융상품 공정가치 평가의 주요 관측불가능 투입변수를 공개한다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "재무제표상 금융자산 공정가치 평가의 상세 근거를 제시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 측정 전체 공정가치 자..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 - 고성능 그래픽 게임, 4K/8K 고화질 비디오 등 초고속 데이터 처리 작업이 요구..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  }
+                ],
+                "runtime_evidence": [
+                  {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                    "claim": "수준 3 금융상품 공정가치 평가의 주요 관측불가능 투입변수를 공개한다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 공",
+                    "quote_span": "수준 3 금융상품 공정가치 평가의 주요 관측불가능 투입변수를 공개한다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 공",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "iii",
+                      "table",
+                      "공개한다",
+                      "공정가치",
+                      "관측불가능",
+                      "관한",
+                      "금융상품"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "연결재무제표",
+                      "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:72:35",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_002",
+                    "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 4. 매출 및 수주상황]",
+                    "claim": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요 매출",
+                    "quote_span": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요 매출",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "2024년",
+                      "ii",
+                      "paragraph",
+                      "공개하여",
+                      "기준",
+                      "내용",
+                      "당사의"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "매출현황",
+                      "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                      "block_type": "paragraph",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:17:1",
+                      "parent_id": "20250311001085::II. 사업의 내용 > 4. 매출 및 수주상황"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_003",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 5. 재무제표 주석]",
+                    "claim": "재무제표상 금융자산 공정가치 평가의 상세 근거를 제시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 측정 전체 공정가치 자산 공",
+                    "quote_span": "재무제표상 금융자산 공정가치 평가의 상세 근거를 제시합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 측정 전체 공정가치 자산 공",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "iii",
+                      "table",
+                      "공정가치",
+                      "관한",
+                      "근거를",
+                      "금융자산",
+                      "기준"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "재무주석",
+                      "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:91:15",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 5. 재무제표 주석"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_004",
+                    "source_anchor": "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+                    "claim": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 58.1",
+                    "quote_span": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 58.1",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "174",
+                      "2024",
+                      "58",
+                      "683",
+                      "887",
+                      "dx",
+                      "iv",
+                      "paragraph"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "경영진단",
+                      "section_path": "IV. 이사의 경영진단 및 분석의견",
+                      "block_type": "paragraph",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:125:3",
+                      "parent_id": "20250311001085::IV. 이사의 경영진단 및 분석의견"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_005",
+                    "source_anchor": "[삼성전자 | 2024 | XII. 상세표 > 4. 연구개발실적(상세)]",
+                    "claim": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대 - 저",
+                    "quote_span": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대 - 저",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "12",
+                      "2024",
+                      "ehs",
+                      "table",
+                      "xii",
+                      "강화로",
+                      "개발",
+                      "구주"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "연구개발",
+                      "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:295:21",
+                      "parent_id": "20250311001085::XII. 상세표 > 4. 연구개발실적(상세)"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_006",
+                    "source_anchor": "[삼성전자 | 2024 | XII. 상세표 > 4. 연구개발실적(상세)]",
+                    "claim": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 - 고성능 그래픽 게임, 4K/8K 고화질 비디오 등 초고속 데이터 처리 작업이 요구되는 ",
+                    "quote_span": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 - 고성능 그래픽 게임, 4K/8K 고화질 비디오 등 초고속 데이터 처리 작업이 요구되는 ",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "4k",
+                      "8k",
+                      "table",
+                      "xii",
+                      "개발",
+                      "게임",
+                      "고성능"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "연구개발",
+                      "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:295:21",
+                      "parent_id": "20250311001085::XII. 상세표 > 4. 연구개발실적(상세)"
+                    }
+                  }
+                ],
+                "selected_claim_ids": [],
+                "draft_points": [
+                  "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
+                ],
+                "kept_claim_ids": [],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_operands": [],
+                "calculation_plan": {
+                  "mode": "none",
+                  "operation": "none",
+                  "ordered_operand_ids": [],
+                  "variable_bindings": [],
+                  "formula": "",
+                  "pairwise_formula": "",
+                  "result_unit": "",
+                  "operation_text": "",
+                  "explanation": "no operands"
+                },
+                "calculation_result": {
+                  "status": "insufficient_operands",
+                  "result_value": null,
+                  "result_unit": "",
+                  "rendered_value": "",
+                  "formatted_result": "",
+                  "series": [],
+                  "derived_metrics": {},
+                  "explanation": "no operands"
+                },
+                "missing_info_policy": null,
+                "error": null
+              },
+              {
+                "id": "comparison_006",
+                "question": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
+                "answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                "ground_truth": "2024년 연구개발비 / 매출액 비중은 11.6%, 2023년은 10.9%로 2024년이 0.7%p 더 높다.",
+                "answer_key": "2024년 연구개발비 / 매출액 비중은 11.6%, 2023년은 10.9%로 2024년이 0.7%p 더 높다.",
+                "expected_sections": [
+                  "연구개발"
+                ],
+                "evidence": [
+                  {
+                    "section_path": "II. 사업의 내용 > 6. 연구개발 활동",
+                    "quote": "연구개발비 / 매출액 비율: 2024년 11.6% / 2023년 10.9% / 2022년 8.2%",
+                    "quote_type": "verbatim",
+                    "why_it_supports_answer": "동일 표에서 2024년과 2023년의 연구개발비 비중을 직접 제시한다."
+                  }
+                ],
+                "raw_faithfulness": 1.0,
+                "faithfulness": 1.0,
+                "faithfulness_override_reason": null,
+                "answer_relevancy": 0.12821153491267684,
+                "context_recall": 1.0,
+                "retrieval_hit_at_k": 1.0,
+                "ndcg_at_3": 0.0,
+                "ndcg_at_5": 0.0,
+                "context_precision_at_3": 0.0,
+                "context_precision_at_5": 0.0,
+                "section_match_rate": 0.125,
+                "citation_coverage": 1.0,
+                "entity_coverage": null,
+                "completeness": 0.0,
+                "completeness_reason": "답변이 질문에 대한 정보를 전혀 제공하지 못하고, 필요한 수치를 계산할 수 없다고 명시했기 때문입니다.",
+                "refusal_accuracy": 1.0,
+                "numeric_equivalence": null,
+                "numeric_grounding": 1.0,
+                "numeric_retrieval_support": 1.0,
+                "numeric_final_judgement": "UNCERTAIN",
+                "numeric_confidence": 1.0,
+                "numeric_debug": {
+                  "equivalence": {
+                    "answer_candidates": [],
+                    "reference_candidates": [
+                      {
+                        "value_text": "11.6%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 11.6,
+                        "span": [
+                          22,
+                          27
+                        ]
+                      },
+                      {
+                        "value_text": "10.9%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 10.9,
+                        "span": [
+                          36,
+                          41
+                        ]
+                      },
+                      {
+                        "value_text": "0.7%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 0.7,
+                        "span": [
+                          50,
+                          54
+                        ]
+                      },
+                      {
+                        "value_text": "11.6%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 11.6,
+                        "span": [
+                          22,
+                          27
+                        ]
+                      },
+                      {
+                        "value_text": "10.9%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 10.9,
+                        "span": [
+                          36,
+                          41
+                        ]
+                      },
+                      {
+                        "value_text": "8.2%",
+                        "unit_text": "%",
+                        "kind": "percent",
+                        "normalized_value": 8.2,
+                        "span": [
+                          50,
+                          54
+                        ]
+                      }
+                    ],
+                    "matched_pair": null,
+                    "reason": "missing_candidates"
+                  },
+                  "grounding": {
+                    "verdict": "grounded",
+                    "confidence": 1.0,
+                    "reason": "답변은 '질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했다'고 주장합니다. 제공된 Runtime Evidence에는 2024년과 2023년의 연구개발비 또는 매출액 비중이 직접적으로 명시되어 있지 않으며, 해당 비율을 계산할 수 있는 연구개발비와 매출액 수치도 명확하게 제시되어 있지 않습니다. 따라서 답변의 주장은 Runtime Evidence에 의해 직접적으로 뒷받침됩니다.",
+                    "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"답변은 '질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했다'고 주장합니다. 제공된 Runtime Evidence에는 2024년과 2023년의 연구개발비 또는 매출액 비중이 직접적으로 명시되어 있지 않으며, 해당 비율을 계산할 수 있는 연구개발비와 매출액 수치도 명확하게 제시되어 있지 않습니다. 따라서 답변의 주장은 Runtime Evidence에 의해 직접적으로 뒷받침됩니다.\"\n}\n```"
+                  }
+                },
+                "absolute_error_rate": null,
+                "operand_selection_correctness": 0.0,
+                "unit_consistency_pass": null,
+                "numeric_result_correctness": 0.0,
+                "trend_interpretation_correctness": null,
+                "grounded_rendering_correctness": null,
+                "calculation_correctness": 0.0,
+                "missing_info_compliance": null,
+                "retrieved_count": 8,
+                "query_type": "comparison",
+                "intent": "comparison",
+                "format_preference": "table",
+                "routing_source": "semantic_fast_path",
+                "routing_confidence": 0.8012243841440063,
+                "routing_scores": {
+                  "comparison": 0.8012,
+                  "risk": 0.7359,
+                  "numeric_fact": 0.7059,
+                  "trend": 0.6109,
+                  "business_overview": 0.5978,
+                  "qa": 0.4504
+                },
+                "latency_sec": 15.288546800613403,
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.136)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 1.134)",
+                  "[삼성전자] 2024년 사업보고서 / II. 사업의 내용 > 4. 매출 및 수주상황 / paragraph (score: 1.086)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 1.036)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 5. 재무제표 주석 / table (score: 1.032)",
+                  "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 1.027)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.992)",
+                  "[삼성전자] 2024년 사업보고서 / XII. 상세표 > 4. 연구개발실적(상세) / table (score: 0.962)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)"
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "매출현황",
+                    "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼성바..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무주석",
+                    "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "종속/관계기업 투자자산의 변동 내역과 현황을 상세히 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 가. 당기 및 전기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인 주식 소유로 회사의 지배구조를 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위 : 주,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연구개발",
+                    "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: XII. 상세표 > 4. 연구개발실적(상세)] [분류: 연구개발 / table] [키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표] 부문 | 연구과제 등 | 연구결과 및 기대효과 등 2024.12.) | □ 구주 EHS 신형 플랫폼 적용 및 라인업 강화로 매출 확대..."
+                  }
+                ],
+                "runtime_evidence": [
+                  {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "claim": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023년",
+                    "quote_span": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023년",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "12월말",
+                      "2023년",
+                      "2024",
+                      "2024년",
+                      "3개년",
+                      "iii",
+                      "table",
+                      "관한"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "요약재무",
+                      "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:32:1",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 1. 요약재무정보"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_002",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "claim": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023년 1",
+                    "quote_span": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023년 1",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "12월말",
+                      "2023년",
+                      "2024",
+                      "2024년",
+                      "iii",
+                      "table",
+                      "개요를",
+                      "관한"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "요약재무",
+                      "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:32:1",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 1. 요약재무정보"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_003",
+                    "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 4. 매출 및 수주상황]",
+                    "claim": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요 매출",
+                    "quote_span": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: II. 사업의 내용 > 4. 매출 및 수주상황] [분류: 매출현황 / paragraph] [키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요 매출",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "2024년",
+                      "ii",
+                      "paragraph",
+                      "공개하여",
+                      "기준",
+                      "내용",
+                      "당사의"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "매출현황",
+                      "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                      "block_type": "paragraph",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:17:1",
+                      "parent_id": "20250311001085::II. 사업의 내용 > 4. 매출 및 수주상황"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_004",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 5. 재무제표 주석]",
+                    "claim": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼성바이오로",
+                    "quote_span": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 종속기업, 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 삼성바이오로",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "iii",
+                      "table",
+                      "같습니다",
+                      "공동기업",
+                      "관계기업",
+                      "관한",
+                      "기준"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "재무주석",
+                      "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:84:8",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 5. 재무제표 주석"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_005",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 5. 재무제표 주석]",
+                    "claim": "종속/관계기업 투자자산의 변동 내역과 현황을 상세히 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 가. 당기 및 전기 중 ",
+                    "quote_span": "종속/관계기업 투자자산의 변동 내역과 현황을 상세히 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 5. 재무제표 주석] [분류: 재무주석 / table] [키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 가. 당기 및 전기 중 ",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "2024",
+                      "iii",
+                      "table",
+                      "관계기업",
+                      "관한",
+                      "기준",
+                      "내역과",
+                      "당기"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "재무주석",
+                      "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:84:8",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 5. 재무제표 주석"
+                    }
+                  },
+                  {
+                    "evidence_id": "ev_006",
+                    "source_anchor": "[삼성전자 | 2024 | VII. 주주에 관한 사항]",
+                    "claim": "최대주주 및 특수관계인 주식 소유로 회사의 지배구조를 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위 : 주, %) ",
+                    "quote_span": "최대주주 및 특수관계인 주식 소유로 회사의 지배구조를 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위 : 주, %) ",
+                    "support_level": "context",
+                    "question_relevance": "medium",
+                    "allowed_terms": [
+                      "12월",
+                      "2024",
+                      "2024년",
+                      "31일",
+                      "table",
+                      "vii",
+                      "관한",
+                      "기준일"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "회사개요",
+                      "section_path": "VII. 주주에 관한 사항",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:157:0",
+                      "parent_id": "20250311001085::VII. 주주에 관한 사항"
+                    }
+                  }
+                ],
+                "selected_claim_ids": [],
+                "draft_points": [
+                  "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
+                ],
+                "kept_claim_ids": [],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_operands": [],
+                "calculation_plan": {
+                  "mode": "none",
+                  "operation": "none",
+                  "ordered_operand_ids": [],
+                  "variable_bindings": [],
+                  "formula": "",
+                  "pairwise_formula": "",
+                  "result_unit": "",
+                  "operation_text": "",
+                  "explanation": "no operands"
+                },
+                "calculation_result": {
+                  "status": "insufficient_operands",
+                  "result_value": null,
+                  "result_unit": "",
+                  "rendered_value": "",
+                  "formatted_result": "",
+                  "series": [],
+                  "derived_metrics": {},
+                  "explanation": "no operands"
+                },
+                "missing_info_policy": null,
+                "error": null
+              },
+              {
+                "id": "comparison_007",
+                "question": "삼성전자 2024 사업보고서에서 2023년 영업이익은 2022년 영업이익보다 얼마나 더 작은가요?",
+                "answer": "삼성전자의 2023년 영업이익은 2022년 영업이익보다 36조 8,097억원 더 작습니다.",
+                "ground_truth": "2023년 영업이익은 6조 5,669억원, 2022년 영업이익은 43조 3,766억원으로 2023년이 2022년보다 약 36조 8,097억원 더 작다.",
+                "answer_key": "2023년 영업이익은 6조 5,669억원, 2022년 영업이익은 43조 3,766억원으로 2023년이 2022년보다 약 36조 8,097억원 더 작다.",
+                "expected_sections": [
+                  "요약재무정보"
+                ],
+                "evidence": [
+                  {
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "quote": "영업이익: 2023년 6,566,976 / 2022년 43,376,630 (단위: 백만원)",
+                    "quote_type": "verbatim",
+                    "why_it_supports_answer": "2023년과 2022년 영업이익 값을 직접 제시한다."
+                  }
+                ],
+                "raw_faithfulness": 1.0,
+                "faithfulness": 1.0,
+                "faithfulness_override_reason": "numeric evaluator PASS (equivalence/grounding/retrieval_support 모두 1.0)로 faithfulness를 1.0으로 보정",
+                "answer_relevancy": 0.8824096701332865,
+                "context_recall": 1.0,
+                "retrieval_hit_at_k": 1.0,
+                "ndcg_at_3": 1.6309297535714575,
+                "ndcg_at_5": 1.6309297535714575,
+                "context_precision_at_3": 0.6666666666666666,
+                "context_precision_at_5": 0.4,
+                "section_match_rate": 0.25,
+                "citation_coverage": 1.0,
+                "entity_coverage": null,
+                "completeness": 1.0,
+                "completeness_reason": "질문이 요구한 핵심 요소인 2023년 영업이익이 2022년 영업이익보다 얼마나 더 작은지에 대한 정확한 수치를 완전한 문장으로 제공했습니다. 정답 기준 요약에 포함된 개별 영업이익 수치는 질문에서 명시적으로 요구하지 않았으므로, 이를 포함하지 않았다고 해서 감점할 필요는 없습니다.",
+                "refusal_accuracy": 1.0,
+                "numeric_equivalence": 1.0,
+                "numeric_grounding": 1.0,
+                "numeric_retrieval_support": 1.0,
+                "numeric_final_judgement": "PASS",
+                "numeric_confidence": 1.0,
+                "numeric_debug": {
+                  "equivalence": {
+                    "answer_candidates": [
+                      {
+                        "value_text": "36조 8,097억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 36809700000000.0,
+                        "span": [
+                          31,
+                          42
+                        ]
+                      }
+                    ],
+                    "reference_candidates": [
+                      {
+                        "value_text": "6조 5,669억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 6566900000000.0,
+                        "span": [
+                          12,
+                          22
+                        ]
+                      },
+                      {
+                        "value_text": "43조 3,766억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 43376600000000.0,
+                        "span": [
+                          36,
+                          47
+                        ]
+                      },
+                      {
+                        "value_text": "36조 8,097억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 36809700000000.0,
+                        "span": [
+                          67,
+                          78
+                        ]
+                      }
+                    ],
+                    "matched_pair": {
+                      "answer": {
+                        "value_text": "36조 8,097억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 36809700000000.0,
+                        "span": [
+                          31,
+                          42
+                        ]
+                      },
+                      "reference": {
+                        "value_text": "36조 8,097억원",
+                        "unit_text": "원",
+                        "kind": "currency",
+                        "normalized_value": 36809700000000.0,
+                        "span": [
+                          67,
+                          78
+                        ]
+                      }
+                    },
+                    "reason": "equivalent_value"
+                  },
+                  "grounding": {
+                    "verdict": "grounded",
+                    "confidence": 1.0,
+                    "reason": "근거에 제시된 2023년 영업이익 6,566,976 백만원과 2022년 영업이익 43,376,630 백만원을 사용하여 차이를 계산하면 43,376,630 - 6,566,976 = 36,809,654 백만원입니다. 이를 조와 억원 단위로 변환하면 36조 8,096억 5천4백만원이 되며, 억원 단위에서 반올림하면 36조 8,097억원이 됩니다. 답변의 핵심 숫자 주장은 근거에 직접 뒷받침됩니다.",
+                    "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에 제시된 2023년 영업이익 6,566,976 백만원과 2022년 영업이익 43,376,630 백만원을 사용하여 차이를 계산하면 43,376,630 - 6,566,976 = 36,809,654 백만원입니다. 이를 조와 억원 단위로 변환하면 36조 8,096억 5천4백만원이 되며, 억원 단위에서 반올림하면 36조 8,097억원이 됩니다. 답변의 핵심 숫자 주장은 근거에 직접 뒷받침됩니다.\"\n}\n```"
+                  }
+                },
+                "absolute_error_rate": 0.0,
+                "operand_selection_correctness": 1.0,
+                "unit_consistency_pass": 1.0,
+                "numeric_result_correctness": 1.0,
+                "trend_interpretation_correctness": null,
+                "grounded_rendering_correctness": 1.0,
+                "calculation_correctness": 1.0,
+                "missing_info_compliance": null,
+                "retrieved_count": 8,
+                "query_type": "comparison",
+                "intent": "comparison",
+                "format_preference": "table",
+                "routing_source": "llm_fallback",
+                "routing_confidence": 0.7182793140300057,
+                "routing_scores": {
+                  "comparison": 0.7183,
+                  "risk": 0.6898,
+                  "numeric_fact": 0.6735,
+                  "trend": 0.5714,
+                  "business_overview": 0.531,
+                  "qa": 0.3963
+                },
+                "latency_sec": 26.86004137992859,
+                "citations": [
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.890)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 1. 요약재무정보 / table (score: 0.888)",
+                  "[삼성전자] 2024년 사업보고서 / VII. 주주에 관한 사항 / table (score: 0.782)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.744)",
+                  "[삼성전자] 2024년 사업보고서 / IV. 이사의 경영진단 및 분석의견 / paragraph (score: 0.741)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 4. 재무제표 / table (score: 0.575)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.434)",
+                  "[삼성전자] 2024년 사업보고서 / III. 재무에 관한 사항 > 3. 연결재무제표 주석 / table (score: 0.434)"
+                ],
+                "retrieved_metadata": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+                  }
+                ],
+                "retrieved_previews": [
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 재무상태를 요약하고 3개년 추이를 보여주는 핵심 정보입니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 20..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "요약재무",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 1. 요약재무정보] [분류: 요약재무 / table] [키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표] 구 분 | 제56기 | 제55기 | 제54기 2024년 12월말 | 2023..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "회사개요",
+                    "section_path": "VII. 주주에 관한 사항",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "최대주주 및 특수관계인 주식 소유로 회사의 지배구조를 설명합니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: VII. 주주에 관한 사항] [분류: 회사개요 / table] [키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표] 1. 최대주주 및 그 특수관계인의 주식소유 현황 (기준일 : | 2024년 12월 31일 | ) | (단위 : 주,..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 구분 | 부문 | 제56기 | 제55기 | 증감(률) 금액 | 비중 | 금액 | 비중 | 금액 | (%) 매출 | DX 부문 | 174,887,683 | 5..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "경영진단",
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    "block_type": "paragraph",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: IV. 이사의 경영진단 및 분석의견] [분류: 경영진단 / paragraph] [키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단] 1. 예측정보에 대한 주의사항 본 자료는 미래에 대한 '예측정보'를 포함하고 있습니다.이는 과거가 아닌 미래의 사건과 관계된 것으로 회사의 향후 예상되는 경..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "3개년 자본 현황을 비교 제시하여 회사의 재무 상태를 보여줍니다. [회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 4. 재무제표] [분류: 재무제표 / table] [키워드: 재무제표, III. 재무에 관한 사항 > 4. 재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표] 제 56 기 | 제 55 기..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 지..."
+                  },
+                  {
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "section": "연결재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "block_type": "table",
+                    "graph_relation": null,
+                    "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서] [섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석] [분류: 연결재무제표 / table] [키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표] 가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다. 기..."
+                  }
+                ],
+                "runtime_evidence": [
+                  {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "claim": "삼성전자의 2023년 연결기준 영업이익은 6,566,976 백만원이며, 2022년 연결기준 영업이익은 43,376,630 백만원입니다.",
+                    "quote_span": "영업이익 | 32,725,961 | 6,566,976 | 43,376,630",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [
+                      "2023년 영업이익",
+                      "2022년 영업이익",
+                      "6,566,976 백만원",
+                      "43,376,630 백만원",
+                      "더 작다"
+                    ],
+                    "metadata": {
+                      "company": "삼성전자",
+                      "year": 2024,
+                      "report_type": "사업보고서",
+                      "section": "요약재무",
+                      "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                      "block_type": "table",
+                      "graph_relation": null,
+                      "chunk_uid": "20250311001085:32:1",
+                      "parent_id": "20250311001085::III. 재무에 관한 사항 > 1. 요약재무정보"
+                    }
+                  }
+                ],
+                "selected_claim_ids": [
+                  "ev_001"
+                ],
+                "draft_points": [
+                  "삼성전자의 2023년 영업이익은 2022년 영업이익보다 36조 8,097억원 더 작습니다."
+                ],
+                "kept_claim_ids": [
+                  "ev_001"
+                ],
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                "calculation_operands": [
+                  {
+                    "operand_id": "op_001",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "label": "2023년 영업이익",
+                    "raw_value": "6,566,976",
+                    "raw_unit": "백만원",
+                    "normalized_value": 6566976000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023년"
+                  },
+                  {
+                    "operand_id": "op_002",
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "label": "2022년 영업이익",
+                    "raw_value": "43,376,630",
+                    "raw_unit": "백만원",
+                    "normalized_value": 43376630000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2022년"
+                  }
+                ],
+                "calculation_plan": {
+                  "mode": "single_value",
+                  "operation": "subtract",
+                  "ordered_operand_ids": [
+                    "op_002",
+                    "op_001"
+                  ],
+                  "variable_bindings": [
+                    {
+                      "variable": "A",
+                      "operand_id": "op_002"
+                    },
+                    {
+                      "variable": "B",
+                      "operand_id": "op_001"
+                    }
+                  ],
+                  "formula": "A - B",
+                  "pairwise_formula": "",
+                  "result_unit": "원",
+                  "operation_text": "2022년 영업이익 - 2023년 영업이익",
+                  "explanation": "2023년 영업이익이 2022년 영업이익보다 얼마나 작은지 계산하기 위해 2022년 영업이익에서 2023년 영업이익을 뺍니다."
+                },
+                "calculation_result": {
+                  "status": "ok",
+                  "result_value": 36809654000000.0,
+                  "result_unit": "원",
+                  "rendered_value": "36조 8,097억원",
+                  "formatted_result": "삼성전자의 2023년 영업이익은 2022년 영업이익보다 36조 8,097억원 더 작습니다.",
+                  "series": [
+                    {
+                      "label": "영업이익",
+                      "period": "2022년",
+                      "raw_value": "43,376,630",
+                      "raw_unit": "백만원",
+                      "normalized_value": 43376630000000.0,
+                      "normalized_unit": "KRW",
+                      "rendered_value": "43조 3,766억원"
+                    },
+                    {
+                      "label": "영업이익",
+                      "period": "2023년",
+                      "raw_value": "6,566,976",
+                      "raw_unit": "백만원",
+                      "normalized_value": 6566976000000.0,
+                      "normalized_unit": "KRW",
+                      "rendered_value": "6조 5,670억원"
+                    }
+                  ],
+                  "derived_metrics": {
+                    "operand_labels": [
+                      "영업이익",
+                      "영업이익"
+                    ],
+                    "formula": "A - B",
+                    "grounded_rendering_reason": "최종 답변의 금액 '36조 8,097억원'은 Operands에 제공된 2022년 영업이익(43,376,630 백만원)에서 2023년 영업이익(6,566,976 백만원)을 뺀 결과(36,809,654 백만원)를 '조원' 및 '억원' 단위로 변환하고 반올림한 값입니다. 36,809,654 백만원은 36조 8,096.54억원이며, 이를 반올림하면 36조 8,097억원이 됩니다. 따라서 금액은 grounded 되어 있습니다."
+                  },
+                  "explanation": "2023년 영업이익이 2022년 영업이익보다 얼마나 작은지 계산하기 위해 2022년 영업이익에서 2023년 영업이익을 뺍니다."
+                },
+                "missing_info_policy": null,
+                "error": null
+              }
+            ]
+          },
+          "comparison_to_baseline": {
+            "api_call_reduction_ratio": 0.0,
+            "ingest_time_reduction_ratio": 0.0,
+            "estimated_cost_reduction_ratio": 0.0
+          }
+        }
+      ],
+      "recorded_matrix": {
+        "mode": "company_run",
+        "company_run": {
+          "id": "samsung_2024",
+          "label": "삼성전자 2024",
+          "defaults": {
+            "metadata": {
+              "company": "삼성전자",
+              "stock_code": "005930",
+              "year": 2024,
+              "report_type": "사업보고서",
+              "rcept_no": "20250311001085"
+            },
+            "smoke_queries": [
+              {
+                "query": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                "category": "comparison",
+                "expected_company": "삼성전자",
+                "expected_year": 2024
+              }
+            ]
+          },
+          "experiments": [
+            {
+              "id": "contextual_selective_v2_prefix_2500_320",
+              "chunk_size": 2500,
+              "chunk_overlap": 320,
+              "ingest_mode": "contextual_selective_v2",
+              "use_zero_cost_prefix": true
+            }
+          ]
+        },
+        "defaults": {
+          "k": 8,
+          "ingest_mode": "contextual_selective_v2",
+          "max_workers": 4,
+          "batch_size": 4,
+          "eval_mode": "question_ids",
+          "eval_limit": 3,
+          "reuse_store": true,
+          "reuse_context_cache": true,
+          "force_reindex": false,
+          "use_zero_cost_prefix": true,
+          "pricing": {
+            "input_per_million_tokens_usd": 0.3,
+            "output_per_million_tokens_usd": 2.5
+          },
+          "selective_v2_short_text_threshold": 700,
+          "selective_v2_short_table_threshold": 1600,
+          "selective_v2_sections": [
+            "사업개요",
+            "위험관리 및 파생거래",
+            "매출 및 수주상황",
+            "연구개발",
+            "요약재무정보"
+          ],
+          "mlflow_experiment_name": "dart_rag_benchmark_dev_math_edge_focus",
+          "question_ids": [
+            "comparison_005",
+            "comparison_006",
+            "comparison_007"
+          ]
+        },
+        "screening": {
+          "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+          "parallel_experiments": 1,
+          "retrieval_hit_drop_threshold": 0.1,
+          "section_match_drop_threshold": 0.15,
+          "max_full_eval_candidates": 0,
+          "always_include_full_eval_ids": [
+            "contextual_selective_v2_prefix_2500_320"
+          ]
+        },
+        "full_evaluation": {
+          "enabled": true,
+          "eval_mode": "question_ids",
+          "eval_limit": 3,
+          "question_ids": [
+            "comparison_005",
+            "comparison_006",
+            "comparison_007"
+          ]
+        }
+      }
+    }
+  ],
+  "cross_company_summary": [
+    {
+      "company_id": "samsung_2024",
+      "company": "삼성전자 2024",
+      "experiment_id": "contextual_selective_v2_prefix_2500_320",
+      "screen_pass": true,
+      "critical_category_miss_count": 0,
+      "retrieval_hit_at_k": 1.0,
+      "section_match_rate": 0.2916666666666667,
+      "citation_coverage": 1.0,
+      "contamination_rate": 0.0,
+      "api_calls": 128,
+      "estimated_ingest_cost_usd": 0.40716680000000005,
+      "ingest_elapsed_sec": 268.98322039993946,
+      "api_call_reduction_ratio": 0.0,
+      "ingest_time_reduction_ratio": 0.0,
+      "estimated_cost_reduction_ratio": 0.0,
+      "full_faithfulness": 1.0,
+      "full_context_recall": 0.8333333333333334,
+      "full_answer_relevancy": 0.38019418078747363,
+      "full_retrieval_hit_at_k": 1.0,
+      "full_section_match_rate": 0.2916666666666667,
+      "full_citation_coverage": 1.0,
+      "full_avg_score": 0.7508656967979123,
+      "screen_failure_reasons": [],
+      "screen_failure_examples": [],
+      "ingest_mode": "contextual_selective_v2",
+      "chunk_size": 2500,
+      "chunk_overlap": 320
+    }
+  ],
+  "winner_ranking": [
+    {
+      "experiment_id": "contextual_selective_v2_prefix_2500_320",
+      "company_count": 1,
+      "pass_count": 1,
+      "critical_category_miss_count": 0,
+      "avg_api_call_reduction_ratio": 0.0,
+      "avg_ingest_time_reduction_ratio": 0.0,
+      "avg_estimated_cost_reduction_ratio": 0.0,
+      "avg_full_faithfulness": 1.0,
+      "avg_full_context_recall": 0.8333333333333334,
+      "screen_failures": []
+    }
+  ]
+}
