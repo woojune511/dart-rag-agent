@@ -900,3 +900,118 @@ focus run 관찰:
 - `direction_hint`처럼 부호/대소 관계를 파이썬이 확정하는 역할은 유지한다
 - 반면 metric-specific source choice, `%p` 질문 해석, section supplement 같은 로직은 장기적으로 코드에서 비워내야 한다
 - 관련 회고와 실험 계획은 [math_pipeline_refactor_plan.md](docs/math_pipeline_refactor_plan.md)에 정리했다
+
+## 2026-04-28 ontology 1차 연동 / planner guard 제거 / eval-only fast path
+
+이번 세션에서는 `comparison_005`, `comparison_006`을 retrieval-fixed edge baseline 위에서 더 정리했다.
+
+### 1. thin ontology 1차 연동
+
+추가 자산:
+
+- `src/config/financial_ontology.json`
+- `src/config/ontology.py`
+
+적용 범위:
+
+- 처음부터 `router` 전체를 ontology로 치환하지는 않았다
+- 대신 아래만 ontology를 읽도록 연결했다
+  - retrieval hint
+  - preferred section seed 보강
+  - ratio row / component scan
+
+핵심 해석:
+
+- 현재 ontology는 `retrieval / fallback` 층의 도메인 지식을 코드 밖으로 빼내는 용도다
+- 즉 하드코딩된 `연구개발 활동` rescue path를 바로 지우기보다, 그것을 **설정 기반의 얇은 retrieval bias**로 치환하는 1차 스파이크로 본다
+
+### 2. planner-first ontology 연결과 `%p` pre-LLM guard 제거
+
+추가/변경:
+
+- state에 `target_metric_family` 추가
+- extractor 단계에서 ontology로 metric family를 추정
+- planner prompt에 아래 prior를 참고용으로 주입
+  - `display_name`
+  - `formula_template`
+  - `result_unit`
+  - `components`
+
+디버그 결과:
+
+- `comparison_005`
+  - ontology prior를 받은 planner가 스스로 `formula=A`를 선택
+- `comparison_006`
+  - 처음에는 `%p` type-guard가 planner 앞에서 `A-B`를 미리 확정하고 있었음
+  - debug로 guard를 꺼 보니 planner도 자체적으로 `A-B`를 정상 생성
+
+조치:
+
+- `%p`에 대한 **pre-LLM planner short-circuit guard를 제거**했다
+- 현재는 planner가 항상 직접 계획을 세우고,
+- `%p` 질문에서 non-PERCENT operand를 제거하는 최소 candidate filtering만 남긴 상태다
+
+현재 판단:
+
+- `%p` type-guard는 더 이상 필수 로직이 아니라 옛 duct tape에 가까웠다
+- planner는 ontology prior와 pre-extracted candidate만으로도 `%p` 차이를 직접 계획할 수 있다
+
+### 3. eval-only fast path 도입
+
+추가 자산:
+
+- `src/ops/run_eval_only.py`
+
+목적:
+
+- 기존 benchmark 결과 번들의 persisted store를 재사용
+- parse / ingest / screening을 건너뛰고
+- full evaluation만 다시 수행
+
+중요한 관찰:
+
+- 처음에는 `benchmarks/results/latest`를 source로 사용했는데 실패했다
+- 원인은 속도나 evaluator가 아니라, 그 번들의 persisted store가 사실상 비어 있었기 때문이다
+- 실제로 문서가 들어 있는 이전 full-math 결과 번들(예: `dev_math_focus_llmshift_2026-04-28`)을 source로 사용하면 eval-only path는 정상 동작한다
+
+즉 현재 운영 원칙은:
+
+- 빠른 회귀 실험은 `run_eval_only.py`를 우선 사용한다
+- 단, source output dir는 **실제 문서가 들어 있는 유효한 결과 번들**이어야 한다
+- `latest` 같은 중간 산출물은 source로 신뢰하지 않는다
+
+### 4. full math eval-only 재실행
+
+기준 run:
+
+- `benchmarks/results/dev_math_focus_evalonly_2026-04-28`
+
+설정:
+
+- source bundle: `dev_math_focus_llmshift_2026-04-28`
+- candidate: `contextual_selective_v2_prefix_2500_320`
+- question set: `dev_math_focus` 10문항
+
+결과:
+
+- `Faithfulness 0.900`
+- `Answer Relevancy 0.798`
+- `Context Recall 0.893`
+- `Completeness 0.940`
+- `Numeric Pass 0.778`
+
+질문군별 해석:
+
+- `comparison_005`, `comparison_006`, `comparison_007`
+  - retrieval-fixed + ontology-assisted 경로에서 정상 회복
+- 계산 경로 자체는 안정적
+  - `calculation_correctness`는 전 문항 사실상 `1.0`
+- 남은 병목은 다시 계산이 아니라
+  - retrieval-eval alignment
+  - 답변의 친절도 / completeness 표현
+  쪽으로 이동했다
+
+현재 결론:
+
+- full `benchmark_runner`는 cache invalidation 때문에 여전히 반복 실험용으로 무겁다
+- 하지만 `eval-only` fast path는 **유효한 source store만 고르면 실전적으로 쓸 만한 빠른 회귀 루프**다

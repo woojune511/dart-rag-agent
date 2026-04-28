@@ -1,0 +1,318 @@
+[
+  {
+    "query": "삼성전자 2024 사업보고서에서 2023년 영업이익은 2022년 영업이익보다 얼마나 더 작은가요?",
+    "routing": {
+      "intent": "comparison",
+      "format_preference": "table",
+      "routing_source": "llm_fallback",
+      "routing_confidence": 0.7182793140300057,
+      "routing_scores": {
+        "comparison": 0.7183,
+        "risk": 0.6898,
+        "numeric_fact": 0.6735,
+        "trend": 0.5714,
+        "business_overview": 0.531,
+        "qa": 0.3963
+      }
+    },
+    "extraction": {
+      "companies": [
+        "삼성전자"
+      ],
+      "years": [
+        2023,
+        2022
+      ],
+      "topic": "영업이익 비교",
+      "section_filter": "재무제표"
+    },
+    "retrieved_docs": [
+      {
+        "score": 1.0318,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 재무 상태를 요약적으로 보여주는 핵심 자산 정보입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년 "
+      },
+      {
+        "score": 1.0304,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년"
+      },
+      {
+        "score": 0.7806,
+        "section_path": "VII. 주주에 관한 사항",
+        "section": "회사개요",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: VII. 주주에 관한 사항]\n[분류: 회사개요 / table]\n[키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표]\n\n1. 최대주주 및 그 특수관계인의 주식소유 현황\n\n(기준일 : | 2024년 12월 31일 | ) | (단위"
+      },
+      {
+        "score": 0.7405,
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "section": "경영진단",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: IV. 이사의 경영진단 및 분석의견]\n[분류: 경영진단 / paragraph]\n[키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단]\n\n구분 | 부문 | 제56기 | 제55기 | 증감(률)\n금액 | 비중 | 금액 | 비중 | 금액 | (%)\n매출 | DX 부문 | 174,887,683 | 58."
+      },
+      {
+        "score": 0.4345,
+        "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 2. 연결재무제표]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n제 56"
+      },
+      {
+        "score": 0.434,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "연결재무제표 작성에 적용되는 리스 관련 주요 회계정책을 명시합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표]\n\n다음은 연결재무제표"
+      },
+      {
+        "score": 0.4328,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표]\n\n가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다.\n기타포"
+      },
+      {
+        "score": 0.3806,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "문서 내 삼성전자 연결 재무정보 요약표의 시작을 알립니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / paragraph]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 문단]\n\n가. 요약연결재무정보\n\n(단위 : 백만원)"
+      }
+    ],
+    "seed_retrieved_docs": [
+      {
+        "score": 1.0318,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 재무 상태를 요약적으로 보여주는 핵심 자산 정보입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년 "
+      },
+      {
+        "score": 1.0304,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년"
+      },
+      {
+        "score": 0.7806,
+        "section_path": "VII. 주주에 관한 사항",
+        "section": "회사개요",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "최대주주 및 특수관계인의 지분 현황을 공개하여 회사의 지배구조를 명시합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: VII. 주주에 관한 사항]\n[분류: 회사개요 / table]\n[키워드: 회사개요, VII. 주주에 관한 사항, 표 설명 문맥, 표]\n\n1. 최대주주 및 그 특수관계인의 주식소유 현황\n\n(기준일 : | 2024년 12월 31일 | ) | (단위"
+      },
+      {
+        "score": 0.7405,
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "section": "경영진단",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: IV. 이사의 경영진단 및 분석의견]\n[분류: 경영진단 / paragraph]\n[키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단]\n\n구분 | 부문 | 제56기 | 제55기 | 증감(률)\n금액 | 비중 | 금액 | 비중 | 금액 | (%)\n매출 | DX 부문 | 174,887,683 | 58."
+      },
+      {
+        "score": 0.4345,
+        "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "삼성전자의 3개년 연결 자본 변동 및 구성을 보여주는 표의 머리글입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 2. 연결재무제표]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 2. 연결재무제표, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n제 56"
+      },
+      {
+        "score": 0.434,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "연결재무제표 작성에 적용되는 리스 관련 주요 회계정책을 명시합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표]\n\n다음은 연결재무제표"
+      },
+      {
+        "score": 0.4328,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표]\n\n가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다.\n기타포"
+      },
+      {
+        "score": 0.4322,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "연결재무제표상 중요 종속기업의 비지배지분 정보를 상세히 공시.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n보고기간"
+      },
+      {
+        "score": 0.4294,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "연결재무제표 작성의 기준과 주요 회계정책을 설명하여 재무정보 이해를 돕습니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥,"
+      },
+      {
+        "score": 0.429,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표의 주요 회계 추정 및 불확실성 처리 방식을 안내합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표]\n\n연결회사는 미래에 대하"
+      },
+      {
+        "score": 0.4281,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표의 주요 회계추정 및 가정과 그 불확실성을 설명한다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n연결회사는"
+      },
+      {
+        "score": 0.4279,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "매각예정 자산의 자본 영향, 기타 자본 구성요소 및 보고기간 후 사건을 상세히 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표"
+      }
+    ],
+    "evidence_status": "sufficient",
+    "evidence_items": [
+      {
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        "support_level": "direct",
+        "question_relevance": "high",
+        "parent_category": "요약연결재무정보",
+        "source_context": null,
+        "claim": "삼성전자의 2023년 연결기준 영업이익은 6조 5,669억 7천 6백만원이고, 2022년 연결기준 영업이익은 43조 3,766억 3천만원입니다. 따라서 2023년 영업이익은 2022년 영업이익보다 36조 8,096억 5천 4백만원 더 작습니다.",
+        "raw_row_text": null
+      }
+    ],
+    "ratio_row_candidates": [],
+    "component_candidates": [],
+    "calculation_debug_trace": {
+      "coverage": "sufficient",
+      "operands": [
+        {
+          "operand_id": "op_001",
+          "evidence_id": "ev_001",
+          "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+          "label": "2023년 영업이익",
+          "raw_value": "6,566,976",
+          "raw_unit": "백만원",
+          "normalized_value": 6566976000000.0,
+          "normalized_unit": "KRW",
+          "period": "2023년"
+        },
+        {
+          "operand_id": "op_002",
+          "evidence_id": "ev_001",
+          "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+          "label": "2022년 영업이익",
+          "raw_value": "43,376,630",
+          "raw_unit": "백만원",
+          "normalized_value": 43376630000000.0,
+          "normalized_unit": "KRW",
+          "period": "2022년"
+        }
+      ]
+    },
+    "calculation_operands": [
+      {
+        "operand_id": "op_001",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        "label": "2023년 영업이익",
+        "raw_value": "6,566,976",
+        "raw_unit": "백만원",
+        "normalized_value": 6566976000000.0,
+        "normalized_unit": "KRW",
+        "period": "2023년"
+      },
+      {
+        "operand_id": "op_002",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        "label": "2022년 영업이익",
+        "raw_value": "43,376,630",
+        "raw_unit": "백만원",
+        "normalized_value": 43376630000000.0,
+        "normalized_unit": "KRW",
+        "period": "2022년"
+      }
+    ],
+    "calculation_plan": {
+      "mode": "single_value",
+      "operation": "subtract",
+      "ordered_operand_ids": [
+        "op_002",
+        "op_001"
+      ],
+      "variable_bindings": [
+        {
+          "variable": "A",
+          "operand_id": "op_002"
+        },
+        {
+          "variable": "B",
+          "operand_id": "op_001"
+        }
+      ],
+      "formula": "A - B",
+      "pairwise_formula": "",
+      "result_unit": "백만원",
+      "operation_text": "2022년 영업이익 - 2023년 영업이익",
+      "explanation": "2023년 영업이익이 2022년 영업이익보다 얼마나 더 작은지 계산하기 위해 2022년 영업이익에서 2023년 영업이익을 뺍니다."
+    },
+    "calculation_result": {
+      "status": "ok",
+      "result_value": 36809654000000.0,
+      "result_unit": "백만원",
+      "rendered_value": "36조 8,097억원",
+      "formatted_result": "",
+      "series": [
+        {
+          "label": "영업이익",
+          "period": "2022년",
+          "raw_value": "43,376,630",
+          "raw_unit": "백만원",
+          "normalized_value": 43376630000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "43조 3,766억원"
+        },
+        {
+          "label": "영업이익",
+          "period": "2023년",
+          "raw_value": "6,566,976",
+          "raw_unit": "백만원",
+          "normalized_value": 6566976000000.0,
+          "normalized_unit": "KRW",
+          "rendered_value": "6조 5,670억원"
+        }
+      ],
+      "derived_metrics": {
+        "operand_labels": [
+          "영업이익",
+          "영업이익"
+        ],
+        "formula": "A - B"
+      },
+      "explanation": "2023년 영업이익이 2022년 영업이익보다 얼마나 더 작은지 계산하기 위해 2022년 영업이익에서 2023년 영업이익을 뺍니다."
+    }
+  }
+]

@@ -1,0 +1,122 @@
+{
+  "metric_families": {
+    "rnd_ratio": {
+      "display_name": "연구개발비용 비중",
+      "intent_keywords": [
+        "연구개발비",
+        "연구개발비용",
+        "연구개발 비중",
+        "연구개발 비율",
+        "연구개발 차지",
+        "r&d"
+      ],
+      "preferred_sections": [
+        "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "II. 사업의 내용 > 6. 연구개발 활동",
+        "XII. 상세표 > 연구개발실적(상세)",
+        "III. 재무에 관한 사항 > 1. 요약재무정보"
+      ],
+      "supplement_sections": [
+        "연구개발 활동",
+        "연구개발활동",
+        "주요계약 및 연구개발활동",
+        "연구개발",
+        "연구개발실적"
+      ],
+      "query_hints": [
+        "연구개발",
+        "요약재무정보"
+      ],
+      "row_patterns": [
+        "연구개발비\\s*/\\s*매출액\\s*비율",
+        "연구개발비용\\s*/\\s*매출액\\s*비율"
+      ],
+      "formula_template": "(numerator / denominator) * 100",
+      "result_unit": "PERCENT",
+      "components": {
+        "numerator": {
+          "name": "연구개발비용",
+          "keywords": [
+            "연구개발비용",
+            "연구개발비 총계",
+            "연구개발비"
+          ],
+          "preferred_sections": [
+            "연구개발 활동",
+            "연구개발활동",
+            "주요계약 및 연구개발활동",
+            "연구개발"
+          ]
+        },
+        "denominator": {
+          "name": "매출액",
+          "keywords": [
+            "매출액",
+            "당기매출액",
+            "영업수익",
+            "수익",
+            "전체 매출"
+          ],
+          "preferred_sections": [
+            "요약재무정보",
+            "손익계산서",
+            "매출 및 수주상황"
+          ]
+        }
+      }
+    },
+    "operating_margin": {
+      "display_name": "영업이익률",
+      "intent_keywords": [
+        "영업이익률",
+        "영업이익 비율",
+        "영업이익 비중",
+        "이익률"
+      ],
+      "preferred_sections": [
+        "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "손익계산서"
+      ],
+      "supplement_sections": [
+        "요약재무정보",
+        "손익계산서"
+      ],
+      "query_hints": [
+        "요약재무정보",
+        "손익계산서"
+      ],
+      "row_patterns": [
+        "영업이익률",
+        "영업이익\\s*/\\s*매출액"
+      ],
+      "formula_template": "(numerator / denominator) * 100",
+      "result_unit": "PERCENT",
+      "components": {
+        "numerator": {
+          "name": "영업이익",
+          "keywords": [
+            "영업이익",
+            "영업손익"
+          ],
+          "preferred_sections": [
+            "요약재무정보",
+            "손익계산서"
+          ]
+        },
+        "denominator": {
+          "name": "매출액",
+          "keywords": [
+            "매출액",
+            "영업수익",
+            "수익"
+          ],
+          "preferred_sections": [
+            "요약재무정보",
+            "손익계산서",
+            "매출 및 수주상황"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -599,3 +599,34 @@ micro-dataset:
 - cross-document reasoning
 - table-to-sql
 - operation별 renderer template 확장
+
+## 다음 단계 — ontology / eval-only 이후
+
+현재 상태:
+
+- `financial_ontology.json` 기반의 thin retrieval/planner prior는 1차 연결됨
+- `%p` pre-LLM short-circuit guard는 제거했고, planner가 직접 `A-B`를 생성함
+- `run_eval_only.py`로 parse/ingest 없이 full math evaluation 재실행 가능
+
+운영 원칙:
+
+1. 먼저 `debug_math_workflow.py`로 실패 층을 재현
+2. 그 다음 `run_eval_only.py`로 빠른 회귀
+3. full `benchmark_runner`는 구조가 크게 바뀌었을 때만 사용
+
+주의점:
+
+- `eval-only` source output dir는 실제 문서가 들어 있는 유효한 결과 번들이어야 한다
+- `benchmarks/results/latest` 같은 중간 산출물은 source로 신뢰하지 않는다
+
+다음 우선순위:
+
+1. `dev_math_focus_evalonly_2026-04-28`에서 남은 실패 문항 정리
+   - `comparison_001`
+   - `comparison_003`
+   - `comparison_006`
+2. 남은 병목이 계산인지, retrieval-eval alignment인지, 답변 completeness인지 다시 분리
+3. row candidates / component candidates를 planner failure fallback이 아니라
+   기본 planning input으로 올리는 스파이크
+4. ontology를 `operating_margin`, 가능하면 `debt_ratio`까지 한 metric 더 넓혀 A/B
+5. `%p` operand filtering이 최소 안전장치로 남아도 되는지 `dev_math_focus` 전체 기준으로 재검토

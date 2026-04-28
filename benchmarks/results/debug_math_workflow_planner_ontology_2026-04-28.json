@@ -1,0 +1,628 @@
+[
+  {
+    "query": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+    "routing": {
+      "intent": "comparison",
+      "target_metric_family": "rnd_ratio",
+      "format_preference": "table",
+      "routing_source": "llm_fallback",
+      "routing_confidence": 0.821,
+      "routing_scores": {
+        "comparison": 0.8213,
+        "numeric_fact": 0.7862,
+        "risk": 0.7223,
+        "business_overview": 0.5953,
+        "trend": 0.5645,
+        "qa": 0.4585
+      }
+    },
+    "extraction": {
+      "companies": [
+        "삼성전자"
+      ],
+      "years": [
+        2024
+      ],
+      "topic": "연구개발비용이 전체 매출에서 차지하는 비중",
+      "section_filter": null
+    },
+    "retrieved_docs": [
+      {
+        "score": 1.2259,
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "section": "매출현황",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 4. 매출 및 수주상황]\n[분류: 매출현황 / paragraph]\n[키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단]\n\n2024년 당사의 주요 "
+      },
+      {
+        "score": 1.1447,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 운영의 기반이 되는 주요 계약 현황을 제시한다. (36자)\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n가. 경영상의 주요 계약 등\n\n계약 상"
+      },
+      {
+        "score": 1.0792,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 재무 상태를 요약적으로 보여주는 핵심 자산 정보입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년 "
+      },
+      {
+        "score": 1.078,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년"
+      },
+      {
+        "score": 1.0574,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 부문별 연구개발 성과로 출시된 주요 신제품 현황을 보여줍니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 "
+      },
+      {
+        "score": 1.0329,
+        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+        "section": "재무주석",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표 주요 항목인 배당 및 이연법인세 관련 상세 정보를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 5. 재무제표 주석]\n[분류: 재무주석 / table]\n[키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n배당의 구분\n"
+      },
+      {
+        "score": 1.0256,
+        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+        "section": "재무주석",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표 주석에서 금융자산 공정가치 평가 방법과 투입변수를 설명한다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 5. 재무제표 주석]\n[분류: 재무주석 / table]\n[키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n측정 전체\n공정"
+      },
+      {
+        "score": 0.8375,
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "section": "경영진단",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: IV. 이사의 경영진단 및 분석의견]\n[분류: 경영진단 / paragraph]\n[키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단]\n\n당사는 통화별 자산과 부채규모를 일치하는 수준으로 유지하여 환율변동 영향을 최소화하는데 주력하고 있습니다. 이를 위해 수출입 등의 경상거래 및 예금, 차입 등의"
+      }
+    ],
+    "seed_retrieved_docs": [
+      {
+        "score": 1.2259,
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "section": "매출현황",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 4. 매출 및 수주상황]\n[분류: 매출현황 / paragraph]\n[키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단]\n\n2024년 당사의 주요 "
+      },
+      {
+        "score": 1.1447,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 운영의 기반이 되는 주요 계약 현황을 제시한다. (36자)\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n가. 경영상의 주요 계약 등\n\n계약 상"
+      },
+      {
+        "score": 1.0792,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 재무 상태를 요약적으로 보여주는 핵심 자산 정보입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년 "
+      },
+      {
+        "score": 1.078,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년"
+      },
+      {
+        "score": 1.0574,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 부문별 연구개발 성과로 출시된 주요 신제품 현황을 보여줍니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 "
+      },
+      {
+        "score": 1.0329,
+        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+        "section": "재무주석",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표 주요 항목인 배당 및 이연법인세 관련 상세 정보를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 5. 재무제표 주석]\n[분류: 재무주석 / table]\n[키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n배당의 구분\n"
+      },
+      {
+        "score": 1.0256,
+        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+        "section": "재무주석",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표 주석에서 금융자산 공정가치 평가 방법과 투입변수를 설명한다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 5. 재무제표 주석]\n[분류: 재무주석 / table]\n[키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n측정 전체\n공정"
+      },
+      {
+        "score": 0.96,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 등\n(~2023.06.) | □ LCD 기반의 B2B Smart Signage (LFD, H"
+      },
+      {
+        "score": 0.91,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "DX 부문 영상디스플레이 R&D 성과 및 제품 특징을 상세히 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 "
+      },
+      {
+        "score": 0.91,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 등\n - 다양한 명화, 사진 등 감상 가능, 인테리어와 조화로운 Lifestyle 디자인 채"
+      },
+      {
+        "score": 0.9056,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "이 표는 상세 연구개발 실적 정보가 있는 본문 위치를 안내하는 역할을 합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n☞ 본문 위치로 이동"
+      },
+      {
+        "score": 0.9054,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "연구개발 투자의 구체적인 성과와 기대효과를 제품 사례로 제시한다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 등\nGalaxy Z Fo"
+      }
+    ],
+    "evidence_status": "sufficient",
+    "evidence_items": [
+      {
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "support_level": "direct",
+        "question_relevance": "high",
+        "parent_category": "연구개발활동",
+        "source_context": null,
+        "claim": "삼성전자의 2024년(제56기) 연구개발비용이 전체 매출액에서 차지하는 비율은 11.6%입니다.",
+        "raw_row_text": null
+      }
+    ],
+    "ratio_row_candidates": [
+      {
+        "evidence_id": "ev_ratio_002_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "source_context": "[표: II. 사업의 내용 > 6. 주요계약 및 연구개발활동] | [헤더: 제56기 | 제55기 | 제54기 | 당기]",
+        "matched_metric": null,
+        "matched_value": null,
+        "matched_unit": null,
+        "raw_row_text": "| 24,929,171 (정부보조금) | △23,389 | △13,045 | △9,973 연구개발비용 계 | 34,998,142 | 28,339,724 | 24,919,198 회계처리 | 개발비 자산화(무형자산) | - | - | - 연구개발비(비용) | 34,998,142 | 28,339,724 | 24,919,198 연구개발비 / 매출액 비율 [연구개발비용 총계÷당기매출액×100] | 11.6% | 10.9% | 8.2% ※ 연결 누계기준입니다.※ 비율은 정부보조금(국고보조금)을 차감하기 전의"
+      }
+    ],
+    "component_candidates": [
+      {
+        "evidence_id": "ev_component_매출액_001_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 4. 매출 및 수주상황]",
+        "source_context": "[표: II. 사업의 내용 > 4. 매출 및 수주상황] | [헤더: 2024년]",
+        "matched_metric": "매출액",
+        "matched_value": "14%",
+        "matched_unit": "%",
+        "raw_row_text": ". 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단] 2024년 당사의 주요 매출처로는 Apple, Deutsche Telekom, Hong Kong Techtronics, Supreme Electronics, Verizon 등(알파벳순) 입니다. 당사의 주요 5대 매출처에 대한 매출비중은 전체 매출액 대비 약 14% 수준입니다. 바. 수주상황2024년말 현재 당사 재무제표에 중요한 영향을 미치는 장기공급계약 수주거래는 없습니다."
+      }
+    ],
+    "calculation_debug_trace": {
+      "coverage": "sufficient",
+      "operands": [
+        {
+          "operand_id": "op_001",
+          "evidence_id": "ev_001",
+          "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+          "label": "2024년 연구개발비용/매출액 비율",
+          "raw_value": "11.6",
+          "raw_unit": "%",
+          "normalized_value": 11.6,
+          "normalized_unit": "PERCENT",
+          "period": "2024년"
+        }
+      ]
+    },
+    "calculation_operands": [
+      {
+        "operand_id": "op_001",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "label": "2024년 연구개발비용/매출액 비율",
+        "raw_value": "11.6",
+        "raw_unit": "%",
+        "normalized_value": 11.6,
+        "normalized_unit": "PERCENT",
+        "period": "2024년"
+      }
+    ],
+    "calculation_plan": {
+      "mode": "single_value",
+      "operation": "ratio",
+      "ordered_operand_ids": [
+        "op_001"
+      ],
+      "variable_bindings": [
+        {
+          "variable": "A",
+          "operand_id": "op_001"
+        }
+      ],
+      "formula": "A",
+      "pairwise_formula": "",
+      "result_unit": "%",
+      "operation_text": "2024년 연구개발비용/매출액 비율",
+      "explanation": "질문에서 요구하는 연구개발비용이 매출에서 차지하는 비중이 이미 계산된 값으로 제공되었습니다."
+    },
+    "calculation_result": {
+      "status": "ok",
+      "result_value": 11.6,
+      "result_unit": "%",
+      "rendered_value": "11.6%",
+      "formatted_result": "",
+      "series": [
+        {
+          "label": "연구개발비용/매출액 비율",
+          "period": "2024년",
+          "raw_value": "11.6",
+          "raw_unit": "%",
+          "normalized_value": 11.6,
+          "normalized_unit": "PERCENT",
+          "rendered_value": "11.6"
+        }
+      ],
+      "derived_metrics": {
+        "operand_labels": [
+          "연구개발비용/매출액 비율"
+        ],
+        "formula": "A"
+      },
+      "explanation": "질문에서 요구하는 연구개발비용이 매출에서 차지하는 비중이 이미 계산된 값으로 제공되었습니다."
+    }
+  },
+  {
+    "query": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
+    "routing": {
+      "intent": "comparison",
+      "target_metric_family": "rnd_ratio",
+      "format_preference": "table",
+      "routing_source": "semantic_fast_path",
+      "routing_confidence": 0.8012243841440063,
+      "routing_scores": {
+        "comparison": 0.8012,
+        "risk": 0.7359,
+        "numeric_fact": 0.7059,
+        "trend": 0.6109,
+        "business_overview": 0.5978,
+        "qa": 0.4504
+      }
+    },
+    "extraction": {
+      "companies": [
+        "삼성전자"
+      ],
+      "years": [
+        2024,
+        2023
+      ],
+      "topic": "연구개발비/매출액 비중 차이",
+      "section_filter": null
+    },
+    "retrieved_docs": [
+      {
+        "score": 1.3364,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 운영의 기반이 되는 주요 계약 현황을 제시한다. (36자)\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n가. 경영상의 주요 계약 등\n\n계약 상"
+      },
+      {
+        "score": 1.28,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 재무 상태를 요약적으로 보여주는 핵심 자산 정보입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년 "
+      },
+      {
+        "score": 1.2794,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년"
+      },
+      {
+        "score": 1.2259,
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "section": "매출현황",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 4. 매출 및 수주상황]\n[분류: 매출현황 / paragraph]\n[키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단]\n\n2024년 당사의 주요 "
+      },
+      {
+        "score": 1.0546,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 부문별 연구개발 성과로 출시된 주요 신제품 현황을 보여줍니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 "
+      },
+      {
+        "score": 1.0329,
+        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+        "section": "재무주석",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표상 종속/관계기업 투자의 변동 및 현황을 상세히 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 5. 재무제표 주석]\n[분류: 재무주석 / table]\n[키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n가. 당기 및 전"
+      },
+      {
+        "score": 0.91,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "DX 부문 영상디스플레이 R&D 성과 및 제품 특징을 상세히 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 "
+      },
+      {
+        "score": 0.7874,
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "section": "경영진단",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: IV. 이사의 경영진단 및 분석의견]\n[분류: 경영진단 / paragraph]\n[키워드: 경영진단, IV. 이사의 경영진단 및 분석의견, 표 설명 문맥, 문단]\n\n당사는 통화별 자산과 부채규모를 일치하는 수준으로 유지하여 환율변동 영향을 최소화하는데 주력하고 있습니다. 이를 위해 수출입 등의 경상거래 및 예금, 차입 등의"
+      }
+    ],
+    "seed_retrieved_docs": [
+      {
+        "score": 1.3364,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 운영의 기반이 되는 주요 계약 현황을 제시한다. (36자)\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n가. 경영상의 주요 계약 등\n\n계약 상"
+      },
+      {
+        "score": 1.28,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 재무 상태를 요약적으로 보여주는 핵심 자산 정보입니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년 "
+      },
+      {
+        "score": 1.2794,
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "회사의 기간별 자산 현황을 요약하여 재무상태 개요를 제공합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 1. 요약재무정보]\n[분류: 요약재무 / table]\n[키워드: 요약재무, III. 재무에 관한 사항 > 1. 요약재무정보, 표 설명 문맥, 표]\n\n구 분 | 제56기 | 제55기 | 제54기\n2024년 12월말 | 2023년"
+      },
+      {
+        "score": 1.2259,
+        "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+        "section": "매출현황",
+        "block_type": "paragraph",
+        "graph_relation": null,
+        "preview": "주요 매출처, 매출 비중, 수주 현황을 공개하여 사업 안정성을 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 4. 매출 및 수주상황]\n[분류: 매출현황 / paragraph]\n[키워드: 매출현황, II. 사업의 내용 > 4. 매출 및 수주상황, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 문단]\n\n2024년 당사의 주요 "
+      },
+      {
+        "score": 1.0546,
+        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "사업 부문별 연구개발 성과로 출시된 주요 신제품 현황을 보여줍니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: II. 사업의 내용 > 6. 주요계약 및 연구개발활동]\n[분류: 연구개발 / table]\n[키워드: 연구개발, II. 사업의 내용 > 6. 주요계약 및 연구개발활동, R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 "
+      },
+      {
+        "score": 1.0329,
+        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+        "section": "재무주석",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "재무제표상 종속/관계기업 투자의 변동 및 현황을 상세히 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 5. 재무제표 주석]\n[분류: 재무주석 / table]\n[키워드: 재무주석, III. 재무에 관한 사항 > 5. 재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표 설명 문맥, 표]\n\n가. 당기 및 전"
+      },
+      {
+        "score": 0.91,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "DX 부문 영상디스플레이 R&D 성과 및 제품 특징을 상세히 설명합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 "
+      },
+      {
+        "score": 0.91,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 등\n - 다양한 명화, 사진 등 감상 가능, 인테리어와 조화로운 Lifestyle 디자인 채"
+      },
+      {
+        "score": 0.91,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 등\n(~2023.06.) | □ LCD 기반의 B2B Smart Signage (LFD, H"
+      },
+      {
+        "score": 0.9056,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "연구개발 투자의 구체적인 성과와 기대효과를 제품 사례로 제시한다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표]\n\n부문 | 연구과제 등 | 연구결과 및 기대효과 등\nGalaxy Z Fo"
+      },
+      {
+        "score": 0.9054,
+        "section_path": "XII. 상세표 > 4. 연구개발실적(상세)",
+        "section": "연구개발",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "이 표는 상세 연구개발 실적 정보가 있는 본문 위치를 안내하는 역할을 합니다.\n\n[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: XII. 상세표 > 4. 연구개발실적(상세)]\n[분류: 연구개발 / table]\n[키워드: 연구개발, XII. 상세표 > 4. 연구개발실적(상세), R&D, 투자, 기술 개발, 표 설명 문맥, 표]\n\n☞ 본문 위치로 이동"
+      },
+      {
+        "score": 0.8938,
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "section": "연결재무제표",
+        "block_type": "table",
+        "graph_relation": null,
+        "preview": "[회사: 삼성전자] [연도: 2024] [보고서: 사업보고서]\n[섹션: III. 재무에 관한 사항 > 3. 연결재무제표 주석]\n[분류: 연결재무제표 / table]\n[키워드: 연결재무제표, III. 재무에 관한 사항 > 3. 연결재무제표 주석, 매출, 연결 기준, 재무, 손익, 영업이익, 매출액, 표]\n\n가. 당기 및 전기 중 관계기업 및 공동기업 투자의 변동 내역은 다음과 같습니다.\n기타포"
+      }
+    ],
+    "evidence_status": "sufficient",
+    "evidence_items": [
+      {
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "support_level": "direct",
+        "question_relevance": "high",
+        "parent_category": "연구개발활동의 개요 및 연구개발비용",
+        "source_context": null,
+        "claim": "삼성전자의 2024년 연구개발비 / 매출액 비율은 11.6%이며, 2023년 연구개발비 / 매출액 비율은 10.9%입니다.",
+        "raw_row_text": null
+      }
+    ],
+    "ratio_row_candidates": [
+      {
+        "evidence_id": "ev_ratio_001_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "source_context": "[표: II. 사업의 내용 > 6. 주요계약 및 연구개발활동] | [헤더: 제56기 | 제55기 | 제54기 | 당기]",
+        "matched_metric": null,
+        "matched_value": null,
+        "matched_unit": null,
+        "raw_row_text": "| 24,929,171 (정부보조금) | △23,389 | △13,045 | △9,973 연구개발비용 계 | 34,998,142 | 28,339,724 | 24,919,198 회계처리 | 개발비 자산화(무형자산) | - | - | - 연구개발비(비용) | 34,998,142 | 28,339,724 | 24,919,198 연구개발비 / 매출액 비율 [연구개발비용 총계÷당기매출액×100] | 11.6% | 10.9% | 8.2% ※ 연결 누계기준입니다.※ 비율은 정부보조금(국고보조금)을 차감하기 전의"
+      }
+    ],
+    "component_candidates": [],
+    "calculation_debug_trace": {
+      "coverage": "sufficient",
+      "operands": [
+        {
+          "operand_id": "op_001",
+          "evidence_id": "ev_001",
+          "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+          "label": "2024년 연구개발비/매출액 비율",
+          "raw_value": "11.6",
+          "raw_unit": "%",
+          "normalized_value": 11.6,
+          "normalized_unit": "PERCENT",
+          "period": "2024년"
+        },
+        {
+          "operand_id": "op_002",
+          "evidence_id": "ev_001",
+          "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+          "label": "2023년 연구개발비/매출액 비율",
+          "raw_value": "10.9",
+          "raw_unit": "%",
+          "normalized_value": 10.9,
+          "normalized_unit": "PERCENT",
+          "period": "2023년"
+        }
+      ]
+    },
+    "calculation_operands": [
+      {
+        "operand_id": "op_001",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "label": "2024년 연구개발비/매출액 비율",
+        "raw_value": "11.6",
+        "raw_unit": "%",
+        "normalized_value": 11.6,
+        "normalized_unit": "PERCENT",
+        "period": "2024년"
+      },
+      {
+        "operand_id": "op_002",
+        "evidence_id": "ev_001",
+        "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+        "label": "2023년 연구개발비/매출액 비율",
+        "raw_value": "10.9",
+        "raw_unit": "%",
+        "normalized_value": 10.9,
+        "normalized_unit": "PERCENT",
+        "period": "2023년"
+      }
+    ],
+    "calculation_plan": {
+      "mode": "single_value",
+      "operation": "subtract",
+      "ordered_operand_ids": [
+        "op_001",
+        "op_002"
+      ],
+      "variable_bindings": [
+        {
+          "variable": "A",
+          "operand_id": "op_001"
+        },
+        {
+          "variable": "B",
+          "operand_id": "op_002"
+        }
+      ],
+      "formula": "A - B",
+      "pairwise_formula": "",
+      "result_unit": "%",
+      "operation_text": "2024년 비율 - 2023년 비율",
+      "explanation": "동일 metric의 두 퍼센트 피연산자를 사용한 %p 차이 계산"
+    },
+    "calculation_result": {
+      "status": "ok",
+      "result_value": 0.6999999999999993,
+      "result_unit": "%",
+      "rendered_value": "0.7%",
+      "formatted_result": "",
+      "series": [
+        {
+          "label": "연구개발비/매출액 비율",
+          "period": "2024년",
+          "raw_value": "11.6",
+          "raw_unit": "%",
+          "normalized_value": 11.6,
+          "normalized_unit": "PERCENT",
+          "rendered_value": "11.6"
+        },
+        {
+          "label": "연구개발비/매출액 비율",
+          "period": "2023년",
+          "raw_value": "10.9",
+          "raw_unit": "%",
+          "normalized_value": 10.9,
+          "normalized_unit": "PERCENT",
+          "rendered_value": "10.9"
+        }
+      ],
+      "derived_metrics": {
+        "operand_labels": [
+          "연구개발비/매출액 비율",
+          "연구개발비/매출액 비율"
+        ],
+        "formula": "A - B"
+      },
+      "explanation": "동일 metric의 두 퍼센트 피연산자를 사용한 %p 차이 계산"
+    }
+  }
+]

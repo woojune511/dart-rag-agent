@@ -169,6 +169,14 @@
   - 특정 숫자 하드코딩 없이
   - `연구개발 활동` source를 다시 seed에 올릴 수 있음
 
+진행 메모:
+
+- 1차 thin ontology는 이미 연결했다
+  - `src/config/financial_ontology.json`
+  - `src/config/ontology.py`
+- 현재는 retrieval hint / preferred section / row pattern / component keyword / planner prior만 ontology를 읽는다
+- 아직 `router` 전체를 ontology-driven prompt로 바꾸지는 않았다
+
 ### Phase 3. row candidate 추출의 위치 이동
 
 목표:
@@ -185,6 +193,13 @@
 
 - planner는 "operand 0개"보다
   - row candidates를 보고 formula를 고르는 역할에 집중
+
+진행 메모:
+
+- `%p` 질문의 pre-LLM planner short-circuit guard는 제거했다
+- planner는 이제 항상 직접 계획을 세운다
+- 다만 `%p` 질문에서 non-PERCENT operand를 제거하는 최소 candidate filtering은 남아 있다
+- 이 filtering이 정말 필요한 최소 안전장치인지, 아니면 또 다른 duct tape인지 `dev_math_focus` 전체에서 다시 확인해야 한다
 
 ### Phase 4. component scan의 독립성 강화
 
@@ -233,7 +248,23 @@
 
 ## 다음 세션 체크리스트
 
-1. `financial_ontology.json` 초안 설계
-2. `comparison_005`, `comparison_006`만 대상으로 ontology-driven retrieval A/B
-3. row candidates를 fallback이 아니라 기본 planning input으로 옮기는 스파이크
-4. rescue path의 특정 숫자 하드코딩 제거 가능 여부 확인
+1. `dev_math_focus_evalonly_2026-04-28`에서 남은 실패 문항을 retrieval / evaluator / answer completeness로 분리
+2. `comparison_005`, `comparison_006` 기준 row candidates를 fallback이 아니라 기본 planning input으로 옮기는 스파이크
+3. ontology를 `operating_margin` 외 한 metric family 더 늘렸을 때 retrieval/source 품질이 유지되는지 확인
+4. rescue path의 특정 숫자 하드코딩을 더 줄일 수 있는지 확인
+5. `run_eval_only.py`를 기준 fast regression loop로 계속 사용할지, source bundle 관리 규칙을 문서화할지 결정
+
+## 빠른 회귀 루프 메모
+
+현재 full `benchmark_runner`는 cache signature에 runner hash가 포함되어 있어, 코드가 조금만 바뀌어도 re-ingest를 유발하기 쉽다.
+
+따라서 math 실험의 기본 루프는 다음 순서로 잡는다.
+
+1. `src/ops/debug_math_workflow.py`
+2. `src/ops/run_eval_only.py`
+3. 마지막에만 full `benchmark_runner`
+
+주의:
+
+- `run_eval_only.py`는 source output dir의 persisted store가 실제로 채워져 있어야 한다
+- `latest`처럼 중간에 끊긴 결과 번들은 source로 쓰지 않는다

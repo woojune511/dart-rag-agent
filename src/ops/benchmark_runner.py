@@ -2816,6 +2816,13 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
     full_config = dict(merged_config)
     full_config["eval_mode"] = full_eval_config.get("eval_mode", merged_config.get("eval_mode"))
     full_config["eval_limit"] = full_eval_config.get("eval_limit", merged_config.get("eval_limit"))
+    eval_max_workers = int(
+        full_eval_config.get(
+            "eval_max_workers",
+            merged_config.get("eval_max_workers", merged_config.get("max_workers", 1)),
+        )
+        or 1
+    )
     examples = _select_eval_examples(full_config, result["metadata"])
     if not examples:
         return {}
@@ -2830,9 +2837,11 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
             "k": merged_config.get("k", 8),
             "max_workers": merged_config.get("max_workers"),
             "batch_size": merged_config.get("batch_size"),
+            "eval_max_workers": eval_max_workers,
             "collection_name": store_info["collection_name"],
             "stage": "full_evaluation",
         },
+        max_workers=eval_max_workers,
     )
     return {
         "question_count": len(examples),

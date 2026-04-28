@@ -4,6 +4,7 @@ RAG evaluation pipeline for DART analysis.
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import re
@@ -1720,6 +1721,7 @@ class RAGEvaluator:
         examples: Optional[List[EvalExample]] = None,
         run_name: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
+        max_workers: Optional[int] = None,
     ) -> Dict[str, Any]:
         if examples is None:
             examples = self.load_dataset()
@@ -1732,10 +1734,34 @@ class RAGEvaluator:
             mlflow.log_param("n_questions", len(examples))
 
             results: List[EvalResult] = []
-            for index, example in enumerate(examples, 1):
-                logger.info("Evaluating [%s/%s] %s", index, len(examples), example.id)
-                result = self.evaluate_one(example)
-                results.append(result)
+            worker_count = max(1, min(int(max_workers or 1), len(examples)))
+            if worker_count == 1:
+                for index, example in enumerate(examples, 1):
+                    logger.info("Evaluating [%s/%s] %s", index, len(examples), example.id)
+                    result = self.evaluate_one(example)
+                    results.append(result)
+            else:
+                logger.info("Evaluating %s questions with eval_max_workers=%s", len(examples), worker_count)
+                indexed_results: Dict[int, EvalResult] = {}
+                with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor:
+                    futures = {}
+                    for index, example in enumerate(examples, 1):
+                        logger.info("Queueing evaluation [%s/%s] %s", index, len(examples), example.id)
+                        future = executor.submit(self.evaluate_one, example)
+                        futures[future] = (index, example.id)
+
+                    for future in concurrent.futures.as_completed(futures):
+                        index, example_id = futures[future]
+                        try:
+                            indexed_results[index] = future.result()
+                            logger.info("Completed evaluation [%s/%s] %s", index, len(examples), example_id)
+                        except Exception:
+                            logger.exception("Evaluation failed [%s/%s] %s", index, len(examples), example_id)
+                            raise
+
+                results = [indexed_results[index] for index in range(1, len(examples) + 1)]
+
+            for index, result in enumerate(results, 1):
                 metrics = {
                     "faithfulness": result.faithfulness,
                     "answer_relevancy": result.answer_relevancy,

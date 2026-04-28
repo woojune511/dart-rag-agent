@@ -3,6 +3,7 @@
     "k": 8,
     "ingest_mode": "contextual_selective_v2",
     "max_workers": 4,
+    "eval_max_workers": 3,
     "batch_size": 4,
     "eval_mode": "question_ids",
     "eval_limit": 3,
@@ -46,6 +47,7 @@
   "full_evaluation": {
     "enabled": true,
     "eval_mode": "question_ids",
+    "eval_max_workers": 3,
     "eval_limit": 3,
     "question_ids": [
       "comparison_005",

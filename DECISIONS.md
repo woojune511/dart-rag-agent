@@ -1448,3 +1448,110 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
   순서로 진행한다.
 - `direction_hint`처럼 부호/대소 관계를 확정하는 최소 결정론적 로직은 유지한다.
 - 반면 metric-specific source choice, section supplement, ratio query 의미 해석은 장기적으로 코드에서 비워내고, 설정 + LLM planner 쪽으로 이동한다.
+
+---
+
+## 결정 70 — 재무 온톨로지는 `router-later, planner/retrieval-first` 순서로 얇게 도입한다
+
+**배경**: `comparison_005`, `comparison_006` 문제를 지나치게 국소 패치로 덮지 않기 위해, `연구개발비 비중`, `영업이익률` 같은 metric-specific 도메인 지식을 코드 밖으로 빼낼 필요가 생겼다.
+
+**판단**:
+
+- ontology 방향 자체는 맞다
+- 하지만 `router`부터 전면 치환하면
+  - 새 rule-based classifier를 코드 밖으로 옮긴 것에 그칠 수 있고
+  - 라우팅 안정성을 다시 흔들 위험이 있다
+- 따라서 1차 적용 범위는
+  - retrieval hint
+  - preferred section
+  - ratio row / component candidate scan
+  - planner prior
+  에 한정한다
+
+**구현**:
+
+- `src/config/financial_ontology.json`
+- `src/config/ontology.py`
+
+현재 ontology가 제공하는 역할:
+
+- metric family 감지
+- preferred section 목록
+- row pattern / component keyword
+- formula template / result unit prior
+
+**결정**:
+
+- ontology는 우선 `retrieval / planner`에만 연결한다
+- `router`를 ontology-driven prompt로 전환하는 것은 2차 과제로 둔다
+- 현재 ontology는 hard filter가 아니라 **thin bias / prior** 용도로 사용한다
+
+---
+
+## 결정 71 — `%p` pre-LLM type-guard는 제거하고 planner를 먼저 신뢰한다
+
+**문제**: `comparison_006` (%p 차이) 대응 과정에서 planner가 실패하던 시절 넣은 pre-LLM type-guard가 남아 있었고, 이 로직이 planner 앞에서 `A-B`를 먼저 확정하고 있었다.
+
+즉 한동안은 `%p` 질문을 실제로 planner가 푸는지, 아니면 기존 guard가 푸는지 분리해서 보지 못했다.
+
+**디버그 결과**:
+
+- guard ON:
+  - `%p` 질문은 planner 호출 전에 short-circuit
+- guard OFF:
+  - ontology prior와 percent operands만으로 planner가 스스로 `formula=A-B`, `result_unit=%`를 생성
+
+대표 케이스:
+
+- `comparison_005`
+  - planner가 `formula=A`를 직접 선택
+- `comparison_006`
+  - planner가 `formula=A-B`를 직접 선택
+- `comparison_007`
+  - planner가 `formula=A-B`를 직접 선택
+
+**결정**:
+
+- `%p` 질문의 pre-LLM short-circuit type-guard는 제거한다
+- planner는 항상 직접 계획을 세운다
+- 다만 `%p` 질문에서 non-PERCENT operand를 제거하는 최소 candidate filtering은 유지한다
+  - 이것은 planner 우회가 아니라 **candidate 정리 단계**로 본다
+
+---
+
+## 결정 72 — 빠른 math 회귀는 `eval-only` fast path를 기본 루프로 사용한다
+
+**문제**: `benchmark_runner`는 질문 평가 병렬화가 들어가도 cache signature에 runner hash가 포함되어 있어, 코드가 조금만 바뀌어도 store cache가 무효화되어 re-ingest를 다시 타기 쉽다.
+
+즉 full benchmark는 여전히 빠른 반복 실험용으로는 무겁다.
+
+**조치**:
+
+- `src/ops/run_eval_only.py` 추가
+- 기존 benchmark 결과 번들의 persisted store를 재사용해
+  - parse / ingest / screening 없이
+  - full evaluation만 다시 수행
+
+**주의점**:
+
+- source output dir는 **실제로 문서가 들어 있는 유효한 결과 번들**이어야 한다
+- `benchmarks/results/latest`처럼 중간에 끊긴 run은 persisted store가 비어 있을 수 있으므로 source로 쓰지 않는다
+
+**검증**:
+
+- `dev_math_focus_llmshift_2026-04-28` 번들을 source로 사용한
+  `dev_math_focus_evalonly_2026-04-28` 재실행은 정상 완료
+- 결과:
+  - `Faithfulness 0.900`
+  - `Relevancy 0.798`
+  - `Recall 0.893`
+  - `Completeness 0.940`
+  - `Numeric Pass 0.778`
+
+**결정**:
+
+- 앞으로 math regression은
+  1. `debug_math_workflow.py`
+  2. `run_eval_only.py`
+  3. 필요할 때만 full `benchmark_runner`
+  순서로 실행한다

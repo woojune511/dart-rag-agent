@@ -17,6 +17,8 @@ from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
@@ -31,6 +33,7 @@ def _initial_state(query: str) -> Dict[str, Any]:
         "query": query,
         "query_type": "",
         "intent": "",
+        "target_metric_family": "",
         "format_preference": "",
         "routing_source": "",
         "routing_confidence": 0.0,
@@ -58,6 +61,7 @@ def _initial_state(query: str) -> Dict[str, Any]:
         "calculation_plan": {},
         "calculation_result": {},
         "calculation_debug_trace": {},
+        "planner_debug_trace": {},
     }
 
 
@@ -127,6 +131,7 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         "query": query,
         "routing": {
             "intent": state.get("intent"),
+            "target_metric_family": state.get("target_metric_family"),
             "format_preference": state.get("format_preference"),
             "routing_source": state.get("routing_source"),
             "routing_confidence": state.get("routing_confidence"),
@@ -145,6 +150,7 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         "ratio_row_candidates": [_candidate_summary(item) for item in ratio_row_candidates],
         "component_candidates": [_candidate_summary(item) for item in component_candidates],
         "calculation_debug_trace": state.get("calculation_debug_trace"),
+        "planner_debug_trace": state.get("planner_debug_trace"),
         "calculation_operands": state.get("calculation_operands"),
         "calculation_plan": state.get("calculation_plan"),
         "calculation_result": state.get("calculation_result"),
@@ -168,7 +174,10 @@ def main() -> None:
     )
     agent = FinancialAgent(vsm, k=args.k)
 
-    results = [debug_question(agent, question) for question in args.question]
+    results = [
+        debug_question(agent, question)
+        for question in args.question
+    ]
 
     if args.output:
         output_path = Path(args.output)

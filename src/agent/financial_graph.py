@@ -18,6 +18,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
+from src.config import get_financial_ontology
 from src.routing import QueryRouter, default_format_preference
 
 load_dotenv()
@@ -88,6 +89,7 @@ class FinancialAgentState(TypedDict):
     query: str
     query_type: str
     intent: str
+    target_metric_family: str
     format_preference: str
     routing_source: str
     routing_confidence: float
@@ -115,6 +117,7 @@ class FinancialAgentState(TypedDict):
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]
     calculation_debug_trace: Dict[str, Any]
+    planner_debug_trace: Dict[str, Any]
 
 
 class EntityExtraction(BaseModel):
@@ -490,6 +493,8 @@ def _preferred_calc_sections(query: str, topic: str, intent: str) -> List[str]:
         return []
     text = _normalise_spaces(f"{query} {topic}")
     preferred: List[str] = []
+    ontology_sections = get_financial_ontology().preferred_sections(query, topic, intent)
+    preferred.extend(ontology_sections)
     if "연구개발" in text:
         preferred.extend(["연구개발 활동", "요약재무정보"])
     if "영업이익" in text or "당기순이익" in text or "순이익" in text:
@@ -533,18 +538,17 @@ def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional
 def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> List[str]:
     if intent not in {"comparison", "trend"}:
         return []
-    text = _normalise_spaces(f"{query} {topic}")
     sections: List[str] = []
-    if "연구개발" in text:
-        sections.extend(["연구개발 활동", "연구개발활동", "주요계약 및 연구개발활동", "연구개발"])
+    sections.extend(get_financial_ontology().supplement_sections(query, topic, intent))
     return list(dict.fromkeys(sections))
 
 
-def _retrieval_hint_from_topic(topic: str, intent: str) -> str:
+def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
     if intent not in {"comparison", "trend"}:
         return ""
     text = _normalise_spaces(topic)
     hints: List[str] = []
+    hints.extend(get_financial_ontology().query_hints(query, topic, intent))
     if "영업이익" in text or "당기순이익" in text or "순이익" in text:
         hints.extend(["손익계산서", "요약재무정보"])
     if "매출" in text or "수익" in text:
@@ -660,18 +664,27 @@ class FinancialAgent:
             "다음 질문에서 기업명, 연도, 핵심 주제, 관련 섹션을 추출하세요.\n\n질문: {query}"
         )
         result: EntityExtraction = (prompt | structured_llm).invoke({"query": state["query"]})
+        ontology = get_financial_ontology()
+        metric = ontology.best_metric_family(
+            state["query"],
+            result.topic,
+            state.get("intent") or state.get("query_type", "qa"),
+        )
+        target_metric_family = str(metric.get("key") or "") if metric else ""
         logger.info(
-            "[extract] companies=%s years=%s topic=%s section_filter=%s",
+            "[extract] companies=%s years=%s topic=%s section_filter=%s target_metric=%s",
             result.companies,
             result.years,
             result.topic,
             result.section_filter,
+            target_metric_family or "-",
         )
         return {
             "companies": result.companies,
             "years": result.years,
             "topic": result.topic,
             "section_filter": result.section_filter,
+            "target_metric_family": target_metric_family,
         }
 
     def _apply_strict_filter(self, docs, predicate):
@@ -690,14 +703,11 @@ class FinancialAgent:
         years = [int(year) for year in (state.get("years") or [])]
         multi_period = intent in {"comparison", "trend"} and len(years) > 1
         ratio_query = _is_ratio_percent_query(f"{query} {topic}")
-        metric_patterns = [
-            r"연구개발비\s*/\s*매출액\s*비율",
-            r"연구개발비용",
-            r"연구개발비",
-            r"11\.6%",
-            r"10\.9%",
-            r"35조\s*215억원",
-        ]
+        ontology = get_financial_ontology()
+        metric_patterns = ontology.row_patterns(query, topic, intent)
+        for spec in ontology.component_specs(query, topic, intent):
+            metric_patterns.extend(re.escape(keyword) for keyword in spec.get("keywords", []))
+        metric_patterns = list(dict.fromkeys(metric_patterns))
 
         supplemented: List[tuple[Document, float]] = []
         seen_chunk_uids: set[str] = set()
@@ -723,12 +733,10 @@ class FinancialAgent:
             score = 0.02
             if "연구개발 활동" in section_path or "연구개발활동" in section_path:
                 score += 0.03
-            if ratio_query and any(re.search(pattern, text) for pattern in metric_patterns):
+            if ratio_query and metric_patterns and any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in metric_patterns):
                 score += 0.04
-            if "연구개발비 / 매출액 비율" in text:
+            if metric_patterns and any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in ontology.row_patterns(query, topic, intent)):
                 score += 0.06
-            if "2024년(제56기) 당사의 연구개발비용은 35조 215억원" in text:
-                score += 0.05
 
             supplemented.append((Document(page_content=str(body or ""), metadata=metadata), score))
 
@@ -860,7 +868,7 @@ class FinancialAgent:
         else:
             where_filter = {"$and": conditions}
 
-        retrieval_hint = _retrieval_hint_from_topic(state.get("topic") or query, intent)
+        retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, intent)
         preferred_sections = _preferred_calc_sections(query, state.get("topic") or "", intent)
         enriched_query = f"{' '.join(companies)} {query}" if companies else query
         if retrieval_hint:
@@ -1248,18 +1256,7 @@ class FinancialAgent:
         if not _is_ratio_percent_query(combined_query):
             return []
 
-        metric_patterns: List[str] = []
-        if "연구개발" in combined_query:
-            metric_patterns.extend(
-                [
-                    r"연구개발비\s*/\s*매출액\s*비율",
-                    r"연구개발비용\s*/\s*매출액\s*비율",
-                    r"연구개발비용",
-                    r"연구개발비",
-                ]
-            )
-        if "영업이익" in combined_query and ("비율" in combined_query or "이익률" in combined_query):
-            metric_patterns.extend([r"영업이익률", r"영업이익\s*/\s*매출액"])
+        metric_patterns: List[str] = get_financial_ontology().row_patterns(query, topic, "comparison")
         if not metric_patterns:
             metric_patterns.extend([r"비율", r"비중", r"이익률"])
 
@@ -1339,13 +1336,13 @@ class FinancialAgent:
             return []
 
         specs: List[tuple[str, List[str], List[str]]] = []
-        if "연구개발" in combined_query:
-            specs.extend(
-                [
-                    ("연구개발비용", ["연구개발 활동", "연구개발"], [r"연구개발비용 총계", r"연구개발비용 계", r"연구개발비용", r"연구개발비"]),
-                    ("매출액", ["요약재무정보", "손익계산서", "매출 및 수주상황"], [r"매출액", r"당기매출액", r"수익"]),
-                ]
-            )
+        ontology_specs = get_financial_ontology().component_specs(query, topic, "comparison")
+        for spec in ontology_specs:
+            metric_name = str(spec.get("name") or "")
+            preferred_sections = list(spec.get("preferred_sections") or [])
+            patterns = [re.escape(keyword) for keyword in (spec.get("keywords") or [])]
+            if metric_name and patterns:
+                specs.append((metric_name, preferred_sections, patterns))
         if not specs:
             return []
 
@@ -2319,7 +2316,7 @@ Structured Evidence:
                     row for row in operand_rows
                     if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
                 ]
-                logger.info("[calc_operands] percent-diff operand type-guard retained=%s", len(operand_rows))
+                logger.info("[calc_operands] percent-diff operand filtering retained=%s", len(operand_rows))
             logger.info("[calc_operands] coverage=%s operands=%s", extracted.coverage, len(operand_rows))
             return {
                 "calculation_operands": operand_rows,
@@ -2350,58 +2347,67 @@ Structured Evidence:
                     "result_unit": "",
                     "operation_text": "",
                     "explanation": "no operands",
-                }
+                },
+                "planner_debug_trace": {
+                    "llm_invoked": False,
+                    "guard_applied": False,
+                    "reason": "no operands",
+                },
             }
 
         query_text = _normalise_spaces(query)
-        percent_operands = [
-            row for row in operands
-            if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
-        ]
-        if _is_percent_point_difference_query(query_text):
-            desired_periods = re.findall(r"(20\d{2}년)", query_text)
-            if len(percent_operands) >= 2:
-                candidate_rows = percent_operands
-                if desired_periods:
-                    filtered = [row for row in percent_operands if str(row.get("period") or "") in desired_periods]
-                    if len(filtered) >= 2:
-                        candidate_rows = filtered
-                if len(candidate_rows) >= 2:
-                    # type-guard: 동일한 PERCENT 계열이고 period가 둘 이상이면 %p 차이 fallback 허용
-                    distinct_periods = {
-                        str(row.get("period") or "").strip()
-                        for row in candidate_rows
-                        if str(row.get("period") or "").strip()
-                    }
-                    if len(distinct_periods) >= 2 or len(desired_periods) >= 2:
-                        ordered = sorted(
-                            candidate_rows[: min(4, len(candidate_rows))],
-                            key=lambda row: _extract_period_sort_key(str(row.get("period") or "")),
-                            reverse=True,
-                        )[:2]
-                        logger.info("[formula_plan] percent-diff type-guard fallback engaged")
-                        return {
-                            "calculation_plan": {
-                                "mode": "single_value",
-                                "operation": "subtract",
-                                "ordered_operand_ids": [str(ordered[0].get("operand_id")), str(ordered[1].get("operand_id"))],
-                                "variable_bindings": [
-                                    {"variable": "A", "operand_id": str(ordered[0].get("operand_id"))},
-                                    {"variable": "B", "operand_id": str(ordered[1].get("operand_id"))},
-                                ],
-                                "formula": "A - B",
-                                "pairwise_formula": "",
-                                "result_unit": "%",
-                                "operation_text": f"{ordered[0].get('period', '')} 비율 - {ordered[1].get('period', '')} 비율",
-                                "explanation": "동일 metric의 두 퍼센트 피연산자를 사용한 %p 차이 계산",
-                            }
-                        }
-
         structured_llm = self.llm.with_structured_output(CalculationPlan)
+        ontology = get_financial_ontology()
+        metric_key = str(state.get("target_metric_family") or "")
+        metric_info = ontology.metric_family(metric_key) if metric_key else None
+        ontology_context = ""
+        if metric_info:
+            components = dict(metric_info.get("components") or {})
+            component_lines: List[str] = []
+            for role, component in components.items():
+                name = str(component.get("name") or "").strip()
+                keywords = ", ".join(
+                    str(keyword).strip()
+                    for keyword in component.get("keywords", [])
+                    if str(keyword).strip()
+                )
+                preferred_sections = ", ".join(
+                    str(section).strip()
+                    for section in component.get("preferred_sections", [])
+                    if str(section).strip()
+                )
+                bits = [f"{role}={name or '-'}"]
+                if keywords:
+                    bits.append(f"keywords={keywords}")
+                if preferred_sections:
+                    bits.append(f"preferred_sections={preferred_sections}")
+                component_lines.append(" | ".join(bits))
+            preferred_sections = ", ".join(
+                str(section).strip()
+                for section in metric_info.get("preferred_sections", [])
+                if str(section).strip()
+            )
+            ontology_lines = [
+                f"- key={metric_info.get('key', '')}",
+                f"- display_name={metric_info.get('display_name', '')}",
+                f"- formula_template={metric_info.get('formula_template', '')}",
+                f"- result_unit={metric_info.get('result_unit', '')}",
+            ]
+            if preferred_sections:
+                ontology_lines.append(f"- preferred_sections={preferred_sections}")
+            if component_lines:
+                ontology_lines.append("- components:")
+                ontology_lines.extend(f"  - {line}" for line in component_lines)
+            ontology_context = "\n".join(ontology_lines)
         operands_text = "\n".join(
             f"- operand_id={row.get('operand_id')} | evidence_id={row.get('evidence_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')} | normalized={row.get('normalized_value')} {row.get('normalized_unit')} | period={row.get('period', '')}"
             for row in operands
         )
+        planner_trace_base = {
+            "target_metric_family": metric_key,
+            "ontology_context": ontology_context or "-",
+            "operands_text": operands_text,
+        }
         prompt = ChatPromptTemplate.from_template(
             """당신은 재무 계산 계획기입니다.
 질문과 피연산자 목록을 보고 변수 바인딩과 계산식을 작성하세요.
@@ -2423,8 +2429,13 @@ Structured Evidence:
 - 증가율/감소율/변화율은 가능한 한 질문에서 기준이 되는 이전 값이 분모가 되도록 식을 작성하세요.
 - 질문을 풀 수 없으면 mode=none, operation=none 으로 두세요.
 - result_unit은 최종 답변 단위를 적으세요. 예: 억원, 원, %, 개
+- ontology_context는 이 질문에 대해 추정된 metric family prior 입니다. 실제 피연산자와 모순되면 ontology_context보다 피연산자를 우선하세요.
+- ontology_context에 formula_template과 components가 있으면, 단일 비율 조회는 A 또는 (A / B) * 100, %p 차이는 A - B 같은 계획을 세울 때 참고하세요.
 
 질문: {query}
+
+Ontology Context:
+{ontology_context}
 
 사용 가능한 피연산자:
 {operands}
@@ -2432,7 +2443,11 @@ Structured Evidence:
         )
         try:
             plan: CalculationPlan = (prompt | structured_llm).invoke(
-                {"query": query, "operands": operands_text}
+                {
+                    "query": query,
+                    "operands": operands_text,
+                    "ontology_context": ontology_context or "-",
+                }
             )
             plan_data = plan.model_dump()
             bindings = plan_data.get("variable_bindings") or []
@@ -2444,7 +2459,15 @@ Structured Evidence:
                     for index, operand_id in enumerate(plan_data.get("ordered_operand_ids") or [])
                 ]
             logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
-            return {"calculation_plan": plan_data}
+            return {
+                "calculation_plan": plan_data,
+                "planner_debug_trace": {
+                    **planner_trace_base,
+                    "llm_invoked": True,
+                    "guard_applied": False,
+                    "raw_plan": plan_data,
+                },
+            }
         except Exception as exc:
             logger.warning("[formula_plan] structured output failed: %s", exc)
             return {
@@ -2458,7 +2481,13 @@ Structured Evidence:
                     "result_unit": "",
                     "operation_text": "",
                     "explanation": str(exc),
-                }
+                },
+                "planner_debug_trace": {
+                    **planner_trace_base,
+                    "llm_invoked": True,
+                    "guard_applied": False,
+                    "error": str(exc),
+                },
             }
 
     def _format_calculation_value(self, value: float, result_unit: str, normalized_unit: str) -> str:
@@ -2599,7 +2628,7 @@ Structured Evidence:
                     rendered_value = f"{result_value:.1f}%"
                 else:
                     rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
-                logger.info("[calculator] mode=%s op=%s result=%s%s", mode, operation, rendered_value, result_unit)
+                logger.info("[calculator] mode=%s op=%s result=%s", mode, operation, rendered_value)
                 return {
                     "answer": "",
                     "compressed_answer": "",
@@ -2663,7 +2692,7 @@ Structured Evidence:
                     "rendered_value": point_rendered,
                 }
             )
-        logger.info("[calculator] op=%s result=%s%s", operation, rendered_value, result_unit)
+        logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
         return {
             "answer": "",
             "compressed_answer": "",
@@ -2853,6 +2882,7 @@ Operands:
             "query": query,
             "query_type": "",
             "intent": "",
+            "target_metric_family": "",
             "format_preference": "",
             "routing_source": "",
             "routing_confidence": 0.0,
@@ -2880,12 +2910,14 @@ Operands:
             "calculation_plan": {},
             "calculation_result": {},
             "calculation_debug_trace": {},
+            "planner_debug_trace": {},
         }
         final = self.graph.invoke(initial)
         return {
             "query": final["query"],
             "query_type": final["query_type"],
             "intent": final.get("intent", final["query_type"]),
+            "target_metric_family": final.get("target_metric_family", ""),
             "format_preference": final.get("format_preference", ""),
             "routing_source": final.get("routing_source", ""),
             "routing_confidence": final.get("routing_confidence", 0.0),
@@ -2908,6 +2940,7 @@ Operands:
             "calculation_plan": final.get("calculation_plan", {}),
             "calculation_result": final.get("calculation_result", {}),
             "calculation_debug_trace": final.get("calculation_debug_trace", {}),
+            "planner_debug_trace": final.get("planner_debug_trace", {}),
         }
 
     def ingest(self, chunks: List) -> None:
