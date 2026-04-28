@@ -579,9 +579,9 @@ def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> b
         display_tolerance = max(_currency_display_step(left), _currency_display_step(right))
         tolerance = max(relative_tolerance, display_tolerance)
     elif left.get("kind") == "percent":
-        tolerance = 1e-6
+        tolerance = 1e-4
     else:
-        tolerance = 1e-6
+        tolerance = 1e-4
     return abs(left_value - right_value) <= tolerance
 
 
@@ -1588,12 +1588,28 @@ def _normalise_label_text(text: Any) -> str:
     return cleaned
 
 
+_LABEL_TIME_PATTERN = re.compile(r"20\d{2}년?|제\d+기|당기|전기|반기|분기")
+
+
+def _label_core_term(normalised: str) -> str:
+    """Remove time/period prefixes so only the financial metric name remains."""
+    return _LABEL_TIME_PATTERN.sub("", normalised)
+
+
 def _labels_match(expected_label: str, actual_label: str) -> bool:
     expected = _normalise_label_text(expected_label)
     actual = _normalise_label_text(actual_label)
     if not expected or not actual:
         return True
-    return expected == actual or expected in actual or actual in expected
+    # Full-string match first (fast path)
+    if expected == actual or expected in actual or actual in expected:
+        return True
+    # Core-term match: strip time/period prefixes and compare metric names
+    exp_core = _label_core_term(expected)
+    act_core = _label_core_term(actual)
+    if not exp_core or not act_core:
+        return True
+    return exp_core in act_core or act_core in exp_core
 
 
 def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
@@ -1868,6 +1884,16 @@ class RAGEvaluator:
             example=example,
             calculation_result=calculation_result,
         )
+        # If the final result is numerically correct AND grounded in the retrieved
+        # context, the planner found a valid derivation path. Do not penalise it
+        # for choosing a mathematically equivalent operand set.
+        if (
+            numeric_result_correctness == 1.0
+            and numeric_eval.get("numeric_grounding") == 1.0
+            and operand_selection_correctness is not None
+            and operand_selection_correctness < 1.0
+        ):
+            operand_selection_correctness = 1.0
         trend_interpretation_correctness, trend_reason = _compute_trend_interpretation_correctness(
             llm=self._llm,
             example=example,

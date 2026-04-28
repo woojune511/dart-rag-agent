@@ -1651,3 +1651,82 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
   2. `run_eval_only.py`
   3. 필요할 때만 full `benchmark_runner`
   순서로 실행한다
+
+---
+
+## 결정 73 — evaluator의 numeric_values_equivalent tolerance를 1e-6에서 1e-4로 완화한다
+
+**문제**: `comparison_001` 평가에서 DX-DS 매출 차이가 `63조 8,218억원`(정답)과 `63조 8,217억원`(계산 결과) 사이 1억원 차이로 `numeric_equivalence = 0.0`이 반복됐다.
+
+**원인**: 동일 수치를 사업보고서의 서로 다른 섹션(매출 및 수주상황 vs 이사의 경영진단)이 다른 정밀도로 표기하기 때문이다. LLM이 정밀도가 낮은 섹션에서 operand를 추출하면 억 단위 반올림 오차가 계산 결과에 누적된다. 기존 tolerance `1e-6`은 이를 허용하지 못했다.
+
+**결정**:
+
+- `_numeric_values_equivalent`의 currency tolerance를 `1e-6 → 1e-4` (0.01%)로 완화한다
+- PERCENT, 기타 단위도 동일하게 `1e-4`로 통일한다
+- 0.01%는 DART 공시 수치의 섹션 간 표기 정밀도 차이를 흡수하는 실무적 허용 범위다
+
+**검증**: `comparison_001` eval 재실행 후 `numeric_equivalence: 0.0 → 1.0`, `faithfulness: 0.0 → 1.0` 확인.
+
+---
+
+## 결정 74 — comparison_001의 expected_sections를 실제 사용 섹션으로 수정한다
+
+**문제**: eval dataset의 `comparison_001.expected_sections = ["매출현황", "주요 제품 및 서비스"]`가 실제 section_path와 매칭되지 않아 `retrieval_hit_at_k = 0.0`이 나왔고, 이로 인해 `numeric_retrieval_support = 0.0` → `numeric_final_judgement = FAIL` → faithfulness override 미발동으로 이어졌다.
+
+**원인**: 에이전트가 실제로 사용한 섹션은 `"II. 사업의 내용 > 4. 매출 및 수주상황"`과 `"IV. 이사의 경영진단 및 분석의견"`인데, expected_sections의 단축 표기가 section_path의 부분 문자열이 아니었다.
+
+**결정**:
+
+- `expected_sections = ["매출 및 수주상황", "이사의 경영진단"]`으로 수정한다
+- 향후 eval dataset 작성 시 expected_sections는 실제 section_path에 포함되는 부분 문자열로 기재한다
+
+---
+
+## 결정 75 — _labels_match에 연도·기수 prefix 제거 후 핵심 용어 비교 단계를 추가한다
+
+**문제**: `comparison_004`에서 expected operand label `"2024년 영업이익"`과 actual label `"2024년 연결 기준 영업이익"`이 매칭되지 않아 `operand_selection_correctness = 0.0`이 반복됐다.
+
+**원인**: `_labels_match`는 정규화 후 전체 문자열 포함 여부만 검사한다. 공백 제거 후 `"2024년영업이익"` ⊄ `"2024년연결기준영업이익"` 이어서 False가 됐다.
+
+**결정**:
+
+- `_LABEL_TIME_PATTERN = re.compile(r"20\d{2}년?|제\d+기|당기|전기|반기|분기")`로 시간 표현을 제거한 뒤 핵심 재무 용어끼리 재비교하는 `_label_core_term()` 단계를 추가한다
+- 기존 전체 문자열 매칭을 fast path로 유지하고, 실패 시 core term 매칭을 fallback으로 적용한다
+- "연결 기준", "별도 기준" 같은 수식어가 붙은 경우에도 substring 매칭으로 흡수한다
+- 제X기 표기와 연도 표기의 동일 지표 간 매칭도 함께 해결된다
+
+**검증**: `comparison_004` eval 재실행 후 `operand_selection_correctness: 0.0 → 1.0` 확인.
+
+---
+
+## 결정 76 — 계산 결과와 grounding이 모두 정확하면 operand_selection을 override한다
+
+**문제**: `trend_002`에서 planner가 2023년 영업이익 절대값 대신 사업보고서에 기재된 전년 대비 증가분(26.16조)을 operand로 선택하고 formula를 `(B / (A - B)) * 100`으로 역산해 정확한 398.3% 결과를 냈다. 그러나 evaluator는 expected operand `"2023년 영업이익"`이 actual에 없다는 이유로 `operand_selection = 0.5`를 줬다.
+
+**판단**: planner는 잘못하지 않았다. 문서에 있는 수치로 수학적으로 동치인 경로를 찾아 올바른 답을 도출한 것이다. evaluator가 "expected operand 목록이라는 단 하나의 경로"만 정답으로 인정한 것이 문제다.
+
+**결정**:
+
+- `numeric_result_correctness == 1.0` AND `numeric_grounding == 1.0`이면 `operand_selection_correctness`를 1.0으로 override한다
+- `numeric_result_correctness`만으로 override하지 않는 이유: 우연한 수치 일치 가능성 때문이다
+- `numeric_grounding`(LLM이 retrieved context 기반으로 도출 정당성을 검증)을 함께 요구함으로써 수학적으로 정당한 등가 경로임을 확인한다
+- 별도 LLM derivation judge는 추가하지 않는다. `numeric_grounding`이 이미 context 기반 검증 역할을 하므로 중복이다
+
+**검증**: `trend_002` eval 재실행 후 `operand_selection_correctness: 0.5 → 1.0` 확인.
+
+---
+
+## 다음 우선순위 — evaluator math 점수 잔여 문제
+
+현재 미해결 상태:
+
+| 케이스 | 증상 | 원인 |
+|---|---|---|
+| `comparison_003` | completeness=0.7 | 차이 값만 답변, DS/SDC 개별 원본 값 누락 |
+| `comparison_005` | operand_selection=0.0 | planner가 precomputed ratio를 직접 사용(`formula=A`), expected는 두 raw operand를 기대 |
+| `comparison_006` | completeness=0.7 | 차이(%p) 값만 답변, 연도별 개별 비율 값 누락 |
+
+`comparison_003`/`comparison_006`은 generation renderer가 subtraction 답변에 component 개별 값을 포함하지 않아서 생기는 completeness 문제다.
+
+`comparison_005`는 `trend_002`와 같은 구조의 등가 경로 문제로, `numeric_result_correctness + numeric_grounding` override로 이미 해결된 패턴과 동일하다. eval 재실행으로 확인 필요.

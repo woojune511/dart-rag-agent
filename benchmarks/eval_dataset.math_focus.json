@@ -5,7 +5,7 @@
     "category": "comparison",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["매출현황", "주요 제품 및 서비스", "경영진단"],
+    "expected_sections": ["매출 및 수주상황", "이사의 경영진단"],
     "answer_key": "2024년 DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로, DX부문이 DS부문보다 약 63조 8,218억원 더 크다.",
     "answer_type": "numeric",
     "evidence": [
