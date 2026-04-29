@@ -48,6 +48,7 @@
     - [Scorecard 산출물 형식](#scorecard-산출물-형식)
   - [Retrospective Results](#retrospective-results)
     - [Result 1. `Section Match Evaluator -> Operand Grounding Evaluator`](#result-1-section-match-evaluator---operand-grounding-evaluator)
+    - [Result 2. `Direct Calc -> Formula Planner + AST`](#result-2-direct-calc---formula-planner--ast)
   - [이 문서에 더 이상 쌓지 않을 것](#이-문서에-더-이상-쌓지-않을-것)
   - [실행 예시](#실행-예시)
 
@@ -428,6 +429,47 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
   - [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_operand_grounding_2026-04-29/summary.md)
   - [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_operand_grounding_2026-04-29/summary.json)
 
+### Result 2. `Direct Calc -> Formula Planner + AST`
+
+- `Decision`
+  - 수치 질문에서 LLM이 직접 계산한 답을 쓰게 하지 않고, LLM은 답안/수식 planner 역할만 맡기고 실제 연산은 symbolic executor(AST)로 분리
+- `Type`
+  - system architecture retrospective experiment
+- `Source bundle`
+  - [dev_math_focus_evalonly_operandgrounding_v2_2026-04-29](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json)
+- `Replay script`
+  - [src/ops/retrospective_math_architecture_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_math_architecture_eval.py)
+- `Slice`
+  - numeric-only 9문항
+  - 포함:
+    - `comparison_001`, `comparison_002`, `comparison_003`, `comparison_004`, `comparison_005`, `comparison_006`, `comparison_007`, `trend_002`, `trend_003`
+  - 제외:
+    - `trend_001` (정성적 추이 서술형)
+- `Primary metric`
+  - strict correctness rate
+  - 정의: `numeric_equivalence == 1.0` and `numeric_grounding == 1.0`
+- `Result`
+  - direct calc: `0.556`
+  - formula planner + AST: `1.000`
+  - delta: `+0.444`
+  - 부가 지표:
+    - direct calc equivalence rate: `0.556`
+    - direct calc grounding rate: `0.778`
+    - formula planner + AST equivalence / grounding: `1.000 / 1.000`
+  - legacy operation-path overlap (2문항):
+    - strict correctness: `0.500`
+- `Interpretation`
+  - retrieval과 evidence는 고정한 채 answer generation만 바꿨을 때, direct calc baseline은 9문항 중 4문항에서 단위/표현/부호 처리에 흔들렸다.
+  - 대표 실패:
+    - `comparison_002`: `43조 4,327억원` 대신 `475,963억원`
+    - `comparison_003`: `81조 9,082억원` 대신 `819,082 백만원`
+    - `comparison_004`: `10.9%` 기대값에 `10.88%`
+    - `trend_003`: 감소 질문을 `-24.55% 변했습니다`로 답변
+  - 같은 evidence를 기반으로 formula planner + AST 경로는 9문항을 모두 통과했다.
+- `Evidence`
+  - [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_math_architecture_2026-04-29/summary.md)
+  - [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_math_architecture_2026-04-29/summary.json)
+
 ## 이 문서에 더 이상 쌓지 않을 것
 
 아래 내용은 이 문서에서 계속 늘리지 않는다.
@@ -456,4 +498,10 @@ retrospective evaluator replay:
 
 ```bash
 python -m src.ops.retrospective_operand_grounding_eval --source-results benchmarks/results/dev_math_focus_evalonly_2026-04-28/삼성전자-2024/results.json --output-dir benchmarks/results/retrospective_operand_grounding_2026-04-29
+```
+
+retrospective math architecture replay:
+
+```bash
+python -m src.ops.retrospective_math_architecture_eval --source-results benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json --dataset-path benchmarks/eval_dataset.math_focus.json --legacy-operation-results benchmarks/results/dev_math_focus_2026-04-27/삼성전자-2024/results.json --output-dir benchmarks/results/retrospective_math_architecture_2026-04-29
 ```

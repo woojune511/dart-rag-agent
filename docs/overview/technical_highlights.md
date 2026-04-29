@@ -74,6 +74,22 @@ retrieve
 - 하나의 LLM judge에 모든 채점을 맡기지 않고, 숫자 동치성 / grounding / retrieval support를 병렬로 해석하는 방향이다.
 - retrospective evaluator 실험에서 `operand grounding` 판정으로 바꾼 뒤, human-correct positive set 기준 false negative rate를 `12.5% -> 0.0%`로 줄였다.
 
+## 4-1. 계산은 LLM에게 맡기지 않고 planner/executor로 분리
+
+단순 RAG에서 LLM이 직접 계산까지 하게 두면, retrieval이 충분해도 단위/표현/부호 처리에서 흔들리는 경우가 반복됐다.
+
+핵심 포인트:
+
+- direct-calc baseline은 같은 retrieval evidence를 주고 LLM에게 바로 계산/답변을 시킴
+- proposed path는 `formula planner -> safe AST calculator -> grounded renderer`
+- retrospective architecture 실험에서 numeric-only 9문항 기준:
+  - direct calc strict correctness: `0.556`
+  - formula planner + AST strict correctness: `1.000`
+
+의미:
+
+- 이 프로젝트의 계산 경로는 단순한 prompt tuning이 아니라, **LLM의 역할을 “수식/답안 계획”으로 제한하고 실행은 symbolic engine으로 넘기는 neuro-symbolic 분리**라는 점이 정량적으로 입증됐다.
+
 ## 5. 평가를 먼저 고정하고 시스템을 바꾸는 방식
 
 최근 방향 전환의 핵심은 “시스템을 더 고치기 전에 평가 기준을 먼저 고정한다”는 것이다.

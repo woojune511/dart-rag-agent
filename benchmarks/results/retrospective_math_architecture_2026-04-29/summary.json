@@ -1,0 +1,1653 @@
+{
+  "summary": {
+    "source_results": "benchmarks\\results\\dev_math_focus_evalonly_operandgrounding_v2_2026-04-29\\삼성전자-2024\\results.json",
+    "dataset_path": "benchmarks\\eval_dataset.math_focus.json",
+    "n_questions": 9,
+    "question_ids": [
+      "comparison_001",
+      "comparison_002",
+      "comparison_003",
+      "comparison_004",
+      "trend_002",
+      "trend_003",
+      "comparison_005",
+      "comparison_006",
+      "comparison_007"
+    ],
+    "excluded_question_ids": [
+      "trend_001"
+    ],
+    "direct_calc": {
+      "strict_correct_rate": 0.5555555555555556,
+      "equivalence_rate": 0.5555555555555556,
+      "grounding_rate": 0.7777777777777778
+    },
+    "formula_ast": {
+      "strict_correct_rate": 1.0,
+      "equivalence_rate": 1.0,
+      "grounding_rate": 1.0
+    },
+    "legacy_operation": {
+      "question_ids": [
+        "comparison_001",
+        "trend_002"
+      ],
+      "count": 2,
+      "strict_correct_rate": 0.5,
+      "equivalence_rate": 0.5,
+      "grounding_rate": 1.0
+    }
+  },
+  "per_question": [
+    {
+      "id": "comparison_001",
+      "question": "삼성전자 2024 사업보고서에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+      "formula_ast": {
+        "answer": "삼성전자 2024년 사업보고서에서 DX 부문 매출은 DS 부문 매출보다 63조 8,217억원 더 큽니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "63조 8,217억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 63821700000000.0,
+              "span": [
+                40,
+                51
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "174조 8,877억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 174887700000000.0,
+              "span": [
+                15,
+                27
+              ]
+            },
+            {
+              "value_text": "111조 659억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111065900000000.0,
+              "span": [
+                38,
+                48
+              ]
+            },
+            {
+              "value_text": "63조 8,218억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 63821800000000.0,
+              "span": [
+                67,
+                78
+              ]
+            },
+            {
+              "value_text": "174조 8,877억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 174887700000000.0,
+              "span": [
+                17,
+                29
+              ]
+            },
+            {
+              "value_text": "58.1%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 58.1,
+              "span": [
+                30,
+                35
+              ]
+            },
+            {
+              "value_text": "111조 659억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111065900000000.0,
+              "span": [
+                45,
+                55
+              ]
+            },
+            {
+              "value_text": "36.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 36.9,
+              "span": [
+                56,
+                61
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "63조 8,217억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 63821700000000.0,
+              "span": [
+                40,
+                51
+              ]
+            },
+            "reference": {
+              "value_text": "63조 8,218억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 63821800000000.0,
+              "span": [
+                67,
+                78
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "런타임 근거에서 DX와 DS 부문의 매출 차이가 '63,821,733 백만원'으로 명시되어 있습니다. 답변의 '63조 8,217억원'은 이를 '조 억원' 단위로 변환하고 소수점 이하를 반올림(또는 버림)한 값으로, 63,821,733 백만원은 63조 8,217억 3천3백만원에 해당하므로, '63조 8,217억원'으로 표현하는 것은 단위 변환 및 반올림 규칙에 따라 같은 값으로 인정됩니다.",
+          "raw_response": "{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거에서 DX와 DS 부문의 매출 차이가 '63,821,733 백만원'으로 명시되어 있습니다. 답변의 '63조 8,217억원'은 이를 '조 억원' 단위로 변환하고 소수점 이하를 반올림(또는 버림)한 값으로, 63,821,733 백만원은 63조 8,217억 3천3백만원에 해당하므로, '63조 8,217억원'으로 표현하는 것은 단위 변환 및 반올림 규칙에 따라 같은 값으로 인정됩니다.\"\n}"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024 사업보고서에서 DX 부문과 DS 부문의 매출 차이는 63,821,733 백만원입니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "63,821,733 백만원",
+              "unit_text": "백만원",
+              "kind": "currency",
+              "normalized_value": 63821733000000.0,
+              "span": [
+                39,
+                53
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "174조 8,877억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 174887700000000.0,
+              "span": [
+                15,
+                27
+              ]
+            },
+            {
+              "value_text": "111조 659억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111065900000000.0,
+              "span": [
+                38,
+                48
+              ]
+            },
+            {
+              "value_text": "63조 8,218억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 63821800000000.0,
+              "span": [
+                67,
+                78
+              ]
+            },
+            {
+              "value_text": "174조 8,877억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 174887700000000.0,
+              "span": [
+                17,
+                29
+              ]
+            },
+            {
+              "value_text": "58.1%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 58.1,
+              "span": [
+                30,
+                35
+              ]
+            },
+            {
+              "value_text": "111조 659억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111065900000000.0,
+              "span": [
+                45,
+                55
+              ]
+            },
+            {
+              "value_text": "36.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 36.9,
+              "span": [
+                56,
+                61
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "63,821,733 백만원",
+              "unit_text": "백만원",
+              "kind": "currency",
+              "normalized_value": 63821733000000.0,
+              "span": [
+                39,
+                53
+              ]
+            },
+            "reference": {
+              "value_text": "63조 8,218억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 63821800000000.0,
+              "span": [
+                67,
+                78
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "런타임 근거에 DX 부문 매출(174,887,683 백만원)과 DS 부문 매출(111,065,950 백만원)이 명시되어 있으며, 두 매출의 차이인 63,821,733 백만원 또한 직접적으로 언급되어 답변의 핵심 숫자 주장을 직접적으로 뒷받침합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거에 DX 부문 매출(174,887,683 백만원)과 DS 부문 매출(111,065,950 백만원)이 명시되어 있으며, 두 매출의 차이인 63,821,733 백만원 또한 직접적으로 언급되어 답변의 핵심 숫자 주장을 직접적으로 뒷받침합니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "comparison_002",
+      "question": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+      "formula_ast": {
+        "answer": "삼성전자 2024년 SDC 부문 매출과 Harman 부문 매출의 합계는 43조 4,327억원입니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "43조 4,327억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43432700000000.0,
+              "span": [
+                40,
+                51
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "29조 1,578억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 29157800000000.0,
+              "span": [
+                14,
+                25
+              ]
+            },
+            {
+              "value_text": "14조 2,749억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 14274900000000.0,
+              "span": [
+                38,
+                49
+              ]
+            },
+            {
+              "value_text": "43조 4,327억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43432700000000.0,
+              "span": [
+                56,
+                67
+              ]
+            },
+            {
+              "value_text": "174조 8,877억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 174887700000000.0,
+              "span": [
+                17,
+                29
+              ]
+            },
+            {
+              "value_text": "58.1%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 58.1,
+              "span": [
+                30,
+                35
+              ]
+            },
+            {
+              "value_text": "111조 659억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111065900000000.0,
+              "span": [
+                45,
+                55
+              ]
+            },
+            {
+              "value_text": "36.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 36.9,
+              "span": [
+                56,
+                61
+              ]
+            },
+            {
+              "value_text": "29조 1,578억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 29157800000000.0,
+              "span": [
+                71,
+                82
+              ]
+            },
+            {
+              "value_text": "9.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 9.7,
+              "span": [
+                83,
+                87
+              ]
+            },
+            {
+              "value_text": "14조 2,749억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 14274900000000.0,
+              "span": [
+                98,
+                109
+              ]
+            },
+            {
+              "value_text": "4.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 4.7,
+              "span": [
+                110,
+                114
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "43조 4,327억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43432700000000.0,
+              "span": [
+                40,
+                51
+              ]
+            },
+            "reference": {
+              "value_text": "43조 4,327억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43432700000000.0,
+              "span": [
+                56,
+                67
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "런타임 근거에 제시된 SDC 매출 291,578억원과 Harman 매출 142,749억원을 합하면 434,327억원이며, 이는 답변의 43조 4,327억원과 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거에 제시된 SDC 매출 291,578억원과 Harman 매출 142,749억원을 합하면 434,327억원이며, 이는 답변의 43조 4,327억원과 일치합니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 475,963 억원입니다.",
+        "equivalence": 0.0,
+        "grounding": 0.0,
+        "strict_correct": false,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "475,963 억원",
+              "unit_text": "억원",
+              "kind": "currency",
+              "normalized_value": 47596300000000.0,
+              "span": [
+                41,
+                51
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "29조 1,578억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 29157800000000.0,
+              "span": [
+                14,
+                25
+              ]
+            },
+            {
+              "value_text": "14조 2,749억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 14274900000000.0,
+              "span": [
+                38,
+                49
+              ]
+            },
+            {
+              "value_text": "43조 4,327억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43432700000000.0,
+              "span": [
+                56,
+                67
+              ]
+            },
+            {
+              "value_text": "174조 8,877억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 174887700000000.0,
+              "span": [
+                17,
+                29
+              ]
+            },
+            {
+              "value_text": "58.1%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 58.1,
+              "span": [
+                30,
+                35
+              ]
+            },
+            {
+              "value_text": "111조 659억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111065900000000.0,
+              "span": [
+                45,
+                55
+              ]
+            },
+            {
+              "value_text": "36.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 36.9,
+              "span": [
+                56,
+                61
+              ]
+            },
+            {
+              "value_text": "29조 1,578억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 29157800000000.0,
+              "span": [
+                71,
+                82
+              ]
+            },
+            {
+              "value_text": "9.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 9.7,
+              "span": [
+                83,
+                87
+              ]
+            },
+            {
+              "value_text": "14조 2,749억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 14274900000000.0,
+              "span": [
+                98,
+                109
+              ]
+            },
+            {
+              "value_text": "4.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 4.7,
+              "span": [
+                110,
+                114
+              ]
+            }
+          ],
+          "matched_pair": null,
+          "reason": "no_equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "not_grounded",
+          "confidence": 1.0,
+          "reason": "근거에 따르면 SDC 매출은 291,578억원, Harman 매출은 142,749억원이므로 합계는 434,327억원입니다. 답변의 475,963억원은 근거와 일치하지 않습니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"not_grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에 따르면 SDC 매출은 291,578억원, Harman 매출은 142,749억원이므로 합계는 434,327억원입니다. 답변의 475,963억원은 근거와 일치하지 않습니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "comparison_003",
+      "question": "삼성전자 2024 사업보고서에서 DS 부문 매출은 SDC 매출보다 얼마나 더 큰가요?",
+      "formula_ast": {
+        "answer": "2024년 DS 부문 매출은 2024년 SDC 매출보다 81조 9,082억원 더 큽니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "81조 9,082억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 81908200000000.0,
+              "span": [
+                31,
+                42
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "111조 660억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111066000000000.0,
+              "span": [
+                15,
+                25
+              ]
+            },
+            {
+              "value_text": "29조 1,578억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 29157800000000.0,
+              "span": [
+                35,
+                46
+              ]
+            },
+            {
+              "value_text": "81조 9,082억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 81908200000000.0,
+              "span": [
+                63,
+                74
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "81조 9,082억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 81908200000000.0,
+              "span": [
+                31,
+                42
+              ]
+            },
+            "reference": {
+              "value_text": "81조 9,082억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 81908200000000.0,
+              "span": [
+                63,
+                74
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "런타임 근거에 따르면 2024년 DS 부문 매출은 1,110,660억원이고 SDC 매출은 291,578억원입니다. 이 둘의 차이는 1,110,660 - 291,578 = 819,082억원입니다. 이는 81조 9,082억원으로 답변의 핵심 숫자 주장과 정확히 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거에 따르면 2024년 DS 부문 매출은 1,110,660억원이고 SDC 매출은 291,578억원입니다. 이 둘의 차이는 1,110,660 - 291,578 = 819,082억원입니다. 이는 81조 9,082억원으로 답변의 핵심 숫자 주장과 정확히 일치합니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024 사업보고서에서 DS 부문 매출은 SDC 매출보다 819,082 백만원 더 큽니다.",
+        "equivalence": 0.0,
+        "grounding": 0.0,
+        "strict_correct": false,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "819,082 백만원",
+              "unit_text": "백만원",
+              "kind": "currency",
+              "normalized_value": 819082000000.0,
+              "span": [
+                37,
+                48
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "111조 660억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 111066000000000.0,
+              "span": [
+                15,
+                25
+              ]
+            },
+            {
+              "value_text": "29조 1,578억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 29157800000000.0,
+              "span": [
+                35,
+                46
+              ]
+            },
+            {
+              "value_text": "81조 9,082억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 81908200000000.0,
+              "span": [
+                63,
+                74
+              ]
+            }
+          ],
+          "matched_pair": null,
+          "reason": "no_equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "not_grounded",
+          "confidence": 1.0,
+          "reason": "근거에서는 DS 부문 매출이 SDC 매출보다 '819,082억원' 더 크다고 명시하고 있으나, 답변에서는 단위를 '819,082 백만원'으로 잘못 표기하여 숫자가 일치하지 않습니다. 1억원은 100 백만원이므로, 819,082억원은 81,908,200 백만원에 해당합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"not_grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에서는 DS 부문 매출이 SDC 매출보다 '819,082억원' 더 크다고 명시하고 있으나, 답변에서는 단위를 '819,082 백만원'으로 잘못 표기하여 숫자가 일치하지 않습니다. 1억원은 100 백만원이므로, 819,082억원은 81,908,200 백만원에 해당합니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "comparison_004",
+      "question": "삼성전자 2024 사업보고서에서 2024년 연결 기준 영업이익률은 얼마인가요?",
+      "formula_ast": {
+        "answer": "삼성전자의 2024년 연결 기준 영업이익률은 10.9%입니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                25,
+                30
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                21,
+                26
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                25,
+                30
+              ]
+            },
+            "reference": {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                21,
+                26
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "제시된 근거(매출액 300,870,903 백만원, 영업이익 32,725,961 백만원)를 바탕으로 영업이익률을 계산하면 (32,725,961 / 300,870,903) * 100 = 10.8769...% 이며, 이를 소수점 첫째 자리에서 반올림하면 10.9%가 됩니다. 답변의 핵심 숫자 주장이 근거에 직접 뒷받침됩니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"제시된 근거(매출액 300,870,903 백만원, 영업이익 32,725,961 백만원)를 바탕으로 영업이익률을 계산하면 (32,725,961 / 300,870,903) * 100 = 10.8769...% 이며, 이를 소수점 첫째 자리에서 반올림하면 10.9%가 됩니다. 답변의 핵심 숫자 주장이 근거에 직접 뒷받침됩니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024년 연결 기준 영업이익률은 10.88%입니다.",
+        "equivalence": 0.0,
+        "grounding": 1.0,
+        "strict_correct": false,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "10.88%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.88,
+              "span": [
+                24,
+                30
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                21,
+                26
+              ]
+            }
+          ],
+          "matched_pair": null,
+          "reason": "no_equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "제시된 근거의 매출액(300,870,903 백만원)과 영업이익(32,725,961 백만원)을 사용하여 영업이익률을 계산하면 (32,725,961 / 300,870,903) * 100 = 10.8769...% 이며, 이를 소수점 둘째 자리까지 반올림하면 10.88%가 됩니다. 답변의 핵심 숫자 주장은 근거에 직접 뒷받침됩니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"제시된 근거의 매출액(300,870,903 백만원)과 영업이익(32,725,961 백만원)을 사용하여 영업이익률을 계산하면 (32,725,961 / 300,870,903) * 100 = 10.8769...% 이며, 이를 소수점 둘째 자리까지 반올림하면 10.88%가 됩니다. 답변의 핵심 숫자 주장은 근거에 직접 뒷받침됩니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "trend_002",
+      "question": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2023년 대비 몇 % 증가했나요?",
+      "formula_ast": {
+        "answer": "삼성전자의 2024년 영업이익은 2023년 대비 398.3% 증가했습니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                27,
+                33
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                23,
+                29
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                27,
+                33
+              ]
+            },
+            "reference": {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                23,
+                29
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "답변의 핵심 주장인 '398.3% 증가'는 Runtime Evidence에 '398.3%'로 명시되어 있으며, Canonical Evidence의 2024년과 2023년 영업이익 수치를 통해 계산했을 때도 398.3% 증가가 확인됩니다. 질문의 대상 항목(영업이익 증가율)과도 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 5.0,\n  \"reason\": \"답변의 핵심 주장인 '398.3% 증가'는 Runtime Evidence에 '398.3%'로 명시되어 있으며, Canonical Evidence의 2024년과 2023년 영업이익 수치를 통해 계산했을 때도 398.3% 증가가 확인됩니다. 질문의 대상 항목(영업이익 증가율)과도 일치합니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024년 영업이익은 2023년 대비 398.3% 증가했습니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                26,
+                32
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                23,
+                29
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                26,
+                32
+              ]
+            },
+            "reference": {
+              "value_text": "398.3%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 398.3,
+              "span": [
+                23,
+                29
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "답변의 핵심 숫자 주장인 '398.3% 증가'는 Runtime Evidence에 '삼성전자의 2024년 영업이익은 2023년 대비 398.3% 증가했습니다.'라고 명시되어 있으며, Canonical Evidence의 2024년 영업이익(32,725,961 백만원)과 2023년 영업이익(6,566,976 백만원)을 통해 계산한 결과와도 일치합니다. (32,725,961 - 6,566,976) / 6,566,976 * 100 = 398.3%.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"답변의 핵심 숫자 주장인 '398.3% 증가'는 Runtime Evidence에 '삼성전자의 2024년 영업이익은 2023년 대비 398.3% 증가했습니다.'라고 명시되어 있으며, Canonical Evidence의 2024년 영업이익(32,725,961 백만원)과 2023년 영업이익(6,566,976 백만원)을 통해 계산한 결과와도 일치합니다. (32,725,961 - 6,566,976) / 6,566,976 * 100 = 398.3%.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "trend_003",
+      "question": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2022년 대비 몇 % 변했나요?",
+      "formula_ast": {
+        "answer": "삼성전자의 2024년 영업이익은 2022년 영업이익 대비 24.6% 감소했습니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "24.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 24.6,
+              "span": [
+                32,
+                37
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "24.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 24.6,
+              "span": [
+                23,
+                28
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "24.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 24.6,
+              "span": [
+                32,
+                37
+              ]
+            },
+            "reference": {
+              "value_text": "24.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 24.6,
+              "span": [
+                23,
+                28
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "2024년 영업이익(32,725,961 백만원)과 2022년 영업이익(43,376,630 백만원)을 근거로 계산하면 (32,725,961 - 43,376,630) / 43,376,630 * 100 = 약 -24.55% 이며, 이는 24.6% 감소로 반올림하여 정확하게 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"2024년 영업이익(32,725,961 백만원)과 2022년 영업이익(43,376,630 백만원)을 근거로 계산하면 (32,725,961 - 43,376,630) / 43,376,630 * 100 = 약 -24.55% 이며, 이는 24.6% 감소로 반올림하여 정확하게 일치합니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024 사업보고서에서 2024년 영업이익은 2022년 대비 -24.55% 변했습니다.",
+        "equivalence": 0.0,
+        "grounding": 1.0,
+        "strict_correct": false,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "24.55%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 24.55,
+              "span": [
+                40,
+                46
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "24.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 24.6,
+              "span": [
+                23,
+                28
+              ]
+            }
+          ],
+          "matched_pair": null,
+          "reason": "no_equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "제시된 근거에 따르면 2024년 영업이익은 32,725,961 백만원이고 2022년 영업이익은 43,376,630 백만원입니다. 변화율을 계산하면 ((32,725,961 - 43,376,630) / 43,376,630) * 100 = -24.5539...% 이므로, 답변의 -24.55%는 근거에 의해 정확하게 뒷받침됩니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 5.0,\n  \"reason\": \"제시된 근거에 따르면 2024년 영업이익은 32,725,961 백만원이고 2022년 영업이익은 43,376,630 백만원입니다. 변화율을 계산하면 ((32,725,961 - 43,376,630) / 43,376,630) * 100 = -24.5539...% 이므로, 답변의 -24.55%는 근거에 의해 정확하게 뒷받침됩니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "comparison_005",
+      "question": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+      "formula_ast": {
+        "answer": "삼성전자의 2024년 연구개발비용이 전체 매출에서 차지하는 비중은 11.6%입니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                37,
+                42
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "35조 215억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 35021500000000.0,
+              "span": [
+                14,
+                23
+              ]
+            },
+            {
+              "value_text": "300조 8,709억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 300870900000000.0,
+              "span": [
+                32,
+                44
+              ]
+            },
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                49,
+                54
+              ]
+            },
+            {
+              "value_text": "35조 215억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 35021500000000.0,
+              "span": [
+                14,
+                23
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                37,
+                42
+              ]
+            },
+            "reference": {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                49,
+                54
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "런타임 근거에 '삼성전자의 2024년(제56기) 연구개발비용이 전체 매출액에서 차지하는 비율은 11.6%입니다.'라고 명시되어 있으며, 캐노니컬 근거의 수치(연구개발비용 35조 215억원, 매출액 300조 8,709억원)로 계산해도 약 11.6%가 나옵니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거에 '삼성전자의 2024년(제56기) 연구개발비용이 전체 매출액에서 차지하는 비율은 11.6%입니다.'라고 명시되어 있으며, 캐노니컬 근거의 수치(연구개발비용 35조 215억원, 매출액 300조 8,709억원)로 계산해도 약 11.6%가 나옵니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 11.6%입니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                43,
+                48
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "35조 215억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 35021500000000.0,
+              "span": [
+                14,
+                23
+              ]
+            },
+            {
+              "value_text": "300조 8,709억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 300870900000000.0,
+              "span": [
+                32,
+                44
+              ]
+            },
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                49,
+                54
+              ]
+            },
+            {
+              "value_text": "35조 215억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 35021500000000.0,
+              "span": [
+                14,
+                23
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                43,
+                48
+              ]
+            },
+            "reference": {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                49,
+                54
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "답변의 핵심 주장인 '11.6%'는 Runtime Evidence에서 '연구개발비용이 전체 매출액에서 차지하는 비율은 11.6%입니다.'라고 명시적으로 언급되어 직접 뒷받침됩니다. Canonical Evidence의 수치를 계산해도 11.6%가 나옵니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"답변의 핵심 주장인 '11.6%'는 Runtime Evidence에서 '연구개발비용이 전체 매출액에서 차지하는 비율은 11.6%입니다.'라고 명시적으로 언급되어 직접 뒷받침됩니다. Canonical Evidence의 수치를 계산해도 11.6%가 나옵니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "comparison_006",
+      "question": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
+      "formula_ast": {
+        "answer": "삼성전자의 2024년 연구개발비/매출액 비중은 2023년보다 0.7%p 더 큽니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                34,
+                38
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                22,
+                27
+              ]
+            },
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                36,
+                41
+              ]
+            },
+            {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                50,
+                54
+              ]
+            },
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                22,
+                27
+              ]
+            },
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                36,
+                41
+              ]
+            },
+            {
+              "value_text": "8.2%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 8.2,
+              "span": [
+                50,
+                54
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                34,
+                38
+              ]
+            },
+            "reference": {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                50,
+                54
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "런타임 근거에 2024년 연구개발비/매출액 비율이 11.6%, 2023년 비율이 10.9%로 명시되어 있으며, 이 두 값의 차이는 0.7%p이므로 답변의 핵심 숫자 주장은 근거에 직접 뒷받침됩니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"런타임 근거에 2024년 연구개발비/매출액 비율이 11.6%, 2023년 비율이 10.9%로 명시되어 있으며, 이 두 값의 차이는 0.7%p이므로 답변의 핵심 숫자 주장은 근거에 직접 뒷받침됩니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 0.7%p입니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                51,
+                55
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                22,
+                27
+              ]
+            },
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                36,
+                41
+              ]
+            },
+            {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                50,
+                54
+              ]
+            },
+            {
+              "value_text": "11.6%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 11.6,
+              "span": [
+                22,
+                27
+              ]
+            },
+            {
+              "value_text": "10.9%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 10.9,
+              "span": [
+                36,
+                41
+              ]
+            },
+            {
+              "value_text": "8.2%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 8.2,
+              "span": [
+                50,
+                54
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                51,
+                55
+              ]
+            },
+            "reference": {
+              "value_text": "0.7%",
+              "unit_text": "%",
+              "kind": "percent",
+              "normalized_value": 0.7,
+              "span": [
+                50,
+                54
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "근거에 제시된 2024년 연구개발비/매출액 비율 11.6%와 2023년 10.9%를 사용하여 11.6% - 10.9% = 0.7%p를 계산할 수 있으며, 이는 답변의 핵심 숫자 주장과 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에 제시된 2024년 연구개발비/매출액 비율 11.6%와 2023년 10.9%를 사용하여 11.6% - 10.9% = 0.7%p를 계산할 수 있으며, 이는 답변의 핵심 숫자 주장과 일치합니다.\"\n}\n```"
+        }
+      }
+    },
+    {
+      "id": "comparison_007",
+      "question": "삼성전자 2024 사업보고서에서 2023년 영업이익은 2022년 영업이익보다 얼마나 더 작은가요?",
+      "formula_ast": {
+        "answer": "삼성전자의 2023년 영업이익은 2022년 영업이익보다 36조 8,097억원 더 작습니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "36조 8,097억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 36809700000000.0,
+              "span": [
+                31,
+                42
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "6조 5,669억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 6566900000000.0,
+              "span": [
+                12,
+                22
+              ]
+            },
+            {
+              "value_text": "43조 3,766억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43376600000000.0,
+              "span": [
+                36,
+                47
+              ]
+            },
+            {
+              "value_text": "36조 8,097억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 36809700000000.0,
+              "span": [
+                67,
+                78
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "36조 8,097억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 36809700000000.0,
+              "span": [
+                31,
+                42
+              ]
+            },
+            "reference": {
+              "value_text": "36조 8,097억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 36809700000000.0,
+              "span": [
+                67,
+                78
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "근거에 제시된 2022년 영업이익(43,376,630 백만원)과 2023년 영업이익(6,566,976 백만원)의 차이를 계산하면 36,809,654 백만원입니다. 이를 억원 단위로 변환하면 368,096.54 억원이며, 소수점 첫째 자리에서 반올림하면 368,097 억원입니다. 368,097 억원은 36조 8,097억원으로, 답변의 핵심 숫자 주장과 정확히 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에 제시된 2022년 영업이익(43,376,630 백만원)과 2023년 영업이익(6,566,976 백만원)의 차이를 계산하면 36,809,654 백만원입니다. 이를 억원 단위로 변환하면 368,096.54 억원이며, 소수점 첫째 자리에서 반올림하면 368,097 억원입니다. 368,097 억원은 36조 8,097억원으로, 답변의 핵심 숫자 주장과 정확히 일치합니다.\"\n}\n```"
+        }
+      },
+      "direct_calc": {
+        "answer": "2023년 영업이익은 2022년 영업이익보다 36,809,654 백만원 더 작습니다.",
+        "equivalence": 1.0,
+        "grounding": 1.0,
+        "strict_correct": true,
+        "equivalence_debug": {
+          "answer_candidates": [
+            {
+              "value_text": "36,809,654 백만원",
+              "unit_text": "백만원",
+              "kind": "currency",
+              "normalized_value": 36809654000000.0,
+              "span": [
+                25,
+                39
+              ]
+            }
+          ],
+          "reference_candidates": [
+            {
+              "value_text": "6조 5,669억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 6566900000000.0,
+              "span": [
+                12,
+                22
+              ]
+            },
+            {
+              "value_text": "43조 3,766억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 43376600000000.0,
+              "span": [
+                36,
+                47
+              ]
+            },
+            {
+              "value_text": "36조 8,097억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 36809700000000.0,
+              "span": [
+                67,
+                78
+              ]
+            }
+          ],
+          "matched_pair": {
+            "answer": {
+              "value_text": "36,809,654 백만원",
+              "unit_text": "백만원",
+              "kind": "currency",
+              "normalized_value": 36809654000000.0,
+              "span": [
+                25,
+                39
+              ]
+            },
+            "reference": {
+              "value_text": "36조 8,097억원",
+              "unit_text": "원",
+              "kind": "currency",
+              "normalized_value": 36809700000000.0,
+              "span": [
+                67,
+                78
+              ]
+            }
+          },
+          "reason": "equivalent_value"
+        },
+        "grounding_debug": {
+          "verdict": "grounded",
+          "confidence": 1.0,
+          "reason": "근거에 제시된 2022년 영업이익(43,376,630 백만원)에서 2023년 영업이익(6,566,976 백만원)을 빼면 36,809,654 백만원이 나오며, 이는 답변의 핵심 숫자 주장과 정확히 일치합니다.",
+          "raw_response": "```json\n{\n  \"verdict\": \"grounded\",\n  \"confidence\": 1.0,\n  \"reason\": \"근거에 제시된 2022년 영업이익(43,376,630 백만원)에서 2023년 영업이익(6,566,976 백만원)을 빼면 36,809,654 백만원이 나오며, 이는 답변의 핵심 숫자 주장과 정확히 일치합니다.\"\n}\n```"
+        }
+      }
+    }
+  ]
+}
