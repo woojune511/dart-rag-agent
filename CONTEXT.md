@@ -18,6 +18,14 @@
 | 현재 baseline 상태 | `dev_math_focus`는 고정 가능, broader sanity check도 큰 회귀 없음 |
 | 현재 우선순위 | local patch보다 **구조 확장** |
 
+## 최근 정량 증거
+
+| 실험 | 핵심 변화 | 기록 위치 |
+| --- | --- | --- |
+| Evaluator support | false negative rate `12.5% -> 0.0%` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
+| Math architecture | strict correctness `0.556 -> 1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
+| Ontology retrieval | calc success `0.333 -> 1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
+
 ## 고정 가능한 기준선
 
 | 벤치셋 | 핵심 해석 | 현재 상태 |

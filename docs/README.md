@@ -4,14 +4,13 @@
 
 ## 읽는 순서
 
-1. [overview/technical_highlights.md](overview/technical_highlights.md)
-   - 포트폴리오용 핵심 기술 요약
-2. [../CONTEXT.md](../CONTEXT.md)
-   - 현재 기준 상태 snapshot
-3. [../PLAN.md](../PLAN.md)
-   - 현재 active work
-4. [../DECISIONS.md](../DECISIONS.md)
-   - append-only 설계 판단 로그
+| 순서 | 문서 | 용도 |
+| --- | --- | --- |
+| 1 | [overview/technical_highlights.md](overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
+| 2 | [../CONTEXT.md](../CONTEXT.md) | 현재 기준 상태 snapshot |
+| 3 | [../PLAN.md](../PLAN.md) | 현재 active work |
+| 4 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
+| 5 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
 
 ## 폴더 역할
 
@@ -30,6 +29,17 @@
 
 ### `history/`
 - 과거 실험 흐름, 회고성 refactor plan, 버전별 변화 기록
+
+## Source Of Truth
+
+| 질문 | 먼저 볼 문서 |
+| --- | --- |
+| 지금 시스템 상태가 어떤가? | [../CONTEXT.md](../CONTEXT.md) |
+| 지금 무엇을 구현 중인가? | [../PLAN.md](../PLAN.md) |
+| 왜 이런 구조를 택했나? | [../DECISIONS.md](../DECISIONS.md) |
+| benchmark를 어떻게 돌리고 해석하나? | [evaluation/benchmarking.md](evaluation/benchmarking.md) |
+| metric 정의는 무엇인가? | [evaluation/evaluation_metrics_v1.md](evaluation/evaluation_metrics_v1.md) |
+| 과거 실험은 어떻게 흘러왔나? | [history/experiment_history.md](history/experiment_history.md) |
 
 ## 문서 성격 구분
 

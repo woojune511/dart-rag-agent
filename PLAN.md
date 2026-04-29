@@ -8,7 +8,7 @@
 | 항목 | 현재 상태 |
 | --- | --- |
 | 현재 1순위 | `REFERENCE_NOTE Phase 1a`를 실제 graph expansion에 태우기 |
-| 병렬 트랙 | retrospective scorecard 실험 |
+| 병렬 트랙 | retrospective scorecard는 1차 3개 실험 완료, 이후는 새 결정이 생길 때 추가 |
 | 지금 하지 않을 것 | local patch deep dive, cosmetic retrieval tuning, evaluator gaming |
 | 다음 큰 순서 | `REFERENCE_NOTE 1a -> 1b -> self-reflection -> cross-company` |
 
@@ -35,7 +35,7 @@
 | scorecard는 포트폴리오 evidence track | 면접/README에서 쓸 수 있는 수치 근거 확보 |
 | 시스템 실험과 evaluator 실험 분리 | architecture improvement와 evaluator fairness를 따로 해석 |
 
-### 현재 우선 실험
+### 완료된 1차 실험
 
 | 순서 | 실험 |
 | --- | --- |
@@ -46,6 +46,14 @@
 정리 위치:
 - 실험 설계와 scorecard 형식은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)의 `Retrospective Scorecard Track`
 - 완료된 결과는 같은 문서의 `Retrospective Results`
+
+### 다음에 추가할 retrospective 실험
+
+| 후보 | 조건 |
+| --- | --- |
+| `REFERENCE_NOTE` 효과 검증 | phase 1a/1b가 실제 reindex와 why benchmark에 올라온 뒤 |
+| 제한적 `self-reflection` recovery 실험 | retry loop가 bounded하게 구현된 뒤 |
+| cross-company binding 실험 | multi-entity path가 최소 동작하는 뒤 |
 
 ## Active Work
 

@@ -48,12 +48,23 @@ DART 전자공시 문서를 대상으로, **구조를 보존한 retrieval**과 *
 
 ## 현재 기본값
 
-- Embedding: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
-- Collection: `dart_reports_v2`
-- Chunk size / overlap: `2500 / 320`
-- Ingest mode baseline: `contextual_all`
-- Retrieval: Dense + BM25 + RRF + rerank
-- Reasoning: evidence-first
+| 항목 | 현재 기준 |
+| --- | --- |
+| Embedding | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
+| Collection | `dart_reports_v2` |
+| Chunk size / overlap | `2500 / 320` |
+| 품질 baseline | `contextual_all_2500_320` |
+| 저비용 math baseline | `contextual_selective_v2_prefix_2500_320` |
+| Retrieval | Dense + BM25 + RRF + rerank |
+| Reasoning | evidence-first, math는 `formula planner + safe AST` |
+
+## 최근 정량 근거
+
+| 결정 | baseline | proposed | 핵심 변화 |
+| --- | --- | --- | --- |
+| Evaluator support | section-hit support | operand grounding support | false negative rate `12.5% -> 0.0%` |
+| Math architecture | direct calc | formula planner + AST | strict correctness `0.556 -> 1.000` |
+| Ratio retrieval | standard retrieval | ontology-guided retrieval | calc success `0.333 -> 1.000` |
 
 ## 현재 실험 방향
 
@@ -67,6 +78,16 @@ DART 전자공시 문서를 대상으로, **구조를 보존한 retrieval**과 *
 4. 그 다음에만 retrieval / compression / validation을 다시 개선
 
 즉 지금의 기준선은 다기업 benchmark보다도, **단일 문서에서 retrieval / generation / numeric / refusal을 어떻게 해석할지 먼저 고정하는 것**입니다.
+
+## 문서 읽는 순서
+
+| 순서 | 문서 | 용도 |
+| --- | --- | --- |
+| 1 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
+| 2 | [CONTEXT.md](CONTEXT.md) | 현재 기준 snapshot |
+| 3 | [PLAN.md](PLAN.md) | 현재 active work |
+| 4 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
+| 5 | [DECISIONS.md](DECISIONS.md) | append-only 설계 판단 로그 |
 
 ## 프로젝트 구조
 
@@ -124,14 +145,22 @@ uvicorn main:app --reload --port 8000
 
 ## Benchmark 실행
 
-```bash
-python -m src.ops.benchmark_runner --config benchmarks/experiment_matrix.sample.json
-```
-
-빠른 반복 실험:
+기본 screening:
 
 ```bash
 python -m src.ops.benchmark_runner --config benchmarks/profiles/dev_fast.json
+```
+
+math 기준선:
+
+```bash
+python -m src.ops.benchmark_runner --config benchmarks/profiles/dev_math_focus.json
+```
+
+eval-only 빠른 회귀:
+
+```bash
+python -m src.ops.run_eval_only --config benchmarks/profiles/dev_math_focus.json --source-output-dir benchmarks/results/dev_math_focus_llmshift_2026-04-28 --output-dir benchmarks/results/dev_math_focus_evalonly_example --company-run-id samsung_2024
 ```
 
 일반화 검증:
@@ -148,7 +177,8 @@ python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generali
 - `benchmarks/results/.../summary.csv`
 - `benchmarks/results/.../summary.md`
 
-자세한 설명은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)를 참고하세요.
+자세한 설명은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)를 참고하세요.  
+retrospective 실험 결과는 같은 문서의 `Retrospective Results` 섹션에 정리되어 있습니다.
 
 ## 참고 문서
 
