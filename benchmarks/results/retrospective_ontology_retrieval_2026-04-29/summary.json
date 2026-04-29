@@ -1,0 +1,155 @@
+{
+  "summary": {
+    "source_results": "benchmarks\\results\\dev_math_focus_evalonly_operandgrounding_v2_2026-04-29\\삼성전자-2024\\results.json",
+    "dataset_path": "benchmarks\\eval_dataset.math_focus.json",
+    "store_dir": "C:\\Users\\admin\\Desktop\\dart-rag-agent\\benchmarks\\results\\dev_math_focus_llmshift_2026-04-28\\삼성전자-2024\\stores\\contextual-selective-v2-prefix-2500-320",
+    "collection_name": "dart_reports_v2_contextual-selective-v2-prefix-2500-320",
+    "question_ids": [
+      "comparison_004",
+      "comparison_005",
+      "comparison_006"
+    ],
+    "baseline": {
+      "n_questions": 3,
+      "retrieval_hit_at_k": 1.0,
+      "section_match_rate": 0.4583333333333333,
+      "row_candidate_recovery_rate": 0.0,
+      "component_candidate_recovery_rate": 0.3333333333333333,
+      "avg_operand_count": 1.0,
+      "operand_grounding_score": 0.5,
+      "calc_success_rate": 0.3333333333333333
+    },
+    "proposed": {
+      "n_questions": 3,
+      "retrieval_hit_at_k": 1.0,
+      "section_match_rate": 0.5833333333333334,
+      "row_candidate_recovery_rate": 0.6666666666666666,
+      "component_candidate_recovery_rate": 0.3333333333333333,
+      "avg_operand_count": 1.6666666666666667,
+      "operand_grounding_score": 1.0,
+      "calc_success_rate": 1.0
+    }
+  },
+  "per_question": [
+    {
+      "id": "comparison_004",
+      "question": "삼성전자 2024 사업보고서에서 2024년 연결 기준 영업이익률은 얼마인가요?",
+      "baseline": {
+        "target_metric_family": "operating_margin",
+        "retrieval_hit_at_k": 1.0,
+        "section_match_rate": 0.375,
+        "ratio_row_candidates": 0,
+        "component_candidates": 0,
+        "operand_count": 2,
+        "operand_grounding_score": 1.0,
+        "calc_status": "ok",
+        "rendered_value": "10.9%",
+        "top_sections": [
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "IV. 이사의 경영진단 및 분석의견",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+        ]
+      },
+      "proposed": {
+        "target_metric_family": "operating_margin",
+        "retrieval_hit_at_k": 1.0,
+        "section_match_rate": 0.375,
+        "ratio_row_candidates": 0,
+        "component_candidates": 0,
+        "operand_count": 2,
+        "operand_grounding_score": 1.0,
+        "calc_status": "ok",
+        "rendered_value": "10.9%",
+        "top_sections": [
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석"
+        ]
+      }
+    },
+    {
+      "id": "comparison_005",
+      "question": "삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+      "baseline": {
+        "target_metric_family": "rnd_ratio",
+        "retrieval_hit_at_k": 1.0,
+        "section_match_rate": 0.5,
+        "ratio_row_candidates": 0,
+        "component_candidates": 1,
+        "operand_count": 1,
+        "operand_grounding_score": 0.0,
+        "calc_status": "insufficient_operands",
+        "rendered_value": "",
+        "top_sections": [
+          "II. 사업의 내용 > 4. 매출 및 수주상황",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 1. 요약재무정보"
+        ]
+      },
+      "proposed": {
+        "target_metric_family": "rnd_ratio",
+        "retrieval_hit_at_k": 1.0,
+        "section_match_rate": 0.625,
+        "ratio_row_candidates": 1,
+        "component_candidates": 1,
+        "operand_count": 1,
+        "operand_grounding_score": 1.0,
+        "calc_status": "ok",
+        "rendered_value": "11.6%",
+        "top_sections": [
+          "II. 사업의 내용 > 4. 매출 및 수주상황",
+          "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+        ]
+      }
+    },
+    {
+      "id": "comparison_006",
+      "question": "삼성전자 2024 사업보고서에서 2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
+      "baseline": {
+        "target_metric_family": "rnd_ratio",
+        "retrieval_hit_at_k": 1.0,
+        "section_match_rate": 0.5,
+        "ratio_row_candidates": 0,
+        "component_candidates": 0,
+        "operand_count": 0,
+        "operand_grounding_score": null,
+        "calc_status": "insufficient_operands",
+        "rendered_value": "",
+        "top_sections": [
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "II. 사업의 내용 > 4. 매출 및 수주상황",
+          "III. 재무에 관한 사항 > 5. 재무제표 주석",
+          "III. 재무에 관한 사항 > 5. 재무제표 주석"
+        ]
+      },
+      "proposed": {
+        "target_metric_family": "rnd_ratio",
+        "retrieval_hit_at_k": 1.0,
+        "section_match_rate": 0.75,
+        "ratio_row_candidates": 1,
+        "component_candidates": 0,
+        "operand_count": 2,
+        "operand_grounding_score": 1.0,
+        "calc_status": "ok",
+        "rendered_value": "0.7%p",
+        "top_sections": [
+          "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "III. 재무에 관한 사항 > 1. 요약재무정보",
+          "II. 사업의 내용 > 4. 매출 및 수주상황",
+          "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+        ]
+      }
+    }
+  ]
+}

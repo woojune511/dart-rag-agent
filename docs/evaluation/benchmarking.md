@@ -313,6 +313,23 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | Representative failures | `comparison_002` `43조 4,327억원 -> 475,963억원`, `comparison_003` `81조 9,082억원 -> 819,082 백만원`, `comparison_004` `10.9% -> 10.88%`, `trend_003` `-24.55% 변했습니다` |
 | Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_math_architecture_2026-04-29/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_math_architecture_2026-04-29/summary.json) |
 
+### Result 3. `Standard Retrieval -> Ontology-Guided Retrieval`
+
+| 항목 | 내용 |
+| --- | --- |
+| Decision | retrieval-side ontology hook (`preferred_sections`, `supplement_sections`, `query_hints`)을 사용해 ratio/percent 질문의 source miss를 보완 |
+| Type | system retrieval retrospective experiment |
+| Source bundle | [dev_math_focus_evalonly_operandgrounding_v2_2026-04-29](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json) |
+| Replay script | [src/ops/retrospective_ontology_retrieval_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_ontology_retrieval_eval.py) |
+| Slice | `comparison_004`, `comparison_005`, `comparison_006` |
+| Ablation scope | ontology retrieval hook만 on/off. planner prior와 evaluator는 고정 |
+| Primary metrics | `operand_grounding_score`, `calc_success_rate`, `row_candidate_recovery_rate` |
+| Result | grounding `0.500 -> 1.000`, calc success `0.333 -> 1.000`, row recovery `0.000 -> 0.667` |
+| Secondary metrics | section match `0.458 -> 0.583`, avg operand count `1.000 -> 1.667`, component recovery `0.333 -> 0.333` |
+| Interpretation | 일반 semantic retrieval은 정답 section을 스쳐도 `연구개발활동` row를 놓쳐 ratio 질문이 `insufficient_operands`로 끝났다. ontology-guided retrieval은 `연구개발활동` / `연구개발실적` 계열 seed를 보강해 ratio row 회수와 최종 계산 성공을 복구했다. |
+| Representative recoveries | `comparison_005`: `rows 0 -> 1`, `calc insufficient_operands -> ok`; `comparison_006`: `rows 0 -> 1`, `operands 0 -> 2`, `calc insufficient_operands -> ok` |
+| Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.json) |
+
 ## 이 문서에 더 이상 쌓지 않을 것
 
 아래 내용은 이 문서에서 계속 늘리지 않는다.
@@ -347,4 +364,10 @@ retrospective math architecture replay:
 
 ```bash
 python -m src.ops.retrospective_math_architecture_eval --source-results benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json --dataset-path benchmarks/eval_dataset.math_focus.json --legacy-operation-results benchmarks/results/dev_math_focus_2026-04-27/삼성전자-2024/results.json --output-dir benchmarks/results/retrospective_math_architecture_2026-04-29
+```
+
+retrospective ontology retrieval replay:
+
+```bash
+python -m src.ops.retrospective_ontology_retrieval_eval --source-results benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json --output-dir benchmarks/results/retrospective_ontology_retrieval_2026-04-29
 ```
