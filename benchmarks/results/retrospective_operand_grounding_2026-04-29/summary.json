@@ -1,0 +1,89 @@
+{
+  "summary": {
+    "source_bundle": "benchmarks\\results\\dev_math_focus_evalonly_2026-04-28\\삼성전자-2024\\results.json",
+    "positive_count": 8,
+    "excluded_questions": [
+      "comparison_003: display-aware equivalence 변경의 영향이 섞여 있어 operand grounding 실험에서 제외",
+      "trend_001: numeric_final_judgement가 없는 trend 서술형 문항이라 제외"
+    ],
+    "old_false_negative_rate": 0.125,
+    "new_false_negative_rate": 0.0,
+    "recovered_ids": [
+      "comparison_001"
+    ]
+  },
+  "per_question": [
+    {
+      "id": "comparison_001",
+      "human_correct": true,
+      "note": "정답 수치와 계산은 맞지만 historical evaluator에서 section support 부족으로 FAIL이 난 대표 케이스",
+      "old_numeric_final_judgement": "FAIL",
+      "old_numeric_retrieval_support": 0.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "comparison_002",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "comparison_004",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "trend_002",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "trend_003",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "comparison_005",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "comparison_006",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    },
+    {
+      "id": "comparison_007",
+      "human_correct": true,
+      "note": "",
+      "old_numeric_final_judgement": "PASS",
+      "old_numeric_retrieval_support": 1.0,
+      "new_numeric_final_judgement": "PASS",
+      "new_operand_grounding_score": 1.0
+    }
+  ]
+}

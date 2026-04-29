@@ -72,6 +72,7 @@ retrieve
 의미:
 
 - 하나의 LLM judge에 모든 채점을 맡기지 않고, 숫자 동치성 / grounding / retrieval support를 병렬로 해석하는 방향이다.
+- retrospective evaluator 실험에서 `operand grounding` 판정으로 바꾼 뒤, human-correct positive set 기준 false negative rate를 `12.5% -> 0.0%`로 줄였다.
 
 ## 5. 평가를 먼저 고정하고 시스템을 바꾸는 방식
 
