@@ -1730,3 +1730,30 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
 `comparison_003`/`comparison_006`은 generation renderer가 subtraction 답변에 component 개별 값을 포함하지 않아서 생기는 completeness 문제다.
 
 `comparison_005`는 `trend_002`와 같은 구조의 등가 경로 문제로, `numeric_result_correctness + numeric_grounding` override로 이미 해결된 패턴과 동일하다. eval 재실행으로 확인 필요.
+
+---
+
+## 결정 77 — _format_calculation_value의 KRW fallback을 제거하고 항상 _format_korean_won_compact를 쓴다
+
+**문제**: `_format_calculation_value`에서 `normalized_unit == "KRW"`이지만 `result_unit`이 표준 집합에 없으면 `f"{value:,.0f}"` fallback이 실행돼 `81908200000000`처럼 날 숫자가 출력될 수 있었다.
+
+**원인**: `_normalise_operand_value`는 모든 KRW 계열 단위(원/천원/백만원/억원/조원)를 full KRW로 정규화하므로, `normalized_value`는 항상 원 기준이다. `result_unit`은 단지 플래너가 힌트로 주는 값이고, 이미 full KRW인 값을 `result_unit`에 따라 다시 나누는 이전 분기(dead code)는 불필요했다. fallback 분기만 위험하게 남아 있었다.
+
+**결정**:
+
+- `_format_calculation_value`의 KRW 분기 전체를 `return _format_korean_won_compact(value)` 한 줄로 대체한다
+- `result_unit` 파라미터는 PERCENT/COUNT/USD 분기를 위해 시그니처에 유지하되 KRW 경로에서는 무시한다
+- 이로써 KRW normalized_value는 항상 조·억원 한국어 형식으로 렌더링된다
+
+---
+
+## 결정 78 — Direct Calc 실험 프롬프트에 조·억원 표기 규칙을 추가한다
+
+**문제**: `retrospective_math_architecture_eval.py`의 `_direct_calc_prompt`에서 LLM이 `819,082억원`을 `819,082 백만원`으로 출력하는 단위 혼동이 발생했다. evaluator가 `819,082 백만원`을 ~8.19조로 정규화하여 정답 81.9조와 불일치 → `no_equivalent_value` 처리됐다.
+
+**원인**: 프롬프트 규칙 2가 "단위를 엄격히 지키세요"로만 돼 있어, 소스 텍스트의 억원 단위를 LLM이 백만원으로 혼동했다.
+
+**결정**:
+
+- 규칙 2를 "원화 금액은 출처 텍스트의 단위(억원/조원)를 그대로 사용하고, 조·억 복합 표기 형식(예: 81조 9,082억원)으로 표현하라"로 교체한다
+- 이를 통해 Direct Calc ablation의 단위 혼동 오류를 제거하고 평가 정확도를 높인다

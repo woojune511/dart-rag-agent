@@ -2525,19 +2525,9 @@ Ontology Context:
             }
 
     def _format_calculation_value(self, value: float, result_unit: str, normalized_unit: str) -> str:
-        unit = _normalise_spaces(result_unit)
         if normalized_unit == "KRW":
-            if unit in {"원", "천원", "백만원", "억원", "조원", ""}:
-                return _format_korean_won_compact(value)
-            if unit == "조원":
-                return f"{value / 1_0000_0000_0000:.4f}".rstrip("0").rstrip(".")
-            if unit == "억원":
-                return f"{value / 100_000_000:.4f}".rstrip("0").rstrip(".")
-            if unit == "백만원":
-                return f"{value / 1_000_000:.4f}".rstrip("0").rstrip(".")
-            if unit == "천원":
-                return f"{value / 1_000:.4f}".rstrip("0").rstrip(".")
-            return f"{value:,.0f}"
+            # normalized_value is always in full KRW — always render as 조/억원 regardless of result_unit hint
+            return _format_korean_won_compact(value)
         if (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}:
             return f"{value:.1f}"
         if normalized_unit in {"COUNT", "USD"}:
