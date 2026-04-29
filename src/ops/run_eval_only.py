@@ -115,6 +115,8 @@ def main() -> None:
     existing_results = _load_existing_results(source_company_output_dir)
     merged_by_id = _resolve_merged_experiments(matrix, company_run)
 
+    from ops.benchmark_runner import _slugify
+
     requested_ids = set(args.experiment_id or [])
     selected_results: List[Dict[str, Any]] = []
     for result in existing_results:
@@ -126,7 +128,14 @@ def main() -> None:
             continue
         logger.info("Running eval-only full evaluation for %s / %s", args.company_run_id, experiment_id)
         updated = dict(result)
-        updated["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+        # Re-map persist_directory to source-output-dir in case results were generated on a different machine
+        local_store_dir = source_company_output_dir / "stores" / _slugify(experiment_id)
+        if local_store_dir.exists():
+            updated = dict(result)
+            updated["store"] = dict(result.get("store") or {})
+            updated["store"]["persist_directory"] = str(local_store_dir)
+            logger.info("Re-mapped store to local path: %s", local_store_dir)
+        updated["full_eval"] = _run_full_evaluation(updated, merged_by_id[experiment_id], full_eval_config)
         selected_results.append(updated)
 
     if requested_ids:

@@ -1757,3 +1757,71 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
 
 - 규칙 2를 "원화 금액은 출처 텍스트의 단위(억원/조원)를 그대로 사용하고, 조·억 복합 표기 형식(예: 81조 9,082억원)으로 표현하라"로 교체한다
 - 이를 통해 Direct Calc ablation의 단위 혼동 오류를 제거하고 평가 정확도를 높인다
+
+---
+
+## 결정 79 — run_eval_only.py의 store 경로를 source-output-dir 기준으로 재매핑한다
+
+**문제**: `run_eval_only.py`가 `results.json`에 저장된 `persist_directory`를 그대로 사용하는데, 다른 머신에서 생성된 번들의 경우 경로가 원래 머신 기준(`C:\Users\admin\...`)이라 `PermissionError`가 발생했다.
+
+**원인**: `results.json`의 `store.persist_directory`는 생성 당시 절대 경로로 기록된다. 머신 간 이동 시 경로가 달라지면 그대로 쓸 수 없다.
+
+**결정**:
+
+- `run_eval_only.py`에서 실행 전 `source_company_output_dir / "stores" / _slugify(experiment_id)` 경로가 존재하면 해당 로컬 경로로 `store.persist_directory`를 재매핑한다
+- `results.json`의 저장 값은 수정하지 않고 런타임에만 교체한다
+- 로컬 store가 없는 경우(다른 머신 번들 + store 미포함)는 여전히 실패하며, 이 경우 fresh 실행이 필요하다
+
+---
+
+## 결정 80 — canonical 4문제 회귀 체크: evaluator 변경 후 regression 없음 확인
+
+**문제**: evaluator 변경(tolerance, `_labels_match`, operand override, `_format_calculation_value` 단순화)이 math_focus 외 다른 질문 유형에 regression을 일으키는지 확인 필요.
+
+**결정**: `calc_render_fix_2026-04-27` store를 재활용해 `dev_fast_focus_selective_serial` 프로파일(canonical 4문제: numeric_fact_001, business_overview_001/003, risk_analysis_001)을 eval-only로 실행.
+
+**결과**:
+
+| 지표 | 이전 (2026-04-27) | 현재 (2026-04-30) |
+|---|---:|---:|
+| Faithfulness | 0.750 | 0.750 |
+| Context Recall | 0.625 | 0.625 |
+| Section Match | 0.344 | 0.406 |
+| Citation Coverage | 0.833 | 1.000 |
+| Numeric Pass | 1.000 | 1.000 |
+
+Faithfulness/Recall/Numeric Pass 유지. regression 없음.
+
+**한계**: source store가 math_focus 설정으로 인제스트된 것이고, 이전 번들의 agent 답변을 재활용한 게 아니라 새로 생성했기 때문에 완전한 격리 비교는 아님. 그러나 major regression은 없다는 것을 확인.
+
+---
+
+## 결정 81 — Direct Calc 프롬프트 수정의 실제 효과는 없음 (변인 통제 후 재검증)
+
+**문제**: 결정 78에서 Direct Calc 프롬프트를 수정했으나, 이전/이후 실험이 서로 다른 source bundle을 사용해 변인 통제가 안 됐다.
+
+**검증 방법**: `post_fix_eval_2026-04-29`를 source로 고정하고 old 프롬프트/new 프롬프트 각각 실행 후 비교.
+
+**결과**:
+
+| Question | Old 프롬프트 | New 프롬프트 |
+|---|:---:|:---:|
+| comparison_001 | yes | yes |
+| comparison_002 | no | no |
+| comparison_003 | no | no |
+| comparison_004 | no | no |
+| trend_002 | yes | yes |
+| trend_003 | no | no |
+| comparison_005 | yes | yes |
+| comparison_006 | yes | yes |
+| comparison_007 | **yes** | **no** |
+
+9문제 중 8개 동일, comparison_007만 new 프롬프트에서 악화(조·억원 환산 강제로 잘못된 계산 유발).
+
+**결론**: Direct Calc의 실패(comparison_002/003/004/trend_003)는 프롬프트로 해결 불가능한 구조적 한계다.
+- comparison_002: 3개년 컬럼에서 잘못된 연도(2022) 선택
+- comparison_003: 표 단위를 억원 대신 백만원으로 오인
+- comparison_004: 반올림 자릿수 불일치 (10.88% vs 10.9%)
+- trend_003: 정확한 계산(-24.55%)이지만 evaluator 기준 반올림 값(24.6%)과 tolerance 미달
+
+이 모두 operand 선택/단위 식별/반올림 기준을 명시적으로 제어하는 Formula Planner + AST 구조가 필요한 이유다.
