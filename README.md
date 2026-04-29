@@ -83,7 +83,12 @@ benchmarks/
   eval_dataset.template.json
   results/
 docs/
-  benchmarking.md
+  README.md
+  overview/
+  architecture/
+  evaluation/
+  planning/
+  history/
 app.py            Streamlit UI
 main.py           FastAPI entrypoint
 ```
@@ -143,15 +148,15 @@ python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generali
 - `benchmarks/results/.../summary.csv`
 - `benchmarks/results/.../summary.md`
 
-자세한 설명은 [docs/benchmarking.md](docs/benchmarking.md)를 참고하세요.
+자세한 설명은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)를 참고하세요.
 
 ## 참고 문서
 
-- [docs/technical_highlights.md](docs/technical_highlights.md): 프로젝트 핵심 기술 포인트 요약
+- [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md): 프로젝트 핵심 기술 포인트 요약
 - [DECISIONS.md](DECISIONS.md): 중요한 설계 판단과 근거
-- [docs/benchmarking.md](docs/benchmarking.md): benchmark 구조와 metric 해석
-- [docs/single_document_eval_strategy.md](docs/single_document_eval_strategy.md): 단일 문서 기준선 전략
-- [docs/evaluation_metrics_v1.md](docs/evaluation_metrics_v1.md): metric spec v1
-- [docs/experiment_history.md](docs/experiment_history.md): 버전별 코드/실험 변화와 해석
+- [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md): benchmark 구조와 metric 해석
+- [docs/evaluation/single_document_eval_strategy.md](docs/evaluation/single_document_eval_strategy.md): 단일 문서 기준선 전략
+- [docs/evaluation/evaluation_metrics_v1.md](docs/evaluation/evaluation_metrics_v1.md): metric spec v1
+- [docs/history/experiment_history.md](docs/history/experiment_history.md): 버전별 코드/실험 변화와 해석
 - [CONTEXT.md](CONTEXT.md): 현재 상태와 handoff 메모
 - [PLAN.md](PLAN.md): 다음 실험 계획

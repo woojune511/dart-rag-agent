@@ -214,6 +214,9 @@ _COMPLETENESS_PROMPT = """\
 [질문]
 {question}
 
+[질문 유형]
+{category}
+
 [답변]
 {answer}
 
@@ -226,6 +229,9 @@ _COMPLETENESS_PROMPT = """\
 [허용되는 추가 grounded 항목]
 {allowed_grounded_extras}
 
+[Math Completeness Rubric]
+{math_rubric}
+
 평가 기준:
 - 1.0: 질문이 요구한 핵심 요소를 빠짐없이, 이해하기 쉬운 완전한 문장으로 설명함
 - 0.7: 핵심 요소는 대체로 포함하지만 설명이 다소 짧거나 일부 맥락이 빠짐
@@ -237,6 +243,23 @@ _COMPLETENESS_PROMPT = """\
 - 정답 기준 요약은 핵심 정답 스케치입니다.
 - 허용되는 추가 grounded 항목은 답변에 포함되어도 감점하지 말고, 빠져 있어도 감점하지 마세요.
 - 핵심 요소를 모두 충족한 답변이라면, 문서에 실제로 근거가 있는 추가 설명 때문에 completeness를 깎지 마세요.
+- 반올림/표시 정밀도 차이만 있는 동치 수치 표현(예: 63조 8,217억원 vs 63조 8,218억원처럼 현재 표시 단위에서 사실상 같은 값)은 completeness 감점 사유로 삼지 마세요.
+- 수치 비교/합계/비율/증가율/추이 질문에서 질문이 최종 산출값만 요구했다면, 정답 수치와 단위와 방향/비교 관계가 정확한 답변은 intermediate operands나 중간 계산식을 생략해도 감점하지 마세요.
+- 질문이 개별 구성값, 분자/분모, 각 연도별 값, 계산식 자체를 명시적으로 요구한 경우에만 그 정보의 생략을 completeness 감점 사유로 삼으세요.
+
+Few-shot 채점 예시:
+- 질문: "2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?"
+  답변: "0.7%p 더 큽니다."
+  판정: 1.0
+  이유: 질문이 요구한 최종 차이값, 단위(%p), 비교 방향을 모두 충족했으므로 intermediate 비율값 11.6%, 10.9%를 생략해도 만점입니다.
+- 질문: "SDC와 Harman 부문의 매출 합계는 얼마인가요?"
+  답변: "합계는 43조 4,327억원입니다."
+  판정: 1.0
+  이유: 질문이 요구한 최종 합계와 단위를 정확히 답했으므로 개별 매출값을 다시 나열하지 않아도 만점입니다.
+- 질문: "2024년 영업이익은 2023년 대비 몇 % 증가했나요?"
+  답변: "398.3% 증가했습니다."
+  판정: 1.0
+  이유: 질문이 요구한 최종 증가율과 방향을 정확히 답했으므로 원시 영업이익 두 값을 재기재하지 않아도 만점입니다.
 
 다음 JSON만 답하세요.
 {{
@@ -529,6 +552,20 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
     return candidates
 
 
+def _currency_display_step(candidate: Dict[str, Any]) -> float:
+    value_text = str(candidate.get("value_text") or "")
+    unit_text = str(candidate.get("unit_text") or "")
+    normalized = re.sub(r"\s+", "", f"{value_text}{unit_text}")
+
+    if "조" in normalized or "억" in normalized:
+        return 100_000_000.0
+    if "백만원" in normalized:
+        return 1_000_000.0
+    if "천원" in normalized:
+        return 1_000.0
+    return 1.0
+
+
 def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
     if left.get("kind") != right.get("kind"):
         return False
@@ -538,7 +575,9 @@ def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> b
         return False
 
     if left.get("kind") == "currency":
-        tolerance = max(abs(right_value) * 1e-6, 0.5)
+        relative_tolerance = max(abs(right_value) * 1e-6, 0.5)
+        display_tolerance = max(_currency_display_step(left), _currency_display_step(right))
+        tolerance = max(relative_tolerance, display_tolerance)
     elif left.get("kind") == "percent":
         tolerance = 1e-6
     else:
@@ -582,6 +621,201 @@ def _compute_numeric_equivalence(
         "reference_candidates": reference_candidates,
         "matched_pair": None,
         "reason": "no_equivalent_value",
+    }
+
+
+def _operand_kind_from_normalized_unit(unit: str) -> Optional[str]:
+    normalized = str(unit or "").strip().upper()
+    if normalized == "KRW":
+        return "currency"
+    if normalized == "PERCENT":
+        return "percent"
+    if normalized == "COUNT":
+        return "count"
+    return None
+
+
+def _operand_to_numeric_candidates(operand: Dict[str, Any]) -> List[Dict[str, Any]]:
+    raw_value = str(operand.get("raw_value") or "").strip()
+    raw_unit = str(operand.get("raw_unit") or "").strip()
+    snippet = f"{raw_value}{raw_unit}".strip()
+    candidates = _extract_numeric_candidates(snippet)
+    if candidates:
+        return candidates
+
+    normalized_value = _safe_float(operand.get("normalized_value"))
+    kind = _operand_kind_from_normalized_unit(str(operand.get("normalized_unit") or ""))
+    if normalized_value is None or not kind:
+        return []
+
+    value_text = raw_value or str(normalized_value)
+    unit_text = raw_unit or str(operand.get("normalized_unit") or "")
+    return [
+        _build_numeric_candidate(
+            value_text=value_text,
+            unit_text=unit_text,
+            kind=kind,
+            normalized_value=normalized_value,
+            start=0,
+            end=max(len(value_text) + len(unit_text), 1),
+        )
+    ]
+
+
+def _build_operand_grounding_corpus(
+    runtime_evidence: List[Dict[str, Any]],
+    contexts: List[str],
+) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _push(text: str, source: str) -> None:
+        flattened = " ".join((text or "").split()).strip()
+        if not flattened or flattened in seen:
+            return
+        seen.add(flattened)
+        rows.append(
+            {
+                "source": source,
+                "text": flattened,
+                "preview": flattened[:220] + ("..." if len(flattened) > 220 else ""),
+                "candidates": _extract_numeric_candidates(flattened),
+            }
+        )
+
+    for row in runtime_evidence:
+        _push(
+            " ".join(
+                part
+                for part in [
+                    str(row.get("source_anchor") or "").strip(),
+                    str(row.get("claim") or "").strip(),
+                    str(row.get("quote_span") or "").strip(),
+                    str(row.get("source_context") or "").strip(),
+                    str(row.get("raw_row_text") or "").strip(),
+                ]
+                if part
+            ),
+            "runtime_evidence",
+        )
+
+    for context in contexts:
+        _push(context, "retrieved_context")
+
+    return rows
+
+
+def _extract_unitless_number_candidates(text: str, kind: str) -> List[Dict[str, Any]]:
+    candidates: List[Dict[str, Any]] = []
+    if kind != "currency":
+        return candidates
+
+    scales = {
+        "원": 1.0,
+        "천원": 1_000.0,
+        "백만원": 1_000_000.0,
+        "억원": 100_000_000.0,
+    }
+    for match in re.finditer(r"(?<![\d,])(?P<value>\d[\d,]*(?:\.\d+)?)(?!\s*(?:조|억|원|천원|백만원|억원|%|퍼센트))", text):
+        raw_value = _parse_number(match.group("value"))
+        if raw_value is None:
+            continue
+        start, end = match.span()
+        for unit_text, scale in scales.items():
+            candidates.append(
+                _build_numeric_candidate(
+                    value_text=match.group("value"),
+                    unit_text=unit_text,
+                    kind="currency",
+                    normalized_value=raw_value * scale,
+                    start=start,
+                    end=end,
+                )
+            )
+    return candidates
+
+
+def _find_operand_grounding_match(
+    operand_candidate: Dict[str, Any],
+    corpus_rows: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    kind = str(operand_candidate.get("kind") or "")
+    for corpus_row in corpus_rows:
+        row_candidates = list(corpus_row.get("candidates", []))
+        row_candidates.extend(_extract_unitless_number_candidates(str(corpus_row.get("text") or ""), kind))
+        for corpus_candidate in row_candidates:
+            if _numeric_values_equivalent(operand_candidate, corpus_candidate):
+                return {
+                    "matched_source": corpus_row.get("source"),
+                    "matched_preview": corpus_row.get("preview"),
+                    "matched_candidate": corpus_candidate,
+                }
+    return None
+
+
+def _compute_operand_grounding_score(
+    *,
+    runtime_evidence: List[Dict[str, Any]],
+    contexts: List[str],
+    calculation_operands: List[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    if not calculation_operands:
+        return None, {"reason": "missing_operands", "matched_operands": [], "unmatched_operands": []}
+
+    corpus_rows = _build_operand_grounding_corpus(runtime_evidence=runtime_evidence, contexts=contexts)
+    if not corpus_rows:
+        return None, {"reason": "missing_corpus", "matched_operands": [], "unmatched_operands": []}
+
+    matched_operands: List[Dict[str, Any]] = []
+    unmatched_operands: List[Dict[str, Any]] = []
+
+    for operand in calculation_operands:
+        operand_candidates = _operand_to_numeric_candidates(operand)
+        matched_payload: Optional[Dict[str, Any]] = None
+        for operand_candidate in operand_candidates:
+            match_payload = _find_operand_grounding_match(operand_candidate, corpus_rows)
+            if match_payload:
+                matched_payload = {
+                    "operand_id": operand.get("operand_id"),
+                    "label": operand.get("label"),
+                    "period": operand.get("period"),
+                    "raw_value": operand.get("raw_value"),
+                    "raw_unit": operand.get("raw_unit"),
+                    "source_anchor": operand.get("source_anchor"),
+                    **match_payload,
+                }
+            if matched_payload:
+                break
+
+        if matched_payload:
+            matched_operands.append(matched_payload)
+        else:
+            unmatched_operands.append(
+                {
+                    "operand_id": operand.get("operand_id"),
+                    "label": operand.get("label"),
+                    "period": operand.get("period"),
+                    "raw_value": operand.get("raw_value"),
+                    "raw_unit": operand.get("raw_unit"),
+                    "normalized_value": operand.get("normalized_value"),
+                    "normalized_unit": operand.get("normalized_unit"),
+                    "source_anchor": operand.get("source_anchor"),
+                }
+            )
+
+    if not matched_operands:
+        score = 0.0
+    elif len(matched_operands) == len(calculation_operands):
+        score = 1.0
+    else:
+        score = 0.5
+
+    return score, {
+        "reason": "operand_grounding_scan",
+        "matched_operands": matched_operands,
+        "unmatched_operands": unmatched_operands,
+        "corpus_size": len(corpus_rows),
+        "corpus_previews": [row.get("preview") for row in corpus_rows[:6]],
     }
 
 
@@ -691,6 +925,8 @@ def _compute_numeric_evaluation(
     example: EvalExample,
     answer: str,
     runtime_evidence: List[Dict[str, Any]],
+    contexts: List[str],
+    calculation_operands: List[Dict[str, Any]],
     retrieval_hit_at_k: float,
 ) -> Dict[str, Any]:
     equivalence, equivalence_debug = _compute_numeric_equivalence(
@@ -704,7 +940,12 @@ def _compute_numeric_evaluation(
         answer=answer,
         runtime_evidence=runtime_evidence,
     )
-    retrieval_support = retrieval_hit_at_k
+    operand_grounding, operand_grounding_debug = _compute_operand_grounding_score(
+        runtime_evidence=runtime_evidence,
+        contexts=contexts,
+        calculation_operands=calculation_operands,
+    )
+    retrieval_support = operand_grounding if operand_grounding is not None else retrieval_hit_at_k
     final_judgement, confidence = _resolve_numeric_judgement(
         equivalence=equivalence,
         grounding=grounding,
@@ -720,6 +961,8 @@ def _compute_numeric_evaluation(
         "numeric_debug": {
             "equivalence": equivalence_debug,
             "grounding": grounding_debug,
+            "operand_grounding": operand_grounding_debug,
+            "retrieval_hit_at_k_diagnostic": retrieval_hit_at_k,
         },
     }
 
@@ -888,12 +1131,22 @@ def _compute_completeness_judge(
 
     required_entities = ", ".join(example.required_entities) if example.required_entities else "-"
     allowed_grounded_extras = ", ".join(example.allowed_grounded_extras) if example.allowed_grounded_extras else "-"
+    category = str(example.category or example.answer_type or "-")
+    math_rubric = "-"
+    if example.answer_type == "numeric" and str(example.category or "").lower() in {"comparison", "trend"}:
+        math_rubric = (
+            "이 질문은 계산형(math) 질문입니다. 최종 계산 결과값 자체가 주 답변 대상입니다. "
+            "질문이 개별 구성값이나 계산식까지 명시적으로 요구하지 않았다면, "
+            "최종 값과 단위와 방향/비교 관계가 정확한 답변은 completeness 만점이 가능합니다."
+        )
     prompt = _COMPLETENESS_PROMPT.format(
         question=example.question[:1000],
+        category=category[:200],
         answer=answer[:1500],
         answer_key=example.canonical_answer_key[:1000],
         required_entities=required_entities[:500],
         allowed_grounded_extras=allowed_grounded_extras[:500],
+        math_rubric=math_rubric[:700],
     )
     try:
         response = llm.invoke(prompt)
@@ -1577,6 +1830,8 @@ class RAGEvaluator:
                 example=example,
                 answer=answer,
                 runtime_evidence=runtime_evidence,
+                contexts=contexts,
+                calculation_operands=calculation_operands,
                 retrieval_hit_at_k=retrieval_hit_at_k,
             )
             if _should_override_numeric_faithfulness(numeric_eval):

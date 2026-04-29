@@ -243,6 +243,7 @@ class VectorStoreManager:
                 "chunk_id": metadata.get("chunk_id"),
                 "sub_chunk_idx": metadata.get("sub_chunk_idx", 0),
                 "table_context": metadata.get("table_context"),
+                "reference_parent_ids": list(metadata.get("reference_parent_ids", []) or []),
             }
 
         self._structure_graph["nodes"] = nodes
@@ -359,6 +360,54 @@ class VectorStoreManager:
             siblings.append(Document(page_content=str(node.get("text", "")), metadata=metadata))
 
         return siblings
+
+    def get_reference_docs(self, chunk_uid: str, limit: int = 4) -> List[Document]:
+        node = self.get_structure_node(chunk_uid)
+        if not node or limit <= 0:
+            return []
+
+        metadata = dict(node.get("metadata", {}) or {})
+        source_parent_id = str(metadata.get("parent_id") or "")
+        reference_parent_ids = [
+            str(value).strip()
+            for value in (metadata.get("reference_parent_ids") or node.get("reference_parent_ids") or [])
+            if str(value).strip()
+        ]
+        if not reference_parent_ids:
+            return []
+
+        docs: List[Document] = []
+        seen_parent_ids: set[str] = set()
+        for reference_parent_id in reference_parent_ids:
+            if reference_parent_id in seen_parent_ids or reference_parent_id == source_parent_id:
+                continue
+            seen_parent_ids.add(reference_parent_id)
+
+            referenced_doc = self.get_section_lead_doc(parent_id=reference_parent_id, exclude_chunk_uid=None)
+            if referenced_doc is None:
+                section = (self._structure_graph.get("sections", {}) or {}).get(reference_parent_id) or {}
+                chunk_uids = list(section.get("chunk_uids", []) or [])
+                if not chunk_uids:
+                    continue
+                fallback_node = self.get_structure_node(str(chunk_uids[0]))
+                if not fallback_node:
+                    continue
+                fallback_metadata = dict(fallback_node.get("metadata", {}) or {})
+                referenced_doc = Document(
+                    page_content=str(fallback_node.get("text", "")),
+                    metadata=fallback_metadata,
+                )
+
+            ref_metadata = dict(referenced_doc.metadata or {})
+            ref_metadata["graph_relation"] = "reference_note"
+            ref_metadata["graph_source_chunk_uid"] = chunk_uid
+            ref_metadata["graph_reference_parent_id"] = reference_parent_id
+            docs.append(Document(page_content=referenced_doc.page_content, metadata=ref_metadata))
+
+            if len(docs) >= limit:
+                break
+
+        return docs
 
     def search(self, query: str, k: int = 5, k_rrf: int = 60, where_filter: dict = None):
         """Perform Hybrid Search (Vector + BM25) with Reciprocal Rank Fusion."""

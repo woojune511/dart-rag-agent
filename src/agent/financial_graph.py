@@ -514,6 +514,29 @@ def _is_percent_point_difference_query(text: str) -> bool:
     )
 
 
+def _should_coerce_percent_point_unit(
+    query: str,
+    operands: List[Dict[str, Any]],
+    plan_data: Dict[str, Any],
+) -> bool:
+    if not _is_percent_point_difference_query(query):
+        return False
+    if str(plan_data.get("mode") or "") != "single_value":
+        return False
+    ordered_ids = [str(item or "") for item in (plan_data.get("ordered_operand_ids") or []) if str(item or "").strip()]
+    if len(ordered_ids) < 2:
+        return False
+    operand_map = {str(row.get("operand_id") or ""): row for row in operands}
+    selected = [operand_map.get(operand_id) for operand_id in ordered_ids]
+    if any(row is None for row in selected):
+        return False
+    if not all(str((row or {}).get("normalized_unit") or "").upper() == "PERCENT" for row in selected):
+        return False
+    operation = str(plan_data.get("operation") or "").strip().lower()
+    formula = _normalise_spaces(str(plan_data.get("formula") or ""))
+    return operation == "subtract" or "-" in formula
+
+
 def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional[str], str]:
     tail = text[end : min(len(text), end + 120)]
     if not tail:
@@ -625,6 +648,7 @@ class FinancialAgent:
             "enabled": False,
             "include_parent_context": True,
             "include_section_lead": True,
+            "include_reference_notes": True,
             "include_described_by_paragraph": True,
             "include_table_context": True,
             "include_sibling_prev": True,
@@ -968,6 +992,7 @@ class FinancialAgent:
 
         include_parent_context = bool(config.get("include_parent_context", True))
         include_section_lead = bool(config.get("include_section_lead", True))
+        include_reference_notes = bool(config.get("include_reference_notes", True))
         include_described_by_paragraph = bool(config.get("include_described_by_paragraph", True))
         include_table_context = bool(config.get("include_table_context", True))
         include_sibling_prev = bool(config.get("include_sibling_prev", True))
@@ -1019,6 +1044,11 @@ class FinancialAgent:
                 if section_lead_doc is not None:
                     add_doc(section_lead_doc, float(score) - 0.006, "section_lead")
 
+            if include_reference_notes and chunk_uid:
+                reference_docs = self.vsm.get_reference_docs(chunk_uid=chunk_uid, limit=4)
+                for offset, reference_doc in enumerate(reference_docs, start=1):
+                    add_doc(reference_doc, float(score) - 0.008 - (offset * 0.001), "reference_note")
+
             if sibling_window > 0 and parent_id and chunk_uid:
                 sibling_docs = self.vsm.get_sibling_docs(parent_id=parent_id, chunk_uid=chunk_uid, window=sibling_window)
                 for offset, sibling_doc in enumerate(sibling_docs, start=1):
@@ -1058,10 +1088,12 @@ class FinancialAgent:
         expanded.sort(key=lambda item: item[1], reverse=True)
         expanded = expanded[:max_docs]
         logger.info(
-            "[graph_expand] seed=%s expanded=%s parent=%s sibling_prev=%s sibling_next=%s sibling_window=%s table_context=%s max_docs=%s",
+            "[graph_expand] seed=%s expanded=%s parent=%s section_lead=%s reference_note=%s sibling_prev=%s sibling_next=%s sibling_window=%s table_context=%s max_docs=%s",
             len(seed_docs),
             len(expanded),
             include_parent_context,
+            include_section_lead,
+            include_reference_notes,
             include_sibling_prev,
             include_sibling_next,
             sibling_window,
@@ -2458,6 +2490,8 @@ Ontology Context:
                     {"variable": chr(ord("A") + index), "operand_id": operand_id}
                     for index, operand_id in enumerate(plan_data.get("ordered_operand_ids") or [])
                 ]
+            if _should_coerce_percent_point_unit(query_text, operands, plan_data):
+                plan_data["result_unit"] = "%p"
             logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
             return {
                 "calculation_plan": plan_data,

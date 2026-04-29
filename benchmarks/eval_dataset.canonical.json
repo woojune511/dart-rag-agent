@@ -22,7 +22,11 @@
     "category": "business_overview",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["사업개요"],
+    "expected_sections": [
+      "사업개요",
+      "II. 사업의 내용 > 1. 사업의 개요",
+      "I. 회사의 개요 > 1. 회사의 개요"
+    ],
     "answer_key": "삼성전자는 DX 부문에서 TV·모니터·가전·스마트폰·네트워크시스템·PC를, DS 부문에서 DRAM·NAND Flash·모바일 AP를, SDC에서 스마트폰용 OLED 패널을, Harman에서 디지털 콕핏·카오디오·소비자 오디오 제품을 생산·판매한다.",
     "evidence": [
       {
@@ -56,7 +60,11 @@
     "category": "business_overview",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["사업개요"],
+    "expected_sections": [
+      "사업개요",
+      "II. 사업의 내용 > 1. 사업의 개요",
+      "I. 회사의 개요 > 1. 회사의 개요"
+    ],
     "answer_key": "삼성전자는 본사를 거점으로 DX·DS 지역총괄과 SDC, Harman 산하 종속기업 등을 포함한 228개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명한다.",
     "evidence": [
       {

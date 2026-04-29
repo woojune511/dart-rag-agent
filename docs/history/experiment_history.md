@@ -1,4 +1,4 @@
-# Experiment History
+﻿# Experiment History
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
@@ -34,7 +34,7 @@
 
 참조:
 
-- [archive/v1_legacy_local_test_2026-04-16](../benchmarks/archive/v1_legacy_local_test_2026-04-16)
+- [archive/v1_legacy_local_test_2026-04-16](../../benchmarks/archive/v1_legacy_local_test_2026-04-16)
 
 ### 코드 / 설정 변화
 
@@ -71,7 +71,7 @@
 
 참조:
 
-- [v2_low_cost_2026-04-16/summary.md](../benchmarks/results/v2_low_cost_2026-04-16/summary.md)
+- [v2_low_cost_2026-04-16/summary.md](../../benchmarks/results/v2_low_cost_2026-04-16/summary.md)
 
 ### 코드 / 설정 변화
 
@@ -103,7 +103,7 @@
 
 참조:
 
-- [v3_generalization_2026-04-16/cross_company_summary.md](../benchmarks/results/v3_generalization_2026-04-16/cross_company_summary.md)
+- [v3_generalization_2026-04-16/cross_company_summary.md](../../benchmarks/results/v3_generalization_2026-04-16/cross_company_summary.md)
 
 ### 코드 / 설정 변화
 
@@ -134,7 +134,7 @@
 
 참조:
 
-- [v4_generalization_fix_2026-04-17/cross_company_summary.md](../benchmarks/results/v4_generalization_fix_2026-04-17/cross_company_summary.md)
+- [v4_generalization_fix_2026-04-17/cross_company_summary.md](../../benchmarks/results/v4_generalization_fix_2026-04-17/cross_company_summary.md)
 
 ### 코드 / 설정 변화
 
@@ -192,7 +192,7 @@
 
 참조:
 
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/summary.md)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/summary.md)
 
 ### 코드 / 설정 변화
 
@@ -237,9 +237,9 @@
 
 참조:
 
-- [graph_micro_2026-04-22](../benchmarks/results/graph_micro_2026-04-22)
-- [graph_micro_constrained_2026-04-22](../benchmarks/results/graph_micro_constrained_2026-04-22)
-- [graph_micro_prefix_2026-04-22](../benchmarks/results/graph_micro_prefix_2026-04-22)
+- [graph_micro_2026-04-22](../../benchmarks/results/graph_micro_2026-04-22)
+- [graph_micro_constrained_2026-04-22](../../benchmarks/results/graph_micro_constrained_2026-04-22)
+- [graph_micro_prefix_2026-04-22](../../benchmarks/results/graph_micro_prefix_2026-04-22)
 
 ### 코드 / 설정 변화
 
@@ -303,9 +303,9 @@
 
 참조:
 
-- [v5_fulleval_2026-04-20/삼성전자-2024/summary.md](../benchmarks/results/v5_fulleval_2026-04-20/삼성전자-2024/summary.md)
-- [v6_faithfulness_guard_2026-04-20/삼성전자-2024/summary.md](../benchmarks/results/v6_faithfulness_guard_2026-04-20/삼성전자-2024/summary.md)
-- [v7_faithfulness_guard_refine_2026-04-20/삼성전자-2024/summary.md](../benchmarks/results/v7_faithfulness_guard_refine_2026-04-20/삼성전자-2024/summary.md)
+- [v5_fulleval_2026-04-20/삼성전자-2024/summary.md](../../benchmarks/results/v5_fulleval_2026-04-20/삼성전자-2024/summary.md)
+- [v6_faithfulness_guard_2026-04-20/삼성전자-2024/summary.md](../../benchmarks/results/v6_faithfulness_guard_2026-04-20/삼성전자-2024/summary.md)
+- [v7_faithfulness_guard_refine_2026-04-20/삼성전자-2024/summary.md](../../benchmarks/results/v7_faithfulness_guard_refine_2026-04-20/삼성전자-2024/summary.md)
 
 ### 코드 / 설정 변화
 
@@ -346,9 +346,9 @@
 
 참조:
 
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
-- [dev_fulleval_sentence_validator_2026-04-21/삼성전자-2024/summary.md](../benchmarks/results/dev_fulleval_sentence_validator_2026-04-21/삼성전자-2024/summary.md)
-- [dev_focus_validator_2026-04-21/삼성전자-2024/summary.md](../benchmarks/results/dev_focus_validator_2026-04-21/삼성전자-2024/summary.md)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
+- [dev_fulleval_sentence_validator_2026-04-21/삼성전자-2024/summary.md](../../benchmarks/results/dev_fulleval_sentence_validator_2026-04-21/삼성전자-2024/summary.md)
+- [dev_focus_validator_2026-04-21/삼성전자-2024/summary.md](../../benchmarks/results/dev_focus_validator_2026-04-21/삼성전자-2024/summary.md)
 
 ### 코드 / 설정 변화
 
@@ -397,8 +397,8 @@
 
 참조:
 
-- [numeric_evaluation_architecture.md](numeric_evaluation_architecture.md)
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
+- [../architecture/numeric_evaluation_architecture.md](../architecture/numeric_evaluation_architecture.md)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
 
 ### 코드 / 설정 변화
 
@@ -431,8 +431,8 @@
 
 참조:
 
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json)
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv](../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv)
 
 ### 코드 / 설정 변화
 
@@ -464,8 +464,8 @@
 
 참조:
 
-- [answer_generation_principles.md](answer_generation_principles.md)
-- [architecture_direction.md](architecture_direction.md)
+- [../architecture/answer_generation_principles.md](../architecture/answer_generation_principles.md)
+- [../architecture/architecture_direction.md](../architecture/architecture_direction.md)
 
 ### 코드 / 설정 변화
 
@@ -530,7 +530,7 @@
 4. single-document benchmark runner 정리
 5. 그 다음에만 retrieval / compression / validation 실험 재개
 
-이 전략은 [single_document_eval_strategy.md](single_document_eval_strategy.md)에 정리했다.
+이 전략은 [../evaluation/single_document_eval_strategy.md](../evaluation/single_document_eval_strategy.md)에 정리했다.
 
 ---
 
@@ -538,8 +538,8 @@
 
 참조:
 
-- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md)
-- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json](../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json)
+- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md)
+- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json](../../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json)
 
 ### 코드 / 설정 변화
 
@@ -586,9 +586,9 @@
 
 참조:
 
-- [dev_fast_focus_eval_tuned_2026-04-23/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_eval_tuned_2026-04-23/삼성전자-2024/summary.md)
-- [dev_fast_focus_routing_cascade_2026-04-23/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_routing_cascade_2026-04-23/삼성전자-2024/summary.md)
-- [query_routing_rearchitecture.md](query_routing_rearchitecture.md)
+- [dev_fast_focus_eval_tuned_2026-04-23/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_focus_eval_tuned_2026-04-23/삼성전자-2024/summary.md)
+- [dev_fast_focus_routing_cascade_2026-04-23/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_focus_routing_cascade_2026-04-23/삼성전자-2024/summary.md)
+- [../architecture/query_routing_rearchitecture.md](../architecture/query_routing_rearchitecture.md)
 
 ### 코드 / 설정 변화
 
@@ -637,10 +637,10 @@
 
 참조:
 
-- [query_router_calibration_2026-04-24/summary.md](../benchmarks/results/query_router_calibration_2026-04-24/summary.md)
-- [query_router_calibration_guard_2026-04-24/summary.md](../benchmarks/results/query_router_calibration_guard_2026-04-24/summary.md)
-- [dev_fast_focus_routing_calibrated_2026-04-24/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_routing_calibrated_2026-04-24/삼성전자-2024/summary.md)
-- [dev_fast_focus_routing_guard_2026-04-24/삼성전자-2024/summary.md](../benchmarks/results/dev_fast_focus_routing_guard_2026-04-24/삼성전자-2024/summary.md)
+- [query_router_calibration_2026-04-24/summary.md](../../benchmarks/results/query_router_calibration_2026-04-24/summary.md)
+- [query_router_calibration_guard_2026-04-24/summary.md](../../benchmarks/results/query_router_calibration_guard_2026-04-24/summary.md)
+- [dev_fast_focus_routing_calibrated_2026-04-24/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_focus_routing_calibrated_2026-04-24/삼성전자-2024/summary.md)
+- [dev_fast_focus_routing_guard_2026-04-24/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_focus_routing_guard_2026-04-24/삼성전자-2024/summary.md)
 
 ### 코드 / 설정 변화
 
@@ -687,7 +687,7 @@
 
 참조:
 
-- [numeric_extractor_v2_2026-04-26/삼성전자-2024/summary.md](../benchmarks/results/numeric_extractor_v2_2026-04-26/삼성전자-2024/summary.md)
+- [numeric_extractor_v2_2026-04-26/삼성전자-2024/summary.md](../../benchmarks/results/numeric_extractor_v2_2026-04-26/삼성전자-2024/summary.md)
 
 ### 코드 / 설정 변화
 
@@ -714,3 +714,4 @@
 - `numeric_extractor`는 당기/전기, 연결/별도, 단위를 CoT로 먼저 확인하고 raw_value를 추출
 - grounding judge는 numeric_extractor가 생성한 synthetic evidence_item 기준으로 판정
 - `plain_prefix`의 numeric_fact 실패는 ingest-side 문제로 별도 추적
+

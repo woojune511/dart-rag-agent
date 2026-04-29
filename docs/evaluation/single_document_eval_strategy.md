@@ -155,8 +155,8 @@
 ## 추천 산출물
 
 - `benchmarks/golden/samsung_2024_v1.json`
-- `docs/golden_dataset_schema.md`
-- `docs/evaluation_metrics_v1.md`
+- `docs/evaluation/golden_dataset_schema.md`
+- `docs/evaluation/evaluation_metrics_v1.md`
 - `benchmarks/profiles/single_document_dev.json`
 
 ## 성공 조건

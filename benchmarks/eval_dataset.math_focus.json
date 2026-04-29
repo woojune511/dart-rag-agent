@@ -5,7 +5,7 @@
     "category": "comparison",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["매출현황", "주요 제품 및 서비스"],
+    "expected_sections": ["매출현황", "주요 제품 및 서비스", "경영진단"],
     "answer_key": "2024년 DX부문 매출은 174조 8,877억원, DS부문 매출은 111조 659억원으로, DX부문이 DS부문보다 약 63조 8,218억원 더 크다.",
     "answer_type": "numeric",
     "evidence": [
@@ -14,6 +14,12 @@
         "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 659억원(36.9%)입니다.",
         "quote_type": "verbatim",
         "why_it_supports_answer": "DX와 DS 부문의 매출 원본 값을 직접 제시한다."
+      },
+      {
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "quote": "매출 | DX 부문 | 174,887,683 | DS 부문 | 111,065,950",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "경영진단 섹션에서도 DX와 DS 부문의 매출을 직접 제시한다."
       }
     ],
     "expected_operands": [
@@ -83,22 +89,28 @@
     "category": "comparison",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["매출현황", "주요 제품 및 서비스"],
-    "answer_key": "DS부문 매출은 111조 659억원, SDC 매출은 29조 1,578억원으로 DS부문이 SDC보다 약 81조 9,081억원 더 크다.",
+    "expected_sections": ["매출현황", "주요 제품 및 서비스", "경영진단"],
+    "answer_key": "2024년 DS부문 매출은 111조 660억원, SDC 매출은 29조 1,578억원으로 DS부문이 SDC보다 약 81조 9,082억원 더 크다.",
     "answer_type": "numeric",
     "evidence": [
       {
         "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
-        "quote": "2024년 매출은 DX 부문이 174조 8,877억원(58.1%), DS 부문이 111조 659억원(36.9%)이며, SDC가 29조 1,578억원(9.7%), Harman은 14조 2,749억원(4.7%)입니다.",
+        "quote": "DS 부문 | 제ㆍ상품,용역 및기타매출 | DRAM,NAND Flash,모바일AP 등 | 1,110,660 / SDC | 제ㆍ상품,용역 및기타매출 | 스마트폰용 OLED 패널 등 | 291,578",
         "quote_type": "verbatim",
         "why_it_supports_answer": "DS부문과 SDC의 매출 원본 값을 직접 제시한다."
+      },
+      {
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "quote": "매출 | DS 부문 | 111,065,950 | SDC | 29,157,820",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "경영진단 섹션에서도 DS 부문과 SDC의 매출을 직접 제시한다."
       }
     ],
     "expected_operands": [
       {
         "label": "DS부문 매출",
         "period": "2024년",
-        "raw_value": "111조 659억원",
+        "raw_value": "111조 660억원",
         "raw_unit": "억원"
       },
       {
@@ -110,7 +122,7 @@
     ],
     "expected_operation": "subtract",
     "expected_calculation_result": {
-      "normalized_value": 81908100000000.0,
+      "normalized_value": 81908200000000.0,
       "normalized_unit": "KRW",
       "rendered_contains": "81조 9,08",
       "tolerance": 0.001
@@ -161,7 +173,11 @@
     "category": "trend",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["요약재무", "재무제표"],
+    "expected_sections": [
+      "요약재무",
+      "재무제표",
+      "IV. 이사의 경영진단 및 분석의견"
+    ],
     "answer_key": "영업이익은 2022년 43조 3,766억원에서 2023년 6조 5,669억원으로 급감한 뒤, 2024년 32조 7,259억원으로 반등했다.",
     "answer_type": "summary",
     "evidence": [
@@ -281,7 +297,12 @@
     "category": "comparison",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["연구개발", "요약재무정보"],
+    "expected_sections": [
+      "연구개발",
+      "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+      "III. 재무에 관한 사항 > 1. 요약재무정보",
+      "II. 사업의 내용 > 4. 매출 및 수주상황"
+    ],
     "answer_key": "2024년 연구개발비용은 35조 215억원으로 전체 매출(300조 8,709억원)의 약 11.6%를 차지한다.",
     "answer_type": "numeric",
     "evidence": [
@@ -326,7 +347,13 @@
     "category": "comparison",
     "company": "삼성전자",
     "year": 2024,
-    "expected_sections": ["연구개발"],
+    "expected_sections": [
+      "연구개발",
+      "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+      "XII. 상세표 > 4. 연구개발실적(상세)",
+      "III. 재무에 관한 사항 > 1. 요약재무정보",
+      "II. 사업의 내용 > 4. 매출 및 수주상황"
+    ],
     "answer_key": "2024년 연구개발비 / 매출액 비중은 11.6%, 2023년은 10.9%로 2024년이 0.7%p 더 높다.",
     "answer_type": "numeric",
     "evidence": [

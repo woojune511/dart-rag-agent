@@ -2,8 +2,8 @@
 
 이 문서는 DART 공시 RAG 시스템에서 retrieval 정확도, answer 품질, ingest 시간, API 비용을 함께 비교하기 위한 benchmark 가이드다.
 
-버전별 코드/실험 변화 흐름은 [experiment_history.md](experiment_history.md)를 참고한다.  
-answer generation 원칙과 최근 rule inventory는 [answer_generation_principles.md](answer_generation_principles.md)를 참고한다.  
+버전별 코드/실험 변화 흐름은 [../history/experiment_history.md](../history/experiment_history.md)를 참고한다.  
+answer generation 원칙과 최근 rule inventory는 [../architecture/answer_generation_principles.md](../architecture/answer_generation_principles.md)를 참고한다.  
 단일 문서 기준선 재정렬 방향은 [single_document_eval_strategy.md](single_document_eval_strategy.md)를 참고한다.
 single-document metric spec은 [evaluation_metrics_v1.md](evaluation_metrics_v1.md)를 참고한다.
 
@@ -457,7 +457,7 @@ benchmark 결과물의 `review.csv`, `review.md`는 단순히 질문 / 정답 / 
 
 를 병렬 evaluator로 계산하고, 기존 `faithfulness`는 보조 지표로 유지하는 구조를 목표로 한다.
 
-상세 설계는 [numeric_evaluation_architecture.md](numeric_evaluation_architecture.md)를 참고한다.
+상세 설계는 [../architecture/numeric_evaluation_architecture.md](../architecture/numeric_evaluation_architecture.md)를 참고한다.
 
 현재 구현 상태:
 

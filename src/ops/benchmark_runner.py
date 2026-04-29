@@ -264,6 +264,7 @@ def _build_graph_expansion_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "enabled": enabled,
         "include_parent_context": bool(graph_config.get("include_parent_context", True)),
+        "include_reference_notes": bool(graph_config.get("include_reference_notes", True)),
         "include_table_context": bool(graph_config.get("include_table_context", True)),
         "sibling_window": max(0, sibling_window),
         "max_docs": max(int(config.get("k", 8)), max_docs),
