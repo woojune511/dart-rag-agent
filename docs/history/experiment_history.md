@@ -2,6 +2,49 @@
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## At a Glance
+
+| 항목 | 현재 해석 |
+| --- | --- |
+| 문서 역할 | append-only experiment log |
+| 읽는 순서 | `큰 흐름 -> Timeline Index -> 필요한 버전 상세` |
+| 초기 국면 | 저비용 ingest 후보 탐색과 다기업 일반화 검증 |
+| 중간 전환 | retrieval 문제와 generation 문제를 분리해서 보기 시작 |
+| 최근 전환 | single-document benchmark와 evaluator를 먼저 고정 |
+| raw artifact 위치 | 각 버전 디렉터리의 `summary.md`, `results.json`, `cross_company_summary.md` |
+
+## Timeline Index
+
+| 버전 / 단계 | 무엇을 검증했나 | 핵심 takeaway |
+| --- | --- | --- |
+| [v1 Legacy Local Test](#v1-legacy-local-test) | 초기 low-cost ingest 후보 비교 | `contextual_all`만 안정적인 baseline으로 남음 |
+| [v2 Low-Cost Retrieval](#v2-low-cost-retrieval) | parent/selective/hybrid 저비용 retrieval | 비용 절감 가능성은 보였지만 single-doc 한계 존재 |
+| [v3 Generalization](#v3-generalization) | 삼성전자 -> 다기업 일반화 | single-company winner가 cross-company winner가 아님 |
+| [v4 Generalization Fix](#v4-generalization-fix) | parser / evaluation 보정 후 재검증 | ingest 비용보다 query-stage miss와 abstention이 더 큰 문제로 드러남 |
+| [dev_fast Cache Check](#dev_fast-cache-check) | 빠른 반복 실험 루프 점검 | cache 기반 반복 속도 개선 확인 |
+| [Graph Micro + Zero-Cost Prefix (2026-04-22)](#graph-micro--zero-cost-prefix-2026-04-22) | graph / zero-cost prefix 실험 | 구조 그래프의 가능성과 한계를 함께 확인 |
+| [v5 / v6 / v7 Faithfulness Follow-up](#v5--v6--v7-faithfulness-follow-up) | faithfulness 흔들림 원인 추적 | retrieval보다 answer synthesis 문제가 큼 |
+| [Typed Compression / Validation and Sentence-Level Validator](#typed-compression--validation-and-sentence-level-validator) | generation을 compression 문제로 재정의 | free-form generation보다 structured pipeline이 유리 |
+| [Numeric Evaluator Follow-up](#numeric-evaluator-follow-up) | 숫자 질문 평가 문제 정리 | generic faithfulness만으로는 부족 |
+| [Numeric Evaluator Implementation](#numeric-evaluator-implementation) | numeric evaluator 1차 구현 | numeric path를 별도 evaluator/resolver로 분리 |
+| [Typed Compression / Validation Outputs](#typed-compression--validation-outputs) | structured output artifact 보강 | debugging/traceability 향상 |
+| [Reset Point: Single-Document Evaluation First](#reset-point-single-document-evaluation-first) | 방향 재정렬 | single-document benchmark와 evaluator를 먼저 고정 |
+| [Prefix + Selective Contextual Retrieval Focus Run (2026-04-23)](#prefix--selective-contextual-retrieval-focus-run-2026-04-23) | selective/prefix retrieval 재평가 | source miss와 routing 연계 문제 확인 |
+| [Evaluator + Routing Cascade v1 (2026-04-23)](#evaluator--routing-cascade-v1-2026-04-23) | evaluator + routing 구조 개편 | query routing을 cascade로 재구성 |
+| [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
+| [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
+
+## 보는 법
+
+| 섹션 | 무엇을 보면 되나 |
+| --- | --- |
+| `코드 / 설정 변화` | 무엇을 바꿨는지 |
+| `핵심 결과` | 어떤 후보가 좋아졌거나 실패했는지 |
+| `해석` | 왜 다음 버전으로 넘어갔는지 |
+
+상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+
 ## 큰 흐름
 
 버전 흐름을 큰 설계 변화 기준으로 요약하면 다음과 같다.
@@ -16,17 +59,6 @@
    - answer generation을 free-form generation보다 compression 문제로 재정의
 5. **single-document Golden Dataset + evaluator 우선**
    - 이제는 multi-company 실험보다, 단일 문서 기준선과 metric을 먼저 고정하는 단계로 이동
-
-## 보는 법
-
-- 코드 / 실험 설정 변화
-  - 무엇을 바꿨는지
-- 핵심 결과
-  - 어떤 후보가 좋아졌거나 실패했는지
-- 해석
-  - 다음 버전으로 왜 넘어갔는지
-
-상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
 
 ---
 
