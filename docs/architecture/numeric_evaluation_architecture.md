@@ -1,88 +1,61 @@
 # Numeric Evaluation Architecture
 
-이 문서는 `numeric_fact` 질문을 기존 단일 `faithfulness` judge만으로 채점할 때 생기는 한계를 정리하고, 더 신뢰할 수 있는 **병렬 numeric evaluator + resolver** 구조를 제안한다.
+이 문서는 `numeric_fact` 질문을 기존 단일 `faithfulness` judge만으로 채점할 때 생기는 한계를 정리하고, 더 신뢰할 수 있는 **병렬 numeric evaluator + resolver** 구조를 설명한다.
 
-핵심 문제는 다음과 같다.
+## Executive Summary
 
-- `300조 8,709억원`과 `300,870,903 백만원`처럼 **표현은 다르지만 값은 같은 답**이 있다.
-- 현재 `faithfulness`는 retrieval grounding을 보는 데는 유용하지만, 숫자 문항에서는 **표현 차이**에 과도하게 민감할 수 있다.
-- 그 결과, 사실상 맞는 답인데도 `faithfulness = 0.0`이 나오는 false fail이 발생한다.
+| 문제 | 현재 해석 |
+| --- | --- |
+| `300조 8,709억원` vs `300,870,903 백만원`처럼 표현은 다르지만 값은 같은 답 | 단일 faithfulness judge는 표현 차이에 과민할 수 있음 |
+| 숫자 동치성과 grounding을 한 번에 보려는 평가 | 축을 분리해서 봐야 함 |
+| PASS / FAIL만 강제하는 판정 | `UNCERTAIN` 상태가 필요함 |
 
-즉 숫자 질문은 일반 서술형 질문과 같은 evaluator로만 다루기 어렵다.
+> 숫자 질문은 일반 서술형 질문과 같은 evaluator 하나로만 다루기 어렵다.  
+> 가장 신뢰할 수 있는 방향은 **여러 evaluator를 병렬로 실행하고 resolver가 최종 판정을 내리는 구조**다.
 
-## 목표
+## Design Goals
 
 숫자 질문에서는 다음을 동시에 보장하고 싶다.
 
-- 값이 실제로 같은지
-- 그 숫자가 질문이 묻는 **대상 필드**와 맞는지
-- 그 숫자가 검색된 evidence에 grounded되는지
-- judge 하나의 오판으로 잘못 채점되지 않는지
+| 목표 | 설명 |
+| --- | --- |
+| 값 동치성 | 값이 실제로 같은가 |
+| field identity | 그 숫자가 질문이 묻는 대상 필드와 맞는가 |
+| evidence grounding | 그 숫자가 검색된 evidence에 grounded되는가 |
+| robust judgement | judge 하나의 오판으로 잘못 채점되지 않는가 |
 
-따라서 목표 구조는 **여러 채점기를 병렬로 돌리고, 최종 resolver가 합의 기반으로 판정하는 구조**다.
+## Why a Single Judge Is Not Enough
 
-## 왜 단일 judge만으로는 부족한가
+| 한계 | 설명 |
+| --- | --- |
+| 표현 차이에 약함 | `억원`, `백만원`, `%`, `bp`, `조`, 쉼표, 한글 수사 표현 등 |
+| equivalence와 grounding을 동시에 보려 함 | 값 동치성과 evidence alignment를 분리해 봐야 함 |
+| confidence 표현이 어려움 | 값은 같지만 field가 애매한 경우 등을 `uncertain`으로 다뤄야 함 |
 
-단일 LLM judge는 아래 문제를 가진다.
+## Proposed Evaluator Stack
 
-### 1. 표현 차이에 약하다
+숫자 질문은 아래 4개 evaluator를 병렬로 실행하고, 마지막에 resolver가 최종 판정을 만든다.
 
-- `억원`, `백만원`, `%`, `bp`, `조` 같은 단위 차이
-- 표 셀 값 vs 문단 요약 값
-- 쉼표, 자릿수 구분, 한글 수사 표현
+| Evaluator | 역할 | 출력 형태 |
+| --- | --- | --- |
+| `Numeric Extractor` | answer와 evidence에서 값 / 단위 / 필드 / 시점 / 출처를 구조화 | structured numeric object |
+| `Numeric Equivalence Checker` | answer 숫자와 canonical/evidence 숫자의 값 동치 여부 확인 | `true / false / uncertain` |
+| `Grounding Judge` | 값이 evidence와 질문 field에 맞게 grounded되는지 확인 | `grounded / not_grounded / uncertain` |
+| `Retrieval Support Check` | 답변 숫자가 실제 읽은 텍스트 / retrieval context에 supported되는지 확인 | `supported / unsupported / uncertain` |
+| `Conflict Resolver` | 위 결과를 종합해 최종 판정 생성 | `PASS / FAIL / UNCERTAIN` |
 
-### 2. 숫자 동치성과 grounding을 한 번에 보려 한다
+## Component Details
 
-숫자 질문의 채점은 사실 두 축이다.
+### 1. Numeric Extractor
 
-- **equivalence**
-  - 값이 같은가?
-- **grounding**
-  - 그 값이 evidence에 근거하는가?
+| 항목 | 내용 |
+| --- | --- |
+| 입력 | question, answer, runtime evidence, canonical evidence |
+| 출력 | 값, 단위, 대상 항목, 시점, 출처 anchor |
+| 구현 후보 | LLM extraction, hybrid extraction |
+| 현재 추천 | 숫자/단위 regex + LLM field resolution을 섞은 hybrid extraction |
 
-단일 judge는 이 둘을 분리해 설명하기 어렵다.
-
-### 3. confidence를 표현하기 어렵다
-
-현재는 사실상 pass/fail에 가깝지만, 실제로는 아래 같은 상태가 존재한다.
-
-- 값은 같지만 target field가 애매함
-- target field는 맞지만 단위 변환이 헷갈림
-- retrieval은 맞는데 judge가 숫자 표현을 못 읽음
-
-이런 경우는 `uncertain`으로 다뤄야 한다.
-
-## 제안 구조
-
-숫자 질문은 아래 4개 evaluator를 병렬로 실행한다.
-
-1. `Numeric Extractor`
-2. `Numeric Equivalence Checker`
-3. `Grounding Judge`
-4. `Retrieval Support Check`
-
-그리고 마지막에 `Conflict Resolver`가 최종 판정을 만든다.
-
-## 1. Numeric Extractor
-
-### 역할
-
-답변과 evidence에서 아래 정보를 구조화해 뽑는다.
-
-- 값
-- 단위
-- 대상 항목
-- 시점
-- 출처 anchor
-
-### 입력
-
-- question
-- answer
-- runtime evidence
-- canonical evidence
-
-### 출력 예시
+예시:
 
 ```json
 {
@@ -95,115 +68,39 @@
 }
 ```
 
-### 구현 후보
+### 2. Numeric Equivalence Checker
 
-- LLM extraction
-- hybrid extraction
-  - 숫자/단위 regex + LLM field resolution
+| 항목 | 내용 |
+| --- | --- |
+| 역할 | 추출된 answer 숫자와 canonical/evidence 숫자가 동치인지 판단 |
+| 예시 | `300조 8,709억원` vs `300,870,903 백만원` |
+| 출력 | `true / false / uncertain` |
+| 장점 | 숫자 자체의 맞고 틀림을 deterministic하게 볼 수 있음 |
 
-초기엔 hybrid extraction이 가장 현실적이다.
+### 3. Grounding Judge
 
-## 2. Numeric Equivalence Checker
+| 항목 | 내용 |
+| --- | --- |
+| 역할 | answer 숫자가 evidence span에 grounded되는지, 단위 변환이 충돌하지 않는지, 질문의 target field와 맞는지 확인 |
+| 핵심 | “값이 같은가”보다 “질문과 evidence에 맞는가”를 본다 |
+| 출력 | `grounded / not_grounded / uncertain` |
+| 권장 방식 | 자유 점수보다 3값 분류 |
 
-### 역할
+### 4. Retrieval Support Check
 
-추출된 answer 숫자와 canonical/evidence 숫자가 **동치인지** 판단한다.
+| 항목 | 내용 |
+| --- | --- |
+| 역할 | 답변 숫자가 나온 evidence가 기대 회사 / 연도 / 섹션과 얼마나 맞는지 확인 |
+| 목적 | retrieval이 틀렸는데 우연히 비슷한 숫자를 말한 경우 방지 |
+| 출력 | `supported / unsupported / uncertain` |
 
-### 판단 대상
+### 5. Conflict Resolver
 
-- `300조 8,709억원`
-- `300,870,903 백만원`
-
-같은 값을 같은 기준 스케일로 정규화해 비교한다.
-
-### 출력
-
-- `true`
-- `false`
-- `uncertain`
-
-### 장점
-
-- 숫자 자체의 맞고 틀림을 deterministic하게 볼 수 있다.
-- LLM judge가 표현 차이 때문에 틀리게 보는 문제를 줄일 수 있다.
-
-## 3. Grounding Judge
-
-### 역할
-
-LLM judge가 다음만 본다.
-
-- 답변 숫자가 실제 evidence span에 grounded되는가
-- 단위 변환이 evidence와 충돌하지 않는가
-- 질문의 target field와 숫자가 맞는가
-
-### 중요한 점
-
-이 judge는 “값이 같은가”를 주로 보는 게 아니라,
-**그 값이 질문과 evidence에 맞는가**를 본다.
-
-### 출력
-
-- `grounded`
-- `not_grounded`
-- `uncertain`
-
-### 권장 방식
-
-자유 점수보다 3값 분류가 낫다.
-
-- `grounded`
-- `not_grounded`
-- `uncertain`
-
-## 4. Retrieval Support Check
-
-### 역할
-
-답변 숫자가 나온 evidence가 정말 기대 섹션 / 기대 회사 / 기대 연도와 맞는지 확인한다.
-
-### 목적
-
-- retrieval이 틀렸는데 우연히 비슷한 숫자를 말한 경우 방지
-- section alias와 함께 숫자 질문의 grounding을 더 안정적으로 해석
-
-### 출력
-
-- `supported`
-- `unsupported`
-- `uncertain`
-
-## 5. Conflict Resolver
-
-### 역할
-
-위 4개 결과를 모아 최종 판정을 만든다.
-
-### 최종 상태
-
-- `PASS`
-- `FAIL`
-- `UNCERTAIN`
-
-### 권장 규칙
-
-#### PASS
-
-- equivalence = `true`
-- grounding = `grounded`
-- retrieval support = `supported` 또는 충분히 강함
-
-#### FAIL
-
-- equivalence = `false`
-- 또는 grounding = `not_grounded`
-
-#### UNCERTAIN
-
-- extraction 실패
-- evaluator 간 충돌
-- 값은 같지만 target field가 애매
-- retrieval support가 약함
+| 상태 | 권장 규칙 |
+| --- | --- |
+| `PASS` | equivalence=`true`, grounding=`grounded`, retrieval support가 충분함 |
+| `FAIL` | equivalence=`false` 또는 grounding=`not_grounded` |
+| `UNCERTAIN` | extraction 실패, evaluator 간 충돌, field ambiguity, retrieval support 약함 |
 
 핵심은 **억지로 pass/fail만 강요하지 않는 것**이다.
 
@@ -222,120 +119,69 @@ question
       -> final_numeric_judgement
 ```
 
-## Metric Design
+## Metric Mapping
 
-숫자 질문에서는 기존 `faithfulness`와 별도로 아래 metric을 둔다.
+| Metric | 의미 |
+| --- | --- |
+| `numeric_equivalence` | 값 동치 여부 |
+| `numeric_grounding` | evidence grounding 여부 |
+| `numeric_retrieval_support` | retrieval / text support 여부 |
+| `numeric_final_judgement` | `PASS / FAIL / UNCERTAIN` 최종 판정 |
+| `numeric_confidence` | resolver confidence |
 
-### 1. `numeric_equivalence`
+## Relationship to Generic Metrics
 
-- 값 동치 여부
-
-### 2. `numeric_grounding`
-
-- evidence grounding 여부
-
-### 3. `numeric_retrieval_support`
-
-- retrieval support 여부
-
-### 4. `numeric_final_judgement`
-
-- `pass / fail / uncertain`
-
-### 5. `numeric_confidence`
-
-- resolver confidence
-
-## Existing Metrics와의 관계
-
-### `faithfulness`
-
-- numeric 질문에서는 유지하되 **보조 지표**로 낮춘다.
-- 최종 정답 판정은 `numeric_final_judgement`를 우선한다.
-
-### `answer_relevancy`
-
-- numeric 질문에서는 의미가 제한적이다.
-- 질문의 target field와 답변 숫자가 같은지 보는 별도 지표가 더 중요하다.
-
-### `context_recall`
-
-- retrieval 품질 참고용으로는 유지한다.
+| 기존 지표 | numeric 질문에서의 역할 |
+| --- | --- |
+| `faithfulness` | 유지하되 보조 지표로 낮춤 |
+| `answer_relevancy` | 의미가 제한적이며 field identity를 대체하지 못함 |
+| `context_recall` | retrieval 품질 참고용으로 유지 |
 
 ## Recommended Implementation Order
 
-### Phase 1. Logging / Schema
-
-- canonical dataset에 numeric 전용 필드 추가
-  - `display_value`
-  - `normalized_value`
-  - `unit`
-- runtime evidence에도 numeric field를 둘 수 있게 준비
-
-### Phase 2. Extractor
-
-- answer / evidence 숫자 구조화
-- numeric 질문만 별도 extraction path 사용
-
-### Phase 3. Equivalence + Retrieval Support
-
-- 값 동치 판정
-- 기대 section/company/year support 확인
-
-### Phase 4. Grounding Judge
-
-- LLM judge를 숫자 전용 rubric으로 분리
-
-### Phase 5. Resolver
-
-- `pass / fail / uncertain` 판정
-- aggregate metric 반영
+| Phase | 범위 | 목표 |
+| --- | --- | --- |
+| Phase 1 | Logging / schema | canonical dataset과 runtime artifact에 numeric 전용 필드 추가 |
+| Phase 2 | Extractor | answer / evidence 숫자 구조화, numeric 질문 전용 extraction path |
+| Phase 3 | Equivalence + Retrieval Support | 값 동치 판정, 기대 company/year/section support 확인 |
+| Phase 4 | Grounding Judge | 숫자 전용 rubric으로 LLM judge 분리 |
+| Phase 5 | Resolver | `PASS / FAIL / UNCERTAIN` 판정과 aggregate 반영 |
 
 ## Current Status
 
-현재 상태는 아래까지 반영된 것으로 본다.
-
-- Phase 1
-  - benchmark 결과와 review artifact에 numeric evaluator 필드 기록
-- Phase 2~4의 최소 버전
-  - `Numeric Extractor`
-  - `Numeric Equivalence Checker`
-  - `Grounding Judge`
-  - `Retrieval Support Check`
-  - `Conflict Resolver`
-  가 `numeric_fact` path에 1차 구현됨
-- **Generation-side 분리 (결정 60, 2026-04-26)**
-  - `numeric_extractor` 노드가 `compress → validate`를 bypass하고 직접 수치 추출
-  - `NumericExtraction` Pydantic 스키마로 period/consolidation/unit/raw_value CoT 강제
-  - `selective_v2_prefix` 기준 `numeric_fact_001`: FAIL → PASS 회복
+| 상태 | 반영 내용 |
+| --- | --- |
+| Phase 1 | benchmark 결과와 review artifact에 numeric evaluator 필드 기록 |
+| Phase 2~4 최소 버전 | `Numeric Extractor`, `Numeric Equivalence Checker`, `Grounding Judge`, `Retrieval Support Check`, `Conflict Resolver`가 `numeric_fact` path에 1차 구현 |
+| Generation-side 분리 | `numeric_extractor` 노드가 `compress -> validate`를 bypass하고 직접 수치 추출 |
 
 삼성전자 `numeric_fact_001` 기준 (`numeric_extractor_v2_2026-04-26`):
 
-- `numeric_final_judgement = PASS` (contextual_all, contextual_parent_only, selective_v2_prefix)
-- `plain_prefix`: UNCERTAIN 지속 — ingest-side 문제로 별도 추적
+| 프로파일 | 결과 |
+| --- | --- |
+| `contextual_all` | `numeric_final_judgement = PASS` |
+| `contextual_parent_only` | `numeric_final_judgement = PASS` |
+| `selective_v2_prefix` | `numeric_final_judgement = PASS` |
+| `plain_prefix` | `UNCERTAIN` 지속 |
 
 남은 단계:
 
-- `plain_prefix`의 numeric_fact 실패 원인 파악 (plain chunk에 table row가 수치를 포함하지 않는 문제)
-- aggregate / summary에서 `numeric_final_judgement`를 더 전면에 반영
-- cross-company summary 및 winner selection 해석에 numeric evaluator 반영
+| 과제 | 이유 |
+| --- | --- |
+| `plain_prefix`의 numeric_fact 실패 원인 파악 | plain chunk에 table row가 수치를 충분히 포함하지 않는 문제 추적 |
+| aggregate / summary에서 `numeric_final_judgement`를 더 전면 반영 | 숫자 질문 해석을 더 직관적으로 만들기 위해 |
+| cross-company summary 및 winner selection에 numeric evaluator 반영 | multi-entity 비교를 준비하기 위해 |
 
 ## Trade-offs
 
-### 장점
+| 장점 | 단점 |
+| --- | --- |
+| false fail 감소 | 구현 복잡도 증가 |
+| 숫자 질문에서 “왜 맞고 왜 틀린지” 설명 가능 | 일부 evaluator 비용 증가 |
+| 단일 judge 의존도 감소 | canonical dataset 보강 필요 |
+| `uncertain` 버킷으로 잘못된 강제 판정 방지 | 운영/리뷰 artifact가 더 복잡해짐 |
 
-- false fail 감소
-- 숫자 질문에서 “왜 맞고 왜 틀린지” 설명 가능
-- 단일 judge 의존도 감소
-- `uncertain` 버킷으로 잘못된 강제 판정 방지
-
-### 단점
-
-- 구현 복잡도 증가
-- 일부 evaluator 비용 증가
-- canonical dataset 보강 필요
-
-## 결론
+## Conclusion
 
 숫자 질문은 일반 서술형 질문과 같은 `faithfulness` judge 하나로 채점하기 어렵다.
 
@@ -347,5 +193,4 @@ question
 
 이다.
 
-즉 다음 numeric evaluator는 “더 똑똑한 단일 judge”가 아니라,  
-**parallel numeric evaluators + conflict-aware resolver**를 목표로 해야 한다.
+즉 다음 numeric evaluator는 “더 똑똑한 단일 judge”가 아니라, **parallel numeric evaluators + conflict-aware resolver**를 목표로 해야 한다.
