@@ -14,6 +14,23 @@
 
 현재는 **Phase 1a를 구현하고 실제 graph expansion에 태우는 것**이 1순위다.
 
+## 병렬 트랙: Retrospective Scorecard
+
+구조 확장과 별개로, 이미 내린 중요한 기술 결정이 정량적으로 어떤 차이를 만들었는지 남기는 **회고 실험 트랙**을 병렬로 준비한다.
+
+원칙:
+- 새 기능 구현과 retrospective scorecard를 섞지 않는다.
+- scorecard는 포트폴리오/면접용 evidence track으로 운영한다.
+- 시스템 품질 실험과 evaluator 메타-실험을 분리한다.
+
+현재 우선 실험:
+1. `Section Match Evaluator vs Operand Grounding Evaluator`
+2. `Direct Calc vs Operation Path vs Formula Planner + AST`
+3. `Standard Retrieval vs Ontology-Guided Retrieval`
+
+정리 위치:
+- 실험 설계와 scorecard 형식은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)의 `Retrospective Scorecard Track` 섹션을 기준으로 본다.
+
 ## Active Work
 
 ### 1. `REFERENCE_NOTE Phase 1a`

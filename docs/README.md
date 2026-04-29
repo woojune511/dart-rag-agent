@@ -23,6 +23,7 @@
 
 ### `evaluation/`
 - benchmark 운영 방식, 단일 문서 평가 기준, metric spec
+- retrospective scorecard 실험 설계는 `evaluation/benchmarking.md` 안에서 함께 관리
 
 ### `planning/`
 - backlog, next epics, 향후 구조 과제

@@ -45,6 +45,140 @@ benchmark는 여전히 "모든 후보를 비싼 full evaluation으로 보내는 
 
 즉 low-cost 후보의 실패를 모두 retrieval 문제로 보지 않고, `intent / format_preference` routing variance까지 같이 본다.
 
+## Retrospective Scorecard Track
+
+이 섹션은 **이미 내린 중요한 기술 결정이 정량적으로 어떤 차이를 만들었는지**를 회고적으로 입증하기 위한 실험 계획이다.  
+목적은 단순히 점수를 다시 올리는 것이 아니라, 포트폴리오와 면접에서 아래 질문에 수치로 답할 수 있게 만드는 것이다.
+
+- 왜 direct LLM calc가 아니라 `formula planner + AST`가 필요했는가?
+- 왜 일반 semantic retrieval만으로는 부족했고 ontology / structure-aware retrieval이 필요했는가?
+- 왜 section hit 중심 evaluator 대신 operand grounding evaluator를 만들었는가?
+
+### 실험 설계 원칙
+
+1. **결정 하나당 하나의 가설**로 실험한다.
+2. **시스템 품질 실험**과 **평가기 메타-실험**을 섞지 않는다.
+3. 가능하면 같은 store / 같은 question set / 같은 evaluator를 유지한 채 한 축만 바꾼다.
+4. 결과는 “좋아졌다”가 아니라 `baseline -> proposed`의 metric delta로 기록한다.
+
+### 트랙 구분
+
+#### A. 시스템 품질 결정
+
+- parser / retrieval / routing / planner / ontology 같은 구조적 결정
+- 질문: 시스템이 실제로 더 정확하고 안정적으로 동작하게 되었는가?
+
+#### B. 평가기 메타-실험
+
+- display-aware equivalence
+- operand grounding evaluator
+- math completeness rubric
+- 질문: 시스템 성능을 더 공정하고 왜곡 없이 재기 시작했는가?
+
+### 핵심 retrospective 실험 3개
+
+#### 실험 1. `Direct Calc vs Operation Path vs Formula Planner + AST`
+
+목적:
+- LLM 직접 계산의 한계와 rule-based operation path의 한계를 비교하고,
+- 현재 `formula planner + safe AST evaluator` 구조의 가치를 수치로 보여준다.
+
+비교군:
+- `Baseline A`: direct-calc RAG
+- `Baseline B`: operation-based math path
+- `Proposed`: formula planner + safe AST
+
+벤치셋:
+- `dev_math_focus`
+
+주요 지표:
+- `numeric_pass`
+- `calculation_correctness`
+- 단위/포맷 오류 수
+- 질문 유형 커버 범위
+
+포트폴리오 메시지:
+- “LLM을 계산기가 아니라 수식 기획자로 제한하고, 실제 연산은 symbolic executor에 맡겨 계산 정답률과 일반화 범위를 크게 개선했다.”
+
+#### 실험 2. `Standard Retrieval vs Ontology-Guided Retrieval`
+
+목적:
+- 재무 도메인 특화 metric에서 일반 semantic retrieval만으로는 source miss가 발생함을 보이고,
+- `financial_ontology.json` 기반 retrieval prior가 operand 회수율을 실제로 복구하는지 검증한다.
+
+비교군:
+- `Baseline`: ontology off
+- `Proposed`: ontology-guided retrieval on
+
+주의:
+- planner / evaluator는 고정하고 retrieval 쪽만 바꿔 효과를 본다.
+
+벤치셋:
+- `comparison_005`
+- `comparison_006`
+- 가능하면 `operating_margin` 계열 1~2문항 추가
+
+주요 지표:
+- `operand_grounding_score`
+- `retrieval_hit_at_k`
+- `ratio_row_candidates > 0` 비율
+- `numeric_pass`
+
+포트폴리오 메시지:
+- “재무 metric retrieval에서는 특정 section이 semantic 중력에 밀려나는 문제가 있었고, 얇은 ontology 기반 secondary retrieval로 핵심 operand 회수율을 복구했다.”
+
+#### 실험 3. `Section Match Evaluator vs Operand Grounding Evaluator`
+
+목적:
+- 금융 문서에서는 동일 수치가 여러 섹션에 반복되므로,
+- section match 중심 평가는 false negative를 만들 수 있음을 보이고,
+- operand grounding evaluator가 사람 판정과 더 잘 맞는지 검증한다.
+
+성격:
+- 이 실험은 시스템 개선 실험이 아니라 **평가기 메타-실험**이다.
+
+비교군:
+- `Baseline`: `expected_sections` 기반 numeric support
+- `Proposed`: operand grounding 기반 numeric support
+
+벤치셋:
+- `comparison_001` 같은 억울한 FAIL 케이스를 포함한 small adjudication set
+- math 질문 5~10문항
+
+주요 지표:
+- false negative rate
+- human adjudication alignment
+- `numeric_final_judgement` stability
+
+포트폴리오 메시지:
+- “금융 RAG에서는 section hit보다 operand grounding이 실제 시스템 성능을 더 잘 대변하므로, evaluator까지 도메인 맞춤형으로 재설계했다.”
+
+### 권장 실행 순서
+
+1. **실험 3**
+   - evaluator 기준부터 고정해야 뒤 실험 해석이 깨끗해진다.
+2. **실험 1**
+   - 현재 프로젝트의 가장 강한 architecture story를 수치로 입증한다.
+3. **실험 2**
+   - 도메인 지식과 retrieval 구조 개선의 효과를 보여준다.
+
+### Scorecard 산출물 형식
+
+각 실험은 최종적으로 아래 표 한 줄로 남긴다.
+
+- `Decision`
+- `Benchmark`
+- `Baseline`
+- `Proposed`
+- `Primary metric delta`
+- `Secondary metric delta`
+- `Runtime / cost delta`
+- `Interpretation`
+- `Kept / Reverted / Ambiguous`
+
+즉 `DECISIONS.md`가 “왜 이런 결정을 했는가”를 남기는 문서라면,  
+이 scorecard track은 **“그 결정이 실제로 어떤 수치 변화를 만들었는가”**를 남기는 실험 레이어다.
+
 현재 baseline:
 
 - `contextual_all_2500_320`
