@@ -1,62 +1,89 @@
-# DART 공시 분석 RAG Agent
+# DART Multi-Agent Financial Analysis Lab
 
-DART 전자공시 문서를 대상으로, **구조를 보존한 retrieval**과 **근거 통제가 가능한 answer generation**을 실험하는 한국어 RAG 시스템입니다.  
-이 프로젝트의 중심은 “LLM에게 문서를 읽히는 것”보다, **비표준 공시 문서를 어떻게 구조화하고, 어떤 평가 기준 위에서 RAG/agent를 개선할 것인가**에 있습니다.
+DART 전자공시 문서를 테스트베드로 삼아, **금융 문서용 multi-agent system**을 설계하고 검증하는 프로젝트입니다.  
+단순한 “공시 QA 챗봇”보다, 아래 질문에 답하는 것이 현재 목표입니다.
 
-## 핵심 기술 결정
+- 어떤 **agent topology**가 재무 문서 분석에 적합한가
+- agent 간 **communication contract**는 어떻게 설계해야 하는가
+- 각 agent의 **role / tool boundary**는 어디까지가 좋은가
+- **memory / cache / state update**는 어떤 계층으로 나눠야 하는가
+- retrieval, calculation, critique를 어떻게 분리해야 **설명 가능성**과 **정확성**을 함께 가져갈 수 있는가
 
-### 1. 구조 우선 ingestion
+## 프로젝트 포지셔닝
 
-- DART XML 전용 parser로 `SECTION-*`, `TITLE`, `P`, `TABLE`, `TABLE-GROUP`를 직접 해석
-- 일반 HTML splitter 대신 **문서 구조를 보존하는 청킹**을 채택
-- parent-child metadata, section path, table context를 retrieval과 citation의 기본 단위로 사용
+| 항목 | 현재 정의 |
+| --- | --- |
+| 프로젝트 성격 | DART 도메인을 사용하는 **MAS 설계/검증 실험실** |
+| 단기 목표 | multi-agent skeleton과 shared state contract 정립 |
+| 중기 목표 | Analyst / Researcher / Critic 역할 분리와 bounded reflection loop |
+| 장기 목표 | cross-document / cross-company financial analysis |
+| 현재 구현 상태 | 강한 single-agent pipeline과 evaluator 자산을 보유, 이를 MAS로 단계적 이식 중 |
 
-### 2. 한국어 공시용 retrieval stack
-
-- multilingual embedding + BM25 + RRF hybrid retrieval
-- `chunk_uid` 기반 dedup
-- company / year / section metadata filtering
-- child chunk로 검색하고 parent section으로 reasoning context를 구성하는 **parent-child retrieval**
-
-### 3. answer generation을 free-form generation이 아니라 evidence compression으로 재설계
-
-- `retrieve -> evidence -> compress -> validate -> cite`
-- structured evidence를 먼저 만들고, 답변은 그 근거를 질문 범위에 맞게 압축하는 방식으로 이동 중
-- 최근에는 `selected_claim_ids`, `kept_claim_ids`, `dropped_claim_ids`, `unsupported_sentences` 같은 typed artifact를 남겨, 답변 생성 경로를 추적 가능하게 만들었다
-
-### 4. 평가를 먼저 고정하고 시스템을 바꾸는 방식
-
-- multi-company benchmark 전에 **single-document Golden Dataset**을 먼저 만드는 방향으로 전환
-- 숫자 질문은 generic `faithfulness`만으로 평가하지 않고 numeric evaluator를 별도 분리
-- retrieval / generation / numeric / refusal metric을 분리해, 어떤 실패가 retrieval 문제인지 generation 문제인지 설명 가능하게 만드는 것이 현재의 핵심 방향이다
-
-## 현재 기본 구조
+## 목표 토폴로지
 
 ```text
-질문
-  -> classify
-  -> extract
-  -> retrieve
-  -> build_structured_evidence
-  -> compress
-  -> validate
-  -> cite
-  -> 답변
+User Query
+  -> Orchestrator
+      -> Analyst Agent   ----\
+      -> Research Agent  -----+-> Critic Stack -> Orchestrator Merge -> Final Report
+      -> Cache / Memory  -----/
 ```
 
-현재 검색은 child chunk 기준으로 수행하고, reasoning context는 parent section을 우선 사용합니다.
+### Agent 역할
 
-## 현재 기본값
+| Agent | 역할 | 직접 하지 않을 일 |
+| --- | --- | --- |
+| Orchestrator | task decomposition, assignment, final merge | 직접 검색/계산 |
+| Analyst | 수치 추출, formula planning, 계산 | 자유 서술형 맥락 요약 |
+| Researcher | 비정형 텍스트 탐색, why/context 추출, note traversal | 수치 계산 확정 |
+| Critic | grounding, binding, scope, completeness 검증 | 원문 검색 대행 |
 
-| 항목 | 현재 기준 |
+### Communication 모델
+
+이 프로젝트는 agent 간 자유 채팅보다 **task ledger + artifact store**를 지향합니다.
+
+| 계층 | 용도 |
 | --- | --- |
-| Embedding | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
-| Collection | `dart_reports_v2` |
-| Chunk size / overlap | `2500 / 320` |
-| 품질 baseline | `contextual_all_2500_320` |
-| 저비용 math baseline | `contextual_selective_v2_prefix_2500_320` |
-| Retrieval | Dense + BM25 + RRF + rerank |
-| Reasoning | evidence-first, math는 `formula planner + safe AST` |
+| `tasks` | 오케스트레이터가 분해한 작업 단위 |
+| `task_results` | Analyst / Researcher가 제출한 구조화 결과 |
+| `evidence_pool` | 검색된 근거, quote, source anchor |
+| `critic_reports` | deterministic / LLM critic의 검증 결과 |
+| `final_report` | 최종 사용자 응답 |
+
+## Memory / Cache 철학
+
+장기 메모리보다 먼저 **report-scoped cache**를 명확히 둡니다.
+
+| 계층 | 정의 |
+| --- | --- |
+| Graph State | 한 번의 실행 중 공유되는 작업 상태 |
+| Report-scoped cache | `company + report_type + rcept_no + year + metric` 기준 재사용 가능한 값 |
+| Benchmark artifacts | 실험 재현성을 위한 결과 번들 |
+| Long-term memory | 나중 단계. 현재는 우선순위 아님 |
+
+## 현재 구현 자산
+
+MAS 전체는 아직 구현 전이지만, 아래 자산은 이미 꽤 강합니다.
+
+| 축 | 현재 자산 |
+| --- | --- |
+| Parser | DART 구조 보존 parser, section/table-aware chunking |
+| Retrieval | dense + BM25 + RRF hybrid, metadata filter, parent-child expansion |
+| Graph | document-structure expansion, `reference_note` phase 1a wiring |
+| Analyst core | formula planner + safe AST calculator |
+| Evaluation | operand grounding evaluator, display-aware equivalence, benchmark/replay infra |
+| Experiment loop | benchmark runner, store-fixed eval-only, retrospective replay scripts |
+
+## 현재 구현 상태
+
+| 구성 | 상태 | 비고 |
+| --- | --- | --- |
+| Orchestrator | planned | 문서/설계 우선 정리 단계 |
+| Analyst Agent | partial | 기존 `financial_graph.py`가 proto-analyst 역할 수행 |
+| Research Agent | partial | retrieval / evidence / note traversal 자산 보유 |
+| Critic Stack | partial | evaluator 자산은 강함, runtime critic은 분리 중 |
+| Shared task ledger | planned | 현재는 single-agent state 중심 |
+| Bounded reflection | experimental | single-agent graph 안의 checkpoint 구현, 최종 설계 아님 |
 
 ## 최근 정량 근거
 
@@ -66,28 +93,28 @@ DART 전자공시 문서를 대상으로, **구조를 보존한 retrieval**과 *
 | Math architecture | direct calc | formula planner + AST | strict correctness `0.556 -> 1.000` |
 | Ratio retrieval | standard retrieval | ontology-guided retrieval | calc success `0.333 -> 1.000` |
 
-## 현재 실험 방향
+이 수치들은 “현재 single-agent 자산이 얼마나 강한가”를 보여주고, 이후 MAS 이식의 기준선 역할을 합니다.
 
-이 프로젝트는 최근 실험을 통해 “더 싼 ingest mode를 찾는 것”보다 **평가 기준을 먼저 고정하는 것**이 더 중요하다는 결론에 도달했습니다.
+## 현재 우선순위
 
-현재 우선순위:
+1. **MAS skeleton**과 shared state / task contract를 문서와 코드에서 정렬
+2. 기존 `financial_graph.py` 자산을 **Analyst / Researcher / Critic** 역할로 분해
+3. bounded self-reflection을 **rule patch**가 아니라 **agentic reformulation behavior**로 재설계
+4. 그 이후 `reference_note`, cross-company, report-scoped cache를 MAS capability로 편입
 
-1. 삼성전자 2024 사업보고서 기준 single-document Golden Dataset 정리
-2. metric spec 고정
-3. single-document benchmark lab 안정화
-4. 그 다음에만 retrieval / compression / validation을 다시 개선
-
-즉 지금의 기준선은 다기업 benchmark보다도, **단일 문서에서 retrieval / generation / numeric / refusal을 어떻게 해석할지 먼저 고정하는 것**입니다.
+즉 다음 단계의 초점은 “점수 잘 나오는 단일 파이프라인”이 아니라,  
+**설명 가능한 multi-agent topology로 재구성하는 것**입니다.
 
 ## 문서 읽는 순서
 
 | 순서 | 문서 | 용도 |
 | --- | --- | --- |
-| 1 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
-| 2 | [CONTEXT.md](CONTEXT.md) | 현재 기준 snapshot |
-| 3 | [PLAN.md](PLAN.md) | 현재 active work |
-| 4 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard + replay 구분 |
-| 5 | [DECISIONS.md](DECISIONS.md) | append-only 설계 판단 로그 |
+| 1 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | 포트폴리오용 기술 요약 |
+| 2 | [docs/architecture/architecture_direction.md](docs/architecture/architecture_direction.md) | MAS 방향성과 agent/tool/memory 설계 |
+| 3 | [CONTEXT.md](CONTEXT.md) | 현재 snapshot |
+| 4 | [PLAN.md](PLAN.md) | active implementation plan |
+| 5 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
+| 6 | [DECISIONS.md](DECISIONS.md) | append-only 설계 판단 로그 |
 
 ## 프로젝트 구조
 
@@ -98,13 +125,11 @@ src/
   storage/        ChromaDB / BM25 / parent store
   agent/          LangGraph 기반 분석 로직
   api/            FastAPI 라우터
-  ops/            evaluator / benchmark runner
+  ops/            evaluator / benchmark runner / replay tools
 benchmarks/
-  experiment_matrix.sample.json
-  eval_dataset.template.json
+  profiles/
   results/
 docs/
-  README.md
   overview/
   architecture/
   evaluation/
@@ -166,30 +191,12 @@ python -m src.ops.run_eval_only --config benchmarks/profiles/dev_math_focus.json
 이 경로는 **기존 store를 재사용해 current agent/evaluator를 다시 실행**하는 방식입니다.  
 같은 historical answer를 대상으로 evaluator만 비교하려면 retrospective replay 스크립트를 사용해야 합니다.
 
-일반화 검증:
-
-```bash
-python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generalization.json --company-run-id samsung_2024
-python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generalization.json --company-run-id skhynix_2024
-python -m src.ops.benchmark_runner --config benchmarks/profiles/release_generalization.json --company-run-id naver_2024
-```
-
-결과물:
-
-- `benchmarks/results/.../results.json`
-- `benchmarks/results/.../summary.csv`
-- `benchmarks/results/.../summary.md`
-
-자세한 설명은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)를 참고하세요.  
-retrospective 실험 결과는 같은 문서의 `Retrospective Results` 섹션에 정리되어 있습니다.
-
 ## 참고 문서
 
-- [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md): 프로젝트 핵심 기술 포인트 요약
+- [docs/architecture/architecture_direction.md](docs/architecture/architecture_direction.md): MAS 방향성과 설계 원칙
+- [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md): 포트폴리오용 핵심 기술 포인트
+- [CONTEXT.md](CONTEXT.md): 현재 상태와 handoff 메모
+- [PLAN.md](PLAN.md): active implementation plan
 - [DECISIONS.md](DECISIONS.md): 중요한 설계 판단과 근거
 - [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md): benchmark 구조와 metric 해석
-- [docs/evaluation/single_document_eval_strategy.md](docs/evaluation/single_document_eval_strategy.md): 단일 문서 기준선 전략
-- [docs/evaluation/evaluation_metrics_v1.md](docs/evaluation/evaluation_metrics_v1.md): metric spec v1
 - [docs/history/experiment_history.md](docs/history/experiment_history.md): 버전별 코드/실험 변화와 해석
-- [CONTEXT.md](CONTEXT.md): 현재 상태와 handoff 메모
-- [PLAN.md](PLAN.md): 다음 실험 계획

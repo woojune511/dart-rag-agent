@@ -1,192 +1,223 @@
 # Architecture Direction
 
-이 문서는 현재 DART 공시 QA 시스템의 구조적 한계를 정리하고, 앞으로 어떤 방향으로 아키텍처를 바꾸는 것이 적절한지를 설명한다.
+이 문서는 `dart-rag-agent`를 **DART 도메인 위의 multi-agent financial analysis lab**으로 재구성하기 위한 방향성을 정리한다.
+
+핵심 메시지는 단순하다.
+
+- 기존 single-agent graph와 evaluator 자산은 버리지 않는다
+- 대신 그것을 **Orchestrator / Analyst / Researcher / Critic** 역할로 분해한다
+- 의미 해석은 LLM에게, 실행/계산/grounding은 deterministic code에 맡긴다
 
 ## Executive Summary
 
 | 질문 | 현재 답 |
 | --- | --- |
-| 지금 문제를 해결하기 위해 full GraphRAG가 필요한가? | 아직은 과함 |
-| full multi-agent system으로 가는 것이 맞는가? | 아직은 과함 |
-| 그 대신 무엇이 필요한가? | document-structure graph + structured evidence + compression / validation |
+| 지금 목표는 single-agent pipeline 최적화인가? | 아니다 |
+| full MAS로 방향을 틀어도 되는가? | 된다. 다만 단계적으로 간다 |
+| 기존 자산은 버리나? | 아니다. Analyst / Researcher / Critic 자산으로 이식한다 |
+| 가장 먼저 고정할 것은 무엇인가? | topology, shared state, communication contract |
 
-> 현재 단계에서는 **full GraphRAG / full multi-agent보다, document-structure graph + structured evidence + answer compression/validation 구조가 더 적합하다.**
+> 현재 단계의 핵심은 “더 많은 patch”가 아니라 **MAS skeleton과 agent boundary를 명확히 하는 것**이다.
 
-숫자 질문(`numeric_fact`)의 평가는 일반 서술형 `faithfulness` judge 하나에 의존하지 않고, 별도의 **parallel numeric evaluators + resolver** 구조로 분리하는 것이 바람직하다. 자세한 설계는 [numeric_evaluation_architecture.md](numeric_evaluation_architecture.md)를 참고한다.
+## Why MAS Now
 
-## Current Pipeline
+초기 단계에서 single-agent structured pipeline을 먼저 만든 판단은 틀리지 않았다.  
+그 덕분에 아래 자산이 쌓였다.
 
-| 단계 | 현재 구현 |
+| 자산 | 현재 상태 |
 | --- | --- |
-| 1 | DART XML 파싱 |
-| 2 | structure-first chunking |
-| 3 | hybrid retrieval (`dense + BM25 + RRF`) |
-| 4 | evidence extraction |
-| 5 | answer generation |
-| 6 | citation formatting |
+| DART structure parser | 안정적 |
+| hybrid retrieval | 안정적 |
+| parent-child / graph expansion | 안정적 |
+| formula planner + safe AST | 안정적 |
+| operand grounding evaluator | 안정적 |
+| benchmark / replay infra | 안정적 |
 
-이미 있는 강한 기반:
+이제 남은 질문은 “단일 파이프라인을 조금 더 미세 조정할까?”가 아니라:
 
-- parent-child retrieval
-- section/path metadata
-- table / paragraph block type
-- evidence-first reasoning
-- benchmark / canonical eval dataset
+- 어떤 작업을 어떤 agent에게 맡길까
+- agent가 어떤 artifact를 생성해야 할까
+- critic이 무엇을 기준으로 결과를 반려할까
+- memory/cache를 어느 계층에 둘까
 
-즉 완전히 밑바닥부터 새로 만드는 상황은 아니다.
+이다.  
+즉 **문제의 중심이 시스템 설계로 이동했기 때문에** MAS로 전환할 시점이다.
 
-## Problem Diagnosis
-
-| 관찰 | 해석 |
-| --- | --- |
-| `hit@k`, `section_match_rate`, `context_recall`은 유지되는데 `faithfulness`만 흔들림 | retrieval보다 generation 문제가 클 가능성 |
-| evidence는 있는데 answer에서 taxonomy 재구성 / 배경 확장 / 숫자 표현 drift 발생 | answer generation이 자유 서술에 과도하게 의존 |
-| query-type별 bias / output style / post-generation guard가 늘어남 | local optimization이 누적되고 있음 |
-
-## Why Not Full GraphRAG Yet
-
-### Full GraphRAG가 특히 강한 경우
-
-| 상황 | 설명 |
-| --- | --- |
-| 여러 문서 간 entity relation이 핵심일 때 | 회사/이벤트/인물/거래 관계 추적 |
-| 복수 회사 / 복수 연도 연결이 중요할 때 | cross-document reasoning 중심 |
-| “누가 누구와 어떤 관계인지”를 추적해야 할 때 | explicit relation graph가 강함 |
-
-### 지금 과한 이유
-
-| 이유 | 설명 |
-| --- | --- |
-| 현재 주요 실패와 mismatch | entity relation missing보다 answer over-generation이 더 큰 문제 |
-| 새로운 오류면 증가 | entity extraction, relation extraction, graph maintenance, sync 복잡도 |
-| evaluation 복잡도 증가 | 현재 benchmark 해석이 더 어려워질 수 있음 |
-
-즉 지금 당장 full GraphRAG로 가면, 현재 문제를 해결하기 전에 새로운 실패면을 더 많이 만들 가능성이 크다.
-
-## Why Not Full Multi-agent Yet
-
-### Multi-agent의 장점
-
-| 장점 | 설명 |
-| --- | --- |
-| planner / retriever / writer / verifier 역할 분리 | 실패 원인 분해가 쉬움 |
-| 각 단계 독립 개선 가능 | 모듈화 |
-
-### 지금 과한 이유
-
-| 이유 | 설명 |
-| --- | --- |
-| 이미 LangGraph 기반 단계적 구조가 있음 | `classify -> extract -> retrieve -> evidence -> analyze -> cite` |
-| 필요한 것은 agent 수 증가보다 structured I/O | 노드 입출력 구조화, answer generation 제약, validation 분리 |
-
-즉 **multi-agent화**보다 **structured pipeline화**가 우선이다.
-
-## Recommended Direction
-
-### 1. Document-Structure Graph
-
-full knowledge graph 대신 먼저 **document-structure graph**를 도입하는 것이 적절하다.
-
-#### 노드 / 엣지
-
-| 범주 | 구성 |
-| --- | --- |
-| 노드 | section, chunk, table, paragraph, note / footnote |
-| 엣지 | `parent_of`, `child_of`, `adjacent_to`, `precedes`, `describes_table`, `belongs_to_section`, `same_parent` |
-
-#### 기대 효과
-
-| 효과 | 설명 |
-| --- | --- |
-| retrieval 후 구조 확장 | similarity 외 구조적 이웃 활용 |
-| table 질문 보강 | preceding paragraph를 안정적으로 결합 |
-| answer grounding 구분 | 직접 근거와 배경 근거 분리 용이 |
-
-현재 1차 구현은 full graph가 아니라 **retrieval 후 후처리 확장용 최소 구조 그래프**다.
-
-- `parent_id` 기반 parent context
-- 같은 `parent_id` 안에서의 `sibling_prev` / `sibling_next`
-- parser가 이미 보존하던 `table_context`
-
-### 2. Structured Evidence Schema
-
-현재 evidence는 사실상 bullet 문자열에 가깝다. 이를 더 구조화하는 것이 핵심이다.
-
-상세 스키마 초안은 [evidence_schema.md](evidence_schema.md)를 참고한다.
-
-예시:
-
-```json
-{
-  "claim": "DX 부문은 TV, 모니터, 냉장고, 세탁기 등을 생산·판매한다.",
-  "quote_span": "Set 사업은 DX(Device eXperience) 부문이 TV를 비롯하여...",
-  "source_anchor": "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]",
-  "support_level": "direct",
-  "allowed_terms": ["DX", "TV", "모니터", "냉장고", "세탁기"],
-  "question_relevance": "high"
-}
-```
-
-핵심은 answer가 free-form generation이 아니라, 이 structured evidence를 **질문 범위에 맞게 압축하는 단계**가 되도록 만드는 것이다.
-
-### 3. Answer Compression + Validator
-
-현재 `_analyze`는 여전히 “답을 써라”에 가깝다. 앞으로는 다음 두 단계로 나누는 것이 좋다.
-
-| 단계 | 역할 | 하지 말아야 할 것 |
-| --- | --- | --- |
-| Compression | evidence 집합에서 질문에 필요한 claim만 선택하고 짧게 정리 | 새로운 설명 생성 |
-| Validator | unsupported sentence 제거, taxonomy / numeric drift 탐지, duplicated claim 제거 | 새 내용을 추가하는 것 |
-
-중요한 점은 validator가 “새 내용을 쓰는 단계”가 아니라는 것이다. validator는 제거/축소만 해야 한다.
-
-## Target Pipeline
+## Target Topology
 
 ```text
-classify
-  -> extract
-  -> retrieve
-  -> expand_via_structure_graph
-  -> [intent == numeric_fact] -> numeric_extractor -> cite
-  -> [그 외]                  -> build_structured_evidence
-                               -> compress_answer
-                               -> validate_answer
-                               -> cite
+User Query
+  -> Orchestrator
+      -> Analyst Agent   ----\
+      -> Research Agent  -----+-> Critic Stack -> Orchestrator Merge -> Final Report
+      -> Cache / State   -----/
 ```
 
-기존 구조와의 차이:
+### Logical Agents
 
-| 변화 | 의미 |
-| --- | --- |
-| `retrieve` 뒤에 구조 그래프 기반 확장 계층 추가 | structure-aware retrieval 강화 |
-| `evidence`는 bullet 생성이 아니라 structured object 생성 | 근거 구조화 |
-| `analyze`는 free-form generation이 아니라 compression | over-generation 억제 |
-| validation은 별도 계층으로 분리 | 후단 안정화 |
-
-## Migration Plan
-
-| Phase | 범위 | 목표 |
+| Agent | 핵심 책임 | 맡기지 않을 일 |
 | --- | --- | --- |
-| Phase 1 | Evidence schema 도입 | answer generation과 evaluation이 같은 evidence 구조를 보게 만들기 |
-| Phase 2 | Answer compression 도입 | “더 많이 말하는 문제”를 구조적으로 줄이기 |
-| Phase 3 | Validator 계층 분리 | generation prompt 제약 누적 대신 후단 안정화 |
-| Phase 4 | Document-structure graph 확장 | full GraphRAG 없이도 문서 구조를 더 잘 활용 |
+| Orchestrator | query interpretation, task decomposition, assignment, final merge | 직접 retrieval/계산 |
+| Analyst | 수치 추출, formula planning, 계산, numeric artifact 생성 | why/context 서술 |
+| Researcher | 비정형 텍스트 탐색, why/context 요약, note traversal | 최종 numeric 계산 |
+| Critic | grounding/binding/completeness/scope 검증 | 원문 검색 대행 |
 
-## Out of Scope for Now
+## Communication Model
+
+이 시스템은 agent 간 자유 텍스트 대화보다 **task ledger + artifact store**를 기본 통신 모델로 둔다.
+
+### Shared State Principles
+
+| 원칙 | 설명 |
+| --- | --- |
+| shared chat 지양 | 자유형 대화 로그 대신 typed artifact 위주 |
+| task-first | 모든 agent work는 task 단위로 추적 |
+| append-only artifacts | 각 agent는 결과를 state에 추가하고, 타 agent 결과를 덮어쓰지 않음 |
+| critic-mediated acceptance | 최종 채택은 critic artifact를 거침 |
+
+### Recommended State Shape
+
+```python
+class AgentState(TypedDict):
+    original_query: str
+    report_scope: ReportScope
+    tasks: list[Task]
+    task_results: dict[str, TaskResult]
+    evidence_pool: list[EvidenceItem]
+    critic_reports: list[CriticReport]
+    final_report: str | None
+    execution_trace: list[TraceEvent]
+```
+
+### Why Shared State Over Direct Messaging
+
+| 이유 | 설명 |
+| --- | --- |
+| 재현성 | 어떤 agent가 어떤 artifact를 남겼는지 추적 가능 |
+| 평가 용이성 | critic과 evaluator가 같은 구조화 결과를 읽을 수 있음 |
+| benchmark 연결 | runtime trace와 offline scorecard를 자연스럽게 잇기 쉬움 |
+| 포트폴리오 설명력 | “agent들이 무엇을 주고받는가”를 명확히 보여줄 수 있음 |
+
+## Memory Model
+
+이 프로젝트는 generic long-term memory보다 먼저 **report-scoped memory/cache**를 설계한다.
+
+### Memory Layers
+
+| 계층 | 용도 | 현재 판단 |
+| --- | --- | --- |
+| Graph State | 한 실행 안의 공유 상태 | 필수 |
+| Report-scoped cache | 같은 보고서 안에서 재사용 가능한 metric/value | 우선 구현 대상 |
+| Benchmark artifacts | 회고 실험 / 재현성 | 이미 강함 |
+| Long-term user memory | 사용자별 지속 메모리 | 현재 우선순위 아님 |
+
+### Report-scoped Cache Key
+
+권장 키는 아래처럼 충분히 좁게 잡는다.
+
+| 필드 | 이유 |
+| --- | --- |
+| `company` | 기업 구분 |
+| `report_type` | 사업보고서/분기보고서 구분 |
+| `rcept_no` | 실제 보고서 인스턴스 구분 |
+| `year` | 기간 구분 |
+| `consolidation` | 연결/별도 구분 |
+| `metric` | 재무 지표 구분 |
+| `source_section` | 출처 추적 |
+
+## Tool Ownership
+
+agentic하게 만들더라도 모든 것을 LLM에게 맡기지 않는다.
+
+### LLM-owned work
+
+| 범주 | 예시 |
+| --- | --- |
+| semantic planning | task decomposition, retry objective 판단 |
+| reformulation | retrieval-friendly subquery 생성 |
+| interpretation | evidence 압축, why/context 요약 |
+| critique opinion | scope overreach, coherence, acceptance opinion |
+
+### Deterministic work
+
+| 범주 | 예시 |
+| --- | --- |
+| retrieval execution | vector search, BM25, RRF, metadata filters |
+| graph expansion | parent/sibling/reference traversal |
+| numeric execution | AST calculator |
+| grounding checks | operand grounding, unit checks |
+| control flow | bounded retry, route gating, merge policy |
+
+> 원칙: **LLM은 semantics, code는 execution**.
+
+## Critic Architecture
+
+Critic은 하나의 막연한 judge보다 **2층 구조**가 적합하다.
+
+| Layer | 역할 |
+| --- | --- |
+| Deterministic Critic | operand grounding, unit consistency, entity/period binding, task coverage |
+| LLM Critic | relevance, scope overreach, coherence, acceptance opinion |
+
+이렇게 하면:
+- 수치/바인딩 오류는 deterministic하게 잡고
+- 서술 범위 문제는 LLM이 판단하게 할 수 있다
+
+## Capability Placement
+
+`REFERENCE_NOTE`, self-reflection, cross-company는 더 이상 메인 로드맵 자체가 아니라 **MAS 안으로 편입될 capability**로 본다.
+
+| Capability | 어느 agent에 붙는가 |
+| --- | --- |
+| `REFERENCE_NOTE` | 주로 Researcher retrieval capability |
+| ontology-guided retrieval | Analyst / Researcher query planning input |
+| bounded self-reflection | Orchestrator + Critic mediation이 있는 retry behavior |
+| cross-company reasoning | Orchestrator namespace planning + Analyst binding |
+
+## Migration From Current Code
+
+현재 코드베이스는 single-agent graph 중심이지만, 아래처럼 읽으면 MAS로 자연스럽게 옮길 수 있다.
+
+| 현재 자산 | 미래 역할 |
+| --- | --- |
+| `financial_graph.py` retrieval/evidence path | Researcher proto-path |
+| `financial_graph.py` formula planner / calculator | Analyst proto-path |
+| `calc_verify`, evaluator grounding logic | Critic proto-logic |
+| benchmark / retrospective replay | offline critic / scorecard layer |
+
+즉 지금 할 일은 “새 시스템을 완전히 다시 쓰는 것”보다,  
+**이미 있는 강한 자산을 어떤 agent의 책임으로 이동시킬지 결정하는 것**이다.
+
+## Recommended Build Order
+
+| 순서 | 목표 |
+| --- | --- |
+| 1 | MAS skeleton과 typed state schema 고정 |
+| 2 | Orchestrator가 single-task / multi-task를 모두 다루는 뼈대 구성 |
+| 3 | Analyst migration |
+| 4 | Critic deterministic layer 분리 |
+| 5 | Researcher attachment |
+| 6 | bounded self-reflection을 MAS behavior로 재설계 |
+| 7 | cross-document / cross-company 확장 |
+
+## Out of Scope for This Phase
 
 | 항목 | 지금 제외하는 이유 |
 | --- | --- |
-| full entity knowledge graph 구축 | 현재 문제 대비 비용이 큼 |
-| company-wide graph database 도입 | 운영 복잡도 증가 |
-| full multi-agent orchestration | 지금은 structured pipeline이 더 적합 |
-| 모든 benchmark 문항을 맞추기 위한 rule 추가 | metric gaming 위험 |
+| unrestricted autonomous agents | 통제/재현성이 떨어짐 |
+| direct agent-to-agent free chat | artifact 추적이 어려움 |
+| generic long-term memory | report-scoped cache보다 우선순위가 낮음 |
+| full knowledge graph database | 현재 목표 대비 과도함 |
+| metric gaming용 local patch | topology 설계보다 우선순위가 낮음 |
 
 ## Current Conclusion
 
-현재 시점에서 가장 적절한 구조 변화는 다음 세 가지다.
+현재 가장 적절한 방향은:
 
-1. full GraphRAG가 아니라 **document-structure graph**
-2. full multi-agent가 아니라 **structured pipeline**
-3. rule accumulation이 아니라 **structured evidence + compression + validation**
+1. single-agent pipeline을 계속 patch하는 것이 아니라
+2. existing assets를 **Analyst / Researcher / Critic**로 분해하고
+3. Orchestrator와 shared state contract를 먼저 고정한 뒤
+4. self-reflection과 note traversal을 capability로 편입하는 것이다
 
-즉 앞으로의 방향은 “더 큰 시스템”이 아니라, **지금 있는 시스템을 더 설명 가능하고 구조화된 형태로 리팩터링하는 것**이다.
+즉 앞으로의 방향은 “더 큰 RAG”가 아니라,  
+**DART 도메인을 이용해 multi-agent systems의 topology, communication, memory, tool boundary를 검증하는 구조**다.

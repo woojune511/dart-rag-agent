@@ -2,6 +2,24 @@
 
 이 문서는 프로젝트를 빠르게 훑을 때 먼저 봐야 할 핵심 기술 포인트를 요약한다.
 
+현재 이 저장소는 단순한 DART QA 앱보다, **DART 도메인 위에서 multi-agent financial analysis system을 설계/검증하는 실험 프로젝트**로 읽는 것이 맞다.  
+아래 기술 포인트들은 그 MAS 실험의 기반 자산이다.
+
+## 0. 강한 single-agent 자산을 MAS building block으로 재사용한다
+
+이 프로젝트는 처음부터 MAS로 시작한 것은 아니다. 먼저 아래 자산을 단단하게 만들었다.
+
+| 자산 | 앞으로의 역할 |
+| --- | --- |
+| structure-aware parser | 공통 retrieval substrate |
+| hybrid retrieval + graph expansion | Analyst / Researcher 공용 retrieval layer |
+| formula planner + safe AST | Analyst core |
+| operand grounding evaluator | Critic / evaluator core |
+| benchmark / replay infra | offline scorecard / regression layer |
+
+즉 현재 방향은 “새 MAS를 백지에서 다시 짠다”가 아니라,  
+**이미 검증된 single-agent 자산을 role-separated MAS로 이식하는 것**이다.
+
 ## 1. 비표준 공시 문서를 구조적으로 읽는 ingestion
 
 이 프로젝트는 일반 웹 문서를 대상으로 한 splitter 대신, DART XML의 구조를 직접 해석하는 parser를 사용한다.

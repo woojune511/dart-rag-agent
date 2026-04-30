@@ -7,25 +7,27 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | `REFERENCE_NOTE Phase 1a`를 실제 graph expansion에 태우기 |
-| 병렬 트랙 | retrospective scorecard는 1차 3개 실험 완료, 이후는 새 결정이 생길 때 추가 |
+| 현재 1순위 | **MAS skeleton**과 shared state / task contract 정리 |
+| 병렬 트랙 | retrospective scorecard는 1차 핵심 실험 완료, 이후 새 결정이 생길 때 추가 |
 | 지금 하지 않을 것 | local patch deep dive, cosmetic retrieval tuning, evaluator gaming |
-| 다음 큰 순서 | `REFERENCE_NOTE 1a -> 1b -> self-reflection -> cross-company` |
+| 다음 큰 순서 | `MAS skeleton -> Analyst migration -> Critic stack -> Researcher -> agentic self-reflection -> cross-company` |
 
 ## 현재 목표
 
 | 순서 | 구조 과제 | 현재 해석 |
 | --- | --- | --- |
-| 1 | `REFERENCE_NOTE Phase 1a` | 지금 active work |
-| 2 | `REFERENCE_NOTE Phase 1b` | 1a 종료 후 바로 이어질 note-number linking |
-| 3 | 제한적 `self-reflection` | bounded retry 1회 |
-| 4 | `cross-document / cross-company reasoning` | 단일 문서 baseline 안정화 이후 |
+| 1 | MAS skeleton | 지금 active work |
+| 2 | Analyst migration | 기존 `financial_graph.py` 핵심을 agent 역할로 분리 |
+| 3 | Critic stack | deterministic + LLM critic 구조화 |
+| 4 | Researcher attachment | why/context와 note traversal 분리 |
+| 5 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
+| 6 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
 
-현재는 **Phase 1a를 구현하고 실제 graph expansion에 태우는 것**이 1순위다.
+현재는 **기존 DART 파이프라인을 MAS topology로 재구성하는 것**이 1순위다.
 
 ## 병렬 트랙: Retrospective Scorecard
 
-구조 확장과 별개로, 이미 내린 중요한 기술 결정이 정량적으로 어떤 차이를 만들었는지 남기는 **회고 실험 트랙**을 병렬로 운영한다.
+구조 전환과 별개로, 이미 내린 중요한 기술 결정이 정량적으로 어떤 차이를 만들었는지 남기는 **회고 실험 트랙**을 병렬로 운영한다.
 
 ### 운영 원칙
 
@@ -34,6 +36,7 @@
 | 새 기능 구현과 retrospective scorecard를 섞지 않음 | active implementation과 회고 실험을 분리 |
 | scorecard는 포트폴리오 evidence track | 면접/README에서 쓸 수 있는 수치 근거 확보 |
 | 시스템 실험과 evaluator 실험 분리 | architecture improvement와 evaluator fairness를 따로 해석 |
+| 중요한 기술 결정은 실험 없이 닫지 않음 | baseline, proposed, metric, artifact가 정리되기 전에는 “채택 완료”로 기록하지 않음 |
 
 ### 완료된 1차 실험
 
@@ -48,60 +51,97 @@
 - 실험 설계와 scorecard 형식은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)의 `Retrospective Scorecard Track`
 - 완료된 결과는 같은 문서의 `Retrospective Results`
 
-### 다음에 추가할 retrospective 실험
-
-| 후보 | 조건 |
-| --- | --- |
-| `REFERENCE_NOTE` 효과 검증 | phase 1a/1b가 실제 reindex와 why benchmark에 올라온 뒤 |
-| 제한적 `self-reflection` recovery 실험 | retry loop가 bounded하게 구현된 뒤 |
-| cross-company binding 실험 | multi-entity path가 최소 동작하는 뒤 |
-
 ## Active Work
 
-### 1. `REFERENCE_NOTE Phase 1a`
+## Decision Gate
+
+앞으로 **기술적으로 중요한 결정**은 아래 네 단계를 통과해야 닫는다.
+
+| 단계 | 무엇을 남기나 |
+| --- | --- |
+| 1. 가설 정의 | 무엇을 왜 바꾸는지, 어떤 실패를 줄이려는지 |
+| 2. 비교 설계 | `baseline`, `proposed`, 질문셋/벤치셋, 주요 metric |
+| 3. 실행 artifact | `summary.md`, `summary.json`, 필요시 replay/debug trace |
+| 4. 문서 반영 | `benchmarking.md` scorecard, `DECISIONS.md` 해석, 필요시 `technical_highlights.md` |
+
+즉 앞으로는 **결정 -> 실험 -> 기록 -> 채택** 순서를 기본 운영 규칙으로 둔다.
+
+### 1. MAS skeleton
 
 | 항목 | 내용 |
 | --- | --- |
-| 구현 범위 | section-path reference 추출, `reference_section_paths` / `reference_parent_ids` metadata 생성, structure graph에 `reference_note` relation 추가, graph expansion이 referenced section lead를 함께 가져오게 연결 |
-| 남은 일 1 | 새 메타데이터가 실제 인덱스에 반영되도록 reindex / reingest |
-| 남은 일 2 | graph expansion enabled 상태에서 end-to-end smoke |
-| 남은 일 3 | representative why 질문으로 효과 확인 |
-| 종료 조건 | debug trace에서 `reference_note` relation 사용 확인, why 질문에서 표 수치 + 참조 설명 섹션을 함께 사용하는 답변 생성 |
+| 목표 | Orchestrator / Analyst / Researcher / Critic가 공유할 최소 state와 task contract 정의 |
+| 핵심 산출물 | `Task`, `TaskResult`, `EvidenceItem`, `CriticReport`, `FinalReport` 수준의 typed artifact |
+| communication 원칙 | 자유 메시지 교환이 아니라 **task ledger + artifact store** |
+| memory 원칙 | generic memory보다 **report-scoped cache**를 먼저 설계 |
+| 종료 조건 | docs와 code가 같은 state schema와 agent boundary를 기준으로 읽힘 |
 
-### 2. `REFERENCE_NOTE Phase 1b`
-
-| 항목 | 내용 |
-| --- | --- |
-| 선행 조건 | Phase 1a 종료 |
-| 구현 범위 | `(주석 14 참조)`, `(*1)` 추출, note number -> target chunk resolve, note relation을 graph expansion에 추가 |
-| 종료 조건 | numbered note target이 metadata와 graph에 저장되고, note reference가 실제 answer context에 자동 병합됨 |
-
-### 3. 제한적 `self-reflection`
+### 2. Analyst migration
 
 | 항목 | 내용 |
 | --- | --- |
-| 선행 조건 | `REFERENCE_NOTE` 최소 1차 정착 |
-| 구현 범위 | state에 `missing_operands`, `retry_count`, `retry_reason`; planner가 `needs_more_info` 반환; `retry_count < 1`일 때만 1회 보조 retrieval |
-| 적용 질문군 | `comparison`, `ratio`, `growth`, 일부 `why` |
-| 종료 조건 | 실패 재현 케이스에서 `1회 재검색 -> 성공` 로그 확인, retry는 bounded되고 latency 폭증이 없음 |
+| 목표 | 기존 single-agent graph의 numeric/evidence path를 Analyst agent 역할로 캡슐화 |
+| 재사용 자산 | ontology retrieval, operand extraction, formula planner, AST calculator, calc verification |
+| 하지 않을 것 | 비정형 why/context 설명까지 Analyst에 남기지 않음 |
+| 종료 조건 | Analyst가 task input을 받아 구조화된 calculation artifact를 반환 |
 
-### 4. `cross-document / cross-company reasoning`
+### 3. Critic stack
 
 | 항목 | 내용 |
 | --- | --- |
-| 선행 조건 | single-document graph/reflection baseline 안정화 |
-| 구현 범위 | multi-entity target extraction, 기업별 병렬 retrieval, `[기업 A 컨텍스트]`, `[기업 B 컨텍스트]` namespace 분리, operand schema에 `entity_id`, `report_id`, `period` 추가 |
-| 종료 조건 | 복수 기업 ratio / comparison 질문에서 binding 혼동 없이 정답 계산 |
+| 목표 | 검증을 deterministic critic과 LLM critic으로 나눔 |
+| deterministic critic | operand grounding, unit consistency, entity/period binding, task coverage |
+| LLM critic | scope overreach, relevance, final coherence |
+| 종료 조건 | critic 결과가 `critic_reports`에 누적되고 final merge 전에 소비됨 |
+
+### 4. Researcher attachment
+
+| 항목 | 내용 |
+| --- | --- |
+| 목표 | why/context extraction, semantic retrieval, note-aware traversal을 Researcher 역할로 분리 |
+| 재사용 자산 | semantic retrieval, graph expansion, `reference_note` phase 1a wiring |
+| 주의 | `reference_note`는 self-reflection baseline에서 기본 OFF, capability로만 유지 |
+| 종료 조건 | 비정형 task를 Researcher가 독립 처리하고 evidence artifact를 반환 |
+
+### 5. Agentic self-reflection
+
+| 항목 | 내용 |
+| --- | --- |
+| 목표 | retry를 query string patch가 아니라 **ReflectionPlan -> deterministic execution -> VerificationReport** 구조로 재설계 |
+| LLM 책임 | retry 필요성 판단, 문제 재정의, subquery reformulation, acceptance opinion |
+| 코드 책임 | retrieval execution, merge/rerank, calculation, grounding, bounded control flow |
+| baseline 원칙 | 초기 recovery 실험은 `reference_note OFF` 상태에서 시작해 retry 효과를 분리 측정 |
+| 종료 조건 | bounded retry 1회 내에서 false recovery 없이 recovery artifact가 남음 |
+
+### 6. `cross-document / cross-company reasoning`
+
+| 항목 | 내용 |
+| --- | --- |
+| 선행 조건 | MAS skeleton과 critic stack 안정화 |
+| 목표 | 기업/문서 경계를 보존한 multi-entity analysis |
+| 핵심 요구 | `entity_id`, `report_id`, `period` namespace, 병렬 retrieval, report-scoped cache |
+| 종료 조건 | multi-company ratio / comparison 질문을 binding 혼동 없이 처리 |
+
+## Supporting Capabilities
+
+아래는 메인 아키텍처가 아니라 **MAS 안으로 편입될 capability**로 다룬다.
+
+| capability | 현재 판단 |
+| --- | --- |
+| `REFERENCE_NOTE Phase 1a` | wiring은 확인됐고, Researcher capability로 재배치 |
+| `REFERENCE_NOTE Phase 1b` | numbered note가 필요해질 때 진행 |
+| ontology 확장 | Analyst / Researcher query planning 입력으로 점진 편입 |
+| report-scoped cache | MAS skeleton 이후 우선 구현 후보 |
 
 ## 지금 하지 않을 것
 
 | 항목 | 이유 |
 | --- | --- |
 | `business_overview_001`, `risk_analysis_001` local patch deep dive | blocker가 아니라 quality debt |
-| retrieval purity 점수만 올리기 위한 cosmetic tuning | 구조 확장보다 우선순위가 낮음 |
-| evaluator 점수만 좋아 보이게 만드는 local patch | metric gaming 위험 |
+| retrieval purity 점수만 올리기 위한 cosmetic tuning | MAS topology 정리보다 우선순위가 낮음 |
+| rule-based self-reflection 분기 더 늘리기 | agentic redesign과 반대 방향 |
 
-이들은 backlog로 남기고, 현재는 구조 확장을 우선한다.
+이들은 backlog로 남기고, 현재는 **agent boundary와 shared state를 먼저 고정**한다.
 
 ## 문서 사용 규칙
 

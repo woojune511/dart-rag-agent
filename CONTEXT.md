@@ -10,13 +10,24 @@
 
 | 항목 | 현재 기준 |
 | --- | --- |
+| 프로젝트 정의 | DART 공시를 도메인으로 사용하는 **multi-agent financial analysis lab** |
+| 현재 구현 핵심 | strong single-agent graph + evaluator/benchmark 자산 |
 | 기준 문서 | `삼성전자 2024 사업보고서` |
 | 기본 retrieval | `Chroma + BM25 + RRF`, structure-aware parser / chunking |
-| 기본 reasoning | evidence-first, math 질문은 `formula planner + safe AST evaluator` |
-| math evaluator | `display-aware numeric equivalence`, `operand grounding` |
-| retrieval metric 역할 | 최종 PASS/FAIL이 아니라 **diagnostic only** |
-| 현재 baseline 상태 | `dev_math_focus`는 고정 가능, broader sanity check도 큰 회귀 없음 |
-| 현재 우선순위 | local patch보다 **구조 확장** |
+| 기본 analyst core | evidence-first math path, `formula planner + safe AST evaluator` |
+| evaluator 역할 | final correctness / grounding과 retrieval diagnostic을 분리 |
+| 현재 우선순위 | local patch보다 **MAS skeleton과 role separation** |
+
+## 현재 구현 단계
+
+| 구성 | 상태 | 해석 |
+| --- | --- | --- |
+| Orchestrator | planned | task decomposition / assignment / merge는 아직 설계 단계 |
+| Analyst | partial | 현재 `financial_graph.py`가 proto-analyst 역할 수행 |
+| Researcher | partial | retrieval / evidence / note traversal 자산은 이미 존재 |
+| Critic | partial | benchmark/evaluator 자산은 강하지만 runtime critic 분리는 미완료 |
+| Shared state ledger | planned | 현재는 single-agent state 중심 |
+| Self-reflection | experimental | bounded retry checkpoint는 있으나 최종 MAS 설계는 아님 |
 
 ## 최근 정량 증거
 
@@ -30,7 +41,7 @@
 
 | 벤치셋 | 핵심 해석 | 현재 상태 |
 | --- | --- | --- |
-| `dev_math_focus` | math 질문군 정답성 기준선 | `Faithfulness 1.000`, `Completeness 1.000`, `Numeric Pass 1.000` |
+| `dev_math_focus` | analyst core의 numeric baseline | `Faithfulness 1.000`, `Completeness 1.000`, `Numeric Pass 1.000` |
 | `dev_fast_focus_selective_serial` | broader sanity check | math-specialized evaluator 회귀 없음 |
 
 ## 해석 원칙
@@ -43,7 +54,28 @@
 | `section_match_rate` | top-k purity / section alignment | retriever diagnostic |
 | `context_precision_at_k` | retrieved context purity | retriever diagnostic |
 
-> 현재 원칙은 **정답성 / grounding / retrieval diagnostic을 분리해서 본다**는 것이다.
+> 현재 원칙은 **정답성 / grounding / retrieval diagnostic을 분리해서 본다**는 것이다.  
+> 이 분리는 이후 MAS critic 설계의 출발점이기도 하다.
+
+## 현재 아키텍처 전환 포인트
+
+| 항목 | 현재 판단 |
+| --- | --- |
+| 기존 single-agent graph | 버릴 대상이 아니라 **Analyst / Researcher / Critic 자산으로 분해할 기반** |
+| self-reflection rule patch | 최종 설계가 아니라 **agentic reflection 재설계를 위한 checkpoint** |
+| `reference_note` phase 1a | 동작은 확인됐지만, 지금은 MAS roadmap 안의 capability로 재배치 |
+| report-scoped cache | 장기 memory보다 먼저 설계해야 할 저장 계층 |
+
+## 다음 구조 과제
+
+| 순서 | Phase | 목표 | 종료 조건 |
+| --- | --- | --- | --- |
+| 1 | MAS skeleton | shared state, task ledger, artifact schema 고정 | Orchestrator / Analyst / Researcher / Critic 간 state contract 문서화 및 코드 뼈대 연결 |
+| 2 | Analyst migration | 현재 numeric/evidence path를 Analyst agent로 이식 | 단일 task를 Analyst가 독립 처리하고 구조화 결과를 반환 |
+| 3 | Critic stack | deterministic critic + LLM critic 분리 | grounding / binding / scope 검증이 critic artifact로 남음 |
+| 4 | Researcher attachment | why/context retrieval과 note traversal을 별도 agent로 분리 | 비정형 context task를 Researcher가 독립 처리 |
+| 5 | Agentic self-reflection | retry를 rule patch가 아니라 ReflectionPlan/VerificationReport 구조로 재설계 | bounded retry가 task/critic contract 위에서 동작 |
+| 6 | Cross-document / cross-company | entity/report/period namespace를 보존한 비교 분석 | 기업/문서 혼동 없는 multi-entity task 처리 |
 
 ## Non-blocking Quality Debt
 
@@ -54,22 +86,13 @@
 | `business_overview_001` | 급하지 않음 | 근거를 찾고 답도 맞지만 retrieval purity / packaging debt가 남음 |
 | `risk_analysis_001` | 급하지 않음 | retrieval보다 selection / formatting 성격이 큼 |
 | retrieval purity debt | backlog | top-k 잡음은 남아 있지만 정답성 자체를 깨지는 않음 |
-| 일부 남은 duct tape | backlog | 구조 확장 이후 정리하는 편이 안전 |
-
-## 다음 구조 과제
-
-| 순서 | Phase | 목표 | 종료 조건 |
-| --- | --- | --- | --- |
-| 1 | `REFERENCE_NOTE Phase 1a` | section-path reference graph edge 연결 | parser metadata 기록, expansion trace에 `reference_note` relation 노출, why 질문에서 표 수치와 참조 설명을 함께 사용 |
-| 2 | `REFERENCE_NOTE Phase 1b` | `(주석 14 참조)`, `(*1)` 같은 numbered note reference 연결 | note number를 실제 target chunk로 resolve, 검색 없이 graph relation으로 병합 |
-| 3 | 제한적 `self-reflection` | operand 부족 / source miss에 한해 1회 재검색 | `operand 누락 감지 -> 1회 재검색 -> 성공` 흐름이 로그에 남고 bounded retry 유지 |
-| 4 | `cross-document / cross-company reasoning` | 기업/문서 경계를 보존한 비교 계산 | entity / report / period binding 혼동 없이 정답 도출 |
+| 일부 남은 duct tape | backlog | MAS role split 이후 정리하는 편이 안전 |
 
 ## 문서 역할
 
 | 문서 | 역할 | 운영 원칙 |
 | --- | --- | --- |
 | [CONTEXT.md](CONTEXT.md) | 최신 상태 snapshot | 덮어써서 최신 상태 유지 |
-| [PLAN.md](PLAN.md) | 현재 active plan | 바로 다음 실행 순서만 유지 |
+| [PLAN.md](PLAN.md) | 현재 active plan | 바로 다음 구현 단계만 유지 |
 | [DECISIONS.md](DECISIONS.md) | append-only 결정 로그 | 과거 판단과 근거 누적 |
 | [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md) | backlog / major epics | living backlog 유지 |

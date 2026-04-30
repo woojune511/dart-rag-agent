@@ -172,9 +172,9 @@
 
 - 다기업 full benchmark 확대
 - full GraphRAG
-- full multi-agent
+- baseline 없이 MAS capability를 마구 확장하기
 - benchmark 질문 몇 개에 맞춘 rule 추가
 
 한 줄 요약:
 
-**다음 단계의 기준선은 “단일 문서에서 질문셋과 평가를 먼저 고정하고, 그 위에서만 시스템을 바꾼다”이다.**
+**단일 문서 benchmark는 계속 기준선으로 유지하되, 그 기준선 위에서 MAS topology를 검증하는 방향으로 시스템을 바꾼다.**

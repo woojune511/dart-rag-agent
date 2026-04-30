@@ -33,6 +33,21 @@
 
 따라서 이 문서는 **현재 운영 guide**와 **retrospective scorecard track**을 함께 다룬다.
 
+## Decision Policy
+
+이 프로젝트에서는 **기술적으로 중요한 결정은 실험 없이 확정하지 않는다.**
+
+| 규칙 | 의미 |
+| --- | --- |
+| decision-first가 아니라 hypothesis-first | 먼저 “왜 바꾸는가”와 기대 효과를 적는다 |
+| baseline/proposed를 분리 | 무엇과 무엇을 비교하는지 명확히 남긴다 |
+| metric을 먼저 고른다 | 결과를 보고 지표를 고르지 않는다 |
+| artifact를 남긴다 | `summary.md`, `summary.json`, replay/debug trace를 남긴다 |
+| 문서까지 닫아야 완료 | `benchmarking.md`와 `DECISIONS.md`에 반영되기 전까진 닫지 않는다 |
+
+즉 새로운 architecture, retrieval, evaluator 결정은 모두  
+**실험 설계 -> 실행 -> artifact 기록 -> 해석 문서화** 순서를 통과해야 한다.
+
 ## 현재 benchmark 기준
 
 ### 기준선 철학
@@ -250,6 +265,7 @@
 2. 시스템 품질 실험과 evaluator 메타-실험 분리
 3. 가능한 한 같은 store / 같은 question set / 같은 evaluator 유지
 4. 결과는 `baseline -> proposed` delta로 기록
+5. 중요한 결정은 raw artifact와 curated scorecard를 둘 다 남긴다
 
 ### 핵심 retrospective 실험 3개
 
