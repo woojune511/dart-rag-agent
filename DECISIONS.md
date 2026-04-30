@@ -1654,19 +1654,36 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
 
 ---
 
-## 결정 73 — evaluator의 numeric_values_equivalent tolerance를 1e-6에서 1e-4로 완화한다
+## 결정 73 — numeric equivalence는 blanket tolerance 완화보다 `display-aware currency equivalence`로 해석한다
 
-**문제**: `comparison_001` 평가에서 DX-DS 매출 차이가 `63조 8,218억원`(정답)과 `63조 8,217억원`(계산 결과) 사이 1억원 차이로 `numeric_equivalence = 0.0`이 반복됐다.
+**문제**: `comparison_001`에서 DX-DS 매출 차이가 `63조 8,218억원`(정답)과 `63조 8,217억원`(계산 결과)처럼 **표시 정밀도만 1억원 차이**인 경우에도 `numeric_equivalence = 0.0`이 반복됐다.
 
-**원인**: 동일 수치를 사업보고서의 서로 다른 섹션(매출 및 수주상황 vs 이사의 경영진단)이 다른 정밀도로 표기하기 때문이다. LLM이 정밀도가 낮은 섹션에서 operand를 추출하면 억 단위 반올림 오차가 계산 결과에 누적된다. 기존 tolerance `1e-6`은 이를 허용하지 못했다.
+**초기 해석**: 처음에는 `1e-6` tolerance가 너무 엄격하다고 보고, 전역 epsilon을 키우는 방식으로 이해했다.
+
+**재검증 후 해석 수정**:
+
+- fixed historical output replay 결과, 이 케이스를 안정적으로 살린 핵심은 **전역 `1e-4` 완화 자체가 아니라**
+  `currency` 비교에서
+  - 상대 오차(`max(abs(value) * 1e-6, 0.5)`)
+  - 표시 단위 step(`조/억`, `백만원`, `천원`)
+  를 함께 반영하는 **display-aware equivalence**였다
+- 즉 이 결정의 본질은 “모든 숫자 타입에 epsilon을 넓힌다”가 아니라,
+  **금액은 실제 답변이 표현되는 정밀도에 맞춰 동치성을 판단한다**는 쪽이다
 
 **결정**:
 
-- `_numeric_values_equivalent`의 currency tolerance를 `1e-6 → 1e-4` (0.01%)로 완화한다
-- PERCENT, 기타 단위도 동일하게 `1e-4`로 통일한다
-- 0.01%는 DART 공시 수치의 섹션 간 표기 정밀도 차이를 흡수하는 실무적 허용 범위다
+- `currency` 비교는 near-exact match만 강제하지 않고, **display-aware equivalence**를 유지한다
+- 이 결정을 더 이상 “`numeric_values_equivalent`를 전역 `1e-4`로 완화했다”로 설명하지 않는다
+- `PERCENT` / 기타 숫자 tolerance는 별도 implementation detail로 두고, 필요하면 독립 replay 실험으로 다시 검증한다
 
-**검증**: `comparison_001` eval 재실행 후 `numeric_equivalence: 0.0 → 1.0`, `faithfulness: 0.0 → 1.0` 확인.
+**검증**:
+
+- fixed-output replay 기준
+  - `comparison_001`
+  - `strict_equivalence: 0.0 -> current_display_aware_equivalence: 1.0`
+  - `numeric_final_judgement: FAIL -> PASS`
+- 근거:
+  - [retrospective_evaluator_ablation_2026-04-30/summary.md](benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.md)
 
 ---
 
@@ -1835,3 +1852,43 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 - trend_003: 정확한 계산(-24.55%)이지만 evaluator 기준 반올림 값(24.6%)과 tolerance 미달
 
 이 모두 operand 선택/단위 식별/반올림 기준을 명시적으로 제어하는 Formula Planner + AST 구조가 필요한 이유다.
+
+---
+
+## 결정 82 — evaluator 하위 결정(73 / 75 / 76)의 증거 수준을 재분류하고 fixed-output replay로 재검증한다
+
+**문제**: 결정 73, 75, 76의 원래 검증 문구는 `eval 재실행` 또는 `single-question eval` 기반이었는데, 이후 확인한 바에 따르면 `run_eval_only.py`와 `eval_single_question.py`는 **historical answer replay가 아니라 store-fixed end-to-end 재실행**이다.
+
+즉 당시 검증은:
+
+- 같은 질문을 다시 던졌고
+- 같은 store를 재사용했을 수는 있지만
+- 같은 answer / runtime_evidence / calculation trace를 재사용한 것은 아니었다
+
+따라서 결정 73/75/76의 “evaluator-only 증거”로는 불충분했다.
+
+**조치**:
+
+- `src/ops/retrospective_evaluator_ablation_eval.py`를 추가한다
+- source bundle은 `dev_math_focus_evalonly_datasetfix_2026-04-29/삼성전자-2024/results.json`으로 고정한다
+- 같은 historical row를 재사용해 아래만 바꿔서 replay한다
+  - 결정 73: `strict_equivalence` vs `current_display_aware_equivalence`
+  - 결정 75: `legacy_label_match` vs `current_label_match`
+  - 결정 76: `before_operand_override` vs `after_operand_override`
+
+**결과**:
+
+| Decision | Question | Baseline | Proposed | 해석 |
+|---|---|---:|---:|---|
+| 73 | `comparison_001` | `0.0` | `1.0` | 동일 answer 기준에서 엄격 비교는 FAIL, 현재 display-aware 비교는 PASS |
+| 75 | `comparison_004` | `0.0` | `1.0` | label core-term 매칭을 켜면 같은 historical operand set이 정답으로 인정됨 |
+| 76 | `trend_002` | `0.0` | `1.0` | 등가 derivation path를 override 없이 두면 감점, override 후 PASS |
+| 76 | `comparison_005` | `0.0` | `1.0` | precomputed ratio path도 같은 override 원리로 복구됨 |
+
+**결론**:
+
+- 결정 75와 76의 핵심 효과는 **fixed historical outputs에서도 재현됨**
+- 결정 73은 당시의 “전역 1e-4 tolerance” 자체보다, 현재의 **display-aware equivalence가 durable fix**였다고 재해석하는 편이 정확하다
+- 앞으로 evaluator 관련 결정은
+  - `run_eval_only.py` / `eval_single_question.py` 결과를 **store-fixed end-to-end 근거**로만 해석하고
+  - evaluator-only 주장은 `retrospective_*_eval.py` replay 결과로만 남긴다

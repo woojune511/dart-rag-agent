@@ -333,6 +333,21 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | Representative recoveries | `comparison_005`: `rows 0 -> 1`, `calc insufficient_operands -> ok`; `comparison_006`: `rows 0 -> 1`, `operands 0 -> 2`, `calc insufficient_operands -> ok` |
 | Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.json) |
 
+### Result 4. `Evaluator sub-decision replay audit (Decisions 73 / 75 / 76)`
+
+| 항목 | 내용 |
+| --- | --- |
+| Decision | early evaluator 결정 중 `eval-only` 재실행 근거에 기대던 항목을 fixed historical output replay로 재검증 |
+| Type | evaluator meta-experiment / evidence-quality audit |
+| Source bundle | [dev_math_focus_evalonly_datasetfix_2026-04-29](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_datasetfix_2026-04-29/삼성전자-2024/results.json) |
+| Replay script | [src/ops/retrospective_evaluator_ablation_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_evaluator_ablation_eval.py) |
+| Slice | `comparison_001`, `comparison_004`, `trend_002`, `comparison_005` |
+| Primary finding 1 | `comparison_001` strict equivalence `0.0 -> 1.0` |
+| Primary finding 2 | `comparison_004` legacy label matcher `0.0 -> 1.0` |
+| Primary finding 3 | `trend_002`, `comparison_005` operand override 전 `0.0 -> 1.0` |
+| Interpretation | 결정 75와 76의 핵심 효과는 fixed historical outputs에서도 재현된다. 반면 결정 73은 “전역 1e-4 tolerance” 자체보다 현재의 `display-aware equivalence`가 durable fix라는 점이 더 정확했다. |
+| Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.json) |
+
 ## 이 문서에 더 이상 쌓지 않을 것
 
 아래 내용은 이 문서에서 계속 늘리지 않는다.
@@ -373,4 +388,10 @@ retrospective ontology retrieval replay:
 
 ```bash
 python -m src.ops.retrospective_ontology_retrieval_eval --source-results benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json --output-dir benchmarks/results/retrospective_ontology_retrieval_2026-04-29
+```
+
+retrospective evaluator sub-decision replay:
+
+```bash
+python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchmarks/results/dev_math_focus_evalonly_datasetfix_2026-04-29/삼성전자-2024/results.json --dataset benchmarks/eval_dataset.math_focus.json --output-dir benchmarks/results/retrospective_evaluator_ablation_2026-04-30
 ```

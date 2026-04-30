@@ -42,6 +42,7 @@
 | 1 | `Section Match Evaluator vs Operand Grounding Evaluator` |
 | 2 | `Direct Calc vs Operation Path vs Formula Planner + AST` |
 | 3 | `Standard Retrieval vs Ontology-Guided Retrieval` |
+| 4 | `Evaluator sub-decision replay audit (Decisions 73 / 75 / 76)` |
 
 정리 위치:
 - 실험 설계와 scorecard 형식은 [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md)의 `Retrospective Scorecard Track`

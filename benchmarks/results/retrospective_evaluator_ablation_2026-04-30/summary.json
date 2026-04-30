@@ -1,0 +1,331 @@
+{
+  "summary": {
+    "source_bundle": "benchmarks\\results\\dev_math_focus_evalonly_datasetfix_2026-04-29\\삼성전자-2024\\results.json",
+    "dataset_path": "benchmarks\\eval_dataset.math_focus.json",
+    "case_count": 4,
+    "decision_ids": [
+      "73",
+      "75",
+      "76"
+    ]
+  },
+  "cases": [
+    {
+      "decision_id": "73",
+      "question_id": "comparison_001",
+      "title": "Strict numeric equivalence vs current display-aware equivalence",
+      "note": "Originally documented as a tolerance-only fix, but the durable current behavior is display-aware equivalence.",
+      "baseline_label": "strict_equivalence",
+      "baseline_value": 0.0,
+      "baseline_debug": {
+        "answer_candidates": [
+          {
+            "value_text": "63조 8,217억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 63821700000000.0,
+            "span": [
+              40,
+              51
+            ]
+          }
+        ],
+        "reference_candidates": [
+          {
+            "value_text": "174조 8,877억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 174887700000000.0,
+            "span": [
+              15,
+              27
+            ]
+          },
+          {
+            "value_text": "111조 659억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 111065900000000.0,
+            "span": [
+              38,
+              48
+            ]
+          },
+          {
+            "value_text": "63조 8,218억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 63821800000000.0,
+            "span": [
+              67,
+              78
+            ]
+          },
+          {
+            "value_text": "174조 8,877억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 174887700000000.0,
+            "span": [
+              17,
+              29
+            ]
+          },
+          {
+            "value_text": "58.1%",
+            "unit_text": "%",
+            "kind": "percent",
+            "normalized_value": 58.1,
+            "span": [
+              30,
+              35
+            ]
+          },
+          {
+            "value_text": "111조 659억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 111065900000000.0,
+            "span": [
+              45,
+              55
+            ]
+          },
+          {
+            "value_text": "36.9%",
+            "unit_text": "%",
+            "kind": "percent",
+            "normalized_value": 36.9,
+            "span": [
+              56,
+              61
+            ]
+          }
+        ],
+        "matched_pair": null,
+        "reason": "no_equivalent_value"
+      },
+      "baseline_judgement": "FAIL",
+      "proposed_label": "current_display_aware_equivalence",
+      "proposed_value": 1.0,
+      "proposed_debug": {
+        "answer_candidates": [
+          {
+            "value_text": "63조 8,217억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 63821700000000.0,
+            "span": [
+              40,
+              51
+            ]
+          }
+        ],
+        "reference_candidates": [
+          {
+            "value_text": "174조 8,877억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 174887700000000.0,
+            "span": [
+              15,
+              27
+            ]
+          },
+          {
+            "value_text": "111조 659억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 111065900000000.0,
+            "span": [
+              38,
+              48
+            ]
+          },
+          {
+            "value_text": "63조 8,218억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 63821800000000.0,
+            "span": [
+              67,
+              78
+            ]
+          },
+          {
+            "value_text": "174조 8,877억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 174887700000000.0,
+            "span": [
+              17,
+              29
+            ]
+          },
+          {
+            "value_text": "58.1%",
+            "unit_text": "%",
+            "kind": "percent",
+            "normalized_value": 58.1,
+            "span": [
+              30,
+              35
+            ]
+          },
+          {
+            "value_text": "111조 659억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 111065900000000.0,
+            "span": [
+              45,
+              55
+            ]
+          },
+          {
+            "value_text": "36.9%",
+            "unit_text": "%",
+            "kind": "percent",
+            "normalized_value": 36.9,
+            "span": [
+              56,
+              61
+            ]
+          }
+        ],
+        "matched_pair": {
+          "answer": {
+            "value_text": "63조 8,217억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 63821700000000.0,
+            "span": [
+              40,
+              51
+            ]
+          },
+          "reference": {
+            "value_text": "63조 8,218억원",
+            "unit_text": "원",
+            "kind": "currency",
+            "normalized_value": 63821800000000.0,
+            "span": [
+              67,
+              78
+            ]
+          }
+        },
+        "reason": "equivalent_value"
+      },
+      "proposed_judgement": "PASS"
+    },
+    {
+      "decision_id": "75",
+      "question_id": "comparison_004",
+      "title": "Legacy label matcher vs current label matcher",
+      "note": "Compare operand-selection scoring on the exact same historical operands.",
+      "baseline_label": "legacy_label_match",
+      "baseline_value": 0.0,
+      "baseline_debug": {
+        "expected_labels": [
+          "2024년 영업이익",
+          "2024년 매출"
+        ],
+        "actual_labels": [
+          "2024년 연결 기준 매출액",
+          "2024년 연결 기준 영업이익"
+        ],
+        "legacy_matches": [
+          {
+            "expected": "2024년 영업이익",
+            "actual": "2024년 연결 기준 매출액",
+            "match": false
+          },
+          {
+            "expected": "2024년 영업이익",
+            "actual": "2024년 연결 기준 영업이익",
+            "match": false
+          },
+          {
+            "expected": "2024년 매출",
+            "actual": "2024년 연결 기준 매출액",
+            "match": false
+          },
+          {
+            "expected": "2024년 매출",
+            "actual": "2024년 연결 기준 영업이익",
+            "match": false
+          }
+        ]
+      },
+      "baseline_judgement": null,
+      "proposed_label": "current_label_match",
+      "proposed_value": 1.0,
+      "proposed_debug": {
+        "current_matches": [
+          {
+            "expected": "2024년 영업이익",
+            "actual": "2024년 연결 기준 매출액",
+            "match": false
+          },
+          {
+            "expected": "2024년 영업이익",
+            "actual": "2024년 연결 기준 영업이익",
+            "match": true
+          },
+          {
+            "expected": "2024년 매출",
+            "actual": "2024년 연결 기준 매출액",
+            "match": true
+          },
+          {
+            "expected": "2024년 매출",
+            "actual": "2024년 연결 기준 영업이익",
+            "match": false
+          }
+        ]
+      },
+      "proposed_judgement": null
+    },
+    {
+      "decision_id": "76",
+      "question_id": "trend_002",
+      "title": "Operand selection before override vs after override",
+      "note": "Tests the mathematically equivalent derivation-path override on a fixed historical row.",
+      "baseline_label": "before_operand_override",
+      "baseline_value": 0.0,
+      "baseline_debug": {
+        "numeric_result_correctness": 1.0,
+        "numeric_grounding": 1.0
+      },
+      "baseline_judgement": null,
+      "proposed_label": "after_operand_override",
+      "proposed_value": 1.0,
+      "proposed_debug": {
+        "numeric_result_correctness": 1.0,
+        "numeric_grounding": 1.0
+      },
+      "proposed_judgement": null
+    },
+    {
+      "decision_id": "76",
+      "question_id": "comparison_005",
+      "title": "Operand selection before override vs after override (precomputed ratio path)",
+      "note": "Same override principle applied to a direct precomputed-ratio path.",
+      "baseline_label": "before_operand_override",
+      "baseline_value": 0.0,
+      "baseline_debug": {
+        "numeric_result_correctness": 1.0,
+        "numeric_grounding": 1.0
+      },
+      "baseline_judgement": null,
+      "proposed_label": "after_operand_override",
+      "proposed_value": 1.0,
+      "proposed_debug": {
+        "numeric_result_correctness": 1.0,
+        "numeric_grounding": 1.0
+      },
+      "proposed_judgement": null
+    }
+  ]
+}
