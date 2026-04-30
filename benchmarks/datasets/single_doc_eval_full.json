@@ -1,0 +1,1577 @@
+[
+  {
+    "id": "SAM_T1_001",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L1",
+    "query": "2023년 연결기준 삼성전자의 영업이익률을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "매출액",
+        "영업이익"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T2_002",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 메모리 반도체 업황 악화에도 불구하고 집행된 시설투자(CAPEX) 총액을 찾고, 전년(2022년) 대비 증감률을 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "제55기 시설투자",
+        "제54기 시설투자"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T3_003",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 사업보고서 주석을 참조하여, 우발부채 및 주요 소송사건이 재무에 미칠 잠재적 영향을 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "우발부채",
+        "소송",
+        "충당부채"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T4_004",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "삼성전자의 2023년 영업이익률을 계산하고, 애플(Apple)의 영업이익률과 비교해서 분석해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Critic",
+      "Orchestrator"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "애플",
+        "데이터 없음",
+        "비교 불가"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "NAV_T1_005",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L2",
+    "query": "2023년 네이버의 영업수익 대비 연구개발비용 비중(%)을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업수익",
+        "연구개발비용"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "NAV_T2_006",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "제25기 커머스 영업수익",
+        "제24기 커머스 영업수익"
+      ],
+      "required_keywords": [
+        "포시마크",
+        "인수",
+        "편입"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "NAV_T3_007",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 연결재무제표 주석에서 인식된 '영업권(Goodwill)'의 총액을 찾고, 손상차손 발생 여부를 확인해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "영업권",
+        "손상차손"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "NAV_T4_008",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L1",
+    "query": "네이버의 2023년 '선박 건조' 부문 수주 잔고를 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "HYU_T1_009",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L2",
+    "query": "2023년 연결기준 전체 매출액 중 '금융 부문' 매출이 차지하는 비중(%)을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "금융 부문 매출액",
+        "연결 매출액"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T2_010",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 북미 시장의 매출액 전년 대비 성장률을 계산하고, 인플레이션 감축법(IRA) 등 정책이 실적에 미친 영향을 요약해.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "제56기 북미 매출",
+        "제55기 북미 매출"
+      ],
+      "required_keywords": [
+        "IRA",
+        "인플레이션 감축법",
+        "보조금"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T3_011",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "사업보고서의 '이사의 경영진단 및 분석의견(MD&A)'에서 언급된 환율 변동(우호적 환율 효과)이 2023년 수익성에 미친 영향을 요약해.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "환율",
+        "수익성",
+        "우호적"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T4_012",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "2026년 1분기 현대자동차의 예상 영업이익과 전기차 판매량을 예측해 줘.",
+    "expected_agents": [
+      "Orchestrator",
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "예측 불가",
+        "미래"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "CEL_T1_013",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 전체 연구개발비용 중 무형자산(개발비)으로 자본화된 금액의 비율(%)을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "연구개발비용 총계",
+        "무형자산 처리(자본화) 금액"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T2_014",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 셀트리온의 주요 바이오시밀러(램시마, 트룩시마 등) 파이프라인의 연구개발 진행 현황을 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "램시마",
+        "트룩시마",
+        "임상",
+        "허가"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T3_015",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "셀트리온헬스케어와의 합병과 관련하여 재무제표 주석에 기재된 내용과 합병의 주요 목적을 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "셀트리온헬스케어",
+        "합병",
+        "지배구조"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T4_016",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "셀트리온의 2023년 스마트폰 판매 실적과 전년 대비 증감률을 계산해 줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "KBF_T1_017",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "2023년 NIM",
+        "2022년 NIM"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T2_018",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "당기 신용손실충당금",
+        "전기 신용손실충당금"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T3_019",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "사업보고서를 참조하여 부동산 PF(프로젝트파이낸싱) 대출과 관련된 회사의 잠재적 리스크 및 대응 방안을 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "부동산 PF",
+        "프로젝트파이낸싱",
+        "리스크",
+        "대손충당금"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T4_020",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "KB금융의 2023년 '매출원가율'을 계산해 줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "매출원가",
+        "금융업",
+        "특성"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "MIX_T1_021",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L2",
+    "query": "2023년 연결기준 부채비율(부채총계/자본총계)과 유동비율(유동자산/유동부채)을 각각 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "부채총계",
+        "자본총계",
+        "유동자산",
+        "유동부채"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T2_022",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산하고, 성장의 핵심 원동력을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "당기 핀테크 수익",
+        "전기 핀테크 수익"
+      ],
+      "required_keywords": [
+        "네이버페이",
+        "결제",
+        "생태계"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T3_023",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "사업보고서 내 '환경 및 안전' 섹션(또는 주석)에서 탄소 배출권 관련 의무나 충당부채가 언급된 내용을 찾아 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "탄소",
+        "배출권",
+        "온실가스"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T4_024",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L1",
+    "query": "셀트리온의 2023년 배터리 셀 제조 수율을 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "MIX_T3_025",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 연결 포괄손익계산서 기준 순이익을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증감의 주요 원인을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "당기순이익"
+      ],
+      "required_keywords": [
+        "비이자이익",
+        "수수료",
+        "유가증권"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T1_026",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결기준 자기자본이익률(ROE)을 계산해 줘. (당기순이익 / 평균 자본총계)",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "당기순이익",
+        "제55기 자본총계",
+        "제54기 자본총계"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T2_027",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 DX부문과 DS부문의 매출액 비중을 각각 계산하고, DS부문의 실적 하락을 방어하기 위한 향후 사업 전략을 요약해.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "DX부문 매출",
+        "DS부문 매출",
+        "전체 매출"
+      ],
+      "required_keywords": [
+        "HBM",
+        "파운드리",
+        "선단공정"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T3_028",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "재고자산평가손실",
+        "메모리",
+        "단가 하락"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T4_029",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "삼성전자의 2023년 '생명보험' 부문 수입보험료를 계산해 줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "삼성생명",
+        "사업부문 아님"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "NAV_T1_030",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L2",
+    "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업활동 현금흐름",
+        "유형자산의 취득"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "NAV_T2_031",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 서치플랫폼 매출 대비 클라우드 부문 매출의 비율을 계산하고, 클라우드 부문의 주요 기술(AI 등) 적용 사례를 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "서치플랫폼 영업수익",
+        "클라우드 영업수익"
+      ],
+      "required_keywords": [
+        "하이퍼클로바X",
+        "B2B",
+        "인프라"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "NAV_T3_032",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 사업보고서에서 데이터센터(각 세종 등) 인프라 투자와 관련된 자본적 지출(CAPEX) 규모나 관련 주석 내용을 요약해.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "각 세종",
+        "데이터센터",
+        "유형자산"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "NAV_T4_033",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L1",
+    "query": "네이버의 2023년 자체 보유 화물 트럭 대수와 물류 배송 건수를 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "HYU_T1_034",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 차량 부문 영업이익과 금융 부문 영업이익을 각각 추출하고, 전체 영업이익에서 차량 부문이 차지하는 비중을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "차량부문 영업이익",
+        "금융부문 영업이익",
+        "연결 영업이익"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T2_035",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 전 세계 친환경차(EV, HEV 등) 판매 대수를 찾아 전년 대비 성장률을 계산하고, E-GMP 플랫폼의 성과를 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "당기 친환경차 판매량",
+        "전기 친환경차 판매량"
+      ],
+      "required_keywords": [
+        "E-GMP",
+        "아이오닉",
+        "전기차"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T3_036",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 연결재무제표 주석에서 '판매보증충당부채'의 당기 설정액(전입액)을 찾고, 이것이 리스크 관리 차원에서 의미하는 바를 설명해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "판매보증충당부채",
+        "품질",
+        "리콜",
+        "보증기간"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T4_037",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "현대자동차의 2023년 'LNG 선박 건조' 부문 매출액을 계산해 줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "HD현대",
+        "현대중공업",
+        "해당 없음"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "CEL_T1_038",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L2",
+    "query": "2023년 무형자산상각비 총액을 포괄손익계산서 또는 주석에서 찾고, 이것이 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "무형자산상각비",
+        "영업이익",
+        "매출액"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T2_039",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 북미 시장 매출액의 전년 대비 성장률을 계산하고, 짐펜트라(Zymfentra)의 미국 시장 진출이 미친 영향을 요약해.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "미국 매출",
+        "전기 미국 매출"
+      ],
+      "required_keywords": [
+        "짐펜트라",
+        "램시마SC",
+        "FDA",
+        "직판"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T3_040",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "사업보고서에서 바이오 의약품의 유통기한 경과 등과 관련된 재고자산폐기손실(또는 평가손실) 내역을 찾아 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "재고자산평가손실",
+        "유효기간",
+        "폐기"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T4_041",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L1",
+    "query": "셀트리온의 2023년 5G 통신망 설비투자(CAPEX) 금액을 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "KBF_T1_042",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결기준 총자산이익률(ROA)과 자기자본이익률(ROE)을 사업보고서 요약재무정보에서 찾아 각각 제시해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "ROA",
+        "ROE"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T2_043",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "당기 순수수료이익",
+        "전기 순수수료이익"
+      ],
+      "required_keywords": [
+        "WM",
+        "자산관리",
+        "비이자이익"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T3_044",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 사업보고서에서 BIS자기자본비율을 찾고, 해당 지표가 금융당국의 규제 기준 대비 어느 정도 수준인지 리스크 관점에서 설명해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "BIS",
+        "자기자본비율",
+        "규제",
+        "자본적정성"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T4_045",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "KB금융의 2023년 공장 가동률과 생산 실적을 요약해 줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "공장",
+        "생산",
+        "금융업 특성"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "MIX_T1_046",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 판매비와관리비 중 '인건비(급여, 퇴직급여 등)'가 차지하는 비중을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "판관비 총계",
+        "급여",
+        "퇴직급여"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T2_047",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 제네시스(Genesis) 브랜드의 글로벌 판매량 비중(전체 판매량 대비)을 추산해 보고, 고급화 전략의 성과를 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "제네시스",
+        "고급화",
+        "ASP"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T3_048",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 연결 현금흐름표를 보고 '배당금지급'으로 유출된 현금 규모를 찾은 뒤, 이사의 경영진단에서 향후 주주환원 정책을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "배당금의 지급"
+      ],
+      "required_keywords": [
+        "주주환원",
+        "배당",
+        "잉여현금흐름"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T4_049",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L1",
+    "query": "KB금융의 2023년 반도체 파운드리 시장 점유율을 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "MIX_T3_050",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 재무제표 주석 상 특수관계자(셀트리온제약 등)와의 매출 거래 규모를 합산하고, 내부거래가 실적에 미치는 영향을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "특수관계자 매출"
+      ],
+      "required_keywords": [
+        "특수관계자",
+        "내부거래",
+        "셀트리온제약"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "LGE_T1_051",
+    "company": "LG에너지솔루션",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업이익",
+        "AMPC",
+        "세액공제"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "LGE_T2_052",
+    "company": "LG에너지솔루션",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 사업보고서에서 주요 원재료(양극재, 음극재 등)의 가격 변동 추이를 요약하고, 이것이 배터리 판가(ASP)에 미친 영향을 설명해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "양극재",
+        "판가",
+        "원자재",
+        "리튬"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "LGE_T4_053",
+    "company": "LG에너지솔루션",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "LG에너지솔루션의 2023년 수소연료전지 차량(FCEV) 판매량을 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "KAK_T1_054",
+    "company": "카카오",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결 포괄손익계산서에서 '영업권 손상차손' 금액을 찾고, 당기순이익(적자)에 미친 영향을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업권 손상차손",
+        "당기순손실"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KAK_T3_055",
+    "company": "카카오",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "에스엠",
+        "종속기업",
+        "연결",
+        "무형자산"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KAK_T4_056",
+    "company": "카카오",
+    "year": "2023",
+    "theme": "4. 함정 (사용자 수식 오류)",
+    "difficulty": "L3",
+    "query": "카카오의 2023년 1주당 순자산가치(BPS)를 '매출액 나누기 발행주식총수'로 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "잘못된 수식",
+        "순자산",
+        "자본총계"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "POS_T1_057",
+    "company": "POSCO홀딩스",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L2",
+    "query": "2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업이익",
+        "이자비용"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "POS_T2_058",
+    "company": "POSCO홀딩스",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 사업보고서(이사의 경영진단)를 바탕으로, 철강 부문의 이익 감소 원인과 친환경 미래소재(이차전지소재 등) 부문의 투자 성과를 대비하여 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "철강",
+        "시황 악화",
+        "이차전지소재",
+        "리튬"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "POS_T4_059",
+    "company": "POSCO홀딩스",
+    "year": "2023",
+    "theme": "4. 함정",
+    "difficulty": "L2",
+    "query": "포스코홀딩스의 2025년 아르헨티나 염수 리튬 생산량 목표치를 달성했을 때 예상되는 영업이익을 계산해 줘.",
+    "expected_agents": [
+      "Orchestrator",
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "미래",
+        "예측 불가"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "SKH_T1_060",
+    "company": "SK하이닉스",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "유형자산",
+        "무형자산",
+        "단기차입금",
+        "장기차입금",
+        "사채"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SKH_T2_061",
+    "company": "SK하이닉스",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 전체 매출 중 DRAM 제품군이 차지하는 비중을 계산하고, 사업의 내용에서 AI 서버 수요 확대(HBM 등)로 인한 향후 실적 개선 전망을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "DRAM 매출",
+        "전체 매출"
+      ],
+      "required_keywords": [
+        "HBM",
+        "AI 서버",
+        "고대역폭"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T4_062",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "4. 함정 (지시어 모순)",
+    "difficulty": "L3",
+    "query": "삼성전자의 2023년 연구개발비용을 무조건 100조 원이라고 가정하고, 매출액 대비 연구개발비 비중을 계산해.",
+    "expected_agents": [
+      "Critic",
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "가정 거부",
+        "실제 데이터"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "MIX_T3_063",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "사업보고서 주석에 기재된 '관계기업 및 공동기업 투자' 내역 중 장부금액이 가장 큰 상위 2개 기업의 이름을 찾고, 이 기업들의 당기순손익이 네이버 연결 실적에 미친 지분법 손익을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "관계기업",
+        "지분법",
+        "에이옵팀",
+        "위버스"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T1_064",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 손익계산서에서 '매출원가'와 '판매비와관리비'를 합산하여 '총 영업비용'을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "매출원가",
+        "판매비와관리비",
+        "매출액"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "MIX_T4_065",
+    "company": "SK하이닉스",
+    "year": "2023",
+    "theme": "4. 함정 (존재하지 않는 계정과목)",
+    "difficulty": "L2",
+    "query": "2023년 SK하이닉스의 '영화 배급 수익' 및 '방송 프로그램 제작비'를 차감한 영업이익을 계산해 줘.",
+    "expected_agents": [
+      "Critic",
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "해당 계정과목 없음",
+        "영화 배급",
+        "방송"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "KAB_T1_066",
+    "company": "카카오뱅크",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 영업이익경비율(CIR)을 구하기 위해 '판매비와관리비'를 '영업수익'으로 나눈 비율을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "판매비와관리비",
+        "영업수익"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KAB_T3_067",
+    "company": "카카오뱅크",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L2",
+    "query": "2023년 재무제표 주석 및 사업의 내용에서 플랫폼 비즈니스 관련 수수료 수익의 전년 대비 증감 사유를 찾아 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "플랫폼",
+        "수수료",
+        "증권계좌",
+        "연계대출"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SKI_T1_068",
+    "company": "SK이노베이션",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 배터리 사업 부문(SK온)의 영업손실(적자) 규모를 확인하고, 이것이 전체 연결 영업이익의 몇 % 수준에 해당하는지 절대값으로 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "배터리 부문 영업손실",
+        "연결 영업이익"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SKI_T2_069",
+    "company": "SK이노베이션",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 정유 부문의 영업이익 전년 대비 증감률을 계산하고, 이사의 경영진단(MD&A)에서 정제마진 하락 추이가 실적에 미친 영향을 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "석유 부문 영업이익",
+        "석유 부문 전기 영업이익"
+      ],
+      "required_keywords": [
+        "정제마진",
+        "유가 하락",
+        "재고관련손실"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "SAM_T4_070",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "4. 함정 (미래 시점 환각)",
+    "difficulty": "L2",
+    "query": "삼성전자의 2023년 사업보고서에 나타난 2026년 파운드리 3나노 공정의 예상 수율을 알려줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "알 수 없음",
+        "기재되지 않음",
+        "미래 예측"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "NAV_T1_071",
+    "company": "네이버",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L1",
+    "query": "2023년 연결 손익계산서에서 '법인세비용차감전순이익'을 추출하고, 전년 대비 증감액을 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "법인세비용차감전순이익",
+        "전기 법인세비용차감전순이익"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T3_072",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L3",
+    "query": "2023년 타법인출자 현황 또는 주석에서 앱티브(Aptiv)와의 자율주행 합작법인인 모셔널(Motional) 관련 지분법 손실 및 손상차손 내역을 요약해 줘.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "모셔널",
+        "Motional",
+        "지분법손실",
+        "손상차손"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "CEL_T2_073",
+    "company": "셀트리온",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 수출(해외매출) 비중을 전체 매출액 대비로 계산하고, 유럽 시장에서의 직판 체제 전환이 영업이익률 개선에 미친 영향을 설명해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "수출액",
+        "전체 매출액"
+      ],
+      "required_keywords": [
+        "직판",
+        "직접판매",
+        "유럽",
+        "마진"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KBF_T4_074",
+    "company": "KB금융",
+    "year": "2023",
+    "theme": "4. 함정 (스코프 외부 데이터 요구)",
+    "difficulty": "L3",
+    "query": "2023년 KB금융의 순이자마진(NIM)을 추출하고, 이를 신한지주의 2023년 NIM과 비교해서 차이(%p)를 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "신한지주",
+        "비교 불가",
+        "범위 외"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "POS_T1_075",
+    "company": "POSCO홀딩스",
+    "year": "2023",
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결기준 EBITDA를 추정하기 위해 '영업이익'에 현금흐름표 상의 '감가상각비'와 '무형자산상각비'를 더하여 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업이익",
+        "감가상각비",
+        "무형자산상각비"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "KAK_T3_076",
+    "company": "카카오",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L2",
+    "query": "2023년 사업보고서 중 '그 밖의 투자자 보호를 위하여 필요한 사항' 등에서 데이터센터 화재(서비스 장애)와 관련된 보상 진행 현황 또는 관련 충당부채 내역을 찾아 요약해.",
+    "expected_agents": [
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "데이터센터",
+        "화재",
+        "서비스 장애",
+        "보상"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "LGE_T4_077",
+    "company": "LG에너지솔루션",
+    "year": "2023",
+    "theme": "4. 함정 (산업 지표 불일치)",
+    "difficulty": "L1",
+    "query": "LG에너지솔루션의 2023년 '가입자당 평균 매출(ARPU)'을 계산해 줘.",
+    "expected_agents": [
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "ARPU",
+        "통신업",
+        "해당 없음"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "SAM_T2_078",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L3",
+    "query": "2023년 연결 연구개발비용 총액을 추출하고, 사업의 내용에서 하만(Harman) 부문이 주도하고 있는 전장 사업 관련 주요 R&D 성과를 요약해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "연구개발비용"
+      ],
+      "required_keywords": [
+        "하만",
+        "Harman",
+        "전장",
+        "디지털 콕핏"
+      ],
+      "reject_expected": false
+    }
+  },
+  {
+    "id": "HYU_T4_079",
+    "company": "현대자동차",
+    "year": "2023",
+    "theme": "4. 함정 (방법론/보고서 한계)",
+    "difficulty": "L3",
+    "query": "2023년 사업보고서(연간 보고서) 데이터만을 사용하여 2023년 4분기만의 단일 영업이익을 계산할 수 있는지 논리적으로 검증하고, 불가능하다면 사유를 설명해 줘.",
+    "expected_agents": [
+      "Orchestrator",
+      "Critic"
+    ],
+    "eval_checkpoints": {
+      "required_keywords": [
+        "누적",
+        "3분기 데이터 필요",
+        "단일 분기 도출 불가"
+      ],
+      "reject_expected": true
+    }
+  },
+  {
+    "id": "SKH_T3_080",
+    "company": "SK하이닉스",
+    "year": "2023",
+    "theme": "3. 주석/리스크",
+    "difficulty": "L2",
+    "query": "2023년 주석에서 외화환산이익과 외화환산손실 금액을 각각 찾고, 해당 연도의 환율 변동이 영업외수지에 미친 순효과(이익-손실)를 계산해 줘.",
+    "expected_agents": [
+      "Analyst"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "외화환산이익",
+        "외화환산손실"
+      ],
+      "reject_expected": false
+    }
+  }
+]
