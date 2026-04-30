@@ -20,6 +20,25 @@
 즉 현재 방향은 “새 MAS를 백지에서 다시 짠다”가 아니라,  
 **이미 검증된 single-agent 자산을 role-separated MAS로 이식하는 것**이다.
 
+## 0-1. 병렬 worker + critic loop + merge를 갖춘 walking MAS skeleton을 실제로 개통했다
+
+최근에는 single-agent 자산을 설명용으로만 두지 않고, 실제 MAS topology 안으로 이식했다.
+
+핵심 포인트:
+
+- `Orchestrator_Plan -> Analyst / Researcher -> Critic -> Orchestrator_Merge`
+- communication은 자유 채팅이 아니라 `tasks`, `artifacts`, `evidence_pool`, `critic_reports` 기반 task ledger
+- real-store smoke 기준
+  - Analyst migration: `numeric_result_match_rate = 1.000`
+  - Researcher migration: `citation_match_rate = 1.000`, `critic_pass_rate = 1.000`
+  - E2E MAS smoke: mixed-intent 질의 `2/2`에서 최종 report 생성, `1/2`에서 critic-triggered analyst retry 관측
+
+의미:
+
+- 이 프로젝트는 더 이상 “MAS를 설계할 예정”인 상태가 아니라,
+  **실제 worker migration과 critic loop까지 개통된 walking skeleton**을 갖고 있다.
+- 이후 Researcher/Orchestrator 품질 튜닝은 모두 이 E2E baseline 위에서 delta로 측정할 수 있다.
+
 ## 1. 비표준 공시 문서를 구조적으로 읽는 ingestion
 
 이 프로젝트는 일반 웹 문서를 대상으로 한 splitter 대신, DART XML의 구조를 직접 해석하는 parser를 사용한다.

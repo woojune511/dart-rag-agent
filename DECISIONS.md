@@ -25,6 +25,7 @@
 | Domain knowledge | 하드코딩 규칙을 **thin ontology**로 점진 이동 | metric-specific duct tape 축소 | `financial_ontology.json`, retrieval/planner prior | 진행 중 |
 | Responsibility split | **의미 해석은 LLM, 실행/계산/grounding은 deterministic code**로 분리 | rule drift를 줄이고 agent/tool boundary를 명확히 함 | self-reflection redesign checkpoint, [architecture_direction.md](docs/architecture/architecture_direction.md) | 진행 중 |
 | Roadmap | `MAS skeleton -> Analyst -> Critic -> Researcher -> reflection -> cross-company` 순으로 확장 | role separation과 communication contract를 먼저 고정 | [CONTEXT.md](CONTEXT.md), [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md) | 진행 중 |
+| MAS topology | real `Orchestrator + Analyst + Researcher + Critic + Merge` walking skeleton을 먼저 개통 | 이후 quality tuning과 self-reflection을 E2E baseline 위에서 검증 가능 | `mas_analyst_smoke`, `mas_researcher_smoke`, `mas_e2e_smoke` | 진행 중 |
 | Decision policy | **중요한 기술 결정은 반드시 benchmark/replay 실험과 artifact를 남긴 뒤 닫는다** | 포트폴리오와 설계 신뢰성을 동시에 확보 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | 유지 |
 | Artifact policy | 실험 자산은 repo에 남기고 scratch만 무시 | 포트폴리오/면접에서 재현 가능한 evidence 확보 | benchmark results / summary tracked | 유지 |
 
@@ -2004,3 +2005,113 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 - 포트폴리오용 설계 근거가 누적된다
 - 나중에 아키텍처를 다시 바꿀 때도 어떤 결정이 실제로 유효했는지 추적 가능하다
 - “좋아 보이는 patch”가 아니라 “검증된 구조 변화” 위주로 프로젝트가 진화한다
+
+---
+
+## 결정 86 — MAS는 자유 메시지 passing보다 `task ledger + artifact store` 중심으로 구현한다
+
+**배경**: MAS를 설계할 때 agent끼리 자연어 메시지를 주고받게 만들 수도 있었지만, 이 프로젝트의 핵심은 grounding, critic, benchmark 재현성까지 함께 보장하는 구조를 만드는 것이다.
+
+**판단**:
+
+- 자유 메시지 passing은 디버깅과 benchmark artifact 정리에 불리하다
+- 반면 아래 계층은 이후 critic / cache / replay / portfolio evidence까지 이어지기 쉽다
+  - `tasks`
+  - `artifacts`
+  - `evidence_pool`
+  - `critic_reports`
+  - `final_report`
+
+**결정**:
+
+- MAS state는 shared chat log가 아니라 **task ledger + artifact store**를 중심으로 설계한다
+- worker는 자기 task만 읽고, 결과는 구조화된 artifact로 남긴다
+- critic과 orchestrator는 artifact를 읽어 검증/병합한다
+
+**효과**:
+
+- parallel worker topology와 critic retry loop를 추적하기 쉬워졌다
+- 이후 report-scoped cache나 self-reflection을 붙일 때도 communication contract가 안정적이다
+
+---
+
+## 결정 87 — Analyst는 `FinancialAgent.run()` wrapper migration으로 먼저 이식하고 parity smoke로 검증한다
+
+**배경**: 기존 single-agent numeric/evidence path를 바로 MAS subgraph로 잘게 분해하면, migration 중 회귀 원인이 섞여 디버깅이 어려워진다.
+
+**결정**:
+
+- 첫 단계에서는 `FinancialAgent.run()`을 MAS Analyst worker가 감싸는 wrapper migration을 택한다
+- 입력은 `task["instruction"] + report_scope`
+- 출력은 `artifacts`, `evidence_links`, `evidence_pool` 형식으로 변환한다
+
+**검증**:
+
+- real store smoke:
+  - [mas_analyst_smoke_2026-04-30.json](benchmarks/results/mas_analyst_smoke_2026-04-30.json)
+- 결과:
+  - `calc_status_match_rate = 1.000`
+  - `numeric_result_match_rate = 1.000`
+  - `answer_match_rate = 0.333`
+
+**해석**:
+
+- wording은 LLM variance가 있지만, MAS Analyst wrapper는 **numeric result와 calculation status를 direct engine과 동일하게 유지**했다
+- 따라서 다음 단계는 Analyst subgraph 분해보다 critic / orchestrator / researcher 통합이 우선이다
+
+---
+
+## 결정 88 — runtime Critic은 deterministic 1층을 먼저 붙이고, grounding 실패를 retry signal로 사용한다
+
+**배경**: Analyst와 Researcher를 이식한 뒤, artifact가 비거나 evidence link가 없는 결과를 어떻게 통제할지 기준점이 필요했다.
+
+**결정**:
+
+- runtime critic의 첫 단계는 100% deterministic rule layer로 둔다
+- Analyst는
+  - answer non-empty
+  - evidence_links non-empty
+  - calculation status
+  - rendered value / 기본 unit format
+  를 확인한다
+- Researcher는
+  - answer minimum length
+  - evidence_links non-empty
+  를 확인한다
+- 실패 시 `REJECTED_BY_CRITIC`로 되돌리고, `retry_count >= 2`면 `FAILED`로 고정한다
+
+**효과**:
+
+- self-reflection이나 LLM critic이 들어오기 전에도 최소한의 runtime guardrail을 확보했다
+- critic-triggered retry loop를 MAS topology 안에서 실제로 검증할 수 있게 됐다
+
+---
+
+## 결정 89 — Researcher와 Orchestrator도 wrapper-first로 붙여, 먼저 E2E MAS baseline을 개통한다
+
+**배경**: Researcher 품질 이슈가 일부 남아 있었지만, 하위 모듈을 더 튜닝하기 전에 실제 end-to-end MAS lifecycle을 먼저 개통하는 편이 포트폴리오와 후속 실험 모두에 유리했다.
+
+**결정**:
+
+- Researcher는 scoped semantic retrieval + LLM summarization core를 별도 worker로 이식한다
+- Orchestrator는
+  - `Orchestrator_Plan`
+  - `Orchestrator_Merge`
+  두 노드로 분리한다
+- `Orchestrator -> Analyst/Researcher -> Critic -> Merge` 경로를 real store에서 먼저 end-to-end로 뚫는다
+
+**검증**:
+
+- Researcher smoke:
+  - [mas_researcher_smoke_2026-04-30.json](benchmarks/results/mas_researcher_smoke_2026-04-30.json)
+  - `citation_match_rate = 1.000`
+  - `critic_pass_rate = 1.000`
+- E2E smoke:
+  - [mas_e2e_smoke_2026-04-30.json](benchmarks/results/mas_e2e_smoke_2026-04-30.json)
+  - final report 생성 `2/2`
+  - critic-triggered analyst retry `1/2`
+
+**해석**:
+
+- 이제 MAS는 “설계 예정”이 아니라 **walking skeleton이 실제로 개통된 상태**다
+- 이후 Researcher/Orchestrator 품질 튜닝은 E2E baseline 대비 delta로 설명할 수 있다

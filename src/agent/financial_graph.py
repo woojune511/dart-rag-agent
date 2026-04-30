@@ -85,8 +85,19 @@ def _strip_anchor_text(text: str) -> str:
     return _normalise_spaces(cleaned)
 
 
+def _section_hint_alias(section: str) -> str:
+    text = _normalise_spaces(section)
+    if not text:
+        return ""
+    if ">" in text:
+        text = text.split(">")[-1].strip()
+    text = re.sub(r"^\d+\.\s*", "", text)
+    return text
+
+
 class FinancialAgentState(TypedDict):
     query: str
+    report_scope: Dict[str, Any]
     query_type: str
     intent: str
     target_metric_family: str
@@ -118,6 +129,11 @@ class FinancialAgentState(TypedDict):
     calculation_result: Dict[str, Any]
     calculation_debug_trace: Dict[str, Any]
     planner_debug_trace: Dict[str, Any]
+    missing_info: List[str]
+    reflection_count: int
+    retry_reason: str
+    retry_queries: List[str]
+    reflection_plan: Dict[str, Any]
 
 
 class EntityExtraction(BaseModel):
@@ -229,6 +245,10 @@ class FormulaVariableBinding(BaseModel):
 
 
 class CalculationPlan(BaseModel):
+    status: Literal["ok", "incomplete"] = Field(
+        default="ok",
+        description="계산 계획이 완결되었는지 여부. 부족한 정보가 있으면 incomplete"
+    )
     mode: Literal["single_value", "time_series", "none"] = Field(
         description="단일 계산인지, 시계열 계산인지, 계산 불가인지"
     )
@@ -264,6 +284,42 @@ class CalculationPlan(BaseModel):
         default="",
         description="이 연산을 선택한 이유를 한 문장으로 설명"
     )
+    missing_info: List[str] = Field(
+        default_factory=list,
+        description="계획 수립에 필요한데 현재 컨텍스트에 없는 정보 목록. 예: 2023년 연구개발비용"
+    )
+
+
+class ReflectionQueryPlan(BaseModel):
+    status: Literal["ready", "skip"] = Field(
+        default="ready",
+        description="재검색 계획을 만들 수 있으면 ready, 그렇지 않으면 skip"
+    )
+    retry_objective: Literal[
+        "find_missing_values",
+        "find_direct_row",
+        "resolve_binding",
+        "generic_retry",
+    ] = Field(
+        default="generic_retry",
+        description="이번 retry의 목적. 세부 연산 분류보다 재검색 목적만 나타낸다"
+    )
+    missing_info: List[str] = Field(
+        default_factory=list,
+        description="현재 컨텍스트에서 부족한 정보 조각"
+    )
+    subqueries: List[str] = Field(
+        default_factory=list,
+        description="retrieval executor가 그대로 사용할 1~3개의 재검색 쿼리"
+    )
+    preferred_sections: List[str] = Field(
+        default_factory=list,
+        description="재검색에서 우선적으로 참고할 섹션 힌트"
+    )
+    explanation: str = Field(
+        default="",
+        description="왜 이 재검색 계획을 세웠는지 한 문장 설명"
+    )
 
 
 class CalculationResult(BaseModel):
@@ -281,6 +337,19 @@ class CalculationResult(BaseModel):
 
 class CalculationRenderOutput(BaseModel):
     final_answer: str = Field(description="CalculationResult와 operand labels만 사용해 작성한 최종 답변")
+
+
+class CalculationVerificationOutput(BaseModel):
+    verdict: Literal["keep", "rewrite", "fallback"] = Field(
+        description="현재 계산 답변을 유지할지, 짧게 고쳐쓸지, deterministic fallback으로 돌릴지"
+    )
+    issues: List[str] = Field(
+        default_factory=list,
+        description="발견한 문제 목록. 예: wrong_unit, wrong_direction, extra_claim"
+    )
+    final_answer: str = Field(
+        description="검증 후 최종 사용자 답변"
+    )
 
 
 def _parse_number_text(text: str) -> Optional[float]:
@@ -688,6 +757,30 @@ class FinancialAgent:
             "다음 질문에서 기업명, 연도, 핵심 주제, 관련 섹션을 추출하세요.\n\n질문: {query}"
         )
         result: EntityExtraction = (prompt | structured_llm).invoke({"query": state["query"]})
+        report_scope = dict(state.get("report_scope") or {})
+        scope_company = str(report_scope.get("company") or "").strip()
+        scope_year_raw = report_scope.get("year")
+        scope_year: Optional[int] = None
+        try:
+            if scope_year_raw not in (None, ""):
+                scope_year = int(scope_year_raw)
+        except (TypeError, ValueError):
+            scope_year = None
+
+        companies = list(result.companies or [])
+        if scope_company:
+            if not companies:
+                companies = [scope_company]
+            elif scope_company not in companies:
+                companies = [scope_company, *companies]
+
+        years = list(result.years or [])
+        if scope_year is not None:
+            if not years:
+                years = [scope_year]
+            elif scope_year not in years:
+                years = [scope_year, *years]
+
         ontology = get_financial_ontology()
         metric = ontology.best_metric_family(
             state["query"],
@@ -704,8 +797,8 @@ class FinancialAgent:
             target_metric_family or "-",
         )
         return {
-            "companies": result.companies,
-            "years": result.years,
+            "companies": companies,
+            "years": years,
             "topic": result.topic,
             "section_filter": result.section_filter,
             "target_metric_family": target_metric_family,
@@ -772,6 +865,440 @@ class FinancialAgent:
                 section_terms,
             )
         return supplemented[:6]
+
+    def _is_reflection_eligible(self, state: FinancialAgentState) -> bool:
+        intent = state.get("intent") or state.get("query_type", "qa")
+        return intent in {"comparison", "trend"}
+
+    def _infer_missing_info(self, state: FinancialAgentState, operands: Optional[List[Dict[str, Any]]] = None) -> List[str]:
+        query = state["query"]
+        topic = state.get("topic") or query
+        intent = state.get("intent") or state.get("query_type", "qa")
+        years = [int(year) for year in (state.get("years") or [])]
+        ontology = get_financial_ontology()
+        metric_key = str(state.get("target_metric_family") or "")
+        metric_info = ontology.metric_family(metric_key) if metric_key else None
+
+        inferred: List[str] = []
+        if metric_info:
+            display_name = str(metric_info.get("display_name") or "").strip()
+            if display_name and _is_ratio_percent_query(query):
+                if years:
+                    inferred.extend(f"{year}년 {display_name}" for year in years)
+                else:
+                    inferred.append(display_name)
+            for component in (metric_info.get("components") or {}).values():
+                component_name = str((component or {}).get("name") or "").strip()
+                if not component_name:
+                    continue
+                if years:
+                    inferred.extend(f"{year}년 {component_name}" for year in years)
+                else:
+                    inferred.append(component_name)
+
+        if not inferred and years:
+            inferred.extend(f"{year}년 {topic}" for year in years)
+        if not inferred:
+            inferred.append(topic)
+
+        cleaned_inferred: List[str] = []
+        for item in inferred:
+            cleaned = _normalise_spaces(re.sub(r"(비교|차이|대비|합계)\s*$", "", str(item or "")))
+            if cleaned:
+                cleaned_inferred.append(cleaned)
+        inferred = cleaned_inferred or inferred
+
+        if operands:
+            operand_text = " ".join(
+                _normalise_spaces(
+                    " ".join(
+                        [
+                            str(row.get("label") or ""),
+                            str(row.get("raw_value") or ""),
+                            str(row.get("period") or ""),
+                        ]
+                    )
+                )
+                for row in operands
+            )
+            filtered: List[str] = []
+            for candidate in inferred:
+                candidate_tokens = [token for token in re.findall(r"[가-힣A-Za-z0-9]+", candidate) if len(token) >= 2]
+                if candidate_tokens and all(token in operand_text for token in candidate_tokens):
+                    continue
+                filtered.append(candidate)
+            inferred = filtered or inferred
+
+        return list(dict.fromkeys(item for item in inferred if item))
+
+    def _build_retry_queries(self, state: FinancialAgentState, missing_info: List[str]) -> List[str]:
+        companies = [str(company).strip() for company in (state.get("companies") or []) if str(company).strip()]
+        if not companies:
+            for doc, _score in (state.get("seed_retrieved_docs") or []):
+                company = str((doc.metadata or {}).get("company") or "").strip()
+                if company:
+                    companies.append(company)
+                    break
+        years = [str(int(year)) for year in (state.get("years") or [])]
+        query = state["query"]
+        topic = state.get("topic") or query
+        intent = state.get("intent") or state.get("query_type", "qa")
+        preferred_sections = _preferred_calc_sections(query, topic, intent)
+
+        queries: List[str] = []
+        for item in missing_info:
+            parts: List[str] = []
+            if companies:
+                parts.extend(companies)
+            if years:
+                parts.extend(years)
+            parts.append(item)
+            if preferred_sections:
+                parts.extend(preferred_sections[:2])
+            queries.append(_normalise_spaces(" ".join(parts)))
+        return list(dict.fromkeys(query_text for query_text in queries if query_text))
+
+    def _heuristic_reflection_query_plan(
+        self,
+        state: FinancialAgentState,
+        operands: List[Dict[str, Any]],
+        retry_objective: str = "generic_retry",
+        explanation: str = "",
+    ) -> Dict[str, Any]:
+        missing_info = [
+            str(item).strip()
+            for item in (state.get("missing_info") or [])
+            if str(item).strip()
+        ]
+        if not missing_info:
+            missing_info = self._infer_missing_info(state, operands)
+        subqueries = self._build_retry_queries(state, missing_info)
+        preferred_sections = _preferred_calc_sections(
+            state["query"],
+            state.get("topic") or state["query"],
+            state.get("intent") or state.get("query_type", "qa"),
+        )
+        return {
+            "status": "ready" if subqueries else "skip",
+            "retry_objective": retry_objective if subqueries else "generic_retry",
+            "missing_info": missing_info,
+            "subqueries": subqueries,
+            "preferred_sections": preferred_sections,
+            "explanation": explanation or "heuristic retry query plan",
+        }
+
+    def _finalize_retry_queries(
+        self,
+        state: FinancialAgentState,
+        reflection_plan: Dict[str, Any],
+        missing_info: List[str],
+    ) -> List[str]:
+        base_queries = [
+            _normalise_spaces(str(item))
+            for item in (reflection_plan.get("subqueries") or [])
+            if _normalise_spaces(str(item))
+        ]
+        if not base_queries:
+            base_queries = self._build_retry_queries(state, missing_info)
+
+        retry_objective = str(reflection_plan.get("retry_objective") or "")
+        if retry_objective in {
+            "find_missing_values",
+            "resolve_binding",
+            "find_direct_row",
+        }:
+            for item in missing_info[:2]:
+                normalized = _normalise_spaces(str(item))
+                if normalized:
+                    base_queries.append(normalized)
+
+        companies = [str(company).strip() for company in (state.get("companies") or []) if str(company).strip()]
+        report_company_hint = ""
+        for doc, _score in (state.get("seed_retrieved_docs") or []):
+            company = str((doc.metadata or {}).get("company") or "").strip()
+            if company:
+                report_company_hint = company
+                break
+        if not report_company_hint:
+            for doc, _score in (state.get("retrieved_docs") or []):
+                company = str((doc.metadata or {}).get("company") or "").strip()
+                if company:
+                    report_company_hint = company
+                    break
+
+        global_preferred_sections = _preferred_calc_sections(
+            state["query"],
+            state.get("topic") or state["query"],
+            state.get("intent") or state.get("query_type", "qa"),
+        )
+        preferred_sections = [
+            _section_hint_alias(section)
+            for section in (
+                global_preferred_sections
+                + list(reflection_plan.get("preferred_sections") or [])
+            )
+            if _section_hint_alias(section)
+        ]
+        preferred_sections = list(dict.fromkeys(preferred_sections))
+
+        if preferred_sections and retry_objective in {
+            "find_direct_row",
+            "resolve_binding",
+        }:
+            for item in missing_info[:2]:
+                normalized = _normalise_spaces(str(item))
+                if not normalized:
+                    continue
+                for hint in preferred_sections[:2]:
+                    base_queries.append(_normalise_spaces(f"{normalized} {hint}"))
+
+        finalized: List[str] = []
+        for query_text in base_queries:
+            normalized_query = _normalise_spaces(query_text)
+            for raw_section in (reflection_plan.get("preferred_sections") or []):
+                alias = _section_hint_alias(str(raw_section))
+                raw_section_text = _normalise_spaces(str(raw_section))
+                if raw_section_text and alias:
+                    normalized_query = normalized_query.replace(raw_section_text, alias)
+            parts: List[str] = []
+            lowered = normalized_query.lower()
+            if report_company_hint and report_company_hint.lower() not in lowered:
+                parts.append(report_company_hint)
+            parts.append(normalized_query)
+            finalized.append(_normalise_spaces(" ".join(parts)))
+
+        return list(dict.fromkeys(item for item in finalized if item))
+
+    def _plan_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
+        operands = list(state.get("calculation_operands", []) or [])
+        plan = dict(state.get("calculation_plan") or {})
+        calc_result = dict(state.get("calculation_result") or {})
+        query = state["query"]
+        topic = state.get("topic") or query
+        intent = state.get("intent") or state.get("query_type", "qa")
+        years = [int(year) for year in (state.get("years") or [])]
+        companies = [str(company).strip() for company in (state.get("companies") or []) if str(company).strip()]
+        preferred_sections = _preferred_calc_sections(query, topic, intent)
+
+        missing_info = [
+            str(item).strip()
+            for item in (plan.get("missing_info") or state.get("missing_info") or [])
+            if str(item).strip()
+        ]
+        if not missing_info:
+            missing_info = self._infer_missing_info(state, operands)
+
+        ratio_query = _is_ratio_percent_query(query)
+        percent_point_query = _is_percent_point_difference_query(query)
+        sum_query = any(token in query for token in ["합계", "합산", "합친", "합한"])
+        fallback_retry_objective = "generic_retry"
+        if percent_point_query:
+            fallback_retry_objective = "find_direct_row"
+        elif ratio_query and len(operands) < 2:
+            fallback_retry_objective = "find_missing_values"
+        elif sum_query:
+            fallback_retry_objective = "find_missing_values"
+        elif years and len(years) > 1:
+            fallback_retry_objective = "resolve_binding"
+        elif re.search(r"\bvs\b|와|과", query):
+            fallback_retry_objective = "resolve_binding"
+        elif not operands:
+            fallback_retry_objective = "find_missing_values"
+
+        seed_sections: List[str] = []
+        for doc, _score in (state.get("seed_retrieved_docs") or [])[:6]:
+            section_path = str((doc.metadata or {}).get("section_path") or (doc.metadata or {}).get("section") or "").strip()
+            if section_path:
+                seed_sections.append(section_path)
+        seed_sections = list(dict.fromkeys(seed_sections))
+
+        ontology = get_financial_ontology()
+        metric_key = str(state.get("target_metric_family") or "")
+        metric_info = ontology.metric_family(metric_key) if metric_key else None
+        ontology_lines: List[str] = []
+        if metric_info:
+            ontology_lines.append(f"- key={metric_info.get('key', '')}")
+            ontology_lines.append(f"- display_name={metric_info.get('display_name', '')}")
+            ontology_lines.append(f"- result_unit={metric_info.get('result_unit', '')}")
+            formula_template = str(metric_info.get("formula_template") or "").strip()
+            if formula_template:
+                ontology_lines.append(f"- formula_template={formula_template}")
+            components = metric_info.get("components") or {}
+            if components:
+                ontology_lines.append("- components:")
+                for role, component in components.items():
+                    component_name = str((component or {}).get("name") or "").strip()
+                    component_keywords = [str(keyword).strip() for keyword in ((component or {}).get("keywords") or []) if str(keyword).strip()]
+                    ontology_lines.append(
+                        f"  - {role}: {component_name} | keywords={component_keywords}"
+                    )
+        ontology_context = "\n".join(ontology_lines) or "-"
+
+        operand_lines = [
+            (
+                f"- {row.get('operand_id', '')} | label={row.get('label', '')} | "
+                f"raw={row.get('raw_value', '')} {row.get('raw_unit', '')} | "
+                f"normalized={row.get('normalized_value', '')} {row.get('normalized_unit', '')} | "
+                f"period={row.get('period', '')}"
+            )
+            for row in operands
+        ]
+        seed_section_text = "\n".join(f"- {section}" for section in seed_sections) or "-"
+        operand_text = "\n".join(operand_lines) or "-"
+        plan_text = json.dumps(plan, ensure_ascii=False, indent=2) if plan else "{}"
+        calc_result_text = json.dumps(calc_result, ensure_ascii=False, indent=2) if calc_result else "{}"
+        heuristic_plan = self._heuristic_reflection_query_plan(
+            state,
+            operands,
+            retry_objective=fallback_retry_objective,
+            explanation="fallback reflection query plan",
+        )
+
+        structured_llm = self.llm.with_structured_output(ReflectionQueryPlan)
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 재무 RAG 에이전트의 reflection planner 입니다.
+현재 검색/계산이 실패했을 때, 무엇이 부족한지 진단하고 retrieval-friendly 재검색 쿼리를 1~3개 설계하세요.
+
+목표:
+- 사용자 질문의 의도를 유지한 채
+- 현재 파이프라인이 다시 검색했을 때 누락된 피연산자나 비율 행을 찾기 쉬운 쿼리로 재정의하세요.
+
+규칙:
+- status는 재검색이 의미 있으면 ready, 아니면 skip.
+- retry_objective는 이번 재검색의 목적만 고르세요.
+  - find_missing_values: 필요한 값 일부가 빠졌음
+  - find_direct_row: 질문이 요구하는 직접적인 row/요약값을 찾고 싶음
+  - resolve_binding: 기간/대상/레이블 연결을 더 명확히 하고 싶음
+  - generic_retry: 위 셋으로 충분히 설명되지 않음
+- missing_info에는 현재 컨텍스트에 부족한 정보만 적으세요.
+- subqueries는 1~3개만 만드세요.
+- 각 subquery는 자연어 장문이 아니라 retrieval-friendly keyword query여야 합니다.
+- subquery에는 가능한 한 회사명, 연도, 부족한 metric/entity, 짧은 섹션 힌트를 포함하세요.
+- 질문이 %p 차이나 두 비율 비교라면, 먼저 같은 metric의 기간별/대상별 비율 row를 찾는 쿼리를 우선하세요.
+- 질문이 비율/이익률 계산인데 비율 row가 없으면, 분자/분모 component를 각각 찾는 쿼리를 만드세요.
+- 질문이 합계라면, 합쳐야 하는 구성 항목별 수치를 따로 찾는 쿼리를 만드세요.
+- preferred_sections는 재검색에서 특히 유력한 섹션 힌트만 짧게 넣으세요.
+- 기존 seed sections에 이미 충분히 있는 정보를 그대로 반복하지 말고, 부족한 부분을 겨냥하세요.
+- 하드 필터는 코드가 따로 처리하므로, 기업/연도는 query text에 포함하되 너무 장황하게 쓰지 마세요.
+
+질문: {query}
+의도: {intent}
+주제: {topic}
+기업: {companies}
+연도: {years}
+
+현재 실패 추정:
+- fallback_retry_objective={retry_objective}
+- missing_info(heuristic)={missing_info}
+
+Ontology Context:
+{ontology_context}
+
+현재 확보한 피연산자:
+{operands}
+
+현재 계산 계획:
+{plan_text}
+
+현재 계산 결과:
+{calc_result_text}
+
+현재 seed sections:
+{seed_sections}
+
+참고용 heuristic retry plan:
+{heuristic_plan}
+"""
+        )
+        try:
+            reflection_plan: ReflectionQueryPlan = (prompt | structured_llm).invoke(
+                {
+                    "query": query,
+                    "intent": intent,
+                    "topic": topic,
+                    "companies": companies or ["-"],
+                    "years": years or ["-"],
+                    "retry_objective": fallback_retry_objective,
+                    "missing_info": missing_info or ["-"],
+                    "ontology_context": ontology_context,
+                    "operands": operand_text,
+                    "plan_text": plan_text,
+                    "calc_result_text": calc_result_text,
+                    "seed_sections": seed_section_text,
+                    "heuristic_plan": json.dumps(heuristic_plan, ensure_ascii=False, indent=2),
+                }
+            )
+            plan_data = reflection_plan.model_dump()
+            plan_data["missing_info"] = [
+                str(item).strip()
+                for item in (plan_data.get("missing_info") or [])
+                if str(item).strip()
+            ]
+            plan_data["subqueries"] = [
+                _normalise_spaces(str(item))
+                for item in (plan_data.get("subqueries") or [])
+                if _normalise_spaces(str(item))
+            ]
+            plan_data["preferred_sections"] = [
+                _normalise_spaces(str(item))
+                for item in (plan_data.get("preferred_sections") or [])
+                if _normalise_spaces(str(item))
+            ]
+            if not plan_data["missing_info"]:
+                plan_data["missing_info"] = missing_info
+            if not plan_data["preferred_sections"]:
+                plan_data["preferred_sections"] = preferred_sections[:3]
+            if not plan_data["subqueries"]:
+                plan_data = heuristic_plan
+                plan_data["explanation"] = "fallback to heuristic because reflection planner returned no subqueries"
+            logger.info(
+                "[reflection_replan] status=%s retry_objective=%s subqueries=%s",
+                plan_data.get("status"),
+                plan_data.get("retry_objective"),
+                len(plan_data.get("subqueries") or []),
+            )
+            return {
+                "reflection_plan": plan_data,
+                "missing_info": plan_data.get("missing_info", []),
+                "retry_reason": str(plan_data.get("explanation") or ""),
+                "planner_debug_trace": {
+                    **dict(state.get("planner_debug_trace") or {}),
+                    "reflection_plan": plan_data,
+                    "reflection_seed_sections": seed_sections,
+                    "reflection_llm_invoked": True,
+                },
+            }
+        except Exception as exc:
+            logger.warning("[reflection_replan] structured output failed: %s", exc)
+            fallback_plan = heuristic_plan
+            fallback_plan["explanation"] = f"heuristic fallback after reflection planner error: {exc}"
+            return {
+                "reflection_plan": fallback_plan,
+                "missing_info": fallback_plan.get("missing_info", []),
+                "retry_reason": str(fallback_plan.get("explanation") or ""),
+                "planner_debug_trace": {
+                    **dict(state.get("planner_debug_trace") or {}),
+                    "reflection_plan": fallback_plan,
+                    "reflection_seed_sections": seed_sections,
+                    "reflection_llm_invoked": True,
+                    "reflection_error": str(exc),
+                },
+            }
+
+    def _merge_retry_candidates(self, docs, previous_docs) -> List[tuple[Document, float]]:
+        merged: List[tuple[Document, float]] = list(docs)
+        seen_chunk_uids = {
+            str((doc.metadata or {}).get("chunk_uid") or "")
+            for doc, _score in merged
+        }
+        for doc, score in previous_docs:
+            chunk_uid = str((doc.metadata or {}).get("chunk_uid") or "")
+            if chunk_uid and chunk_uid in seen_chunk_uids:
+                continue
+            if chunk_uid:
+                seen_chunk_uids.add(chunk_uid)
+            merged.append((doc, score))
+        return merged
 
     # intent별 표 청크 선호 여부
     _TABLE_PREFERRED_TYPES = frozenset(["numeric_fact", "trend"])
@@ -861,10 +1388,29 @@ class FinancialAgent:
 
     def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
         query = state["query"]
-        companies = state.get("companies", [])
-        years = state.get("years", [])
+        report_scope = dict(state.get("report_scope") or {})
+        companies = list(state.get("companies", []) or [])
+        years = list(state.get("years", []) or [])
+        scope_company = str(report_scope.get("company") or "").strip()
+        if scope_company and scope_company not in companies:
+            companies = [scope_company, *companies] if companies else [scope_company]
+        scope_year_raw = report_scope.get("year")
+        scope_year: Optional[int] = None
+        try:
+            if scope_year_raw not in (None, ""):
+                scope_year = int(scope_year_raw)
+        except (TypeError, ValueError):
+            scope_year = None
+        if scope_year is not None and scope_year not in years:
+            years = [scope_year, *years] if years else [scope_year]
+        scope_report_type = str(report_scope.get("report_type") or "").strip()
+        scope_rcept_no = str(report_scope.get("rcept_no") or "").strip()
+        scope_consolidation = str(report_scope.get("consolidation") or "").strip()
         section_filter = state.get("section_filter")
         intent = state.get("intent") or state.get("query_type", "qa")
+        reflection_count = int(state.get("reflection_count") or 0)
+        retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
+        effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
 
         conditions = []
         if companies:
@@ -884,6 +1430,10 @@ class FinancialAgent:
                 conditions.append({"year": int_years[0]})
             else:
                 conditions.append({"year": {"$in": int_years}})
+        if scope_report_type:
+            conditions.append({"report_type": scope_report_type})
+        if scope_rcept_no:
+            conditions.append({"rcept_no": scope_rcept_no})
 
         if not conditions:
             where_filter = None
@@ -895,33 +1445,38 @@ class FinancialAgent:
         retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, intent)
         preferred_sections = _preferred_calc_sections(query, state.get("topic") or "", intent)
         enriched_query = f"{' '.join(companies)} {query}" if companies else query
+        if scope_report_type:
+            enriched_query = f"{enriched_query} {scope_report_type}".strip()
+        if scope_consolidation:
+            enriched_query = f"{enriched_query} {scope_consolidation}".strip()
         if retrieval_hint:
             enriched_query = f"{enriched_query} {retrieval_hint}".strip()
         if preferred_sections:
             enriched_query = f"{enriched_query} {' '.join(preferred_sections)}".strip()
-        docs = self.vsm.search(enriched_query, k=self.k * 4, where_filter=where_filter)
+        docs = self.vsm.search(enriched_query, k=effective_k * 4, where_filter=where_filter)
+        if retry_queries:
+            retry_docs: List[tuple[Document, float]] = []
+            for retry_query in retry_queries[:3]:
+                retry_docs.extend(self.vsm.search(retry_query, k=max(effective_k * 2, 8), where_filter=where_filter))
+            if retry_docs:
+                docs = self._merge_retry_candidates(docs, retry_docs)
         supplemental_docs = self._supplement_section_seed_docs(state)
         if supplemental_docs:
-            merged: List[tuple[Document, float]] = list(docs)
-            seen_chunk_uids = {
-                str((doc.metadata or {}).get("chunk_uid") or "")
-                for doc, _score in merged
-            }
-            for doc, score in supplemental_docs:
-                chunk_uid = str((doc.metadata or {}).get("chunk_uid") or "")
-                if chunk_uid and chunk_uid in seen_chunk_uids:
-                    continue
-                if chunk_uid:
-                    seen_chunk_uids.add(chunk_uid)
-                merged.append((doc, score))
-            docs = merged
+            docs = self._merge_retry_candidates(docs, supplemental_docs)
+
+        if reflection_count > 0:
+            previous_docs = list(state.get("seed_retrieved_docs", []) or [])
+            if previous_docs:
+                docs = self._merge_retry_candidates(docs, previous_docs)
 
         logger.info(
-            "[retrieve] companies=%s years=%s topic=%s where=%s -> %s candidates",
+            "[retrieve] companies=%s years=%s topic=%s where=%s retry_count=%s retry_queries=%s -> %s candidates",
             companies,
             years,
             state.get("topic"),
             where_filter,
+            reflection_count,
+            retry_queries,
             len(docs),
         )
 
@@ -959,20 +1514,20 @@ class FinancialAgent:
             tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
             paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
             min_para = min(2, len(paras))
-            docs = (tables[: self.k - min_para] + paras[:min_para])
+            docs = (tables[: effective_k - min_para] + paras[:min_para])
             docs.sort(key=lambda x: x[1], reverse=True)
         elif format_preference == "paragraph":
             # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
             tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
             paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
-            min_para = min(self.k // 2, len(paras))
-            docs = (paras[:min_para] + tables[: self.k - min_para])
+            min_para = min(effective_k // 2, len(paras))
+            docs = (paras[:min_para] + tables[: effective_k - min_para])
             docs.sort(key=lambda x: x[1], reverse=True)
         else:
             docs = reranked
 
-        seed_docs = reranked[: min(len(reranked), self.k * 4)]
-        docs = docs[: self.k]
+        seed_docs = reranked[: min(len(reranked), effective_k * 4)]
+        docs = docs[: effective_k]
         logger.info(
             "[retrieve] intent=%s format=%s final %s chunks returned",
             intent,
@@ -2368,8 +2923,10 @@ Structured Evidence:
         operands = state.get("calculation_operands", [])
         query = state["query"]
         if not operands:
+            missing_info = self._infer_missing_info(state, [])
             return {
                 "calculation_plan": {
+                    "status": "incomplete",
                     "mode": "none",
                     "operation": "none",
                     "ordered_operand_ids": [],
@@ -2379,11 +2936,14 @@ Structured Evidence:
                     "result_unit": "",
                     "operation_text": "",
                     "explanation": "no operands",
+                    "missing_info": missing_info,
                 },
+                "missing_info": missing_info,
                 "planner_debug_trace": {
                     "llm_invoked": False,
                     "guard_applied": False,
                     "reason": "no operands",
+                    "missing_info": missing_info,
                 },
             }
 
@@ -2459,7 +3019,7 @@ Structured Evidence:
 - 질문이 단일 비율/비중/이익률 조회이고 분자/분모 역할의 금액 피연산자 2개가 있다면 formula는 (A / B) * 100 형태로 작성하세요.
 - 두 비율/비중의 차이(%p 차이 포함)를 묻는 질문이라면 mode=single_value 로 두고 formula는 A - B 또는 질문 순서에 맞는 차이식으로 작성하세요. 단일 operand 하나로 끝내지 마세요.
 - 증가율/감소율/변화율은 가능한 한 질문에서 기준이 되는 이전 값이 분모가 되도록 식을 작성하세요.
-- 질문을 풀 수 없으면 mode=none, operation=none 으로 두세요.
+- 현재 피연산자만으로 질문을 풀 수 없으면 억지로 수식을 만들지 말고 status=incomplete, mode=none, operation=none 으로 두고 missing_info에 부족한 정보를 적으세요.
 - result_unit은 최종 답변 단위를 적으세요. 예: 억원, 원, %, 개
 - ontology_context는 이 질문에 대해 추정된 metric family prior 입니다. 실제 피연산자와 모순되면 ontology_context보다 피연산자를 우선하세요.
 - ontology_context에 formula_template과 components가 있으면, 단일 비율 조회는 A 또는 (A / B) * 100, %p 차이는 A - B 같은 계획을 세울 때 참고하세요.
@@ -2482,6 +3042,7 @@ Ontology Context:
                 }
             )
             plan_data = plan.model_dump()
+            plan_data.setdefault("status", "ok")
             bindings = plan_data.get("variable_bindings") or []
             if not plan_data.get("ordered_operand_ids") and bindings:
                 plan_data["ordered_operand_ids"] = [str(binding.get("operand_id") or "") for binding in bindings if str(binding.get("operand_id") or "").strip()]
@@ -2490,11 +3051,19 @@ Ontology Context:
                     {"variable": chr(ord("A") + index), "operand_id": operand_id}
                     for index, operand_id in enumerate(plan_data.get("ordered_operand_ids") or [])
                 ]
+            if (
+                str(plan_data.get("mode") or "").lower() == "none"
+                and not (plan_data.get("variable_bindings") or [])
+            ):
+                plan_data["status"] = "incomplete"
+                if not plan_data.get("missing_info"):
+                    plan_data["missing_info"] = self._infer_missing_info(state, operands)
             if _should_coerce_percent_point_unit(query_text, operands, plan_data):
                 plan_data["result_unit"] = "%p"
             logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
             return {
                 "calculation_plan": plan_data,
+                "missing_info": [str(item).strip() for item in (plan_data.get("missing_info") or []) if str(item).strip()],
                 "planner_debug_trace": {
                     **planner_trace_base,
                     "llm_invoked": True,
@@ -2506,6 +3075,7 @@ Ontology Context:
             logger.warning("[formula_plan] structured output failed: %s", exc)
             return {
                 "calculation_plan": {
+                    "status": "incomplete",
                     "mode": "none",
                     "operation": "none",
                     "ordered_operand_ids": [],
@@ -2515,7 +3085,9 @@ Ontology Context:
                     "result_unit": "",
                     "operation_text": "",
                     "explanation": str(exc),
+                    "missing_info": self._infer_missing_info(state, operands),
                 },
+                "missing_info": self._infer_missing_info(state, operands),
                 "planner_debug_trace": {
                     **planner_trace_base,
                     "llm_invoked": True,
@@ -2826,6 +3398,196 @@ Operands:
             "calculation_result": calculation_result,
         }
 
+    def _verify_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
+        answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
+        calculation_result = dict(state.get("calculation_result") or {})
+        plan = dict(state.get("calculation_plan") or {})
+        operands = list(state.get("calculation_operands", []) or [])
+
+        if not answer:
+            return {
+                "answer": answer,
+                "compressed_answer": answer,
+            }
+
+        if str(calculation_result.get("status") or "") != "ok":
+            debug_trace = dict(state.get("calculation_debug_trace") or {})
+            debug_trace["verification"] = {
+                "verdict": "skip",
+                "reason": "calculation_status_not_ok",
+            }
+            return {
+                "answer": answer,
+                "compressed_answer": answer,
+                "calculation_debug_trace": debug_trace,
+            }
+
+        deterministic_fallback = str(
+            calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+            or answer
+        ).strip()
+        rendered_value = str(calculation_result.get("rendered_value") or "").strip()
+        operation = str(plan.get("operation") or "")
+        result_val = float(calculation_result.get("result_value") or 0)
+        if operation == "growth_rate":
+            direction_hint = "증가" if result_val > 0 else "감소" if result_val < 0 else "변동 없음"
+        elif operation == "subtract":
+            direction_hint = "더 큽니다" if result_val > 0 else "더 작습니다" if result_val < 0 else "동일합니다"
+        else:
+            direction_hint = ""
+        structured_llm = self.llm.with_structured_output(CalculationVerificationOutput)
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 재무 계산 답변 검증기입니다.
+사용자에게 내보내기 직전의 계산 답변이 질문, 계산 결과, 피연산자와 모순이 없는지 검토하세요.
+
+규칙:
+- 새로운 숫자, 연도, 단위, 근거를 추가하지 마세요.
+- 계산 결과와 질문 의도에 맞는다면 verdict=keep.
+- 숫자, 단위, 방향, 비교 관계가 어긋나면 verdict=rewrite 로 두고 1~2문장으로 바로잡으세요.
+- 답변이 계산 결과와 크게 모순되거나 불필요한 내용을 덧붙였으면 verdict=fallback 으로 두고 deterministic fallback과 같은 뜻으로 작성하세요.
+- final_answer는 rendered_value와 direction_hint를 벗어나지 마세요.
+- %p 질문이면 %p를 유지하세요.
+- 단일 값 조회 질문이면 계산 과정 설명을 길게 덧붙이지 마세요.
+
+질문:
+{query}
+
+현재 답변:
+{answer}
+
+Deterministic Fallback:
+{fallback}
+
+Direction Hint:
+{direction_hint}
+
+CalculationPlan:
+{plan_json}
+
+CalculationResult:
+{result_json}
+
+Operands:
+{operands_json}
+"""
+        )
+        try:
+            verified: CalculationVerificationOutput = (prompt | structured_llm).invoke(
+                {
+                    "query": state["query"],
+                    "answer": answer,
+                    "fallback": deterministic_fallback,
+                    "direction_hint": direction_hint,
+                    "plan_json": json.dumps(plan, ensure_ascii=False, indent=2),
+                    "result_json": json.dumps(calculation_result, ensure_ascii=False, indent=2),
+                    "operands_json": json.dumps(operands, ensure_ascii=False, indent=2),
+                }
+            )
+            verdict = str(verified.verdict or "keep")
+            final_answer = _normalise_spaces(verified.final_answer)
+            if verdict == "fallback" or not final_answer:
+                final_answer = deterministic_fallback or answer
+            calculation_result["formatted_result"] = final_answer
+            debug_trace = dict(state.get("calculation_debug_trace") or {})
+            debug_trace["verification"] = {
+                "verdict": verdict,
+                "issues": list(verified.issues or []),
+                "input_answer": answer,
+                "final_answer": final_answer,
+                "rendered_value": rendered_value,
+                "direction_hint": direction_hint,
+            }
+            return {
+                "answer": final_answer,
+                "compressed_answer": final_answer,
+                "draft_points": [final_answer] if final_answer else [],
+                "unsupported_sentences": [] if verdict == "keep" else [answer],
+                "sentence_checks": [
+                    {
+                        "sentence": answer,
+                        "verdict": "keep" if verdict == "keep" else "drop_overextended",
+                        "reason": ",".join(verified.issues or []) or verdict,
+                        "supporting_claim_ids": state.get("selected_claim_ids", []),
+                    }
+                ] if answer else [],
+                "calculation_result": calculation_result,
+                "calculation_debug_trace": debug_trace,
+            }
+        except Exception as exc:
+            logger.warning("[calc_verify] structured output failed, keeping rendered answer: %s", exc)
+            debug_trace = dict(state.get("calculation_debug_trace") or {})
+            debug_trace["verification"] = {
+                "verdict": "error_keep",
+                "error": str(exc),
+                "input_answer": answer,
+                "rendered_value": rendered_value,
+            }
+            return {
+                "answer": answer,
+                "compressed_answer": answer,
+                "calculation_debug_trace": debug_trace,
+            }
+
+    def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
+        current_count = int(state.get("reflection_count") or 0)
+        operands = list(state.get("calculation_operands", []) or [])
+        plan = dict(state.get("calculation_plan") or {})
+        calc_result = dict(state.get("calculation_result") or {})
+        reflection_plan = dict(state.get("reflection_plan") or {})
+
+        missing_info = [
+            str(item).strip()
+            for item in (
+                reflection_plan.get("missing_info")
+                or plan.get("missing_info")
+                or state.get("missing_info")
+                or []
+            )
+            if str(item).strip()
+        ]
+        if not missing_info:
+            missing_info = self._infer_missing_info(state, operands)
+        retry_queries = self._finalize_retry_queries(state, reflection_plan, missing_info)
+        retry_reason = (
+            str(reflection_plan.get("explanation") or "")
+            or str(plan.get("explanation") or "")
+            or str(calc_result.get("explanation") or "")
+            or str(state.get("retry_reason") or "")
+            or "missing operands"
+        )
+        logger.info(
+            "[reflection] trigger retry=%s missing_info=%s retry_queries=%s reason=%s",
+            current_count + 1,
+            missing_info,
+            retry_queries,
+            retry_reason,
+        )
+        return {
+            "missing_info": missing_info,
+            "reflection_count": current_count + 1,
+            "retry_reason": retry_reason,
+            "retry_queries": retry_queries,
+            "evidence_bullets": [],
+            "evidence_items": [],
+            "evidence_status": "missing",
+            "selected_claim_ids": [],
+            "draft_points": [],
+            "compressed_answer": "",
+            "kept_claim_ids": [],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [],
+            "answer": "",
+            "citations": [],
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "calculation_debug_trace": {},
+            "planner_debug_trace": {},
+            "reflection_plan": reflection_plan,
+        }
+
     def _route_after_expand(self, state: FinancialAgentState) -> str:
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent == "numeric_fact":
@@ -2837,6 +3599,28 @@ Operands:
         if intent in {"comparison", "trend"}:
             return "operand_extractor"
         return "compress"
+
+    def _route_after_formula_planner(self, state: FinancialAgentState) -> str:
+        if not self._is_reflection_eligible(state):
+            return "calculator"
+        if int(state.get("reflection_count") or 0) >= 1:
+            return "calculator"
+        plan = dict(state.get("calculation_plan") or {})
+        status = str(plan.get("status") or "ok").lower()
+        if status == "incomplete":
+            return "reflection_replan"
+        return "calculator"
+
+    def _route_after_calculator(self, state: FinancialAgentState) -> str:
+        if not self._is_reflection_eligible(state):
+            return "calc_render"
+        if int(state.get("reflection_count") or 0) >= 1:
+            return "calc_render"
+        result = dict(state.get("calculation_result") or {})
+        status = str(result.get("status") or "")
+        if status in {"insufficient_operands", "parse_error"}:
+            return "reflection_replan"
+        return "calc_render"
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()
@@ -2870,8 +3654,11 @@ Operands:
         graph.add_node("evidence", self._extract_evidence)
         graph.add_node("operand_extractor", self._extract_calculation_operands)
         graph.add_node("formula_planner", self._plan_formula_calculation)
+        graph.add_node("reflection_replan", self._plan_reflection_retry)
+        graph.add_node("prepare_retry", self._prepare_reflection_retry)
         graph.add_node("calculator", self._execute_calculation)
         graph.add_node("calc_render", self._render_calculation_answer)
+        graph.add_node("calc_verify", self._verify_calculation_answer)
         graph.add_node("compress", self._compress_answer)
         graph.add_node("validate", self._validate_answer)
         graph.add_node("cite", self._format_citations)
@@ -2892,18 +3679,30 @@ Operands:
             {"operand_extractor": "operand_extractor", "compress": "compress"},
         )
         graph.add_edge("operand_extractor", "formula_planner")
-        graph.add_edge("formula_planner", "calculator")
-        graph.add_edge("calculator", "calc_render")
-        graph.add_edge("calc_render", "cite")
+        graph.add_conditional_edges(
+            "formula_planner",
+            self._route_after_formula_planner,
+            {"reflection_replan": "reflection_replan", "calculator": "calculator"},
+        )
+        graph.add_edge("reflection_replan", "prepare_retry")
+        graph.add_edge("prepare_retry", "retrieve")
+        graph.add_conditional_edges(
+            "calculator",
+            self._route_after_calculator,
+            {"reflection_replan": "reflection_replan", "calc_render": "calc_render"},
+        )
+        graph.add_edge("calc_render", "calc_verify")
+        graph.add_edge("calc_verify", "cite")
         graph.add_edge("compress", "validate")
         graph.add_edge("validate", "cite")
         graph.add_edge("cite", END)
 
         return graph.compile()
 
-    def run(self, query: str) -> Dict[str, Any]:
+    def run(self, query: str, *, report_scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         initial: FinancialAgentState = {
             "query": query,
+            "report_scope": dict(report_scope or {}),
             "query_type": "",
             "intent": "",
             "target_metric_family": "",
@@ -2935,10 +3734,16 @@ Operands:
             "calculation_result": {},
             "calculation_debug_trace": {},
             "planner_debug_trace": {},
+            "missing_info": [],
+            "reflection_count": 0,
+            "retry_reason": "",
+            "retry_queries": [],
+            "reflection_plan": {},
         }
         final = self.graph.invoke(initial)
         return {
             "query": final["query"],
+            "report_scope": final.get("report_scope", {}),
             "query_type": final["query_type"],
             "intent": final.get("intent", final["query_type"]),
             "target_metric_family": final.get("target_metric_family", ""),
@@ -2965,6 +3770,11 @@ Operands:
             "calculation_result": final.get("calculation_result", {}),
             "calculation_debug_trace": final.get("calculation_debug_trace", {}),
             "planner_debug_trace": final.get("planner_debug_trace", {}),
+            "missing_info": final.get("missing_info", []),
+            "reflection_count": final.get("reflection_count", 0),
+            "retry_reason": final.get("retry_reason", ""),
+            "retry_queries": final.get("retry_queries", []),
+            "reflection_plan": final.get("reflection_plan", {}),
         }
 
     def ingest(self, chunks: List) -> None:

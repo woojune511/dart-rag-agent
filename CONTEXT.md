@@ -11,22 +11,22 @@
 | 항목 | 현재 기준 |
 | --- | --- |
 | 프로젝트 정의 | DART 공시를 도메인으로 사용하는 **multi-agent financial analysis lab** |
-| 현재 구현 핵심 | strong single-agent graph + evaluator/benchmark 자산 |
+| 현재 구현 핵심 | strong single-agent graph를 MAS worker들로 감싼 live E2E skeleton |
 | 기준 문서 | `삼성전자 2024 사업보고서` |
 | 기본 retrieval | `Chroma + BM25 + RRF`, structure-aware parser / chunking |
 | 기본 analyst core | evidence-first math path, `formula planner + safe AST evaluator` |
 | evaluator 역할 | final correctness / grounding과 retrieval diagnostic을 분리 |
-| 현재 우선순위 | local patch보다 **MAS skeleton과 role separation** |
+| 현재 우선순위 | live MAS baseline 위에서 orchestrator/researcher 품질과 critic 계층을 고도화 |
 
 ## 현재 구현 단계
 
 | 구성 | 상태 | 해석 |
 | --- | --- | --- |
-| Orchestrator | planned | task decomposition / assignment / merge는 아직 설계 단계 |
-| Analyst | partial | 현재 `financial_graph.py`가 proto-analyst 역할 수행 |
-| Researcher | partial | retrieval / evidence / note traversal 자산은 이미 존재 |
-| Critic | partial | benchmark/evaluator 자산은 강하지만 runtime critic 분리는 미완료 |
-| Shared state ledger | planned | 현재는 single-agent state 중심 |
+| Orchestrator | partial | real planner / merge node와 E2E smoke 완료 |
+| Analyst | partial | `FinancialAgent.run()` wrapper migration + `report_scope` 반영 완료 |
+| Researcher | partial | scoped narrative retrieval + summary + critic grounding smoke 완료 |
+| Critic | partial | deterministic runtime critic live, LLM critic pending |
+| Shared state ledger | live | `tasks`, `artifacts`, `evidence_pool`, `critic_reports`가 실제 흐름에서 사용 중 |
 | Self-reflection | experimental | bounded retry checkpoint는 있으나 최종 MAS 설계는 아님 |
 
 ## 최근 정량 증거
@@ -36,6 +36,9 @@
 | Evaluator support | false negative rate `12.5% -> 0.0%` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
 | Math architecture | strict correctness `0.556 -> 1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
 | Ontology retrieval | calc success `0.333 -> 1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
+| MAS Analyst smoke | numeric result parity `1.000`, calc status parity `1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
+| MAS Researcher smoke | citation parity `1.000`, critic pass `1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
+| MAS E2E smoke | final report 생성 `2/2`, critic-triggered retry `1/2` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
 
 ## 고정 가능한 기준선
 
@@ -70,12 +73,13 @@
 
 | 순서 | Phase | 목표 | 종료 조건 |
 | --- | --- | --- | --- |
-| 1 | MAS skeleton | shared state, task ledger, artifact schema 고정 | Orchestrator / Analyst / Researcher / Critic 간 state contract 문서화 및 코드 뼈대 연결 |
-| 2 | Analyst migration | 현재 numeric/evidence path를 Analyst agent로 이식 | 단일 task를 Analyst가 독립 처리하고 구조화 결과를 반환 |
-| 3 | Critic stack | deterministic critic + LLM critic 분리 | grounding / binding / scope 검증이 critic artifact로 남음 |
-| 4 | Researcher attachment | why/context retrieval과 note traversal을 별도 agent로 분리 | 비정형 context task를 Researcher가 독립 처리 |
-| 5 | Agentic self-reflection | retry를 rule patch가 아니라 ReflectionPlan/VerificationReport 구조로 재설계 | bounded retry가 task/critic contract 위에서 동작 |
-| 6 | Cross-document / cross-company | entity/report/period namespace를 보존한 비교 분석 | 기업/문서 혼동 없는 multi-entity task 처리 |
+| 1 | MAS skeleton | shared state, task ledger, artifact schema 고정 | 완료: parallel workers + critic loop + merge live |
+| 2 | Analyst migration | 현재 numeric/evidence path를 Analyst agent로 이식 | 완료: real store smoke 기준 numeric parity 확보 |
+| 3 | Critic stack | deterministic critic + LLM critic 분리 | 진행 중: deterministic live, LLM critic 미구현 |
+| 4 | Researcher attachment | why/context retrieval과 note traversal을 별도 agent로 분리 | 진행 중: v1 live, retrieval/summarization quality tuning 남음 |
+| 5 | Orchestrator quality pass | task decomposition / merge 품질 고도화 | mixed-intent baseline과 merge 품질 지표 확보 |
+| 6 | Agentic self-reflection | retry를 rule patch가 아니라 ReflectionPlan/VerificationReport 구조로 재설계 | bounded retry가 task/critic contract 위에서 동작 |
+| 7 | Cross-document / cross-company | entity/report/period namespace를 보존한 비교 분석 | 기업/문서 혼동 없는 multi-entity task 처리 |
 
 ## Non-blocking Quality Debt
 

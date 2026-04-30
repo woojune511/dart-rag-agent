@@ -250,6 +250,45 @@
 
 즉 같은 보고서 / 같은 청킹 / 같은 ingest mode면 context 생성 비용을 다시 쓰지 않는다.
 
+## MAS Migration Smokes
+
+이 섹션은 retrospective ablation이 아니라, **기존 single-agent 자산을 MAS worker / orchestrator로 안전하게 이식했는지 보는 migration acceptance check**다.
+
+### Analyst wrapper smoke
+
+| 항목 | 내용 |
+| --- | --- |
+| 목적 | `FinancialAgent.run()`을 MAS Analyst worker로 감쌌을 때 numeric parity가 유지되는지 확인 |
+| 스크립트 | [src/ops/mas_analyst_smoke.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/mas_analyst_smoke.py) |
+| store | `reference-note-plain-graph-2500-320` on `삼성전자 2024` |
+| 질문 | `comparison_001`, `comparison_004`, `trend_002` |
+| 주요 결과 | `calc_status_match_rate = 1.000`, `numeric_result_match_rate = 1.000`, `operand_count_match_rate = 0.667`, `answer_match_rate = 0.333` |
+| 해석 | exact wording은 흔들리지만 계산 결과와 계산 상태는 direct engine과 MAS wrapper가 일치했다. 즉 Analyst migration은 **numeric correctness를 유지한 채 task ledger / artifact store로 옮겨졌다**. |
+| Evidence | [mas_analyst_smoke_2026-04-30.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/mas_analyst_smoke_2026-04-30.json) |
+
+### Researcher wrapper smoke
+
+| 항목 | 내용 |
+| --- | --- |
+| 목적 | scoped narrative retrieval + summarization core가 MAS Researcher worker로 이식됐는지 확인 |
+| 스크립트 | [src/ops/mas_researcher_smoke.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/mas_researcher_smoke.py) |
+| store | `reference-note-plain-graph-2500-320` on `삼성전자 2024` |
+| 질문 | `business_overview_001`, `risk_analysis_001`, `r_and_d_investment_002` |
+| 주요 결과 | `citation_match_rate = 1.000`, `evidence_link_nonempty_rate = 1.000`, `critic_pass_rate = 1.000`, `answer_match_rate = 0.333` |
+| 해석 | citation과 grounding wiring은 direct narrative core와 MAS wrapper가 일치했다. answer wording/quality는 아직 tuning 여지가 있지만, **Researcher migration과 deterministic critic 연동 자체는 성공**했다. |
+| Evidence | [mas_researcher_smoke_2026-04-30.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/mas_researcher_smoke_2026-04-30.json) |
+
+### E2E MAS smoke
+
+| 항목 | 내용 |
+| --- | --- |
+| 목적 | real `Orchestrator + Analyst + Researcher + Critic + Merge`가 mixed-intent 질의에서 끝까지 한 바퀴 도는지 확인 |
+| 스크립트 | [src/ops/mas_e2e_smoke.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/mas_e2e_smoke.py) |
+| 질의 수 | `2` |
+| 주요 결과 | final report 생성 `2/2`, critic pass 최종 `2/2`, critic-triggered analyst retry 관측 `1/2` |
+| 해석 | MAS는 이제 문서상 topology가 아니라, **task decomposition -> parallel workers -> critic retry -> merge**를 실제로 수행하는 baseline이 됐다. 이후 품질 개선은 이 baseline 대비 delta로 측정한다. |
+| Evidence | [mas_e2e_smoke_2026-04-30.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/mas_e2e_smoke_2026-04-30.json) |
+
 ## Retrospective Scorecard Track
 
 이 섹션은 **이미 내린 중요한 기술 결정이 정량적으로 어떤 차이를 만들었는지**를 회고적으로 입증하기 위한 실험 트랙이다.

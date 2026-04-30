@@ -1,0 +1,132 @@
+{
+  "store": {
+    "persist_directory": "benchmarks\\results\\reference_note_phase1a\\삼성전자-2024\\stores\\reference-note-plain-graph-2500-320",
+    "collection_name": "dart_reports_v2_reference-note-plain-graph-2500-320",
+    "k": 6
+  },
+  "question_ids": [
+    "business_overview_001",
+    "risk_analysis_001",
+    "r_and_d_investment_002"
+  ],
+  "summary": {
+    "case_count": 3,
+    "answer_match_rate": 0.3333333333333333,
+    "citation_match_rate": 1.0,
+    "evidence_link_nonempty_rate": 1.0,
+    "critic_pass_rate": 1.0
+  },
+  "cases": [
+    {
+      "id": "business_overview_001",
+      "question": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?",
+      "instruction": "삼성전자 2024 사업보고서에서 회사가 영위하는 주요 사업은 무엇인가요?\n\n이 질문과 관련된 맥락/원인을 짧게 요약해줘.",
+      "direct_answer": "삼성전자는 2024년 사업보고서에 따르면 제품 특성에 따라 DX(Device eXperience), DS(Device Solutions) 2개의 부문과 SDC(삼성디스플레이㈜), Harman으로 나누어 주요 사업을 영위하고 있습니다. DX 부문은 TV, 모니터, 스마트폰, 가전 등을, DS 부문은 DRAM, NAND Flash, 모바일AP 등 반도체 제품을 생산·판매합니다. SDC는 스마트폰용 OLED 패널 등 디스플레이 패널 사업을, Harman은 디지털 콕핏, 카오디오 등 전장부품 사업을 담당합니다.",
+      "mas_answer": "삼성전자는 제품 특성에 따라 DX(Device eXperience) 부문, DS(Device Solutions) 부문, SDC(삼성디스플레이㈜), 그리고 Harman으로 나누어 주요 사업을 영위하고 있습니다. DX 부문은 TV, 스마트폰, 가전 등을, DS 부문은 DRAM, NAND Flash, 모바일AP 등 반도체 제품을 생산·판매합니다. SDC는 스마트폰용 OLED 패널 등 디스플레이 패널 사업을, Harman은 디지털 콕핏, 카오디오 등 전장부품 및 소비자오디오 제품 사업을 담당합니다.",
+      "answer_match": false,
+      "direct_citations": [
+        "[삼성전자 | 2024 | I. 회사의 개요 > 5. 정관에 관한 사항]",
+        "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "[삼성전자 | 2024 | X. 대주주 등과의 거래내용]",
+        "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]"
+      ],
+      "mas_citations": [
+        "[삼성전자 | 2024 | I. 회사의 개요 > 5. 정관에 관한 사항]",
+        "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "[삼성전자 | 2024 | X. 대주주 등과의 거래내용]",
+        "[삼성전자 | 2024 | I. 회사의 개요 > 1. 회사의 개요]"
+      ],
+      "citation_match": true,
+      "mas_evidence_link_count": 6,
+      "evidence_link_nonempty": true,
+      "critic_report": {
+        "target_task_id": "task_2",
+        "passed": true,
+        "deterministic_score": 1.0,
+        "llm_feedback": "통과 (Deterministic 1층)"
+      },
+      "critic_passed": true,
+      "mas_execution_trace": [
+        "Orchestrator planned 2 tasks",
+        "Analyst completed task_1",
+        "Researcher completed task_2",
+        "Critic passed all artifacts (Deterministic)",
+        "Orchestrator merged final report"
+      ]
+    },
+    {
+      "id": "risk_analysis_001",
+      "question": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?",
+      "instruction": "삼성전자 2024 사업보고서에서 주요 재무 리스크는 무엇인가요?\n\n이 질문과 관련된 맥락/원인을 짧게 요약해줘.",
+      "direct_answer": "삼성전자 2024년 사업보고서에 따르면, 주요 재무 리스크 중 하나는 환율 변동 리스크입니다. 회사는 해외법인의 기능통화가 아닌 외화 포지션에 대해 통화선도 상품을 매매하여 이를 헷지하고 있습니다. 또한, 기업회계기준서 개정사항에 따라 유동성위험 집중도에 대한 익스포저와 관련한 정보 공시가 요구되며, 이는 유동성위험이 중요한 재무 리스크임을 시사합니다.",
+      "mas_answer": "삼성전자 2024 사업보고서의 주요 재무 리스크는 시장위험, 신용위험, 유동성위험입니다. 특히 환율 변동 리스크 관리를 위해 해외법인에서 통화선도 상품을 활용하여 헷지하고 있습니다. 또한, 새로운 회계기준서 개정에 따라 공급자금융약정이 기업의 부채와 현금흐름에 미치는 영향 및 유동성위험 집중도에 대한 익스포저 관련 정보 공시가 요구됩니다.",
+      "answer_match": false,
+      "direct_citations": [
+        "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+        "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]",
+        "[삼성전자 | 2024 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]"
+      ],
+      "mas_citations": [
+        "[삼성전자 | 2024 | II. 사업의 내용 > 5. 위험관리 및 파생거래]",
+        "[삼성전자 | 2024 | IV. 이사의 경영진단 및 분석의견]",
+        "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]",
+        "[삼성전자 | 2024 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]"
+      ],
+      "citation_match": true,
+      "mas_evidence_link_count": 6,
+      "evidence_link_nonempty": true,
+      "critic_report": {
+        "target_task_id": "task_2",
+        "passed": true,
+        "deterministic_score": 1.0,
+        "llm_feedback": "통과 (Deterministic 1층)"
+      },
+      "critic_passed": true,
+      "mas_execution_trace": [
+        "Orchestrator planned 2 tasks",
+        "Analyst completed task_1",
+        "Researcher completed task_2",
+        "Critic passed all artifacts (Deterministic)",
+        "Orchestrator merged final report"
+      ]
+    },
+    {
+      "id": "r_and_d_investment_002",
+      "question": "삼성전자 2024 사업보고서에서 제시한 2024년 연구개발 성과 예시는 무엇인가요?",
+      "instruction": "삼성전자 2024 사업보고서에서 제시한 2024년 연구개발 성과 예시는 무엇인가요?\n\n이 질문과 관련된 맥락/원인을 짧게 요약해줘.",
+      "direct_answer": "삼성전자는 2024년에 총 35조 원을 연구개발에 투자하여 국내 특허 7,804건, 미국 특허 9,228건을 등록했습니다. 이 지적재산권은 주로 스마트폰, 스마트 TV, 메모리, System LSI 등 전략사업 제품과 관련된 것입니다. 또한, 스마트폰 및 스마트 TV 등에 적용된 고유 디자인 보호를 위해 2024년 중 미국에서 460건의 디자인 특허를 취득했습니다.",
+      "mas_answer": "삼성전자는 2024년에 총 35조 원을 연구개발에 투자하여 국내 특허 7,804건, 미국 특허 9,228건을 등록했습니다. 이 지적재산권은 주로 스마트폰, 스마트 TV, 메모리, System LSI 등 전략사업 제품과 관련된 것입니다. 또한, 스마트폰 및 스마트 TV 등에 적용된 고유 디자인 보호를 위해 2024년 중 미국에서 460건의 디자인 특허를 취득했습니다.",
+      "answer_match": true,
+      "direct_citations": [
+        "[삼성전자 | 2024 | I. 회사의 개요 > 5. 정관에 관한 사항]",
+        "[삼성전자 | 2024 | II. 사업의 내용 > 4. 매출 및 수주상황]",
+        "[삼성전자 | 2024 | VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항]",
+        "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]"
+      ],
+      "mas_citations": [
+        "[삼성전자 | 2024 | I. 회사의 개요 > 5. 정관에 관한 사항]",
+        "[삼성전자 | 2024 | II. 사업의 내용 > 4. 매출 및 수주상황]",
+        "[삼성전자 | 2024 | VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항]",
+        "[삼성전자 | 2024 | II. 사업의 내용 > 1. 사업의 개요]"
+      ],
+      "citation_match": true,
+      "mas_evidence_link_count": 6,
+      "evidence_link_nonempty": true,
+      "critic_report": {
+        "target_task_id": "task_2",
+        "passed": true,
+        "deterministic_score": 1.0,
+        "llm_feedback": "통과 (Deterministic 1층)"
+      },
+      "critic_passed": true,
+      "mas_execution_trace": [
+        "Orchestrator planned 2 tasks",
+        "Analyst completed task_1",
+        "Researcher completed task_2",
+        "Critic passed all artifacts (Deterministic)",
+        "Orchestrator merged final report"
+      ]
+    }
+  ]
+}

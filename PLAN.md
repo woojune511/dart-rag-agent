@@ -7,23 +7,24 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **MAS skeleton**과 shared state / task contract 정리 |
+| 현재 1순위 | **live MAS E2E baseline 안정화** |
 | 병렬 트랙 | retrospective scorecard는 1차 핵심 실험 완료, 이후 새 결정이 생길 때 추가 |
 | 지금 하지 않을 것 | local patch deep dive, cosmetic retrieval tuning, evaluator gaming |
-| 다음 큰 순서 | `MAS skeleton -> Analyst migration -> Critic stack -> Researcher -> agentic self-reflection -> cross-company` |
+| 다음 큰 순서 | `LLM critic -> orchestrator/researcher quality pass -> agentic self-reflection -> cross-company` |
 
 ## 현재 목표
 
 | 순서 | 구조 과제 | 현재 해석 |
 | --- | --- | --- |
-| 1 | MAS skeleton | 지금 active work |
-| 2 | Analyst migration | 기존 `financial_graph.py` 핵심을 agent 역할로 분리 |
-| 3 | Critic stack | deterministic + LLM critic 구조화 |
-| 4 | Researcher attachment | why/context와 note traversal 분리 |
-| 5 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
-| 6 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
+| 1 | MAS skeleton | 완료: parallel fan-out, critic loop, merge live |
+| 2 | Analyst migration | 완료: report-scoped wrapper migration + real-store parity smoke |
+| 3 | Critic stack | 진행 중: deterministic critic live, LLM critic next |
+| 4 | Researcher attachment | 진행 중: v1 retrieval/summary live, quality pass next |
+| 5 | Orchestrator quality pass | 새 active work |
+| 6 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
+| 7 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
 
-현재는 **기존 DART 파이프라인을 MAS topology로 재구성하는 것**이 1순위다.
+현재는 **개통된 MAS baseline 위에서 quality와 critic 계층을 고도화하는 것**이 1순위다.
 
 ## 병렬 트랙: Retrospective Scorecard
 
@@ -66,44 +67,34 @@
 
 즉 앞으로는 **결정 -> 실험 -> 기록 -> 채택** 순서를 기본 운영 규칙으로 둔다.
 
-### 1. MAS skeleton
+### 1. MAS baseline stabilization
 
 | 항목 | 내용 |
 | --- | --- |
-| 목표 | Orchestrator / Analyst / Researcher / Critic가 공유할 최소 state와 task contract 정의 |
-| 핵심 산출물 | `Task`, `TaskResult`, `EvidenceItem`, `CriticReport`, `FinalReport` 수준의 typed artifact |
-| communication 원칙 | 자유 메시지 교환이 아니라 **task ledger + artifact store** |
-| memory 원칙 | generic memory보다 **report-scoped cache**를 먼저 설계 |
-| 종료 조건 | docs와 code가 같은 state schema와 agent boundary를 기준으로 읽힘 |
+| 목표 | live `Orchestrator -> Analyst/Researcher -> Critic -> Merge`를 baseline으로 고정 |
+| 핵심 산출물 | real store smoke, task decomposition trace, final report synthesis trace |
+| 현재 상태 | E2E smoke 2문항 완료, critic-triggered analyst retry 1회 관측 |
+| 다음 일 | mixed-intent task completion metric과 latency baseline 수집 |
 
-### 2. Analyst migration
-
-| 항목 | 내용 |
-| --- | --- |
-| 목표 | 기존 single-agent graph의 numeric/evidence path를 Analyst agent 역할로 캡슐화 |
-| 재사용 자산 | ontology retrieval, operand extraction, formula planner, AST calculator, calc verification |
-| 하지 않을 것 | 비정형 why/context 설명까지 Analyst에 남기지 않음 |
-| 종료 조건 | Analyst가 task input을 받아 구조화된 calculation artifact를 반환 |
-
-### 3. Critic stack
+### 2. LLM critic layer
 
 | 항목 | 내용 |
 | --- | --- |
-| 목표 | 검증을 deterministic critic과 LLM critic으로 나눔 |
-| deterministic critic | operand grounding, unit consistency, entity/period binding, task coverage |
-| LLM critic | scope overreach, relevance, final coherence |
-| 종료 조건 | critic 결과가 `critic_reports`에 누적되고 final merge 전에 소비됨 |
+| 목표 | deterministic critic 위에 scope/relevance/coherence를 보는 2층 critic 추가 |
+| deterministic critic | 이미 live: grounding, basic format/unit, retry routing |
+| LLM critic | 최종 task 산출물이 질문 의도에 맞는지, merge 전 artifact scope가 적절한지 평가 |
+| 종료 조건 | `critic_reports`에 deterministic/LLM verdict가 함께 남고 retry 기준이 분리됨 |
 
-### 4. Researcher attachment
+### 3. Orchestrator / Researcher quality pass
 
 | 항목 | 내용 |
 | --- | --- |
-| 목표 | why/context extraction, semantic retrieval, note-aware traversal을 Researcher 역할로 분리 |
-| 재사용 자산 | semantic retrieval, graph expansion, `reference_note` phase 1a wiring |
-| 주의 | `reference_note`는 self-reflection baseline에서 기본 OFF, capability로만 유지 |
-| 종료 조건 | 비정형 task를 Researcher가 독립 처리하고 evidence artifact를 반환 |
+| 목표 | task decomposition과 narrative retrieval/summarization의 품질을 E2E 기준으로 올림 |
+| 현재 관측 | Researcher migration parity는 높지만 질문 의도 대비 답 품질 편차가 남음 |
+| 우선 실험 | mixed-intent completion rate, final report relevance, artifact-level grounding 유지 |
+| 종료 조건 | orchestrator plan / merge와 researcher v1의 baseline delta를 정량화 |
 
-### 5. Agentic self-reflection
+### 4. Agentic self-reflection
 
 | 항목 | 내용 |
 | --- | --- |
@@ -113,7 +104,7 @@
 | baseline 원칙 | 초기 recovery 실험은 `reference_note OFF` 상태에서 시작해 retry 효과를 분리 측정 |
 | 종료 조건 | bounded retry 1회 내에서 false recovery 없이 recovery artifact가 남음 |
 
-### 6. `cross-document / cross-company reasoning`
+### 5. `cross-document / cross-company reasoning`
 
 | 항목 | 내용 |
 | --- | --- |
