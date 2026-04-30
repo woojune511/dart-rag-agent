@@ -1,8 +1,15 @@
 """
-Run full evaluation only against an existing benchmark store/result bundle.
+Run a store-fixed end-to-end evaluation against an existing benchmark bundle.
 
-Skips parse/ingest/screening and reuses the persisted Chroma collection from a
-previous benchmark output directory.
+This tool skips parse / ingest / screening and reuses the persisted Chroma
+collection from a previous benchmark output directory, but it still re-runs the
+current agent and evaluator for each question.
+
+Important:
+- This is NOT a historical answer replay tool.
+- It does NOT reuse the old answer / runtime_evidence / calculation trace.
+- Use retrospective_* replay scripts when you need evaluator-only comparisons
+  against the exact same historical outputs.
 """
 
 from __future__ import annotations
@@ -67,7 +74,9 @@ def _load_existing_results(company_output_dir: Path) -> List[Dict[str, Any]]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run full evaluation only using an existing benchmark store.")
+    parser = argparse.ArgumentParser(
+        description="Run store-fixed full evaluation using an existing benchmark store (re-runs current agent/evaluator)."
+    )
     parser.add_argument(
         "--config",
         required=True,
@@ -76,12 +85,12 @@ def main() -> None:
     parser.add_argument(
         "--source-output-dir",
         required=True,
-        help="Existing benchmark output root that already contains stores/results.",
+        help="Existing benchmark output root that already contains stores/results. The persisted store is reused, but answers are regenerated.",
     )
     parser.add_argument(
         "--output-dir",
         required=True,
-        help="Directory where eval-only results will be written.",
+        help="Directory where store-fixed end-to-end evaluation results will be written.",
     )
     parser.add_argument(
         "--company-run-id",
@@ -126,7 +135,11 @@ def main() -> None:
         if experiment_id not in merged_by_id:
             logger.warning("Skipping result with unknown experiment id in current config: %s", experiment_id)
             continue
-        logger.info("Running eval-only full evaluation for %s / %s", args.company_run_id, experiment_id)
+        logger.info(
+            "Running store-fixed full evaluation for %s / %s (current agent/evaluator will be re-executed)",
+            args.company_run_id,
+            experiment_id,
+        )
         updated = dict(result)
         # Re-map persist_directory to source-output-dir in case results were generated on a different machine
         local_store_dir = source_company_output_dir / "stores" / _slugify(experiment_id)
@@ -164,7 +177,7 @@ def main() -> None:
         selected_ids=selected_ids,
         results=selected_results,
     )
-    logger.info("Eval-only outputs written to %s", target_company_output_dir)
+    logger.info("Store-fixed end-to-end evaluation outputs written to %s", target_company_output_dir)
 
 
 if __name__ == "__main__":

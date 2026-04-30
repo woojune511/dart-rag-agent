@@ -1772,13 +1772,19 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
 - `results.json`의 저장 값은 수정하지 않고 런타임에만 교체한다
 - 로컬 store가 없는 경우(다른 머신 번들 + store 미포함)는 여전히 실패하며, 이 경우 fresh 실행이 필요하다
 
+**주의**:
+
+- `run_eval_only.py`는 **historical answer replay tool이 아니다**
+- 이 도구는 기존 store를 재사용할 뿐, 각 질문에 대해 **current agent와 evaluator를 다시 실행**한다
+- 따라서 evaluator-only A/B처럼 “같은 answer / same runtime trace”가 필요한 경우에는 부적합하고, `retrospective_*_eval.py` 계열 replay 스크립트를 써야 한다
+
 ---
 
-## 결정 80 — canonical 4문제 회귀 체크: evaluator 변경 후 regression 없음 확인
+## 결정 80 — canonical 4문제 회귀 체크: store-fixed end-to-end 재실행 기준 큰 regression 없음 확인
 
 **문제**: evaluator 변경(tolerance, `_labels_match`, operand override, `_format_calculation_value` 단순화)이 math_focus 외 다른 질문 유형에 regression을 일으키는지 확인 필요.
 
-**결정**: `calc_render_fix_2026-04-27` store를 재활용해 `dev_fast_focus_selective_serial` 프로파일(canonical 4문제: numeric_fact_001, business_overview_001/003, risk_analysis_001)을 eval-only로 실행.
+**결정**: `calc_render_fix_2026-04-27` store를 재활용해 `dev_fast_focus_selective_serial` 프로파일(canonical 4문제: numeric_fact_001, business_overview_001/003, risk_analysis_001)을 store-fixed end-to-end 방식으로 재실행한다.
 
 **결과**:
 
@@ -1790,9 +1796,13 @@ comparison_003의 completeness 0.7은 "81조 9,082억원" vs answer_key "81조 9
 | Citation Coverage | 0.833 | 1.000 |
 | Numeric Pass | 1.000 | 1.000 |
 
-Faithfulness/Recall/Numeric Pass 유지. regression 없음.
+Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 
-**한계**: source store가 math_focus 설정으로 인제스트된 것이고, 이전 번들의 agent 답변을 재활용한 게 아니라 새로 생성했기 때문에 완전한 격리 비교는 아님. 그러나 major regression은 없다는 것을 확인.
+**한계**:
+
+- source store가 math_focus 설정으로 인제스트된 것이고, 이전 번들의 agent 답변을 재활용한 게 아니라 **새로 생성한 답변**을 평가했다
+- 따라서 이것은 evaluator-only 메타 실험이 아니라 **store-fixed end-to-end regression check**다
+- 그럼에도 “현재 코드 경로가 같은 store 기준으로 크게 나빠지지 않았다”는 신호로는 유효하다
 
 ---
 

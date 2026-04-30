@@ -15,7 +15,7 @@
 | --- | --- |
 | baseline 문서 | `삼성전자 2024 사업보고서` |
 | 운영 baseline | `contextual_all_2500_320` |
-| 빠른 회귀 경로 | `debug-first -> eval-only -> full benchmark` |
+| 빠른 회귀 경로 | `debug-first -> store-fixed eval-only -> full benchmark` |
 | math 기준선 | `dev_math_focus` |
 | broader sanity check | `dev_fast_focus_selective_serial` |
 | scorecard 결과 위치 | 이 문서의 `Retrospective Results` |
@@ -75,7 +75,7 @@
 | --- | --- | --- | --- |
 | 1. debug-first | 문제를 benchmark 전에 재현하고 실패 층을 좁힘 | `src/ops/debug_math_workflow.py` | 특정 문항 / 특정 failure mode 분석 |
 | 2. screening | 빠른 retrieval / contamination 진단 | benchmark runner with fast profile | 후보를 빠르게 거를 때 |
-| 3. eval-only | 기존 store 재사용 회귀 | [src/ops/run_eval_only.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/run_eval_only.py) | evaluator / answer / rendering 회귀 |
+| 3. store-fixed eval-only | 기존 store 재사용 end-to-end 회귀 | [src/ops/run_eval_only.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/run_eval_only.py) | 같은 store에서 current agent/evaluator 회귀 |
 | 4. full evaluation | shortlist 후보에 대한 전체 품질 확인 | benchmark runner full eval | release-grade 확인 |
 
 ### Screening vs Full Evaluation
@@ -87,16 +87,19 @@
 
 > 핵심 원칙: screening metric은 **retriever diagnostic**, full evaluation은 **최종 답 품질**이다.
 
-### Eval-only fast path
+### Store-fixed eval-only fast path
 
-반복 실험에서 full parse / ingest가 병목이므로, 현재는 **eval-only 경로**를 적극 사용한다.
+반복 실험에서 full parse / ingest가 병목이므로, 현재는 **store-fixed eval-only 경로**를 적극 사용한다.
 
 | 항목 | 내용 |
 | --- | --- |
 | 스크립트 | [src/ops/run_eval_only.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/run_eval_only.py) |
-| 용도 | 기존 store 재사용, evaluator 변경 회귀, answer/evidence/rendering 회귀 |
+| 용도 | 기존 store 재사용, current agent/evaluator 전체 회귀, answer/evidence/rendering 회귀 |
 | 주의 1 | source output dir는 persisted store가 실제로 들어 있는 결과 번들이어야 한다 |
 | 주의 2 | `latest/` 같은 임시 번들은 source로 부적절할 수 있다 |
+| 주의 3 | 이 경로는 **같은 answer를 재채점하는 evaluator-only replay가 아니다**. 같은 store를 읽고 current code path를 다시 실행한다 |
+
+> evaluator만 바꿔서 **같은 historical answer / runtime_evidence / calculation trace**를 재판정하려면 `retrospective_*_eval.py` 계열 replay 스크립트를 사용한다.
 
 ## 실행 프로파일
 

@@ -86,7 +86,7 @@ DART 전자공시 문서를 대상으로, **구조를 보존한 retrieval**과 *
 | 1 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
 | 2 | [CONTEXT.md](CONTEXT.md) | 현재 기준 snapshot |
 | 3 | [PLAN.md](PLAN.md) | 현재 active work |
-| 4 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
+| 4 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard + replay 구분 |
 | 5 | [DECISIONS.md](DECISIONS.md) | append-only 설계 판단 로그 |
 
 ## 프로젝트 구조
@@ -157,11 +157,14 @@ math 기준선:
 python -m src.ops.benchmark_runner --config benchmarks/profiles/dev_math_focus.json
 ```
 
-eval-only 빠른 회귀:
+store-fixed end-to-end 빠른 회귀:
 
 ```bash
 python -m src.ops.run_eval_only --config benchmarks/profiles/dev_math_focus.json --source-output-dir benchmarks/results/dev_math_focus_llmshift_2026-04-28 --output-dir benchmarks/results/dev_math_focus_evalonly_example --company-run-id samsung_2024
 ```
+
+이 경로는 **기존 store를 재사용해 current agent/evaluator를 다시 실행**하는 방식입니다.  
+같은 historical answer를 대상으로 evaluator만 비교하려면 retrospective replay 스크립트를 사용해야 합니다.
 
 일반화 검증:
 
