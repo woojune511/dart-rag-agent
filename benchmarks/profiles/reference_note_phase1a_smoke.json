@@ -1,0 +1,74 @@
+{
+  "defaults": {
+    "k": 8,
+    "ingest_mode": "plain",
+    "max_workers": 1,
+    "batch_size": 1,
+    "eval_mode": "question_ids",
+    "eval_limit": 0,
+    "question_ids": [],
+    "reuse_store": true,
+    "reuse_context_cache": true,
+    "force_reindex": false,
+    "use_zero_cost_prefix": true,
+    "pricing": {
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
+    },
+    "mlflow_experiment_name": "dart_rag_reference_note_phase1a_smoke"
+  },
+  "candidate_ids": [
+    "reference_note_plain_graph_2500_320"
+  ],
+  "screening": {
+    "baseline_experiment_id": "reference_note_plain_graph_2500_320",
+    "parallel_experiments": 1,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 0,
+    "always_include_full_eval_ids": []
+  },
+  "full_evaluation": {
+    "enabled": false,
+    "eval_mode": "question_ids",
+    "eval_limit": 0,
+    "question_ids": []
+  },
+  "company_runs": [
+    {
+      "id": "samsung_2024_reference_note",
+      "defaults": {
+        "report_path": "data/reports/삼성전자/2024_사업보고서_20250311001085.html",
+        "metadata": {
+          "company": "삼성전자",
+          "stock_code": "005930",
+          "year": 2024,
+          "report_type": "사업보고서",
+          "rcept_no": "20250311001085"
+        }
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "id": "reference_note_plain_graph_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "plain",
+      "use_zero_cost_prefix": true,
+      "graph_expansion": {
+        "enabled": true,
+        "include_parent_context": true,
+        "include_section_lead": true,
+        "include_reference_notes": true,
+        "include_described_by_paragraph": true,
+        "include_table_context": true,
+        "include_sibling_prev": true,
+        "include_sibling_next": false,
+        "table_sibling_prev_paragraph_only": true,
+        "sibling_window": 1,
+        "max_docs": 12
+      }
+    }
+  ]
+}
