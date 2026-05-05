@@ -1,0 +1,33 @@
+{
+  "total_rows": 80,
+  "verified_rows": 78,
+  "excluded_rows": 2,
+  "verification_counts": {
+    "excluded": 2,
+    "verified": 78
+  },
+  "decision_counts": {
+    "answer_corrected": 32,
+    "answer_verified": 27,
+    "excluded_ambiguous": 1,
+    "excluded_duplicate": 1,
+    "refusal_confirmed": 19
+  },
+  "refusal_rows": 19,
+  "priority_counts": {
+    "high": 13,
+    "low": 51,
+    "medium": 16
+  },
+  "rewritten_question_count": 0,
+  "rewritten_question_ids": [],
+  "excluded_ambiguous_ids": [
+    "KBF_T1_042"
+  ],
+  "excluded_duplicate_ids": [
+    "KBF_T4_074"
+  ],
+  "dataset_path": "C:\\Users\\geonj\\Desktop\\research agent\\benchmarks\\datasets\\single_doc_eval_full.grounded_draft.json",
+  "worksheet_path": "C:\\Users\\geonj\\Desktop\\research agent\\benchmarks\\datasets\\single_doc_eval_full.grounded_draft.review\\review_sheet.csv",
+  "seed_path": "C:\\Users\\geonj\\Desktop\\research agent\\benchmarks\\datasets\\single_doc_eval_full.grounded_draft.review\\review_seed.json"
+}

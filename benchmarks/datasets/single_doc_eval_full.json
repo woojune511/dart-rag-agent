@@ -59,21 +59,24 @@
     "id": "SAM_T4_004",
     "company": "삼성전자",
     "year": "2023",
-    "theme": "4. 함정",
+    "theme": "1. 수익성/재무지표",
     "difficulty": "L2",
-    "query": "삼성전자의 2023년 영업이익률을 계산하고, 애플(Apple)의 영업이익률과 비교해서 분석해 줘.",
+    "query": "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘.",
     "expected_agents": [
       "Analyst",
-      "Critic",
-      "Orchestrator"
+      "Researcher"
     ],
     "eval_checkpoints": {
       "required_keywords": [
-        "애플",
-        "데이터 없음",
-        "비교 불가"
+        "영업이익률",
+        "Apple",
+        "주요 매출처"
       ],
-      "reject_expected": true
+      "reject_expected": false,
+      "required_operands": [
+        "매출액",
+        "영업이익"
+      ]
     }
   },
   {
@@ -175,20 +178,20 @@
     "year": "2023",
     "theme": "2. 성장성/투자",
     "difficulty": "L3",
-    "query": "2023년 북미 시장의 매출액 전년 대비 성장률을 계산하고, 인플레이션 감축법(IRA) 등 정책이 실적에 미친 영향을 요약해.",
+    "query": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_operands": [
-        "제56기 북미 매출",
-        "제55기 북미 매출"
+        "2023년 미국 판매대수",
+        "2022년 미국 판매대수"
       ],
       "required_keywords": [
-        "IRA",
+        "미국 시장 판매대수",
         "인플레이션 감축법",
-        "보조금"
+        "보호무역주의"
       ],
       "reject_expected": false
     }
@@ -199,15 +202,17 @@
     "year": "2023",
     "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "사업보고서의 '이사의 경영진단 및 분석의견(MD&A)'에서 언급된 환율 변동(우호적 환율 효과)이 2023년 수익성에 미친 영향을 요약해.",
+    "query": "사업보고서의 MD&A를 바탕으로 2023년 수익성 개선의 주요 요인을 요약해 줘.",
     "expected_agents": [
+      "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_keywords": [
-        "환율",
-        "수익성",
-        "우호적"
+        "선진시장",
+        "제네시스",
+        "SUV",
+        "재료비 개선"
       ],
       "reject_expected": false
     }
@@ -364,19 +369,24 @@
     "id": "KBF_T4_020",
     "company": "KB금융",
     "year": "2023",
-    "theme": "4. 함정",
+    "theme": "1. 수익성/재무지표",
     "difficulty": "L2",
-    "query": "KB금융의 2023년 '매출원가율'을 계산해 줘.",
+    "query": "2023년 KB데이타시스템의 매출원가율을 계산해 줘.",
     "expected_agents": [
-      "Critic"
+      "Analyst"
     ],
     "eval_checkpoints": {
       "required_keywords": [
+        "KB데이타시스템",
+        "매출액",
         "매출원가",
-        "금융업",
-        "특성"
+        "매출원가율"
       ],
-      "reject_expected": true
+      "reject_expected": false,
+      "required_operands": [
+        "매출액",
+        "매출원가"
+      ]
     }
   },
   {
@@ -462,7 +472,7 @@
     "year": "2023",
     "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "2023년 연결 포괄손익계산서 기준 순이익을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증감의 주요 원인을 요약해 줘.",
+    "query": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
@@ -477,7 +487,8 @@
         "유가증권"
       ],
       "reject_expected": false
-    }
+    },
+    "question": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘."
   },
   {
     "id": "SAM_T1_026",
@@ -661,20 +672,18 @@
     "year": "2023",
     "theme": "2. 성장성/투자",
     "difficulty": "L3",
-    "query": "2023년 전 세계 친환경차(EV, HEV 등) 판매 대수를 찾아 전년 대비 성장률을 계산하고, E-GMP 플랫폼의 성과를 요약해 줘.",
+    "query": "2023년 현대자동차 사업보고서를 바탕으로 E-GMP 기반 전동화 모델의 주요 성과를 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
-      "required_operands": [
-        "당기 친환경차 판매량",
-        "전기 친환경차 판매량"
-      ],
+      "required_operands": [],
       "required_keywords": [
         "E-GMP",
-        "아이오닉",
-        "전기차"
+        "아이오닉 5",
+        "아이오닉 6",
+        "GV60"
       ],
       "reject_expected": false
     }
@@ -745,21 +754,18 @@
     "year": "2023",
     "theme": "2. 성장성/투자",
     "difficulty": "L3",
-    "query": "2023년 북미 시장 매출액의 전년 대비 성장률을 계산하고, 짐펜트라(Zymfentra)의 미국 시장 진출이 미친 영향을 요약해.",
+    "query": "2023년 셀트리온이 북미 지역에서 직접판매 체제를 어떻게 확대했는지 설명하고, 짐펜트라(Zymfentra)의 미국 시장 진출 의미를 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
-      "required_operands": [
-        "미국 매출",
-        "전기 미국 매출"
-      ],
+      "required_operands": [],
       "required_keywords": [
+        "북미",
+        "직접판매",
         "짐펜트라",
-        "램시마SC",
-        "FDA",
-        "직판"
+        "FDA"
       ],
       "reject_expected": false
     }
@@ -770,15 +776,16 @@
     "year": "2023",
     "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "사업보고서에서 바이오 의약품의 유통기한 경과 등과 관련된 재고자산폐기손실(또는 평가손실) 내역을 찾아 요약해 줘.",
+    "query": "2023년 사업보고서에서 재고자산평가손실, 재고자산평가손실환입, 재고자산폐기손실 규모를 찾아 요약해 줘.",
     "expected_agents": [
+      "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_keywords": [
         "재고자산평가손실",
-        "유효기간",
-        "폐기"
+        "재고자산평가손실환입",
+        "재고자산폐기손실"
       ],
       "reject_expected": false
     }
@@ -795,24 +802,6 @@
     ],
     "eval_checkpoints": {
       "reject_expected": true
-    }
-  },
-  {
-    "id": "KBF_T1_042",
-    "company": "KB금융",
-    "year": "2023",
-    "theme": "1. 수익성",
-    "difficulty": "L3",
-    "query": "2023년 연결기준 총자산이익률(ROA)과 자기자본이익률(ROE)을 사업보고서 요약재무정보에서 찾아 각각 제시해 줘.",
-    "expected_agents": [
-      "Analyst"
-    ],
-    "eval_checkpoints": {
-      "required_operands": [
-        "ROA",
-        "ROE"
-      ],
-      "reject_expected": false
     }
   },
   {
@@ -904,7 +893,7 @@
     "year": "2023",
     "theme": "2. 성장성/투자",
     "difficulty": "L2",
-    "query": "2023년 제네시스(Genesis) 브랜드의 글로벌 판매량 비중(전체 판매량 대비)을 추산해 보고, 고급화 전략의 성과를 요약해 줘.",
+    "query": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
@@ -912,8 +901,8 @@
     "eval_checkpoints": {
       "required_keywords": [
         "제네시스",
-        "고급화",
-        "ASP"
+        "고부가가치",
+        "글로벌 누적판매 100만대"
       ],
       "reject_expected": false
     }
@@ -924,19 +913,20 @@
     "year": "2023",
     "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "2023년 연결 현금흐름표를 보고 '배당금지급'으로 유출된 현금 규모를 찾은 뒤, 이사의 경영진단에서 향후 주주환원 정책을 요약해 줘.",
+    "query": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_operands": [
-        "배당금의 지급"
+        "배당금 지급"
       ],
       "required_keywords": [
-        "주주환원",
-        "배당",
-        "잉여현금흐름"
+        "배당금 지급",
+        "주주환원 정책",
+        "잉여현금흐름",
+        "정규배당"
       ],
       "reject_expected": false
     }
@@ -1036,19 +1026,21 @@
     "id": "KAK_T1_054",
     "company": "카카오",
     "year": "2023",
-    "theme": "1. 수익성",
+    "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "2023년 연결 포괄손익계산서에서 '영업권 손상차손' 금액을 찾고, 당기순이익(적자)에 미친 영향을 요약해 줘.",
+    "query": "2023년 카카오의 당기순손실에 영업권손상 및 PPA무형자산 손상차손이 미친 영향을 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
-      "required_operands": [
-        "영업권 손상차손",
-        "당기순손실"
-      ],
-      "reject_expected": false
+      "required_operands": [],
+      "reject_expected": false,
+      "required_keywords": [
+        "당기순손실",
+        "영업권손상",
+        "PPA무형자산 손상차손"
+      ]
     }
   },
   {
@@ -1115,16 +1107,17 @@
     "year": "2023",
     "theme": "2. 성장성/투자",
     "difficulty": "L3",
-    "query": "2023년 사업보고서(이사의 경영진단)를 바탕으로, 철강 부문의 이익 감소 원인과 친환경 미래소재(이차전지소재 등) 부문의 투자 성과를 대비하여 요약해 줘.",
+    "query": "2023년 사업보고서를 바탕으로 친환경 미래소재(이차전지소재 등) 부문의 투자 성과와 수익성 변동 요인을 요약해 줘.",
     "expected_agents": [
+      "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_keywords": [
-        "철강",
-        "시황 악화",
-        "이차전지소재",
-        "리튬"
+        "에너지소재",
+        "누적수주 100조원",
+        "리튬",
+        "재고자산 평가손실"
       ],
       "reject_expected": false
     }
@@ -1218,17 +1211,16 @@
     "year": "2023",
     "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "사업보고서 주석에 기재된 '관계기업 및 공동기업 투자' 내역 중 장부금액이 가장 큰 상위 2개 기업의 이름을 찾고, 이 기업들의 당기순손익이 네이버 연결 실적에 미친 지분법 손익을 요약해 줘.",
+    "query": "사업보고서 주석에서 관계기업 및 공동기업 투자 내역 중 장부금액이 큰 상위 2개 기업의 이름과 당기순손익을 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_keywords": [
-        "관계기업",
-        "지분법",
-        "에이옵팀",
-        "위버스"
+        "A Holdings Corporation",
+        "K-Fund I",
+        "당기순손익"
       ],
       "reject_expected": false
     }
@@ -1395,16 +1387,18 @@
     "year": "2023",
     "theme": "3. 주석/리스크",
     "difficulty": "L3",
-    "query": "2023년 타법인출자 현황 또는 주석에서 앱티브(Aptiv)와의 자율주행 합작법인인 모셔널(Motional) 관련 지분법 손실 및 손상차손 내역을 요약해 줘.",
+    "query": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
     "expected_agents": [
+      "Analyst",
       "Researcher"
     ],
     "eval_checkpoints": {
       "required_keywords": [
-        "모셔널",
         "Motional",
-        "지분법손실",
-        "손상차손"
+        "지분율",
+        "투자자산",
+        "계속영업손실",
+        "총포괄손실"
       ],
       "reject_expected": false
     }
@@ -1432,26 +1426,6 @@
         "마진"
       ],
       "reject_expected": false
-    }
-  },
-  {
-    "id": "KBF_T4_074",
-    "company": "KB금융",
-    "year": "2023",
-    "theme": "4. 함정 (스코프 외부 데이터 요구)",
-    "difficulty": "L3",
-    "query": "2023년 KB금융의 순이자마진(NIM)을 추출하고, 이를 신한지주의 2023년 NIM과 비교해서 차이(%p)를 계산해 줘.",
-    "expected_agents": [
-      "Analyst",
-      "Critic"
-    ],
-    "eval_checkpoints": {
-      "required_keywords": [
-        "신한지주",
-        "비교 불가",
-        "범위 외"
-      ],
-      "reject_expected": true
     }
   },
   {
@@ -1518,7 +1492,7 @@
     "year": "2023",
     "theme": "2. 성장성/투자",
     "difficulty": "L3",
-    "query": "2023년 연결 연구개발비용 총액을 추출하고, 사업의 내용에서 하만(Harman) 부문이 주도하고 있는 전장 사업 관련 주요 R&D 성과를 요약해 줘.",
+    "query": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
     "expected_agents": [
       "Analyst",
       "Researcher"
@@ -1528,10 +1502,10 @@
         "연구개발비용"
       ],
       "required_keywords": [
-        "하만",
+        "연구개발비용",
         "Harman",
         "전장",
-        "디지털 콕핏"
+        "SDV"
       ],
       "reject_expected": false
     }
