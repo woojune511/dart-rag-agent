@@ -24,6 +24,9 @@ _SECTION_TAGS = frozenset({"SECTION-1", "SECTION-2", "SECTION-3"})
 _ROMAN_HEADING_RE = re.compile(r"^[IVXLCDM]+\.\s")
 _NUMERIC_HEADING_RE = re.compile(r"^\d+\.\s")
 _SUBNUMERIC_HEADING_RE = re.compile(r"^\d+(?:-\d+)+\.\s")
+_KOREAN_ALPHA_HEADING_RE = re.compile(r"^[가-하]\.\s")
+_PAREN_HEADING_RE = re.compile(r"^\((?:\d+|[가-하])\)")
+_BRACKET_HEADING_RE = re.compile(r"^\[[^\]]+\]$")
 _SPECIAL_HEADING_RE = re.compile(r"^【.+】$")
 _REFERENCE_SIGNAL_RE = re.compile(r"참고|참조")
 _REFERENCE_QUOTE_CHARS = "\"'“”‘’「」『』"
@@ -130,6 +133,12 @@ def _infer_heading_level(title: str) -> int:
         return 3
     if _NUMERIC_HEADING_RE.match(title):
         return 2
+    if _KOREAN_ALPHA_HEADING_RE.match(title):
+        return 3
+    if _BRACKET_HEADING_RE.match(title):
+        return 2
+    if _PAREN_HEADING_RE.match(title):
+        return 4
     return 2
 
 
@@ -166,6 +175,42 @@ def _reclassify_by_content(text: str, label: str) -> str:
             if kw in text:
                 return new_label
     return label
+
+
+def _looks_like_local_heading(text: str) -> bool:
+    normalized = _normalize(text)
+    if not normalized:
+        return False
+    if len(normalized) > 120:
+        return False
+    return any(
+        pattern.match(normalized)
+        for pattern in (
+            _NUMERIC_HEADING_RE,
+            _SUBNUMERIC_HEADING_RE,
+            _KOREAN_ALPHA_HEADING_RE,
+            _PAREN_HEADING_RE,
+            _BRACKET_HEADING_RE,
+            _SPECIAL_HEADING_RE,
+        )
+    )
+
+
+def _push_heading(stack: List[str], heading: str) -> List[str]:
+    normalized = _normalize(heading)
+    if not normalized:
+        return list(stack)
+
+    level = _infer_heading_level(normalized)
+    next_stack = list(stack)
+    next_levels = [_infer_heading_level(value) for value in next_stack]
+
+    while next_levels and next_levels[-1] >= level:
+        next_levels.pop()
+        next_stack.pop()
+
+    next_stack.append(normalized)
+    return next_stack
 
 
 def _build_reference_index(raw_sections: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -293,10 +338,103 @@ class FinancialParser:
                 rows.append(" | ".join(cells))
         return "\n".join(rows)
 
+    def _extract_paragraph_heading_parts(self, paragraph_elem) -> Tuple[Optional[List[str]], List[Dict[str, Any]]]:
+        parts: List[Dict[str, Any]] = []
+
+        def append_text(value: Optional[str]):
+            normalized = _normalize(value or "")
+            if normalized:
+                parts.append({"kind": "text", "text": normalized})
+
+        append_text(paragraph_elem.text)
+        for child in paragraph_elem:
+            candidate = _normalize("".join(child.itertext()))
+            usermark = child.get("USERMARK", "") if hasattr(child, "get") else ""
+            if child.tag == "SPAN" and "B" in usermark and _looks_like_local_heading(candidate):
+                parts.append({"kind": "heading", "text": candidate})
+            else:
+                append_text("".join(child.itertext()))
+            append_text(child.tail)
+
+        if not parts:
+            return None, []
+
+        grouped: List[Dict[str, Any]] = []
+        pending_text: List[str] = []
+
+        def flush_text():
+            if pending_text:
+                grouped.append({"kind": "text", "text": _normalize(" ".join(pending_text))})
+                pending_text.clear()
+
+        for part in parts:
+            if part["kind"] == "heading":
+                flush_text()
+                grouped.append(part)
+            else:
+                pending_text.append(part["text"])
+        flush_text()
+
+        if len(grouped) == 1 and grouped[0]["kind"] == "text" and _looks_like_local_heading(grouped[0]["text"]):
+            return [grouped[0]["text"]], []
+
+        promoted: List[Dict[str, Any]] = []
+        idx = 0
+        while idx < len(grouped):
+            part = grouped[idx]
+            if (
+                part["kind"] == "heading"
+                and idx + 1 < len(grouped)
+                and grouped[idx + 1]["kind"] == "text"
+                and _looks_like_local_heading(grouped[idx + 1]["text"])
+            ):
+                promoted.append(part)
+                promoted.append({"kind": "heading", "text": grouped[idx + 1]["text"]})
+                idx += 2
+                continue
+            promoted.append(part)
+            idx += 1
+
+        leading_headings: List[str] = []
+        body_segments: List[Dict[str, Any]] = []
+        saw_body = False
+        for part in promoted:
+            if not saw_body and part["kind"] == "heading":
+                leading_headings.append(part["text"])
+                continue
+            if part["kind"] == "text":
+                saw_body = True
+            body_segments.append(part)
+
+        return (leading_headings or None), body_segments
+
     def _collect_blocks(self, section_elem) -> List[Dict[str, Any]]:
         blocks: List[Dict[str, Any]] = []
+        heading_stack: List[str] = []
+        transient_heading_depth: Optional[int] = None
 
-        def process(elem):
+        def emit_block(text: str, block_type: str):
+            normalized = _normalize(text)
+            if not normalized:
+                return
+            blocks.append(
+                {
+                    "text": normalized,
+                    "type": block_type,
+                    "local_heading": " > ".join(heading_stack) if heading_stack else None,
+                }
+            )
+
+        def clear_transient_heading():
+            nonlocal transient_heading_depth
+            if transient_heading_depth is None:
+                return
+            while len(heading_stack) >= transient_heading_depth:
+                heading_stack.pop()
+            transient_heading_depth = None
+
+        def process(elem, next_tag: Optional[str] = None):
+            nonlocal transient_heading_depth
             tag = elem.tag
             if tag in _SECTION_TAGS:
                 return
@@ -304,23 +442,41 @@ class FinancialParser:
                 for table in elem.findall("TABLE"):
                     text = self._format_table(table)
                     if text:
-                        blocks.append({"text": text, "type": "table"})
+                        emit_block(text, "table")
                 return
             if tag == "TABLE":
                 text = self._format_table(elem)
                 if text:
-                    blocks.append({"text": text, "type": "table"})
+                    emit_block(text, "table")
                 return
             if tag == "P":
-                text = _normalize("".join(elem.itertext()))
-                if text:
-                    blocks.append({"text": text, "type": "paragraph"})
+                leading_headings, body_segments = self._extract_paragraph_heading_parts(elem)
+                heading_only_bracket = (
+                    leading_headings
+                    and not body_segments
+                    and len(leading_headings) == 1
+                    and _BRACKET_HEADING_RE.match(leading_headings[0])
+                )
+                if transient_heading_depth is not None and (leading_headings or body_segments):
+                    clear_transient_heading()
+                if leading_headings:
+                    for heading in leading_headings:
+                        heading_stack[:] = _push_heading(heading_stack, heading)
+                    if heading_only_bracket and next_tag in {"TABLE", "TABLE-GROUP"}:
+                        transient_heading_depth = len(heading_stack)
+                for part in body_segments:
+                    if part["kind"] == "heading":
+                        heading_stack[:] = _push_heading(heading_stack, part["text"])
+                    else:
+                        emit_block(part["text"], "paragraph")
                 return
             for child in elem:
                 process(child)
 
-        for child in section_elem:
-            process(child)
+        children = list(section_elem)
+        for idx, child in enumerate(children):
+            next_tag = children[idx + 1].tag if idx + 1 < len(children) else None
+            process(child, next_tag=next_tag)
 
         return blocks
 
@@ -362,6 +518,7 @@ class FinancialParser:
             table_chars = sum(len(block["text"]) for block in pending_blocks if block["type"] == "table")
             has_table = any(block["type"] == "table" for block in pending_blocks)
             block_type = "table" if table_chars > len(merged) * 0.5 else "paragraph"
+            local_heading = next((block.get("local_heading") for block in pending_blocks if block.get("local_heading")), None)
             table_context = None
             if has_table:
                 first_table = next(block for block in pending_blocks if block["type"] == "table")
@@ -376,6 +533,7 @@ class FinancialParser:
                             "text": sub,
                             "block_type": block_type,
                             "table_context": table_context if idx == 0 else None,
+                            "local_heading": local_heading,
                         }
                     )
             else:
@@ -384,6 +542,7 @@ class FinancialParser:
                         "text": merged,
                         "block_type": block_type,
                         "table_context": table_context,
+                        "local_heading": local_heading,
                     }
                 )
 
@@ -411,6 +570,7 @@ class FinancialParser:
                                 "text": sub,
                                 "block_type": "table",
                                 "table_context": block["table_context"] if idx == 0 else None,
+                                "local_heading": block.get("local_heading"),
                             }
                         )
                 else:
@@ -419,6 +579,7 @@ class FinancialParser:
                             "text": text,
                             "block_type": "table",
                             "table_context": block["table_context"],
+                            "local_heading": block.get("local_heading"),
                         }
                     )
             else:
@@ -515,6 +676,31 @@ class FinancialParser:
         logger.info("Extracted %s sections [%s]", len(result), os.path.basename(file_path))
         return result
 
+    def extract_structure_outline(self, file_path: str) -> List[Dict[str, Any]]:
+        root = self._parse_xml(file_path)
+        if root is None:
+            return []
+
+        raw_sections = self._extract_sections(root)
+        outline: List[Dict[str, Any]] = []
+        for section in raw_sections:
+            local_headings: List[str] = []
+            seen_headings: set[str] = set()
+            for block in section["blocks"]:
+                local_heading = block.get("local_heading")
+                if local_heading and local_heading not in seen_headings:
+                    seen_headings.add(local_heading)
+                    local_headings.append(local_heading)
+            outline.append(
+                {
+                    "title": section["title"],
+                    "path_titles": list(section["path_titles"]),
+                    "path": section["path"],
+                    "local_headings": local_headings,
+                }
+            )
+        return outline
+
     def process_document(self, file_path: str, source_metadata: Dict[str, Any]) -> List[DocumentChunk]:
         root = self._parse_xml(file_path)
         if root is None:
@@ -547,6 +733,7 @@ class FinancialParser:
                     "section": refined_label,
                     "section_title": section_title,
                     "section_path": section["path"],
+                    "local_heading": chunk_block.get("local_heading"),
                     "chunk_id": chunk_id,
                     "sub_chunk_idx": sub_chunk_idx,
                     "total_sub_chunks": total_sub_chunks,

@@ -53,6 +53,26 @@
 
 - 공시 문서처럼 표와 문단, 섹션 경계가 중요한 도메인에서 retrieval 품질과 citation 품질을 동시에 확보하기 위한 결정이다.
 
+## 1-1. raw XML을 직접 LLM에 주지 않고, hidden heading을 복원한 normalized structure를 만든다
+
+최근 확인된 핵심 문제는 DART 원문이 항상 nested `SECTION-*`로 하위 구조를 주지 않는다는 점이다.
+
+핵심 포인트:
+
+- `IV. 이사의 경영진단 및 분석의견`의 하위 제목들은 `SECTION-*`가 아니라 bold `SPAN` 내부에 묻혀 있음
+- parser에 `local_heading` 복원 로직을 추가해
+  - `1. 예측정보에 대한 주의사항`
+  - `3. 재무상태 및 영업실적 > 나. 영업실적`
+  - `4. 유동성 및 자금조달 > 가. 유동성 현황`
+  같은 구조를 다시 꺼낼 수 있게 함
+- NAVER 2023 structure smoke에서 `IV` 섹션의 하위 구조 복원은 성공
+- 반대로 `II > 7. 기타 참고사항`의 `[클라우드]` 이후 블록은 `recover=True` XML 파싱 단계에서 이미 일부 손실되는 것을 확인
+
+의미:
+
+- 문제의 본질은 “LLM이 XML을 못 읽는다”보다, **parser가 invalid XML-like markup를 그대로 받으면 subtree 자체를 잃을 수 있다**는 데 있다.
+- 따라서 다음 단계는 raw source를 직접 고치지 않고, parser 앞단에 **sanitize/normalize layer**를 두는 것이다.
+
 ## 2. retrieval granularity와 reasoning context를 분리한 parent-child retrieval
 
 검색은 child chunk로 하고, 답변은 parent section을 우선 컨텍스트로 삼는다.

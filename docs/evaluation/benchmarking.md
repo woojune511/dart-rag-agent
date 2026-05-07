@@ -289,6 +289,27 @@
 | 해석 | MAS는 이제 문서상 topology가 아니라, **task decomposition -> parallel workers -> critic retry -> merge**를 실제로 수행하는 baseline이 됐다. 이후 품질 개선은 이 baseline 대비 delta로 측정한다. |
 | Evidence | [mas_e2e_smoke_2026-04-30.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/mas_e2e_smoke_2026-04-30.json) |
 
+## Parser Structure Smokes
+
+이 섹션은 retrieval/generation 품질이 아니라, **DART 원문 구조를 parser가 얼마나 복원하는지**를 보는 acceptance check다.
+
+### NAVER 2023 hidden-heading recovery smoke
+
+| 항목 | 내용 |
+| --- | --- |
+| 목적 | `SECTION-*` 밖에 숨어 있는 bold sub-heading을 `local_heading`으로 복원하고, parser가 어디까지 구조를 잃는지 확인 |
+| 스크립트 | [src/ops/dump_report_structure.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/dump_report_structure.py) |
+| 산출물 | [naver_2023_structure_outline.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/naver_2023_structure_outline.json) |
+| 성공 신호 | `IV. 이사의 경영진단 및 분석의견` 아래 `1. 예측정보에 대한 주의사항`, `3. 재무상태 및 영업실적 > 나. 영업실적` 등 hidden heading 복원 |
+| 실패 신호 | `II > 7. 기타 참고사항`의 `[클라우드]`, `(1) 산업의 개요`, `(가) 영업 개요`는 여전히 누락 |
+| 해석 | heading rule 보강만으로는 충분하지 않았고, raw source 안의 angle-bracket 텍스트 때문에 `recover=True` XML 파싱 단계에서 subtree가 이미 손실됨 |
+
+핵심 결론:
+
+- 하위 섹션이 `SECTION-*`가 아니라 bold `SPAN`에 숨어 있는 경우는 `local_heading` 복원으로 어느 정도 해결 가능
+- 그러나 raw source 안의 `<소매판매액 ...>` 같은 **텍스트성 angle bracket** 때문에 `recover=True` XML parser가 subtree를 잘못 복구하는 경우가 있음
+- 따라서 다음 parser 실험은 **source XML 수동 수정**이 아니라 **parser 입력 sanitize/normalize**를 baseline/proposed로 비교해야 한다
+
 ## Retrospective Scorecard Track
 
 이 섹션은 **이미 내린 중요한 기술 결정이 정량적으로 어떤 차이를 만들었는지**를 회고적으로 입증하기 위한 실험 트랙이다.
