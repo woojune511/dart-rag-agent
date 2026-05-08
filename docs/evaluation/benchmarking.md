@@ -300,15 +300,34 @@
 | 목적 | `SECTION-*` 밖에 숨어 있는 bold sub-heading을 `local_heading`으로 복원하고, parser가 어디까지 구조를 잃는지 확인 |
 | 스크립트 | [src/ops/dump_report_structure.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/dump_report_structure.py) |
 | 산출물 | [naver_2023_structure_outline.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/naver_2023_structure_outline.json) |
-| 성공 신호 | `IV. 이사의 경영진단 및 분석의견` 아래 `1. 예측정보에 대한 주의사항`, `3. 재무상태 및 영업실적 > 나. 영업실적` 등 hidden heading 복원 |
-| 실패 신호 | `II > 7. 기타 참고사항`의 `[클라우드]`, `(1) 산업의 개요`, `(가) 영업 개요`는 여전히 누락 |
-| 해석 | heading rule 보강만으로는 충분하지 않았고, raw source 안의 angle-bracket 텍스트 때문에 `recover=True` XML 파싱 단계에서 subtree가 이미 손실됨 |
+| 성공 신호 | sanitize 이후 `IV. 이사의 경영진단 및 분석의견`과 `II > 7. 기타 참고사항`의 핵심 hidden heading이 soft `local_heading`으로 복원 |
+| 실패 신호 | noisy inline heading이 일부 남거나, low-value section에서 coarse parsing 대신 오탐 heading이 늘어나는 경우 |
+| 해석 | parser는 deep hierarchy 복원기보다, sanitize + high-value-section soft heading 복원기 쪽이 RAG 목적에 더 적합함 |
 
 핵심 결론:
 
-- 하위 섹션이 `SECTION-*`가 아니라 bold `SPAN`에 숨어 있는 경우는 `local_heading` 복원으로 어느 정도 해결 가능
-- 그러나 raw source 안의 `<소매판매액 ...>` 같은 **텍스트성 angle bracket** 때문에 `recover=True` XML parser가 subtree를 잘못 복구하는 경우가 있음
-- 따라서 다음 parser 실험은 **source XML 수동 수정**이 아니라 **parser 입력 sanitize/normalize**를 baseline/proposed로 비교해야 한다
+- 하위 섹션이 `SECTION-*`가 아니라 bold `SPAN`에 숨어 있는 경우는 soft `local_heading` 복원으로 충분한 경우가 많다
+- raw source 안의 `<소매판매액 ...>` 같은 **텍스트성 angle bracket**는 sanitize가 먼저 막아야 한다
+- low-value section까지 세세하게 복원하려고 들수록 parser 복잡도와 오탐이 커지므로, 다음 parser 실험은 **high-value-section whitelist + conservative heading** 기준으로 본다
+
+### Parser Chunk Smoke
+
+parser 구조 정리 이후에는 실제 chunk 분포도 같이 본다.
+
+최근 smoke 기준:
+
+| 문서 | chunks | avg chars | max chars | `over2500` |
+| --- | --- | ---: | ---: | ---: |
+| NAVER 2023 | 258 | 1215.9 | 2500 | 0 |
+| 삼성전자 2024 | 356 | 1641.8 | 2500 | 0 |
+| SK하이닉스 2023 | 245 | 1030.6 | 2498 | 0 |
+| POSCO홀딩스 2023 | 668 | 1111.3 | 2500 | 0 |
+
+해석:
+
+- wide table은 `column window -> row split`으로 처리
+- `1. 분할방법 | ...` 같은 서술형 표 row는 label-value narrative split을 적용
+- parser baseline의 남은 검증 과제는 oversized chunk 해소가 아니라, 질문 subset 기준 retrieval / numeric 회귀 확인이다
 
 ## Retrospective Scorecard Track
 

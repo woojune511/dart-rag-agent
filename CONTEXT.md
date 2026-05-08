@@ -16,7 +16,7 @@
 | 기본 retrieval | `Chroma + BM25 + RRF`, structure-aware parser / chunking |
 | 기본 analyst core | evidence-first math path, `formula planner + safe AST evaluator` |
 | evaluator 역할 | final correctness / grounding과 retrieval diagnostic을 분리 |
-| 현재 우선순위 | parser normalize/sanitize로 hidden structure recovery를 안정화한 뒤, MAS quality pass로 연결 |
+| 현재 우선순위 | parser baseline regression을 질문 subset으로 확인한 뒤, MAS quality pass로 연결 |
 
 ## 현재 구현 단계
 
@@ -28,7 +28,7 @@
 | Critic | partial | deterministic runtime critic live, LLM critic pending |
 | Shared state ledger | live | `tasks`, `artifacts`, `evidence_pool`, `critic_reports`가 실제 흐름에서 사용 중 |
 | Self-reflection | experimental | bounded retry checkpoint는 있으나 최종 MAS 설계는 아님 |
-| Parser normalization | experimental | `local_heading` 구조 복원은 일부 성공, invalid XML-like markup sanitize는 미구현 |
+| Parser normalization | partial | sanitize + soft-heading baseline live, high-value section 중심 구조 복원 + wide/narrative table chunking 정리 완료 |
 
 ## 최근 정량 증거
 
@@ -40,7 +40,8 @@
 | MAS Analyst smoke | numeric result parity `1.000`, calc status parity `1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
 | MAS Researcher smoke | citation parity `1.000`, critic pass `1.000` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
 | MAS E2E smoke | final report 생성 `2/2`, critic-triggered retry `1/2` | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
-| Parser structure smoke | `IV. 이사의 경영진단 및 분석의견` 하위 heading 복원 성공, `II > 7. 기타 참고사항` 후반부는 XML recover 손실 확인 | [benchmarks/results/naver_2023_structure_outline.json](benchmarks/results/naver_2023_structure_outline.json) |
+| Parser structure smoke | `IV. 이사의 경영진단 및 분석의견`과 `II > 7. 기타 참고사항`의 핵심 hidden heading 복원, 저가치 섹션은 coarse parsing으로 축소 | [benchmarks/results/naver_2023_structure_outline.json](benchmarks/results/naver_2023_structure_outline.json) |
+| Parser chunk smoke | NAVER/삼성전자/SKH `over2500=0`, POSCO wide/narrative table oversized 해소 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) |
 
 ## 고정 가능한 기준선
 
@@ -80,7 +81,7 @@
 | 2 | Analyst migration | 현재 numeric/evidence path를 Analyst agent로 이식 | 완료: real store smoke 기준 numeric parity 확보 |
 | 3 | Critic stack | deterministic critic + LLM critic 분리 | 진행 중: deterministic live, LLM critic 미구현 |
 | 4 | Researcher attachment | why/context retrieval과 note traversal을 별도 agent로 분리 | 진행 중: v1 live, retrieval/summarization quality tuning 남음 |
-| 5 | Parser normalize/sanitize layer | invalid XML-like markup를 흡수해 `local_heading`과 section subtree를 안정화 | NAVER `II > 7`의 `[클라우드]`, `(가) 영업 개요`까지 구조 복원 |
+| 5 | Parser simplify/normalize layer | invalid XML-like markup를 흡수하고, high-value section만 soft heading으로 복원하며 table chunking을 안정화 | NAVER `II > 7`의 `[클라우드]`, `IV`의 `나. 영업실적`, POSCO 대형 표 split까지 안정 동작 |
 | 6 | Orchestrator quality pass | task decomposition / merge 품질 고도화 | mixed-intent baseline과 merge 품질 지표 확보 |
 | 7 | Agentic self-reflection | retry를 rule patch가 아니라 ReflectionPlan/VerificationReport 구조로 재설계 | bounded retry가 task/critic contract 위에서 동작 |
 | 8 | Cross-document / cross-company | entity/report/period namespace를 보존한 비교 분석 | 기업/문서 혼동 없는 multi-entity task 처리 |
