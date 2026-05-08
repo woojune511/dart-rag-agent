@@ -11,6 +11,8 @@ This parser:
 import logging
 import os
 import re
+from io import BytesIO
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -25,9 +27,26 @@ _ROMAN_HEADING_RE = re.compile(r"^[IVXLCDM]+\.\s")
 _NUMERIC_HEADING_RE = re.compile(r"^\d+\.\s")
 _SUBNUMERIC_HEADING_RE = re.compile(r"^\d+(?:-\d+)+\.\s")
 _KOREAN_ALPHA_HEADING_RE = re.compile(r"^[가-하]\.\s")
-_PAREN_HEADING_RE = re.compile(r"^\((?:\d+|[가-하])\)")
+_PAREN_NUMERIC_HEADING_RE = re.compile(r"^\(\d+\)")
+_PAREN_KOREAN_HEADING_RE = re.compile(r"^\([가-하]\)")
+_BARE_PAREN_HEADING_RE = re.compile(r"^\((?:\d+|[가-하])\)$")
 _BRACKET_HEADING_RE = re.compile(r"^\[[^\]]+\]$")
 _SPECIAL_HEADING_RE = re.compile(r"^【.+】$")
+_EXAMPLE_NUMERIC_LIST_ITEM_RE = re.compile(r"^\d+\.\s.+\(\s*예:\s*.+\)$")
+_COMPOUND_HEADING_MARKER_RE = re.compile(
+    r"(?=(\[[^\]]+\]|\((?:\d+|[가-하])\)|\d+(?:-\d+)*\.\s|[가-하]\.\s))"
+)
+_ATTACHED_KOREAN_ALPHA_HEADING_RE = re.compile(r"(?<!^)([가-하]\.\s*)")
+_INLINE_BODY_START_RE = re.compile(
+    r"(\d{4}년|연결회사는|회사는|당사는|당사가|당기 및 전기 중|당기말 및 전기말 현재|당기말 현재)"
+)
+_INLINE_BODY_SEPARATOR_RE = re.compile(
+    r"([①②③④⑤⑥⑦⑧⑨⑩]|-\s*[A-Za-z가-힣&]+(?:\s*[A-Za-z가-힣&]+)*\s*:)"
+)
+_TABLE_NARRATIVE_BREAK_RE = re.compile(r"(?=(\(\d+\)|[①②③④⑤⑥⑦⑧⑨⑩]))")
+_PROBABLE_XML_MARKUP_RE = re.compile(
+    r"^/?[A-Za-z_][A-Za-z0-9._:-]*(?:\s+[A-Za-z_][A-Za-z0-9._:-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*/?$"
+)
 _REFERENCE_SIGNAL_RE = re.compile(r"참고|참조")
 _REFERENCE_QUOTE_CHARS = "\"'“”‘’「」『』"
 _QUOTED_REFERENCE_PAIR_RE = re.compile(
@@ -40,6 +59,9 @@ _QUOTED_REFERENCE_SINGLE_RE = re.compile(
 )
 DEFAULT_CHUNK_SIZE = 2500
 DEFAULT_CHUNK_OVERLAP = 320
+_WIDE_TABLE_COLUMN_THRESHOLD = 24
+_WIDE_TABLE_WINDOW_SIZE = 24
+_WIDE_TABLE_WINDOW_OVERLAP = 2
 
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
@@ -75,6 +97,29 @@ _CONTENT_RECLASSIFY: List[Tuple[str, List[str]]] = [
     ("경영진단", ["영업이익률", "매출총이익", "경영환경", "사업전략"]),
     ("사업개요", ["사업 개요", "주요 사업", "사업 부문", "글로벌"]),
 ]
+
+_STRUCTURED_SECTION_PREFIXES = (
+    "III. 재무에 관한 사항",
+    "IV. 이사의 경영진단 및 분석의견",
+)
+
+_STRUCTURED_SECTION_PATHS = {
+    "II. 사업의 내용 > 1. 사업의 개요",
+    "II. 사업의 내용 > 4. 매출 및 수주상황",
+    "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+    "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+    "II. 사업의 내용 > 7. 기타 참고사항",
+}
+_DATE_BRACKET_HEADING_RE = re.compile(r"^\[\d{4}년(?:\s*\d{1,2}월)?\]$")
+_SENTENCEY_HEADING_ENDINGS = ("입니다", "있습니다", "합니다", "됩니다", "하여", "이며", "이고")
+_LOW_VALUE_BRACKET_KEYWORDS = ("분석",)
+_BRACKET_SECTION_LABEL_PREFIXES = (
+    "II. 사업의 내용 > 5. 위험관리 및 파생거래",
+    "II. 사업의 내용 > 7. 기타 참고사항",
+    "III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항",
+    "IV. 이사의 경영진단 및 분석의견",
+)
+_SHORT_BRACKET_LABEL_MAX_CHARS = 8
 
 
 class DocumentChunk(BaseModel):
@@ -137,9 +182,20 @@ def _infer_heading_level(title: str) -> int:
         return 3
     if _BRACKET_HEADING_RE.match(title):
         return 2
-    if _PAREN_HEADING_RE.match(title):
+    if _PAREN_NUMERIC_HEADING_RE.match(title):
         return 4
+    if _PAREN_KOREAN_HEADING_RE.match(title):
+        return 5
     return 2
+
+
+def _is_structured_section(section_path: str) -> bool:
+    normalized = _normalize(section_path)
+    if not normalized:
+        return False
+    if normalized in _STRUCTURED_SECTION_PATHS:
+        return True
+    return any(normalized.startswith(prefix) for prefix in _STRUCTURED_SECTION_PREFIXES)
 
 
 def _sanitize_path_titles(path_titles: List[str]) -> List[str]:
@@ -177,11 +233,57 @@ def _reclassify_by_content(text: str, label: str) -> str:
     return label
 
 
+def _is_probable_xml_markup(inner: str) -> bool:
+    stripped = inner.strip()
+    if not stripped:
+        return False
+    if stripped.startswith(("!", "?")):
+        return True
+    return bool(_PROBABLE_XML_MARKUP_RE.match(stripped))
+
+
+def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
+    sanitized_parts: List[str] = []
+    replacements = 0
+    idx = 0
+    raw_len = len(raw)
+
+    while idx < raw_len:
+        start = raw.find("<", idx)
+        if start < 0:
+            sanitized_parts.append(raw[idx:])
+            break
+
+        sanitized_parts.append(raw[idx:start])
+        end = raw.find(">", start + 1)
+        if end < 0:
+            sanitized_parts.append(raw[start:])
+            break
+
+        candidate = raw[start + 1 : end]
+        if _is_probable_xml_markup(candidate):
+            sanitized_parts.append(raw[start : end + 1])
+        else:
+            replacements += 1
+            sanitized_parts.append("&lt;")
+            sanitized_parts.append(candidate)
+            sanitized_parts.append("&gt;")
+        idx = end + 1
+
+    return "".join(sanitized_parts), replacements
+
+
 def _looks_like_local_heading(text: str) -> bool:
     normalized = _normalize(text)
     if not normalized:
         return False
-    if len(normalized) > 120:
+    if len(normalized) > 90:
+        return False
+    if _BARE_PAREN_HEADING_RE.match(normalized):
+        return False
+    if _EXAMPLE_NUMERIC_LIST_ITEM_RE.match(normalized):
+        return False
+    if normalized.endswith(_SENTENCEY_HEADING_ENDINGS):
         return False
     return any(
         pattern.match(normalized)
@@ -189,20 +291,118 @@ def _looks_like_local_heading(text: str) -> bool:
             _NUMERIC_HEADING_RE,
             _SUBNUMERIC_HEADING_RE,
             _KOREAN_ALPHA_HEADING_RE,
-            _PAREN_HEADING_RE,
+            _PAREN_NUMERIC_HEADING_RE,
+            _PAREN_KOREAN_HEADING_RE,
             _BRACKET_HEADING_RE,
             _SPECIAL_HEADING_RE,
         )
     )
 
 
-def _push_heading(stack: List[str], heading: str) -> List[str]:
+def _should_discard_bracket_heading(text: str, section_path: str) -> bool:
+    normalized = _normalize(text)
+    if not normalized or not _BRACKET_HEADING_RE.match(normalized):
+        return False
+    if _DATE_BRACKET_HEADING_RE.match(normalized):
+        return True
+    if section_path.startswith("IV. 이사의 경영진단 및 분석의견") and any(
+        keyword in normalized for keyword in _LOW_VALUE_BRACKET_KEYWORDS
+    ):
+        return True
+    return False
+
+
+def _bracket_label_inner_length(text: str) -> int:
+    normalized = _normalize(text)
+    if len(normalized) >= 2 and normalized.startswith("[") and normalized.endswith("]"):
+        normalized = normalized[1:-1]
+    normalized = normalized.replace(" ", "")
+    return len(normalized)
+
+
+def _classify_bracket_heading(
+    text: str,
+    section_path: str,
+    next_tag: Optional[str],
+    has_body_segments: bool,
+) -> str:
+    normalized = _normalize(text)
+    if not normalized or not _BRACKET_HEADING_RE.match(normalized):
+        return "not_bracket"
+    if _should_discard_bracket_heading(normalized, section_path):
+        return "discard"
+    if not has_body_segments and next_tag in {"TABLE", "TABLE-GROUP"}:
+        return "table_label"
+    if any(section_path.startswith(prefix) for prefix in _BRACKET_SECTION_LABEL_PREFIXES):
+        if _bracket_label_inner_length(normalized) <= _SHORT_BRACKET_LABEL_MAX_CHARS:
+            return "defer_section_label"
+        return "section_label"
+    return "discard"
+
+
+def _should_promote_deferred_bracket_heading(heading: str, section_path: str) -> bool:
     normalized = _normalize(heading)
+    if not normalized:
+        return False
+    if section_path.startswith("II. 사업의 내용 > 7. 기타 참고사항"):
+        return bool(_PAREN_NUMERIC_HEADING_RE.match(normalized) or _PAREN_KOREAN_HEADING_RE.match(normalized))
+    if section_path.startswith("III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"):
+        return bool(_PAREN_NUMERIC_HEADING_RE.match(normalized) or _PAREN_KOREAN_HEADING_RE.match(normalized))
+    if section_path.startswith("II. 사업의 내용 > 5. 위험관리 및 파생거래"):
+        return bool(
+            _KOREAN_ALPHA_HEADING_RE.match(normalized)
+            or _PAREN_NUMERIC_HEADING_RE.match(normalized)
+            or _PAREN_KOREAN_HEADING_RE.match(normalized)
+        )
+    return False
+
+
+def _strip_noisy_heading_suffix(text: str) -> str:
+    normalized = _normalize(text)
+    if not normalized:
+        return ""
+
+    if not normalized.startswith(("(", "[")):
+        return normalized
+
+    boundary_match = _INLINE_BODY_SEPARATOR_RE.search(normalized)
+    if not boundary_match or boundary_match.start() <= 0:
+        return normalized
+
+    candidate = _normalize(normalized[: boundary_match.start()])
+    if candidate and _looks_like_local_heading(candidate):
+        return candidate
+    return normalized
+
+
+def _prepare_stack_for_heading(stack: List[str], heading: str, section_path: str) -> List[str]:
+    if not stack:
+        return list(stack)
+
+    top = _normalize(stack[-1])
+    normalized = _normalize(heading)
+    if not (_BRACKET_HEADING_RE.match(top) and normalized):
+        return list(stack)
+
+    if section_path.startswith("II. 사업의 내용 > 7. 기타 참고사항"):
+        if not (_PAREN_NUMERIC_HEADING_RE.match(normalized) or _PAREN_KOREAN_HEADING_RE.match(normalized)):
+            return list(stack[:-1])
+    elif section_path.startswith("III. 재무에 관한 사항 > 8. 기타 재무에 관한 사항"):
+        if not (_PAREN_NUMERIC_HEADING_RE.match(normalized) or _PAREN_KOREAN_HEADING_RE.match(normalized)):
+            return list(stack[:-1])
+    elif section_path.startswith("IV. 이사의 경영진단 및 분석의견"):
+        return list(stack[:-1])
+
+    return list(stack)
+
+
+def _push_heading(stack: List[str], heading: str, section_path: str = "") -> List[str]:
+    normalized = _strip_noisy_heading_suffix(heading)
     if not normalized:
         return list(stack)
 
+    next_stack = _prepare_stack_for_heading(stack, normalized, section_path)
     level = _infer_heading_level(normalized)
-    next_stack = list(stack)
     next_levels = [_infer_heading_level(value) for value in next_stack]
 
     while next_levels and next_levels[-1] >= level:
@@ -211,6 +411,67 @@ def _push_heading(stack: List[str], heading: str) -> List[str]:
 
     next_stack.append(normalized)
     return next_stack
+
+
+def _split_compound_heading_text(text: str) -> List[str]:
+    normalized = _strip_noisy_heading_suffix(text)
+    if not normalized or not _looks_like_local_heading(normalized):
+        return [normalized] if normalized else []
+
+    body_start = _INLINE_BODY_START_RE.search(normalized)
+    cutoff = body_start.start() if body_start else len(normalized)
+
+    positions = [match.start() for match in _COMPOUND_HEADING_MARKER_RE.finditer(normalized)]
+    positions.extend(
+        match.start(1)
+        for match in _ATTACHED_KOREAN_ALPHA_HEADING_RE.finditer(normalized)
+        if match.start(1) < cutoff
+    )
+    positions = sorted({pos for pos in positions if 0 <= pos < cutoff})
+    if len(positions) <= 1:
+        return [normalized]
+
+    if positions[0] != 0:
+        positions.insert(0, 0)
+
+    segments: List[str] = []
+    for idx, start in enumerate(positions):
+        end = positions[idx + 1] if idx + 1 < len(positions) else len(normalized)
+        segment = _normalize(normalized[start:end])
+        if segment and _looks_like_local_heading(segment):
+            segments.append(segment)
+
+    return segments or [normalized]
+
+
+def _split_inline_heading_body(text: str) -> Optional[Tuple[List[str], str]]:
+    normalized = _normalize(text)
+    if not normalized or not normalized.startswith(("(", "[")):
+        return None
+
+    body_start = _INLINE_BODY_START_RE.search(normalized)
+    if not body_start:
+        body_start = _INLINE_BODY_SEPARATOR_RE.search(normalized)
+    if not body_start or body_start.start() <= 0:
+        return None
+
+    heading_text = _normalize(normalized[: body_start.start()])
+    body_text = _normalize(normalized[body_start.start() :])
+    if not heading_text or not body_text or not _looks_like_local_heading(heading_text):
+        return None
+
+    return _split_compound_heading_text(heading_text), body_text
+
+
+def _soft_heading_path(stack: List[str]) -> Optional[str]:
+    headings = [_normalize(value) for value in stack if _normalize(value)]
+    if not headings:
+        return None
+    if len(headings) == 1:
+        return headings[0]
+    if len(headings) == 2:
+        return " > ".join(headings)
+    return f"{headings[0]} > {headings[-1]}"
 
 
 def _build_reference_index(raw_sections: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -338,7 +599,19 @@ class FinancialParser:
                 rows.append(" | ".join(cells))
         return "\n".join(rows)
 
-    def _extract_paragraph_heading_parts(self, paragraph_elem) -> Tuple[Optional[List[str]], List[Dict[str, Any]]]:
+    def _extract_paragraph_heading_parts(
+        self,
+        paragraph_elem,
+        structured: bool,
+    ) -> Tuple[Optional[List[str]], List[Dict[str, Any]]]:
+        if not structured:
+            combined = _normalize("".join(paragraph_elem.itertext()))
+            if not combined:
+                return None, []
+            if _BRACKET_HEADING_RE.match(combined):
+                return [combined], []
+            return None, [{"kind": "text", "text": combined}]
+
         parts: List[Dict[str, Any]] = []
 
         def append_text(value: Optional[str]):
@@ -346,12 +619,28 @@ class FinancialParser:
             if normalized:
                 parts.append({"kind": "text", "text": normalized})
 
+        def append_heading(value: Optional[str]):
+            normalized = _normalize(value or "")
+            if not normalized:
+                return
+            for heading in _split_compound_heading_text(normalized):
+                parts.append({"kind": "heading", "text": heading})
+
         append_text(paragraph_elem.text)
         for child in paragraph_elem:
             candidate = _normalize("".join(child.itertext()))
             usermark = child.get("USERMARK", "") if hasattr(child, "get") else ""
-            if child.tag == "SPAN" and "B" in usermark and _looks_like_local_heading(candidate):
-                parts.append({"kind": "heading", "text": candidate})
+            if child.tag == "SPAN" and "B" in usermark:
+                inline_split = _split_inline_heading_body(candidate)
+                if inline_split:
+                    headings, body_text = inline_split
+                    for heading in headings:
+                        parts.append({"kind": "heading", "text": heading})
+                    append_text(body_text)
+                elif _looks_like_local_heading(candidate):
+                    append_heading(candidate)
+                else:
+                    append_text("".join(child.itertext()))
             else:
                 append_text("".join(child.itertext()))
             append_text(child.tail)
@@ -375,8 +664,13 @@ class FinancialParser:
                 pending_text.append(part["text"])
         flush_text()
 
-        if len(grouped) == 1 and grouped[0]["kind"] == "text" and _looks_like_local_heading(grouped[0]["text"]):
-            return [grouped[0]["text"]], []
+        if len(grouped) == 1 and grouped[0]["kind"] == "text":
+            inline_split = _split_inline_heading_body(grouped[0]["text"])
+            if inline_split:
+                headings, body_text = inline_split
+                return headings, [{"kind": "text", "text": body_text}]
+            if _looks_like_local_heading(grouped[0]["text"]):
+                return _split_compound_heading_text(grouped[0]["text"]), []
 
         promoted: List[Dict[str, Any]] = []
         idx = 0
@@ -389,7 +683,8 @@ class FinancialParser:
                 and _looks_like_local_heading(grouped[idx + 1]["text"])
             ):
                 promoted.append(part)
-                promoted.append({"kind": "heading", "text": grouped[idx + 1]["text"]})
+                for heading in _split_compound_heading_text(grouped[idx + 1]["text"]):
+                    promoted.append({"kind": "heading", "text": heading})
                 idx += 2
                 continue
             promoted.append(part)
@@ -408,12 +703,14 @@ class FinancialParser:
 
         return (leading_headings or None), body_segments
 
-    def _collect_blocks(self, section_elem) -> List[Dict[str, Any]]:
+    def _collect_blocks(self, section_elem, section_path: str) -> List[Dict[str, Any]]:
         blocks: List[Dict[str, Any]] = []
         heading_stack: List[str] = []
-        transient_heading_depth: Optional[int] = None
+        pending_table_heading: Optional[str] = None
+        pending_section_label: Optional[str] = None
+        structured = _is_structured_section(section_path)
 
-        def emit_block(text: str, block_type: str):
+        def emit_block(text: str, block_type: str, local_heading_override: Optional[str] = None):
             normalized = _normalize(text)
             if not normalized:
                 return
@@ -421,20 +718,14 @@ class FinancialParser:
                 {
                     "text": normalized,
                     "type": block_type,
-                    "local_heading": " > ".join(heading_stack) if heading_stack else None,
+                    "local_heading": local_heading_override
+                    if local_heading_override is not None
+                    else _soft_heading_path(heading_stack),
                 }
             )
 
-        def clear_transient_heading():
-            nonlocal transient_heading_depth
-            if transient_heading_depth is None:
-                return
-            while len(heading_stack) >= transient_heading_depth:
-                heading_stack.pop()
-            transient_heading_depth = None
-
         def process(elem, next_tag: Optional[str] = None):
-            nonlocal transient_heading_depth
+            nonlocal pending_table_heading, pending_section_label
             tag = elem.tag
             if tag in _SECTION_TAGS:
                 return
@@ -442,36 +733,78 @@ class FinancialParser:
                 for table in elem.findall("TABLE"):
                     text = self._format_table(table)
                     if text:
-                        emit_block(text, "table")
+                        emit_block(text, "table", local_heading_override=pending_table_heading)
+                pending_section_label = None
                 return
             if tag == "TABLE":
                 text = self._format_table(elem)
                 if text:
-                    emit_block(text, "table")
+                    emit_block(text, "table", local_heading_override=pending_table_heading)
+                pending_section_label = None
                 return
             if tag == "P":
-                leading_headings, body_segments = self._extract_paragraph_heading_parts(elem)
+                leading_headings, body_segments = self._extract_paragraph_heading_parts(elem, structured=structured)
                 heading_only_bracket = (
                     leading_headings
                     and not body_segments
                     and len(leading_headings) == 1
                     and _BRACKET_HEADING_RE.match(leading_headings[0])
                 )
-                if transient_heading_depth is not None and (leading_headings or body_segments):
-                    clear_transient_heading()
+                if pending_table_heading is not None and (leading_headings or body_segments):
+                    pending_table_heading = None
                 if leading_headings:
-                    for heading in leading_headings:
-                        heading_stack[:] = _push_heading(heading_stack, heading)
                     if heading_only_bracket and next_tag in {"TABLE", "TABLE-GROUP"}:
-                        transient_heading_depth = len(heading_stack)
+                        bracket_role = _classify_bracket_heading(
+                            leading_headings[0],
+                            section_path,
+                            next_tag,
+                            has_body_segments=False,
+                        )
+                        if bracket_role == "table_label":
+                            pending_table_heading = leading_headings[0]
+                    else:
+                        for heading in leading_headings:
+                            bracket_role = _classify_bracket_heading(
+                                heading,
+                                section_path,
+                                next_tag,
+                                has_body_segments=bool(body_segments),
+                            )
+                            if bracket_role == "discard":
+                                continue
+                            if bracket_role == "defer_section_label":
+                                pending_section_label = heading
+                                continue
+                            if pending_section_label and _should_promote_deferred_bracket_heading(heading, section_path):
+                                heading_stack[:] = _push_heading(heading_stack, pending_section_label, section_path)
+                            pending_section_label = None
+                            heading_stack[:] = _push_heading(heading_stack, heading, section_path)
                 for part in body_segments:
                     if part["kind"] == "heading":
-                        heading_stack[:] = _push_heading(heading_stack, part["text"])
+                        bracket_role = _classify_bracket_heading(
+                            part["text"],
+                            section_path,
+                            next_tag=None,
+                            has_body_segments=True,
+                        )
+                        if bracket_role == "discard":
+                            continue
+                        if bracket_role == "defer_section_label":
+                            pending_section_label = part["text"]
+                            continue
+                        if pending_section_label and _should_promote_deferred_bracket_heading(part["text"], section_path):
+                            heading_stack[:] = _push_heading(heading_stack, pending_section_label, section_path)
+                        pending_section_label = None
+                        heading_stack[:] = _push_heading(heading_stack, part["text"], section_path)
                     else:
+                        if pending_section_label and not pending_table_heading:
+                            pending_section_label = None
                         emit_block(part["text"], "paragraph")
                 return
-            for child in elem:
-                process(child)
+            child_nodes = list(elem)
+            for child_idx, child in enumerate(child_nodes):
+                child_next_tag = child_nodes[child_idx + 1].tag if child_idx + 1 < len(child_nodes) else None
+                process(child, next_tag=child_next_tag)
 
         children = list(section_elem)
         for idx, child in enumerate(children):
@@ -481,28 +814,175 @@ class FinancialParser:
         return blocks
 
     def _split_table_by_rows(self, table_text: str) -> List[str]:
-        rows = table_text.split("\n")
-        if len(rows) <= 1:
-            return [table_text]
+        rows = [row for row in table_text.split("\n") if row.strip()]
+        if not rows:
+            return []
 
-        header = rows[0]
+        header = rows[0] if len(rows) > 1 and self._looks_like_table_header_row(rows[0]) else None
+        source_rows = rows[1:] if header else rows
         result: List[str] = []
-        current = [header]
-        current_len = len(header)
+        current = [header] if header else []
+        current_len = len(header) if header else 0
 
-        for row in rows[1:]:
-            if current_len + 1 + len(row) > self.chunk_size and len(current) > 1:
-                result.append("\n".join(current))
-                current = [header, row]
-                current_len = len(header) + 1 + len(row)
-            else:
-                current.append(row)
-                current_len += 1 + len(row)
+        max_row_len = self.chunk_size - (len(header) + 1 if header else 0)
+
+        for row in source_rows:
+            for row_part in self._split_long_table_row(row, max_row_len):
+                if not current:
+                    current = [row_part]
+                    current_len = len(row_part)
+                    continue
+
+                if current_len + 1 + len(row_part) > self.chunk_size and (len(current) > 1 or not header):
+                    result.append("\n".join(current))
+                    current = [header, row_part] if header else [row_part]
+                    current_len = (len(header) + 1 + len(row_part)) if header else len(row_part)
+                else:
+                    current.append(row_part)
+                    current_len += 1 + len(row_part)
 
         if current:
             result.append("\n".join(current))
 
         return result
+
+    def _looks_like_table_header_row(self, row_text: str) -> bool:
+        cells = [cell.strip() for cell in row_text.split(" | ")]
+        if len(cells) <= 1:
+            return False
+        if (
+            len(cells) == 2
+            and (_NUMERIC_HEADING_RE.match(cells[0]) or _KOREAN_ALPHA_HEADING_RE.match(cells[0]))
+            and (cells[1].startswith("(") or len(cells[1]) > 120)
+        ):
+            return False
+        if len(row_text) > min(400, self.chunk_size // 2):
+            return False
+        if any(len(cell) > 120 for cell in cells):
+            return False
+        return True
+
+    def _split_table_text_fragment(self, text: str, max_len: int) -> List[str]:
+        if len(text) <= max_len:
+            return [text]
+
+        marker_positions = [match.start() for match in _TABLE_NARRATIVE_BREAK_RE.finditer(text)]
+        segments: List[str] = []
+        if len(marker_positions) >= 2:
+            positions = marker_positions + [len(text)]
+            for start, end in zip(positions, positions[1:]):
+                segment = _normalize(text[start:end])
+                if segment:
+                    segments.append(segment)
+
+        if not segments:
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=max_len,
+                chunk_overlap=0,
+                separators=["\n\n", ". ", "다. ", "; ", " ", ""],
+                length_function=len,
+            )
+            return [chunk for chunk in splitter.split_text(text) if chunk.strip()]
+
+        result: List[str] = []
+        current = ""
+        for segment in segments:
+            if len(segment) > max_len:
+                if current:
+                    result.append(current)
+                    current = ""
+                splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=max_len,
+                    chunk_overlap=0,
+                    separators=["\n\n", ". ", "다. ", "; ", " ", ""],
+                    length_function=len,
+                )
+                result.extend(chunk for chunk in splitter.split_text(segment) if chunk.strip())
+                continue
+
+            candidate = f"{current}{segment}" if current else segment
+            if current and len(candidate) > max_len:
+                result.append(current)
+                current = segment
+            else:
+                current = candidate
+
+        if current:
+            result.append(current)
+        return result or [text]
+
+    def _split_long_table_row(self, row_text: str, max_len: int) -> List[str]:
+        if max_len <= 0 or len(row_text) <= max_len:
+            return [row_text]
+
+        cells = [cell.strip() for cell in row_text.split(" | ")]
+        if len(cells) >= 2:
+            label = cells[0]
+            value = " | ".join(cells[1:])
+            if label and len(label) <= 80 and len(value) > max_len // 2:
+                value_max_len = max(120, max_len - len(label) - 3)
+                value_parts = self._split_table_text_fragment(value, value_max_len)
+                return [f"{label} | {part}" for part in value_parts if part.strip()]
+
+        return self._split_table_text_fragment(row_text, max_len)
+
+    def _split_wide_table_by_columns(self, table_text: str) -> Optional[List[str]]:
+        rows = [row for row in table_text.split("\n") if row.strip()]
+        if len(rows) <= 1:
+            return None
+
+        row_cells = [row.split(" | ") for row in rows]
+        max_cols = max(len(cells) for cells in row_cells)
+        if max_cols < _WIDE_TABLE_COLUMN_THRESHOLD:
+            return None
+
+        step = max(1, _WIDE_TABLE_WINDOW_SIZE - _WIDE_TABLE_WINDOW_OVERLAP)
+        windows: List[str] = []
+
+        for start in range(0, max_cols, step):
+            end = min(max_cols, start + _WIDE_TABLE_WINDOW_SIZE)
+            window_rows: List[str] = []
+            for cells in row_cells:
+                if len(cells) <= 2:
+                    # Keep short title/header rows in every window for context.
+                    row_text = " | ".join(cells)
+                    if row_text:
+                        window_rows.append(row_text)
+                    continue
+
+                sliced = cells[start:end]
+                if not sliced:
+                    continue
+                row_text = " | ".join(sliced)
+                if row_text:
+                    window_rows.append(row_text)
+
+            if window_rows:
+                candidate = "\n".join(window_rows)
+                if candidate not in windows:
+                    windows.append(candidate)
+
+        return windows or None
+
+    def _split_table_for_chunks(self, table_text: str) -> List[Dict[str, str]]:
+        wide_table_chunks = self._split_wide_table_by_columns(table_text)
+        if wide_table_chunks:
+            result: List[Dict[str, str]] = []
+            for window in wide_table_chunks:
+                if len(window) > self.chunk_size:
+                    row_windows = self._split_table_by_rows(window)
+                    if len(row_windows) > 1:
+                        result.extend({"text": row_window, "table_view": "column_row_window"} for row_window in row_windows)
+                    else:
+                        result.append({"text": row_windows[0], "table_view": "column_window"})
+                else:
+                    result.append({"text": window, "table_view": "column_window"})
+            return result
+
+        if len(table_text) > self.chunk_size:
+            return [{"text": sub, "table_view": "row_window"} for sub in self._split_table_by_rows(table_text)]
+
+        return [{"text": table_text, "table_view": "full"}]
 
     def _chunk_blocks(self, blocks: List[Dict[str, Any]], section_path: str) -> List[Dict[str, Any]]:
         result: List[Dict[str, Any]] = []
@@ -534,6 +1014,7 @@ class FinancialParser:
                             "block_type": block_type,
                             "table_context": table_context if idx == 0 else None,
                             "local_heading": local_heading,
+                            "table_view": "text_split",
                         }
                     )
             else:
@@ -543,6 +1024,7 @@ class FinancialParser:
                         "block_type": block_type,
                         "table_context": table_context,
                         "local_heading": local_heading,
+                        "table_view": "full" if has_table else None,
                     }
                 )
 
@@ -551,6 +1033,11 @@ class FinancialParser:
         for block in blocks:
             text = block["text"]
             block_type = block["type"]
+            current_heading = next((item.get("local_heading") for item in pending_blocks if item.get("local_heading")), None)
+            next_heading = block.get("local_heading")
+
+            if pending_blocks and (current_heading or next_heading) and current_heading != next_heading:
+                flush_pending()
 
             if block_type == "paragraph":
                 last_paragraph_context = _summarize_for_context(text)
@@ -564,13 +1051,14 @@ class FinancialParser:
             if block_type == "table" and len(text) >= standalone_threshold:
                 flush_pending()
                 if len(text) > self.chunk_size:
-                    for idx, sub in enumerate(self._split_table_by_rows(text)):
+                    for idx, table_chunk in enumerate(self._split_table_for_chunks(text)):
                         result.append(
                             {
-                                "text": sub,
+                                "text": table_chunk["text"],
                                 "block_type": "table",
                                 "table_context": block["table_context"] if idx == 0 else None,
                                 "local_heading": block.get("local_heading"),
+                                "table_view": table_chunk["table_view"],
                             }
                         )
                 else:
@@ -580,6 +1068,7 @@ class FinancialParser:
                             "block_type": "table",
                             "table_context": block["table_context"],
                             "local_heading": block.get("local_heading"),
+                            "table_view": "full",
                         }
                     )
             else:
@@ -627,16 +1116,16 @@ class FinancialParser:
             if not title_text:
                 continue
 
-            blocks = self._collect_blocks(section)
+            path_titles = self._build_section_path(section, title_text)
+            section_path = " > ".join(path_titles)
+            blocks = self._collect_blocks(section, section_path)
             if not blocks:
                 continue
-
-            path_titles = self._build_section_path(section, title_text)
             sections.append(
                 {
                     "title": title_text,
                     "path_titles": path_titles,
-                    "path": " > ".join(path_titles),
+                    "path": section_path,
                     "blocks": blocks,
                 }
             )
@@ -646,7 +1135,15 @@ class FinancialParser:
     def _parse_xml(self, file_path: str):
         parser = etree.XMLParser(recover=True, encoding="utf-8", huge_tree=True)
         try:
-            tree = etree.parse(file_path, parser)
+            raw_xml = Path(file_path).read_text(encoding="utf-8")
+            sanitized_xml, replacement_count = _sanitize_xml_like_text(raw_xml)
+            if replacement_count:
+                logger.info(
+                    "Sanitized %s xml-like text spans before parsing [%s]",
+                    replacement_count,
+                    os.path.basename(file_path),
+                )
+            tree = etree.parse(BytesIO(sanitized_xml.encode("utf-8")), parser)
             return tree.getroot()
         except Exception as e:
             logger.error("XML parsing failed [%s]: %s", file_path, e)
@@ -740,6 +1237,7 @@ class FinancialParser:
                     "is_table": block_type == "table",
                     "block_type": block_type,
                     "table_context": chunk_block.get("table_context"),
+                    "table_view": chunk_block.get("table_view"),
                     "parent_id": parent_id,
                 }
                 reference_paths = _extract_reference_section_paths(chunk_block["text"], reference_index)
