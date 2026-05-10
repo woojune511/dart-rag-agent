@@ -35,6 +35,23 @@ def _source_reports(row: Dict[str, Any]) -> List[Dict[str, Any]]:
     return reports
 
 
+def _doc_scope(row: Dict[str, Any]) -> str:
+    explicit = str(row.get("doc_scope") or "").strip()
+    if explicit:
+        return explicit
+    return "multi_report" if len(_source_reports(row)) > 1 else "single_report"
+
+
+def _doc_scope_note(row: Dict[str, Any]) -> str:
+    explicit = str(row.get("doc_scope_note") or "").strip()
+    if explicit:
+        return explicit
+    reports = _source_reports(row)
+    if len(reports) > 1:
+        return f"{len(reports)}개 보고서를 함께 참조해야 답이 닫히는 문항입니다."
+    return "단일 보고서만으로 답이 닫히는 문항입니다."
+
+
 def _source_report_label(report: Dict[str, Any]) -> str:
     year = report.get("year", "")
     report_type = report.get("report_type", "사업보고서")
@@ -75,6 +92,7 @@ def build_compact_rows(
                 "year": str(row.get("year") or ""),
                 "question": str(row.get("question") or row.get("query") or ""),
                 "answer_key": str(row.get("answer_key") or ""),
+                "doc_scope": _doc_scope(row),
                 "expected_refusal": str(bool(row.get("expected_refusal", False))),
                 "review_decision": str(review.get("review_decision") or ""),
                 "rewrite_applied": str(row_id in rewrite_ids),
@@ -121,6 +139,7 @@ def render_review_markdown(
                     f"- 연도: {row.get('year', '')}",
                     f"- 질문: {row.get('question') or row.get('query') or ''}",
                     f"- 답변: {row.get('answer_key') or ''}",
+                    f"- doc_scope: {_doc_scope(row)}",
                     f"- expected_refusal: {bool(row.get('expected_refusal', False))}",
                     f"- review_decision: {review.get('review_decision') or ''}",
                     f"- rewrite_applied: {row_id in rewrite_ids}",
@@ -158,6 +177,10 @@ def render_review_markdown(
                         lines.append(f"  설명: {why}")
             else:
                 lines.append("- -")
+
+            doc_scope_note = _doc_scope_note(row)
+            if doc_scope_note:
+                lines.extend(["", f"- doc_scope_note: {doc_scope_note}"])
 
             notes = str(row.get("notes") or "").strip()
             if notes:
@@ -214,6 +237,7 @@ def render_inspect_guide(
             "",
             "## Compact CSV Columns",
             "- `question`, `answer_key`: 최종 확정 질문/답변",
+            "- `doc_scope`: 단일 보고서 기반인지(`single_report`) 여러 보고서 결합이 필요한지(`multi_report`)",
             "- `source_report_paths`, `source_report_urls`: 원문 보고서 위치",
             "- `expected_sections`, `evidence_quotes`: 문서 대조용 최소 근거",
             "- `review_decision`, `rewrite_applied`: 검수 이력",
@@ -243,6 +267,7 @@ def build_review_pack(
         "year",
         "question",
         "answer_key",
+        "doc_scope",
         "expected_refusal",
         "review_decision",
         "rewrite_applied",

@@ -134,6 +134,24 @@ def _iter_source_reports(item: Dict[str, Any]) -> List[Dict[str, Any]]:
     return deduped
 
 
+def _doc_scope(item: Dict[str, Any], reports: List[Dict[str, Any]] | None = None) -> str:
+    explicit = str(item.get("doc_scope") or "").strip()
+    if explicit:
+        return explicit
+    active_reports = reports if reports is not None else _iter_source_reports(item)
+    return "multi_report" if len(active_reports) > 1 else "single_report"
+
+
+def _doc_scope_note(item: Dict[str, Any], reports: List[Dict[str, Any]] | None = None) -> str:
+    explicit = str(item.get("doc_scope_note") or "").strip()
+    if explicit:
+        return explicit
+    active_reports = reports if reports is not None else _iter_source_reports(item)
+    if len(active_reports) > 1:
+        return f"{len(active_reports)}개 보고서를 함께 참조해야 답이 닫히는 문항입니다."
+    return "단일 보고서만으로 답이 닫히는 문항입니다."
+
+
 def _report_urls(reports: List[Dict[str, Any]]) -> List[str]:
     urls: List[str] = []
     for report in reports:
@@ -289,6 +307,8 @@ def prepare_review_records(rows: Iterable[Dict[str, Any]]) -> Tuple[List[Dict[st
         record = dict(item)
         record.update(
             {
+                "doc_scope": _doc_scope(item, reports),
+                "doc_scope_note": _doc_scope_note(item, reports),
                 "source_expected_refusal": source_expected_refusal,
                 "review_risk_tags": tags,
                 "review_risk_score": score,
@@ -336,6 +356,8 @@ def _worksheet_rows(records: List[Dict[str, Any]]) -> List[Dict[str, str]]:
                 "company": _stringify_for_csv(record.get("company")),
                 "year": _stringify_for_csv(record.get("year")),
                 "question": _stringify_for_csv(record.get("question") or record.get("query")),
+                "doc_scope": _stringify_for_csv(record.get("doc_scope")),
+                "doc_scope_note": _stringify_for_csv(record.get("doc_scope_note")),
                 "answer_type": _stringify_for_csv(record.get("answer_type")),
                 "source_expected_refusal": _stringify_for_csv(record.get("source_expected_refusal")),
                 "generated_expected_refusal": _stringify_for_csv(record.get("expected_refusal")),
@@ -368,6 +390,8 @@ def _write_csv(path: Path, rows: List[Dict[str, str]]) -> None:
         "company",
         "year",
         "question",
+        "doc_scope",
+        "doc_scope_note",
         "answer_type",
         "source_expected_refusal",
         "generated_expected_refusal",

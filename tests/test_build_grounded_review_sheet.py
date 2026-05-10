@@ -84,6 +84,7 @@ class BuildGroundedReviewSheetTests(unittest.TestCase):
         self.assertIn("possible_year_mismatch", record["review_risk_tags"])
         self.assertIn("evidence_year_mismatch", record["review_risk_tags"])
         self.assertIn("numeric_without_operands", record["review_risk_tags"])
+        self.assertEqual(record["doc_scope"], "single_report")
         self.assertEqual(record["source_report_paths"], ["C:/tmp/example_2023.html"])
         self.assertEqual(
             record["source_report_urls"],

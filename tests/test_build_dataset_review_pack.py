@@ -82,6 +82,8 @@ class BuildDatasetReviewPackTests(unittest.TestCase):
             markdown_text = review_markdown_path.read_text(encoding="utf-8")
             guide_text = inspect_guide_path.read_text(encoding="utf-8")
 
+            self.assertIn("doc_scope", csv_text)
+            self.assertIn("single_report", csv_text)
             self.assertIn("source_report_paths", csv_text)
             self.assertIn("영업이익률은 12.3%입니다.", csv_text)
             self.assertIn("[2023 사업보고서 (20240101000001)](<C:/tmp/example_2023.html>)", markdown_text)

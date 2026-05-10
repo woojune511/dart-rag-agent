@@ -1,0 +1,23 @@
+[
+  {
+    "id": "SAM_T2_002",
+    "company": "삼성전자",
+    "year": "2023",
+    "theme": "2. 성장성/투자",
+    "difficulty": "L2",
+    "query": "2023년 메모리 반도체 업황 악화에도 불구하고 집행된 시설투자(CAPEX) 총액을 찾고, 전년(2022년) 대비 증감률을 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "제55기 시설투자",
+        "제54기 시설투자"
+      ],
+      "reject_expected": false
+    },
+    "doc_scope": "multi_report",
+    "doc_scope_note": "2023년 값과 전년(2022년) 비교값을 안정적으로 닫기 위해 2개 보고서를 함께 참조해야 하는 문항입니다."
+  }
+]
