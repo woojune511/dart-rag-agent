@@ -26,6 +26,7 @@
 | Responsibility split | **의미 해석은 LLM, 실행/계산/grounding은 deterministic code**로 분리 | rule drift를 줄이고 agent/tool boundary를 명확히 함 | self-reflection redesign checkpoint, [architecture_direction.md](docs/architecture/architecture_direction.md) | 진행 중 |
 | Roadmap | `MAS skeleton -> Analyst -> Critic -> Researcher -> reflection -> cross-company` 순으로 확장 | role separation과 communication contract를 먼저 고정 | [CONTEXT.md](CONTEXT.md), [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md) | 진행 중 |
 | MAS topology | real `Orchestrator + Analyst + Researcher + Critic + Merge` walking skeleton을 먼저 개통 | 이후 quality tuning과 self-reflection을 E2E baseline 위에서 검증 가능 | `mas_analyst_smoke`, `mas_researcher_smoke`, `mas_e2e_smoke` | 진행 중 |
+| Parser normalization | source XML을 직접 고치지 않고 parser가 `local_heading`과 sanitize layer로 숨은 구조를 복원 | DART 원문의 invalid XML-like markup를 LLM-friendly structure로 바꾸기 위함 | `naver_2023_structure_outline.json`, parser structure smoke | 진행 중 |
 | Decision policy | **중요한 기술 결정은 반드시 benchmark/replay 실험과 artifact를 남긴 뒤 닫는다** | 포트폴리오와 설계 신뢰성을 동시에 확보 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | 유지 |
 | Artifact policy | 실험 자산은 repo에 남기고 scratch만 무시 | 포트폴리오/면접에서 재현 가능한 evidence 확보 | benchmark results / summary tracked | 유지 |
 
@@ -2115,3 +2116,35 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 
 - 이제 MAS는 “설계 예정”이 아니라 **walking skeleton이 실제로 개통된 상태**다
 - 이후 Researcher/Orchestrator 품질 튜닝은 E2E baseline 대비 delta로 설명할 수 있다
+
+---
+
+## 결정 90 — DART 원문 XML은 직접 수정하지 않고, parser normalize/sanitize layer로 숨은 구조를 복원한다
+
+**배경**: NAVER 2023 보고서 검수 과정에서 `IV. 이사의 경영진단 및 분석의견`의 하위 구조는 bold `SPAN`에 숨어 있고, `II > 7. 기타 참고사항` 후반부는 raw source 안의 `<소매판매액 ...>` 같은 텍스트성 angle bracket 때문에 `recover=True` XML parser가 subtree를 잘못 복구한다는 점이 드러났다.
+
+**결정**:
+
+- source 보고서 파일은 직접 편집하지 않는다
+- parser가
+  - `SECTION-* + TITLE(ATOC="Y")`를 상위 canonical section으로 유지하고
+  - bold/heading 패턴으로 `local_heading`을 복원하며
+  - 다음 단계에서 parse 전 sanitize layer를 추가해 invalid XML-like markup를 흡수하도록 한다
+- LLM에는 raw XML이 아니라 `section_path + local_heading + block_type + content` 형태의 normalized structure를 전달한다
+
+**검증**:
+
+- structure smoke:
+  - [naver_2023_structure_outline.json](benchmarks/results/naver_2023_structure_outline.json)
+- 현재 결과:
+  - `IV. 이사의 경영진단 및 분석의견`의 `1. 예측정보에 대한 주의사항`, `3. 재무상태 및 영업실적 > 나. 영업실적` 등은 복원 성공
+  - `II > 7. 기타 참고사항`의 `[클라우드]`, `(1) 산업의 개요`, `(가) 영업 개요`는 아직 누락
+- parse error log:
+  - `<소매판매액 중 온라인쇼핑 거래액 비중 >`
+  - `<이커머스 ...>`
+  같은 텍스트성 angle bracket이 fatal recover error를 유발
+
+**해석**:
+
+- 문제의 본질은 “LLM이 XML을 못 읽는다”보다, **parser 입력이 invalid XML-like source라 subtree 자체를 잃을 수 있다**는 데 있다
+- 따라서 다음 parser 실험은 heading rule을 더 늘리는 것이 아니라, **sanitize 전처리 전/후 구조 복원율을 비교하는 방식**으로 진행한다

@@ -7,10 +7,10 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **live MAS E2E baseline 안정화** |
+| 현재 1순위 | **parser baseline regression을 질문 subset으로 확인하고, 남은 low-value noise를 최소화** |
 | 병렬 트랙 | retrospective scorecard는 1차 핵심 실험 완료, 이후 새 결정이 생길 때 추가 |
 | 지금 하지 않을 것 | local patch deep dive, cosmetic retrieval tuning, evaluator gaming |
-| 다음 큰 순서 | `LLM critic -> orchestrator/researcher quality pass -> agentic self-reflection -> cross-company` |
+| 다음 큰 순서 | `parser regression check -> LLM critic -> orchestrator/researcher quality pass -> agentic self-reflection -> cross-company` |
 
 ## 현재 목표
 
@@ -20,9 +20,10 @@
 | 2 | Analyst migration | 완료: report-scoped wrapper migration + real-store parity smoke |
 | 3 | Critic stack | 진행 중: deterministic critic live, LLM critic next |
 | 4 | Researcher attachment | 진행 중: v1 retrieval/summary live, quality pass next |
-| 5 | Orchestrator quality pass | 새 active work |
-| 6 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
-| 7 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
+| 5 | Parser simplify/normalize layer | 진행 중: baseline 안정화 거의 완료, regression 확인 단계 |
+| 6 | Orchestrator quality pass | parser 안정화 이후 진행 |
+| 7 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
+| 8 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
 
 현재는 **개통된 MAS baseline 위에서 quality와 critic 계층을 고도화하는 것**이 1순위다.
 
@@ -76,7 +77,17 @@
 | 현재 상태 | E2E smoke 2문항 완료, critic-triggered analyst retry 1회 관측 |
 | 다음 일 | mixed-intent task completion metric과 latency baseline 수집 |
 
-### 2. LLM critic layer
+### 2. Parser simplify/normalize layer
+
+| 항목 | 내용 |
+| --- | --- |
+| 목표 | parser를 deep hierarchy 복원기가 아니라, high-value section 중심의 RAG-friendly chunker로 단순화 |
+| 현재 관측 | sanitize + soft-heading baseline으로 `IV`와 `II > 7`의 핵심 hidden heading은 복원됐고, wide/narrative table split까지 붙으면서 oversized chunk가 사실상 해소됨 |
+| 현재 산출물 | [src/ops/dump_report_structure.py](src/ops/dump_report_structure.py), [benchmarks/results/naver_2023_structure_outline.json](benchmarks/results/naver_2023_structure_outline.json) |
+| 다음 일 | parser 질문 subset을 돌려 `expected_sections` hit rate와 numeric correctness 회귀가 없는지 확인하고, 필요시 low-value bracket/inline noise만 추가 정리 |
+| 종료 조건 | `section_path` 중심 retrieval 품질은 유지하면서 `local_heading`이 soft metadata로 안정화되고, major sample 문서에서 oversized chunk가 재발하지 않음 |
+
+### 3. LLM critic layer
 
 | 항목 | 내용 |
 | --- | --- |
@@ -85,7 +96,7 @@
 | LLM critic | 최종 task 산출물이 질문 의도에 맞는지, merge 전 artifact scope가 적절한지 평가 |
 | 종료 조건 | `critic_reports`에 deterministic/LLM verdict가 함께 남고 retry 기준이 분리됨 |
 
-### 3. Orchestrator / Researcher quality pass
+### 4. Orchestrator / Researcher quality pass
 
 | 항목 | 내용 |
 | --- | --- |
@@ -94,7 +105,7 @@
 | 우선 실험 | mixed-intent completion rate, final report relevance, artifact-level grounding 유지 |
 | 종료 조건 | orchestrator plan / merge와 researcher v1의 baseline delta를 정량화 |
 
-### 4. Agentic self-reflection
+### 5. Agentic self-reflection
 
 | 항목 | 내용 |
 | --- | --- |
@@ -104,7 +115,7 @@
 | baseline 원칙 | 초기 recovery 실험은 `reference_note OFF` 상태에서 시작해 retry 효과를 분리 측정 |
 | 종료 조건 | bounded retry 1회 내에서 false recovery 없이 recovery artifact가 남음 |
 
-### 5. `cross-document / cross-company reasoning`
+### 6. `cross-document / cross-company reasoning`
 
 | 항목 | 내용 |
 | --- | --- |

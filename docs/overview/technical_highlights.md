@@ -53,6 +53,51 @@
 
 - 공시 문서처럼 표와 문단, 섹션 경계가 중요한 도메인에서 retrieval 품질과 citation 품질을 동시에 확보하기 위한 결정이다.
 
+## 1-1. raw XML을 직접 LLM에 주지 않고, high-value section만 soft heading으로 정규화한다
+
+최근 확인된 핵심 문제는 DART 원문이 항상 nested `SECTION-*`로 하위 구조를 주지 않는다는 점이다.
+
+핵심 포인트:
+
+- `IV. 이사의 경영진단 및 분석의견`의 하위 제목들은 `SECTION-*`가 아니라 bold `SPAN` 내부에 묻혀 있음
+- parser는 `SECTION-* + TITLE(ATOC="Y")`의 canonical `section_path`를 유지하고,
+  `local_heading`은 LLM 안내용 soft metadata로만 복원한다
+- high-value section만 보수적으로 heading을 복원해
+  - `3. 재무상태 및 영업실적 > 나. 영업실적`
+  - `[클라우드] > (가) 영업 개요`
+  같은 문맥 라벨을 준다
+- low-value corporate/governance section은 coarse section 단위로 남겨 오탐 heading을 줄인다
+
+의미:
+
+- 문제의 본질은 “LLM이 XML을 못 읽는다”보다, **invalid XML-like markup와 과한 hidden-heading 복원이 동시에 parser를 복잡하게 만든다**는 데 있다.
+- 따라서 parser는 raw source를 직접 고치지 않고 sanitize를 먼저 적용하고,
+  high-value section만 soft heading으로 복원하는 단순한 RAG-friendly contract를 택한다.
+
+## 1-2. 대형 표는 full-table 하나로 두지 않고 column/row/narrative split을 함께 쓴다
+
+공시 주석의 표는 단순 row split만으로는 충분하지 않았다.
+
+핵심 포인트:
+
+- wide table은 먼저 `column window`로 자른다
+- 그래도 크면 `row split`을 추가 적용한다
+- `1. 분할방법 | 아주 긴 설명 ...` 같은 서술형 표 row는
+  - header로 오판하지 않고
+  - 값 셀 안의 `(1)`, `(2)` 같은 번호를 기준으로 추가 분할한다
+- chunk metadata에 `table_view`를 남겨
+  - `full`
+  - `row_window`
+  - `column_window`
+  - `column_row_window`
+  를 구분한다
+
+의미:
+
+- 이 프로젝트의 table handling은 “표를 텍스트로만 펴서 넣는다”가 아니라,
+  **numeric retrieval에 필요한 구조는 유지하면서 oversized chunk를 줄이는 width-aware / narrative-aware splitting**으로 발전했다.
+- 실제로 POSCO 대형 표의 `5985` char chunk는 이 단계에서 해소됐다.
+
 ## 2. retrieval granularity와 reasoning context를 분리한 parent-child retrieval
 
 검색은 child chunk로 하고, 답변은 parent section을 우선 컨텍스트로 삼는다.
