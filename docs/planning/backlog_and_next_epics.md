@@ -17,6 +17,7 @@
   - formula planner + AST
   - ontology retrieval
   의 효과를 수치로 설명 가능
+- single-doc curated core dataset `77`문항과 multi-report 분리셋 `1`문항까지 수동 검수 완료
 
 따라서 다음 backlog의 중심은 “당장 정답률 복구”가 아니라  
 **multi-agent system으로의 구조 전환**이다.
@@ -82,6 +83,29 @@
 ## Near-Term Structural Backlog
 
 이 항목들은 다음 몇 개 스프린트 안에서 실제로 다룰 가치가 큰 구조 과제다.
+
+### 0. Curated dataset 운영 경로 정리
+
+현재:
+
+- `benchmarks/datasets/single_doc_eval_full.curated.json`
+- `benchmarks/datasets/multi_report_eval_full.curated.json`
+
+이 canonical source of truth가 존재한다.
+
+하지만:
+
+- 일부 benchmark profile
+- 일부 retrospective script
+- 일부 evaluator 기본 경로
+
+는 아직 `benchmarks/eval_dataset.canonical.json`, `benchmarks/eval_dataset.math_focus.json` 같은 legacy dataset을 기본값으로 유지하고 있다.
+
+다음:
+
+- profile별 dataset path를 의도적으로 정리
+- curated dataset과 legacy experiment dataset의 역할을 문서상으로도 분리
+- single-doc / multi-report / multi-company 셋의 운영 규칙을 명시
 
 ### 1. MAS skeleton + typed state schema
 

@@ -13,10 +13,11 @@
 | 프로젝트 정의 | DART 공시를 도메인으로 사용하는 **multi-agent financial analysis lab** |
 | 현재 구현 핵심 | strong single-agent graph를 MAS worker들로 감싼 live E2E skeleton |
 | 기준 문서 | `삼성전자 2024 사업보고서` |
+| 데이터셋 상태 | `single_doc` curated core set `77`문항 확정, `multi_report` 문항은 별도 셋으로 분리 완료 |
 | 기본 retrieval | `Chroma + BM25 + RRF`, structure-aware parser / chunking |
 | 기본 analyst core | evidence-first math path, `formula planner + safe AST evaluator` |
 | evaluator 역할 | final correctness / grounding과 retrieval diagnostic을 분리 |
-| 현재 우선순위 | parser baseline regression을 질문 subset으로 확인한 뒤, MAS quality pass로 연결 |
+| 현재 우선순위 | curated dataset을 benchmark/eval 경로에 연결한 뒤, parser baseline regression을 질문 subset으로 확인하고 MAS quality pass로 연결 |
 
 ## 현재 구현 단계
 
@@ -49,6 +50,8 @@
 | --- | --- | --- |
 | `dev_math_focus` | analyst core의 numeric baseline | `Faithfulness 1.000`, `Completeness 1.000`, `Numeric Pass 1.000` |
 | `dev_fast_focus_selective_serial` | broader sanity check | math-specialized evaluator 회귀 없음 |
+| `single_doc_eval_full.curated.json` | single-document canonical source of truth | active row `77`, 모든 row `doc_scope=single_report` |
+| `multi_report_eval_full.curated.json` | multi-report canonical source of truth | 현재 active row `1` (`SAM_T2_002`) |
 
 ## 해석 원칙
 
@@ -79,12 +82,13 @@
 | --- | --- | --- | --- |
 | 1 | MAS skeleton | shared state, task ledger, artifact schema 고정 | 완료: parallel workers + critic loop + merge live |
 | 2 | Analyst migration | 현재 numeric/evidence path를 Analyst agent로 이식 | 완료: real store smoke 기준 numeric parity 확보 |
-| 3 | Critic stack | deterministic critic + LLM critic 분리 | 진행 중: deterministic live, LLM critic 미구현 |
-| 4 | Researcher attachment | why/context retrieval과 note traversal을 별도 agent로 분리 | 진행 중: v1 live, retrieval/summarization quality tuning 남음 |
-| 5 | Parser simplify/normalize layer | invalid XML-like markup를 흡수하고, high-value section만 soft heading으로 복원하며 table chunking을 안정화 | NAVER `II > 7`의 `[클라우드]`, `IV`의 `나. 영업실적`, POSCO 대형 표 split까지 안정 동작 |
-| 6 | Orchestrator quality pass | task decomposition / merge 품질 고도화 | mixed-intent baseline과 merge 품질 지표 확보 |
-| 7 | Agentic self-reflection | retry를 rule patch가 아니라 ReflectionPlan/VerificationReport 구조로 재설계 | bounded retry가 task/critic contract 위에서 동작 |
-| 8 | Cross-document / cross-company | entity/report/period namespace를 보존한 비교 분석 | 기업/문서 혼동 없는 multi-entity task 처리 |
+| 3 | Curated dataset operationalization | 새 single-doc / multi-report curated dataset을 benchmark/profile/evaluator 경로에 연결 | 주요 profile과 replay 경로가 curated dataset을 직접 참조 |
+| 4 | Critic stack | deterministic critic + LLM critic 분리 | 진행 중: deterministic live, LLM critic 미구현 |
+| 5 | Researcher attachment | why/context retrieval과 note traversal을 별도 agent로 분리 | 진행 중: v1 live, retrieval/summarization quality tuning 남음 |
+| 6 | Parser simplify/normalize layer | invalid XML-like markup를 흡수하고, high-value section만 soft heading으로 복원하며 table chunking을 안정화 | NAVER `II > 7`의 `[클라우드]`, `IV`의 `나. 영업실적`, POSCO 대형 표 split까지 안정 동작 |
+| 7 | Orchestrator quality pass | task decomposition / merge 품질 고도화 | mixed-intent baseline과 merge 품질 지표 확보 |
+| 8 | Agentic self-reflection | retry를 rule patch가 아니라 ReflectionPlan/VerificationReport 구조로 재설계 | bounded retry가 task/critic contract 위에서 동작 |
+| 9 | Cross-document / cross-company | entity/report/period namespace를 보존한 비교 분석 | 기업/문서 혼동 없는 multi-entity task 처리 |
 
 ## Non-blocking Quality Debt
 

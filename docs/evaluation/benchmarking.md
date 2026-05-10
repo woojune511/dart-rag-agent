@@ -123,6 +123,8 @@
 | 프로파일 | 목적 | 주요 대상 | 언제 쓰나 |
 | --- | --- | --- | --- |
 | `dev_fast` | 빠른 screening | 단일 회사, mixed query | 새 후보를 빠르게 거를 때 |
+| `curated_single_doc_core` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | curated dataset 기준선 회귀 |
+| `curated_multi_report_smoke` | multi-report 분리셋 점검 | multi-report curated subset | multi-report path smoke |
 | `single_document_graph_micro` | graph / structure-aware retrieval 비교 | 소수 문항 마이크로 실험 | 구조 실험 초기 확인 |
 | `release_generalization` | 다기업 일반화 확인 | shortlist 후보 | release-grade 확인 |
 | `dev_math_focus` | math / numeric reasoning 기준선 | `comparison`, `ratio`, `growth`, `trend` | 계산 구조 비교 |
@@ -151,6 +153,32 @@
 원칙:
 - 정답은 문자열만 두지 않고 evidence quote를 같이 둔다.
 - section 라벨은 retrieval diagnostic을 위한 것이지, 항상 최종 정답 판정 기준은 아니다.
+
+### Curated DART review datasets
+
+최근에는 DART 원문을 직접 검수한 curated dataset이 별도로 정리되었다.
+
+| 파일 | 역할 |
+| --- | --- |
+| `benchmarks/datasets/single_doc_eval_full.curated.json` | single-document canonical source of truth |
+| `benchmarks/datasets/multi_report_eval_full.curated.json` | multi-report canonical source of truth |
+| `benchmarks/datasets/single_doc_eval_full.json` | question/task oriented working dataset |
+| `benchmarks/datasets/multi_report_eval_full.json` | question/task oriented working dataset |
+
+현재 운영 원칙:
+
+- `single_doc_eval_full.curated.json`
+  - core/canonical single-document benchmark 후보
+  - active row `77`
+- `multi_report_eval_full.curated.json`
+  - single-document으로 닫히지 않는 질문 분리셋
+  - 현재 active row `1` (`SAM_T2_002`)
+
+주의:
+
+- `benchmarks/eval_dataset.canonical.json`, `benchmarks/eval_dataset.math_focus.json`은 여전히 일부 profile / retrospective script에서 사용되는 legacy benchmark asset이다.
+- 따라서 당분간은 **curated dataset과 legacy benchmark dataset이 공존**한다.
+- 다음 정리 단계는 주력 benchmark/profile을 curated dataset 기준으로 재정렬하는 것이다.
 
 ### Math focus dataset
 

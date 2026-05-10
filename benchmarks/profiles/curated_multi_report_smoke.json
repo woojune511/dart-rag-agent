@@ -1,0 +1,78 @@
+{
+  "defaults": {
+    "k": 8,
+    "ingest_mode": "contextual_selective_v2",
+    "max_workers": 2,
+    "eval_max_workers": 2,
+    "batch_size": 4,
+    "eval_mode": "all_filtered",
+    "eval_limit": 0,
+    "reuse_store": true,
+    "reuse_context_cache": true,
+    "force_reindex": false,
+    "use_zero_cost_prefix": true,
+    "pricing": {
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
+    },
+    "selective_v2_short_text_threshold": 700,
+    "selective_v2_short_table_threshold": 1600,
+    "selective_v2_sections": [
+      "사업개요",
+      "원재료 및 생산설비",
+      "요약재무정보"
+    ],
+    "mlflow_experiment_name": "dart_rag_curated_multi_report_smoke"
+  },
+  "candidate_ids": [
+    "contextual_selective_v2_prefix_2500_320"
+  ],
+  "screening": {
+    "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+    "parallel_experiments": 1,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 0,
+    "always_include_full_eval_ids": [
+      "contextual_selective_v2_prefix_2500_320"
+    ]
+  },
+  "full_evaluation": {
+    "enabled": true,
+    "eval_mode": "all_filtered",
+    "eval_limit": 0
+  },
+  "company_runs": [
+    {
+      "id": "samsung_2023_multi_report",
+      "defaults": {
+        "report_path": "data/reports/삼성전자/2023_사업보고서_20240312000736.html",
+        "metadata": {
+          "company": "삼성전자",
+          "stock_code": "005930",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240312000736"
+        },
+        "eval_dataset_path": "benchmarks/datasets/multi_report_eval_full.curated.json",
+        "smoke_queries": [
+          {
+            "query": "2023년 메모리 반도체 업황 악화에도 불구하고 집행된 시설투자(CAPEX) 총액을 찾고, 전년(2022년) 대비 증감률을 계산해 줘.",
+            "category": "comparison",
+            "expected_company": "삼성전자",
+            "expected_year": 2023
+          }
+        ]
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "id": "contextual_selective_v2_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "contextual_selective_v2",
+      "use_zero_cost_prefix": true
+    }
+  ]
+}

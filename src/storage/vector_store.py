@@ -5,14 +5,63 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+load_dotenv()
+
+DEFAULT_EMBEDDING_PROVIDER = os.getenv("DART_EMBEDDING_PROVIDER", "").strip().lower() or (
+    "google" if os.getenv("GOOGLE_API_KEY") else "openai" if os.getenv("OPENAI_API_KEY") else "huggingface"
+)
+DEFAULT_GOOGLE_EMBEDDING_MODEL = os.getenv("GOOGLE_EMBEDDING_MODEL", "models/gemini-embedding-2")
+DEFAULT_OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+DEFAULT_HUGGINGFACE_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+DEFAULT_EMBEDDING_MODEL = (
+    DEFAULT_GOOGLE_EMBEDDING_MODEL
+    if DEFAULT_EMBEDDING_PROVIDER == "google"
+    else DEFAULT_OPENAI_EMBEDDING_MODEL
+    if DEFAULT_EMBEDDING_PROVIDER == "openai"
+    else DEFAULT_HUGGINGFACE_EMBEDDING_MODEL
+)
 DEFAULT_COLLECTION_NAME = "dart_reports_v2"
+
+
+def create_embeddings(
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+) -> Any:
+    selected_provider = (provider or DEFAULT_EMBEDDING_PROVIDER).strip().lower()
+    selected_model = (model_name or DEFAULT_EMBEDDING_MODEL).strip()
+
+    if selected_provider == "google":
+        if not os.getenv("GOOGLE_API_KEY"):
+            raise ValueError("GOOGLE_API_KEY is required for Google API embeddings.")
+        return GoogleGenerativeAIEmbeddings(
+            model=selected_model or DEFAULT_GOOGLE_EMBEDDING_MODEL,
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+        )
+
+    if selected_provider == "openai":
+        if not os.getenv("OPENAI_API_KEY"):
+            raise ValueError("OPENAI_API_KEY is required for OpenAI API embeddings.")
+        return OpenAIEmbeddings(
+            model=selected_model or DEFAULT_OPENAI_EMBEDDING_MODEL,
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
+
+    if selected_provider == "huggingface":
+        return HuggingFaceEmbeddings(model_name=selected_model or DEFAULT_HUGGINGFACE_EMBEDDING_MODEL)
+
+    raise ValueError(
+        f"Unsupported embedding provider: {selected_provider}. "
+        "Use one of: google, openai, huggingface."
+    )
 
 
 def _tokenize_ko(text: str) -> List[str]:
@@ -69,18 +118,24 @@ class VectorStoreManager:
         self,
         persist_directory: str = "data/chroma_db",
         collection_name: str = DEFAULT_COLLECTION_NAME,
+        embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
         embedding_model_name: str = DEFAULT_EMBEDDING_MODEL,
     ):
         self.persist_directory = persist_directory
         os.makedirs(self.persist_directory, exist_ok=True)
         self.collection_name = collection_name
+        self.embedding_provider = embedding_provider
         self.embedding_model_name = embedding_model_name
 
         logger.info(
-            "Loading HuggingFace embeddings (%s). A full reindex is recommended when this model changes.",
+            "Loading %s embeddings (%s). A full reindex is recommended when this model changes.",
+            self.embedding_provider,
             self.embedding_model_name,
         )
-        self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
+        self.embeddings = create_embeddings(
+            provider=self.embedding_provider,
+            model_name=self.embedding_model_name,
+        )
 
         self.vector_store = Chroma(
             collection_name=self.collection_name,

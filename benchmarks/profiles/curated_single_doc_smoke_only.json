@@ -1,0 +1,80 @@
+{
+  "defaults": {
+    "k": 8,
+    "ingest_mode": "plain",
+    "max_workers": 4,
+    "eval_max_workers": 1,
+    "batch_size": 8,
+    "eval_mode": "question_ids",
+    "question_ids": [],
+    "eval_limit": 1,
+    "reuse_store": true,
+    "reuse_context_cache": true,
+    "force_reindex": false,
+    "use_zero_cost_prefix": true,
+    "pricing": {
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
+    },
+    "selective_v2_short_text_threshold": 700,
+    "selective_v2_short_table_threshold": 1600,
+    "selective_v2_sections": [
+      "사업개요",
+      "위험관리 및 파생거래",
+      "매출 및 수주상황",
+      "연구개발",
+      "요약재무정보"
+    ],
+    "mlflow_experiment_name": "dart_rag_curated_single_doc_smoke_only"
+  },
+  "candidate_ids": [
+    "plain_prefix_2500_320"
+  ],
+  "screening": {
+    "baseline_experiment_id": "plain_prefix_2500_320",
+    "parallel_experiments": 1,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 0,
+    "always_include_full_eval_ids": []
+  },
+  "full_evaluation": {
+    "enabled": false,
+    "eval_mode": "question_ids",
+    "question_ids": [],
+    "eval_limit": 0
+  },
+  "company_runs": [
+    {
+      "id": "samsung_2023_smoke_only",
+      "defaults": {
+        "report_path": "data/reports/삼성전자/2023_사업보고서_20240312000736.html",
+        "metadata": {
+          "company": "삼성전자",
+          "stock_code": "005930",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240312000736"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json",
+        "smoke_queries": [
+          {
+            "query": "2023년 삼성전자의 연결 기준 매출액과 영업이익으로 영업이익률을 계산해 줘.",
+            "category": "numeric_fact",
+            "expected_company": "삼성전자",
+            "expected_year": 2023
+          }
+        ]
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "id": "plain_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "plain",
+      "use_zero_cost_prefix": true
+    }
+  ]
+}

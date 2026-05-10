@@ -17,14 +17,13 @@ from typing import Any, Dict, List, Optional, Tuple
 import mlflow
 import numpy as np
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_huggingface import HuggingFaceEmbeddings
 
-from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL
+from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_DEFAULT_DATASET = _PROJECT_ROOT / "data" / "eval" / "eval_dataset.json"
+_DEFAULT_DATASET = _PROJECT_ROOT / "benchmarks" / "datasets" / "single_doc_eval_full.curated.json"
 DEFAULT_NUMERIC_SECTION_ALIASES = [
     "매출현황",
     "재무제표",
@@ -1162,7 +1161,7 @@ def _compute_completeness_judge(
 
 
 def _compute_answer_relevancy(
-    embeddings: HuggingFaceEmbeddings,
+    embeddings: Any,
     question: str,
     answer: str,
 ) -> float:
@@ -1711,7 +1710,7 @@ class RAGEvaluator:
         self.experiment_name = experiment_name
         self._dataset_path = Path(dataset_path) if dataset_path else _DEFAULT_DATASET
         self._llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
-        self._embeddings = HuggingFaceEmbeddings(model_name=DEFAULT_EMBEDDING_MODEL)
+        self._embeddings = create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
     def load_dataset(self) -> List[EvalExample]:
         return load_eval_examples_from_path(self._dataset_path)

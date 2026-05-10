@@ -7,10 +7,9 @@ from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.routing import QueryRouter, default_canonical_queries_path
-from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL
+from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -85,7 +84,7 @@ def main() -> None:
     args = parser.parse_args()
 
     cases: List[Dict[str, Any]] = _load_json(args.cases)
-    embeddings = HuggingFaceEmbeddings(model_name=DEFAULT_EMBEDDING_MODEL)
+    embeddings = create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
     router = QueryRouter(embeddings=embeddings, llm=llm, canonical_queries_path=args.canonical)
 

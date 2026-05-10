@@ -7,10 +7,8 @@ from itertools import product
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from langchain_huggingface import HuggingFaceEmbeddings
-
 from src.routing import cosine_similarity, default_canonical_queries_path, load_canonical_routing_examples
-from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL
+from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -67,7 +65,7 @@ def _load_eval_examples(path: Path) -> List[Dict[str, Any]]:
 
 
 def _score_examples(
-    embeddings: HuggingFaceEmbeddings,
+    embeddings: Any,
     canonical_examples: List[Dict[str, Any]],
     eval_examples: List[Dict[str, Any]],
 ) -> List[ExampleScore]:
@@ -251,7 +249,7 @@ def main() -> None:
 
     canonical_examples = _load_canonical_examples(args.canonical_path)
     eval_examples = _load_eval_examples(args.eval_path)
-    embeddings = HuggingFaceEmbeddings(model_name=args.embedding_model)
+    embeddings = create_embeddings(model_name=args.embedding_model)
 
     scored_examples = _score_examples(embeddings, canonical_examples, eval_examples)
 

@@ -7,10 +7,10 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **parser baseline regression을 질문 subset으로 확인하고, 남은 low-value noise를 최소화** |
+| 현재 1순위 | **curated dataset을 benchmark/eval 경로에 연결하고, parser baseline regression을 질문 subset으로 확인** |
 | 병렬 트랙 | retrospective scorecard는 1차 핵심 실험 완료, 이후 새 결정이 생길 때 추가 |
 | 지금 하지 않을 것 | local patch deep dive, cosmetic retrieval tuning, evaluator gaming |
-| 다음 큰 순서 | `parser regression check -> LLM critic -> orchestrator/researcher quality pass -> agentic self-reflection -> cross-company` |
+| 다음 큰 순서 | `dataset path migration -> parser regression check -> LLM critic -> orchestrator/researcher quality pass -> agentic self-reflection -> cross-company` |
 
 ## 현재 목표
 
@@ -18,12 +18,13 @@
 | --- | --- | --- |
 | 1 | MAS skeleton | 완료: parallel fan-out, critic loop, merge live |
 | 2 | Analyst migration | 완료: report-scoped wrapper migration + real-store parity smoke |
-| 3 | Critic stack | 진행 중: deterministic critic live, LLM critic next |
-| 4 | Researcher attachment | 진행 중: v1 retrieval/summary live, quality pass next |
-| 5 | Parser simplify/normalize layer | 진행 중: baseline 안정화 거의 완료, regression 확인 단계 |
-| 6 | Orchestrator quality pass | parser 안정화 이후 진행 |
-| 7 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
-| 8 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
+| 3 | Curated dataset operationalization | 진행 중: `benchmarks/datasets/*curated.json`을 benchmark/profile/evaluator 경로에 연결 |
+| 4 | Critic stack | 진행 중: deterministic critic live, LLM critic next |
+| 5 | Researcher attachment | 진행 중: v1 retrieval/summary live, quality pass next |
+| 6 | Parser simplify/normalize layer | 진행 중: baseline 안정화 거의 완료, regression 확인 단계 |
+| 7 | Orchestrator quality pass | parser 안정화 이후 진행 |
+| 8 | Agentic self-reflection | rule patch가 아닌 ReflectionPlan / VerificationReport |
+| 9 | `cross-document / cross-company reasoning` | MAS contract 위에서 범위 확장 |
 
 현재는 **개통된 MAS baseline 위에서 quality와 critic 계층을 고도화하는 것**이 1순위다.
 
@@ -67,6 +68,16 @@
 | 4. 문서 반영 | `benchmarking.md` scorecard, `DECISIONS.md` 해석, 필요시 `technical_highlights.md` |
 
 즉 앞으로는 **결정 -> 실험 -> 기록 -> 채택** 순서를 기본 운영 규칙으로 둔다.
+
+### 0. Curated dataset operationalization
+
+| 항목 | 내용 |
+| --- | --- |
+| 목표 | 사람이 검수한 curated dataset을 실제 benchmark/evaluator 기준선으로 승격 |
+| 현재 자산 | `benchmarks/datasets/single_doc_eval_full.curated.json`, `benchmarks/datasets/multi_report_eval_full.curated.json` |
+| 현재 문제 | 일부 benchmark profile / replay script가 아직 `benchmarks/eval_dataset.*` 계열 legacy dataset을 기본값으로 참조 |
+| 다음 일 | profile별 `eval_dataset_path` 점검, benchmark runner / evaluator / replay script의 기본 dataset 경로 재정렬 |
+| 종료 조건 | 주력 profile과 retrospective script가 curated dataset 또는 명시적 legacy dataset을 의도적으로 사용하도록 정리되고 혼용이 사라짐 |
 
 ### 1. MAS baseline stabilization
 
