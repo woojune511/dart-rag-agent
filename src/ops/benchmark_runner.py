@@ -2817,6 +2817,8 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
     full_config = dict(merged_config)
     full_config["eval_mode"] = full_eval_config.get("eval_mode", merged_config.get("eval_mode"))
     full_config["eval_limit"] = full_eval_config.get("eval_limit", merged_config.get("eval_limit"))
+    if "question_ids" in full_eval_config:
+        full_config["question_ids"] = list(full_eval_config.get("question_ids") or [])
     eval_max_workers = int(
         full_eval_config.get(
             "eval_max_workers",

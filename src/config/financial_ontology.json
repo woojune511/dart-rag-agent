@@ -5,62 +5,88 @@
       "intent_keywords": [
         "연구개발비",
         "연구개발비용",
-        "연구개발 비중",
-        "연구개발 비율",
-        "연구개발 차지",
+        "연구개발비 비중",
+        "연구개발비 비율",
         "r&d"
+      ],
+      "aliases": [
+        "연구개발비용 비중",
+        "연구개발비 비중",
+        "r&d ratio"
       ],
       "preferred_sections": [
         "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
-        "II. 사업의 내용 > 6. 연구개발 활동",
+        "II. 사업의 내용 > 6. 연구개발활동",
         "XII. 상세표 > 연구개발실적(상세)",
         "III. 재무에 관한 사항 > 1. 요약재무정보"
       ],
       "supplement_sections": [
-        "연구개발 활동",
         "연구개발활동",
         "주요계약 및 연구개발활동",
-        "연구개발",
         "연구개발실적"
       ],
       "query_hints": [
-        "연구개발",
+        "연구개발비용",
+        "매출액",
         "요약재무정보"
+      ],
+      "retrieval_keywords": [
+        "연구개발비용",
+        "연구개발비",
+        "매출액"
+      ],
+      "statement_type_hints": [
+        "summary_financials",
+        "income_statement",
+        "notes"
       ],
       "row_patterns": [
         "연구개발비\\s*/\\s*매출액\\s*비율",
         "연구개발비용\\s*/\\s*매출액\\s*비율"
       ],
       "formula_template": "(numerator / denominator) * 100",
+      "formula_family": "ratio",
       "result_unit": "PERCENT",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
       "components": {
         "numerator": {
           "name": "연구개발비용",
+          "aliases": [
+            "연구개발비",
+            "연구개발비용 계"
+          ],
           "keywords": [
             "연구개발비용",
-            "연구개발비 총계",
-            "연구개발비"
+            "연구개발비",
+            "연구개발비용 계"
           ],
+          "required": true,
           "preferred_sections": [
-            "연구개발 활동",
             "연구개발활동",
             "주요계약 및 연구개발활동",
-            "연구개발"
+            "연구개발실적"
           ]
         },
         "denominator": {
           "name": "매출액",
+          "aliases": [
+            "영업수익",
+            "수익"
+          ],
           "keywords": [
             "매출액",
-            "당기매출액",
             "영업수익",
-            "수익",
-            "전체 매출"
+            "수익"
           ],
+          "required": true,
           "preferred_sections": [
             "요약재무정보",
-            "손익계산서",
-            "매출 및 수주상황"
+            "연결 손익계산서",
+            "손익계산서"
           ]
         }
       }
@@ -71,33 +97,58 @@
         "영업이익률",
         "영업이익 비율",
         "영업이익 비중",
-        "이익률"
+        "영업마진",
+        "operating margin"
+      ],
+      "aliases": [
+        "영업이익률",
+        "영업마진"
       ],
       "preferred_sections": [
         "III. 재무에 관한 사항 > 1. 요약재무정보",
-        "손익계산서"
+        "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결 손익계산서"
       ],
       "supplement_sections": [
         "요약재무정보",
+        "연결 손익계산서",
         "손익계산서"
       ],
       "query_hints": [
-        "요약재무정보",
+        "영업이익",
+        "매출액"
+      ],
+      "retrieval_keywords": [
+        "영업이익",
+        "매출액",
         "손익계산서"
+      ],
+      "statement_type_hints": [
+        "summary_financials",
+        "income_statement"
       ],
       "row_patterns": [
         "영업이익률",
         "영업이익\\s*/\\s*매출액"
       ],
       "formula_template": "(numerator / denominator) * 100",
+      "formula_family": "ratio",
       "result_unit": "PERCENT",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
       "components": {
         "numerator": {
           "name": "영업이익",
+          "aliases": [
+            "영업손익"
+          ],
           "keywords": [
             "영업이익",
             "영업손익"
           ],
+          "required": true,
           "preferred_sections": [
             "요약재무정보",
             "손익계산서"
@@ -105,15 +156,336 @@
         },
         "denominator": {
           "name": "매출액",
+          "aliases": [
+            "영업수익",
+            "수익"
+          ],
           "keywords": [
             "매출액",
             "영업수익",
             "수익"
           ],
+          "required": true,
           "preferred_sections": [
             "요약재무정보",
             "손익계산서",
             "매출 및 수주상황"
+          ]
+        }
+      }
+    },
+    "debt_ratio": {
+      "display_name": "부채비율",
+      "intent_keywords": [
+        "부채비율",
+        "부채 비율",
+        "debt ratio"
+      ],
+      "aliases": [
+        "부채비율"
+      ],
+      "preferred_sections": [
+        "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-1. 연결 재무상태표",
+        "II. 사업의 내용 > 5. 위험관리 및 파생거래"
+      ],
+      "supplement_sections": [
+        "요약재무정보",
+        "재무상태표",
+        "위험관리 및 파생거래"
+      ],
+      "query_hints": [
+        "부채총계",
+        "자본총계",
+        "연결"
+      ],
+      "retrieval_keywords": [
+        "부채총계",
+        "자본총계",
+        "재무상태표"
+      ],
+      "statement_type_hints": [
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "row_patterns": [
+        "부채비율",
+        "총부채\\s*/\\s*총자본"
+      ],
+      "formula_template": "(numerator / denominator) * 100",
+      "formula_family": "ratio",
+      "result_unit": "PERCENT",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
+      "components": {
+        "numerator": {
+          "name": "부채총계",
+          "aliases": [
+            "총부채"
+          ],
+          "keywords": [
+            "부채총계",
+            "총부채"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "재무상태표",
+            "요약재무정보"
+          ]
+        },
+        "denominator": {
+          "name": "자본총계",
+          "aliases": [
+            "총자본"
+          ],
+          "keywords": [
+            "자본총계",
+            "총자본"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "재무상태표",
+            "요약재무정보"
+          ]
+        }
+      }
+    },
+    "current_ratio": {
+      "display_name": "유동비율",
+      "intent_keywords": [
+        "유동비율",
+        "유동 비율",
+        "current ratio"
+      ],
+      "aliases": [
+        "유동비율"
+      ],
+      "preferred_sections": [
+        "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-1. 연결 재무상태표"
+      ],
+      "supplement_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ],
+      "query_hints": [
+        "유동자산",
+        "유동부채",
+        "연결"
+      ],
+      "retrieval_keywords": [
+        "유동자산",
+        "유동부채",
+        "재무상태표"
+      ],
+      "statement_type_hints": [
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "row_patterns": [
+        "유동비율",
+        "유동자산\\s*/\\s*유동부채"
+      ],
+      "formula_template": "(numerator / denominator) * 100",
+      "formula_family": "ratio",
+      "result_unit": "PERCENT",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
+      "components": {
+        "numerator": {
+          "name": "유동자산",
+          "aliases": [],
+          "keywords": [
+            "유동자산"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "재무상태표",
+            "요약재무정보"
+          ]
+        },
+        "denominator": {
+          "name": "유동부채",
+          "aliases": [],
+          "keywords": [
+            "유동부채"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "재무상태표",
+            "요약재무정보"
+          ]
+        }
+      }
+    },
+    "free_cash_flow": {
+      "display_name": "잉여현금흐름",
+      "intent_keywords": [
+        "fcf",
+        "잉여현금흐름",
+        "free cash flow"
+      ],
+      "aliases": [
+        "FCF",
+        "잉여현금흐름"
+      ],
+      "preferred_sections": [
+        "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-5. 연결 현금흐름표"
+      ],
+      "supplement_sections": [
+        "연결 현금흐름표",
+        "현금흐름표"
+      ],
+      "query_hints": [
+        "영업활동현금흐름",
+        "유형자산의 취득"
+      ],
+      "retrieval_keywords": [
+        "영업활동현금흐름",
+        "유형자산의 취득",
+        "현금흐름표"
+      ],
+      "statement_type_hints": [
+        "cash_flow"
+      ],
+      "row_patterns": [
+        "잉여현금흐름",
+        "free cash flow"
+      ],
+      "formula_template": "operating_cash_flow - capex",
+      "formula_family": "difference",
+      "result_unit": "KRW",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
+      "components": {
+        "numerator": {
+          "name": "영업활동현금흐름",
+          "aliases": [
+            "영업으로부터 창출된 현금흐름",
+            "영업활동으로 인한 현금흐름"
+          ],
+          "keywords": [
+            "영업활동현금흐름",
+            "영업으로부터 창출된 현금흐름",
+            "영업활동으로 인한 현금흐름"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "현금흐름표"
+          ]
+        },
+        "denominator": {
+          "name": "유형자산의 취득",
+          "aliases": [
+            "유형자산 취득",
+            "설비투자"
+          ],
+          "keywords": [
+            "유형자산의 취득",
+            "유형자산 취득",
+            "설비투자"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "현금흐름표"
+          ]
+        }
+      }
+    },
+    "roe": {
+      "display_name": "자기자본이익률",
+      "intent_keywords": [
+        "roe",
+        "자기자본이익률",
+        "roe를",
+        "자기자본 수익률"
+      ],
+      "aliases": [
+        "ROE",
+        "자기자본이익률",
+        "자기자본 수익률"
+      ],
+      "preferred_sections": [
+        "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-1. 연결 재무상태표",
+        "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결 손익계산서",
+        "IV. 이사의 경영진단 및 분석의견"
+      ],
+      "supplement_sections": [
+        "요약재무정보",
+        "재무상태표",
+        "손익계산서"
+      ],
+      "query_hints": [
+        "당기순이익",
+        "자본총계",
+        "평균자본"
+      ],
+      "retrieval_keywords": [
+        "당기순이익",
+        "자본총계",
+        "평균자본",
+        "ROE"
+      ],
+      "statement_type_hints": [
+        "summary_financials",
+        "balance_sheet",
+        "income_statement"
+      ],
+      "row_patterns": [
+        "ROE",
+        "자기자본이익률"
+      ],
+      "formula_template": "(numerator / denominator) * 100",
+      "formula_family": "ratio",
+      "result_unit": "PERCENT",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
+      "components": {
+        "numerator": {
+          "name": "당기순이익",
+          "aliases": [
+            "연결총당기순이익",
+            "지배기업주주지분순이익"
+          ],
+          "keywords": [
+            "당기순이익",
+            "연결총당기순이익",
+            "지배기업주주지분순이익"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "요약재무정보",
+            "손익계산서"
+          ]
+        },
+        "denominator": {
+          "name": "자본총계",
+          "aliases": [
+            "총자본",
+            "평균자본"
+          ],
+          "keywords": [
+            "자본총계",
+            "총자본",
+            "평균자본"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "요약재무정보",
+            "재무상태표"
           ]
         }
       }

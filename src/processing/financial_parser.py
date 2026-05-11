@@ -11,6 +11,8 @@ This parser:
 import logging
 import os
 import re
+import time
+import json
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -62,6 +64,12 @@ DEFAULT_CHUNK_OVERLAP = 320
 _WIDE_TABLE_COLUMN_THRESHOLD = 24
 _WIDE_TABLE_WINDOW_SIZE = 24
 _WIDE_TABLE_WINDOW_OVERLAP = 2
+DEFAULT_SECTION_PARSE_WARN_SEC = float(os.getenv("DART_PARSER_SECTION_WARN_SEC", "0.5"))
+DEFAULT_SECTION_PARSE_BUDGET_SEC = float(os.getenv("DART_PARSER_SECTION_BUDGET_SEC", "2.0"))
+_YEAR_LABEL_RE = re.compile(r"\b(20\d{2})년\b")
+_DATE_LABEL_RE = re.compile(r"\b(20\d{2})\.(\d{1,2})\.(\d{1,2})\b")
+_UNIT_HINT_RE = re.compile(r"(천원|백만원|억원|%)")
+_UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(천원|백만원|억원|원|%)")
 
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
@@ -125,6 +133,14 @@ _SHORT_BRACKET_LABEL_MAX_CHARS = 8
 class DocumentChunk(BaseModel):
     content: str
     metadata: Dict[str, Any]
+
+
+class SectionParseTimeout(RuntimeError):
+    def __init__(self, section_path: str, stage: str, elapsed_sec: float):
+        super().__init__(f"Section parse budget exceeded [{section_path}] stage={stage} elapsed={elapsed_sec:.3f}s")
+        self.section_path = section_path
+        self.stage = stage
+        self.elapsed_sec = elapsed_sec
 
 
 def _normalize(text: str) -> str:
@@ -231,6 +247,92 @@ def _reclassify_by_content(text: str, label: str) -> str:
             if kw in text:
                 return new_label
     return label
+
+
+def _dedupe_preserve_order(values: List[str]) -> List[str]:
+    seen: set[str] = set()
+    result: List[str] = []
+    for value in values:
+        normalized = _normalize(value)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(normalized)
+    return result
+
+
+def _extract_period_labels(text: str) -> List[str]:
+    labels: List[str] = []
+    normalized = _normalize(text)
+    if not normalized:
+        return labels
+
+    for keyword in ("당기", "전기", "전전기", "당기말", "전기말", "전전기말"):
+        if keyword in normalized:
+            labels.append(keyword)
+
+    labels.extend(match.group(1) for match in _YEAR_LABEL_RE.finditer(normalized))
+    labels.extend(match.group(1) for match in _DATE_LABEL_RE.finditer(normalized))
+    return _dedupe_preserve_order(labels)
+
+
+def _infer_period_focus(period_labels: List[str]) -> str:
+    if not period_labels:
+        return "unknown"
+    if len(period_labels) >= 2:
+        return "multi_period"
+    label = period_labels[0]
+    if label.startswith("전기"):
+        return "prior"
+    if label.startswith("당기") or re.fullmatch(r"20\d{2}", label):
+        return "current"
+    return "unknown"
+
+
+def _infer_unit_hint(text: str) -> Optional[str]:
+    normalized = _normalize(text)
+    if not normalized:
+        return None
+    for line in normalized.splitlines():
+        context_match = _UNIT_CONTEXT_RE.search(line)
+        if context_match:
+            return context_match.group(1)
+    match = _UNIT_HINT_RE.search(normalized)
+    if match:
+        return match.group(1)
+    if "%" in normalized:
+        return "%"
+    return None
+
+
+def _infer_statement_type(section_path: str, header_context: Optional[str]) -> str:
+    combined = f"{_normalize(section_path)}\n{_normalize(header_context or '')}"
+    if "요약재무정보" in combined:
+        return "summary_financials"
+    if "재무상태표" in combined:
+        return "balance_sheet"
+    if "포괄손익계산서" in combined or "손익계산서" in combined:
+        return "income_statement"
+    if "현금흐름표" in combined:
+        return "cash_flow"
+    if "자본변동표" in combined:
+        return "changes_in_equity"
+    if "부문정보" in combined or "영업부문" in combined:
+        return "segment_note"
+    if "재무제표 주석" in combined or "주석" in combined:
+        return "notes"
+    if "이사의 경영진단 및 분석의견" in combined:
+        return "mda"
+    return "unknown"
+
+
+def _infer_consolidation_scope(section_path: str, header_context: Optional[str]) -> str:
+    combined = f"{_normalize(section_path)}\n{_normalize(header_context or '')}"
+    if "연결" in combined:
+        return "consolidated"
+    if "별도" in combined:
+        return "separate"
+    return "unknown"
 
 
 def _is_probable_xml_markup(inner: str) -> bool:
@@ -450,7 +552,10 @@ def _split_inline_heading_body(text: str) -> Optional[Tuple[List[str], str]]:
         return None
 
     body_start = _INLINE_BODY_START_RE.search(normalized)
-    if not body_start:
+    # Avoid the more permissive separator regex unless a colon is present.
+    # This prevents pathological backtracking on long hyphenated prose that
+    # still cannot match the "... :" inline heading pattern.
+    if not body_start and ":" in normalized:
         body_start = _INLINE_BODY_SEPARATOR_RE.search(normalized)
     if not body_start or body_start.start() <= 0:
         return None
@@ -576,9 +681,17 @@ def _extract_reference_section_paths(text: str, reference_index: Dict[str, Any])
 
 
 class FinancialParser:
-    def __init__(self, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP):
+    def __init__(
+        self,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
+        section_warn_sec: float = DEFAULT_SECTION_PARSE_WARN_SEC,
+        section_parse_budget_sec: float = DEFAULT_SECTION_PARSE_BUDGET_SEC,
+    ):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.section_warn_sec = max(0.0, section_warn_sec)
+        self.section_parse_budget_sec = max(0.0, section_parse_budget_sec)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -586,18 +699,282 @@ class FinancialParser:
             length_function=len,
         )
 
-    def _format_table(self, table_elem) -> str:
-        rows = []
+    @staticmethod
+    def _cell_span_int(cell, attr_name: str) -> int:
+        raw = cell.get(attr_name) or cell.get(attr_name.lower()) or cell.get(attr_name.upper())
+        try:
+            value = int(str(raw or "1").strip())
+        except (TypeError, ValueError):
+            value = 1
+        return max(1, value)
+
+    def _normalize_table_grid(self, table_elem) -> List[List[str]]:
+        grid: List[List[str]] = []
+        carry: Dict[int, Dict[str, Any]] = {}
+
+        def advance_carry_into_row(row: List[str], col_idx: int) -> int:
+            while col_idx in carry:
+                slot = carry[col_idx]
+                row.append(slot["text"])
+                slot["remaining_rows"] -= 1
+                if slot["remaining_rows"] <= 0:
+                    del carry[col_idx]
+                col_idx += 1
+            return col_idx
+
         for tr in table_elem.findall(".//TR"):
-            cells = [
-                _normalize("".join(cell.itertext()))
-                for cell in tr
-                if cell.tag in ("TD", "TH", "TU")
-            ]
-            cells = [c for c in cells if c]
-            if cells:
-                rows.append(" | ".join(cells))
+            row: List[str] = []
+            col_idx = 0
+            col_idx = advance_carry_into_row(row, col_idx)
+
+            for cell in tr:
+                if cell.tag not in ("TD", "TH", "TU"):
+                    continue
+                col_idx = advance_carry_into_row(row, col_idx)
+                text = _normalize("".join(cell.itertext()))
+                rowspan = self._cell_span_int(cell, "ROWSPAN")
+                colspan = self._cell_span_int(cell, "COLSPAN")
+                if not text and rowspan == 1 and colspan == 1:
+                    col_idx += 1
+                    row.append("")
+                    continue
+
+                for _ in range(colspan):
+                    row.append(text)
+                    if rowspan > 1:
+                        carry[col_idx] = {"text": text, "remaining_rows": rowspan - 1}
+                    col_idx += 1
+
+            col_idx = advance_carry_into_row(row, col_idx)
+            if any(cell.strip() for cell in row):
+                grid.append(row)
+
+        if not grid:
+            return []
+
+        max_cols = max(len(row) for row in grid)
+        return [row + [""] * (max_cols - len(row)) for row in grid]
+
+    @staticmethod
+    def _format_table_grid(grid: List[List[str]]) -> str:
+        rows: List[str] = []
+        for row in grid:
+            trimmed = list(row)
+            while trimmed and not trimmed[-1].strip():
+                trimmed.pop()
+            if trimmed and any(cell.strip() for cell in trimmed):
+                rows.append(" | ".join(trimmed))
         return "\n".join(rows)
+
+    @staticmethod
+    def _table_has_spans(table_elem) -> bool:
+        for cell in table_elem.findall(".//TD") + table_elem.findall(".//TH") + table_elem.findall(".//TU"):
+            for attr_name in ("ROWSPAN", "COLSPAN", "rowspan", "colspan"):
+                raw = cell.get(attr_name)
+                if raw and str(raw).strip() not in {"", "1"}:
+                    return True
+        return False
+
+    @staticmethod
+    def _extract_table_row_labels_from_grid(grid: List[List[str]], max_labels: int = 20) -> List[str]:
+        labels: List[str] = []
+        seen: set[str] = set()
+        for row in grid:
+            label = next((cell.strip() for cell in row if cell.strip()), "")
+            if label and label not in seen:
+                seen.add(label)
+                labels.append(label)
+            if len(labels) >= max_labels:
+                break
+        return labels
+
+    def _build_table_object(self, table_elem) -> Dict[str, Any]:
+        grid = self._normalize_table_grid(table_elem)
+        table_text = self._format_table_grid(grid)
+        row_labels = self._extract_table_row_labels_from_grid(grid)
+        return {
+            "grid": grid,
+            "table_text": table_text,
+            "row_count": len(grid),
+            "column_count": max((len(row) for row in grid), default=0),
+            "row_labels": row_labels,
+            "has_spans": self._table_has_spans(table_elem),
+        }
+
+    @staticmethod
+    def _grid_row_to_text(row: List[str]) -> str:
+        trimmed = list(row)
+        while trimmed and not trimmed[-1].strip():
+            trimmed.pop()
+        return " | ".join(trimmed)
+
+    @staticmethod
+    def _cell_looks_numeric(text: str) -> bool:
+        value = _normalize(text)
+        if not value:
+            return False
+        if re.search(r"[A-Za-z가-힣]", value):
+            return False
+        return bool(re.match(r"^-?\d[\d,]*(?:\.\d+)?%?$", value))
+
+    def _infer_table_header_row_count(self, grid: List[List[str]]) -> int:
+        if not grid:
+            return 0
+        header_count = 0
+        for index, row in enumerate(grid[:3]):
+            numeric_beyond_first = any(self._cell_looks_numeric(cell) for cell in row[1:])
+            if not numeric_beyond_first:
+                header_count = index + 1
+                continue
+            if index == 0:
+                header_count = 1
+            break
+        if header_count == 1 and len(grid) > 1:
+            first_head = _normalize(grid[0][0] if grid[0] else "")
+            second_head = _normalize(grid[1][0] if grid[1] else "")
+            second_row_non_numeric = not any(self._cell_looks_numeric(cell) for cell in grid[1][1:])
+            if first_head and first_head == second_head and second_row_non_numeric:
+                header_count = 2
+        return min(max(header_count, 1), len(grid))
+
+    @staticmethod
+    def _merge_header_stack(parts: List[str]) -> List[str]:
+        merged: List[str] = []
+        seen: set[str] = set()
+        for part in parts:
+            normalized = _normalize(part)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            merged.append(normalized)
+        return merged
+
+    def _build_table_row_records(self, table_object: Dict[str, Any], unit_hint: str) -> List[Dict[str, Any]]:
+        grid = list(table_object.get("grid") or [])
+        if not grid:
+            return []
+
+        header_row_count = self._infer_table_header_row_count(grid)
+        header_rows = grid[:header_row_count]
+        body_rows = grid[header_row_count:]
+        if not body_rows:
+            return []
+
+        max_cols = max(len(row) for row in grid)
+        column_headers: List[List[str]] = [[] for _ in range(max_cols)]
+        for col_idx in range(max_cols):
+            header_stack: List[str] = []
+            for row in header_rows:
+                if col_idx < len(row):
+                    text = _normalize(row[col_idx])
+                    if text:
+                        header_stack.append(text)
+            column_headers[col_idx] = self._merge_header_stack(header_stack)
+
+        row_records: List[Dict[str, Any]] = []
+        for row_idx, row in enumerate(body_rows):
+            row_label = next((cell.strip() for cell in row if cell.strip()), "")
+            if not row_label:
+                continue
+            cells: List[Dict[str, Any]] = []
+            for col_idx in range(1, len(row)):
+                value_text = _normalize(row[col_idx])
+                if not value_text:
+                    continue
+                cells.append(
+                    {
+                        "column_index": col_idx,
+                        "column_headers": list(column_headers[col_idx]),
+                        "value_text": value_text,
+                        "unit_hint": unit_hint,
+                    }
+                )
+            if not cells:
+                continue
+            row_records.append(
+                {
+                    "row_id": f"{table_object.get('row_count', 0)}:{row_idx}",
+                    "row_label": row_label,
+                    "row_headers": [row_label],
+                    "cells": cells,
+                }
+            )
+        return row_records
+
+    def _format_table(self, table_elem) -> str:
+        return self._build_table_object(table_elem)["table_text"]
+
+    def _extract_table_header_context(self, table_text: str, max_rows: int = 2) -> Optional[str]:
+        rows = [row for row in table_text.split("\n") if row.strip()]
+        if not rows:
+            return None
+
+        header_rows: List[str] = []
+        for row in rows[:max_rows]:
+            if self._looks_like_table_header_row(row):
+                header_rows.append(row)
+
+        if not header_rows:
+            header_rows.append(rows[0])
+
+        return _normalize("\n".join(header_rows))
+
+    def _build_table_context_bundle(
+        self,
+        table_text: str,
+        section_path: str,
+        table_source_id: str,
+        *,
+        local_heading: Optional[str] = None,
+        table_object: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        header_context = self._extract_table_header_context(table_text)
+        row_labels_text = ""
+        summary_text = header_context or table_text[:400]
+        table_row_count = 0
+        table_column_count = 0
+        table_has_spans = False
+        table_row_records_json = ""
+        if table_object:
+            row_labels = list(table_object.get("row_labels") or [])
+            row_labels_text = "\n".join(row_labels)
+            table_row_count = int(table_object.get("row_count") or 0)
+            table_column_count = int(table_object.get("column_count") or 0)
+            table_has_spans = bool(table_object.get("has_spans"))
+            summary_parts = [part for part in (header_context, " | ".join(row_labels[:8])) if part]
+            if summary_parts:
+                summary_text = _normalize("\n".join(summary_parts))
+        bundle_context = "\n".join(
+            part
+            for part in (
+                local_heading or "",
+                header_context or "",
+                table_text[:800],
+            )
+            if part
+        )
+        period_labels = _extract_period_labels(bundle_context)
+        unit_hint = _infer_unit_hint(bundle_context)
+        if table_object:
+            table_row_records = self._build_table_row_records(table_object, unit_hint)
+            if table_row_records:
+                table_row_records_json = json.dumps(table_row_records, ensure_ascii=False)
+        return {
+            "table_source_id": table_source_id,
+            "table_header_context": header_context,
+            "period_labels": period_labels,
+            "period_focus": _infer_period_focus(period_labels),
+            "unit_hint": unit_hint,
+            "statement_type": _infer_statement_type(section_path, header_context),
+            "consolidation_scope": _infer_consolidation_scope(section_path, header_context),
+            "header_propagated": False,
+            "table_summary_text": summary_text,
+            "table_row_labels_text": row_labels_text,
+            "table_row_records_json": table_row_records_json,
+            "table_row_count": table_row_count,
+            "table_column_count": table_column_count,
+            "table_has_spans": table_has_spans,
+        }
 
     def _extract_paragraph_heading_parts(
         self,
@@ -703,47 +1080,103 @@ class FinancialParser:
 
         return (leading_headings or None), body_segments
 
-    def _collect_blocks(self, section_elem, section_path: str) -> List[Dict[str, Any]]:
+    def _collect_blocks(
+        self,
+        section_elem,
+        section_path: str,
+        *,
+        structured_override: Optional[bool] = None,
+        deadline_monotonic: Optional[float] = None,
+        timeout_label: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         blocks: List[Dict[str, Any]] = []
         heading_stack: List[str] = []
         pending_table_heading: Optional[str] = None
         pending_section_label: Optional[str] = None
-        structured = _is_structured_section(section_path)
+        table_counter = 0
+        structured = _is_structured_section(section_path) if structured_override is None else structured_override
+        section_started_at = time.perf_counter()
 
-        def emit_block(text: str, block_type: str, local_heading_override: Optional[str] = None):
+        def check_deadline(stage: str):
+            if deadline_monotonic is None:
+                return
+            now = time.perf_counter()
+            if now > deadline_monotonic:
+                raise SectionParseTimeout(timeout_label or section_path, stage, now - section_started_at)
+
+        def emit_block(
+            text: str,
+            block_type: str,
+            local_heading_override: Optional[str] = None,
+            extra_metadata: Optional[Dict[str, Any]] = None,
+        ):
             normalized = _normalize(text)
             if not normalized:
                 return
-            blocks.append(
-                {
-                    "text": normalized,
-                    "type": block_type,
-                    "local_heading": local_heading_override
-                    if local_heading_override is not None
-                    else _soft_heading_path(heading_stack),
-                }
-            )
+            block: Dict[str, Any] = {
+                "text": normalized,
+                "type": block_type,
+                "local_heading": local_heading_override
+                if local_heading_override is not None
+                else _soft_heading_path(heading_stack),
+            }
+            if extra_metadata:
+                block.update(extra_metadata)
+            blocks.append(block)
 
         def process(elem, next_tag: Optional[str] = None):
-            nonlocal pending_table_heading, pending_section_label
+            nonlocal pending_table_heading, pending_section_label, table_counter
+            check_deadline(f"process:{getattr(elem, 'tag', 'unknown')}")
             tag = elem.tag
             if tag in _SECTION_TAGS:
                 return
             if tag == "TABLE-GROUP":
                 for table in elem.findall("TABLE"):
-                    text = self._format_table(table)
+                    check_deadline("table-group")
+                    table_object = self._build_table_object(table)
+                    text = table_object["table_text"]
                     if text:
-                        emit_block(text, "table", local_heading_override=pending_table_heading)
+                        table_counter += 1
+                        table_source_id = f"{section_path}::table:{table_counter}"
+                        emit_block(
+                            text,
+                            "table",
+                            local_heading_override=pending_table_heading,
+                            extra_metadata=self._build_table_context_bundle(
+                                text,
+                                section_path,
+                                table_source_id,
+                                local_heading=pending_table_heading,
+                                table_object=table_object,
+                            ),
+                        )
                 pending_section_label = None
                 return
             if tag == "TABLE":
-                text = self._format_table(elem)
+                check_deadline("table")
+                table_object = self._build_table_object(elem)
+                text = table_object["table_text"]
                 if text:
-                    emit_block(text, "table", local_heading_override=pending_table_heading)
+                    table_counter += 1
+                    table_source_id = f"{section_path}::table:{table_counter}"
+                    emit_block(
+                        text,
+                        "table",
+                        local_heading_override=pending_table_heading,
+                        extra_metadata=self._build_table_context_bundle(
+                            text,
+                            section_path,
+                            table_source_id,
+                            local_heading=pending_table_heading,
+                            table_object=table_object,
+                        ),
+                    )
                 pending_section_label = None
                 return
             if tag == "P":
+                check_deadline("paragraph:start")
                 leading_headings, body_segments = self._extract_paragraph_heading_parts(elem, structured=structured)
+                check_deadline("paragraph:parsed")
                 heading_only_bracket = (
                     leading_headings
                     and not body_segments
@@ -803,6 +1236,7 @@ class FinancialParser:
                 return
             child_nodes = list(elem)
             for child_idx, child in enumerate(child_nodes):
+                check_deadline("children")
                 child_next_tag = child_nodes[child_idx + 1].tag if child_idx + 1 < len(child_nodes) else None
                 process(child, next_tag=child_next_tag)
 
@@ -990,6 +1424,29 @@ class FinancialParser:
         standalone_threshold = self.chunk_size // 2
         last_paragraph_context = section_path
 
+        def table_bundle_from_block(block: Optional[Dict[str, Any]], *, header_propagated: Optional[bool] = None) -> Dict[str, Any]:
+            if not block:
+                return {}
+            bundle = {
+                "table_source_id": block.get("table_source_id"),
+                "table_header_context": block.get("table_header_context"),
+                "period_labels": list(block.get("period_labels") or []),
+                "period_focus": block.get("period_focus"),
+                "unit_hint": block.get("unit_hint"),
+                "statement_type": block.get("statement_type"),
+                "consolidation_scope": block.get("consolidation_scope"),
+                "header_propagated": block.get("header_propagated", False),
+                "table_summary_text": block.get("table_summary_text"),
+                "table_row_labels_text": block.get("table_row_labels_text"),
+                "table_row_records_json": block.get("table_row_records_json"),
+                "table_row_count": block.get("table_row_count"),
+                "table_column_count": block.get("table_column_count"),
+                "table_has_spans": block.get("table_has_spans", False),
+            }
+            if header_propagated is not None:
+                bundle["header_propagated"] = header_propagated
+            return bundle
+
         def flush_pending():
             if not pending_blocks:
                 return
@@ -1000,12 +1457,16 @@ class FinancialParser:
             block_type = "table" if table_chars > len(merged) * 0.5 else "paragraph"
             local_heading = next((block.get("local_heading") for block in pending_blocks if block.get("local_heading")), None)
             table_context = None
+            table_bundle: Dict[str, Any] = {}
             if has_table:
                 first_table = next(block for block in pending_blocks if block["type"] == "table")
                 table_context = first_table.get("table_context") or section_path
+                table_bundle = table_bundle_from_block(first_table)
 
             if len(merged) > self.chunk_size:
-                for idx, sub in enumerate(self.text_splitter.split_text(merged)):
+                split_parts = [sub for sub in self.text_splitter.split_text(merged) if sub.strip()]
+                propagate_headers = has_table and len(split_parts) > 1
+                for idx, sub in enumerate(split_parts):
                     if not sub.strip():
                         continue
                     result.append(
@@ -1015,6 +1476,14 @@ class FinancialParser:
                             "table_context": table_context if idx == 0 else None,
                             "local_heading": local_heading,
                             "table_view": "text_split",
+                            **(
+                                table_bundle_from_block(
+                                    first_table,
+                                    header_propagated=(propagate_headers and idx > 0),
+                                )
+                                if has_table
+                                else {}
+                            ),
                         }
                     )
             else:
@@ -1025,6 +1494,7 @@ class FinancialParser:
                         "table_context": table_context,
                         "local_heading": local_heading,
                         "table_view": "full" if has_table else None,
+                        **table_bundle,
                     }
                 )
 
@@ -1050,8 +1520,10 @@ class FinancialParser:
 
             if block_type == "table" and len(text) >= standalone_threshold:
                 flush_pending()
+                table_chunks = self._split_table_for_chunks(text)
+                propagate_headers = len(table_chunks) > 1
                 if len(text) > self.chunk_size:
-                    for idx, table_chunk in enumerate(self._split_table_for_chunks(text)):
+                    for idx, table_chunk in enumerate(table_chunks):
                         result.append(
                             {
                                 "text": table_chunk["text"],
@@ -1059,6 +1531,10 @@ class FinancialParser:
                                 "table_context": block["table_context"] if idx == 0 else None,
                                 "local_heading": block.get("local_heading"),
                                 "table_view": table_chunk["table_view"],
+                                **table_bundle_from_block(
+                                    block,
+                                    header_propagated=(propagate_headers and idx > 0),
+                                ),
                             }
                         )
                 else:
@@ -1069,6 +1545,7 @@ class FinancialParser:
                             "table_context": block["table_context"],
                             "local_heading": block.get("local_heading"),
                             "table_view": "full",
+                            **table_bundle_from_block(block),
                         }
                     )
             else:
@@ -1118,7 +1595,38 @@ class FinancialParser:
 
             path_titles = self._build_section_path(section, title_text)
             section_path = " > ".join(path_titles)
-            blocks = self._collect_blocks(section, section_path)
+            section_started_at = time.perf_counter()
+            fallback_used = False
+            parse_mode = "structured" if _is_structured_section(section_path) else "plain"
+            deadline_monotonic = None
+            if self.section_parse_budget_sec > 0:
+                deadline_monotonic = section_started_at + self.section_parse_budget_sec
+            try:
+                blocks = self._collect_blocks(
+                    section,
+                    section_path,
+                    deadline_monotonic=deadline_monotonic,
+                    timeout_label=section_path,
+                )
+            except SectionParseTimeout as exc:
+                fallback_used = True
+                logger.warning(
+                    "Section parse budget exceeded; retrying with plain fallback [%s] stage=%s elapsed=%.3fs",
+                    section_path,
+                    exc.stage,
+                    exc.elapsed_sec,
+                )
+                blocks = self._collect_blocks(section, section_path, structured_override=False)
+                parse_mode = "plain_fallback"
+            section_elapsed_sec = time.perf_counter() - section_started_at
+            if section_elapsed_sec >= self.section_warn_sec:
+                logger.info(
+                    "Section parse timing [%s] mode=%s blocks=%s elapsed=%.3fs",
+                    section_path,
+                    parse_mode,
+                    len(blocks),
+                    section_elapsed_sec,
+                )
             if not blocks:
                 continue
             sections.append(
@@ -1127,6 +1635,9 @@ class FinancialParser:
                     "path_titles": path_titles,
                     "path": section_path,
                     "blocks": blocks,
+                    "parse_mode": parse_mode,
+                    "parse_sec": section_elapsed_sec,
+                    "fallback_used": fallback_used,
                 }
             )
 
@@ -1225,6 +1736,8 @@ class FinancialParser:
                 block_type = chunk_block["block_type"]
                 rcept_no = source_metadata.get("rcept_no", "unknown")
                 parent_id = f"{rcept_no}::{section['path']}"
+                table_header_context = chunk_block.get("table_header_context")
+                period_labels = list(chunk_block.get("period_labels") or [])
                 metadata: Dict[str, Any] = {
                     **source_metadata,
                     "section": refined_label,
@@ -1238,8 +1751,27 @@ class FinancialParser:
                     "block_type": block_type,
                     "table_context": chunk_block.get("table_context"),
                     "table_view": chunk_block.get("table_view"),
+                    "table_source_id": chunk_block.get("table_source_id"),
+                    "table_header_context": table_header_context,
+                    "table_summary_text": chunk_block.get("table_summary_text"),
+                    "table_row_labels_text": chunk_block.get("table_row_labels_text"),
+                    "table_row_records_json": chunk_block.get("table_row_records_json"),
+                    "table_row_count": chunk_block.get("table_row_count"),
+                    "table_column_count": chunk_block.get("table_column_count"),
+                    "table_has_spans": chunk_block.get("table_has_spans", False),
+                    "header_propagated": chunk_block.get("header_propagated", False),
+                    "period_focus": chunk_block.get("period_focus") or _infer_period_focus([]),
+                    "unit_hint": chunk_block.get("unit_hint") or _infer_unit_hint(
+                        "\n".join(part for part in (section["path"], table_header_context or "") if part)
+                    ),
+                    "statement_type": chunk_block.get("statement_type")
+                    or _infer_statement_type(section["path"], table_header_context),
+                    "consolidation_scope": chunk_block.get("consolidation_scope")
+                    or _infer_consolidation_scope(section["path"], table_header_context),
                     "parent_id": parent_id,
                 }
+                if period_labels:
+                    metadata["period_labels"] = period_labels
                 reference_paths = _extract_reference_section_paths(chunk_block["text"], reference_index)
                 if reference_paths:
                     metadata["reference_section_paths"] = reference_paths

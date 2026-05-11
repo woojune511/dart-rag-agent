@@ -12,6 +12,18 @@
 | 지금 하지 않을 것 | local patch deep dive, cosmetic retrieval tuning, evaluator gaming |
 | 다음 큰 순서 | `dataset path migration -> parser regression check -> LLM critic -> orchestrator/researcher quality pass -> agentic self-reflection -> cross-company` |
 
+## Immediate Focus Update
+
+- curated dataset 연결과 parser baseline regression은 1차 기준선까지는 지나갔다.
+- 현재 가장 가까운 구현 초점은 **semantic numeric planner + table-aware grounding** 이다.
+  - ontology 기반으로 필요한 operand와 scope를 먼저 계획
+  - retrieval 이후 reconciliation으로 부족 operand를 점검
+  - parser가 만든 structured table row를 direct operand 경로로 소비
+- 따라서 당장의 작업 순서는 아래처럼 본다.
+  1. structured table grounding coverage 확대
+  2. 더 많은 numeric question family에 대한 end-to-end 검증
+  3. 그 다음 LLM critic / orchestrator / researcher quality pass
+
 ## 현재 목표
 
 | 순서 | 구조 과제 | 현재 해석 |

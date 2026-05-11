@@ -6,6 +6,20 @@
 역사적 실험 기록과 누적 판단은 [DECISIONS.md](DECISIONS.md)를 본다.  
 남은 backlog와 다음 큰 구조 과제는 [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md)를 본다.
 
+## Latest Update
+
+- curated benchmark 경로는 전용 profile로 연결되었고, 무거운 contextual ingest와 분리된 service-style `plain` ingest 비교까지 마쳤다.
+- parser 작업은 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
+  - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
+  - `table_summary_text`, `table_row_labels_text`, `table_row_records_json` 전파
+  - structured row-aware reconciliation 추가
+- numeric question 경로에는 이제 아래가 들어간다.
+  - ontology 기반 pre-retrieval semantic planning
+  - post-retrieval reconciliation
+  - multi-metric 질문용 subtask loop / aggregation
+  - ready 상태 numeric subtask에 대한 direct `structured_row -> operand` 추출
+- 현재 다음 병목은 기본 parser 안정성이 아니라, 더 넓은 숫자형 질문군에 대해 structured table grounding을 확장하고 end-to-end 재검증 범위를 넓히는 것이다.
+
 ## Current Snapshot
 
 | 항목 | 현재 기준 |

@@ -1,6 +1,10 @@
+import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from lxml import etree
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -11,6 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.processing.financial_parser import (
     FinancialParser,
+    SectionParseTimeout,
     _classify_bracket_heading,
     _is_structured_section,
     _looks_like_local_heading,
@@ -236,6 +241,124 @@ class FinancialParserUtilityTests(unittest.TestCase):
         self.assertTrue(all(chunk["table_view"] == "row_window" for chunk in chunks))
         self.assertTrue(all(chunk["text"].startswith("1. 분할방법 | ") for chunk in chunks))
         self.assertTrue(any("(2) 분할기일은 2020년 3월 31일로 하되" in chunk["text"] for chunk in chunks))
+
+    def test_table_chunking_propagates_header_metadata(self) -> None:
+        parser = FinancialParser(chunk_size=120, chunk_overlap=20)
+        rows = ["구분 | 2023년 | 2022년 | 단위: 백만원"]
+        rows.extend(f"계정과목{i} | {100 + i} | {90 + i} | " for i in range(1, 10))
+        table_text = "\n".join(rows)
+
+        chunk_blocks = parser._chunk_blocks(
+            [
+                {
+                    "text": table_text,
+                    "type": "table",
+                    "local_heading": "재무상태표",
+                    "table_context": "요약 재무상태표",
+                    "table_source_id": "section::table:1",
+                    "table_header_context": "구분 | 2023년 | 2022년 | 단위: 백만원",
+                    "period_labels": ["2023", "2022"],
+                    "period_focus": "multi_period",
+                    "unit_hint": "백만원",
+                    "statement_type": "balance_sheet",
+                    "consolidation_scope": "unknown",
+                    "header_propagated": False,
+                }
+            ],
+            "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-1. 연결 재무상태표",
+        )
+
+        self.assertGreater(len(chunk_blocks), 1)
+        self.assertTrue(all(block["table_source_id"] == "section::table:1" for block in chunk_blocks))
+        self.assertTrue(
+            all(block["table_header_context"] == "구분 | 2023년 | 2022년 | 단위: 백만원" for block in chunk_blocks)
+        )
+        self.assertTrue(all(block["period_labels"] == ["2023", "2022"] for block in chunk_blocks))
+        self.assertTrue(all(block["unit_hint"] == "백만원" for block in chunk_blocks))
+        self.assertTrue(any(block["header_propagated"] for block in chunk_blocks[1:]))
+
+
+    def test_table_format_normalizes_merged_cells(self) -> None:
+        parser = FinancialParser()
+        table = etree.fromstring(
+            """
+            <TABLE>
+              <TR>
+                <TH ROWSPAN="2">구분</TH>
+                <TH COLSPAN="2">2023</TH>
+              </TR>
+              <TR>
+                <TH>1Q</TH>
+                <TH>2Q</TH>
+              </TR>
+              <TR>
+                <TD ROWSPAN="2">매출액</TD>
+                <TD>10</TD>
+                <TD>20</TD>
+              </TR>
+              <TR>
+                <TD>11</TD>
+                <TD>21</TD>
+              </TR>
+            </TABLE>
+            """
+        )
+
+        table_object = parser._build_table_object(table)
+        table_text = table_object["table_text"]
+        bundle = parser._build_table_context_bundle(
+            table_text,
+            "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-1. 연결 재무상태표",
+            "section::table:merged",
+            local_heading="연결 재무상태표",
+            table_object=table_object,
+        )
+
+        self.assertIn("구분 | 2023 | 2023", table_text)
+        self.assertIn("구분 | 1Q | 2Q", table_text)
+        self.assertIn("매출액 | 10 | 20", table_text)
+        self.assertIn("매출액 | 11 | 21", table_text)
+        self.assertTrue(table_object["has_spans"])
+        self.assertIn("매출액", bundle["table_row_labels_text"])
+        self.assertTrue(bundle["table_has_spans"])
+        row_records = json.loads(bundle["table_row_records_json"])
+        sales_row = next(record for record in row_records if record["row_label"] == "매출액")
+        self.assertEqual(sales_row["cells"][0]["column_headers"], ["2023", "1Q"])
+        self.assertEqual(sales_row["cells"][0]["value_text"], "10")
+
+    def test_extract_sections_falls_back_to_plain_mode_after_timeout(self) -> None:
+        root = etree.fromstring(
+            """
+            <DOCUMENT>
+              <SECTION-1>
+                <TITLE ATOC="Y">III. 재무에 관한 사항</TITLE>
+                <P><SPAN USERMARK=" B">(1) 재무정보 이용상의 유의점</SPAN>본문 설명</P>
+              </SECTION-1>
+            </DOCUMENT>
+            """
+        )
+        parser = FinancialParser(section_warn_sec=0.0, section_parse_budget_sec=0.001)
+        original_collect_blocks = parser._collect_blocks
+
+        def fake_collect_blocks(section_elem, section_path, *, structured_override=None, deadline_monotonic=None, timeout_label=None):
+            if structured_override is None:
+                raise SectionParseTimeout(section_path, "paragraph:parsed", 0.25)
+            return original_collect_blocks(
+                section_elem,
+                section_path,
+                structured_override=structured_override,
+                deadline_monotonic=deadline_monotonic,
+                timeout_label=timeout_label,
+            )
+
+        with patch.object(parser, "_collect_blocks", side_effect=fake_collect_blocks):
+            sections = parser._extract_sections(root)
+
+        self.assertEqual(len(sections), 1)
+        self.assertTrue(sections[0]["fallback_used"])
+        self.assertEqual(sections[0]["parse_mode"], "plain_fallback")
+        self.assertGreaterEqual(sections[0]["parse_sec"], 0.0)
+        self.assertTrue(sections[0]["blocks"])
 
 
 if __name__ == "__main__":
