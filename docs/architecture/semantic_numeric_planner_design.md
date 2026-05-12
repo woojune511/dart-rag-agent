@@ -26,6 +26,22 @@ This design is meant to reduce:
 - Do not hard-reject every metadata mismatch; allow controlled fallback for `unknown`.
 
 
+## Runtime Schema Direction
+
+Within the DART-only scope, the internal source of truth should gradually move from scattered `calculation_*` fields toward:
+
+- `tasks`
+- `artifacts`
+- parser-emitted `table_object` / `row_record` / `cell_record`
+
+Current implementation status:
+- parser now emits `table_object_json` and `table_row_records_json`
+- runtime state now includes `tasks` and `artifacts`
+- semantic planning, reconciliation, operand extraction, calculation planning, calculation execution, and aggregation emit first-pass artifact records
+- legacy `calculation_*` fields still remain for evaluator compatibility and should be treated as derived runtime views, not the long-term canonical schema
+- current scope remains DART-only; this schema work is meant to close the disclosure-analysis loop cleanly before any broader agent generalization
+
+
 ## End-to-end Flow
 
 ```mermaid

@@ -1,9 +1,25 @@
-- 회사 앞에 있는 정정 사항 같은 것도 파악해야 하는 경우 있음
-- 구조 파악이 바뀌었으니 청킹부터 다시?
-- 2-1, 가-1 등 파싱
-- 괄호 2개, 괄호 1개 등 순서 안 맞는 경우
-- 표 처리 -> 이거는 행이나 열이 병합된 케이스만 잘 처리할 수 있다면 그냥 코드로 처리하는 게 나을 거 같은데?
-- 상위 section 인식
-- 질문에 대한 정보를 잘 찾기 위한 reformulation, paraphrasing
-- ontology 점검
-- prompt 점검
+- DART 범위 안에서 먼저 끝낸다. 범용 agent/tool 확장은 하지 않는다.
+
+- 지금 기준 코어 구조
+  - parser -> table_object / row_record / cell_record
+  - pre-retrieval semantic planner
+  - post-retrieval reconciliation
+  - structured_row -> operand direct path
+  - subtask loop / aggregation
+
+- 직후에 할 일
+  - artifacts/tasks를 source of truth로 더 강하게 쓰기
+  - legacy calculation_*는 projection으로 내리기
+  - structured table grounding coverage를 더 넓은 numeric family로 확장
+  - multi-subtask trace와 final answer가 같이 맞는지 end-to-end 확인
+  - 그 다음 DART multi-document reasoning
+
+- parser 쪽 메모
+  - 상위 section 인식 계속 중요
+  - 2-1, 가-1 같은 형식 / 괄호 depth 불안정한 케이스 계속 주의
+  - 표는 병합 셀을 포함해 코드로 canonical grid로 푸는 방향 유지
+
+- retrieval / planning 쪽 메모
+  - 질문에 필요한 정보를 잘 찾기 위한 reformulation / paraphrasing 필요
+  - ontology는 DART / financial concept의 느슨한 canonical layer로 유지
+  - prompt는 metric family / operand / scope를 구조화해서 뽑는 방향으로 최소화

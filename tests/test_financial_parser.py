@@ -1,4 +1,4 @@
-import json
+﻿import json
 import sys
 import unittest
 from pathlib import Path
@@ -325,6 +325,9 @@ class FinancialParserUtilityTests(unittest.TestCase):
         sales_row = next(record for record in row_records if record["row_label"] == "매출액")
         self.assertEqual(sales_row["cells"][0]["column_headers"], ["2023", "1Q"])
         self.assertEqual(sales_row["cells"][0]["value_text"], "10")
+        table_payload = json.loads(bundle["table_object_json"])
+        self.assertEqual(table_payload["table_id"], "section::table:merged")
+        self.assertEqual(table_payload["rows"][0]["row_label"], sales_row["row_label"])
 
     def test_extract_sections_falls_back_to_plain_mode_after_timeout(self) -> None:
         root = etree.fromstring(

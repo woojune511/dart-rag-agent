@@ -20,6 +20,7 @@ from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
 from src.config import get_financial_ontology
 from src.routing import QueryRouter, default_format_preference
+from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -144,6 +145,8 @@ class FinancialAgentState(TypedDict):
     subtask_debug_trace: Dict[str, Any]
     subtask_loop_complete: bool
     reconciliation_result: Dict[str, Any]
+    tasks: List[Dict[str, Any]]
+    artifacts: List[Dict[str, Any]]
 
 
 class EntityExtraction(BaseModel):
@@ -393,6 +396,81 @@ class SemanticPlan(BaseModel):
     fallback_to_general_search: bool = Field(default=False)
     tasks: List[RetrievalTask] = Field(default_factory=list)
     planner_notes: List[str] = Field(default_factory=list)
+
+
+def _append_artifact(
+    artifact_list: List[Dict[str, Any]],
+    *,
+    artifact_id: str,
+    task_id: str,
+    kind: ArtifactKind,
+    status: str = "ok",
+    summary: str = "",
+    payload: Optional[Dict[str, Any]] = None,
+    evidence_refs: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    updated = [dict(item) for item in (artifact_list or [])]
+    updated.append(
+        ArtifactRecord(
+            artifact_id=artifact_id,
+            task_id=task_id,
+            kind=kind,
+            status=status,
+            summary=summary,
+            payload=dict(payload or {}),
+            evidence_refs=[str(value) for value in (evidence_refs or []) if str(value).strip()],
+        ).model_dump(mode="json")
+    )
+    return updated
+
+
+def _upsert_task(
+    task_list: List[Dict[str, Any]],
+    *,
+    task_id: str,
+    kind: TaskKind,
+    label: str,
+    status: TaskStatus,
+    query: str = "",
+    metric_family: str = "",
+    constraints: Optional[Dict[str, Any]] = None,
+    artifact_id: Optional[str] = None,
+    notes: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    updated = [dict(item) for item in (task_list or [])]
+    for index, item in enumerate(updated):
+        if str(item.get("task_id") or "") != task_id:
+            continue
+        artifact_ids = list(item.get("artifact_ids") or [])
+        if artifact_id and artifact_id not in artifact_ids:
+            artifact_ids.append(artifact_id)
+        updated[index] = TaskRecord(
+            task_id=task_id,
+            kind=kind,
+            label=label,
+            status=status,
+            query=query or str(item.get("query") or ""),
+            metric_family=metric_family or str(item.get("metric_family") or ""),
+            constraints=dict(constraints or item.get("constraints") or {}),
+            artifact_ids=artifact_ids,
+            notes=list(notes or item.get("notes") or []),
+        ).model_dump(mode="json")
+        return updated
+
+    updated.append(
+        TaskRecord(
+            task_id=task_id,
+            kind=kind,
+            label=label,
+            status=status,
+            query=query,
+            metric_family=metric_family,
+            constraints=dict(constraints or {}),
+            artifact_ids=[artifact_id] if artifact_id else [],
+            notes=list(notes or []),
+        ).model_dump(mode="json")
+    )
+    return updated
 
 
 def _parse_number_text(text: str) -> Optional[float]:
@@ -1545,6 +1623,8 @@ class FinancialAgent:
                 "subtask_results": [],
                 "subtask_debug_trace": {"reason": "non_numeric_intent"},
                 "subtask_loop_complete": False,
+                "tasks": list(state.get("tasks") or []),
+                "artifacts": list(state.get("artifacts") or []),
             }
 
         plan = _build_semantic_numeric_plan(
@@ -1560,6 +1640,30 @@ class FinancialAgent:
             retrieval_queries.extend(str(item).strip() for item in (task.get("retrieval_queries") or []) if str(item).strip())
         retrieval_queries = list(dict.fromkeys(item for item in retrieval_queries if item))
         active_subtask = dict(tasks[0]) if tasks else {}
+        task_records = list(state.get("tasks") or [])
+        artifacts = list(state.get("artifacts") or [])
+        semantic_artifact_id = f"semantic_plan:{len(artifacts) + 1:03d}"
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=semantic_artifact_id,
+            task_id=str(active_subtask.get("task_id") or "semantic_plan"),
+            kind=ArtifactKind.SEMANTIC_PLAN,
+            status=str(plan.get("status") or "ok"),
+            summary=f"planned {len(tasks)} numeric task(s)",
+            payload={"semantic_plan": plan, "retrieval_queries": retrieval_queries},
+        )
+        for task in tasks:
+            task_records = _upsert_task(
+                task_records,
+                task_id=str(task.get("task_id") or ""),
+                kind=TaskKind.CALCULATION,
+                label=str(task.get("metric_label") or task.get("metric_family") or "calculation"),
+                status=TaskStatus.PENDING,
+                query=str(task.get("query") or ""),
+                metric_family=str(task.get("metric_family") or ""),
+                constraints=dict(task.get("constraints") or {}),
+                artifact_id=semantic_artifact_id,
+            )
         logger.info(
             "[semantic_plan] status=%s tasks=%s retrieval_queries=%s",
             plan.get("status"),
@@ -1579,6 +1683,8 @@ class FinancialAgent:
                 "planner_notes": list(plan.get("planner_notes") or []),
             },
             "subtask_loop_complete": False,
+            "tasks": task_records,
+            "artifacts": artifacts,
         }
 
     def _calc_query(self, state: FinancialAgentState) -> str:
@@ -1858,8 +1964,41 @@ class FinancialAgent:
             len(result.get("missing_operands") or []),
             retry_count,
         )
+        artifacts = list(state.get("artifacts") or [])
+        tasks = list(state.get("tasks") or [])
+        task_id = str(active_subtask.get("task_id") or "reconcile")
+        artifact_id = f"reconcile:{task_id}:{len(artifacts) + 1:03d}"
+        candidate_ids = [
+            str(match_id).strip()
+            for item in (result.get("matched_operands") or [])
+            for match_id in (item.get("candidate_ids") or [])
+            if str(match_id).strip()
+        ]
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=artifact_id,
+            task_id=task_id,
+            kind=ArtifactKind.RECONCILIATION_RESULT,
+            status=status,
+            summary=f"reconciliation={status}",
+            payload={"reconciliation_result": result},
+            evidence_refs=candidate_ids,
+        )
+        tasks = _upsert_task(
+            tasks,
+            task_id=task_id,
+            kind=TaskKind.RECONCILIATION,
+            label=f"reconcile {active_subtask.get('metric_label') or active_subtask.get('metric_family') or task_id}",
+            status=TaskStatus.COMPLETED if status == "ready" else TaskStatus.PARTIAL,
+            query=str(active_subtask.get("query") or ""),
+            metric_family=str(active_subtask.get("metric_family") or ""),
+            constraints=dict(active_subtask.get("constraints") or {}),
+            artifact_id=artifact_id,
+        )
         updates: Dict[str, Any] = {
             "reconciliation_result": result,
+            "tasks": tasks,
+            "artifacts": artifacts,
         }
         if status == "retry_retrieval":
             updates.update(
@@ -3924,6 +4063,30 @@ Structured Evidence:
             not required_operands or len(direct_structured_rows) >= len(required_operands)
         ):
             logger.info("[calc_operands] structured-row direct operands=%s", len(direct_structured_rows))
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str(active_subtask.get("task_id") or "calc")
+            artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.OPERAND_SET,
+                status="ok",
+                summary=f"{len(direct_structured_rows)} structured operand(s)",
+                payload={"calculation_operands": direct_structured_rows, "source": "structured_row_direct"},
+                evidence_refs=[str(row.get("evidence_id") or "") for row in direct_structured_rows if str(row.get("evidence_id") or "").strip()],
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.CALCULATION,
+                label=str(active_subtask.get("metric_label") or task_id),
+                status=TaskStatus.IN_PROGRESS,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+                artifact_id=artifact_id,
+            )
             return {
                 "calculation_operands": direct_structured_rows,
                 "calculation_debug_trace": {
@@ -3931,6 +4094,8 @@ Structured Evidence:
                     "source": "structured_row_direct",
                     "operands": direct_structured_rows,
                 },
+                "tasks": tasks,
+                "artifacts": artifacts,
             }
         should_augment_with_docs = (
             bool(retrieved_docs or seed_retrieved_docs)
@@ -4050,12 +4215,38 @@ Structured Evidence:
                 ]
                 logger.info("[calc_operands] percent-diff operand filtering retained=%s", len(operand_rows))
             logger.info("[calc_operands] coverage=%s operands=%s", extracted.coverage, len(operand_rows))
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str(active_subtask.get("task_id") or "calc")
+            artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.OPERAND_SET,
+                status=str(extracted.coverage),
+                summary=f"{len(operand_rows)} operand(s) from llm/fallback extraction",
+                payload={"calculation_operands": operand_rows, "coverage": extracted.coverage},
+                evidence_refs=[str(row.get("evidence_id") or "") for row in operand_rows if str(row.get("evidence_id") or "").strip()],
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.CALCULATION,
+                label=str(active_subtask.get("metric_label") or task_id),
+                status=TaskStatus.IN_PROGRESS,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+                artifact_id=artifact_id,
+            )
             return {
                 "calculation_operands": operand_rows,
                 "calculation_debug_trace": {
                     "coverage": extracted.coverage,
                     "operands": operand_rows,
                 },
+                "tasks": tasks,
+                "artifacts": artifacts,
             }
         except Exception as exc:
             logger.warning("[calc_operands] structured output failed: %s", exc)
@@ -4206,6 +4397,29 @@ Ontology Context:
             if _should_coerce_percent_point_unit(query_text, operands, plan_data):
                 plan_data["result_unit"] = "%p"
             logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
+            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_PLAN,
+                status=str(plan_data.get("status") or "ok"),
+                summary=f"mode={plan_data.get('mode')} op={plan_data.get('operation')}",
+                payload={"calculation_plan": plan_data},
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.CALCULATION,
+                label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
+                status=TaskStatus.IN_PROGRESS,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+                artifact_id=artifact_id,
+            )
             return {
                 "calculation_plan": plan_data,
                 "missing_info": [str(item).strip() for item in (plan_data.get("missing_info") or []) if str(item).strip()],
@@ -4215,6 +4429,8 @@ Ontology Context:
                     "guard_applied": False,
                     "raw_plan": plan_data,
                 },
+                "tasks": tasks,
+                "artifacts": artifacts,
             }
         except Exception as exc:
             logger.warning("[formula_plan] structured output failed: %s", exc)
@@ -4434,7 +4650,7 @@ Ontology Context:
                 }
             )
         logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
-        return {
+        result_payload = {
             "answer": "",
             "compressed_answer": "",
             "selected_claim_ids": selected_evidence_ids,
@@ -4457,6 +4673,34 @@ Ontology Context:
                 "explanation": explanation or str(plan.get("operation_text") or operation or mode),
             },
         }
+        artifacts = list(state.get("artifacts") or [])
+        tasks = list(state.get("tasks") or [])
+        task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
+        artifact_id = f"result:{task_id}:{len(artifacts) + 1:03d}"
+        calc_result = dict(result_payload.get("calculation_result") or {})
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=artifact_id,
+            task_id=task_id,
+            kind=ArtifactKind.CALCULATION_RESULT,
+            status=str(calc_result.get("status") or "ok"),
+            summary=str(calc_result.get("rendered_value") or calc_result.get("formatted_result") or ""),
+            payload={"calculation_result": calc_result},
+            evidence_refs=selected_evidence_ids,
+        )
+        tasks = _upsert_task(
+            tasks,
+            task_id=task_id,
+            kind=TaskKind.CALCULATION,
+            label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
+            status=TaskStatus.COMPLETED if str(calc_result.get("status") or "") == "ok" else TaskStatus.FAILED,
+            query=self._calc_query(state),
+            metric_family=self._calc_metric_family(state),
+            artifact_id=artifact_id,
+        )
+        result_payload["tasks"] = tasks
+        result_payload["artifacts"] = artifacts
+        return result_payload
 
     def _render_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         calculation_result = dict(state.get("calculation_result") or {})
@@ -4757,6 +5001,18 @@ Operands:
                 if str(claim_id).strip()
             )
         )
+        artifacts = list(state.get("artifacts") or [])
+        artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=artifact_id,
+            task_id="aggregate",
+            kind=ArtifactKind.AGGREGATED_ANSWER,
+            status="ok",
+            summary=final_answer[:200],
+            payload={"subtask_results": ordered_results, "final_answer": final_answer},
+            evidence_refs=selected_claim_ids,
+        )
         return {
             "subtask_results": ordered_results,
             "subtask_loop_complete": True,
@@ -4768,6 +5024,7 @@ Operands:
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
             "sentence_checks": [],
+            "artifacts": artifacts,
         }
 
     def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -5020,6 +5277,8 @@ Operands:
             "subtask_debug_trace": {},
             "subtask_loop_complete": False,
             "reconciliation_result": {},
+            "tasks": [],
+            "artifacts": [],
         }
         final = self.graph.invoke(initial)
         return {
@@ -5066,6 +5325,8 @@ Operands:
             "subtask_debug_trace": final.get("subtask_debug_trace", {}),
             "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
             "reconciliation_result": final.get("reconciliation_result", {}),
+            "tasks": final.get("tasks", []),
+            "artifacts": final.get("artifacts", []),
         }
 
     def ingest(self, chunks: List) -> None:

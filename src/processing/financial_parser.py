@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from lxml import etree
 from pydantic import BaseModel
+from src.schema import CellRecord, RowRecord, TableObject
 
 logger = logging.getLogger(__name__)
 
@@ -882,22 +883,23 @@ class FinancialParser:
                 if not value_text:
                     continue
                 cells.append(
-                    {
-                        "column_index": col_idx,
-                        "column_headers": list(column_headers[col_idx]),
-                        "value_text": value_text,
-                        "unit_hint": unit_hint,
-                    }
+                    CellRecord(
+                        cell_id=f"{table_object.get('row_count', 0)}:{row_idx}:{col_idx}",
+                        column_index=col_idx,
+                        column_headers=list(column_headers[col_idx]),
+                        value_text=value_text,
+                        unit_hint=unit_hint or "",
+                    ).model_dump()
                 )
             if not cells:
                 continue
             row_records.append(
-                {
-                    "row_id": f"{table_object.get('row_count', 0)}:{row_idx}",
-                    "row_label": row_label,
-                    "row_headers": [row_label],
-                    "cells": cells,
-                }
+                RowRecord(
+                    row_id=f"{table_object.get('row_count', 0)}:{row_idx}",
+                    row_label=row_label,
+                    row_headers=[row_label],
+                    cells=[CellRecord(**cell) for cell in cells],
+                ).model_dump()
             )
         return row_records
 
@@ -935,6 +937,7 @@ class FinancialParser:
         table_column_count = 0
         table_has_spans = False
         table_row_records_json = ""
+        table_object_json = ""
         if table_object:
             row_labels = list(table_object.get("row_labels") or [])
             row_labels_text = "\n".join(row_labels)
@@ -959,6 +962,26 @@ class FinancialParser:
             table_row_records = self._build_table_row_records(table_object, unit_hint)
             if table_row_records:
                 table_row_records_json = json.dumps(table_row_records, ensure_ascii=False)
+            header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
+            table_model = TableObject(
+                table_id=table_source_id,
+                source_section_path=section_path,
+                caption=local_heading or "",
+                statement_type=_infer_statement_type(section_path, header_context),
+                consolidation_scope=_infer_consolidation_scope(section_path, header_context),
+                unit_hint=unit_hint or "unknown",
+                period_labels=period_labels,
+                period_focus=_infer_period_focus(period_labels),
+                row_count=int(table_object.get("row_count") or 0),
+                column_count=int(table_object.get("column_count") or 0),
+                has_spans=bool(table_object.get("has_spans")),
+                header_rows=[list(row) for row in list(table_object.get("grid") or [])[:header_row_count]],
+                row_labels=row_labels,
+                rows=[RowRecord(**record) for record in table_row_records],
+                table_header_context=header_context or "",
+                table_summary_text=summary_text,
+            )
+            table_object_json = table_model.model_dump_json()
         return {
             "table_source_id": table_source_id,
             "table_header_context": header_context,
@@ -971,6 +994,7 @@ class FinancialParser:
             "table_summary_text": summary_text,
             "table_row_labels_text": row_labels_text,
             "table_row_records_json": table_row_records_json,
+            "table_object_json": table_object_json,
             "table_row_count": table_row_count,
             "table_column_count": table_column_count,
             "table_has_spans": table_has_spans,
@@ -1439,6 +1463,7 @@ class FinancialParser:
                 "table_summary_text": block.get("table_summary_text"),
                 "table_row_labels_text": block.get("table_row_labels_text"),
                 "table_row_records_json": block.get("table_row_records_json"),
+                "table_object_json": block.get("table_object_json"),
                 "table_row_count": block.get("table_row_count"),
                 "table_column_count": block.get("table_column_count"),
                 "table_has_spans": block.get("table_has_spans", False),
@@ -1756,6 +1781,7 @@ class FinancialParser:
                     "table_summary_text": chunk_block.get("table_summary_text"),
                     "table_row_labels_text": chunk_block.get("table_row_labels_text"),
                     "table_row_records_json": chunk_block.get("table_row_records_json"),
+                    "table_object_json": chunk_block.get("table_object_json"),
                     "table_row_count": chunk_block.get("table_row_count"),
                     "table_column_count": chunk_block.get("table_column_count"),
                     "table_has_spans": chunk_block.get("table_has_spans", False),
