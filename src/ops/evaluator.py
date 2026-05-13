@@ -18,6 +18,7 @@ import mlflow
 import numpy as np
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from schema.dart_schema import ArtifactKind
 from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 logger = logging.getLogger(__name__)
@@ -180,6 +181,216 @@ class EvalResult:
             self.citation_coverage,
         ]
         return sum(metrics) / len(metrics)
+
+
+def _extract_artifact_payload_value(artifact: Dict[str, Any], payload_key: str) -> Any:
+    payload = dict(artifact.get("payload") or {})
+    value = payload.get(payload_key)
+    if isinstance(value, list):
+        return [dict(item) if isinstance(item, dict) else item for item in value]
+    if isinstance(value, dict):
+        return dict(value)
+    return value
+
+
+def _find_task_record(tasks: List[Dict[str, Any]], task_id: str) -> Dict[str, Any]:
+    task_id = str(task_id or "").strip()
+    if not task_id:
+        return {}
+    for task in reversed(tasks):
+        if str(task.get("task_id") or "").strip() == task_id:
+            return dict(task)
+    return {}
+
+
+def _latest_artifact_value_for_task(
+    tasks: List[Dict[str, Any]],
+    artifacts: List[Dict[str, Any]],
+    *,
+    task_id: str,
+    kind: ArtifactKind,
+    payload_key: str,
+) -> Any:
+    kind_value = str(kind.value if hasattr(kind, "value") else kind)
+    task_record = _find_task_record(tasks, task_id)
+    artifact_ids = [
+        str(value).strip()
+        for value in (task_record.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+
+    for artifact_id in reversed(artifact_ids):
+        for artifact in reversed(artifacts):
+            if str(artifact.get("artifact_id") or "").strip() != artifact_id:
+                continue
+            if str(artifact.get("kind") or "") != kind_value:
+                continue
+            return _extract_artifact_payload_value(artifact, payload_key)
+
+    for artifact in reversed(artifacts):
+        if str(artifact.get("task_id") or "").strip() != str(task_id or "").strip():
+            continue
+        if str(artifact.get("kind") or "") != kind_value:
+            continue
+        return _extract_artifact_payload_value(artifact, payload_key)
+
+    return {} if payload_key.endswith("_result") or payload_key.endswith("_plan") else []
+
+
+def _project_task_trace_from_runtime(result: Dict[str, Any], task_id: str) -> Dict[str, Any]:
+    tasks = [dict(item) for item in (result.get("tasks") or [])]
+    artifacts = [dict(item) for item in (result.get("artifacts") or [])]
+    task_id = str(task_id or "").strip()
+
+    if not task_id or not tasks or not artifacts:
+        return {
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+    return {
+        "calculation_operands": list(
+            _latest_artifact_value_for_task(
+                tasks,
+                artifacts,
+                task_id=task_id,
+                kind=ArtifactKind.OPERAND_SET,
+                payload_key="calculation_operands",
+            )
+            or []
+        ),
+        "calculation_plan": dict(
+            _latest_artifact_value_for_task(
+                tasks,
+                artifacts,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_PLAN,
+                payload_key="calculation_plan",
+            )
+            or {}
+        ),
+        "calculation_result": dict(
+            _latest_artifact_value_for_task(
+                tasks,
+                artifacts,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_RESULT,
+                payload_key="calculation_result",
+            )
+            or {}
+        ),
+    }
+
+
+def _build_aggregate_calculation_projection(
+    subtask_results: List[Dict[str, Any]],
+    final_answer: str,
+) -> Dict[str, Any]:
+    aggregate_operands: List[Dict[str, Any]] = []
+    subtask_plans: List[Dict[str, Any]] = []
+    subtask_result_views: List[Dict[str, Any]] = []
+
+    for row in subtask_results:
+        task_id = str(row.get("task_id") or "").strip()
+        metric_family = str(row.get("metric_family") or "").strip()
+        metric_label = str(row.get("metric_label") or "").strip()
+
+        for operand in list(row.get("calculation_operands") or []):
+            operand_row = dict(operand)
+            operand_row.setdefault("task_id", task_id)
+            operand_row.setdefault("metric_family", metric_family)
+            operand_row.setdefault("metric_label", metric_label)
+            aggregate_operands.append(operand_row)
+
+        plan = dict(row.get("calculation_plan") or {})
+        if plan:
+            subtask_plans.append(
+                {
+                    "task_id": task_id,
+                    "metric_family": metric_family,
+                    "metric_label": metric_label,
+                    "calculation_plan": plan,
+                }
+            )
+
+        subtask_result_views.append(
+            {
+                "task_id": task_id,
+                "metric_family": metric_family,
+                "metric_label": metric_label,
+                "answer": str(row.get("answer") or "").strip(),
+                "status": str(row.get("status") or ""),
+                "calculation_result": dict(row.get("calculation_result") or {}),
+            }
+        )
+
+    all_ok = all(str(item.get("status") or "") == "ok" for item in subtask_result_views) if subtask_result_views else False
+    return {
+        "calculation_operands": aggregate_operands,
+        "calculation_plan": {
+            "status": "ok" if subtask_plans else "empty",
+            "mode": "aggregate_subtasks",
+            "subtask_count": len(subtask_result_views),
+            "subtasks": subtask_plans,
+        },
+        "calculation_result": {
+            "status": "ok" if all_ok else "partial",
+            "rendered_value": final_answer,
+            "formatted_result": final_answer,
+            "subtask_results": subtask_result_views,
+            "derived_metrics": {
+                "subtask_count": len(subtask_result_views),
+                "subtask_ids": [
+                    str(item.get("task_id") or "")
+                    for item in subtask_result_views
+                    if str(item.get("task_id") or "").strip()
+                ],
+            },
+        },
+    }
+
+
+def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
+    top_level = {
+        "calculation_operands": list(result.get("calculation_operands") or []),
+        "calculation_plan": dict(result.get("calculation_plan") or {}),
+        "calculation_result": dict(result.get("calculation_result") or {}),
+    }
+    subtask_results = [dict(item) for item in (result.get("subtask_results") or [])]
+
+    if subtask_results:
+        plan = top_level["calculation_plan"]
+        calc_result = top_level["calculation_result"]
+        if (
+            str(plan.get("mode") or "") == "aggregate_subtasks"
+            or bool(calc_result.get("subtask_results"))
+        ):
+            return top_level
+        final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
+        return _build_aggregate_calculation_projection(subtask_results, final_answer)
+
+    active_task_id = str((result.get("active_subtask") or {}).get("task_id") or "").strip()
+    if not active_task_id:
+        calc_task_ids = [
+            str(task.get("task_id") or "").strip()
+            for task in (result.get("tasks") or [])
+            if str(task.get("task_id") or "").strip()
+            and str(task.get("kind") or "") == "calculation"
+        ]
+        if len(calc_task_ids) == 1:
+            active_task_id = calc_task_ids[0]
+
+    if active_task_id:
+        projected = _project_task_trace_from_runtime(result, active_task_id)
+        if (
+            projected["calculation_operands"]
+            or projected["calculation_plan"]
+            or projected["calculation_result"]
+        ):
+            return projected
+
+    return top_level
 
 
 _FAITHFULNESS_PROMPT = """\
@@ -1816,9 +2027,10 @@ class RAGEvaluator:
             dropped_claim_ids = result.get("dropped_claim_ids", []) or []
             unsupported_sentences = result.get("unsupported_sentences", []) or []
             sentence_checks = result.get("sentence_checks", []) or []
-            calculation_operands = result.get("calculation_operands", []) or []
-            calculation_plan = result.get("calculation_plan", {}) or {}
-            calculation_result = result.get("calculation_result", {}) or {}
+            resolved_trace = _resolve_runtime_calculation_trace(result)
+            calculation_operands = resolved_trace.get("calculation_operands", []) or []
+            calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
+            calculation_result = resolved_trace.get("calculation_result", {}) or {}
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))

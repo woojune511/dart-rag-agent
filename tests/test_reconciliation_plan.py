@@ -14,6 +14,7 @@ from src.agent.financial_graph import (
     _build_table_row_reconciliation_candidates,
     _candidate_matches_operand,
     _deterministic_reconcile_task,
+    _score_operand_candidate,
 )
 
 
@@ -179,6 +180,156 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertEqual(candidate["candidate_kind"], "structured_row")
         self.assertEqual(candidate["metadata"].get("row_headers"), ["부채총계"])
         self.assertTrue(_candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+
+    def test_descriptor_structured_row_is_penalized_below_numeric_row(self) -> None:
+        operand = {"label": "단기차입금", "aliases": [], "required": True}
+        good_candidate = {
+            "candidate_id": "row_good",
+            "candidate_kind": "structured_row",
+            "text": "단기차입금 4,145,647",
+            "metadata": {
+                "row_label": "단기차입금",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023"],
+                "table_source_id": "table_001",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "4,145,647", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        bad_candidate = {
+            "candidate_id": "row_bad",
+            "candidate_kind": "structured_row",
+            "text": "하위범위 상위범위 범위 합계",
+            "metadata": {
+                "row_label": "하위범위",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023"],
+                "table_source_id": "table_001",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "하위범위", "unit_hint": ""},
+                    {"column_headers": ["2023"], "value_text": "상위범위", "unit_hint": ""},
+                ],
+            },
+        }
+
+        good_score = _score_operand_candidate(
+            good_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+        bad_score = _score_operand_candidate(
+            bad_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(good_score, bad_score)
+
+    def test_table_row_is_preferred_over_chunk_when_both_match(self) -> None:
+        operand = {"label": "유형자산", "aliases": [], "required": True}
+        table_row_candidate = {
+            "candidate_id": "row_001",
+            "candidate_kind": "table_row",
+            "text": "유형자산 | 52,704,853 | 60,228,584",
+            "metadata": {
+                "row_label": "유형자산",
+                "row_text": "유형자산 | 52,704,853 | 60,228,584",
+                "statement_type": "balance_sheet",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023", "2022"],
+                "table_source_id": "table_bs",
+            },
+        }
+        chunk_candidate = {
+            "candidate_id": "chunk_001",
+            "candidate_kind": "chunk",
+            "text": "유형자산은 전기 대비 감소하였습니다. 유형자산 52,704,853 ...",
+            "metadata": {
+                "statement_type": "mda",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023"],
+            },
+        }
+
+        row_score = _score_operand_candidate(
+            table_row_candidate,
+            operand=operand,
+            preferred_statement_types=["balance_sheet", "notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+        chunk_score = _score_operand_candidate(
+            chunk_candidate,
+            operand=operand,
+            preferred_statement_types=["balance_sheet", "notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(row_score, chunk_score)
+
+    def test_consolidated_summary_row_is_preferred_over_separate_summary_row_for_aggregate_metric(self) -> None:
+        operand = {"label": "유형자산", "aliases": [], "required": True}
+        consolidated_candidate = {
+            "candidate_id": "row_consolidated",
+            "candidate_kind": "structured_row",
+            "text": "ㆍ유형자산 제76기 52,704,853 제75기 60,228,528",
+            "metadata": {
+                "row_label": "ㆍ유형자산",
+                "row_headers": ["ㆍ유형자산"],
+                "statement_type": "summary_financials",
+                "consolidation_scope": "unknown",
+                "local_heading": "가. 요약연결재무정보",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                "period_labels": ["제76기", "제75기"],
+                "table_source_id": "table_consolidated",
+                "structured_cells": [
+                    {"column_headers": ["제76기"], "value_text": "52,704,853", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        separate_candidate = {
+            "candidate_id": "row_separate",
+            "candidate_kind": "structured_row",
+            "text": "ㆍ유형자산 제76기 38,974,277 제75기 43,151,324",
+            "metadata": {
+                "row_label": "ㆍ유형자산",
+                "row_headers": ["ㆍ유형자산"],
+                "statement_type": "summary_financials",
+                "consolidation_scope": "unknown",
+                "local_heading": "나. 요약 별도재무정보",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                "period_labels": ["제76기", "제75기"],
+                "table_source_id": "table_separate",
+                "structured_cells": [
+                    {"column_headers": ["제76기"], "value_text": "38,974,277", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        consolidated_score = _score_operand_candidate(
+            consolidated_candidate,
+            operand=operand,
+            preferred_statement_types=["balance_sheet", "summary_financials", "notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+        separate_score = _score_operand_candidate(
+            separate_candidate,
+            operand=operand,
+            preferred_statement_types=["balance_sheet", "summary_financials", "notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(consolidated_score, separate_score)
 
 
 if __name__ == "__main__":

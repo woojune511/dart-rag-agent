@@ -370,6 +370,7 @@ class OperandRequirement(BaseModel):
     aliases: List[str] = Field(default_factory=list, description="허용 가능한 동의어/대체 라벨")
     role: str = Field(default="", description="numerator, denominator 등 역할")
     required: bool = Field(default=True, description="반드시 필요한 피연산자인지 여부")
+    period_hint: str = Field(default="", description="특정 연도/기간 힌트가 있으면 기록")
 
 
 class TaskConstraints(BaseModel):
@@ -396,6 +397,14 @@ class SemanticPlan(BaseModel):
     fallback_to_general_search: bool = Field(default=False)
     tasks: List[RetrievalTask] = Field(default_factory=list)
     planner_notes: List[str] = Field(default_factory=list)
+
+
+class ReconciliationCandidateRerank(BaseModel):
+    ordered_candidate_ids: List[str] = Field(
+        default_factory=list,
+        description="질문과 operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬한 목록",
+    )
+    rationale: str = Field(default="", description="선택 이유를 간단히 설명")
 
 
 def _append_artifact(
@@ -681,6 +690,14 @@ def _is_ratio_percent_query(text: str) -> bool:
 def _desired_statement_types(query: str, topic: str) -> List[str]:
     text = _normalise_spaces(f"{query} {topic}")
     desired: List[str] = []
+    if "재무상태표" in text:
+        desired.extend(["balance_sheet", "summary_financials"])
+    if "손익계산서" in text or "포괄손익계산서" in text:
+        desired.extend(["income_statement", "summary_financials", "segment_note"])
+    if "현금흐름표" in text:
+        desired.extend(["cash_flow", "summary_financials"])
+    if "주석" in text:
+        desired.extend(["notes"])
     if any(keyword in text for keyword in ("부채비율", "유동비율", "자산총계", "부채총계", "자본총계", "유동자산", "유동부채")):
         desired.extend(["balance_sheet", "summary_financials"])
     if any(keyword in text for keyword in ("영업이익", "당기순이익", "순이익", "매출액", "매출원가", "판매비와관리비", "이익률", "ROE", "ROA")):
@@ -762,6 +779,299 @@ def _query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
     aliases.extend(metric.get("aliases", []) or [])
     aliases.extend(metric.get("intent_keywords", []) or [])
     return any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip())
+
+
+_QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“”‘’「」『』]+)['"“”‘’「」『』]""")
+_GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
+    re.compile(pattern)
+    for pattern in [
+        r"법인세비용차감전순(?:이익|손익)",
+        r"외화환산(?:이익|손실)",
+        r"순이자마진",
+        r"\bNIM\b",
+        r"무형자산상각비",
+        r"세액공제",
+        r"\bAMPC\b",
+        r"매출원가",
+        r"판매비와관리비",
+        r"매출액",
+        r"유형자산",
+        r"무형자산",
+        r"단기차입금",
+        r"장기차입금",
+        r"사채",
+        r"(?:차량|금융)\s*부문\s*영업이익",
+        r"전체\s*(?:연결\s*)?영업이익",
+        r"연결\s*영업이익",
+        r"영업손실",
+        r"영업이익",
+        r"유동자산",
+        r"유동부채",
+        r"부채총계",
+        r"자본총계",
+    ]
+]
+
+
+def _clean_metric_label(label: str) -> str:
+    text = _normalise_spaces(str(label or ""))
+    text = re.sub(r"^[0-9]{4}년\s*", "", text)
+    text = re.sub(r"(?:금액|수치|총액|규모|비중|비율|증감액|증감폭|순효과)\s*$", "", text).strip()
+    return text
+
+
+def _extract_quoted_metric_labels(query: str) -> List[str]:
+    labels: List[str] = []
+    for match in _QUOTED_METRIC_RE.finditer(str(query or "")):
+        cleaned = _clean_metric_label(match.group("label"))
+        if cleaned:
+            labels.append(cleaned)
+    return list(dict.fromkeys(labels))
+
+
+def _extract_generic_operand_labels(query: str) -> List[str]:
+    text = str(query or "")
+    labels: List[str] = []
+
+    if "유·무형자산" in text or "유/무형자산" in text:
+        labels.extend(["유형자산", "무형자산"])
+
+    labels.extend(_extract_quoted_metric_labels(text))
+
+    for pattern in _GENERIC_NUMERIC_OPERAND_PATTERNS:
+        for match in pattern.finditer(text):
+            cleaned = _clean_metric_label(match.group(0))
+            if cleaned:
+                labels.append(cleaned)
+
+    normalized = list(dict.fromkeys(label for label in labels if label))
+    if "영업이익" in normalized and any("부문 영업이익" in item for item in normalized):
+        normalized = [item for item in normalized if item != "영업이익"]
+    derived_labels = {"총 영업비용", "영업비용률", "순효과"}
+    normalized = [item for item in normalized if item not in derived_labels]
+    return normalized
+
+
+def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
+    text = _normalise_spaces(query)
+    comparison_markers = ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이")
+    if not any(marker in text for marker in comparison_markers):
+        return False
+    distinct = [label for label in operand_labels if label]
+    distinct = list(dict.fromkeys(distinct))
+    if len(distinct) <= 1:
+        return True
+    return False
+
+
+def _extract_year_tokens(query: str, report_scope: Dict[str, Any]) -> List[int]:
+    years: List[int] = []
+    for token in re.findall(r"(20\d{2})년", str(query or "")):
+        year = int(token)
+        if year not in years:
+            years.append(year)
+    scope_year_raw = report_scope.get("year")
+    try:
+        if scope_year_raw not in (None, ""):
+            scope_year = int(scope_year_raw)
+            if scope_year not in years:
+                years.insert(0, scope_year)
+    except (TypeError, ValueError):
+        pass
+    return years
+
+
+def _build_generic_metric_aliases(label: str) -> List[str]:
+    base = str(label or "").strip()
+    if not base:
+        return []
+    aliases = [base]
+    if "순이익" in base:
+        aliases.append(base.replace("순이익", "순손익"))
+    if "순손익" in base:
+        aliases.append(base.replace("순손익", "순이익"))
+    if "손익" in base:
+        aliases.append(base.replace("손익", "이익"))
+    if "이익" in base and "손익" not in base:
+        aliases.append(base.replace("이익", "손익"))
+    return list(dict.fromkeys(alias for alias in aliases if alias))
+
+
+def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]]:
+    text = _normalise_spaces(query)
+    statement_types = _desired_statement_types(query, query)
+    preferred_sections: List[str] = []
+    if "손익계산서" in text or "포괄손익계산서" in text:
+        preferred_sections.extend(["연결 손익계산서", "손익계산서", "포괄손익계산서"])
+    if "재무상태표" in text:
+        preferred_sections.extend(["연결 재무상태표", "재무상태표"])
+    if "현금흐름표" in text:
+        preferred_sections.extend(["현금흐름표", "현금흐름표 (연결)"])
+    if "주석" in text:
+        preferred_sections.extend(["연결재무제표 주석", "재무제표 주석"])
+        if "notes" not in statement_types:
+            statement_types.append("notes")
+    if any(keyword in text for keyword in ("부문", "segment", "세그먼트")):
+        preferred_sections.extend(["부문정보", "영업부문", "영업실적"])
+        if "segment_note" not in statement_types:
+            statement_types.append("segment_note")
+    if any(keyword in text for keyword in ("법인세비용차감전순이익", "법인세비용차감전순손익")):
+        preferred_sections.extend(["법인세비용", "연결 손익계산서", "포괄손익계산서"])
+        if "notes" not in statement_types:
+            statement_types.append("notes")
+        if "summary_financials" not in statement_types:
+            statement_types.append("summary_financials")
+    if any(keyword in text for keyword in ("외화환산이익", "외화환산손실", "환율 변동", "외화환산")):
+        preferred_sections.extend(["현금흐름표 (연결)", "현금흐름표", "금융손익 (연결)", "외화환산"])
+        if "cash_flow" not in statement_types:
+            statement_types.append("cash_flow")
+        if "notes" not in statement_types:
+            statement_types.append("notes")
+    if any(keyword in text for keyword in ("단기차입금", "장기차입금", "유동성장기차입금", "차입금", "사채")):
+        preferred_sections.extend(["차입금 및 사채", "단기차입금", "장기차입금", "사채", "연결재무제표 주석"])
+        if "notes" not in statement_types:
+            statement_types.append("notes")
+    return list(dict.fromkeys(statement_types)), list(dict.fromkeys(preferred_sections))
+
+
+def _build_generic_required_operands(
+    query: str,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    operand_labels = _extract_generic_operand_labels(query)
+    if _is_single_metric_period_comparison(query, operand_labels):
+        base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
+        aliases = _build_generic_metric_aliases(base_label)
+        year_tokens = _extract_year_tokens(query, report_scope)
+        if year_tokens:
+            current_year = year_tokens[0]
+            prior_year = year_tokens[1] if len(year_tokens) > 1 else current_year - 1
+            return [
+                {
+                    "label": f"{current_year}년 {base_label}",
+                    "aliases": aliases,
+                    "role": "current_period",
+                    "required": True,
+                    "period_hint": str(current_year),
+                },
+                {
+                    "label": f"{prior_year}년 {base_label}",
+                    "aliases": aliases,
+                    "role": "prior_period",
+                    "required": True,
+                    "period_hint": str(prior_year),
+                },
+            ]
+        return [
+            {
+                "label": f"당기 {base_label}",
+                "aliases": aliases,
+                "role": "current_period",
+                "required": True,
+                "period_hint": "당기",
+            },
+            {
+                "label": f"전기 {base_label}",
+                "aliases": aliases,
+                "role": "prior_period",
+                "required": True,
+                "period_hint": "전기",
+            },
+        ]
+
+    rows: List[Dict[str, Any]] = []
+    for label in operand_labels:
+        aliases = _build_generic_metric_aliases(label)
+        if label == "NIM":
+            aliases.append("순이자마진")
+        if label == "순이자마진":
+            aliases.append("NIM")
+        rows.append(
+            {
+                "label": label,
+                "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
+                "role": "",
+                "required": True,
+            }
+        )
+    return rows
+
+
+def _infer_generic_metric_label(query: str, topic: str) -> str:
+    quoted = _extract_quoted_metric_labels(query)
+    if len(quoted) == 1:
+        return quoted[0]
+    operand_labels = _extract_generic_operand_labels(query)
+    if operand_labels:
+        return operand_labels[0]
+    return _clean_metric_label(topic) or "수치 계산"
+
+
+def _build_generic_retrieval_queries(
+    query: str,
+    metric_label: str,
+    operand_specs: List[Dict[str, Any]],
+    preferred_sections: List[str],
+    report_scope: Dict[str, Any],
+) -> List[str]:
+    queries = [query]
+    year = str(report_scope.get("year") or "").strip()
+    year_prefix = f"{year}년 " if year else ""
+    if metric_label:
+        queries.append(_normalise_spaces(f"{year_prefix}{metric_label}"))
+        for section in preferred_sections[:4]:
+            queries.append(_normalise_spaces(f"{year_prefix}{metric_label} {section}"))
+    for operand in operand_specs:
+        label = str(operand.get("label") or "").strip()
+        if not label:
+            continue
+        queries.append(_normalise_spaces(f"{year_prefix}{label}"))
+        for alias in list(operand.get("aliases") or [])[:3]:
+            if str(alias).strip():
+                queries.append(_normalise_spaces(f"{year_prefix}{alias}"))
+                for section in preferred_sections[:2]:
+                    queries.append(_normalise_spaces(f"{year_prefix}{alias} {section}"))
+        for section in preferred_sections[:2]:
+            queries.append(_normalise_spaces(f"{year_prefix}{label} {section}"))
+    return list(dict.fromkeys(item for item in queries if item))
+
+
+def _build_heuristic_numeric_task(
+    *,
+    query: str,
+    topic: str,
+    intent: str,
+    report_scope: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    metric_label = _infer_generic_metric_label(query, topic)
+    operand_specs = _build_generic_required_operands(query, report_scope)
+    preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
+    constraints = {
+        "consolidation_scope": _desired_consolidation_scope(query, report_scope),
+        "period_focus": _infer_period_focus(query, "unknown"),
+        "entity_scope": "company",
+        "segment_scope": "segment" if "부문" in _normalise_spaces(query) else "none",
+    }
+    retrieval_queries = _build_generic_retrieval_queries(
+        query=query,
+        metric_label=metric_label,
+        operand_specs=operand_specs,
+        preferred_sections=preferred_sections,
+        report_scope=report_scope,
+    )
+    if not retrieval_queries:
+        return None
+    return {
+        "task_id": "task_1",
+        "metric_family": "generic_numeric",
+        "metric_label": metric_label,
+        "query": query,
+        "required_operands": operand_specs,
+        "preferred_statement_types": preferred_statement_types,
+        "preferred_sections": preferred_sections,
+        "retrieval_queries": retrieval_queries,
+        "constraints": constraints,
+    }
 
 
 def _infer_period_focus(query: str, default_value: str = "unknown") -> str:
@@ -853,19 +1163,40 @@ def _build_semantic_numeric_plan(
     ontology = get_financial_ontology()
     matches = ontology.match_metric_families(query, topic, intent)
     metric_keys: List[str] = []
+    planner_notes: List[str] = []
     if target_metric_family:
-        metric_keys.append(target_metric_family)
-    metric_keys.extend(str(item.get("key") or "").strip() for item in matches if str(item.get("key") or "").strip())
+        target_metric = ontology.metric_family(target_metric_family) or {}
+        if target_metric and _query_mentions_metric(query, target_metric):
+            metric_keys.append(target_metric_family)
+        else:
+            planner_notes.append(f"drop_weak_target:{target_metric_family}")
+    metric_keys.extend(
+        str(item.get("key") or "").strip()
+        for item in matches
+        if str(item.get("key") or "").strip() and _query_mentions_metric(query, item)
+    )
     metric_keys = list(dict.fromkeys(metric_keys))
 
     tasks: List[Dict[str, Any]] = []
-    planner_notes: List[str] = []
     if not metric_keys:
+        heuristic_task = _build_heuristic_numeric_task(
+            query=query,
+            topic=topic,
+            intent=intent,
+            report_scope=report_scope,
+        )
+        if heuristic_task:
+            return {
+                "status": "heuristic_fallback",
+                "fallback_to_general_search": False,
+                "tasks": [heuristic_task],
+                "planner_notes": planner_notes + ["heuristic_numeric_task"],
+            }
         return {
             "status": "fallback_general_search",
             "fallback_to_general_search": True,
             "tasks": [],
-            "planner_notes": ["ontology_match_missing"],
+            "planner_notes": planner_notes + ["ontology_match_missing"],
         }
 
     for index, metric_key in enumerate(metric_keys, start=1):
@@ -986,6 +1317,28 @@ def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], p
     return header_text
 
 
+def _operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> List[int]:
+    hint = str(operand.get("period_hint") or "").strip()
+    years: List[int] = []
+    for token in re.findall(r"20\d{2}", f"{hint} {operand.get('label') or ''}"):
+        year = int(token)
+        if year not in years:
+            years.append(year)
+    if years:
+        return years
+    return list(query_years or [])
+
+
+def _operand_period_focus(operand: Dict[str, Any], default_period_focus: str) -> str:
+    hint = str(operand.get("period_hint") or "").strip()
+    role = str(operand.get("role") or "").strip()
+    if hint in {"당기", "현재"} or role == "current_period":
+        return "current"
+    if hint in {"전기", "이전"} or role == "prior_period":
+        return "prior"
+    return default_period_focus
+
+
 def _score_structured_cell(
     cell: Dict[str, Any],
     *,
@@ -1024,13 +1377,39 @@ def _operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
     haystack = _normalise_spaces(text or "")
     if not haystack:
         return False
+    haystack_compact = re.sub(r"\s+", "", haystack)
     for needle in _operand_needles(operand):
         normalized_needle = _normalise_spaces(needle)
         if not normalized_needle:
             continue
-        if haystack == normalized_needle or normalized_needle in haystack:
+        needle_compact = re.sub(r"\s+", "", normalized_needle)
+        if (
+            haystack == normalized_needle
+            or normalized_needle in haystack
+            or (needle_compact and needle_compact in haystack_compact)
+        ):
             return True
     return False
+
+
+def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str:
+    normalized = _normalise_spaces(text or "")
+    if not normalized:
+        return ""
+    value_pattern = re.compile(r"[\d,]+(?:\s*조\s*[\d,]+\s*억(?:원)?)?|[\d,]+")
+    for needle in _operand_needles(operand):
+        compact = re.sub(r"\s+", "", _normalise_spaces(needle))
+        if not compact:
+            continue
+        spaced_pattern = r"\s*".join(re.escape(char) for char in compact)
+        match = re.search(spaced_pattern, normalized)
+        if not match:
+            continue
+        suffix = normalized[match.end() :]
+        value_match = value_pattern.search(suffix)
+        if value_match:
+            return _normalise_spaces(value_match.group(0))
+    return ""
 
 
 def _extract_table_row_label(row_text: str) -> str:
@@ -1042,6 +1421,41 @@ def _extract_table_row_label(row_text: str) -> str:
         if first_cell:
             return first_cell
     return normalized
+
+
+def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+    normalized_row = _normalise_spaces(str(row_text or ""))
+    if "|" not in normalized_row:
+        return []
+    row_parts = [part.strip() for part in normalized_row.split("|")]
+    row_parts = [part for part in row_parts if part]
+    if len(row_parts) <= 1:
+        return []
+
+    header_text = _normalise_spaces(str(metadata.get("table_header_context") or ""))
+    header_parts = [part.strip() for part in header_text.split("|") if part.strip()] if "|" in header_text else []
+    period_labels = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
+
+    value_parts = row_parts[1:]
+    header_candidates = header_parts[-len(value_parts):] if len(header_parts) >= len(value_parts) else []
+    if not header_candidates and len(period_labels) >= len(value_parts):
+        header_candidates = period_labels[-len(value_parts):]
+    if not header_candidates:
+        header_candidates = [f"col_{index}" for index in range(1, len(value_parts) + 1)]
+
+    cells: List[Dict[str, Any]] = []
+    for header, value in zip(header_candidates, value_parts):
+        raw_value = str(value).strip()
+        if not raw_value or not re.search(r"[0-9]", raw_value):
+            continue
+        cells.append(
+            {
+                "column_headers": [str(header).strip()] if str(header).strip() else [],
+                "value_text": raw_value,
+                "unit_hint": str(metadata.get("unit_hint") or "").strip(),
+            }
+        )
+    return cells
 
 
 def _build_table_row_reconciliation_candidates(
@@ -1138,13 +1552,77 @@ def _build_table_row_reconciliation_candidates(
                 candidate_id=f"{candidate_id_prefix}::row:{idx}",
                 anchor=anchor,
                 text=composite_text,
-                metadata=metadata,
+                metadata={**metadata, "row_text": row_text},
                 candidate_kind="table_row",
                 row_label=row_label,
                 row_index=idx,
             )
         )
     return candidates
+
+
+_NON_VALUE_ROW_LABELS = {
+    "범위",
+    "하위범위",
+    "상위범위",
+    "범위 합계",
+}
+
+_BALANCE_SHEET_AGGREGATE_LABELS = {
+    "자산총계",
+    "부채총계",
+    "자본총계",
+    "유동자산",
+    "비유동자산",
+    "유형자산",
+    "무형자산",
+    "유동부채",
+    "비유동부채",
+}
+
+
+def _candidate_has_numeric_value_signal(candidate: Dict[str, Any]) -> bool:
+    metadata = dict(candidate.get("metadata") or {})
+    structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+    if structured_cells:
+        for cell in structured_cells:
+            if re.search(r"\d", str(cell.get("value_text") or "")):
+                return True
+        return False
+
+    row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
+    if row_text and "|" in row_text:
+        parts = [part.strip() for part in row_text.split("|")[1:] if part.strip()]
+        return any(re.search(r"\d", part) for part in parts)
+
+    return bool(re.search(r"\d", str(candidate.get("text") or "")))
+
+
+def _candidate_is_descriptor_row(candidate: Dict[str, Any]) -> bool:
+    metadata = dict(candidate.get("metadata") or {})
+    row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
+    if row_label in _NON_VALUE_ROW_LABELS:
+        return True
+
+    structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+    if structured_cells and not any(re.search(r"\d", str(cell.get("value_text") or "")) for cell in structured_cells):
+        return True
+
+    row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
+    if row_text and "|" in row_text:
+        parts = [part.strip() for part in row_text.split("|")]
+        if parts and _normalise_spaces(parts[0]) in _NON_VALUE_ROW_LABELS:
+            numeric_parts = [part for part in parts[1:] if re.search(r"\d", part)]
+            if not numeric_parts:
+                return True
+
+    return False
+
+
+def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
+    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
+    needles.discard("")
+    return any(needle in _BALANCE_SHEET_AGGREGATE_LABELS for needle in needles)
 
 
 def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
@@ -1176,10 +1654,22 @@ def _score_operand_candidate(
             score += 3.0
         elif _operand_text_match(row_label, operand):
             score += 1.5
-    if str(candidate.get("candidate_kind") or "") == "structured_row":
-        score += 1.25
-    elif str(candidate.get("candidate_kind") or "") == "table_row":
-        score += 0.75
+    candidate_kind = str(candidate.get("candidate_kind") or "")
+    if candidate_kind == "structured_row":
+        score += 2.0
+    elif candidate_kind == "table_row":
+        score += 1.0
+    elif candidate_kind == "evidence_row":
+        score += 0.5
+    elif candidate_kind == "chunk":
+        score -= 0.25
+
+    if _candidate_has_numeric_value_signal(candidate):
+        score += 1.0
+
+    if _candidate_is_descriptor_row(candidate):
+        score -= 3.0
+
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
     if preferred_statement_types:
         if statement_type in preferred_statement_types:
@@ -1189,11 +1679,34 @@ def _score_operand_candidate(
 
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     candidate_consolidation = str(metadata.get("consolidation_scope") or "unknown").strip()
+    local_heading = _normalise_spaces(
+        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
+    )
     if desired_consolidation != "unknown":
         if candidate_consolidation == desired_consolidation:
             score += 2.0
         elif candidate_consolidation != "unknown":
             score -= 2.0
+        elif desired_consolidation == "consolidated":
+            if "연결" in local_heading:
+                score += 1.5
+            elif "별도" in local_heading:
+                score -= 1.5
+        elif desired_consolidation == "separate":
+            if "별도" in local_heading:
+                score += 1.5
+            elif "연결" in local_heading:
+                score -= 1.5
+
+    if _is_balance_sheet_aggregate_operand(operand):
+        if statement_type in {"summary_financials", "balance_sheet"}:
+            score += 1.5
+            if "연결" in local_heading:
+                score += 0.75
+            elif "별도" in local_heading:
+                score -= 0.75
+        elif statement_type == "notes":
+            score -= 0.5
 
     score += _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years) * 1.5
 
@@ -1428,6 +1941,26 @@ def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> 
     sections: List[str] = []
     sections.extend(get_financial_ontology().supplement_sections(query, topic, intent))
     return list(dict.fromkeys(sections))
+
+
+def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, intent: str) -> List[str]:
+    sections = [
+        str(item).strip()
+        for item in (dict(state.get("active_subtask") or {}).get("preferred_sections") or [])
+        if str(item).strip()
+    ]
+    sections.extend(_preferred_calc_sections(query, topic, intent))
+    return list(dict.fromkeys(sections))
+
+
+def _active_preferred_statement_types(state: Dict[str, Any], query: str, topic: str) -> List[str]:
+    types = [
+        str(item).strip()
+        for item in (dict(state.get("active_subtask") or {}).get("preferred_statement_types") or [])
+        if str(item).strip()
+    ]
+    types.extend(_desired_statement_types(query, topic))
+    return list(dict.fromkeys(types))
 
 
 def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
@@ -1704,12 +2237,218 @@ class FinancialAgent:
         active_subtask = dict(state.get("active_subtask") or {})
         return str(active_subtask.get("metric_family") or state.get("target_metric_family") or "")
 
+    def _find_task_record(self, state: FinancialAgentState, task_id: str) -> Dict[str, Any]:
+        task_id = str(task_id or "").strip()
+        if not task_id:
+            return {}
+        for task in reversed(list(state.get("tasks") or [])):
+            if str(task.get("task_id") or "").strip() == task_id:
+                return dict(task)
+        return {}
+
+    def _extract_artifact_payload_value(
+        self,
+        artifact: Dict[str, Any],
+        payload_key: str,
+    ) -> Any:
+        payload = dict(artifact.get("payload") or {})
+        value = payload.get(payload_key)
+        if isinstance(value, list):
+            return [dict(item) if isinstance(item, dict) else item for item in value]
+        if isinstance(value, dict):
+            return dict(value)
+        return value
+
+    def _latest_artifact_value_for_task(
+        self,
+        state: FinancialAgentState,
+        *,
+        task_id: str,
+        kind: ArtifactKind,
+        payload_key: str,
+    ) -> Any:
+        kind_value = str(kind.value if hasattr(kind, "value") else kind)
+        artifacts = [dict(item) for item in (state.get("artifacts") or [])]
+        task_record = self._find_task_record(state, task_id)
+        artifact_ids = [str(value).strip() for value in (task_record.get("artifact_ids") or []) if str(value).strip()]
+
+        for artifact_id in reversed(artifact_ids):
+            for artifact in reversed(artifacts):
+                if str(artifact.get("artifact_id") or "").strip() != artifact_id:
+                    continue
+                if str(artifact.get("kind") or "") != kind_value:
+                    continue
+                return self._extract_artifact_payload_value(artifact, payload_key)
+
+        for artifact in reversed(artifacts):
+            if str(artifact.get("task_id") or "").strip() != str(task_id or "").strip():
+                continue
+            if str(artifact.get("kind") or "") != kind_value:
+                continue
+            return self._extract_artifact_payload_value(artifact, payload_key)
+
+        return {} if payload_key.endswith("_result") or payload_key.endswith("_plan") else []
+
+    def _project_task_trace_from_ledger(
+        self,
+        state: FinancialAgentState,
+        task_id: str,
+    ) -> Dict[str, Any]:
+        task_id = str(task_id or "").strip()
+        active_task_id = str((state.get("active_subtask") or {}).get("task_id") or "").strip()
+        calculation_operands = self._latest_artifact_value_for_task(
+            state,
+            task_id=task_id,
+            kind=ArtifactKind.OPERAND_SET,
+            payload_key="calculation_operands",
+        )
+        calculation_plan = self._latest_artifact_value_for_task(
+            state,
+            task_id=task_id,
+            kind=ArtifactKind.CALCULATION_PLAN,
+            payload_key="calculation_plan",
+        )
+        calculation_result = self._latest_artifact_value_for_task(
+            state,
+            task_id=task_id,
+            kind=ArtifactKind.CALCULATION_RESULT,
+            payload_key="calculation_result",
+        )
+        reconciliation_result = self._latest_artifact_value_for_task(
+            state,
+            task_id=task_id,
+            kind=ArtifactKind.RECONCILIATION_RESULT,
+            payload_key="reconciliation_result",
+        )
+
+        if task_id == active_task_id:
+            if not calculation_operands:
+                calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
+            if not calculation_plan:
+                calculation_plan = dict(state.get("calculation_plan") or {})
+            if not calculation_result:
+                calculation_result = dict(state.get("calculation_result") or {})
+            if not reconciliation_result:
+                reconciliation_result = dict(state.get("reconciliation_result") or {})
+
+        task_record = self._find_task_record(state, task_id)
+        return {
+            "task_id": task_id,
+            "artifact_ids": [str(value).strip() for value in (task_record.get("artifact_ids") or []) if str(value).strip()],
+            "calculation_operands": list(calculation_operands or []),
+            "calculation_plan": dict(calculation_plan or {}),
+            "calculation_result": dict(calculation_result or {}),
+            "reconciliation_result": dict(reconciliation_result or {}),
+        }
+
+    def _build_aggregate_calculation_projection(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        final_answer: str,
+    ) -> Dict[str, Any]:
+        aggregate_operands: List[Dict[str, Any]] = []
+        subtask_plans: List[Dict[str, Any]] = []
+        subtask_result_views: List[Dict[str, Any]] = []
+
+        for row in ordered_results:
+            task_id = str(row.get("task_id") or "").strip()
+            metric_family = str(row.get("metric_family") or "").strip()
+            metric_label = str(row.get("metric_label") or "").strip()
+            for operand in list(row.get("calculation_operands") or []):
+                operand_row = dict(operand)
+                operand_row.setdefault("task_id", task_id)
+                operand_row.setdefault("metric_family", metric_family)
+                operand_row.setdefault("metric_label", metric_label)
+                aggregate_operands.append(operand_row)
+
+            plan = dict(row.get("calculation_plan") or {})
+            if plan:
+                subtask_plans.append(
+                    {
+                        "task_id": task_id,
+                        "metric_family": metric_family,
+                        "metric_label": metric_label,
+                        "calculation_plan": plan,
+                    }
+                )
+
+            subtask_result_views.append(
+                {
+                    "task_id": task_id,
+                    "metric_family": metric_family,
+                    "metric_label": metric_label,
+                    "answer": _normalise_spaces(str(row.get("answer") or "")),
+                    "status": str(row.get("status") or ""),
+                    "calculation_result": dict(row.get("calculation_result") or {}),
+                }
+            )
+
+        all_ok = all(str(item.get("status") or "") == "ok" for item in subtask_result_views) if subtask_result_views else False
+        calculation_plan = {
+            "status": "ok" if subtask_plans else "empty",
+            "mode": "aggregate_subtasks",
+            "subtask_count": len(subtask_result_views),
+            "subtasks": subtask_plans,
+        }
+        calculation_result = {
+            "status": "ok" if all_ok else "partial",
+            "rendered_value": final_answer,
+            "formatted_result": final_answer,
+            "subtask_results": subtask_result_views,
+            "derived_metrics": {
+                "subtask_count": len(subtask_result_views),
+                "subtask_ids": [str(item.get("task_id") or "") for item in subtask_result_views if str(item.get("task_id") or "").strip()],
+            },
+        }
+        return {
+            "calculation_operands": aggregate_operands,
+            "calculation_plan": calculation_plan,
+            "calculation_result": calculation_result,
+        }
+
+    def _project_legacy_calculation_fields(self, state: FinancialAgentState) -> Dict[str, Any]:
+        subtask_results = [dict(item) for item in (state.get("subtask_results") or [])]
+        if subtask_results and (
+            str((state.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks"
+            or bool((state.get("calculation_result") or {}).get("subtask_results"))
+        ):
+            return {
+                "calculation_operands": list(state.get("calculation_operands") or []),
+                "calculation_plan": dict(state.get("calculation_plan") or {}),
+                "calculation_result": dict(state.get("calculation_result") or {}),
+            }
+
+        if subtask_results:
+            final_answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
+            return self._build_aggregate_calculation_projection(subtask_results, final_answer)
+
+        active_task_id = str((state.get("active_subtask") or {}).get("task_id") or "").strip()
+        if active_task_id:
+            projected = self._project_task_trace_from_ledger(state, active_task_id)
+            return {
+                "calculation_operands": list(projected.get("calculation_operands") or []),
+                "calculation_plan": dict(projected.get("calculation_plan") or {}),
+                "calculation_result": dict(projected.get("calculation_result") or {}),
+            }
+
+        return {
+            "calculation_operands": list(state.get("calculation_operands") or []),
+            "calculation_plan": dict(state.get("calculation_plan") or {}),
+            "calculation_result": dict(state.get("calculation_result") or {}),
+        }
+
     def _capture_current_subtask_result(self, state: FinancialAgentState) -> Dict[str, Any]:
         active_subtask = dict(state.get("active_subtask") or {})
         if not active_subtask:
             return {}
-        calculation_result = dict(state.get("calculation_result") or {})
-        reconciliation_result = dict(state.get("reconciliation_result") or {})
+        projected = self._project_task_trace_from_ledger(
+            state,
+            str(active_subtask.get("task_id") or ""),
+        )
+        calculation_operands = list(projected.get("calculation_operands") or [])
+        calculation_plan = dict(projected.get("calculation_plan") or {})
+        calculation_result = dict(projected.get("calculation_result") or {})
+        reconciliation_result = dict(projected.get("reconciliation_result") or {})
         answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
         status = str(
             calculation_result.get("status")
@@ -1723,7 +2462,10 @@ class FinancialAgent:
             "query": str(active_subtask.get("query") or state["query"]),
             "answer": answer,
             "status": status,
+            "artifact_ids": list(projected.get("artifact_ids") or []),
             "selected_claim_ids": list(state.get("selected_claim_ids") or []),
+            "calculation_operands": calculation_operands,
+            "calculation_plan": calculation_plan,
             "calculation_result": calculation_result,
             "reconciliation_result": reconciliation_result,
         }
@@ -1792,7 +2534,7 @@ class FinancialAgent:
                         )
                         if part
                     ),
-                    metadata=dict(item.get("metadata") or {}),
+                    metadata={**dict(item.get("metadata") or {}), "row_text": raw_row_text},
                     candidate_kind="evidence_row",
                     row_label=_extract_table_row_label(raw_row_text),
                 )
@@ -1801,7 +2543,13 @@ class FinancialAgent:
                     seen.add(row_candidate_id)
                     candidates.append(row_candidate)
 
-        for index, (doc, _score) in enumerate(list(state.get("retrieved_docs", []) or []), start=1):
+        doc_stream: List[tuple[Any, Any]] = []
+        for item in list(state.get("retrieved_docs", []) or []):
+            doc_stream.append(item)
+        for item in list(state.get("seed_retrieved_docs", []) or []):
+            doc_stream.append(item)
+
+        for index, (doc, _score) in enumerate(doc_stream, start=1):
             metadata = dict(doc.metadata or {})
             anchor = self._build_source_anchor(metadata)
             candidate_id = str(metadata.get("chunk_uid") or f"doc_{index}")
@@ -1837,6 +2585,240 @@ class FinancialAgent:
                     seen.add(row_candidate_id)
                     candidates.append(row_candidate)
         return candidates
+
+    def _should_llm_rerank_candidates(
+        self,
+        scored_candidates: List[Dict[str, Any]],
+    ) -> bool:
+        if len(scored_candidates) < 2:
+            return False
+
+        top = scored_candidates[0]
+        second = scored_candidates[1]
+        top_candidate = dict(top.get("candidate") or {})
+        top_kind = str(top_candidate.get("candidate_kind") or "")
+        score_gap = float(top.get("score") or 0.0) - float(second.get("score") or 0.0)
+        top_kinds = {
+            str(item.get("candidate", {}).get("candidate_kind") or "")
+            for item in scored_candidates[:5]
+        }
+
+        if _candidate_is_descriptor_row(top_candidate):
+            return True
+        if top_kind == "chunk":
+            return True
+        if score_gap < 1.0:
+            return True
+        if "chunk" in top_kinds and any(
+            kind in {"structured_row", "table_row", "evidence_row"}
+            for kind in top_kinds
+        ):
+            return True
+        return False
+
+    def _llm_rerank_operand_candidates(
+        self,
+        *,
+        query: str,
+        operand: Dict[str, Any],
+        scored_candidates: List[Dict[str, Any]],
+    ) -> List[str]:
+        top_candidates = scored_candidates[: min(5, len(scored_candidates))]
+        if len(top_candidates) < 2:
+            return [
+                str(item.get("candidate", {}).get("candidate_id") or "").strip()
+                for item in top_candidates
+                if str(item.get("candidate", {}).get("candidate_id") or "").strip()
+            ]
+
+        option_lines: List[str] = []
+        allowed_ids: List[str] = []
+        for rank, item in enumerate(top_candidates, start=1):
+            candidate = dict(item.get("candidate") or {})
+            metadata = dict(candidate.get("metadata") or {})
+            candidate_id = str(candidate.get("candidate_id") or "").strip()
+            if not candidate_id:
+                continue
+            allowed_ids.append(candidate_id)
+            preview = _normalise_spaces(
+                str(metadata.get("row_text") or metadata.get("table_header_context") or candidate.get("text") or "")
+            )[:280]
+            option_lines.append(
+                "\n".join(
+                    [
+                        f"[candidate {rank}]",
+                        f"id: {candidate_id}",
+                        f"kind: {candidate.get('candidate_kind')}",
+                        f"section: {metadata.get('section_path') or metadata.get('section') or ''}",
+                        f"statement_type: {metadata.get('statement_type') or ''}",
+                        f"consolidation_scope: {metadata.get('consolidation_scope') or ''}",
+                        f"row_label: {metadata.get('row_label') or ''}",
+                        f"preview: {preview}",
+                    ]
+                )
+            )
+
+        if len(allowed_ids) < 2:
+            return allowed_ids
+
+        structured_llm = self.llm.with_structured_output(ReconciliationCandidateRerank)
+        prompt = ChatPromptTemplate.from_template(
+            """당신은 재무 계산 후보 재정렬기입니다.
+질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.
+
+우선순위:
+1. 직접 숫자 값이 있는 표 row
+2. 질문의 연결/별도, 기간, statement_type에 맞는 근거
+3. narrative paragraph보다 table row / structured row
+4. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.
+
+질문:
+{query}
+
+target operand:
+{operand_label}
+
+candidate options:
+{options}
+"""
+        )
+        try:
+            reranked: ReconciliationCandidateRerank = (prompt | structured_llm).invoke(
+                {
+                    "query": query,
+                    "operand_label": str(operand.get("label") or ""),
+                    "options": "\n\n".join(option_lines),
+                }
+            )
+        except Exception as exc:
+            logger.info("[reconcile] llm rerank skipped operand=%s error=%s", operand.get("label"), exc)
+            return allowed_ids
+
+        ordered_ids: List[str] = []
+        seen: set[str] = set()
+        for candidate_id in reranked.ordered_candidate_ids:
+            cleaned = str(candidate_id or "").strip()
+            if cleaned and cleaned in allowed_ids and cleaned not in seen:
+                seen.add(cleaned)
+                ordered_ids.append(cleaned)
+        for candidate_id in allowed_ids:
+            if candidate_id not in seen:
+                ordered_ids.append(candidate_id)
+        return ordered_ids
+
+    def _rerank_reconciliation_matches_with_llm(
+        self,
+        state: FinancialAgentState,
+        result: Dict[str, Any],
+        candidates: List[Dict[str, Any]],
+        years: List[int],
+    ) -> Dict[str, Any]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        query = str(active_subtask.get("query") or state.get("query") or "")
+        operand_specs = {
+            str(item.get("label") or "").strip(): dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if str(item.get("label") or "").strip()
+        }
+        preferred_statement_types = [
+            str(item).strip()
+            for item in (active_subtask.get("preferred_statement_types") or [])
+            if str(item).strip()
+        ]
+        constraints = dict(active_subtask.get("constraints") or {})
+
+        updated = dict(result or {})
+        notes = [str(item).strip() for item in (updated.get("notes") or []) if str(item).strip()]
+        reranked_rows: List[Dict[str, Any]] = []
+
+        for row in (updated.get("matched_operands") or []):
+            current = dict(row)
+            label = str(current.get("label") or "").strip()
+            operand = operand_specs.get(label)
+            if not operand:
+                reranked_rows.append(current)
+                continue
+
+            matches = [candidate for candidate in candidates if _candidate_matches_operand(candidate, operand)]
+            scored_candidates = [
+                {
+                    "candidate": candidate,
+                    "score": _score_operand_candidate(
+                        candidate,
+                        operand=operand,
+                        preferred_statement_types=preferred_statement_types,
+                        constraints=constraints,
+                        query_years=years,
+                    ),
+                }
+                for candidate in matches
+            ]
+            scored_candidates.sort(key=lambda item: item["score"], reverse=True)
+            if not self._should_llm_rerank_candidates(scored_candidates):
+                reranked_rows.append(current)
+                continue
+
+            ordered_ids = self._llm_rerank_operand_candidates(
+                query=query,
+                operand=operand,
+                scored_candidates=scored_candidates,
+            )
+            if ordered_ids:
+                current["candidate_ids"] = ordered_ids
+                notes.append(f"llm_rerank:{label}")
+            reranked_rows.append(current)
+
+        updated["matched_operands"] = reranked_rows
+        updated["notes"] = list(dict.fromkeys(notes))
+        return updated
+
+    def _evidence_items_from_reconciliation_matches(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
+        reconciliation_result = dict(state.get("reconciliation_result") or {})
+        if str(reconciliation_result.get("status") or "") not in {"ready", "retry_retrieval", "insufficient_operands"}:
+            return []
+
+        candidate_map = {
+            str(candidate.get("candidate_id") or "").strip(): candidate
+            for candidate in self._build_reconciliation_candidates(state)
+            if str(candidate.get("candidate_id") or "").strip()
+        }
+        items: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for operand_match in (reconciliation_result.get("matched_operands") or []):
+            for candidate_id in (operand_match.get("candidate_ids") or [])[:2]:
+                current = candidate_map.get(str(candidate_id).strip())
+                if not current:
+                    continue
+                evidence_id = f"recon::{candidate_id}"
+                if evidence_id in seen:
+                    continue
+                seen.add(evidence_id)
+                metadata = dict(current.get("metadata") or {})
+                raw_row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
+                if not raw_row_text and str(current.get("candidate_kind") or "") == "structured_row":
+                    row_label = str(metadata.get("row_label") or "").strip()
+                    values = [
+                        str(cell.get("value_text") or "").strip()
+                        for cell in (metadata.get("structured_cells") or [])
+                        if str(cell.get("value_text") or "").strip()
+                    ]
+                    raw_row_text = " | ".join([part for part in [row_label, *values] if part])
+                claim = _normalise_spaces(str(current.get("text") or ""))
+                items.append(
+                    {
+                        "evidence_id": evidence_id,
+                        "source_anchor": str(current.get("source_anchor") or "").strip(),
+                        "claim": claim[:1200],
+                        "quote_span": claim[:240],
+                        "support_level": "direct",
+                        "question_relevance": "high",
+                        "allowed_terms": [],
+                        "source_context": str(metadata.get("table_header_context") or metadata.get("section_path") or "").strip(),
+                        "raw_row_text": raw_row_text or None,
+                        "metadata": metadata,
+                    }
+                )
+        return items
 
     def _extract_structured_operands_from_reconciliation(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
         reconciliation_result = dict(state.get("reconciliation_result") or {})
@@ -1892,14 +2874,16 @@ class FinancialAgent:
 
             metadata = dict(candidate.get("metadata") or {})
             cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+            if not cells and str(candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
+                cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
             if not cells:
                 continue
             ranked_cells = sorted(
                 cells,
                 key=lambda cell: _score_structured_cell(
                     cell,
-                    query_years=query_years,
-                    period_focus=period_focus,
+                    query_years=_operand_target_years(operand, query_years),
+                    period_focus=_operand_period_focus(operand, period_focus),
                 ),
                 reverse=True,
             )
@@ -1913,7 +2897,11 @@ class FinancialAgent:
             if normalized_value is None:
                 continue
 
-            period = _structured_cell_period_text(selected_cell, query_years, period_focus)
+            period = _structured_cell_period_text(
+                selected_cell,
+                _operand_target_years(operand, query_years),
+                _operand_period_focus(operand, period_focus),
+            )
             row_label = str(metadata.get("row_label") or label).strip() or label
             operand_rows.append(
                 {
@@ -1954,6 +2942,12 @@ class FinancialAgent:
             candidates=candidates,
             years=years,
             reconciliation_retry_count=retry_count,
+        )
+        result = self._rerank_reconciliation_matches_with_llm(
+            state,
+            result,
+            candidates,
+            years,
         )
         status = str(result.get("status") or "ready")
         logger.info(
@@ -2037,6 +3031,8 @@ class FinancialAgent:
         topic = state.get("topic") or query
         intent = state.get("intent") or state.get("query_type", "qa")
         section_terms = _supplement_section_terms_for_query(query, topic, intent)
+        section_terms.extend(_active_preferred_sections(state, query, topic, intent))
+        section_terms = list(dict.fromkeys(term for term in section_terms if term))
         if not section_terms:
             return []
 
@@ -2049,13 +3045,23 @@ class FinancialAgent:
         for spec in ontology.component_specs(query, topic, intent):
             metric_patterns.extend(re.escape(keyword) for keyword in spec.get("keywords", []))
         metric_patterns = list(dict.fromkeys(metric_patterns))
+        active_operand_needles = [
+            _normalise_spaces(needle)
+            for operand in (dict(state.get("active_subtask") or {}).get("required_operands") or [])
+            for needle in _operand_needles(dict(operand))
+            if _normalise_spaces(needle)
+        ]
+        active_operand_needles = list(dict.fromkeys(active_operand_needles))
 
         supplemented: List[tuple[Document, float]] = []
         seen_chunk_uids: set[str] = set()
         for body, metadata in zip(self.vsm.bm25_docs, self.vsm.bm25_metadatas):
             metadata = dict(metadata or {})
             section_path = str(metadata.get("section_path") or metadata.get("section") or "")
-            if not any(term in section_path for term in section_terms):
+            body_text = _normalise_spaces(str(body or ""))
+            table_context = _normalise_spaces(str(metadata.get("table_context") or ""))
+            section_surface = " ".join(part for part in (section_path, table_context, body_text[:400]) if part)
+            if not any(term in section_surface for term in section_terms):
                 continue
             company = str(metadata.get("company", "")).lower()
             if companies and company not in companies and not any(target in company or company in target for target in companies):
@@ -2070,7 +3076,7 @@ class FinancialAgent:
                 continue
             seen_chunk_uids.add(chunk_uid)
 
-            text = _normalise_spaces(str(metadata.get("table_context") or "") + "\n" + str(body or ""))
+            text = _normalise_spaces(f"{table_context}\n{body_text}")
             score = 0.02
             if "연구개발 활동" in section_path or "연구개발활동" in section_path:
                 score += 0.03
@@ -2078,6 +3084,8 @@ class FinancialAgent:
                 score += 0.04
             if metric_patterns and any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in ontology.row_patterns(query, topic, intent)):
                 score += 0.06
+            if active_operand_needles and any(needle in text for needle in active_operand_needles):
+                score += 0.08
 
             supplemented.append((Document(page_content=str(body or ""), metadata=metadata), score))
 
@@ -2553,8 +3561,8 @@ Ontology Context:
         intent = state.get("intent") or state.get("query_type", "qa")
         format_preference = state.get("format_preference") or self._default_format_preference(intent)
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
-        preferred_sections = _preferred_calc_sections(state["query"], state.get("topic") or "", intent)
-        desired_statement_types = set(_desired_statement_types(state["query"], state.get("topic") or ""))
+        preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
+        desired_statement_types = set(_active_preferred_statement_types(state, state["query"], state.get("topic") or ""))
         desired_consolidation = _desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
         query_years = sorted(years)
 
@@ -2601,10 +3609,10 @@ Ontology Context:
                 else:
                     boosted -= 0.20
             if preferred_sections and any(section_term in section_path for section_term in preferred_sections):
-                boosted += 0.14
+                boosted += 0.20
             if desired_statement_types:
                 if statement_type in desired_statement_types:
-                    boosted += 0.18
+                    boosted += 0.24
                 elif statement_type != "unknown":
                     boosted -= 0.08
             if desired_consolidation != "unknown":
@@ -2687,7 +3695,7 @@ Ontology Context:
             where_filter = {"$and": conditions}
 
         retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, intent)
-        preferred_sections = _preferred_calc_sections(query, state.get("topic") or "", intent)
+        preferred_sections = _active_preferred_sections(state, query, state.get("topic") or "", intent)
         query_bundle = retrieval_queries or [query]
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
@@ -3383,6 +4391,121 @@ Ontology Context:
 
         return operand_rows
 
+    def _build_required_operands_from_candidates(
+        self,
+        candidate_items: List[Dict[str, Any]],
+        *,
+        required_operands: List[Dict[str, Any]],
+        query: str,
+        topic: str = "",
+        report_scope: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        if not candidate_items or not required_operands:
+            return []
+
+        query_text = _normalise_spaces(query)
+        query_years = re.findall(r"(20\d{2}년)", query_text)
+        prioritized_items = _prioritize_candidate_items(
+            candidate_items,
+            query=query,
+            topic=topic,
+            report_scope=dict(report_scope or {}),
+            query_years=[int(year.replace("년", "")) for year in query_years],
+        )
+        operand_rows: List[Dict[str, Any]] = []
+        seen: set[tuple[str, str, str]] = set()
+        year_pattern = re.compile(r"(20\d{2}년)")
+
+        for operand in required_operands:
+            label_name = str(operand.get("label") or "").strip()
+            if not label_name:
+                continue
+            for item in prioritized_items:
+                raw_row = _normalise_spaces(str(item.get("raw_row_text") or item.get("claim") or ""))
+                if not raw_row or not _operand_text_match(raw_row, operand):
+                    continue
+
+                period = ""
+                context_text = _normalise_spaces(f"{item.get('source_context') or ''} {raw_row}")
+                for token in query_years or year_pattern.findall(context_text):
+                    period = token
+                    break
+
+                raw_value = _normalise_spaces(str(item.get("matched_value") or ""))
+                raw_unit = str(item.get("matched_unit") or "")
+
+                if not raw_value:
+                    metadata = dict(item.get("metadata") or {})
+                    parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
+                    if parsed_cells:
+                        target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
+                        ranked_cells = sorted(
+                            parsed_cells,
+                            key=lambda cell: _score_structured_cell(
+                                cell,
+                                query_years=target_years,
+                                period_focus="unknown",
+                            ),
+                            reverse=True,
+                        )
+                        selected_cell = ranked_cells[0] if ranked_cells else None
+                        if selected_cell:
+                            raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
+                            raw_unit = str(selected_cell.get("unit_hint") or raw_unit or "")
+                            if not period:
+                                period = _structured_cell_period_text(
+                                    selected_cell,
+                                    target_years,
+                                    "unknown",
+                                )
+
+                if not raw_value:
+                    raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
+                    if raw_value and not raw_unit:
+                        if "조" in raw_value or "억" in raw_value:
+                            raw_unit = "원"
+                        elif "백만원" in context_text:
+                            raw_unit = "백만원"
+
+                if not raw_value:
+                    continue
+
+                if not raw_unit:
+                    if "조" in raw_value or "억" in raw_value:
+                        raw_unit = "원"
+                    elif "백만원" in context_text:
+                        raw_unit = "백만원"
+                    elif "천원" in context_text:
+                        raw_unit = "천원"
+
+                normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+                if normalized_value is None:
+                    continue
+
+                key = (str(item.get("source_anchor") or ""), label_name, period)
+                if key in seen:
+                    continue
+                seen.add(key)
+                operand_rows.append(
+                    {
+                        "operand_id": f"op_{len(operand_rows) + 1:03d}",
+                        "evidence_id": item.get("evidence_id"),
+                        "source_anchor": item.get("source_anchor"),
+                        "label": f"{period} {label_name}".strip(),
+                        "raw_value": raw_value,
+                        "raw_unit": raw_unit or "원",
+                        "normalized_value": normalized_value,
+                        "normalized_unit": normalized_unit,
+                        "period": period,
+                        "table_source_id": (item.get("metadata") or {}).get("table_source_id"),
+                        "statement_type": (item.get("metadata") or {}).get("statement_type"),
+                        "consolidation_scope": (item.get("metadata") or {}).get("consolidation_scope"),
+                    }
+                )
+                break
+
+        return operand_rows
+
     # enumeration 질문은 항목이 많아 기본 cap=6이 부족할 수 있음
     _EVIDENCE_CAP_BY_QUERY_TYPE: Dict[str, int] = {
         "risk": 10,
@@ -4053,6 +5176,22 @@ Structured Evidence:
             "answer": "",
         }
         direct_structured_rows = self._extract_structured_operands_from_reconciliation(state)
+        reconciliation_evidence = self._evidence_items_from_reconciliation_matches(state)
+        if reconciliation_evidence:
+            existing_ids = {str(item.get("evidence_id") or "").strip() for item in evidence_items}
+            appended = 0
+            for item in reconciliation_evidence:
+                evidence_id = str(item.get("evidence_id") or "").strip()
+                if evidence_id and evidence_id in existing_ids:
+                    continue
+                if evidence_id:
+                    existing_ids.add(evidence_id)
+                evidence_items.append(item)
+                raw_row = _normalise_spaces(str(item.get("raw_row_text") or item.get("claim") or ""))
+                evidence_bullets.append(f"- {item.get('source_anchor')} {raw_row[:180]} (reconciled)")
+                appended += 1
+            if appended:
+                logger.info("[calc_operands] appended reconciled evidence items=%s", appended)
         active_subtask = dict(state.get("active_subtask") or {})
         required_operands = [
             dict(item)
@@ -4198,6 +5337,17 @@ Structured Evidence:
                 row["normalized_value"] = normalized_value
                 row["normalized_unit"] = normalized_unit
                 operand_rows.append(row)
+            if not operand_rows and required_operands:
+                generic_fallback_rows = self._build_required_operands_from_candidates(
+                    evidence_items,
+                    required_operands=required_operands,
+                    query=query,
+                    topic=state.get("topic") or "",
+                    report_scope=dict(state.get("report_scope") or {}),
+                )
+                if generic_fallback_rows:
+                    logger.info("[calc_operands] generic operand fallback rows=%s", len(generic_fallback_rows))
+                    operand_rows = generic_fallback_rows
             if not operand_rows and _is_ratio_percent_query(query):
                 fallback_rows = self._build_ratio_operands_from_candidates(
                     [item for item in evidence_items if item.get("raw_row_text")],
@@ -5010,9 +6160,14 @@ Operands:
             kind=ArtifactKind.AGGREGATED_ANSWER,
             status="ok",
             summary=final_answer[:200],
-            payload={"subtask_results": ordered_results, "final_answer": final_answer},
+            payload={
+                "subtask_results": ordered_results,
+                "final_answer": final_answer,
+                **self._build_aggregate_calculation_projection(ordered_results, final_answer),
+            },
             evidence_refs=selected_claim_ids,
         )
+        aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
         return {
             "subtask_results": ordered_results,
             "subtask_loop_complete": True,
@@ -5025,6 +6180,9 @@ Operands:
             "unsupported_sentences": [],
             "sentence_checks": [],
             "artifacts": artifacts,
+            "calculation_operands": aggregate_projection["calculation_operands"],
+            "calculation_plan": aggregate_projection["calculation_plan"],
+            "calculation_result": aggregate_projection["calculation_result"],
         }
 
     def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -5281,6 +6439,7 @@ Operands:
             "artifacts": [],
         }
         final = self.graph.invoke(initial)
+        legacy_projection = self._project_legacy_calculation_fields(final)
         return {
             "query": final["query"],
             "report_scope": final.get("report_scope", {}),
@@ -5305,9 +6464,9 @@ Operands:
             "unsupported_sentences": final.get("unsupported_sentences", []),
             "sentence_checks": final.get("sentence_checks", []),
             "numeric_debug_trace": final.get("numeric_debug_trace", {}),
-            "calculation_operands": final.get("calculation_operands", []),
-            "calculation_plan": final.get("calculation_plan", {}),
-            "calculation_result": final.get("calculation_result", {}),
+            "calculation_operands": legacy_projection.get("calculation_operands", []),
+            "calculation_plan": legacy_projection.get("calculation_plan", {}),
+            "calculation_result": legacy_projection.get("calculation_result", {}),
             "calculation_debug_trace": final.get("calculation_debug_trace", {}),
             "planner_debug_trace": final.get("planner_debug_trace", {}),
             "missing_info": final.get("missing_info", []),

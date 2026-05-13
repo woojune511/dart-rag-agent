@@ -172,6 +172,48 @@ retrieve
 
 - 이 프로젝트의 계산 경로는 단순한 prompt tuning이 아니라, **LLM의 역할을 “수식/답안 계획”으로 제한하고 실행은 symbolic engine으로 넘기는 neuro-symbolic 분리**라는 점이 정량적으로 입증됐다.
 
+## 4-2. numeric reconciliation은 deterministic scoring을 기본으로 하고, 애매한 top candidate만 LLM이 보조 판정한다
+
+최근 병목은 retrieval miss 자체보다, retrieval 이후 어떤 row/chunk를 실제 operand 후보로 채택하느냐에 더 가까웠다.
+
+핵심 포인트:
+
+- reconciliation candidate는 `chunk`, `structured_row`, `table_row`, `evidence_row`로 구분한다
+- 점수는
+  - row label exact/partial match
+  - statement type
+  - 연결/별도
+  - 기간
+  - table source
+  - numeric value signal
+  을 합쳐 deterministic하게 계산한다
+- `범위`, `하위범위`, `상위범위` 같은 descriptor structured row는 penalty를 준다
+- `유형자산`, `무형자산`, `자산총계`, `부채총계`, `자본총계` 계열은 `summary_financials / balance_sheet` row를 더 강하게 우대한다
+- `LLM rerank`는 top candidate가 애매할 때만 보조적으로 호출한다
+
+의미:
+
+- reconciliation을 전부 LLM에 맡기지 않고, **대부분은 deterministic ranking으로 처리하고 hard case만 LLM으로 보정하는 hybrid policy**를 채택했다.
+- 이는 비용과 재현성을 유지하면서도 `structured row > chunk` 원칙을 더 안정적으로 강제하기 위한 결정이다.
+
+## 4-3. runtime/evaluator는 top-level `calculation_*`를 source of truth로 보지 않고 ledger projection으로 다시 읽는다
+
+multi-subtask numeric path에서는 마지막 subtask의 계산 흔적만 top-level에 남는 문제가 있었다.
+
+핵심 포인트:
+
+- runtime은 `tasks`, `artifacts`, `subtask_results`를 함께 기록한다
+- evaluator는 top-level `calculation_*`를 그대로 읽지 않고,
+  - single-task면 `tasks + artifacts`
+  - multi-subtask면 `subtask_results`
+  에서 operand/plan/result를 다시 투영한다
+- aggregate path에서는 `aggregate_subtasks` mode의 calculation projection을 별도로 만든다
+
+의미:
+
+- 이 프로젝트는 legacy `calculation_*` 필드를 완전히 지우진 않았지만, **이미 source of truth에서 projection 계층으로 강등하는 방향**으로 이동 중이다.
+- 포트폴리오 관점에서는 “최종 답뿐 아니라 multi-step calculation trace도 artifact ledger 기준으로 복원한다”는 점이 중요하다.
+
 ## 5. 평가를 먼저 고정하고 시스템을 바꾸는 방식
 
 최근 방향 전환의 핵심은 “시스템을 더 고치기 전에 평가 기준을 먼저 고정한다”는 것이다.

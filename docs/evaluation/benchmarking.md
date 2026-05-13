@@ -124,6 +124,7 @@
 | --- | --- | --- | --- |
 | `dev_fast` | 빠른 screening | 단일 회사, mixed query | 새 후보를 빠르게 거를 때 |
 | `curated_single_doc_core` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | curated dataset 기준선 회귀 |
+| `multi_metric_numeric_smoke` | multi-subtask numeric trace 회귀 | curated multi-metric numeric subset | runtime/evaluator projection 검증 |
 | `curated_multi_report_smoke` | multi-report 분리셋 점검 | multi-report curated subset | multi-report path smoke |
 | `single_document_graph_micro` | graph / structure-aware retrieval 비교 | 소수 문항 마이크로 실험 | 구조 실험 초기 확인 |
 | `release_generalization` | 다기업 일반화 확인 | shortlist 후보 | release-grade 확인 |
@@ -161,6 +162,8 @@
 | 파일 | 역할 |
 | --- | --- |
 | `benchmarks/datasets/single_doc_eval_full.curated.json` | single-document canonical source of truth |
+| `benchmarks/datasets/single_doc_eval_multi_subtask.curated.json` | multi-subtask question subset |
+| `benchmarks/datasets/single_doc_eval_multi_metric_numeric.curated.json` | multi-metric numeric smoke subset |
 | `benchmarks/datasets/multi_report_eval_full.curated.json` | multi-report canonical source of truth |
 | `benchmarks/datasets/single_doc_eval_full.json` | question/task oriented working dataset |
 | `benchmarks/datasets/multi_report_eval_full.json` | question/task oriented working dataset |
@@ -179,6 +182,20 @@
 - `benchmarks/eval_dataset.canonical.json`, `benchmarks/eval_dataset.math_focus.json`은 여전히 일부 profile / retrospective script에서 사용되는 legacy benchmark asset이다.
 - 따라서 당분간은 **curated dataset과 legacy benchmark dataset이 공존**한다.
 - 다음 정리 단계는 주력 benchmark/profile을 curated dataset 기준으로 재정렬하는 것이다.
+
+### Multi-metric numeric smoke subset
+
+최근에는 runtime schema projection과 reconciliation regression을 보기 위한 소규모 subset을 별도로 분리했다.
+
+| 파일 | 역할 |
+| --- | --- |
+| `benchmarks/datasets/single_doc_eval_multi_metric_numeric.curated.json` | 숫자 subtask가 2개 이상인 계산 질문 subset |
+| `benchmarks/profiles/multi_metric_numeric_smoke.json` | NAVER 2023 / SK하이닉스 2023 중심 smoke profile |
+
+현재 해석:
+
+- 이 subset은 broad quality benchmark보다 **`matched_operands -> calculation_operands -> aggregate projection`** 경로를 보기 위한 회귀용이다.
+- 최근 smoke에서는 retrieval hit은 유지됐지만, debt note aggregate binding이 남아 있는 것이 더 중요한 병목으로 드러났다.
 
 ### Math focus dataset
 

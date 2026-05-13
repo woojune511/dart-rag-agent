@@ -14,11 +14,12 @@
 ## Immediate Focus
 
 - curated dataset 연결과 parser baseline regression은 1차 기준선까지는 지나갔다.
-- 지금 가장 가까운 구현 초점은 **schema settling + semantic numeric planner + table-aware grounding** 이다.
+- 지금 가장 가까운 구현 초점은 **schema settling + semantic numeric planner + table-aware grounding + reconciliation hardening** 이다.
   - ontology 기반으로 필요한 operand와 scope를 먼저 계획
   - retrieval 이후 reconciliation으로 부족 operand를 잡음
   - parser가 만든 structured table row를 direct operand 경로로 소비
   - runtime state에 `tasks`, `artifacts`, `table_object_json`을 남겨 다음 단계의 source of truth를 만들기 시작
+  - ambiguous top candidate는 deterministic scoring 후에만 LLM rerank로 보정
 
 ## Active Workstreams
 
@@ -28,8 +29,8 @@
 | --- | --- |
 | 목표 | `tasks`, `artifacts`, `table_object_json`를 DART numeric path의 정식 runtime schema로 정착 |
 | 현재 자산 | `src/schema/dart_schema.py`, semantic planner artifact, reconciliation artifact, operand/calculation artifact, parser `table_object_json` |
-| 현재 문제 | evaluator와 일부 runtime path는 아직 legacy `calculation_*` 단일 필드에 더 강하게 기대고 있음 |
-| 다음 할 일 | artifact ledger를 source of truth로 강화하고 legacy `calculation_*`는 projection으로 생성하는 층 추가 |
+| 현재 문제 | evaluator projection은 들어갔지만 runtime operand path는 아직 partial direct rows를 버리는 구간이 남아 있음 |
+| 다음 할 일 | artifact ledger projection 유지, 그리고 operand extraction에서 partial direct rows를 fallback rows와 merge |
 | 종료 조건 | multi-step numeric 질문에서도 마지막 subtask만 남지 않고 structured trace가 artifact 기준으로 보존됨 |
 
 ### 1. Structured table grounding coverage
@@ -37,8 +38,8 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | parser의 `table_object / row / cell`을 reconciliation과 operand extraction 전반에서 더 직접 소비 |
-| 현재 상태 | `MIX_T1_021`에서 row-aware reconciliation과 structured row direct path 확인 |
-| 다음 할 일 | debt/current ratio 외 다른 numeric family에도 같은 경로를 확장 |
+| 현재 상태 | `MIX_T1_021`에서 row-aware reconciliation과 structured row direct path 확인, `SKH_T1_060`에서 자산 row는 회복 |
+| 다음 할 일 | debt note table의 `단기차입금/장기차입금/사채` aggregate candidate를 더 직접 회수 |
 | 종료 조건 | 주요 numeric family에서 chunk text fallback 비중이 줄고 structured row/cell path가 우선 경로가 됨 |
 
 ### 2. Numeric end-to-end validation
@@ -46,8 +47,8 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | structured trace와 최종 답변이 함께 맞는지 numeric family별로 다시 고정 |
-| 현재 관측 | retrieval/grounding은 개선됐지만 multi-subtask trace는 아직 artifact/source-of-truth 전환이 덜 됨 |
-| 다음 할 일 | `MIX_T1_021`류 복수 지표 질문, FCF, ROE 등 숨은 operand형 질문을 end-to-end 재검증 |
+| 현재 관측 | multi-metric numeric smoke subset에서 retrieval hit은 유지되지만 debt/note aggregate binding이 남아 있음 |
+| 다음 할 일 | `single_doc_eval_multi_metric_numeric.curated.json`와 `multi_metric_numeric_smoke.json` 기준으로 trace/evaluator 회귀 반복 |
 | 종료 조건 | final answer와 structured trace가 모두 같은 subtask 집합을 보존 |
 
 ### 3. DART multi-document reasoning
