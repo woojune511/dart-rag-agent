@@ -13,6 +13,9 @@ from src.agent.financial_graph import (
     FinancialAgent,
     _build_semantic_numeric_plan,
     _extract_numeric_value_after_operand_text,
+    _is_percent_point_difference_query,
+    _merge_operand_rows,
+    _missing_required_operands,
     _parse_unstructured_table_row_cells,
 )
 
@@ -154,6 +157,62 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(rows[0]["raw_unit"], "백만원")
         self.assertEqual(rows[1]["raw_value"], "3,834,567")
         self.assertEqual(rows[1]["raw_unit"], "백만원")
+
+    def test_merge_operand_rows_keeps_direct_rows_and_fills_missing_operands(self) -> None:
+        required_operands = [
+            {"label": "유형자산", "aliases": ["유형자산"]},
+            {"label": "무형자산", "aliases": ["무형자산"]},
+            {"label": "사채", "aliases": ["사채"]},
+        ]
+        direct_rows = [
+            {
+                "label": "제76기 ㆍ유형자산",
+                "raw_value": "52,704,853",
+                "source_anchor": "[SK하이닉스 | 2023 | III. 요약연결재무정보]",
+            },
+            {
+                "label": "제76기 ㆍ무형자산",
+                "raw_value": "3,834,567",
+                "source_anchor": "[SK하이닉스 | 2023 | III. 요약연결재무정보]",
+            },
+        ]
+        fallback_rows = [
+            {
+                "label": "2023년 사채",
+                "raw_value": "9,490,410",
+                "source_anchor": "[SK하이닉스 | 2023 | III. 연결재무제표 주석]",
+            },
+            {
+                "label": "2023년 유형자산",
+                "raw_value": "999",
+                "source_anchor": "[noise]",
+            },
+        ]
+
+        missing = _missing_required_operands(required_operands, direct_rows)
+        merged = _merge_operand_rows(
+            direct_rows,
+            fallback_rows,
+            required_operands=required_operands,
+        )
+
+        self.assertEqual([item["label"] for item in missing], ["사채"])
+        self.assertEqual(len(merged), 3)
+        self.assertEqual(merged[0]["raw_value"], "52,704,853")
+        self.assertEqual(merged[1]["raw_value"], "3,834,567")
+        self.assertEqual(merged[2]["raw_value"], "9,490,410")
+
+    def test_ratio_query_is_not_misclassified_as_percent_point_difference(self) -> None:
+        self.assertFalse(
+            _is_percent_point_difference_query(
+                "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘."
+            )
+        )
+        self.assertTrue(
+            _is_percent_point_difference_query(
+                "2023년과 2022년 부채비율의 차이를 %p 기준으로 계산해 줘."
+            )
+        )
 
 
 if __name__ == "__main__":

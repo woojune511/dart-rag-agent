@@ -65,9 +65,10 @@ class SemanticNumericPlannerTests(unittest.TestCase):
             report_scope={"company": "네이버", "year": "2023", "consolidation": "연결"},
             target_metric_family="",
         )
-        self.assertEqual(plan["status"], "fallback_general_search")
-        self.assertTrue(plan["fallback_to_general_search"])
-        self.assertEqual(plan["tasks"], [])
+        self.assertEqual(plan["status"], "heuristic_fallback")
+        self.assertFalse(plan["fallback_to_general_search"])
+        self.assertEqual(len(plan["tasks"]), 1)
+        self.assertEqual(plan["tasks"][0]["metric_family"], "generic_numeric")
 
 
 if __name__ == "__main__":
