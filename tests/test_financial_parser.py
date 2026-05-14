@@ -17,6 +17,7 @@ from src.processing.financial_parser import (
     FinancialParser,
     SectionParseTimeout,
     _classify_bracket_heading,
+    _extract_standalone_table_context_hint,
     _is_structured_section,
     _looks_like_local_heading,
     _prepare_stack_for_heading,
@@ -276,6 +277,133 @@ class FinancialParserUtilityTests(unittest.TestCase):
         self.assertTrue(all(block["period_labels"] == ["2023", "2022"] for block in chunk_blocks))
         self.assertTrue(all(block["unit_hint"] == "백만원" for block in chunk_blocks))
         self.assertTrue(any(block["header_propagated"] for block in chunk_blocks[1:]))
+
+    def test_table_context_bundle_includes_value_records(self) -> None:
+        parser = FinancialParser(chunk_size=2500, chunk_overlap=320)
+        table_object = {
+            "grid": [
+                ["구분", "2023", "2022"],
+                ["부채총계", "92,228,115", "93,674,903"],
+                ["자본총계", "363,677,865", "354,749,604"],
+            ],
+            "row_labels": ["부채총계", "자본총계"],
+            "row_count": 3,
+            "column_count": 3,
+            "has_spans": False,
+        }
+
+        bundle = parser._build_table_context_bundle(
+            "구분 | 2023 | 2022\n부채총계 | 92,228,115 | 93,674,903\n자본총계 | 363,677,865 | 354,749,604",
+            "III. 재무에 관한 사항 > 1. 요약재무정보",
+            "section::table:2",
+            local_heading="가. 요약연결재무정보",
+            table_object=table_object,
+        )
+
+        self.assertTrue(bundle["table_value_records_json"])
+        value_records = json.loads(bundle["table_value_records_json"])
+        self.assertEqual(value_records[0]["semantic_label"], "부채총계")
+        self.assertEqual(value_records[0]["period_text"], "2023")
+        self.assertEqual(value_records[0]["value_text"], "92,228,115")
+
+    def test_table_grid_reads_te_cells_from_tbody(self) -> None:
+        parser = FinancialParser(chunk_size=2500, chunk_overlap=320)
+        table = etree.fromstring(
+            """
+            <TABLE>
+              <THEAD>
+                <TR>
+                  <TH>구분</TH>
+                  <TH>2023</TH>
+                  <TH>2022</TH>
+                </TR>
+              </THEAD>
+              <TBODY>
+                <TR>
+                  <TE>부채총계</TE>
+                  <TE>92,228,115</TE>
+                  <TE>93,674,903</TE>
+                </TR>
+              </TBODY>
+            </TABLE>
+            """
+        )
+
+        table_object = parser._build_table_object(table)
+        row_records = parser._build_table_row_records(table_object, "백만원")
+        value_records = parser._build_table_value_records(
+            row_records,
+            table_id="section::table:te",
+            unit_hint="백만원",
+        )
+
+        self.assertEqual(table_object["row_count"], 2)
+        self.assertEqual(row_records[0]["row_label"], "부채총계")
+        self.assertEqual(row_records[0]["cells"][0]["value_text"], "92,228,115")
+        self.assertEqual(value_records[0]["semantic_label"], "부채총계")
+        self.assertEqual(value_records[0]["value_text"], "92,228,115")
+
+    def test_value_records_promote_aggregate_labels_for_wide_tables(self) -> None:
+        parser = FinancialParser(chunk_size=2500, chunk_overlap=320)
+        table_object = {
+            "grid": [
+                ["", "단기차입금", "장기 차입금", "장기 차입금"],
+                ["", "단기차입금 합계", "장기차입금 합계", "장기차입금 합계"],
+                ["단기차입금", "4,145,647", "", ""],
+                ["합계, 장기차입금", "", "12,164,595", ""],
+                ["차감: 유동성장기차입금", "", "(2,012,002)", ""],
+                ["차감 계, 장기차입금", "", "10,121,033", ""],
+            ],
+            "row_labels": ["단기차입금", "합계, 장기차입금", "차감: 유동성장기차입금", "차감 계, 장기차입금"],
+            "row_count": 6,
+            "column_count": 4,
+            "has_spans": False,
+        }
+
+        bundle = parser._build_table_context_bundle(
+            parser._format_table_grid(table_object["grid"]),
+            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "section::table:agg",
+            local_heading="차입금 및 사채",
+            table_object=table_object,
+        )
+        value_records = json.loads(bundle["table_value_records_json"])
+
+        direct_total = next(record for record in value_records if record["value_text"] == "4,145,647")
+        subtotal = next(record for record in value_records if record["value_text"] == "12,164,595")
+        adjustment = next(record for record in value_records if record["value_text"] == "(2,012,002)")
+        final_total = next(record for record in value_records if record["value_text"] == "10,121,033")
+
+        self.assertEqual(direct_total["semantic_label"], "단기차입금 합계")
+        self.assertEqual(direct_total["aggregate_role"], "direct_total")
+        self.assertEqual(subtotal["semantic_label"], "장기차입금 합계")
+        self.assertEqual(subtotal["aggregate_role"], "subtotal")
+        self.assertEqual(adjustment["semantic_label"], "차감: 유동성장기차입금")
+        self.assertEqual(adjustment["aggregate_role"], "adjustment")
+        self.assertEqual(final_total["semantic_label"], "장기차입금 합계")
+        self.assertEqual(final_total["aggregate_role"], "final_total")
+
+    def test_standalone_period_table_is_promoted_to_context_hint(self) -> None:
+        table_object = {
+            "table_text": "당기 | (단위 : 백만원)",
+            "row_count": 1,
+            "column_count": 2,
+        }
+
+        hint = _extract_standalone_table_context_hint(table_object)
+
+        self.assertEqual(hint, "당기 | (단위 : 백만원)")
+
+    def test_standalone_unit_only_table_is_promoted_to_context_hint(self) -> None:
+        table_object = {
+            "table_text": "(단위 : 백만원)",
+            "row_count": 1,
+            "column_count": 1,
+        }
+
+        hint = _extract_standalone_table_context_hint(table_object)
+
+        self.assertEqual(hint, "(단위 : 백만원)")
 
 
     def test_table_format_normalizes_merged_cells(self) -> None:

@@ -11,6 +11,7 @@ from .dart_schema import (
     TaskKind,
     TaskRecord,
     TaskStatus,
+    ValueRecord,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "TaskKind",
     "TaskRecord",
     "TaskStatus",
+    "ValueRecord",
 ]

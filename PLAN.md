@@ -18,6 +18,7 @@
   - ontology 기반으로 필요한 operand와 scope를 먼저 계획
   - retrieval 이후 reconciliation으로 부족 operand를 잡음
   - parser가 만든 structured table row를 direct operand 경로로 소비
+  - 최근에는 `table_value_records_json -> structured_value` 경로를 추가해 wide note table도 value-cell-first로 읽기 시작
   - runtime state에 `tasks`, `artifacts`, `table_object_json`을 남겨 다음 단계의 source of truth를 만들기 시작
   - ambiguous top candidate는 deterministic scoring 후에만 LLM rerank로 보정
 
@@ -38,16 +39,16 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | parser의 `table_object / row / cell`을 reconciliation과 operand extraction 전반에서 더 직접 소비 |
-| 현재 상태 | `MIX_T1_021`에서 row-aware reconciliation과 structured row direct path 확인, `SKH_T1_060`에서 자산 row는 회복 |
-| 다음 할 일 | debt note table의 `단기차입금/장기차입금/사채` aggregate candidate를 더 직접 회수 |
-| 종료 조건 | 주요 numeric family에서 chunk text fallback 비중이 줄고 structured row/cell path가 우선 경로가 됨 |
+| 현재 상태 | `table_value_records_json` / `structured_value`가 들어갔고, `TBODY/TE` 및 unit-only standalone table hint까지 parser가 보존한다. `SKH_T1_060`은 자산 + current 단기/장기차입금까지 회복 |
+| 다음 할 일 | current-period `사채 final_total`이 detail bond row보다 우선되도록 aggregate binding 보강 |
+| 종료 조건 | 주요 numeric family에서 chunk text fallback 비중이 줄고 structured value/cell path가 우선 경로가 됨 |
 
 ### 2. Numeric end-to-end validation
 
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | structured trace와 최종 답변이 함께 맞는지 numeric family별로 다시 고정 |
-| 현재 관측 | multi-metric numeric smoke subset에서 retrieval hit은 유지되지만 debt/note aggregate binding이 남아 있음 |
+| 현재 관측 | multi-metric numeric smoke subset에서 retrieval hit은 유지되고, `SKH_T1_060`은 refusal을 벗어나 `25.2%`까지 계산하지만 사채 aggregate 오선택으로 아직 오답 |
 | 다음 할 일 | `single_doc_eval_multi_metric_numeric.curated.json`와 `multi_metric_numeric_smoke.json` 기준으로 trace/evaluator 회귀 반복 |
 | 종료 조건 | final answer와 structured trace가 모두 같은 subtask 집합을 보존 |
 

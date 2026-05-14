@@ -175,11 +175,148 @@ class ReconciliationPlanTests(unittest.TestCase):
             metadata=metadata,
         )
 
-        self.assertEqual(len(candidates), 1)
-        candidate = candidates[0]
+        candidate = next(item for item in candidates if item["candidate_kind"] == "structured_row")
         self.assertEqual(candidate["candidate_kind"], "structured_row")
         self.assertEqual(candidate["metadata"].get("row_headers"), ["부채총계"])
         self.assertTrue(_candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+
+    def test_structured_column_candidates_are_built_from_period_rows(self) -> None:
+        metadata = {
+            "statement_type": "summary_financials",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023", "2022"],
+            "table_source_id": "table_002",
+            "table_header_context": "구분 | 부채총계 | 자본총계 | 단위: 백만원",
+            "table_summary_text": "구분 | 부채총계 | 자본총계",
+            "table_row_labels_text": "2023\n2022",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_id": "r1",
+                        "row_label": "2023",
+                        "row_headers": ["2023"],
+                        "cells": [
+                            {"column_headers": ["부채총계"], "value_text": "92,228,115", "unit_hint": "백만원"},
+                            {"column_headers": ["자본총계"], "value_text": "363,677,865", "unit_hint": "백만원"},
+                        ],
+                    },
+                    {
+                        "row_id": "r2",
+                        "row_label": "2022",
+                        "row_headers": ["2022"],
+                        "cells": [
+                            {"column_headers": ["부채총계"], "value_text": "93,674,903", "unit_hint": "백만원"},
+                            {"column_headers": ["자본총계"], "value_text": "354,749,604", "unit_hint": "백만원"},
+                        ],
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        candidates = _build_table_row_reconciliation_candidates(
+            candidate_id_prefix="doc_3",
+            anchor="[삼성전자 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+            table_text="ignored fallback text",
+            metadata=metadata,
+        )
+
+        debt_candidate = next(item for item in candidates if item["candidate_kind"] == "structured_column_value" and item["metadata"].get("row_label") == "부채총계")
+        self.assertTrue(_candidate_matches_operand(debt_candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+        self.assertEqual(
+            [cell["column_headers"] for cell in debt_candidate["metadata"].get("structured_cells", [])],
+            [["2023"], ["2022"]],
+        )
+
+    def test_structured_value_candidates_are_built_from_value_records(self) -> None:
+        metadata = {
+            "statement_type": "summary_financials",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023", "2022"],
+            "table_source_id": "table_003",
+            "table_header_context": "구분 | 2023 | 2022 | 단위: 백만원",
+            "table_summary_text": "구분 | 2023 | 2022 | 단위: 백만원\n부채총계 | 자본총계",
+            "table_row_labels_text": "부채총계\n자본총계",
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_003:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": "부채총계",
+                        "semantic_aliases": ["부채총계", "총부채"],
+                        "label_source": "row",
+                        "row_label": "부채총계",
+                        "row_headers": ["부채총계"],
+                        "column_headers": ["2023"],
+                        "period_text": "2023",
+                        "period_labels": ["2023"],
+                        "value_text": "92,228,115",
+                        "unit_hint": "백만원",
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        candidates = _build_table_row_reconciliation_candidates(
+            candidate_id_prefix="doc_4",
+            anchor="[삼성전자 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+            table_text="ignored fallback text",
+            metadata=metadata,
+        )
+
+        candidate = next(item for item in candidates if item["candidate_kind"] == "structured_value")
+        self.assertEqual(candidate["metadata"].get("row_label"), "부채총계")
+        self.assertTrue(_candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+
+    def test_final_aggregate_value_scores_above_subtotal_for_generic_operand(self) -> None:
+        operand = {"label": "장기차입금", "aliases": ["장기 차입금", "장기차입금 합계"], "required": True}
+        subtotal_candidate = {
+            "candidate_id": "value_subtotal",
+            "candidate_kind": "structured_value",
+            "text": "장기차입금 합계 12,164,595",
+            "metadata": {
+                "row_label": "장기차입금 합계",
+                "aggregate_role": "subtotal",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023"],
+                "structured_cells": [
+                    {"column_headers": ["장기차입금 합계"], "value_text": "12,164,595", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        final_candidate = {
+            "candidate_id": "value_final",
+            "candidate_kind": "structured_value",
+            "text": "장기차입금 합계 10,121,033",
+            "metadata": {
+                "row_label": "장기차입금 합계",
+                "aggregate_role": "final_total",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023"],
+                "structured_cells": [
+                    {"column_headers": ["장기차입금 합계"], "value_text": "10,121,033", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        subtotal_score = _score_operand_candidate(
+            subtotal_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+        final_score = _score_operand_candidate(
+            final_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(final_score, subtotal_score)
 
     def test_descriptor_structured_row_is_penalized_below_numeric_row(self) -> None:
         operand = {"label": "단기차입금", "aliases": [], "required": True}

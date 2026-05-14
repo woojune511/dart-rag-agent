@@ -7,13 +7,15 @@ This module turns retrieved evidence into operand-ready candidate sets:
 - decide whether retrieval should retry or calculation can continue
 """
 
+import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_models import FinancialAgentState, ReconciliationCandidateRerank
+from src.agent.financial_graph_models import FinancialAgentState, ReconciliationCandidateRerank, ReflectionQueryPlan
 from src.config import get_financial_ontology
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
@@ -146,7 +148,7 @@ class FinancialAgentReconciliationMixin:
         if score_gap < 1.0:
             return True
         if "chunk" in top_kinds and any(
-            kind in {"structured_row", "table_row", "evidence_row"}
+            kind in {"structured_value", "structured_row", "structured_column_value", "table_row", "evidence_row"}
             for kind in top_kinds
         ):
             return True
@@ -331,7 +333,7 @@ candidate options:
                 seen.add(evidence_id)
                 metadata = dict(current.get("metadata") or {})
                 raw_row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
-                if not raw_row_text and str(current.get("candidate_kind") or "") == "structured_row":
+                if not raw_row_text and str(current.get("candidate_kind") or "") in {"structured_value", "structured_row", "structured_column_value"}:
                     row_label = str(metadata.get("row_label") or "").strip()
                     values = [
                         str(cell.get("value_text") or "").strip()
@@ -371,6 +373,11 @@ candidate options:
             return []
 
         constraints = dict(active_subtask.get("constraints") or {})
+        preferred_statement_types = [
+            str(item).strip()
+            for item in (active_subtask.get("preferred_statement_types") or [])
+            if str(item).strip()
+        ]
         period_focus = str(constraints.get("period_focus") or "unknown").strip()
         query_years = _query_years_from_state(state)
         candidates = self._build_reconciliation_candidates(state)
@@ -397,14 +404,32 @@ candidate options:
                 for value in (match_entry.get("candidate_ids") or [])
                 if str(value).strip()
             ]
-            candidate: Optional[Dict[str, Any]] = None
+            structured_candidates: List[Dict[str, Any]] = []
             for candidate_id in candidate_ids:
                 current = candidate_map.get(candidate_id)
                 if not current:
                     continue
-                if str(current.get("candidate_kind") or "") == "structured_row":
-                    candidate = current
-                    break
+                if str(current.get("candidate_kind") or "") in {
+                    "structured_value",
+                    "structured_row",
+                    "structured_column_value",
+                    "table_row",
+                    "evidence_row",
+                }:
+                    structured_candidates.append(current)
+            candidate: Optional[Dict[str, Any]] = None
+            if structured_candidates:
+                structured_candidates.sort(
+                    key=lambda current: _score_operand_candidate(
+                        current,
+                        operand=operand,
+                        preferred_statement_types=preferred_statement_types,
+                        constraints=constraints,
+                        query_years=query_years,
+                    ),
+                    reverse=True,
+                )
+                candidate = structured_candidates[0]
             if not candidate:
                 continue
 

@@ -13,6 +13,7 @@ from src.agent.financial_graph import (
     FinancialAgent,
     _build_semantic_numeric_plan,
     _extract_numeric_value_after_operand_text,
+    _infer_period_focus,
     _is_percent_point_difference_query,
     _merge_operand_rows,
     _missing_required_operands,
@@ -79,6 +80,17 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertIn("연결 재무상태표", task["preferred_sections"])
         self.assertIn("차입금 및 사채", task["preferred_sections"])
         self.assertIn("notes", task["preferred_statement_types"])
+        self.assertEqual(task["constraints"]["period_focus"], "current")
+
+    def test_single_year_query_defaults_period_focus_to_current(self) -> None:
+        self.assertEqual(
+            _infer_period_focus("2023년 연결 재무상태표에서 단기차입금을 찾아줘."),
+            "current",
+        )
+        self.assertEqual(
+            _infer_period_focus("2023년과 2022년 부채비율을 비교해 줘."),
+            "unknown",
+        )
 
     def test_fallback_builds_explicit_operand_list_for_gain_loss_difference(self) -> None:
         plan = _build_semantic_numeric_plan(

@@ -10,6 +10,7 @@ This module owns the structured numeric path after reconciliation:
 
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate

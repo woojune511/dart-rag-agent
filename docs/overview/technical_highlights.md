@@ -98,6 +98,32 @@
   **numeric retrieval에 필요한 구조는 유지하면서 oversized chunk를 줄이는 width-aware / narrative-aware splitting**으로 발전했다.
 - 실제로 POSCO 대형 표의 `5985` char chunk는 이 단계에서 해소됐다.
 
+## 1-3. 표 해석은 row-first/column-first를 넘어서 value-cell-first 계약으로 이동 중이다
+
+최근 wide note table 문제를 해결하면서, 표를 row candidate와 column candidate로 따로 특수처리하는 대신
+**값 셀 하나를 중심으로 의미를 복원하는 `structured_value` 경로**를 추가했다.
+
+핵심 포인트:
+
+- parser가 `table_value_records_json`을 생성한다
+- 각 값 셀마다
+  - `semantic_label`
+  - `row_headers`
+  - `column_headers`
+  - `aggregate_label`
+  - `aggregate_role`
+  - `period_text`
+  - `unit_hint`
+  를 저장한다
+- `TBODY` 내부 `TE` 셀도 실제 value cell로 읽는다
+- `(단위 : 백만원)` 같은 unit-only standalone table은 다음 실제 표의 context hint로 승격한다
+- runtime은 이 value record에서 `structured_value` reconciliation candidate를 만들고 direct operand extraction에 바로 사용한다
+
+의미:
+
+- debt note처럼 merged-header가 많은 wide table도 더 이상 row label만 보고 읽지 않는다.
+- 여전히 완전한 일반화는 남아 있지만, **표 처리 계약이 row/column heuristic에서 value-cell-first 정규화로 이동하기 시작했다**는 점이 중요하다.
+
 ## 2. retrieval granularity와 reasoning context를 분리한 parent-child retrieval
 
 검색은 child chunk로 하고, 답변은 parent section을 우선 컨텍스트로 삼는다.
@@ -189,6 +215,7 @@ retrieve
   을 합쳐 deterministic하게 계산한다
 - `범위`, `하위범위`, `상위범위` 같은 descriptor structured row는 penalty를 준다
 - `유형자산`, `무형자산`, `자산총계`, `부채총계`, `자본총계` 계열은 `summary_financials / balance_sheet` row를 더 강하게 우대한다
+- single-year query는 `current` period focus로 해석해 `당기` aggregate가 `전기` aggregate보다 앞서도록 보정한다
 - `LLM rerank`는 top candidate가 애매할 때만 보조적으로 호출한다
 
 의미:

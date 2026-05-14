@@ -195,7 +195,13 @@
 현재 해석:
 
 - 이 subset은 broad quality benchmark보다 **`matched_operands -> calculation_operands -> aggregate projection`** 경로를 보기 위한 회귀용이다.
-- 최근 smoke에서는 retrieval hit은 유지됐지만, debt note aggregate binding이 남아 있는 것이 더 중요한 병목으로 드러났다.
+- 최근 smoke에서는 retrieval hit은 유지됐고, `SKH_T1_060`은
+  - initial refusal
+  - unit mismatch
+  - current/prior aggregate 혼선
+  를 순차적으로 벗어났다.
+- 현재 latest direct run은 `25.2%` numeric answer까지 도달하지만, **사채 final aggregate 대신 detail row 0원을 집는 문제**가 남아 있다.
+- 따라서 이 subset의 현재 핵심 용도는 retrieval miss보다 **wide note table aggregate binding 회귀**에 더 가깝다.
 
 ### Math focus dataset
 

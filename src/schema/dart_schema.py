@@ -53,6 +53,26 @@ class RowRecord(BaseModel):
     cells: List[CellRecord] = Field(default_factory=list)
 
 
+class ValueRecord(BaseModel):
+    value_id: str
+    row_index: int
+    column_index: int
+    semantic_label: str
+    semantic_aliases: List[str] = Field(default_factory=list)
+    label_source: Literal["row", "column", "composite", "unknown"] = "unknown"
+    aggregate_label: str = ""
+    aggregate_role: Literal["none", "direct_total", "subtotal", "final_total", "adjustment"] = "none"
+    row_label: str = ""
+    row_headers: List[str] = Field(default_factory=list)
+    column_headers: List[str] = Field(default_factory=list)
+    period_text: str = ""
+    period_labels: List[str] = Field(default_factory=list)
+    value_text: str = ""
+    unit_hint: str = ""
+    normalized_value: Optional[float] = None
+    normalized_unit: Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"] = "UNKNOWN"
+
+
 class TableObject(BaseModel):
     table_id: str
     source_section_path: str
@@ -68,6 +88,7 @@ class TableObject(BaseModel):
     header_rows: List[List[str]] = Field(default_factory=list)
     row_labels: List[str] = Field(default_factory=list)
     rows: List[RowRecord] = Field(default_factory=list)
+    values: List[ValueRecord] = Field(default_factory=list)
     table_header_context: str = ""
     table_summary_text: str = ""
 

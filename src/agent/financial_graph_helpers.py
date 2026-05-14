@@ -75,6 +75,7 @@ __all__ = [
     '_merge_operand_rows',
     '_extract_table_row_label',
     '_parse_unstructured_table_row_cells',
+    '_build_table_value_reconciliation_candidates',
     '_build_table_row_reconciliation_candidates',
     '_candidate_has_numeric_value_signal',
     '_candidate_is_descriptor_row',
@@ -813,6 +814,9 @@ def _infer_period_focus(query: str, default_value: str = "unknown") -> str:
         return "prior"
     if any(keyword in text for keyword in ("당기", "금년", "현재 연도", "이번 연도")):
         return "current"
+    explicit_years = list(dict.fromkeys(re.findall(r"20\d{2}", text)))
+    if len(explicit_years) == 1:
+        return "current"
     return default_value or "unknown"
 
 
@@ -1273,6 +1277,225 @@ def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any])
     return cells
 
 
+_GENERIC_COLUMN_HEADERS = {
+    "구분",
+    "항목",
+    "내용",
+    "세부항목",
+    "비고",
+    "차입금명칭",
+}
+
+
+def _build_table_value_reconciliation_candidates(
+    *,
+    candidate_id_prefix: str,
+    anchor: str,
+    metadata: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """Build value-cell-first candidates from parser-normalized table values."""
+    value_records_json = str(metadata.get("table_value_records_json") or "").strip()
+    if not value_records_json:
+        return []
+    try:
+        value_records = json.loads(value_records_json)
+    except json.JSONDecodeError:
+        return []
+
+    header_context = str(metadata.get("table_header_context") or "").strip()
+    summary_text = str(metadata.get("table_summary_text") or "").strip()
+    local_heading = str(metadata.get("local_heading") or "").strip()
+    section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
+    candidates: List[Dict[str, Any]] = []
+    for idx, record in enumerate(value_records):
+        semantic_label = _normalise_spaces(str(record.get("semantic_label") or ""))
+        value_text = _normalise_spaces(str(record.get("value_text") or ""))
+        if not semantic_label or not value_text or not re.search(r"\d", value_text):
+            continue
+        period_text = _normalise_spaces(str(record.get("period_text") or ""))
+        semantic_aliases = [
+            _normalise_spaces(str(item))
+            for item in (record.get("semantic_aliases") or [])
+            if _normalise_spaces(str(item))
+        ]
+        row_headers = [
+            _normalise_spaces(str(item))
+            for item in (record.get("row_headers") or [])
+            if _normalise_spaces(str(item))
+        ]
+        column_headers = [
+            _normalise_spaces(str(item))
+            for item in (record.get("column_headers") or [])
+            if _normalise_spaces(str(item))
+        ]
+        structured_cell_headers = [period_text] if period_text else list(record.get("period_labels") or []) or column_headers
+        composite_text = " ".join(
+            part
+            for part in (
+                semantic_label,
+                " ".join(semantic_aliases),
+                " ".join(row_headers),
+                " ".join(column_headers),
+                period_text,
+                value_text,
+                header_context,
+                summary_text,
+                local_heading,
+                section_path,
+                anchor,
+            )
+            if part
+        )
+        candidate = _build_reconciliation_candidate(
+            candidate_id=f"{candidate_id_prefix}::value:{idx}",
+            anchor=anchor,
+            text=composite_text,
+            metadata=metadata,
+            candidate_kind="structured_value",
+            row_label=semantic_label,
+            row_index=record.get("row_index"),
+        )
+        candidate["metadata"]["row_headers"] = row_headers
+        candidate["metadata"]["column_headers_chain"] = column_headers
+        candidate["metadata"]["semantic_label"] = semantic_label
+        candidate["metadata"]["semantic_aliases"] = semantic_aliases
+        candidate["metadata"]["label_source"] = str(record.get("label_source") or "")
+        candidate["metadata"]["aggregate_label"] = _normalise_spaces(str(record.get("aggregate_label") or ""))
+        candidate["metadata"]["aggregate_role"] = _normalise_spaces(str(record.get("aggregate_role") or "none"))
+        candidate["metadata"]["period_text"] = period_text
+        candidate["metadata"]["structured_cells"] = [
+            {
+                "column_headers": structured_cell_headers,
+                "value_text": value_text,
+                "unit_hint": str(record.get("unit_hint") or metadata.get("unit_hint") or "").strip(),
+            }
+        ]
+        candidates.append(candidate)
+    return candidates
+
+
+def _column_candidate_label(column_headers: List[str]) -> str:
+    cleaned = [_normalise_spaces(header) for header in column_headers if _normalise_spaces(header)]
+    if not cleaned:
+        return ""
+    filtered = [header for header in cleaned if header not in _GENERIC_COLUMN_HEADERS]
+    target = filtered[-1] if filtered else cleaned[-1]
+    if re.fullmatch(r"20\d{2}(?:년)?", target):
+        return ""
+    return target
+
+
+def _build_table_column_reconciliation_candidates(
+    *,
+    candidate_id_prefix: str,
+    anchor: str,
+    metadata: Dict[str, Any],
+    row_records: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Transpose row records into column-oriented aggregate candidates.
+
+    This is the complement to row-based reconciliation. Some wide DART tables
+    store the metric identity in the merged column header chain while each row
+    carries period or range context. In that case we synthesize a candidate per
+    meaningful column header and attach the row labels as the per-cell period
+    headers so the normal direct structured extraction path can still work.
+    """
+    grouped: Dict[tuple[str, ...], Dict[str, Any]] = {}
+    for record in row_records:
+        row_label = _normalise_spaces(str(record.get("row_label") or ""))
+        row_headers = [row_label] + [
+            _normalise_spaces(str(item))
+            for item in (record.get("row_headers") or [])
+            if _normalise_spaces(str(item)) and _normalise_spaces(str(item)) != row_label
+        ]
+        for cell in (record.get("cells") or []):
+            value_text = _normalise_spaces(str(cell.get("value_text") or ""))
+            if not value_text or not re.search(r"\d", value_text):
+                continue
+            original_headers = [
+                _normalise_spaces(str(item))
+                for item in (cell.get("column_headers") or [])
+                if _normalise_spaces(str(item))
+            ]
+            label = _column_candidate_label(original_headers)
+            if not label:
+                continue
+            key = tuple(original_headers) or (label,)
+            bucket = grouped.setdefault(
+                key,
+                {
+                    "label": label,
+                    "column_headers_chain": original_headers,
+                    "cells": [],
+                },
+            )
+            transformed_headers = [item for item in row_headers if item]
+            if not transformed_headers:
+                transformed_headers = [label]
+            bucket["cells"].append(
+                {
+                    "column_headers": transformed_headers,
+                    "value_text": value_text,
+                    "unit_hint": str(cell.get("unit_hint") or metadata.get("unit_hint") or "").strip(),
+                }
+            )
+
+    header_context = str(metadata.get("table_header_context") or "").strip()
+    summary_text = str(metadata.get("table_summary_text") or "").strip()
+    local_heading = str(metadata.get("local_heading") or "").strip()
+    section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
+    candidates: List[Dict[str, Any]] = []
+    for idx, bucket in enumerate(grouped.values()):
+        cells = [dict(cell) for cell in bucket.get("cells") or [] if dict(cell)]
+        if not cells:
+            continue
+        label = str(bucket.get("label") or "").strip()
+        if not label:
+            continue
+        cell_text = " ".join(
+            _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        " / ".join(str(item).strip() for item in (cell.get("column_headers") or []) if str(item).strip()),
+                        str(cell.get("value_text") or "").strip(),
+                        str(cell.get("unit_hint") or "").strip(),
+                    )
+                    if part
+                )
+            )
+            for cell in cells
+        )
+        full_headers = [str(item).strip() for item in (bucket.get("column_headers_chain") or []) if str(item).strip()]
+        composite_text = " ".join(
+            part
+            for part in (
+                label,
+                " ".join(full_headers),
+                cell_text,
+                header_context,
+                summary_text,
+                local_heading,
+                section_path,
+                anchor,
+            )
+            if part
+        )
+        candidate = _build_reconciliation_candidate(
+            candidate_id=f"{candidate_id_prefix}::colrec:{idx}",
+            anchor=anchor,
+            text=composite_text,
+            metadata=metadata,
+            candidate_kind="structured_column_value",
+            row_label=label,
+        )
+        candidate["metadata"]["row_headers"] = full_headers
+        candidate["metadata"]["column_headers_chain"] = full_headers
+        candidate["metadata"]["structured_cells"] = cells
+        candidates.append(candidate)
+    return candidates
+
+
 def _build_table_row_reconciliation_candidates(
     *,
     candidate_id_prefix: str,
@@ -1286,6 +1509,14 @@ def _build_table_row_reconciliation_candidates(
     local_heading = str(metadata.get("local_heading") or "").strip()
     section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
     candidates: List[Dict[str, Any]] = []
+    value_candidates = _build_table_value_reconciliation_candidates(
+        candidate_id_prefix=candidate_id_prefix,
+        anchor=anchor,
+        metadata=metadata,
+    )
+    if value_candidates:
+        candidates.extend(value_candidates)
+
     row_records_json = str(metadata.get("table_row_records_json") or "").strip()
 
     if row_records_json:
@@ -1338,6 +1569,14 @@ def _build_table_row_reconciliation_candidates(
             )
             candidate["metadata"]["row_headers"] = row_headers
             candidate["metadata"]["structured_cells"] = cells
+            candidates.append(candidate)
+        column_candidates = _build_table_column_reconciliation_candidates(
+            candidate_id_prefix=candidate_id_prefix,
+            anchor=anchor,
+            metadata=metadata,
+            row_records=row_records if isinstance(row_records, list) else [],
+        )
+        for candidate in column_candidates:
             candidates.append(candidate)
         if candidates:
             return candidates
@@ -1470,20 +1709,50 @@ def _score_operand_candidate(
     metadata = dict(candidate.get("metadata") or {})
     score = 0.0
     row_label = str(metadata.get("row_label") or "").strip()
+    semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
     if row_label:
         if any(_normalise_spaces(row_label) == _normalise_spaces(needle) for needle in _operand_needles(operand)):
             score += 3.0
         elif _operand_text_match(row_label, operand):
             score += 1.5
     candidate_kind = str(candidate.get("candidate_kind") or "")
-    if candidate_kind == "structured_row":
+    if candidate_kind == "structured_value":
+        score += 2.5
+    elif candidate_kind == "structured_row":
         score += 2.0
+    elif candidate_kind == "structured_column_value":
+        score += 1.75
     elif candidate_kind == "table_row":
         score += 1.0
     elif candidate_kind == "evidence_row":
         score += 0.5
     elif candidate_kind == "chunk":
         score -= 0.25
+
+    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
+    if aggregate_role == "final_total":
+        score += 1.5
+    elif aggregate_role == "direct_total":
+        score += 1.25
+    elif aggregate_role == "subtotal":
+        score += 0.5
+    elif aggregate_role == "adjustment":
+        score -= 1.5
+
+    aggregate_signal = " ".join(
+        part
+        for part in (
+            semantic_label,
+            row_label,
+            _normalise_spaces(str(metadata.get("aggregate_label") or "")),
+            " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+        )
+        if part
+    )
+    if aggregate_role in {"direct_total", "final_total"} and _operand_text_match(aggregate_signal, operand):
+        score += 2.0
+    elif aggregate_role == "subtotal" and _operand_text_match(aggregate_signal, operand):
+        score += 0.75
 
     if _candidate_has_numeric_value_signal(candidate):
         score += 1.0
@@ -1500,6 +1769,8 @@ def _score_operand_candidate(
 
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     candidate_consolidation = str(metadata.get("consolidation_scope") or "unknown").strip()
+    desired_period_focus = _operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
+    candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
     local_heading = _normalise_spaces(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
@@ -1518,6 +1789,17 @@ def _score_operand_candidate(
                 score += 1.5
             elif "연결" in local_heading:
                 score -= 1.5
+
+    if desired_period_focus == "current":
+        if candidate_period_focus == "current":
+            score += 1.5
+        elif candidate_period_focus == "prior":
+            score -= 1.5
+    elif desired_period_focus == "prior":
+        if candidate_period_focus == "prior":
+            score += 1.5
+        elif candidate_period_focus == "current":
+            score -= 1.5
 
     if _is_balance_sheet_aggregate_operand(operand):
         if statement_type in {"summary_financials", "balance_sheet"}:

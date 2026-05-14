@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from lxml import etree
 from pydantic import BaseModel
-from src.schema import CellRecord, RowRecord, TableObject
+from src.schema import CellRecord, RowRecord, TableObject, ValueRecord
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +71,7 @@ _YEAR_LABEL_RE = re.compile(r"\b(20\d{2})년\b")
 _DATE_LABEL_RE = re.compile(r"\b(20\d{2})\.(\d{1,2})\.(\d{1,2})\b")
 _UNIT_HINT_RE = re.compile(r"(천원|백만원|억원|%)")
 _UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(천원|백만원|억원|원|%)")
+_TABLE_CELL_TAGS = ("TD", "TH", "TU", "TE")
 
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
@@ -129,6 +130,10 @@ _BRACKET_SECTION_LABEL_PREFIXES = (
     "IV. 이사의 경영진단 및 분석의견",
 )
 _SHORT_BRACKET_LABEL_MAX_CHARS = 8
+_AGGREGATE_LABEL_TERMS = ("합계", "소계", "총계", "잔액")
+_ADJUSTMENT_ROW_RE = re.compile(r"^차감(?::|\s)")
+_FINAL_AGGREGATE_ROW_RE = re.compile(r"^차감\s*계(?:\s*$|\s*[,，]\s*|\s+)")
+_SUBTOTAL_ROW_RE = re.compile(r"^합계(?:\s*[,，]\s*|\s+)")
 
 
 class DocumentChunk(BaseModel):
@@ -306,6 +311,48 @@ def _infer_unit_hint(text: str) -> Optional[str]:
     return None
 
 
+def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Optional[str]:
+    """Capture small period/unit tables that label the next real table.
+
+    DART often inserts a tiny borderless table like `당기 | (단위 : 백만원)`
+    immediately before the actual numeric table. These tables are not useful
+    on their own, but their period/unit hint is critical for the following
+    value table, especially when the main table itself does not repeat the
+    current/prior marker.
+    """
+    table_text = _normalize(str(table_object.get("table_text") or ""))
+    if not table_text:
+        return None
+
+    rows = [row for row in table_text.splitlines() if row.strip()]
+    if not rows or len(rows) > 2:
+        return None
+
+    row_count = int(table_object.get("row_count") or 0)
+    column_count = int(table_object.get("column_count") or 0)
+    if row_count > 2 or column_count > 3:
+        return None
+
+    combined = " ".join(rows)
+    period_labels = _extract_period_labels(combined)
+    unit_hint = _infer_unit_hint(combined)
+    # Some filings place `(단위 : 백만원)` in a standalone table without an
+    # accompanying period token. Those tiny unit-only tables should still
+    # annotate the following real numeric table.
+    if not period_labels and not unit_hint:
+        return None
+
+    # Guard against accidentally swallowing real numeric tables: standalone
+    # context tables are short and should not contain thousands-style amounts.
+    if re.search(r"\d{1,3}(?:,\d{3})+", combined):
+        return None
+
+    hint_parts = [combined]
+    if unit_hint and unit_hint not in combined:
+        hint_parts.append(f"(단위: {unit_hint})")
+    return _normalize("\n".join(hint_parts))
+
+
 def _infer_statement_type(section_path: str, header_context: Optional[str]) -> str:
     combined = f"{_normalize(section_path)}\n{_normalize(header_context or '')}"
     if "요약재무정보" in combined:
@@ -334,6 +381,150 @@ def _infer_consolidation_scope(section_path: str, header_context: Optional[str])
     if "별도" in combined:
         return "separate"
     return "unknown"
+
+
+_GENERIC_VALUE_LABELS = {
+    "구분",
+    "항목",
+    "내용",
+    "세부항목",
+    "비고",
+    "차입금명칭",
+    "범위",
+    "하위범위",
+    "상위범위",
+    "소계",
+    "합계",
+}
+
+
+def _is_period_like_label(text: str) -> bool:
+    normalized = _normalize(text)
+    if not normalized:
+        return False
+    if normalized in {"당기", "전기", "전전기", "당기말", "전기말", "전전기말"}:
+        return True
+    return bool(re.fullmatch(r"20\d{2}(?:년)?", normalized))
+
+
+def _is_generic_value_label(text: str) -> bool:
+    normalized = _normalize(text)
+    if not normalized:
+        return True
+    if normalized in _GENERIC_VALUE_LABELS:
+        return True
+    return _is_period_like_label(normalized)
+
+
+def _semantic_label_from_axes(
+    row_label: str,
+    row_headers: List[str],
+    column_headers: List[str],
+) -> Tuple[str, str, List[str]]:
+    normalized_row = _normalize(row_label)
+    row_parts = [_normalize(item) for item in ([normalized_row] + list(row_headers or [])) if _normalize(item)]
+    col_parts = [_normalize(item) for item in list(column_headers or []) if _normalize(item)]
+
+    meaningful_row = [item for item in row_parts if not _is_generic_value_label(item)]
+    meaningful_col = [item for item in col_parts if not _is_generic_value_label(item)]
+
+    if normalized_row and not _is_generic_value_label(normalized_row):
+        label = normalized_row
+        source = "row"
+    elif meaningful_row and not meaningful_col:
+        label = meaningful_row[0]
+        source = "row"
+    elif meaningful_col and (not meaningful_row or _is_period_like_label(normalized_row) or normalized_row in {"범위", "하위범위", "상위범위"}):
+        label = meaningful_col[-1]
+        source = "column"
+    elif meaningful_row and meaningful_col:
+        label = meaningful_row[0]
+        source = "composite"
+    else:
+        label = meaningful_col[-1] if meaningful_col else ""
+        source = "unknown"
+
+    aliases = _dedupe_preserve_order([label, *meaningful_row, *meaningful_col])
+    return label, source, aliases
+
+
+def _is_aggregate_like_label(text: str) -> bool:
+    normalized = _normalize(text)
+    if not normalized:
+        return False
+    return any(term in normalized for term in _AGGREGATE_LABEL_TERMS)
+
+
+def _aggregate_column_label(column_headers: List[str]) -> str:
+    meaningful_headers = [_normalize(item) for item in list(column_headers or []) if _normalize(item)]
+    for header in reversed(meaningful_headers):
+        if _is_aggregate_like_label(header):
+            return header
+    return ""
+
+
+def _strip_leading_aggregate_prefix(text: str) -> str:
+    normalized = _normalize(text)
+    if not normalized:
+        return ""
+    normalized = _FINAL_AGGREGATE_ROW_RE.sub("", normalized)
+    normalized = _SUBTOTAL_ROW_RE.sub("", normalized)
+    normalized = re.sub(r"^차감\s*계\s*$", "", normalized)
+    return _normalize(normalized.strip(" ,，"))
+
+
+def _strip_trailing_aggregate_suffix(text: str) -> str:
+    normalized = _normalize(text)
+    if not normalized:
+        return ""
+    normalized = re.sub(r"\s*(합계|소계|총계|잔액)\s*$", "", normalized)
+    return _normalize(normalized.strip(" ,，"))
+
+
+def _derive_value_record_semantics(
+    *,
+    row_label: str,
+    row_headers: List[str],
+    column_headers: List[str],
+    semantic_label: str,
+    label_source: str,
+    aliases: List[str],
+) -> Tuple[str, str, List[str], str, str]:
+    aggregate_label = _aggregate_column_label(column_headers)
+    normalized_row = _normalize(row_label)
+    if not aggregate_label:
+        return semantic_label, label_source, aliases, "", "none"
+
+    aggregate_base = _strip_trailing_aggregate_suffix(aggregate_label)
+    row_base = _strip_leading_aggregate_prefix(normalized_row)
+    if row_base:
+        row_base = _strip_trailing_aggregate_suffix(row_base)
+
+    if _FINAL_AGGREGATE_ROW_RE.match(normalized_row):
+        aggregate_role = "final_total"
+        semantic_label = aggregate_label
+        aliases = _dedupe_preserve_order([aggregate_label, aggregate_base, normalized_row, row_base])
+        return semantic_label, "column", aliases, aggregate_label, aggregate_role
+
+    if _ADJUSTMENT_ROW_RE.match(normalized_row):
+        aggregate_role = "adjustment"
+        aliases = _dedupe_preserve_order([normalized_row, row_base, semantic_label])
+        return semantic_label, label_source, aliases, aggregate_label, aggregate_role
+
+    if _SUBTOTAL_ROW_RE.match(normalized_row):
+        aggregate_role = "subtotal"
+        semantic_label = aggregate_label
+        aliases = _dedupe_preserve_order([aggregate_label, aggregate_base, normalized_row, row_base])
+        return semantic_label, "column", aliases, aggregate_label, aggregate_role
+
+    if aggregate_base and row_base and re.sub(r"\s+", "", aggregate_base) == re.sub(r"\s+", "", row_base):
+        aggregate_role = "direct_total"
+        semantic_label = aggregate_label
+        aliases = _dedupe_preserve_order([aggregate_label, aggregate_base, normalized_row])
+        return semantic_label, "column", aliases, aggregate_label, aggregate_role
+
+    aliases = _dedupe_preserve_order([semantic_label, *aliases])
+    return semantic_label, label_source, aliases, aggregate_label, "none"
 
 
 def _is_probable_xml_markup(inner: str) -> bool:
@@ -729,7 +920,7 @@ class FinancialParser:
             col_idx = advance_carry_into_row(row, col_idx)
 
             for cell in tr:
-                if cell.tag not in ("TD", "TH", "TU"):
+                if cell.tag not in _TABLE_CELL_TAGS:
                     continue
                 col_idx = advance_carry_into_row(row, col_idx)
                 text = _normalize("".join(cell.itertext()))
@@ -769,7 +960,10 @@ class FinancialParser:
 
     @staticmethod
     def _table_has_spans(table_elem) -> bool:
-        for cell in table_elem.findall(".//TD") + table_elem.findall(".//TH") + table_elem.findall(".//TU"):
+        cells = []
+        for tag in _TABLE_CELL_TAGS:
+            cells.extend(table_elem.findall(f".//{tag}"))
+        for cell in cells:
             for attr_name in ("ROWSPAN", "COLSPAN", "rowspan", "colspan"):
                 raw = cell.get(attr_name)
                 if raw and str(raw).strip() not in {"", "1"}:
@@ -903,6 +1097,71 @@ class FinancialParser:
             )
         return row_records
 
+    def _build_table_value_records(
+        self,
+        row_records: List[Dict[str, Any]],
+        *,
+        table_id: str,
+        unit_hint: str,
+    ) -> List[Dict[str, Any]]:
+        value_records: List[Dict[str, Any]] = []
+        for row_idx, record in enumerate(row_records):
+            row_label = _normalize(str(record.get("row_label") or ""))
+            row_headers = [
+                _normalize(str(item))
+                for item in (record.get("row_headers") or [])
+                if _normalize(str(item))
+            ]
+            for cell in (record.get("cells") or []):
+                value_text = _normalize(str(cell.get("value_text") or ""))
+                if not value_text or not re.search(r"\d", value_text):
+                    continue
+                column_headers = [
+                    _normalize(str(item))
+                    for item in (cell.get("column_headers") or [])
+                    if _normalize(str(item))
+                ]
+                semantic_label, label_source, aliases = _semantic_label_from_axes(
+                    row_label,
+                    row_headers,
+                    column_headers,
+                )
+                if not semantic_label:
+                    continue
+                semantic_label, label_source, aliases, aggregate_label, aggregate_role = _derive_value_record_semantics(
+                    row_label=row_label,
+                    row_headers=row_headers,
+                    column_headers=column_headers,
+                    semantic_label=semantic_label,
+                    label_source=label_source,
+                    aliases=aliases,
+                )
+                axis_text = " ".join([*row_headers, *column_headers])
+                period_candidates = _extract_period_labels(axis_text)
+                if not period_candidates:
+                    bare_years = re.findall(r"\b(20\d{2})\b", axis_text)
+                    period_candidates = _dedupe_preserve_order(bare_years)
+                value_records.append(
+                    ValueRecord(
+                        value_id=f"{table_id}:v:{row_idx}:{int(cell.get('column_index') or 0)}",
+                        row_index=row_idx,
+                        column_index=int(cell.get("column_index") or 0),
+                        semantic_label=semantic_label,
+                        semantic_aliases=aliases,
+                        label_source=label_source,
+                        aggregate_label=aggregate_label,
+                        aggregate_role=aggregate_role,
+                        row_label=row_label,
+                        row_headers=row_headers,
+                        column_headers=column_headers,
+                        period_text=period_candidates[0] if period_candidates else "",
+                        period_labels=period_candidates,
+                        value_text=value_text,
+                        unit_hint=_normalize(str(cell.get("unit_hint") or unit_hint or "")),
+                    ).model_dump()
+                )
+        return value_records
+
     def _format_table(self, table_elem) -> str:
         return self._build_table_object(table_elem)["table_text"]
 
@@ -929,6 +1188,7 @@ class FinancialParser:
         *,
         local_heading: Optional[str] = None,
         table_object: Optional[Dict[str, Any]] = None,
+        context_prefix: Optional[str] = None,
     ) -> Dict[str, Any]:
         header_context = self._extract_table_header_context(table_text)
         row_labels_text = ""
@@ -937,6 +1197,7 @@ class FinancialParser:
         table_column_count = 0
         table_has_spans = False
         table_row_records_json = ""
+        table_value_records_json = ""
         table_object_json = ""
         if table_object:
             row_labels = list(table_object.get("row_labels") or [])
@@ -950,6 +1211,7 @@ class FinancialParser:
         bundle_context = "\n".join(
             part
             for part in (
+                context_prefix or "",
                 local_heading or "",
                 header_context or "",
                 table_text[:800],
@@ -962,6 +1224,13 @@ class FinancialParser:
             table_row_records = self._build_table_row_records(table_object, unit_hint)
             if table_row_records:
                 table_row_records_json = json.dumps(table_row_records, ensure_ascii=False)
+            table_value_records = self._build_table_value_records(
+                table_row_records,
+                table_id=table_source_id,
+                unit_hint=unit_hint or "",
+            )
+            if table_value_records:
+                table_value_records_json = json.dumps(table_value_records, ensure_ascii=False)
             header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
             table_model = TableObject(
                 table_id=table_source_id,
@@ -978,6 +1247,7 @@ class FinancialParser:
                 header_rows=[list(row) for row in list(table_object.get("grid") or [])[:header_row_count]],
                 row_labels=row_labels,
                 rows=[RowRecord(**record) for record in table_row_records],
+                values=[ValueRecord(**record) for record in table_value_records],
                 table_header_context=header_context or "",
                 table_summary_text=summary_text,
             )
@@ -994,6 +1264,7 @@ class FinancialParser:
             "table_summary_text": summary_text,
             "table_row_labels_text": row_labels_text,
             "table_row_records_json": table_row_records_json,
+            "table_value_records_json": table_value_records_json,
             "table_object_json": table_object_json,
             "table_row_count": table_row_count,
             "table_column_count": table_column_count,
@@ -1116,6 +1387,7 @@ class FinancialParser:
         blocks: List[Dict[str, Any]] = []
         heading_stack: List[str] = []
         pending_table_heading: Optional[str] = None
+        pending_table_context_hint: Optional[str] = None
         pending_section_label: Optional[str] = None
         table_counter = 0
         structured = _is_structured_section(section_path) if structured_override is None else structured_override
@@ -1149,7 +1421,7 @@ class FinancialParser:
             blocks.append(block)
 
         def process(elem, next_tag: Optional[str] = None):
-            nonlocal pending_table_heading, pending_section_label, table_counter
+            nonlocal pending_table_heading, pending_table_context_hint, pending_section_label, table_counter
             check_deadline(f"process:{getattr(elem, 'tag', 'unknown')}")
             tag = elem.tag
             if tag in _SECTION_TAGS:
@@ -1158,6 +1430,10 @@ class FinancialParser:
                 for table in elem.findall("TABLE"):
                     check_deadline("table-group")
                     table_object = self._build_table_object(table)
+                    context_hint = _extract_standalone_table_context_hint(table_object)
+                    if context_hint:
+                        pending_table_context_hint = context_hint
+                        continue
                     text = table_object["table_text"]
                     if text:
                         table_counter += 1
@@ -1172,13 +1448,19 @@ class FinancialParser:
                                 table_source_id,
                                 local_heading=pending_table_heading,
                                 table_object=table_object,
+                                context_prefix=pending_table_context_hint,
                             ),
                         )
+                        pending_table_context_hint = None
                 pending_section_label = None
                 return
             if tag == "TABLE":
                 check_deadline("table")
                 table_object = self._build_table_object(elem)
+                context_hint = _extract_standalone_table_context_hint(table_object)
+                if context_hint:
+                    pending_table_context_hint = context_hint
+                    return
                 text = table_object["table_text"]
                 if text:
                     table_counter += 1
@@ -1193,8 +1475,10 @@ class FinancialParser:
                             table_source_id,
                             local_heading=pending_table_heading,
                             table_object=table_object,
+                            context_prefix=pending_table_context_hint,
                         ),
                     )
+                    pending_table_context_hint = None
                 pending_section_label = None
                 return
             if tag == "P":
@@ -1209,6 +1493,8 @@ class FinancialParser:
                 )
                 if pending_table_heading is not None and (leading_headings or body_segments):
                     pending_table_heading = None
+                if pending_table_context_hint is not None and (leading_headings or body_segments):
+                    pending_table_context_hint = None
                 if leading_headings:
                     if heading_only_bracket and next_tag in {"TABLE", "TABLE-GROUP"}:
                         bracket_role = _classify_bracket_heading(
@@ -1463,6 +1749,7 @@ class FinancialParser:
                 "table_summary_text": block.get("table_summary_text"),
                 "table_row_labels_text": block.get("table_row_labels_text"),
                 "table_row_records_json": block.get("table_row_records_json"),
+                "table_value_records_json": block.get("table_value_records_json"),
                 "table_object_json": block.get("table_object_json"),
                 "table_row_count": block.get("table_row_count"),
                 "table_column_count": block.get("table_column_count"),
@@ -1781,6 +2068,7 @@ class FinancialParser:
                     "table_summary_text": chunk_block.get("table_summary_text"),
                     "table_row_labels_text": chunk_block.get("table_row_labels_text"),
                     "table_row_records_json": chunk_block.get("table_row_records_json"),
+                    "table_value_records_json": chunk_block.get("table_value_records_json"),
                     "table_object_json": chunk_block.get("table_object_json"),
                     "table_row_count": chunk_block.get("table_row_count"),
                     "table_column_count": chunk_block.get("table_column_count"),
