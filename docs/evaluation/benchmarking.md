@@ -125,6 +125,7 @@
 | `dev_fast` | 빠른 screening | 단일 회사, mixed query | 새 후보를 빠르게 거를 때 |
 | `curated_single_doc_core` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | curated dataset 기준선 회귀 |
 | `multi_metric_numeric_smoke` | multi-subtask numeric trace 회귀 | curated multi-metric numeric subset | runtime/evaluator projection 검증 |
+| `concept_planner_canary` | legacy planner와 concept-only planner shadow 비교 | implicit / shorthand / multi-metric numeric subset | planner 구조 전환 전 quick sanity check |
 | `curated_multi_report_smoke` | multi-report 분리셋 점검 | multi-report curated subset | multi-report path smoke |
 | `single_document_graph_micro` | graph / structure-aware retrieval 비교 | 소수 문항 마이크로 실험 | 구조 실험 초기 확인 |
 | `release_generalization` | 다기업 일반화 확인 | shortlist 후보 | release-grade 확인 |
@@ -199,9 +200,35 @@
   - initial refusal
   - unit mismatch
   - current/prior aggregate 혼선
-  를 순차적으로 벗어났다.
-- 현재 latest direct run은 `25.2%` numeric answer까지 도달하지만, **사채 final aggregate 대신 detail row 0원을 집는 문제**가 남아 있다.
-- 따라서 이 subset의 현재 핵심 용도는 retrieval miss보다 **wide note table aggregate binding 회귀**에 더 가깝다.
+  - 사채 aggregate binding
+  을 순차적으로 벗어났다.
+- 현재 확인된 최신 e2e 결과는:
+  - `SKH_T1_060`: `42.0%`
+  - `MIX_T1_021`: 부채비율 `25.4%`, 유동비율 `258.8%`
+- 따라서 이 subset의 최근 핵심 용도는 retrieval miss보다 **planner / reconciliation / aggregate projection이 함께 닫히는지 보는 end-to-end numeric regression**에 더 가깝다.
+
+### Concept planner canary
+
+최근에는 concept-only ontology와 LLM concept planner를 runtime default로 올릴
+수 있을지 보기 위한 shadow canary를 별도로 추가했다.
+
+| 파일 | 역할 |
+| --- | --- |
+| `benchmarks/profiles/concept_planner_canary.json` | planner-only canary profile |
+| `src/ops/compare_concept_planner_shadow.py` | legacy planner vs concept planner diff |
+
+현재 해석:
+
+- concept planner는 아래 케이스에서 좋은 분해를 보인다.
+  - `SKH_T1_060`
+  - `MIX_T1_021`
+  - implicit `부채비율`
+  - implicit `유동비율`
+  - implicit `FCF`
+- `NAV_T1_071`는 planner 차원에서 `lookup + difference` 재료 수집 구조로는
+  정리됐지만, end-to-end answer contract와 result schema는 아직 더 보강해야 한다.
+- 따라서 이 canary의 현재 역할은 **planner default 승격 판단 전 quick shadow compare**
+  이다.
 
 ### Math focus dataset
 

@@ -8,7 +8,7 @@ Improve numeric question handling by shifting from:
 
 to:
 
-`query -> semantic planning -> task-aware retrieval -> reconciliation -> calculation`
+`query -> semantic planning -> task-aware retrieval -> reconciliation -> calculation -> final synthesis`
 
 This design is meant to reduce:
 
@@ -23,6 +23,7 @@ This design is meant to reduce:
 
 - Do not make the parser a full rule engine for finance.
 - Do not make the pre-retrieval planner solve the calculation itself.
+- Do not make the planner decide the exact final wording of the user-facing answer.
 - Do not hard-reject every metadata mismatch; allow controlled fallback for `unknown`.
 
 
@@ -62,8 +63,101 @@ flowchart LR
     N -- yes --> O["activate_next_subtask"]
     O --> E
     N -- no --> P["aggregate_subtasks"]
-    P --> Q["cite"]
+    P --> R{"planner feedback?"}
+    R -- yes --> D
+    R -- no --> Q["cite"]
 ```
+
+## Planner Direction
+
+The planner is moving away from benchmark-shaped `metric_families` and toward a
+material-gathering intermediate representation.
+
+Current target IR:
+
+- `operation_family`
+- `required_operands`
+  - each operand should carry at least:
+    - `concept`
+    - `label`
+    - `role`
+- `constraints`
+  - `consolidation_scope`
+  - `period_focus`
+  - `entity_scope`
+  - `segment_scope`
+
+The planner should answer:
+
+- what concepts are needed
+- what operation relates those concepts
+- what scope / period constraints apply
+
+The planner should not answer:
+
+- exactly how the final Korean sentence should be phrased
+- whether the user should see only the final scalar or also intermediate values
+
+That responsibility belongs to the final synthesizer.
+
+### Current implementation status
+
+- legacy metric-family planning still exists as a compatibility path
+- concept-only ontology v3 draft is now available
+- implicit numeric questions can be decomposed by an LLM concept planner
+- planner output is lightly validated against:
+  - allowed operations
+  - ontology-defined concepts
+  - basic role / shape constraints
+- planner can now be re-entered in `replan` mode using `planner_feedback`
+
+## Ontology Direction
+
+The ontology is being reduced from a benchmark recipe book toward a reusable
+DART concept catalog.
+
+The active direction is:
+
+- keep:
+  - canonical concepts
+  - aliases
+  - concept groups
+  - statement / section priors
+  - lightweight binding preferences
+- de-emphasize:
+  - benchmark-shaped `metric_families`
+  - query-specific formulas
+  - one-off numerator / denominator recipes
+
+Representative concept groups now include:
+
+- `tangible_and_intangible_assets`
+- `borrowings`
+
+These let the planner expand shorthand query expressions into explicit operand
+sets without turning ontology into a benchmark answer key.
+
+## Planner Re-entry
+
+`pre_calc_planner` is now reused for both initial planning and re-planning.
+
+State fields used for this loop:
+
+- `planner_mode`
+- `planner_feedback`
+- `plan_loop_count`
+
+Replan behavior:
+
+- downstream synthesizer emits `planner_feedback` when gathered materials are
+  not enough to fully answer the original question
+- planner is re-entered in `replan` mode
+- it is instructed to append only missing tasks rather than overwrite the whole
+  plan
+- task appending and deduplication are enforced in Python code, not delegated to
+  the LLM
+
+This keeps graph topology simple while preserving patch-style planning behavior.
 
 
 ## Parser Contract

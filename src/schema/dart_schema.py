@@ -36,6 +36,19 @@ class ArtifactKind(str, Enum):
     AGGREGATED_ANSWER = "aggregated_answer"
 
 
+class ValueRole(str, Enum):
+    DETAIL = "detail"
+    AGGREGATE = "aggregate"
+    ADJUSTMENT = "adjustment"
+
+
+class AggregationStage(str, Enum):
+    NONE = "none"
+    DIRECT = "direct"
+    SUBTOTAL = "subtotal"
+    FINAL = "final"
+
+
 class CellRecord(BaseModel):
     cell_id: str
     column_index: int
@@ -60,6 +73,8 @@ class ValueRecord(BaseModel):
     semantic_label: str
     semantic_aliases: List[str] = Field(default_factory=list)
     label_source: Literal["row", "column", "composite", "unknown"] = "unknown"
+    value_role: ValueRole = ValueRole.DETAIL
+    aggregation_stage: AggregationStage = AggregationStage.NONE
     aggregate_label: str = ""
     aggregate_role: Literal["none", "direct_total", "subtotal", "final_total", "adjustment"] = "none"
     row_label: str = ""

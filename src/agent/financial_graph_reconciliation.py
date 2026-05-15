@@ -478,6 +478,9 @@ candidate options:
                     "table_source_id": metadata.get("table_source_id"),
                     "statement_type": metadata.get("statement_type"),
                     "consolidation_scope": metadata.get("consolidation_scope"),
+                    "matched_operand_label": label,
+                    "matched_operand_concept": str(operand.get("concept") or "").strip(),
+                    "matched_operand_role": str(operand.get("role") or "").strip(),
                 }
             )
 
@@ -907,7 +910,7 @@ candidate options:
         seed_sections = list(dict.fromkeys(seed_sections))
 
         ontology = get_financial_ontology()
-        metric_key = str(state.get("target_metric_family") or "")
+        metric_key = self._calc_metric_family(state)
         metric_info = ontology.metric_family(metric_key) if metric_key else None
         ontology_lines: List[str] = []
         if metric_info:

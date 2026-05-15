@@ -218,6 +218,58 @@ retrieve
 - single-year query는 `current` period focus로 해석해 `당기` aggregate가 `전기` aggregate보다 앞서도록 보정한다
 - `LLM rerank`는 top candidate가 애매할 때만 보조적으로 호출한다
 
+## 4-3. planner는 metric recipe보다 concept 조합과 재료 수집 쪽으로 이동 중이다
+
+최근 ontology / planner 정리는 “질문 하나마다 metric family를 늘리는” 방향을
+줄이고, concept-only ontology와 operation-based planner로 옮겨가는 데 초점이
+있다.
+
+핵심 포인트:
+
+- ontology v3 draft는 `metric_families`보다:
+  - `concepts`
+  - `concept_groups`
+  - statement / section prior
+  - binding prior
+  중심으로 구성된다
+- planner는 질문을:
+  - `lookup`
+  - `sum`
+  - `difference`
+  - `ratio`
+  - `growth_rate`
+  같은 제한된 operation과 concept operand 집합으로 분해한다
+- implicit query도 LLM concept planner가 처리하고, validator는 허용 concept /
+  operation / role contract만 얇게 검사한다
+- `유·무형자산`, `차입금` 같은 DART 공통 shorthand는 group concept을 통해
+  explicit operand set으로 확장한다
+
+의미:
+
+- ontology가 benchmark answer book이 되는 것을 막고,
+- planner가 unseen numeric question을 explicit concept composition으로 풀 수
+  있게 한다는 점이 중요하다.
+
+## 4-4. 최종 답변 completeness는 planner가 아니라 final synthesizer가 책임진다
+
+최근 numeric path는 “planner가 답변 문장을 설계한다”보다,
+“planner가 필요한 재료를 모두 모으고 final synthesizer가 원본 질문을 충족하는
+답을 조합한다”는 쪽으로 경계가 바뀌고 있다.
+
+핵심 포인트:
+
+- planner는 raw value task와 derived calculation task를 함께 만들 수 있다
+- `aggregate_subtasks`는 원본 질문과 `subtask_results`를 함께 읽고 최종 답을 쓴다
+- 재료가 부족하면 synthesizer가 `planner_feedback`를 남기고, 같은
+  `pre_calc_planner`를 replan mode로 다시 태운다
+- replan budget을 모두 써도 부족하면 aggregate 단계가 partial answer 또는
+  최종 refusal을 사용자-facing 형태로 확정한다
+
+의미:
+
+- local calculator failure와 최종 refusal을 분리해,
+  multi-step numeric 질문에서 복구 여지를 유지할 수 있다.
+
 의미:
 
 - reconciliation을 전부 LLM에 맡기지 않고, **대부분은 deterministic ranking으로 처리하고 hard case만 LLM으로 보정하는 hybrid policy**를 채택했다.

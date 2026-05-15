@@ -12,7 +12,12 @@ class FinancialAgentState(TypedDict):
     report_scope: Dict[str, Any]
     query_type: str
     intent: str
+    planner_mode: str
+    planner_feedback: str
+    plan_loop_count: int
     target_metric_family: str
+    target_metric_family_hint: str
+    planned_metric_families: List[str]
     format_preference: str
     routing_source: str
     routing_confidence: float
@@ -276,12 +281,27 @@ class CalculationVerificationOutput(BaseModel):
     )
 
 
+class AggregateSynthesisOutput(BaseModel):
+    final_answer: str = Field(
+        description="원본 질문과 subtask 결과를 종합해 작성한 최종 답변"
+    )
+    planner_feedback: str = Field(
+        default="",
+        description="현재 재료만으로는 원본 질문을 완전히 충족하지 못할 때 planner가 추가로 모아야 할 재료를 한 문장으로 설명"
+    )
+
+
 class OperandRequirement(BaseModel):
     label: str = Field(description="찾아야 하는 피연산자 대표 라벨")
+    concept: str = Field(default="", description="ontology concept key")
     aliases: List[str] = Field(default_factory=list, description="허용 가능한 동의어/대체 라벨")
+    keywords: List[str] = Field(default_factory=list, description="추가 검색/정합성 판단용 키워드")
     role: str = Field(default="", description="numerator, denominator 등 역할")
     required: bool = Field(default=True, description="반드시 필요한 피연산자인지 여부")
     period_hint: str = Field(default="", description="특정 연도/기간 힌트가 있으면 기록")
+    preferred_sections: List[str] = Field(default_factory=list, description="concept-level preferred sections")
+    preferred_statement_types: List[str] = Field(default_factory=list, description="concept-level preferred statement types")
+    binding_policy: Dict[str, Any] = Field(default_factory=dict, description="concept-level structured value binding preferences")
 
 
 class TaskConstraints(BaseModel):
@@ -296,6 +316,7 @@ class RetrievalTask(BaseModel):
     metric_family: str
     metric_label: str
     query: str
+    operation_family: str = Field(default="", description="ratio, sum, difference, growth_rate 같은 planner-level generic operation")
     required_operands: List[OperandRequirement] = Field(default_factory=list)
     preferred_statement_types: List[str] = Field(default_factory=list)
     preferred_sections: List[str] = Field(default_factory=list)
@@ -303,9 +324,37 @@ class RetrievalTask(BaseModel):
     constraints: TaskConstraints = Field(default_factory=TaskConstraints)
 
 
+class ConceptPlannerOperand(BaseModel):
+    concept: str = Field(description="ontology concept key")
+    role: str = Field(default="", description="numerator_1, denominator_1, addend_1, current_period 등")
+
+
+class ConceptPlannerTask(BaseModel):
+    metric_label: str = Field(default="", description="사용자에게 보일 계산 라벨")
+    operation_family: Literal["lookup", "sum", "difference", "ratio", "growth_rate", "single_value", "none"] = Field(
+        default="none"
+    )
+    operands: List[ConceptPlannerOperand] = Field(default_factory=list)
+
+
+class ConceptPlannerOutput(BaseModel):
+    tasks: List[ConceptPlannerTask] = Field(default_factory=list)
+    rationale: str = Field(default="", description="planner가 이렇게 분해한 이유")
+
+
 class SemanticPlan(BaseModel):
-    status: Literal["ok", "needs_clarification", "fallback_general_search"] = Field(default="ok")
+    status: Literal[
+        "ok",
+        "needs_clarification",
+        "fallback_general_search",
+        "heuristic_fallback",
+        "concept_fallback",
+    ] = Field(default="ok")
     fallback_to_general_search: bool = Field(default=False)
+    planned_metric_families: List[str] = Field(
+        default_factory=list,
+        description="실제로 계획된 subtask metric family 목록. multi-metric 질문에서는 이 필드를 source of truth로 본다.",
+    )
     tasks: List[RetrievalTask] = Field(default_factory=list)
     planner_notes: List[str] = Field(default_factory=list)
 

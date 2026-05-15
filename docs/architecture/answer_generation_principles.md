@@ -104,6 +104,43 @@ generation prompt에 제약을 계속 쌓는 대신,
 | metric consistency | 지표 간 해석 충돌이 적은가 |
 | 코드 단순성 | 운영 부채를 과도하게 늘리지 않는가 |
 
+### 5. Planner와 final synthesizer의 책임을 분리
+
+현재 numeric path는 planner가 “무엇을 구해야 하는가”를 정하고,
+final synthesizer가 “원본 질문을 실제로 충족했는가”를 판단하는 방향으로
+정리되고 있다.
+
+권장 경계:
+
+| 모듈 | 책임 |
+| --- | --- |
+| planner | concept / operation / scope를 재료 수집 task로 분해 |
+| calculator | 조회 / 계산 결과를 structured result로 생성 |
+| final synthesizer | 원본 질문과 subtask 결과를 읽고 최종 답 또는 planner feedback 결정 |
+| final refusal | replan 기회를 모두 쓴 뒤에도 재료가 부족할 때 aggregate 단계에서 확정 |
+
+즉 planner는 “답변을 최소화”하려고 하면 안 되고,
+필요한 raw value와 파생 계산 재료를 빠짐없이 모으는 쪽에 집중하는 것이
+좋다.
+
+### 6. 최종 거부는 local failure가 아니라 aggregate decision으로 닫기
+
+단일 subtask가 실패했다고 바로 사용자-facing refusal을 확정하면,
+후속 replan이나 다른 subtask 결과로 질문을 회복할 기회를 잃는다.
+
+따라서 권장 구조는:
+
+1. local calculator / renderer는 재료 부족을 감지
+2. final synthesizer는 원본 질문 대비 누락 재료를 `planner_feedback`으로 표현
+3. planner는 patch-style replan으로 부족한 재료를 더 모음
+4. loop budget을 모두 써도 부족할 때만 aggregate 단계에서 최종 refusal 또는 partial answer를 확정
+
+이 원칙은 특히 다음과 같은 질문에서 중요하다.
+
+- `2023년 값과 전년 대비 증감액을 함께 보여줘`
+- multi-metric 질문
+- 일부 값은 확보됐지만 최종 comparison / ratio가 아직 안 닫힌 질문
+
 ## Current Conclusion
 
 현재 시점의 결론은 다음과 같다.

@@ -1,0 +1,513 @@
+{
+  "version": 3,
+  "status": "draft",
+  "design_goals": [
+    "Keep ontology limited to DART-common financial concepts and document priors.",
+    "Avoid benchmark-shaped metric families and question-specific formulas.",
+    "Let the planner infer arithmetic composition from user intent and concept mentions.",
+    "Keep parser output generic and bind concept selection through lightweight priors only."
+  ],
+  "supersedes": [
+    "financial_ontology_v2.draft.json"
+  ],
+  "binding_policy_defaults": {
+    "prefer_value_roles": [
+      "detail",
+      "aggregate"
+    ],
+    "prefer_aggregation_stages": [
+      "direct",
+      "final",
+      "subtotal",
+      "none"
+    ],
+    "avoid_value_roles": [],
+    "avoid_aggregation_stages": [],
+    "prefer_period_focus": "current",
+    "prefer_consolidation_scope": "consolidated"
+  },
+  "planner_guidance": {
+    "intent_cues": {
+      "ratio": [
+        "비율",
+        "비중",
+        "마진",
+        "margin",
+        "ratio"
+      ],
+      "difference": [
+        "차이",
+        "증감",
+        "증가",
+        "감소",
+        "difference"
+      ],
+      "growth_rate": [
+        "증가율",
+        "감소율",
+        "성장률",
+        "변화율"
+      ],
+      "sum": [
+        "합계",
+        "합산",
+        "합한",
+        "총합"
+      ]
+    },
+    "dimension_defaults": {
+      "period_focus": "current",
+      "consolidation_scope": "consolidated",
+      "entity_scope": "company"
+    },
+    "instructions": [
+      "The planner should identify the relevant concepts from the query and compose arithmetic at runtime.",
+      "The ontology should not contain benchmark-specific metric families such as debt burden ratio or R and D ratio.",
+      "Composite metrics should be assembled by the planner from concepts plus generic operations like ratio, difference, growth_rate, and sum."
+    ]
+  },
+  "concept_groups": {
+    "tangible_and_intangible_assets": {
+      "display_name": "유·무형자산",
+      "aliases": [
+        "유무형자산",
+        "유형자산 및 무형자산"
+      ],
+      "keywords": [
+        "유·무형자산",
+        "유무형자산",
+        "유형자산 및 무형자산"
+      ],
+      "member_concepts": [
+        "property_plant_equipment",
+        "intangible_assets"
+      ],
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ]
+    },
+    "borrowings": {
+      "display_name": "차입금",
+      "aliases": [
+        "총차입금"
+      ],
+      "keywords": [
+        "차입금",
+        "총차입금"
+      ],
+      "member_concepts": [
+        "short_term_borrowings",
+        "long_term_borrowings",
+        "bonds_payable"
+      ],
+      "preferred_statement_types": [
+        "notes",
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "차입금 및 사채",
+        "연결재무제표 주석",
+        "재무상태표",
+        "요약재무정보"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal",
+          "none"
+        ]
+      }
+    }
+  },
+  "concepts": {
+    "revenue": {
+      "display_name": "매출액",
+      "aliases": [
+        "영업수익",
+        "수익"
+      ],
+      "keywords": [
+        "매출액",
+        "영업수익",
+        "수익"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "연결 손익계산서",
+        "손익계산서",
+        "매출 및 수주상황"
+      ]
+    },
+    "operating_income": {
+      "display_name": "영업이익",
+      "aliases": [
+        "영업손익"
+      ],
+      "keywords": [
+        "영업이익",
+        "영업손익"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "연결 손익계산서",
+        "손익계산서"
+      ]
+    },
+    "net_income": {
+      "display_name": "당기순이익",
+      "aliases": [
+        "당기순손익",
+        "순이익"
+      ],
+      "keywords": [
+        "당기순이익",
+        "당기순손익",
+        "순이익"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "연결 손익계산서",
+        "손익계산서"
+      ]
+    },
+    "income_before_income_taxes": {
+      "display_name": "법인세비용차감전순이익",
+      "aliases": [
+        "법인세비용차감전순손익",
+        "세전이익",
+        "세전순이익"
+      ],
+      "keywords": [
+        "법인세비용차감전순이익",
+        "법인세비용차감전순손익",
+        "세전이익",
+        "세전순이익"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "income_statement",
+        "summary_financials",
+        "notes"
+      ],
+      "preferred_sections": [
+        "연결 손익계산서",
+        "손익계산서",
+        "요약재무정보",
+        "연결재무제표 주석"
+      ]
+    },
+    "total_liabilities": {
+      "display_name": "부채총계",
+      "aliases": [
+        "총부채"
+      ],
+      "keywords": [
+        "부채총계",
+        "총부채"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "final",
+          "none"
+        ]
+      }
+    },
+    "total_equity": {
+      "display_name": "자본총계",
+      "aliases": [
+        "총자본",
+        "자본"
+      ],
+      "keywords": [
+        "자본총계",
+        "총자본",
+        "자본"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "final",
+          "none"
+        ]
+      }
+    },
+    "current_assets": {
+      "display_name": "유동자산",
+      "aliases": [],
+      "keywords": [
+        "유동자산"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ]
+    },
+    "current_liabilities": {
+      "display_name": "유동부채",
+      "aliases": [],
+      "keywords": [
+        "유동부채"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ]
+    },
+    "property_plant_equipment": {
+      "display_name": "유형자산",
+      "aliases": [],
+      "keywords": [
+        "유형자산"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ]
+    },
+    "intangible_assets": {
+      "display_name": "무형자산",
+      "aliases": [],
+      "keywords": [
+        "무형자산"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "balance_sheet"
+      ],
+      "preferred_sections": [
+        "요약재무정보",
+        "재무상태표"
+      ]
+    },
+    "short_term_borrowings": {
+      "display_name": "단기차입금",
+      "aliases": [],
+      "keywords": [
+        "단기차입금"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "차입금 및 사채",
+        "연결재무제표 주석",
+        "재무상태표",
+        "요약재무정보"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal",
+          "none"
+        ]
+      }
+    },
+    "long_term_borrowings": {
+      "display_name": "장기차입금",
+      "aliases": [
+        "장기 차입금"
+      ],
+      "keywords": [
+        "장기차입금",
+        "장기 차입금"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "차입금 및 사채",
+        "연결재무제표 주석",
+        "재무상태표",
+        "요약재무정보"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal",
+          "none"
+        ]
+      }
+    },
+    "bonds_payable": {
+      "display_name": "사채",
+      "aliases": [
+        "회사채",
+        "원화일반사채"
+      ],
+      "keywords": [
+        "사채",
+        "회사채",
+        "원화일반사채"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "차입금 및 사채",
+        "연결재무제표 주석",
+        "재무상태표",
+        "요약재무정보"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal",
+          "none"
+        ]
+      }
+    },
+    "research_and_development_expense": {
+      "display_name": "연구개발비용",
+      "aliases": [
+        "연구개발비",
+        "연구개발비용 계"
+      ],
+      "keywords": [
+        "연구개발비용",
+        "연구개발비",
+        "연구개발비용 계"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "summary_financials",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "연구개발활동",
+        "주요계약 및 연구개발활동",
+        "연구개발실적",
+        "요약재무정보"
+      ]
+    },
+    "operating_cash_flow": {
+      "display_name": "영업활동현금흐름",
+      "aliases": [
+        "영업활동으로 인한 현금흐름"
+      ],
+      "keywords": [
+        "영업활동현금흐름",
+        "영업활동으로 인한 현금흐름"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "연결 현금흐름표",
+        "현금흐름표"
+      ]
+    },
+    "property_plant_equipment_acquisition": {
+      "display_name": "유형자산의 취득",
+      "aliases": [
+        "유형자산 취득"
+      ],
+      "keywords": [
+        "유형자산의 취득",
+        "유형자산 취득"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "연결 현금흐름표",
+        "현금흐름표"
+      ]
+    }
+  }
+}

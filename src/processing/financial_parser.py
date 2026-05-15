@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from lxml import etree
 from pydantic import BaseModel
-from src.schema import CellRecord, RowRecord, TableObject, ValueRecord
+from src.schema import AggregationStage, CellRecord, RowRecord, TableObject, ValueRecord, ValueRole
 
 logger = logging.getLogger(__name__)
 
@@ -489,11 +489,11 @@ def _derive_value_record_semantics(
     semantic_label: str,
     label_source: str,
     aliases: List[str],
-) -> Tuple[str, str, List[str], str, str]:
+) -> Tuple[str, str, List[str], str, str, str, str]:
     aggregate_label = _aggregate_column_label(column_headers)
     normalized_row = _normalize(row_label)
     if not aggregate_label:
-        return semantic_label, label_source, aliases, "", "none"
+        return semantic_label, label_source, aliases, "", "none", ValueRole.DETAIL.value, AggregationStage.NONE.value
 
     aggregate_base = _strip_trailing_aggregate_suffix(aggregate_label)
     row_base = _strip_leading_aggregate_prefix(normalized_row)
@@ -504,27 +504,67 @@ def _derive_value_record_semantics(
         aggregate_role = "final_total"
         semantic_label = aggregate_label
         aliases = _dedupe_preserve_order([aggregate_label, aggregate_base, normalized_row, row_base])
-        return semantic_label, "column", aliases, aggregate_label, aggregate_role
+        return (
+            semantic_label,
+            "column",
+            aliases,
+            aggregate_label,
+            aggregate_role,
+            ValueRole.AGGREGATE.value,
+            AggregationStage.FINAL.value,
+        )
 
     if _ADJUSTMENT_ROW_RE.match(normalized_row):
         aggregate_role = "adjustment"
         aliases = _dedupe_preserve_order([normalized_row, row_base, semantic_label])
-        return semantic_label, label_source, aliases, aggregate_label, aggregate_role
+        return (
+            semantic_label,
+            label_source,
+            aliases,
+            aggregate_label,
+            aggregate_role,
+            ValueRole.ADJUSTMENT.value,
+            AggregationStage.NONE.value,
+        )
 
     if _SUBTOTAL_ROW_RE.match(normalized_row):
         aggregate_role = "subtotal"
         semantic_label = aggregate_label
         aliases = _dedupe_preserve_order([aggregate_label, aggregate_base, normalized_row, row_base])
-        return semantic_label, "column", aliases, aggregate_label, aggregate_role
+        return (
+            semantic_label,
+            "column",
+            aliases,
+            aggregate_label,
+            aggregate_role,
+            ValueRole.AGGREGATE.value,
+            AggregationStage.SUBTOTAL.value,
+        )
 
     if aggregate_base and row_base and re.sub(r"\s+", "", aggregate_base) == re.sub(r"\s+", "", row_base):
         aggregate_role = "direct_total"
         semantic_label = aggregate_label
         aliases = _dedupe_preserve_order([aggregate_label, aggregate_base, normalized_row])
-        return semantic_label, "column", aliases, aggregate_label, aggregate_role
+        return (
+            semantic_label,
+            "column",
+            aliases,
+            aggregate_label,
+            aggregate_role,
+            ValueRole.AGGREGATE.value,
+            AggregationStage.DIRECT.value,
+        )
 
     aliases = _dedupe_preserve_order([semantic_label, *aliases])
-    return semantic_label, label_source, aliases, aggregate_label, "none"
+    return (
+        semantic_label,
+        label_source,
+        aliases,
+        aggregate_label,
+        "none",
+        ValueRole.DETAIL.value,
+        AggregationStage.NONE.value,
+    )
 
 
 def _is_probable_xml_markup(inner: str) -> bool:
@@ -1128,7 +1168,15 @@ class FinancialParser:
                 )
                 if not semantic_label:
                     continue
-                semantic_label, label_source, aliases, aggregate_label, aggregate_role = _derive_value_record_semantics(
+                (
+                    semantic_label,
+                    label_source,
+                    aliases,
+                    aggregate_label,
+                    aggregate_role,
+                    value_role,
+                    aggregation_stage,
+                ) = _derive_value_record_semantics(
                     row_label=row_label,
                     row_headers=row_headers,
                     column_headers=column_headers,
@@ -1149,6 +1197,8 @@ class FinancialParser:
                         semantic_label=semantic_label,
                         semantic_aliases=aliases,
                         label_source=label_source,
+                        value_role=value_role,
+                        aggregation_stage=aggregation_stage,
                         aggregate_label=aggregate_label,
                         aggregate_role=aggregate_role,
                         row_label=row_label,

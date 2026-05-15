@@ -21,6 +21,18 @@
   - post-retrieval reconciliation
   - multi-metric 질문용 subtask loop / aggregation
   - ready 상태 numeric subtask에 대한 direct `structured_row -> operand` 추출
+  - `table_value_records_json -> structured_value` 기반 value-cell-first grounding
+- planner / ontology 경로는 최근 아래 방향으로 이동했다.
+  - benchmark-shaped `metric_family` 확장을 줄이고 concept-only ontology v3 draft를 추가
+  - ontology는 `concept`, `concept_group`, statement/section prior, binding prior 중심으로 축소 시작
+  - planner는 `metric_family`보다 `operation_family + required_operands` 중심의 IR로 점진 이동
+  - implicit query도 LLM concept planner가 concept 조합으로 풀도록 canary path를 추가
+  - planner validator는 형식 / 허용 concept / 허용 operation만 보는 얇은 contract checker로 유지
+- answer path는 최근 아래 방향으로 이동했다.
+  - planner는 “최종 문장을 최소화”하는 대신 **필요한 재료를 빠짐없이 모으는 방향**으로 조정
+  - final synthesizer가 원본 질문과 `subtask_results`를 함께 읽고 최종 답을 조합
+  - 재료가 부족하면 synthesizer가 `planner_feedback`를 남기고 기존 `pre_calc_planner`를 replan mode로 재사용
+  - replan budget을 모두 써도 재료가 부족하면 `aggregate_subtasks`가 사용자-facing 최종 refusal / partial answer를 확정
 - 내부 실행 구조 일반화를 위한 1차 schema를 추가했다.
   - `tasks`, `artifacts` state 추가
   - parser의 `table_object / row_record / cell_record`를 정식 출력으로 승격 시작
@@ -39,34 +51,39 @@
   - `TBODY/TE` 셀을 실제 value cell로 읽도록 확장
   - `(단위 : 백만원)` 같은 unit-only standalone table도 다음 실제 표의 context hint로 승격
   - wide merged-header note table에서 `direct_total / subtotal / final_total / adjustment` aggregate role 복원
+- 최근 canary / e2e 관측은 다음과 같다.
+  - ontology-v2 canary에서 `SKH_T1_060`은 `42.0%`, `MIX_T1_021`은 부채비율 `25.4%` / 유동비율 `258.8%`로 닫혔다
+  - concept-planner shadow canary에서는 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`가 concept-only planner로도 자연스럽게 분해된다
+  - `NAV_T1_071`는 planner 차원에서는 `lookup + difference` 재료 수집 구조로 정리됐지만, end-to-end answer contract와 result schema는 아직 더 다듬어야 한다
 
 ## 현재 핵심 한계
 
 - legacy `calculation_*` 필드가 아직 evaluator와 runtime 일부 경로의 사실상 기준처럼 남아 있다.
-- multi-subtask numeric question에서 최종 자연어 답과 structured trace가 완전히 같은 결과 집합을 보존하지 못하는 경우가 있다.
-- structured table grounding은 핵심 비율 문항에서 동작하기 시작했지만, 더 넓은 numeric family로의 확장이 아직 필요하다.
-- `SKH_T1_060`류 debt ratio 질문에서는 자산 계열 row grounding과 current-period debt aggregate는 회복됐지만, **사채 final aggregate binding**이 아직 틀려 direct run이 `25.2%`에서 멈춘다.
+- planner / synthesizer / result schema의 경계가 이제 막 생겼기 때문에, single-task와 multi-subtask가 항상 같은 answer contract를 공유하지는 못한다.
+- concept-only planner는 single-metric / group concept / multi-metric 분해 품질이 좋아졌지만, 모든 numeric family에서 runtime default로 올리기엔 아직 canary가 더 필요하다.
+- `NAV_T1_071`류 “현재값 + 전년 대비 증감” 질문은 planner가 재료를 수집하도록 바뀌었지만, `difference` / `lookup` 결과를 더 구조적으로 남기는 result schema 정리가 필요하다.
+- final refusal ownership은 `aggregate_subtasks`로 올라왔지만, 실제 benchmark 문항에서 `planner_feedback -> replan -> close/refusal`이 자연스럽게 도는 end-to-end 검증은 아직 얕다.
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | current-period 사채 `final_total`이 detail row보다 우선되도록 reconciliation / direct extraction 보강 | `SKH_T1_060`의 마지막 오답 operand 제거 |
-| 2 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
-| 3 | `MIX_T1_021`류 복수 지표 질문과 curated multi-metric subset으로 numeric family를 end-to-end 재검증 | 최종 답과 structured trace의 일치 회복 |
-| 4 | `structured_value` 중심 경로를 debt note 외 다른 wide note table로 확장 검증 | value-cell-first table contract 일반화 |
+| 1 | `NAV_T1_071` 같은 문항으로 `planner_feedback -> replan -> close/refusal` 루프를 end-to-end 재검증 | planner/synthesizer feedback loop를 실제 질문에서 닫기 |
+| 2 | `lookup`, `difference`, `ratio` 결과를 더 구조화된 result schema로 남기기 | synthesizer가 원본 질문 충족 여부를 더 안정적으로 판정 |
+| 3 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
+| 4 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
 
 ## 현재 우선순위 요약
 
-1. 사채 aggregate grounding 마무리
-2. runtime schema settling
-3. numeric end-to-end validation
-4. DART multi-document reasoning
+1. planner/synthesizer feedback loop 검증
+2. result schema settling
+3. concept-only planner default 승격 검토
+4. runtime schema settling
 
 ## 현재 해석
 
-- 지금 시스템은 “질문 1개 -> 답 1개” 구조에서 벗어나기 시작했고, `task + artifact + structured table object` 중심으로 옮겨가는 중이다.
+- 지금 시스템은 “질문 1개 -> 답 1개” 구조에서 더 멀어져, `task + artifact + structured table object + final synthesizer` 중심으로 이동 중이다.
+- planner는 점점 benchmark-shaped metric family보다 **concept + operation + material gathering** 쪽으로 옮겨가고 있다.
+- answer completeness와 최종 refusal은 planner가 아니라 final synthesizer / aggregate 단계가 책임지는 방향으로 경계가 정리되고 있다.
 - 다만 아직은 완전한 source of truth 이전 단계이며, evaluator 호환을 위해 legacy 필드를 병행 유지한다.
-- 최근에는 parser/chunking보다 `reconciliation -> operand extraction -> aggregate projection` 경로가 주 병목으로 더 선명해졌다.
-- `SKH_T1_060`은 refusal 단계는 벗어났고, 현재 direct run 기준으로 `25.2%` numeric answer까지 도달한다. 남은 차이는 **사채 9,490,410백만원 대신 0원을 집는 aggregate binding 오류**다.
-- 따라서 다음 구현은 **새 구조를 더 강하게 쓰는 방향**이어야 하고, 특히 이미 찾은 structured row를 끝까지 계산 입력으로 보존하는 쪽이 맞다.
+- 따라서 다음 구현은 retrieval / parser local patch보다 **planner-synthesizer contract와 structured result schema를 더 강하게 만드는 방향**이 맞다.

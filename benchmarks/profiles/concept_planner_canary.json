@@ -1,0 +1,62 @@
+{
+  "legacy_ontology_path": "src/config/financial_ontology_v2.draft.json",
+  "concept_ontology_path": "src/config/financial_ontology_concepts_v3.draft.json",
+  "dataset_path": "benchmarks/datasets/single_doc_eval_multi_metric_numeric.curated.json",
+  "llm_model": "gemini-2.5-flash",
+  "cases": [
+    {
+      "id": "SKH_T1_060",
+      "example_id": "SKH_T1_060",
+      "intent": "comparison",
+      "topic": "유무형자산 대비 차입금 비중"
+    },
+    {
+      "id": "MIX_T1_021",
+      "example_id": "MIX_T1_021",
+      "intent": "comparison",
+      "topic": "부채비율과 유동비율"
+    },
+    {
+      "id": "NAV_T1_071",
+      "example_id": "NAV_T1_071",
+      "intent": "comparison",
+      "topic": "법인세비용차감전순이익"
+    },
+    {
+      "id": "implicit_debt_ratio_samsung_2023",
+      "query": "2023년 연결기준 부채비율을 계산해 줘.",
+      "topic": "부채비율",
+      "intent": "comparison",
+      "report_scope": {
+        "company": "삼성전자",
+        "year": 2023,
+        "report_type": "사업보고서",
+        "consolidation": "연결"
+      }
+    },
+    {
+      "id": "implicit_current_ratio_samsung_2023",
+      "query": "2023년 연결기준 유동비율을 계산해 줘.",
+      "topic": "유동비율",
+      "intent": "comparison",
+      "report_scope": {
+        "company": "삼성전자",
+        "year": 2023,
+        "report_type": "사업보고서",
+        "consolidation": "연결"
+      }
+    },
+    {
+      "id": "implicit_fcf_naver_2023",
+      "query": "2023년 FCF를 계산해 줘.",
+      "topic": "FCF",
+      "intent": "comparison",
+      "report_scope": {
+        "company": "네이버",
+        "year": 2023,
+        "report_type": "사업보고서",
+        "consolidation": "연결"
+      }
+    }
+  ]
+}

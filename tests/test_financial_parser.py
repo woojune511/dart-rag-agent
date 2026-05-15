@@ -375,12 +375,20 @@ class FinancialParserUtilityTests(unittest.TestCase):
         final_total = next(record for record in value_records if record["value_text"] == "10,121,033")
 
         self.assertEqual(direct_total["semantic_label"], "단기차입금 합계")
+        self.assertEqual(direct_total["value_role"], "aggregate")
+        self.assertEqual(direct_total["aggregation_stage"], "direct")
         self.assertEqual(direct_total["aggregate_role"], "direct_total")
         self.assertEqual(subtotal["semantic_label"], "장기차입금 합계")
+        self.assertEqual(subtotal["value_role"], "aggregate")
+        self.assertEqual(subtotal["aggregation_stage"], "subtotal")
         self.assertEqual(subtotal["aggregate_role"], "subtotal")
         self.assertEqual(adjustment["semantic_label"], "차감: 유동성장기차입금")
+        self.assertEqual(adjustment["value_role"], "adjustment")
+        self.assertEqual(adjustment["aggregation_stage"], "none")
         self.assertEqual(adjustment["aggregate_role"], "adjustment")
         self.assertEqual(final_total["semantic_label"], "장기차입금 합계")
+        self.assertEqual(final_total["value_role"], "aggregate")
+        self.assertEqual(final_total["aggregation_stage"], "final")
         self.assertEqual(final_total["aggregate_role"], "final_total")
 
     def test_standalone_period_table_is_promoted_to_context_hint(self) -> None:

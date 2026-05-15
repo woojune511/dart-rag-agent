@@ -3,6 +3,7 @@ Schema models for DART disclosure analysis runtime artifacts and document object
 """
 
 from .dart_schema import (
+    AggregationStage,
     ArtifactKind,
     ArtifactRecord,
     CellRecord,
@@ -11,10 +12,12 @@ from .dart_schema import (
     TaskKind,
     TaskRecord,
     TaskStatus,
+    ValueRole,
     ValueRecord,
 )
 
 __all__ = [
+    "AggregationStage",
     "ArtifactKind",
     "ArtifactRecord",
     "CellRecord",
@@ -23,5 +26,6 @@ __all__ = [
     "TaskKind",
     "TaskRecord",
     "TaskStatus",
+    "ValueRole",
     "ValueRecord",
 ]

@@ -468,6 +468,77 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(consolidated_score, separate_score)
 
+    def test_binding_policy_prefers_final_note_aggregate_over_detail_row_for_bonds(self) -> None:
+        operand = {
+            "label": "사채",
+            "concept": "bonds_payable",
+            "aliases": ["회사채", "원화일반사채"],
+            "required": True,
+            "preferred_sections": ["차입금 및 사채", "사채"],
+            "preferred_statement_types": ["notes"],
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "direct", "subtotal"],
+                "avoid_value_roles": ["detail", "adjustment"],
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        detail_candidate = {
+            "candidate_id": "bond_detail",
+            "candidate_kind": "structured_value",
+            "text": "사채 0",
+            "metadata": {
+                "row_label": "사채",
+                "semantic_label": "사채",
+                "aggregate_role": "none",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 차입금 및 사채",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "0", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        final_total_candidate = {
+            "candidate_id": "bond_final",
+            "candidate_kind": "structured_value",
+            "text": "사채 합계 9,490,410",
+            "metadata": {
+                "row_label": "사채 합계",
+                "semantic_label": "사채 합계",
+                "aggregate_label": "사채 합계",
+                "aggregate_role": "final_total",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 차입금 및 사채",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "9,490,410", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        detail_score = _score_operand_candidate(
+            detail_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+        final_score = _score_operand_candidate(
+            final_total_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(final_score, detail_score)
+
 
 if __name__ == "__main__":
     unittest.main()

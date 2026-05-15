@@ -15,13 +15,142 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_models import CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction
+from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction
 from src.config import get_financial_ontology
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
 
 class FinancialAgentCalculationMixin:
+    def _build_deterministic_ontology_plan(
+        self,
+        state: FinancialAgentState,
+        operands: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        metric_key = self._calc_metric_family(state)
+
+        ontology = get_financial_ontology()
+        metric_info = ontology.metric_family(metric_key) or {}
+        formula_family = str(metric_info.get("formula_family") or "").strip().lower()
+        if not formula_family:
+            formula_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        if formula_family not in {"ratio", "sum"}:
+            return None
+
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if bool(item.get("required", True))
+        ]
+        if not required_operands:
+            return None
+
+        matched_rows: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
+        missing_labels: List[str] = []
+        for operand in required_operands:
+            matched_row = next((row for row in operands if _operand_row_matches_requirement(row, operand)), None)
+            if matched_row is None:
+                missing_labels.append(str(operand.get("label") or "").strip() or "required_operand")
+                continue
+            matched_rows.append((operand, matched_row))
+
+        if missing_labels:
+            return None
+
+        if formula_family == "ratio":
+            numerator_pairs = [
+                (operand, row)
+                for operand, row in matched_rows
+                if str(operand.get("role") or "").strip().startswith("numerator")
+            ]
+            denominator_pairs = [
+                (operand, row)
+                for operand, row in matched_rows
+                if str(operand.get("role") or "").strip().startswith("denominator")
+            ]
+            if not numerator_pairs or not denominator_pairs:
+                return None
+            ordered_pairs = numerator_pairs + denominator_pairs
+        else:
+            numerator_pairs = []
+            denominator_pairs = []
+            ordered_pairs = matched_rows
+
+        variable_bindings: List[Dict[str, str]] = []
+        ordered_operand_ids: List[str] = []
+        numerator_vars: List[str] = []
+        denominator_vars: List[str] = []
+        additive_vars: List[str] = []
+
+        for index, (operand, row) in enumerate(ordered_pairs):
+            variable = chr(ord("A") + index)
+            operand_id = str(row.get("operand_id") or "").strip()
+            if not operand_id:
+                return None
+            variable_bindings.append({"variable": variable, "operand_id": operand_id})
+            ordered_operand_ids.append(operand_id)
+            role = str(operand.get("role") or "").strip()
+            if formula_family == "ratio":
+                if role.startswith("numerator"):
+                    numerator_vars.append(variable)
+                elif role.startswith("denominator"):
+                    denominator_vars.append(variable)
+            elif formula_family == "sum":
+                additive_vars.append(variable)
+
+        metric_display = (
+            str(metric_info.get("display_name") or "").strip()
+            or str(active_subtask.get("metric_label") or "").strip()
+            or metric_key
+        )
+
+        if formula_family == "ratio":
+            if not numerator_vars or not denominator_vars:
+                return None
+            numerator_expr = " + ".join(numerator_vars)
+            denominator_expr = " + ".join(denominator_vars)
+            result_unit = str(metric_info.get("result_unit") or "").strip()
+            if not result_unit:
+                result_unit = "%"
+            if result_unit.upper() == "PERCENT":
+                result_unit = "%"
+
+            numerator_labels = [str(operand.get("label") or "").strip() for operand, _row in numerator_pairs]
+            denominator_labels = [str(operand.get("label") or "").strip() for operand, _row in denominator_pairs]
+
+            return {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "ratio",
+                "ordered_operand_ids": ordered_operand_ids,
+                "variable_bindings": variable_bindings,
+                "formula": f"(({numerator_expr}) / ({denominator_expr})) * 100",
+                "pairwise_formula": "",
+                "result_unit": result_unit,
+                "operation_text": f"({' + '.join(numerator_labels)}) / ({' + '.join(denominator_labels)}) * 100",
+                "explanation": f"{metric_display}의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.",
+                "missing_info": [],
+            }
+
+        if not additive_vars:
+            return None
+        additive_labels = [str(operand.get("label") or "").strip() for operand, _row in ordered_pairs]
+        result_unit = str(metric_info.get("result_unit") or "").strip()
+        return {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "add",
+            "ordered_operand_ids": ordered_operand_ids,
+            "variable_bindings": variable_bindings,
+            "formula": " + ".join(additive_vars),
+            "pairwise_formula": "",
+            "result_unit": result_unit,
+            "operation_text": " + ".join(additive_labels),
+            "explanation": f"{metric_display}에 필요한 concept operand를 합산합니다.",
+            "missing_info": [],
+        }
+
     def _extract_calculation_operands(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Build the operand set for the current calculation subtask.
 
@@ -330,10 +459,58 @@ Structured Evidence:
             }
 
         query_text = _normalise_spaces(query)
-        structured_llm = self.llm.with_structured_output(CalculationPlan)
         ontology = get_financial_ontology()
         metric_key = self._calc_metric_family(state)
         metric_info = ontology.metric_family(metric_key) if metric_key else None
+        deterministic_plan = self._build_deterministic_ontology_plan(state, operands)
+        if deterministic_plan:
+            logger.info(
+                "[formula_plan] deterministic mode=%s op=%s vars=%s",
+                deterministic_plan.get("mode"),
+                deterministic_plan.get("operation"),
+                len(deterministic_plan.get("variable_bindings") or []),
+            )
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
+            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_PLAN,
+                status=str(deterministic_plan.get("status") or "ok"),
+                summary=f"mode={deterministic_plan.get('mode')} op={deterministic_plan.get('operation')}",
+                payload={"calculation_plan": deterministic_plan},
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.CALCULATION,
+                label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
+                status=TaskStatus.IN_PROGRESS,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+                artifact_id=artifact_id,
+            )
+            return {
+                "calculation_plan": deterministic_plan,
+                "missing_info": [],
+                "planner_debug_trace": {
+                    "target_metric_family": metric_key,
+                    "ontology_context": "deterministic_ontology_plan",
+                    "operands_text": "\n".join(
+                        f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
+                        for row in operands
+                    ),
+                    "llm_invoked": False,
+                    "guard_applied": False,
+                    "raw_plan": deterministic_plan,
+                },
+                "tasks": tasks,
+                "artifacts": artifacts,
+            }
+        structured_llm = self.llm.with_structured_output(CalculationPlan)
         ontology_context = ""
         if metric_info:
             components = dict(metric_info.get("components") or {})
@@ -1040,9 +1217,63 @@ Operands:
             for row in ordered_results
             if _normalise_spaces(str(row.get("answer") or ""))
         ]
-        final_answer = " ".join(answer_parts).strip() or _normalise_spaces(
+        fallback_answer = " ".join(answer_parts).strip() or _normalise_spaces(
             str(state.get("answer") or state.get("compressed_answer") or "")
         )
+        final_answer = fallback_answer
+        planner_feedback = ""
+        plan_loop_count = int(state.get("plan_loop_count") or 0)
+        max_plan_loops = 2
+        if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
+            structured_llm = self.llm.with_structured_output(AggregateSynthesisOutput)
+            prompt = ChatPromptTemplate.from_template(
+                """당신은 DART 재무 질의용 최종 synthesizer입니다.
+원본 질문과 내부 subtask 결과를 읽고, 사용자에게 보여줄 최종 답변을 작성하세요.
+
+입력 데이터:
+1. 원본 질문
+2. subtask 결과 목록
+
+규칙:
+- 최종 답변은 원본 질문이 명시적으로 요구한 값과 계산 결과를 빠짐없이 포함하도록 노력하세요.
+- subtask 결과의 answer, calculation_result.rendered_value, calculation_result.series, calculation_operands를 근거로 사용하세요.
+- 새로운 숫자, 연도, 단위를 만들지 마세요.
+- 현재 재료만으로 원본 질문을 완전히 충족할 수 있다면 planner_feedback은 비워 두세요.
+- 현재 재료만으로는 원본 질문의 요구사항 일부를 충족할 수 없다면, planner_feedback에 planner가 추가로 모아야 할 재료를 한 문장으로 적으세요.
+- planner_feedback은 내부 시스템용이므로 간결하게, 누락된 값/기간/개념 중심으로 쓰세요.
+- final_answer는 사용자용 한국어 답변만 작성하세요.
+
+원본 질문:
+{query}
+
+Fallback Answer:
+{fallback_answer}
+
+Subtask Results JSON:
+{subtask_results_json}
+"""
+            )
+            try:
+                prompt_value = prompt.invoke(
+                    {
+                        "query": state["query"],
+                        "fallback_answer": fallback_answer,
+                        "subtask_results_json": json.dumps(ordered_results, ensure_ascii=False, indent=2),
+                    }
+                )
+                synthesized: AggregateSynthesisOutput = structured_llm.invoke(prompt_value)
+                final_answer = _normalise_spaces(str(synthesized.final_answer or "")) or fallback_answer
+                planner_feedback = _normalise_spaces(str(synthesized.planner_feedback or ""))
+            except Exception as exc:
+                logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
+        should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops
+        if planner_feedback and not should_replan:
+            refusal_suffix = "다만 질문에 필요한 수치를 끝내 모두 확보하지 못해 원하신 답을 완전히 확정할 수는 없습니다."
+            visible_partial_answer = _normalise_spaces(final_answer or fallback_answer)
+            if visible_partial_answer:
+                final_answer = _normalise_spaces(f"{visible_partial_answer} {refusal_suffix}")
+            else:
+                final_answer = "질문에 필요한 수치를 끝내 충분히 확보하지 못했습니다."
         selected_claim_ids = list(
             dict.fromkeys(
                 claim_id
@@ -1063,6 +1294,7 @@ Operands:
             payload={
                 "subtask_results": ordered_results,
                 "final_answer": final_answer,
+                "planner_feedback": planner_feedback,
                 **self._build_aggregate_calculation_projection(ordered_results, final_answer),
             },
             evidence_refs=selected_claim_ids,
@@ -1073,6 +1305,8 @@ Operands:
             "subtask_loop_complete": True,
             "answer": final_answer,
             "compressed_answer": final_answer,
+            "planner_mode": "replan" if should_replan else "initial",
+            "planner_feedback": planner_feedback,
             "draft_points": [final_answer] if final_answer else [],
             "selected_claim_ids": selected_claim_ids,
             "kept_claim_ids": selected_claim_ids,
@@ -1169,6 +1403,12 @@ Operands:
         if bool(state.get("subtask_loop_complete")):
             return "aggregate_subtasks"
         return "reconcile_plan"
+
+    def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
+        planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
+        if planner_feedback and int(state.get("plan_loop_count") or 0) < 2:
+            return "pre_calc_planner"
+        return "cite"
 
     def _route_after_formula_planner(self, state: FinancialAgentState) -> str:
         if not self._is_reflection_eligible(state):

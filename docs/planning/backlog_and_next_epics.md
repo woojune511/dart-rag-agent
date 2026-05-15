@@ -19,8 +19,9 @@
   의 효과를 수치로 설명 가능
 - single-doc curated core dataset `77`문항과 multi-report 분리셋 `1`문항까지 수동 검수 완료
 
-따라서 다음 backlog의 중심은 “당장 정답률 복구”가 아니라  
-**multi-agent system으로의 구조 전환**이다.
+따라서 다음 backlog의 중심은 “당장 정답률 복구”만도 아니고,  
+곧바로 MAS로 확장하는 것도 아니다. 현재 선행 과제는  
+**single-agent numeric path 안에서 planner / synthesizer / structured result contract를 먼저 안정화**하는 것이다.
 
 ## Active Architecture Bet
 
@@ -28,12 +29,12 @@
 
 | 축 | 현재 판단 |
 | --- | --- |
-| Topology | `Orchestrator -> Analyst / Researcher -> Critic -> Merge` 구조가 가장 유망 |
+| Topology | 장기적으로는 `Orchestrator -> Analyst / Researcher -> Critic -> Merge`가 유망하지만, 단기적으로는 single-agent graph 안에서 planner / synthesizer 경계를 먼저 닫아야 함 |
 | Communication | 자유 대화보다 `task ledger + artifact store`가 적합 |
 | Memory | generic long-term memory보다 `report-scoped cache`가 우선 |
 
 즉 앞으로의 epic은 `REFERENCE_NOTE`나 retry patch 자체보다,  
-**agent boundary와 shared state contract를 먼저 고정하는 것**을 기준으로 정렬한다.
+**planner / synthesizer / artifact boundary와 shared state contract를 먼저 고정하는 것**을 기준으로 정렬한다.
 
 ## Non-Blocking Quality Debt
 
@@ -84,7 +85,31 @@
 
 이 항목들은 다음 몇 개 스프린트 안에서 실제로 다룰 가치가 큰 구조 과제다.
 
-### 0. Curated dataset 운영 경로 정리
+### 0. Planner and final synthesizer contract
+
+현재:
+
+- concept-only ontology와 LLM concept planner가 들어왔고
+- planner feedback을 이용한 `pre_calc_planner` 재사용 replan loop도 생겼다
+
+하지만:
+
+- planner가 모은 재료와 최종 답변 요구사항 사이의 contract는 아직 약하다
+- `difference`, `lookup`, `ratio` 결과가 answer-friendly structured result로 충분히 남지 않는다
+
+다음:
+
+- planner는 재료 수집 task에 집중
+- final synthesizer는 원본 질문 충족 여부와 최종 refusal을 책임
+- `planner_feedback -> replan -> close/refusal` loop를 benchmark 문항으로 고정
+
+종료 조건:
+
+- `NAV_T1_071`류 질문에서 raw value와 derived value 요구가 함께 닫히고,
+- replan loop가 불필요한 중복 task를 만들지 않으며,
+- 재료 부족 시 aggregate 단계에서 명시적 final refusal이 나온다
+
+### 1. Curated dataset 운영 경로 정리
 
 현재:
 
@@ -107,7 +132,7 @@
 - curated dataset과 legacy experiment dataset의 역할을 문서상으로도 분리
 - single-doc / multi-report / multi-company 셋의 운영 규칙을 명시
 
-### 1. MAS skeleton + typed state schema
+### 2. MAS skeleton + typed state schema
 
 현재:
 
@@ -123,7 +148,7 @@
 
 같은 typed object를 기준으로 state를 재정의
 
-### 2. Report-scoped cache
+### 3. Report-scoped cache
 
 현재:
 
@@ -135,7 +160,7 @@
   수준의 cache key를 명시
 - retrieval을 완전히 생략할 수 있는 값과, 근거 확인이 필요한 값을 구분
 
-### 3. Runtime critic과 offline evaluator의 역할 분리
+### 4. Runtime critic과 offline evaluator의 역할 분리
 
 현재:
 
@@ -146,7 +171,7 @@
 - runtime critic은 task acceptance와 final merge 보호용
 - offline evaluator는 benchmark/scorecard용
 
-### 4. Self-reflection을 retry rule이 아닌 capability로 재정의
+### 5. Self-reflection을 retry rule이 아닌 capability로 재정의
 
 현재:
 

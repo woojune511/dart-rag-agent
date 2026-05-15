@@ -55,6 +55,11 @@ __all__ = [
     '_build_generic_required_operands',
     '_infer_generic_metric_label',
     '_build_generic_retrieval_queries',
+    '_planner_intent_cues',
+    '_infer_operation_family_from_query',
+    '_build_concept_required_operands',
+    '_build_concept_metric_label',
+    '_build_concept_task_constraints',
     '_build_heuristic_numeric_task',
     '_infer_period_focus',
     '_build_task_constraints',
@@ -515,6 +520,22 @@ def _query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
     return any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip())
 
 
+def _query_component_match_count(
+    query: str,
+    operand_specs: List[Dict[str, Any]],
+) -> int:
+    combined = _normalise_spaces(query)
+    matched_labels: List[str] = []
+    for spec in operand_specs:
+        label = str(spec.get("label") or "").strip()
+        aliases = [label]
+        aliases.extend(spec.get("aliases", []) or [])
+        aliases.extend(spec.get("keywords", []) or [])
+        if any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip()):
+            matched_labels.append(label or str(spec.get("concept") or "").strip())
+    return len(dict.fromkeys(item for item in matched_labels if item))
+
+
 _QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“”‘’「」『』]+)['"“”‘’「」『』]""")
 _GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
     re.compile(pattern)
@@ -770,6 +791,421 @@ def _build_generic_retrieval_queries(
     return list(dict.fromkeys(item for item in queries if item))
 
 
+def _planner_intent_cues(ontology: Any, operation_family: str) -> List[str]:
+    guidance = dict(getattr(ontology, "planner_guidance", {}) or {})
+    intent_cues = dict(guidance.get("intent_cues") or {})
+    return [
+        str(item).strip()
+        for item in (intent_cues.get(operation_family) or [])
+        if str(item).strip()
+    ]
+
+
+def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
+    text = _normalise_spaces(query).lower()
+    if not text:
+        return "single_value"
+
+    if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "growth_rate")):
+        return "growth_rate"
+    if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "ratio")):
+        return "ratio"
+    if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "difference")):
+        return "difference"
+    if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "sum")):
+        return "sum"
+    return "single_value"
+
+
+def _concept_alias_position(spec: Dict[str, Any], text: str) -> float:
+    haystack = _normalise_spaces(text).lower()
+    positions: List[int] = []
+    aliases = [
+        str(spec.get("name") or "").strip(),
+        *(spec.get("aliases") or []),
+        *(spec.get("keywords") or []),
+    ]
+    for alias in aliases:
+        needle = _normalise_spaces(alias).lower()
+        if not needle:
+            continue
+        position = haystack.find(needle)
+        if position >= 0:
+            positions.append(position)
+    return float(min(positions)) if positions else math.inf
+
+
+def _order_concept_specs_by_query(concept_specs: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
+    indexed: List[tuple[float, int, Dict[str, Any]]] = []
+    for index, spec in enumerate(concept_specs):
+        indexed.append((_concept_alias_position(spec, query), index, spec))
+    indexed.sort(key=lambda item: (item[0], item[1]))
+    return [spec for _position, _index, spec in indexed]
+
+
+def _expand_group_concept_specs(
+    concept_specs: List[Dict[str, Any]],
+    role_hints: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    expanded: List[Dict[str, Any]] = []
+    role_hints = list(role_hints or [])
+    for index, spec in enumerate(concept_specs):
+        current_role = role_hints[index] if index < len(role_hints) else str(spec.get("role") or "").strip()
+        member_specs = list(spec.get("member_specs") or [])
+        if member_specs:
+            for member_spec in member_specs:
+                expanded_spec = dict(member_spec)
+                if current_role and not str(expanded_spec.get("role") or "").strip():
+                    expanded_spec["role"] = current_role
+                expanded.append(expanded_spec)
+            continue
+        expanded_spec = dict(spec)
+        if current_role and not str(expanded_spec.get("role") or "").strip():
+            expanded_spec["role"] = current_role
+        expanded.append(expanded_spec)
+
+    deduped: List[Dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for spec in expanded:
+        concept_key = str(spec.get("concept") or "").strip()
+        role = str(spec.get("role") or "").strip()
+        dedupe_key = (concept_key, role)
+        if concept_key and dedupe_key in seen:
+            continue
+        if concept_key:
+            seen.add(dedupe_key)
+        deduped.append(spec)
+    return deduped
+
+
+def _normalize_operation_roles(operation_family: str, roles: List[str]) -> List[str]:
+    normalized = list(roles)
+    if operation_family == "ratio":
+        counters = {"numerator": 0, "denominator": 0}
+        for index, role in enumerate(normalized):
+            if role.startswith("numerator"):
+                counters["numerator"] += 1
+                normalized[index] = f"numerator_{counters['numerator']}"
+            elif role.startswith("denominator"):
+                counters["denominator"] += 1
+                normalized[index] = f"denominator_{counters['denominator']}"
+    elif operation_family == "sum":
+        counter = 0
+        for index, role in enumerate(normalized):
+            if role.startswith("addend"):
+                counter += 1
+                normalized[index] = f"addend_{counter}"
+    return normalized
+
+
+def _build_concept_period_operands(
+    spec: Dict[str, Any],
+    query: str,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    label = str(spec.get("name") or "").strip()
+    concept = str(spec.get("concept") or "").strip()
+    aliases = list(dict.fromkeys([label, *(spec.get("aliases") or [])]))
+    keywords = list(dict.fromkeys(spec.get("keywords") or []))
+    preferred_sections = list(dict.fromkeys(spec.get("preferred_sections") or []))
+    preferred_statement_types = list(dict.fromkeys(spec.get("preferred_statement_types") or []))
+    binding_policy = dict(spec.get("binding_policy") or {})
+    year_tokens = _extract_year_tokens(query, report_scope)
+    if year_tokens:
+        current_year = year_tokens[0]
+        prior_year = year_tokens[1] if len(year_tokens) > 1 else current_year - 1
+        return [
+            {
+                "label": f"{current_year}년 {label}",
+                "concept": concept,
+                "aliases": aliases,
+                "keywords": keywords,
+                "role": "current_period",
+                "required": True,
+                "period_hint": str(current_year),
+                "preferred_sections": preferred_sections,
+                "preferred_statement_types": preferred_statement_types,
+                "binding_policy": binding_policy,
+                "unit_family": str(spec.get("unit_family") or "").strip(),
+            },
+            {
+                "label": f"{prior_year}년 {label}",
+                "concept": concept,
+                "aliases": aliases,
+                "keywords": keywords,
+                "role": "prior_period",
+                "required": True,
+                "period_hint": str(prior_year),
+                "preferred_sections": preferred_sections,
+                "preferred_statement_types": preferred_statement_types,
+                "binding_policy": binding_policy,
+                "unit_family": str(spec.get("unit_family") or "").strip(),
+            },
+        ]
+    return [
+        {
+            "label": f"당기 {label}",
+            "concept": concept,
+            "aliases": aliases,
+            "keywords": keywords,
+            "role": "current_period",
+            "required": True,
+            "period_hint": "당기",
+            "preferred_sections": preferred_sections,
+            "preferred_statement_types": preferred_statement_types,
+            "binding_policy": binding_policy,
+            "unit_family": str(spec.get("unit_family") or "").strip(),
+        },
+        {
+            "label": f"전기 {label}",
+            "concept": concept,
+            "aliases": aliases,
+            "keywords": keywords,
+            "role": "prior_period",
+            "required": True,
+            "period_hint": "전기",
+            "preferred_sections": preferred_sections,
+            "preferred_statement_types": preferred_statement_types,
+            "binding_policy": binding_policy,
+            "unit_family": str(spec.get("unit_family") or "").strip(),
+        },
+    ]
+
+
+def _assign_ratio_roles_to_concepts(query: str, concept_specs: List[Dict[str, Any]]) -> List[str]:
+    ordered = _order_concept_specs_by_query(concept_specs, query)
+    roles = [""] * len(ordered)
+
+    def _assign(indices: List[int], prefix: str) -> None:
+        for offset, index in enumerate(indices, start=1):
+            roles[index] = f"{prefix}_{offset}"
+
+    text = str(query or "")
+    if "대비" in text:
+        before_text, after_text = text.split("대비", 1)
+        denominator_indices = [
+            index
+            for index, spec in enumerate(ordered)
+            if _concept_alias_position(spec, before_text) < math.inf
+        ]
+        numerator_indices = [
+            index
+            for index, spec in enumerate(ordered)
+            if _concept_alias_position(spec, after_text) < math.inf
+        ]
+        if denominator_indices and numerator_indices:
+            _assign(numerator_indices, "numerator")
+            _assign(denominator_indices, "denominator")
+            return roles
+
+    if "/" in text:
+        left_text, right_text = text.split("/", 1)
+        numerator_indices = [
+            index
+            for index, spec in enumerate(ordered)
+            if _concept_alias_position(spec, left_text) < math.inf
+        ]
+        denominator_indices = [
+            index
+            for index, spec in enumerate(ordered)
+            if _concept_alias_position(spec, right_text) < math.inf
+        ]
+        if numerator_indices and denominator_indices:
+            _assign(numerator_indices, "numerator")
+            _assign(denominator_indices, "denominator")
+            return roles
+
+    if len(ordered) == 2:
+        roles[0] = "numerator_1"
+        roles[1] = "denominator_1"
+    return roles
+
+
+def _build_concept_required_operands(
+    query: str,
+    report_scope: Dict[str, Any],
+    concept_specs: List[Dict[str, Any]],
+    operation_family: str,
+) -> List[Dict[str, Any]]:
+    ordered_specs = list(concept_specs)
+    if not ordered_specs:
+        return []
+
+    raw_explicit_roles = [str(spec.get("role") or "").strip() for spec in ordered_specs]
+    preserve_planner_order = False
+    if operation_family == "ratio":
+        preserve_planner_order = any(role.startswith("numerator") for role in raw_explicit_roles) and any(
+            role.startswith("denominator") for role in raw_explicit_roles
+        )
+    elif operation_family == "sum":
+        preserve_planner_order = any(role.startswith("addend") for role in raw_explicit_roles)
+    elif operation_family == "difference":
+        preserve_planner_order = any(role in {"minuend", "subtrahend", "current_period", "prior_period"} for role in raw_explicit_roles)
+    elif operation_family == "growth_rate":
+        preserve_planner_order = any(role in {"current_period", "prior_period"} for role in raw_explicit_roles)
+
+    if not preserve_planner_order:
+        ordered_specs = _order_concept_specs_by_query(concept_specs, query)
+        raw_explicit_roles = [str(spec.get("role") or "").strip() for spec in ordered_specs]
+
+    if len(ordered_specs) == 1 and operation_family in {"difference", "growth_rate"}:
+        expanded_single = _expand_group_concept_specs(ordered_specs, raw_explicit_roles)
+        if len(expanded_single) == 1:
+            return _build_concept_period_operands(expanded_single[0], query, report_scope)
+        return []
+
+    if (
+        len(ordered_specs) == 1
+        and not raw_explicit_roles
+        and _is_single_metric_period_comparison(query, [str(ordered_specs[0].get("name") or "").strip()])
+    ):
+        expanded_single = _expand_group_concept_specs(ordered_specs, raw_explicit_roles)
+        if len(expanded_single) == 1:
+            return _build_concept_period_operands(expanded_single[0], query, report_scope)
+        return []
+
+    role_hints = raw_explicit_roles
+    if operation_family == "ratio":
+        if any(role.startswith("numerator") for role in raw_explicit_roles) and any(role.startswith("denominator") for role in raw_explicit_roles):
+            role_hints = raw_explicit_roles
+        else:
+            role_hints = _assign_ratio_roles_to_concepts(query, ordered_specs)
+        if not any(role.startswith("numerator") for role in role_hints) or not any(role.startswith("denominator") for role in role_hints):
+            return []
+
+    ordered_specs = _expand_group_concept_specs(ordered_specs, role_hints)
+    if not ordered_specs:
+        return []
+
+    explicit_roles = _normalize_operation_roles(
+        operation_family,
+        [str(spec.get("role") or "").strip() for spec in ordered_specs],
+    )
+    if operation_family == "ratio":
+        if not any(role.startswith("numerator") for role in explicit_roles) or not any(role.startswith("denominator") for role in explicit_roles):
+            return []
+
+    operands: List[Dict[str, Any]] = []
+    for index, spec in enumerate(ordered_specs, start=1):
+        role = ""
+        if operation_family == "ratio":
+            role = explicit_roles[index - 1]
+        elif operation_family == "sum":
+            role = explicit_roles[index - 1] or f"addend_{index}"
+        elif operation_family == "difference" and len(ordered_specs) >= 2:
+            role = explicit_roles[index - 1] or ("minuend" if index == 1 else "subtrahend")
+        elif operation_family == "growth_rate" and len(ordered_specs) >= 2:
+            role = explicit_roles[index - 1] or ("current_period" if index == 1 else "prior_period")
+        elif operation_family in {"lookup", "single_value"}:
+            role = explicit_roles[index - 1]
+        operands.append(
+            {
+                "label": str(spec.get("name") or "").strip(),
+                "concept": str(spec.get("concept") or "").strip(),
+                "aliases": list(dict.fromkeys([str(spec.get("name") or "").strip(), *(spec.get("aliases") or [])])),
+                "keywords": list(dict.fromkeys(spec.get("keywords") or [])),
+                "role": role,
+                "required": True,
+                "preferred_sections": list(dict.fromkeys(spec.get("preferred_sections") or [])),
+                "preferred_statement_types": list(dict.fromkeys(spec.get("preferred_statement_types") or [])),
+                "binding_policy": dict(spec.get("binding_policy") or {}),
+                "unit_family": str(spec.get("unit_family") or "").strip(),
+            }
+        )
+    return operands
+
+
+def _build_concept_metric_label(
+    query: str,
+    concept_specs: List[Dict[str, Any]],
+    operation_family: str,
+) -> str:
+    ordered_specs = _order_concept_specs_by_query(concept_specs, query)
+    labels = [str(spec.get("name") or "").strip() for spec in ordered_specs if str(spec.get("name") or "").strip()]
+    if operation_family == "ratio" and labels:
+        return f"{' + '.join(labels)} 비율"
+    if operation_family == "sum" and labels:
+        return f"{' + '.join(labels)} 합계"
+    if operation_family == "difference" and labels:
+        return f"{labels[0]} 차이"
+    if operation_family == "growth_rate" and labels:
+        return f"{labels[0]} 증가율"
+    if labels:
+        return labels[0]
+    return _clean_metric_label(query) or "개념 기반 수치"
+
+
+def _build_concept_task_constraints(
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+) -> Dict[str, str]:
+    guidance = dict(getattr(ontology, "planner_guidance", {}) or {})
+    defaults = dict(guidance.get("dimension_defaults") or {})
+    consolidation_scope = _desired_consolidation_scope(query, report_scope)
+    if consolidation_scope == "unknown":
+        consolidation_scope = str(defaults.get("consolidation_scope") or "unknown")
+    period_focus = _infer_period_focus(query, str(defaults.get("period_focus") or "unknown"))
+    return {
+        "consolidation_scope": str(consolidation_scope or "unknown"),
+        "period_focus": str(period_focus or "unknown"),
+        "entity_scope": str(defaults.get("entity_scope") or "company"),
+        "segment_scope": "segment" if "부문" in _normalise_spaces(query) else "none",
+    }
+
+
+def _build_concept_numeric_task(
+    *,
+    query: str,
+    topic: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+    concept_specs: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    operation_family = _infer_operation_family_from_query(query, ontology)
+    operand_specs = _build_concept_required_operands(query, report_scope, concept_specs, operation_family)
+    if not operand_specs:
+        return None
+    preferred_statement_types: List[str] = []
+    preferred_sections: List[str] = []
+    query_statement_types, query_sections = _infer_statement_and_section_hints(query)
+    preferred_statement_types.extend(query_statement_types)
+    preferred_sections.extend(query_sections)
+    for spec in operand_specs:
+        preferred_statement_types.extend(spec.get("preferred_statement_types") or [])
+        preferred_sections.extend(spec.get("preferred_sections") or [])
+    preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
+    preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
+    metric_label = _build_concept_metric_label(query, concept_specs, operation_family)
+    constraints = _build_concept_task_constraints(query, report_scope, ontology)
+    retrieval_queries = _build_generic_retrieval_queries(
+        query=query,
+        metric_label=metric_label,
+        operand_specs=operand_specs,
+        preferred_sections=preferred_sections,
+        report_scope=report_scope,
+    )
+    task_query = _build_metric_task_query(
+        original_query=query,
+        metric_label=metric_label,
+        constraints=constraints,
+        operand_specs=operand_specs,
+        report_scope=report_scope,
+    )
+    return {
+        "task_id": "task_1",
+        "metric_family": f"concept_{operation_family}",
+        "metric_label": metric_label,
+        "query": task_query,
+        "operation_family": operation_family,
+        "required_operands": operand_specs,
+        "preferred_statement_types": preferred_statement_types,
+        "preferred_sections": preferred_sections,
+        "retrieval_queries": retrieval_queries,
+        "constraints": constraints,
+    }
+
+
 def _build_heuristic_numeric_task(
     *,
     query: str,
@@ -780,6 +1216,7 @@ def _build_heuristic_numeric_task(
     metric_label = _infer_generic_metric_label(query, topic)
     operand_specs = _build_generic_required_operands(query, report_scope)
     preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
+    operation_family = _infer_operation_family_from_query(query, get_financial_ontology())
     constraints = {
         "consolidation_scope": _desired_consolidation_scope(query, report_scope),
         "period_focus": _infer_period_focus(query, "unknown"),
@@ -800,6 +1237,7 @@ def _build_heuristic_numeric_task(
         "metric_family": "generic_numeric",
         "metric_label": metric_label,
         "query": query,
+        "operation_family": operation_family,
         "required_operands": operand_specs,
         "preferred_statement_types": preferred_statement_types,
         "preferred_sections": preferred_sections,
@@ -905,11 +1343,25 @@ def _build_semantic_numeric_plan(
     """
     ontology = get_financial_ontology()
     matches = ontology.match_metric_families(query, topic, intent)
+    matched_metric_keys = {
+        str(item.get("key") or "").strip()
+        for item in matches
+        if str(item.get("key") or "").strip()
+    }
     metric_keys: List[str] = []
     planner_notes: List[str] = []
+    concept_specs = ontology.concept_specs(query, topic, intent)
     if target_metric_family:
         target_metric = ontology.metric_family(target_metric_family) or {}
-        if target_metric and _query_mentions_metric(query, target_metric):
+        target_operand_specs = ontology.build_operand_spec(target_metric_family) if target_metric else []
+        component_match_count = _query_component_match_count(query, target_operand_specs)
+        if target_metric and (
+            _query_mentions_metric(query, target_metric)
+            or (
+                target_metric_family in matched_metric_keys
+                and component_match_count >= 2
+            )
+        ):
             metric_keys.append(target_metric_family)
         else:
             planner_notes.append(f"drop_weak_target:{target_metric_family}")
@@ -922,6 +1374,21 @@ def _build_semantic_numeric_plan(
 
     tasks: List[Dict[str, Any]] = []
     if not metric_keys:
+        concept_task = _build_concept_numeric_task(
+            query=query,
+            topic=topic,
+            report_scope=report_scope,
+            ontology=ontology,
+            concept_specs=concept_specs,
+        )
+        if concept_task:
+            return {
+                "status": "concept_fallback",
+                "fallback_to_general_search": False,
+                "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
+                "tasks": [concept_task],
+                "planner_notes": planner_notes + ["concept_numeric_task"],
+            }
         heuristic_task = _build_heuristic_numeric_task(
             query=query,
             topic=topic,
@@ -932,12 +1399,14 @@ def _build_semantic_numeric_plan(
             return {
                 "status": "heuristic_fallback",
                 "fallback_to_general_search": False,
+                "planned_metric_families": [str(heuristic_task.get("metric_family") or "").strip()],
                 "tasks": [heuristic_task],
                 "planner_notes": planner_notes + ["heuristic_numeric_task"],
             }
         return {
             "status": "fallback_general_search",
             "fallback_to_general_search": True,
+            "planned_metric_families": [],
             "tasks": [],
             "planner_notes": planner_notes + ["ontology_match_missing"],
         }
@@ -967,12 +1436,18 @@ def _build_semantic_numeric_plan(
                 "metric_family": metric_key,
                 "metric_label": display_name,
                 "query": task_query,
+                "operation_family": str(metric.get("formula_family") or "").strip(),
                 "required_operands": [
                     {
                         "label": str(spec.get("label") or ""),
+                        "concept": str(spec.get("concept") or ""),
                         "aliases": list(spec.get("aliases") or []),
+                        "keywords": list(spec.get("keywords") or []),
                         "role": str(spec.get("role") or ""),
                         "required": bool(spec.get("required", True)),
+                        "preferred_sections": list(spec.get("preferred_sections") or []),
+                        "preferred_statement_types": list(spec.get("preferred_statement_types") or []),
+                        "binding_policy": dict(spec.get("binding_policy") or {}),
                     }
                     for spec in operand_specs
                     if str(spec.get("label") or "").strip()
@@ -988,6 +1463,7 @@ def _build_semantic_numeric_plan(
         return {
             "status": "fallback_general_search",
             "fallback_to_general_search": True,
+            "planned_metric_families": [],
             "tasks": [],
             "planner_notes": planner_notes or ["no_viable_tasks"],
         }
@@ -995,6 +1471,11 @@ def _build_semantic_numeric_plan(
     return {
         "status": "ok",
         "fallback_to_general_search": False,
+        "planned_metric_families": [
+            str(task.get("metric_family") or "").strip()
+            for task in tasks
+            if str(task.get("metric_family") or "").strip()
+        ],
         "tasks": tasks,
         "planner_notes": planner_notes,
     }
@@ -1161,6 +1642,16 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
 
 
 def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    bound_label = str(row.get("matched_operand_label") or "").strip()
+    operand_label = str(operand.get("label") or "").strip()
+    if bound_label and operand_label and _normalise_spaces(bound_label) == _normalise_spaces(operand_label):
+        return True
+
+    bound_concept = str(row.get("matched_operand_concept") or "").strip()
+    operand_concept = str(operand.get("concept") or "").strip()
+    if bound_concept and operand_concept and _normalise_spaces(bound_concept) == _normalise_spaces(operand_concept):
+        return True
+
     surfaces = [
         str(row.get("label") or "").strip(),
         str(row.get("source_anchor") or "").strip(),
@@ -1360,6 +1851,8 @@ def _build_table_value_reconciliation_candidates(
         candidate["metadata"]["semantic_label"] = semantic_label
         candidate["metadata"]["semantic_aliases"] = semantic_aliases
         candidate["metadata"]["label_source"] = str(record.get("label_source") or "")
+        candidate["metadata"]["value_role"] = _normalise_spaces(str(record.get("value_role") or "detail"))
+        candidate["metadata"]["aggregation_stage"] = _normalise_spaces(str(record.get("aggregation_stage") or "none"))
         candidate["metadata"]["aggregate_label"] = _normalise_spaces(str(record.get("aggregate_label") or ""))
         candidate["metadata"]["aggregate_role"] = _normalise_spaces(str(record.get("aggregate_role") or "none"))
         candidate["metadata"]["period_text"] = period_text
@@ -1636,6 +2129,43 @@ _BALANCE_SHEET_AGGREGATE_LABELS = {
 }
 
 
+def _candidate_value_role(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    explicit = _normalise_spaces(str(metadata.get("value_role") or ""))
+    if explicit:
+        return explicit
+    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
+    if aggregate_role == "adjustment":
+        return "adjustment"
+    if aggregate_role in {"direct_total", "subtotal", "final_total"}:
+        return "aggregate"
+    return "detail"
+
+
+def _candidate_aggregation_stage(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    explicit = _normalise_spaces(str(metadata.get("aggregation_stage") or ""))
+    if explicit:
+        return explicit
+    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
+    if aggregate_role == "direct_total":
+        return "direct"
+    if aggregate_role == "subtotal":
+        return "subtotal"
+    if aggregate_role == "final_total":
+        return "final"
+    return "none"
+
+
+def _preference_bonus(value: str, preferred: List[str], *, base: float = 0.4) -> float:
+    ordered = [_normalise_spaces(item) for item in preferred if _normalise_spaces(item)]
+    target = _normalise_spaces(value)
+    if not target or target not in ordered:
+        return 0.0
+    index = ordered.index(target)
+    return base * max(len(ordered) - index, 1)
+
+
 def _candidate_has_numeric_value_signal(candidate: Dict[str, Any]) -> bool:
     metadata = dict(candidate.get("metadata") or {})
     structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
@@ -1710,6 +2240,7 @@ def _score_operand_candidate(
     score = 0.0
     row_label = str(metadata.get("row_label") or "").strip()
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
+    operand_binding_policy = dict(operand.get("binding_policy") or {})
     if row_label:
         if any(_normalise_spaces(row_label) == _normalise_spaces(needle) for needle in _operand_needles(operand)):
             score += 3.0
@@ -1729,14 +2260,15 @@ def _score_operand_candidate(
     elif candidate_kind == "chunk":
         score -= 0.25
 
-    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
-    if aggregate_role == "final_total":
+    value_role = _candidate_value_role(candidate)
+    aggregation_stage = _candidate_aggregation_stage(candidate)
+    if aggregation_stage == "final":
         score += 1.5
-    elif aggregate_role == "direct_total":
+    elif aggregation_stage == "direct":
         score += 1.25
-    elif aggregate_role == "subtotal":
+    elif aggregation_stage == "subtotal":
         score += 0.5
-    elif aggregate_role == "adjustment":
+    elif value_role == "adjustment":
         score -= 1.5
 
     aggregate_signal = " ".join(
@@ -1749,9 +2281,9 @@ def _score_operand_candidate(
         )
         if part
     )
-    if aggregate_role in {"direct_total", "final_total"} and _operand_text_match(aggregate_signal, operand):
+    if value_role == "aggregate" and aggregation_stage in {"direct", "final"} and _operand_text_match(aggregate_signal, operand):
         score += 2.0
-    elif aggregate_role == "subtotal" and _operand_text_match(aggregate_signal, operand):
+    elif value_role == "aggregate" and aggregation_stage == "subtotal" and _operand_text_match(aggregate_signal, operand):
         score += 0.75
 
     if _candidate_has_numeric_value_signal(candidate):
@@ -1761,19 +2293,34 @@ def _score_operand_candidate(
         score -= 3.0
 
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
+    operand_preferred_statement_types = [
+        str(item).strip()
+        for item in (operand.get("preferred_statement_types") or [])
+        if str(item).strip()
+    ]
     if preferred_statement_types:
         if statement_type in preferred_statement_types:
             score += 2.5
         elif statement_type != "unknown":
             score -= 0.8
+    if operand_preferred_statement_types:
+        if statement_type in operand_preferred_statement_types:
+            score += 1.5
+        elif statement_type != "unknown":
+            score -= 0.35
 
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     candidate_consolidation = str(metadata.get("consolidation_scope") or "unknown").strip()
     desired_period_focus = _operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
+    if desired_consolidation == "unknown":
+        desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
+    if desired_period_focus == "unknown":
+        desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
     local_heading = _normalise_spaces(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
+    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
     if desired_consolidation != "unknown":
         if candidate_consolidation == desired_consolidation:
             score += 2.0
@@ -1800,6 +2347,45 @@ def _score_operand_candidate(
             score += 1.5
         elif candidate_period_focus == "current":
             score -= 1.5
+
+    preferred_value_roles = [
+        str(item).strip()
+        for item in (operand_binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    ]
+    avoid_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_value_roles") or [])
+        if str(item).strip()
+    }
+    preferred_aggregation_stages = [
+        str(item).strip()
+        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    ]
+    avoid_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    score += _preference_bonus(value_role, preferred_value_roles, base=0.6)
+    score += _preference_bonus(aggregation_stage, preferred_aggregation_stages, base=0.5)
+    if _normalise_spaces(value_role) in avoid_value_roles:
+        score -= 2.0
+    if _normalise_spaces(aggregation_stage) in avoid_aggregation_stages:
+        score -= 1.75
+
+    operand_preferred_sections = [
+        str(item).strip()
+        for item in (operand.get("preferred_sections") or [])
+        if str(item).strip()
+    ]
+    if operand_preferred_sections:
+        if any(
+            _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
+            for section_term in operand_preferred_sections
+        ):
+            score += 0.75
 
     if _is_balance_sheet_aggregate_operand(operand):
         if statement_type in {"summary_financials", "balance_sheet"}:

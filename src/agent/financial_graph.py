@@ -182,7 +182,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             self._route_after_advance_subtask,
             {"reconcile_plan": "reconcile_plan", "aggregate_subtasks": "aggregate_subtasks"},
         )
-        graph.add_edge("aggregate_subtasks", "cite")
+        graph.add_conditional_edges(
+            "aggregate_subtasks",
+            self._route_after_aggregate_subtasks,
+            {"pre_calc_planner": "pre_calc_planner", "cite": "cite"},
+        )
         graph.add_edge("compress", "validate")
         graph.add_edge("validate", "cite")
         graph.add_edge("cite", END)
@@ -196,7 +200,12 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "report_scope": dict(report_scope or {}),
             "query_type": "",
             "intent": "",
+            "planner_mode": "initial",
+            "planner_feedback": "",
+            "plan_loop_count": 0,
             "target_metric_family": "",
+            "target_metric_family_hint": "",
+            "planned_metric_families": [],
             "format_preference": "",
             "routing_source": "",
             "routing_confidence": 0.0,
@@ -253,7 +262,12 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "report_scope": final.get("report_scope", {}),
             "query_type": final["query_type"],
             "intent": final.get("intent", final["query_type"]),
+            "planner_mode": final.get("planner_mode", "initial"),
+            "planner_feedback": final.get("planner_feedback", ""),
+            "plan_loop_count": final.get("plan_loop_count", 0),
             "target_metric_family": final.get("target_metric_family", ""),
+            "target_metric_family_hint": final.get("target_metric_family_hint", final.get("target_metric_family", "")),
+            "planned_metric_families": final.get("planned_metric_families", []),
             "format_preference": final.get("format_preference", ""),
             "routing_source": final.get("routing_source", ""),
             "routing_confidence": final.get("routing_confidence", 0.0),
