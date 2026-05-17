@@ -260,6 +260,12 @@ class CalculationResult(BaseModel):
     rendered_value: str = Field(default="", description="사용자 응답에 들어갈 값 표현")
     formatted_result: str = Field(default="", description="프레젠테이션 계층에서 바로 사용할 수 있는 렌더링 결과")
     series: List[Dict[str, Any]] = Field(default_factory=list, description="기간/항목별 계산 입력 시계열 또는 순서 데이터")
+    current_value: Optional[float] = Field(default=None, description="현재 기간 정규화 값")
+    prior_value: Optional[float] = Field(default=None, description="직전 기간 정규화 값")
+    delta_value: Optional[float] = Field(default=None, description="증감 계산 결과 정규화 값")
+    current_period: str = Field(default="", description="현재 기간 라벨")
+    prior_period: str = Field(default="", description="직전 기간 라벨")
+    source_row_ids: List[str] = Field(default_factory=list, description="결과를 만든 evidence row/candidate id")
     derived_metrics: Dict[str, Any] = Field(default_factory=dict, description="계산 과정에서 파생된 보조 지표")
     explanation: str = Field(default="", description="계산 또는 실패 이유 설명")
 

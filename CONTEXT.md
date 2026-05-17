@@ -87,3 +87,18 @@
 - answer completeness와 최종 refusal은 planner가 아니라 final synthesizer / aggregate 단계가 책임지는 방향으로 경계가 정리되고 있다.
 - 다만 아직은 완전한 source of truth 이전 단계이며, evaluator 호환을 위해 legacy 필드를 병행 유지한다.
 - 따라서 다음 구현은 retrieval / parser local patch보다 **planner-synthesizer contract와 structured result schema를 더 강하게 만드는 방향**이 맞다.
+## 2026-05-17 Update
+
+- Indexing now supports partial-store resume in the benchmark path.
+  - `benchmark_runner` writes `benchmark_cache_meta.json` with `status: "in_progress"` before ingest.
+  - `resume_partial_store=true` preserves a matching partial store instead of deleting it.
+  - `VectorStoreManager.add_documents(..., resume=True)` skips already indexed `chunk_uid`s and adds only missing chunks in batches.
+- This was verified on the NAVER 2023 large-chunk reindex path.
+  - A legacy partial store was preserved and then completed successfully.
+  - A second run hit store cache immediately and skipped re-ingest.
+- `NAV_T1_071` status is now clearer.
+  - planner / replan loop: implemented and observed on a real question
+  - structured current/prior value binding: fixed locally for the NAVER 2023 income-statement row
+  - remaining blocker: retrieval fan-out still triggers repeated embedding calls and can hit `429 RESOURCE_EXHAUSTED`
+- Immediate bottleneck is no longer parser correctness or fresh-store survival.
+  - The next runtime optimization target is retrieval query count and/or query-embedding reuse for `lookup + difference` style questions.

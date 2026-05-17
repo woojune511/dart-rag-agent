@@ -1,0 +1,68 @@
+{
+  "defaults": {
+    "k": 8,
+    "ingest_mode": "plain",
+    "max_workers": 2,
+    "eval_max_workers": 1,
+    "batch_size": 8,
+    "eval_mode": "question_ids",
+    "eval_limit": 0,
+    "reuse_store": true,
+    "reuse_context_cache": false,
+    "force_reindex": false,
+    "resume_partial_store": true,
+    "resume_batch_size": 64,
+    "use_zero_cost_prefix": true,
+    "pricing": {
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
+    },
+    "mlflow_experiment_name": "dart_rag_tmp_nav_t1_071_resume_check"
+  },
+  "candidate_ids": [
+    "plain_prefix_8000_400"
+  ],
+  "screening": {
+    "baseline_experiment_id": "plain_prefix_8000_400",
+    "parallel_experiments": 1,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 0,
+    "always_include_full_eval_ids": [
+      "plain_prefix_8000_400"
+    ]
+  },
+  "full_evaluation": {
+    "enabled": true,
+    "eval_mode": "question_ids",
+    "question_ids": [
+      "NAV_T1_071"
+    ],
+    "eval_limit": 0
+  },
+  "company_runs": [
+    {
+      "id": "naver_2023_nav_t1_071_reindex_large_chunks",
+      "defaults": {
+        "report_path": "data/reports/NAVER/2023_사업보고서_20240318000844.html",
+        "metadata": {
+          "company": "NAVER",
+          "stock_code": "035420",
+          "year": 2023,
+          "report_type": "?ъ뾽蹂닿퀬??",
+          "rcept_no": "20240318000844"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "id": "plain_prefix_8000_400",
+      "chunk_size": 8000,
+      "chunk_overlap": 400,
+      "ingest_mode": "plain",
+      "use_zero_cost_prefix": true
+    }
+  ]
+}

@@ -986,3 +986,20 @@ Example:
 - Use the planner to decide what to retrieve, not to solve the answer directly.
 - Use reconciliation to prevent confident wrong calculations.
 - Prefer soft metadata bias plus tiered fallback over overly strict hard filtering.
+## 2026-05-17 Resume and Retrieval Notes
+
+- The benchmark/runtime path now has a first-pass **resumable ingest** mechanism.
+  - partial stores are preserved with `resume_partial_store=true`
+  - cache metadata is written as `status: "in_progress"` before ingest and `status: "completed"` only after success
+  - vector-store ingest skips already indexed `chunk_uid`s and adds only missing chunks
+- This is intentionally a storage-level resume, not a full context-generation checkpoint.
+  - plain ingest benefits immediately
+  - contextual modes still may regenerate context text before the final add phase
+  - however, already stored chunks are still skipped at the vector-store layer
+- Current `NAV_T1_071` bottleneck has shifted.
+  - parser/table grounding and current/prior structured value binding are in much better shape
+  - the remaining runtime problem is retrieval-query fan-out, where one question expands into too many embedding-backed searches
+- The next architectural change should therefore target retrieval contraction rather than another parser expansion.
+  - collapse equivalent retrieval queries
+  - cache/reuse query embeddings where possible
+  - keep `lookup` / `difference` operation families small and deterministic

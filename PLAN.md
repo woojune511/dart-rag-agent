@@ -66,3 +66,16 @@
 - planner가 답변 문장을 직접 결정하지 않고 필요한 재료를 안정적으로 수집한다.
 - final synthesizer가 원본 질문 충족 여부를 보고 close / replan / refusal을 일관되게 결정한다.
 - runtime source of truth가 `tasks + artifacts + table objects + structured results`로 이동한다.
+## 2026-05-17 Immediate Update
+
+- Keep the current scope DART-only and finish the disclosure-analysis loop cleanly.
+- Near-term runtime priority is now:
+  1. reduce retrieval fan-out for `lookup + difference` style questions
+  2. reuse query embeddings and/or collapse near-duplicate retrieval queries
+  3. re-run `NAV_T1_071` end-to-end after the fan-out reduction
+- Resume-aware indexing is now in place and should be treated as the default benchmark behavior.
+  - preserve partial store when config matches
+  - skip already indexed `chunk_uid`s
+  - batch missing additions so interrupted ingest can continue on retry
+- Parser and structured value binding are no longer the main blocker for `NAV_T1_071`.
+  - The blocker is repeated retrieval-time embedding calls created by planner query expansion.

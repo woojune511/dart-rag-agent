@@ -694,6 +694,8 @@ Ontology Context:
         """Execute the planned numeric operation and normalize the result."""
         operands = {row.get("operand_id"): row for row in state.get("calculation_operands", [])}
         plan = state.get("calculation_plan") or {}
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         operation = str(plan.get("operation") or "none")
         mode = str(plan.get("mode") or "none")
         ordered_ids = [operand_id for operand_id in (plan.get("ordered_operand_ids") or []) if operand_id in operands]
@@ -873,6 +875,40 @@ Ontology Context:
                     "rendered_value": point_rendered,
                 }
             )
+        current_value: Optional[float] = None
+        prior_value: Optional[float] = None
+        delta_value: Optional[float] = None
+        current_period = ""
+        prior_period = ""
+        source_row_ids = [
+            str(row.get("evidence_id") or "").strip()
+            for row in ordered_operands
+            if str(row.get("evidence_id") or "").strip()
+        ]
+        if operation_family in {"lookup", "single_value"} and ordered_operands:
+            current_value = float(ordered_operands[0].get("normalized_value"))
+            current_period = str(ordered_operands[0].get("period") or "")
+        elif operation_family in {"difference", "growth_rate"}:
+            current_row = next(
+                (row for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "current_period"),
+                None,
+            )
+            prior_row = next(
+                (row for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "prior_period"),
+                None,
+            )
+            if current_row is None and len(ordered_operands) >= 1:
+                current_row = ordered_operands[0]
+            if prior_row is None and len(ordered_operands) >= 2:
+                prior_row = ordered_operands[1]
+            if current_row and current_row.get("normalized_value") is not None:
+                current_value = float(current_row.get("normalized_value"))
+                current_period = str(current_row.get("period") or "")
+            if prior_row and prior_row.get("normalized_value") is not None:
+                prior_value = float(prior_row.get("normalized_value"))
+                prior_period = str(prior_row.get("period") or "")
+            if operation_family == "difference":
+                delta_value = float(result_value)
         logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
         result_payload = {
             "answer": "",
@@ -890,9 +926,16 @@ Ontology Context:
                 "rendered_value": rendered_with_unit,
                 "formatted_result": "",
                 "series": result_series,
+                "current_value": current_value,
+                "prior_value": prior_value,
+                "delta_value": delta_value,
+                "current_period": current_period,
+                "prior_period": prior_period,
+                "source_row_ids": source_row_ids,
                 "derived_metrics": {
                     "operand_labels": labels,
                     "formula": formula,
+                    "operation_family": operation_family or operation,
                 },
                 "explanation": explanation or str(plan.get("operation_text") or operation or mode),
             },

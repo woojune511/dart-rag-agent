@@ -204,6 +204,19 @@ def _cache_meta_matches(cache_meta: Dict[str, Any], signature: Dict[str, Any]) -
     return bool(cache_meta) and cache_meta.get("signature") == signature
 
 
+def _cache_meta_is_completed(cache_meta: Dict[str, Any]) -> bool:
+    return bool(cache_meta) and str(cache_meta.get("status") or "completed") == "completed"
+
+
+def _merge_resume_metrics(metrics: Dict[str, Any], add_metrics: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(metrics)
+    merged["resume_enabled"] = bool(add_metrics.get("resume_enabled", False))
+    merged["resume_added_chunks"] = int(add_metrics.get("added_chunks", 0) or 0)
+    merged["resume_skipped_chunks"] = int(add_metrics.get("skipped_chunks", 0) or 0)
+    merged["resume_batch_count"] = int(add_metrics.get("batch_count", 0) or 0)
+    return merged
+
+
 def _build_cache_hit_ingest_metrics(source_metrics: Dict[str, Any]) -> Dict[str, Any]:
     metrics = dict(source_metrics or {})
     metrics["cache_hit"] = True
@@ -1168,6 +1181,8 @@ def _benchmark_parent_only_ingest(
     on_progress=None,
     max_workers: Optional[int] = None,
     batch_size: Optional[int] = None,
+    resume_partial_store: bool = False,
+    resume_batch_size: int = 64,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
@@ -1203,9 +1218,15 @@ def _benchmark_parent_only_ingest(
         parent_id = str((chunk.metadata or {}).get("parent_id") or f"chunk-{idx}")
         texts.append(_build_index_text(chunk.metadata, chunk.content, contexts.get(parent_id)))
     metadatas = [chunk.metadata for chunk in chunks]
-    agent.vsm.add_documents(texts, metadatas)
+    add_metrics = agent.vsm.add_documents(
+        texts,
+        metadatas,
+        resume=resume_partial_store,
+        batch_size=resume_batch_size,
+    )
 
-    result = {
+    result = _merge_resume_metrics(
+        {
         "mode": "contextual_parent_only",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1215,7 +1236,9 @@ def _benchmark_parent_only_ingest(
         "child_context_calls": 0,
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
-    }
+        },
+        add_metrics,
+    )
     if return_artifacts:
         result["artifacts"] = {
             "texts": texts,
@@ -1234,6 +1257,8 @@ def _benchmark_parent_hybrid_ingest(
     batch_size: Optional[int] = None,
     short_text_threshold: int = 700,
     targeted_sections: Optional[List[str]] = None,
+    resume_partial_store: bool = False,
+    resume_batch_size: int = 64,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
@@ -1300,9 +1325,15 @@ def _benchmark_parent_hybrid_ingest(
         context = "\n".join(part.strip() for part in context_parts if part and part.strip())
         texts.append(_build_index_text(chunk.metadata, chunk.content, context or None))
     metadatas = [chunk.metadata for chunk in chunks]
-    agent.vsm.add_documents(texts, metadatas)
+    add_metrics = agent.vsm.add_documents(
+        texts,
+        metadatas,
+        resume=resume_partial_store,
+        batch_size=resume_batch_size,
+    )
 
-    result = {
+    result = _merge_resume_metrics(
+        {
         "mode": "contextual_parent_hybrid",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1320,7 +1351,9 @@ def _benchmark_parent_hybrid_ingest(
         "max_workers": max(parent_metrics.get("max_workers", 0), child_metrics.get("max_workers", 0)),
         "batch_size": max(parent_metrics.get("batch_size", 0), child_metrics.get("batch_size", 0)),
         "elapsed_sec": time.perf_counter() - started_at,
-    }
+        },
+        add_metrics,
+    )
     if return_artifacts:
         result["artifacts"] = {
             "texts": texts,
@@ -1339,6 +1372,8 @@ def _benchmark_selective_ingest(
     batch_size: Optional[int] = None,
     short_text_threshold: int = 900,
     targeted_sections: Optional[List[str]] = None,
+    resume_partial_store: bool = False,
+    resume_batch_size: int = 64,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
@@ -1369,9 +1404,15 @@ def _benchmark_selective_ingest(
         for idx, chunk in enumerate(chunks)
     ]
     metadatas = [chunk.metadata for chunk in chunks]
-    agent.vsm.add_documents(texts, metadatas)
+    add_metrics = agent.vsm.add_documents(
+        texts,
+        metadatas,
+        resume=resume_partial_store,
+        batch_size=resume_batch_size,
+    )
 
-    result = {
+    result = _merge_resume_metrics(
+        {
         "mode": "contextual_selective",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1381,7 +1422,9 @@ def _benchmark_selective_ingest(
         "child_context_calls": len(items),
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
-    }
+        },
+        add_metrics,
+    )
     if return_artifacts:
         result["artifacts"] = {
             "texts": texts,
@@ -1402,6 +1445,8 @@ def _benchmark_selective_v2_ingest(
     targeted_sections: Optional[List[str]] = None,
     short_table_threshold: int = 1600,
     use_zero_cost_prefix: bool = False,
+    resume_partial_store: bool = False,
+    resume_batch_size: int = 64,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.perf_counter()
@@ -1437,9 +1482,15 @@ def _benchmark_selective_v2_ingest(
         else:
             texts.append(_build_index_text(chunk.metadata, chunk.content, context))
     metadatas = [chunk.metadata for chunk in chunks]
-    agent.vsm.add_documents(texts, metadatas)
+    add_metrics = agent.vsm.add_documents(
+        texts,
+        metadatas,
+        resume=resume_partial_store,
+        batch_size=resume_batch_size,
+    )
 
-    result = {
+    result = _merge_resume_metrics(
+        {
         "mode": "contextual_selective_v2",
         "chunks": len(chunks),
         "stored_parent_chunks": len(parents),
@@ -1450,7 +1501,9 @@ def _benchmark_selective_v2_ingest(
         "use_zero_cost_prefix": use_zero_cost_prefix,
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
-    }
+        },
+        add_metrics,
+    )
     if return_artifacts:
         result["artifacts"] = {
             "texts": texts,
@@ -2430,25 +2483,36 @@ def _run_ingest(
     ingest_mode = str(config.get("ingest_mode", "contextual_all"))
     max_workers = int(config.get("max_workers", DEFAULT_CONTEXT_MAX_WORKERS))
     batch_size = int(config.get("batch_size", DEFAULT_CONTEXT_BATCH_SIZE))
+    resume_partial_store = bool(config.get("resume_partial_store", True))
+    resume_batch_size = int(config.get("resume_batch_size", 64))
     if ingest_mode == "plain":
         started_at = time.perf_counter()
+        metadatas = [chunk.metadata for chunk in chunks]
         if bool(config.get("use_zero_cost_prefix", False)):
             texts = [_build_zero_cost_prefixed_text(chunk.metadata, chunk.content) for chunk in chunks]
-            metadatas = [chunk.metadata for chunk in chunks]
-            agent.vsm.add_documents(texts, metadatas)
+            add_metrics = agent.vsm.add_documents(
+                texts,
+                metadatas,
+                resume=resume_partial_store,
+                batch_size=resume_batch_size,
+            )
         else:
-            agent.ingest(chunks)
-        metrics = _build_plain_ingest_metrics(len(chunks), time.perf_counter() - started_at)
+            texts = [chunk.content for chunk in chunks]
+            add_metrics = agent.vsm.add_documents(
+                texts,
+                metadatas,
+                resume=resume_partial_store,
+                batch_size=resume_batch_size,
+            )
+        metrics = _merge_resume_metrics(
+            _build_plain_ingest_metrics(len(chunks), time.perf_counter() - started_at),
+            add_metrics,
+        )
         metrics["use_zero_cost_prefix"] = bool(config.get("use_zero_cost_prefix", False))
         if return_artifacts:
-            texts = (
-                [_build_zero_cost_prefixed_text(chunk.metadata, chunk.content) for chunk in chunks]
-                if bool(config.get("use_zero_cost_prefix", False))
-                else [chunk.content for chunk in chunks]
-            )
             metrics["artifacts"] = {
                 "texts": texts,
-                "metadatas": [chunk.metadata for chunk in chunks],
+                "metadatas": metadatas,
                 "parents": {},
             }
         return metrics
@@ -2457,6 +2521,8 @@ def _run_ingest(
             chunks,
             max_workers=max_workers,
             batch_size=batch_size,
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
             return_artifacts=return_artifacts,
         )
         metrics["mode"] = "contextual_all"
@@ -2468,6 +2534,8 @@ def _run_ingest(
             chunks,
             max_workers=max_workers,
             batch_size=batch_size,
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
             return_artifacts=return_artifacts,
         )
     if ingest_mode == "contextual_parent_hybrid":
@@ -2478,6 +2546,8 @@ def _run_ingest(
             batch_size=batch_size,
             short_text_threshold=int(config.get("parent_hybrid_short_text_threshold", 700)),
             targeted_sections=list(config.get("parent_hybrid_sections", [])),
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
             return_artifacts=return_artifacts,
         )
     if ingest_mode == "contextual_selective":
@@ -2488,6 +2558,8 @@ def _run_ingest(
             batch_size=batch_size,
             short_text_threshold=int(config.get("selective_short_text_threshold", 900)),
             targeted_sections=list(config.get("selective_sections", [])),
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
             return_artifacts=return_artifacts,
         )
     if ingest_mode == "contextual_selective_v2":
@@ -2500,6 +2572,8 @@ def _run_ingest(
             targeted_sections=list(config.get("selective_v2_sections", [])),
             short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
             use_zero_cost_prefix=bool(config.get("use_zero_cost_prefix", False)),
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
             return_artifacts=return_artifacts,
         )
     raise ValueError(f"Unsupported ingest_mode: {ingest_mode}")
@@ -2520,6 +2594,7 @@ def run_screening_experiment(
     force_reindex = _resolve_boolean_config(config, "force_reindex", False)
     reuse_store = _resolve_boolean_config(config, "reuse_store", True)
     reuse_context_cache = _resolve_boolean_config(config, "reuse_context_cache", True)
+    resume_partial_store = _resolve_boolean_config(config, "resume_partial_store", True)
 
     collection_name = config.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
     cache_signature = _build_cache_signature(config)
@@ -2529,14 +2604,28 @@ def run_screening_experiment(
     store_matches = _cache_meta_matches(cache_meta, cache_signature)
     context_matches = _cache_meta_matches(context_cache, cache_signature)
 
+    preserve_legacy_partial_store = (
+        persist_dir.exists()
+        and reuse_store
+        and resume_partial_store
+        and not force_reindex
+        and not cache_meta
+    )
+
     if force_reindex:
         if persist_dir.exists():
             shutil.rmtree(persist_dir)
         if context_cache_path.exists():
             context_cache_path.unlink()
-    elif persist_dir.exists() and (not reuse_store or not store_matches):
-        shutil.rmtree(persist_dir)
-        cache_meta = {}
+    elif persist_dir.exists():
+        if preserve_legacy_partial_store:
+            logger.info("Preserving legacy partial store without cache metadata for resume: %s", persist_dir)
+        elif not reuse_store or not store_matches:
+            shutil.rmtree(persist_dir)
+            cache_meta = {}
+        elif not _cache_meta_is_completed(cache_meta) and not resume_partial_store:
+            shutil.rmtree(persist_dir)
+            cache_meta = {}
 
     vsm = VectorStoreManager(
         persist_directory=str(persist_dir),
@@ -2552,6 +2641,7 @@ def run_screening_experiment(
         reuse_store
         and not force_reindex
         and store_matches
+        and _cache_meta_is_completed(cache_meta)
         and vsm.is_indexed(str(metadata.get("rcept_no", "")))
     )
 
@@ -2581,6 +2671,7 @@ def run_screening_experiment(
         _write_cache_meta(
             persist_dir,
             {
+                "status": "completed",
                 "signature": cache_signature,
                 "parse": {
                     "elapsed_sec": parse_elapsed,
@@ -2605,11 +2696,30 @@ def run_screening_experiment(
         chunks = parser.process_document(str(report_path), metadata)
         parse_elapsed = time.perf_counter() - parse_started
         chunk_count = len(chunks)
+        _write_cache_meta(
+            persist_dir,
+            {
+                "status": "in_progress",
+                "signature": cache_signature,
+                "parse": {
+                    "elapsed_sec": parse_elapsed,
+                    "chunk_count": chunk_count,
+                },
+                "ingest": {
+                    "mode": str(config.get("ingest_mode", "contextual_all")),
+                    "resume_partial_store": bool(resume_partial_store),
+                    "resume_batch_size": int(config.get("resume_batch_size", 64) or 64),
+                },
+                "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+            },
+        )
         ingest_metrics = _run_ingest(agent, chunks, config, return_artifacts=True)
         artifacts = dict(ingest_metrics.pop("artifacts", {}) or {})
         _write_cache_meta(
             persist_dir,
             {
+                "status": "completed",
                 "signature": cache_signature,
                 "parse": {
                     "elapsed_sec": parse_elapsed,
@@ -2627,6 +2737,7 @@ def run_screening_experiment(
             output_root,
             experiment_id,
             {
+                "status": "completed",
                 "signature": cache_signature,
                 "parse": {
                     "elapsed_sec": parse_elapsed,

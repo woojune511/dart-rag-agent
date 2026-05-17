@@ -439,16 +439,12 @@ candidate options:
                 cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
             if not cells:
                 continue
-            ranked_cells = sorted(
+            selected_cell = _select_structured_cell(
                 cells,
-                key=lambda cell: _score_structured_cell(
-                    cell,
-                    query_years=_operand_target_years(operand, query_years),
-                    period_focus=_operand_period_focus(operand, period_focus),
-                ),
-                reverse=True,
+                operand=operand,
+                query_years=query_years,
+                period_focus=_operand_period_focus(operand, period_focus),
             )
-            selected_cell = ranked_cells[0] if ranked_cells else None
             if not selected_cell:
                 continue
 
@@ -460,7 +456,7 @@ candidate options:
 
             period = _structured_cell_period_text(
                 selected_cell,
-                _operand_target_years(operand, query_years),
+                query_years,
                 _operand_period_focus(operand, period_focus),
             )
             row_label = str(metadata.get("row_label") or label).strip() or label

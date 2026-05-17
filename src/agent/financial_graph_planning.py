@@ -356,13 +356,20 @@ report_scope:
                 preferred_sections.extend(operand.get("preferred_sections") or [])
             preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
             preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
-            constraints = _build_concept_task_constraints(query, report_scope, ontology)
+            constraints = _build_concept_task_constraints(
+                query,
+                report_scope,
+                ontology,
+                operand_specs=normalized_operands,
+                operation_family=operation_family,
+            )
             retrieval_queries = _build_generic_retrieval_queries(
                 query=query,
                 metric_label=metric_label,
                 operand_specs=normalized_operands,
                 preferred_sections=preferred_sections,
                 report_scope=report_scope,
+                constraints=constraints,
             )
             task_query = _build_metric_task_query(
                 original_query=query,

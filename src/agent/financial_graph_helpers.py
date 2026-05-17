@@ -69,6 +69,7 @@ __all__ = [
     '_build_reconciliation_candidate',
     '_query_years_from_state',
     '_structured_cell_period_text',
+    '_select_structured_cell',
     '_operand_target_years',
     '_operand_period_focus',
     '_score_structured_cell',
@@ -768,10 +769,42 @@ def _build_generic_retrieval_queries(
     operand_specs: List[Dict[str, Any]],
     preferred_sections: List[str],
     report_scope: Dict[str, Any],
+    constraints: Optional[Dict[str, str]] = None,
 ) -> List[str]:
     queries = [query]
     year = str(report_scope.get("year") or "").strip()
     year_prefix = f"{year}년 " if year else ""
+    fallback_period_focus = str((constraints or {}).get("period_focus") or "unknown").strip()
+
+    def _year_for_operand(operand: Dict[str, Any]) -> str:
+        if not year.isdigit():
+            return year
+        role = str(operand.get("role") or "").strip()
+        period_hint = str(operand.get("period_hint") or "").strip()
+        if role == "prior_period" or period_hint in {"전기", "전년", "직전 연도", "이전 연도"}:
+            return str(int(year) - 1)
+        if role == "current_period":
+            return year
+        if fallback_period_focus == "prior":
+            return str(int(year) - 1)
+        return year
+
+    def _prefix_for_operand(operand: Dict[str, Any]) -> str:
+        operand_year = _year_for_operand(operand)
+        pieces: List[str] = []
+        if operand_year:
+            pieces.append(f"{operand_year}년")
+        period_hint = str(operand.get("period_hint") or "").strip()
+        role = str(operand.get("role") or "").strip()
+        if not period_hint:
+            if role == "current_period":
+                period_hint = "당기"
+            elif role == "prior_period":
+                period_hint = "전기"
+        if period_hint:
+            pieces.append(period_hint)
+        return _normalise_spaces(" ".join(pieces))
+
     if metric_label:
         queries.append(_normalise_spaces(f"{year_prefix}{metric_label}"))
         for section in preferred_sections[:4]:
@@ -780,14 +813,15 @@ def _build_generic_retrieval_queries(
         label = str(operand.get("label") or "").strip()
         if not label:
             continue
-        queries.append(_normalise_spaces(f"{year_prefix}{label}"))
+        operand_prefix = _prefix_for_operand(operand) or year_prefix.strip()
+        queries.append(_normalise_spaces(f"{operand_prefix} {label}"))
         for alias in list(operand.get("aliases") or [])[:3]:
             if str(alias).strip():
-                queries.append(_normalise_spaces(f"{year_prefix}{alias}"))
+                queries.append(_normalise_spaces(f"{operand_prefix} {alias}"))
                 for section in preferred_sections[:2]:
-                    queries.append(_normalise_spaces(f"{year_prefix}{alias} {section}"))
+                    queries.append(_normalise_spaces(f"{operand_prefix} {alias} {section}"))
         for section in preferred_sections[:2]:
-            queries.append(_normalise_spaces(f"{year_prefix}{label} {section}"))
+            queries.append(_normalise_spaces(f"{operand_prefix} {label} {section}"))
     return list(dict.fromkeys(item for item in queries if item))
 
 
@@ -1139,6 +1173,8 @@ def _build_concept_task_constraints(
     query: str,
     report_scope: Dict[str, Any],
     ontology: Any,
+    operand_specs: Optional[List[Dict[str, Any]]] = None,
+    operation_family: str = "",
 ) -> Dict[str, str]:
     guidance = dict(getattr(ontology, "planner_guidance", {}) or {})
     defaults = dict(guidance.get("dimension_defaults") or {})
@@ -1146,6 +1182,8 @@ def _build_concept_task_constraints(
     if consolidation_scope == "unknown":
         consolidation_scope = str(defaults.get("consolidation_scope") or "unknown")
     period_focus = _infer_period_focus(query, str(defaults.get("period_focus") or "unknown"))
+    if operand_specs:
+        period_focus = _task_period_focus_from_operands(operation_family, operand_specs, period_focus)
     return {
         "consolidation_scope": str(consolidation_scope or "unknown"),
         "period_focus": str(period_focus or "unknown"),
@@ -1177,13 +1215,20 @@ def _build_concept_numeric_task(
     preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
     preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
     metric_label = _build_concept_metric_label(query, concept_specs, operation_family)
-    constraints = _build_concept_task_constraints(query, report_scope, ontology)
+    constraints = _build_concept_task_constraints(
+        query,
+        report_scope,
+        ontology,
+        operand_specs=operand_specs,
+        operation_family=operation_family,
+    )
     retrieval_queries = _build_generic_retrieval_queries(
         query=query,
         metric_label=metric_label,
         operand_specs=operand_specs,
         preferred_sections=preferred_sections,
         report_scope=report_scope,
+        constraints=constraints,
     )
     task_query = _build_metric_task_query(
         original_query=query,
@@ -1223,12 +1268,18 @@ def _build_heuristic_numeric_task(
         "entity_scope": "company",
         "segment_scope": "segment" if "부문" in _normalise_spaces(query) else "none",
     }
+    constraints["period_focus"] = _task_period_focus_from_operands(
+        operation_family,
+        operand_specs,
+        str(constraints.get("period_focus") or "unknown"),
+    )
     retrieval_queries = _build_generic_retrieval_queries(
         query=query,
         metric_label=metric_label,
         operand_specs=operand_specs,
         preferred_sections=preferred_sections,
         report_scope=report_scope,
+        constraints=constraints,
     )
     if not retrieval_queries:
         return None
@@ -1255,6 +1306,33 @@ def _infer_period_focus(query: str, default_value: str = "unknown") -> str:
     explicit_years = list(dict.fromkeys(re.findall(r"20\d{2}", text)))
     if len(explicit_years) == 1:
         return "current"
+    return default_value or "unknown"
+
+
+def _task_period_focus_from_operands(
+    operation_family: str,
+    operand_specs: List[Dict[str, Any]],
+    default_value: str,
+) -> str:
+    roles = {
+        str(spec.get("role") or "").strip()
+        for spec in operand_specs
+        if str(spec.get("role") or "").strip()
+    }
+    if not roles:
+        return default_value or "unknown"
+    if operation_family in {"lookup", "single_value"}:
+        if roles == {"current_period"}:
+            return "current"
+        if roles == {"prior_period"}:
+            return "prior"
+    if operation_family in {"difference", "growth_rate"}:
+        if "current_period" in roles and "prior_period" in roles:
+            return "multi_period"
+        if roles == {"current_period"}:
+            return "current"
+        if roles == {"prior_period"}:
+            return "prior"
     return default_value or "unknown"
 
 
@@ -1543,7 +1621,82 @@ def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], p
         return "당기"
     if period_focus == "prior" and any(token in header_text for token in ("전기", "이전")):
         return "전기"
+    fiscal_rank = _structured_cell_fiscal_rank(cell)
+    if fiscal_rank is not None and query_years:
+        current_year = max(query_years)
+        return str(current_year - fiscal_rank)
     return header_text
+
+
+def _structured_cell_fiscal_ordinal(cell: Dict[str, Any]) -> Optional[int]:
+    headers = [str(item).strip() for item in (cell.get("column_headers") or []) if str(item).strip()]
+    header_text = " ".join(headers)
+    match = re.search(r"제\s*(\d+)\s*기", header_text)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def _structured_cell_fiscal_rank(cell: Dict[str, Any]) -> Optional[int]:
+    ordinal = _structured_cell_fiscal_ordinal(cell)
+    if ordinal is None:
+        return None
+    ordinal_candidates = [ordinal]
+    for sibling in list(cell.get("_sibling_cells") or []):
+        sibling_ordinal = _structured_cell_fiscal_ordinal(dict(sibling))
+        if sibling_ordinal is not None and sibling_ordinal not in ordinal_candidates:
+            ordinal_candidates.append(sibling_ordinal)
+    ordered = sorted(ordinal_candidates, reverse=True)
+    try:
+        return ordered.index(ordinal)
+    except ValueError:
+        return None
+
+
+def _select_structured_cell(
+    cells: List[Dict[str, Any]],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    period_focus: str,
+) -> Optional[Dict[str, Any]]:
+    if not cells:
+        return None
+
+    enriched_cells: List[Dict[str, Any]] = []
+    for cell in cells:
+        enriched = dict(cell)
+        enriched["_sibling_cells"] = [dict(item) for item in cells]
+        enriched_cells.append(enriched)
+
+    all_have_fiscal_ordinals = bool(enriched_cells) and all(
+        _structured_cell_fiscal_ordinal(cell) is not None for cell in enriched_cells
+    )
+    if all_have_fiscal_ordinals and period_focus in {"current", "prior"}:
+        ordered = sorted(
+            enriched_cells,
+            key=lambda current: _structured_cell_fiscal_ordinal(current) or -1,
+            reverse=True,
+        )
+        if period_focus == "current":
+            return ordered[0]
+        if len(ordered) >= 2:
+            return ordered[1]
+        return ordered[0]
+
+    ranked_cells = sorted(
+        enriched_cells,
+        key=lambda cell: _score_structured_cell(
+            cell,
+            query_years=_operand_target_years(operand, query_years),
+            period_focus=period_focus,
+        ),
+        reverse=True,
+    )
+    return ranked_cells[0] if ranked_cells else None
 
 
 def _operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> List[int]:
@@ -1797,6 +1950,16 @@ def _build_table_value_reconciliation_candidates(
     summary_text = str(metadata.get("table_summary_text") or "").strip()
     local_heading = str(metadata.get("local_heading") or "").strip()
     section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
+    row_groups: Dict[tuple[Any, str], List[Dict[str, Any]]] = {}
+    for record in value_records:
+        row_key = (
+            record.get("row_index"),
+            _normalise_spaces(str(record.get("row_label") or record.get("semantic_label") or "")),
+        )
+        row_groups.setdefault(row_key, []).append(dict(record))
+    for grouped_records in row_groups.values():
+        grouped_records.sort(key=lambda current: int(current.get("column_index") or 0))
+
     candidates: List[Dict[str, Any]] = []
     for idx, record in enumerate(value_records):
         semantic_label = _normalise_spaces(str(record.get("semantic_label") or ""))
@@ -1819,7 +1982,32 @@ def _build_table_value_reconciliation_candidates(
             for item in (record.get("column_headers") or [])
             if _normalise_spaces(str(item))
         ]
+        row_key = (
+            record.get("row_index"),
+            _normalise_spaces(str(record.get("row_label") or record.get("semantic_label") or "")),
+        )
+        sibling_records = row_groups.get(row_key) or [dict(record)]
         structured_cell_headers = [period_text] if period_text else list(record.get("period_labels") or []) or column_headers
+        sibling_cells: List[Dict[str, Any]] = []
+        for sibling in sibling_records:
+            sibling_period_text = _normalise_spaces(str(sibling.get("period_text") or ""))
+            sibling_column_headers = [
+                _normalise_spaces(str(item))
+                for item in (sibling.get("column_headers") or [])
+                if _normalise_spaces(str(item))
+            ]
+            sibling_headers = (
+                [sibling_period_text]
+                if sibling_period_text
+                else list(sibling.get("period_labels") or []) or sibling_column_headers
+            )
+            sibling_cells.append(
+                {
+                    "column_headers": sibling_headers,
+                    "value_text": _normalise_spaces(str(sibling.get("value_text") or "")),
+                    "unit_hint": str(sibling.get("unit_hint") or metadata.get("unit_hint") or "").strip(),
+                }
+            )
         composite_text = " ".join(
             part
             for part in (
@@ -1856,7 +2044,7 @@ def _build_table_value_reconciliation_candidates(
         candidate["metadata"]["aggregate_label"] = _normalise_spaces(str(record.get("aggregate_label") or ""))
         candidate["metadata"]["aggregate_role"] = _normalise_spaces(str(record.get("aggregate_role") or "none"))
         candidate["metadata"]["period_text"] = period_text
-        candidate["metadata"]["structured_cells"] = [
+        candidate["metadata"]["structured_cells"] = sibling_cells or [
             {
                 "column_headers": structured_cell_headers,
                 "value_text": value_text,

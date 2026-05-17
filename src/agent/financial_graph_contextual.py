@@ -227,6 +227,8 @@ class FinancialAgentContextualMixin:
         on_progress=None,
         max_workers: Optional[int] = None,
         batch_size: Optional[int] = None,
+        resume_partial_store: bool = False,
+        resume_batch_size: int = 64,
         return_artifacts: bool = False,
     ) -> Dict[str, Any]:
         """Contextual ingest variant that returns timing and usage metrics."""
@@ -308,7 +310,12 @@ class FinancialAgentContextualMixin:
             for i in range(total)
         ]
         metadatas = [chunk.metadata for chunk in chunks]
-        self.vsm.add_documents(texts, metadatas)
+        add_metrics = self.vsm.add_documents(
+            texts,
+            metadatas,
+            resume=resume_partial_store,
+            batch_size=resume_batch_size,
+        )
 
         result = {
             "mode": "contextual",
@@ -324,6 +331,10 @@ class FinancialAgentContextualMixin:
             "max_workers": workers,
             "batch_size": request_batch_size,
             "elapsed_sec": time.perf_counter() - started_at,
+            "resume_enabled": bool(add_metrics.get("resume_enabled", False)),
+            "resume_added_chunks": int(add_metrics.get("added_chunks", 0) or 0),
+            "resume_skipped_chunks": int(add_metrics.get("skipped_chunks", 0) or 0),
+            "resume_batch_count": int(add_metrics.get("batch_count", 0) or 0),
         }
         if return_artifacts:
             result["artifacts"] = {

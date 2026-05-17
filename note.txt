@@ -23,3 +23,8 @@
   - 질문에 필요한 정보를 잘 찾기 위한 reformulation / paraphrasing 필요
   - ontology는 DART / financial concept의 느슨한 canonical layer로 유지
   - prompt는 metric family / operand / scope를 구조화해서 뽑는 방향으로 최소화
+- 2026-05-17
+  - partial-store resume works now for benchmark indexing
+  - NAV_T1_071: planner/replan loop OK, structured current/prior binding OK locally
+  - remaining blocker is retrieval fan-out -> embedding 429 during question-time retrieval
+  - next fix: reduce lookup/difference retrieval query count and reuse embeddings if possible

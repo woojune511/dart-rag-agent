@@ -285,6 +285,120 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[1]["raw_value"], "363,677,865")
         self.assertEqual(rows[1]["period"], "2023")
 
+    def test_difference_uses_adjacent_fiscal_period_cells_for_current_and_prior(self) -> None:
+        label = "법인세비용차감전순이익"
+        metadata = {
+            "chunk_uid": "chunk_004",
+            "company": "NAVER",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "income_statement",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023", "2022", "2021"],
+            "table_source_id": "table_004",
+            "table_header_context": "제 25 기 | 제 24 기 | 제 23 기",
+            "table_summary_text": f"{label} | 제 25 기 | 제 24 기 | 제 23 기",
+            "table_row_labels_text": label,
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_004:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제 25 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "1,481,396,317,551",
+                        "unit_hint": "원",
+                    },
+                    {
+                        "value_id": "table_004:v:0:2",
+                        "row_index": 0,
+                        "column_index": 2,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제 24 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "1,083,717,091,152",
+                        "unit_hint": "원",
+                    },
+                    {
+                        "value_id": "table_004:v:0:3",
+                        "row_index": 0,
+                        "column_index": 3,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제 23 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "2,126,399,871,701",
+                        "unit_hint": "원",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        state = {
+            "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익의 전년 대비 증감액을 계산해 줘.",
+            "years": [2023],
+            "report_scope": {"company": "NAVER", "year": "2023", "consolidation": "연결"},
+            "intent": "comparison",
+            "topic": "법인세비용차감전순이익 증감액",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [(Document(page_content="연결 포괄손익계산서", metadata=metadata), 1.0)],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "generic_numeric_difference",
+                "metric_label": "법인세비용차감전순이익 증감액",
+                "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익의 전년 대비 증감액을 계산해 줘.",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": label, "aliases": [label], "role": "current_period", "required": True, "period_hint": "2023"},
+                    {"label": label, "aliases": [label], "role": "prior_period", "required": True, "period_hint": "2022"},
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "multi_period",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_2",
+                "matched_operands": [
+                    {"label": label, "matched": True, "candidate_ids": ["chunk_004::value:0", "chunk_004::value:1", "chunk_004::value:2"], "reason": "matched_candidates"},
+                    {"label": label, "matched": True, "candidate_ids": ["chunk_004::value:0", "chunk_004::value:1", "chunk_004::value:2"], "reason": "matched_candidates"},
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+        }
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["raw_value"], "1,481,396,317,551")
+        self.assertEqual(rows[0]["period"], "2023")
+        self.assertEqual(rows[1]["raw_value"], "1,083,717,091,152")
+        self.assertEqual(rows[1]["period"], "2022")
+
     def test_ratio_metric_uses_deterministic_ontology_plan_when_required_operands_are_present(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager

@@ -91,6 +91,17 @@ def _doc_identity(doc: Document) -> str:
     )
 
 
+def _chunk_uid_from_metadata(metadata: Dict[str, Any]) -> str:
+    return str(
+        metadata.get("chunk_uid")
+        or metadata.get("id")
+        or "|".join(
+            str(metadata.get(key, ""))
+            for key in ("rcept_no", "chunk_id", "sub_chunk_idx", "company", "year", "section_path")
+        )
+    )
+
+
 def _metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[dict]) -> bool:
     if not where_filter:
         return True
@@ -343,17 +354,113 @@ class VectorStoreManager:
         except Exception:
             return False
 
-    def add_documents(self, chunks: List[str], metadatas: List[dict]):
+    def list_indexed_chunk_uids(self, *, rcept_no: Optional[str] = None) -> set[str]:
+        where_filter = {"rcept_no": rcept_no} if rcept_no else None
+        try:
+            result = self.vector_store.get(where=where_filter)
+        except Exception:
+            return set()
+
+        indexed: set[str] = set()
+        for metadata in result.get("metadatas") or []:
+            if not isinstance(metadata, dict):
+                continue
+            chunk_uid = _chunk_uid_from_metadata(metadata)
+            if chunk_uid:
+                indexed.add(chunk_uid)
+        return indexed
+
+    def add_documents(
+        self,
+        chunks: List[str],
+        metadatas: List[dict],
+        *,
+        resume: bool = False,
+        batch_size: int = 64,
+    ) -> Dict[str, Any]:
         """Add document chunks to the vector store."""
         if not chunks:
             logger.warning("No chunks provided to add_documents.")
-            return
+            return {
+                "requested_chunks": 0,
+                "added_chunks": 0,
+                "skipped_chunks": 0,
+                "batch_count": 0,
+                "resume_enabled": bool(resume),
+            }
 
-        logger.info("Adding %s chunks to Vector DB...", len(chunks))
-        self.vector_store.add_texts(texts=chunks, metadatas=metadatas)
-        self._update_structure_graph(chunks, metadatas)
+        if len(chunks) != len(metadatas):
+            raise ValueError("chunks and metadatas must have the same length.")
+
+        effective_batch_size = max(int(batch_size or 0), 1)
+        prepared: List[tuple[str, dict, str]] = []
+        seen_input_chunk_uids: set[str] = set()
+        duplicate_input_count = 0
+        for text, metadata in zip(chunks, metadatas):
+            normalized_metadata = dict(metadata or {})
+            chunk_uid = _chunk_uid_from_metadata(normalized_metadata)
+            if chunk_uid and chunk_uid in seen_input_chunk_uids:
+                duplicate_input_count += 1
+                continue
+            if chunk_uid:
+                seen_input_chunk_uids.add(chunk_uid)
+            prepared.append((text, normalized_metadata, chunk_uid))
+
+        existing_chunk_uids: set[str] = set()
+        if resume:
+            rcept_nos = {
+                str(metadata.get("rcept_no")).strip()
+                for _, metadata, _ in prepared
+                if str(metadata.get("rcept_no", "")).strip()
+            }
+            existing_chunk_uids = self.list_indexed_chunk_uids(rcept_no=next(iter(rcept_nos)) if len(rcept_nos) == 1 else None)
+
+        pending = [
+            (text, metadata, chunk_uid)
+            for text, metadata, chunk_uid in prepared
+            if not chunk_uid or chunk_uid not in existing_chunk_uids
+        ]
+        skipped_chunks = duplicate_input_count + (len(prepared) - len(pending))
+
+        if not pending:
+            logger.info(
+                "Skipping add_documents because all %s chunks are already indexed (resume=%s).",
+                len(prepared),
+                resume,
+            )
+            return {
+                "requested_chunks": len(chunks),
+                "added_chunks": 0,
+                "skipped_chunks": skipped_chunks,
+                "batch_count": 0,
+                "resume_enabled": bool(resume),
+            }
+
+        logger.info(
+            "Adding %s/%s chunks to Vector DB in %s batch(es) (resume=%s, skipped=%s).",
+            len(pending),
+            len(chunks),
+            (len(pending) + effective_batch_size - 1) // effective_batch_size,
+            resume,
+            skipped_chunks,
+        )
+        batch_count = 0
+        for start in range(0, len(pending), effective_batch_size):
+            batch = pending[start : start + effective_batch_size]
+            batch_texts = [text for text, _, _ in batch]
+            batch_metadatas = [metadata for _, metadata, _ in batch]
+            self.vector_store.add_texts(texts=batch_texts, metadatas=batch_metadatas)
+            self._update_structure_graph(batch_texts, batch_metadatas)
+            batch_count += 1
         self._init_bm25()
         logger.info("Successfully added documents and updated BM25 index.")
+        return {
+            "requested_chunks": len(chunks),
+            "added_chunks": len(pending),
+            "skipped_chunks": skipped_chunks,
+            "batch_count": batch_count,
+            "resume_enabled": bool(resume),
+        }
 
     def get_structure_node(self, chunk_uid: str) -> Optional[Dict[str, Any]]:
         return (self._structure_graph.get("nodes", {}) or {}).get(chunk_uid)
