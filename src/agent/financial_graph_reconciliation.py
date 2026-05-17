@@ -22,6 +22,207 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentReconciliationMixin:
+    def _find_reconciliation_match_entry(
+        self,
+        reconciliation_result: Dict[str, Any],
+        operand: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        label = str(operand.get("label") or "").strip()
+        role = str(operand.get("role") or "").strip()
+        rows = [
+            dict(item)
+            for item in (reconciliation_result.get("matched_operands") or [])
+            if str(item.get("label") or "").strip() == label
+        ]
+        if role:
+            exact = next((row for row in rows if str(row.get("role") or "").strip() == role), None)
+            if exact:
+                return exact
+        return rows[0] if rows else {}
+
+    def _build_operand_row_from_candidate_cell(
+        self,
+        *,
+        candidate: Dict[str, Any],
+        selected_cell: Dict[str, Any],
+        operand: Dict[str, Any],
+        index: int,
+        period_focus: str,
+        query_years: List[int],
+    ) -> Optional[Dict[str, Any]]:
+        metadata = dict(candidate.get("metadata") or {})
+        raw_value = str(selected_cell.get("value_text") or "").strip()
+        raw_unit = str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or "").strip()
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+        if normalized_value is None:
+            return None
+        period = _structured_cell_period_text(
+            selected_cell,
+            query_years,
+            _operand_period_focus(operand, period_focus),
+        )
+        row_label = str(metadata.get("row_label") or metadata.get("semantic_label") or operand.get("label") or "").strip()
+        return {
+            "operand_id": f"op_{index:03d}",
+            "evidence_id": str(candidate.get("candidate_id") or ""),
+            "source_anchor": candidate.get("source_anchor"),
+            "label": f"{period} {row_label}".strip(),
+            "raw_value": raw_value,
+            "raw_unit": raw_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "period": period,
+            "table_source_id": metadata.get("table_source_id"),
+            "statement_type": metadata.get("statement_type"),
+            "consolidation_scope": metadata.get("consolidation_scope"),
+            "matched_operand_label": str(operand.get("label") or "").strip(),
+            "matched_operand_concept": str(operand.get("concept") or "").strip(),
+            "matched_operand_role": str(operand.get("role") or "").strip(),
+        }
+
+    def _extract_structured_period_pair_rows(
+        self,
+        *,
+        required_operands: List[Dict[str, Any]],
+        reconciliation_result: Dict[str, Any],
+        candidate_map: Dict[str, Dict[str, Any]],
+        preferred_statement_types: List[str],
+        constraints: Dict[str, Any],
+        query_years: List[int],
+        start_index: int,
+    ) -> tuple[List[Dict[str, Any]], set[tuple[str, str]]]:
+        period_focus = str(constraints.get("period_focus") or "unknown").strip()
+        grouped: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for operand in required_operands:
+            role = str(operand.get("role") or "").strip()
+            if role not in {"current_period", "prior_period"}:
+                continue
+            concept = str(operand.get("concept") or "").strip()
+            label = str(operand.get("label") or "").strip()
+            group_key = concept or label
+            grouped.setdefault(group_key, {})[role] = dict(operand)
+
+        rows: List[Dict[str, Any]] = []
+        handled: set[tuple[str, str]] = set()
+        next_index = start_index
+
+        for members in grouped.values():
+            current_operand = members.get("current_period")
+            prior_operand = members.get("prior_period")
+            if not current_operand or not prior_operand:
+                continue
+            current_match = self._find_reconciliation_match_entry(reconciliation_result, current_operand)
+            prior_match = self._find_reconciliation_match_entry(reconciliation_result, prior_operand)
+            candidate_ids: List[str] = []
+            for match_entry in (current_match, prior_match):
+                for candidate_id in (match_entry.get("candidate_ids") or []):
+                    cleaned = str(candidate_id).strip()
+                    if cleaned and cleaned not in candidate_ids:
+                        candidate_ids.append(cleaned)
+            structured_candidates = [
+                candidate_map[candidate_id]
+                for candidate_id in candidate_ids
+                if candidate_id in candidate_map
+                and str(candidate_map[candidate_id].get("candidate_kind") or "") in {
+                    "structured_value",
+                    "structured_row",
+                    "structured_column_value",
+                    "table_row",
+                    "evidence_row",
+                }
+            ]
+            best_pair: Optional[tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]] = None
+            best_score = float("-inf")
+            for candidate in structured_candidates:
+                metadata = dict(candidate.get("metadata") or {})
+                cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+                if not cells and str(candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
+                    cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+                if not cells:
+                    continue
+                current_cell = _select_structured_cell(
+                    cells,
+                    operand=current_operand,
+                    query_years=query_years,
+                    period_focus=_operand_period_focus(current_operand, period_focus),
+                )
+                prior_cell = _select_structured_cell(
+                    cells,
+                    operand=prior_operand,
+                    query_years=query_years,
+                    period_focus=_operand_period_focus(prior_operand, period_focus),
+                )
+                if not current_cell or not prior_cell:
+                    continue
+                candidate_score = (
+                    _score_operand_candidate(
+                        candidate,
+                        operand=current_operand,
+                        preferred_statement_types=preferred_statement_types,
+                        constraints=constraints,
+                        query_years=query_years,
+                    )
+                    + _score_operand_candidate(
+                        candidate,
+                        operand=prior_operand,
+                        preferred_statement_types=preferred_statement_types,
+                        constraints=constraints,
+                        query_years=query_years,
+                    )
+                    + 4.0
+                )
+                current_period = _structured_cell_period_text(
+                    current_cell,
+                    query_years,
+                    _operand_period_focus(current_operand, period_focus),
+                )
+                prior_period = _structured_cell_period_text(
+                    prior_cell,
+                    query_years,
+                    _operand_period_focus(prior_operand, period_focus),
+                )
+                if current_cell == prior_cell or (
+                    current_period
+                    and prior_period
+                    and current_period == prior_period
+                ):
+                    continue
+                if current_period and prior_period and current_period != prior_period:
+                    candidate_score += 2.0
+                if str(metadata.get("table_source_id") or "").strip():
+                    candidate_score += 0.75
+                if candidate_score > best_score:
+                    best_score = candidate_score
+                    best_pair = (candidate, current_cell, prior_cell)
+
+            if not best_pair:
+                continue
+            pair_candidate, current_cell, prior_cell = best_pair
+            current_row = self._build_operand_row_from_candidate_cell(
+                candidate=pair_candidate,
+                selected_cell=current_cell,
+                operand=current_operand,
+                index=next_index,
+                period_focus=period_focus,
+                query_years=query_years,
+            )
+            prior_row = self._build_operand_row_from_candidate_cell(
+                candidate=pair_candidate,
+                selected_cell=prior_cell,
+                operand=prior_operand,
+                index=next_index + 1,
+                period_focus=period_focus,
+                query_years=query_years,
+            )
+            if not current_row or not prior_row:
+                continue
+            rows.extend([current_row, prior_row])
+            handled.add((str(current_operand.get("label") or "").strip(), "current_period"))
+            handled.add((str(prior_operand.get("label") or "").strip(), "prior_period"))
+            next_index += 2
+
+        return rows, handled
+
     def _build_reconciliation_candidates(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
         """Build a mixed candidate pool from evidence items and retrieved docs.
 
@@ -253,11 +454,11 @@ candidate options:
     ) -> Dict[str, Any]:
         active_subtask = dict(state.get("active_subtask") or {})
         query = str(active_subtask.get("query") or state.get("query") or "")
-        operand_specs = {
-            str(item.get("label") or "").strip(): dict(item)
+        operand_specs = [
+            dict(item)
             for item in (active_subtask.get("required_operands") or [])
             if str(item.get("label") or "").strip()
-        }
+        ]
         preferred_statement_types = [
             str(item).strip()
             for item in (active_subtask.get("preferred_statement_types") or [])
@@ -272,7 +473,21 @@ candidate options:
         for row in (updated.get("matched_operands") or []):
             current = dict(row)
             label = str(current.get("label") or "").strip()
-            operand = operand_specs.get(label)
+            role = str(current.get("role") or "").strip()
+            operand = next(
+                (
+                    item
+                    for item in operand_specs
+                    if str(item.get("label") or "").strip() == label
+                    and (not role or str(item.get("role") or "").strip() == role)
+                ),
+                None,
+            )
+            if operand is None:
+                operand = next(
+                    (item for item in operand_specs if str(item.get("label") or "").strip() == label),
+                    None,
+                )
             if not operand:
                 reranked_rows.append(current)
                 continue
@@ -393,17 +608,34 @@ candidate options:
         }
 
         match_map = {
-            str(item.get("label") or "").strip(): dict(item)
+            (
+                str(item.get("label") or "").strip(),
+                str(item.get("role") or "").strip(),
+            ): dict(item)
             for item in (reconciliation_result.get("matched_operands") or [])
             if str(item.get("label") or "").strip()
         }
 
         operand_rows: List[Dict[str, Any]] = []
+        paired_rows, handled_operands = self._extract_structured_period_pair_rows(
+            required_operands=required_operands,
+            reconciliation_result=reconciliation_result,
+            candidate_map=candidate_map,
+            preferred_statement_types=preferred_statement_types,
+            constraints=constraints,
+            query_years=query_years,
+            start_index=1,
+        )
+        operand_rows.extend(paired_rows)
+        next_index = len(operand_rows) + 1
         for index, operand in enumerate(required_operands, start=1):
             label = str(operand.get("label") or "").strip()
             if not label:
                 continue
-            match_entry = match_map.get(label) or {}
+            role = str(operand.get("role") or "").strip()
+            if (label, role) in handled_operands:
+                continue
+            match_entry = match_map.get((label, role)) or match_map.get((label, "")) or {}
             candidate_ids = [
                 str(value).strip()
                 for value in (match_entry.get("candidate_ids") or [])
@@ -423,6 +655,7 @@ candidate options:
                 }:
                     structured_candidates.append(current)
             candidate: Optional[Dict[str, Any]] = None
+            selected_cell: Optional[Dict[str, Any]] = None
             if structured_candidates:
                 structured_candidates.sort(
                     key=lambda current: _score_operand_candidate(
@@ -434,56 +667,38 @@ candidate options:
                     ),
                     reverse=True,
                 )
-                candidate = structured_candidates[0]
-            if not candidate:
+                for current_candidate in structured_candidates:
+                    current_metadata = dict(current_candidate.get("metadata") or {})
+                    cells = [dict(cell) for cell in (current_metadata.get("structured_cells") or []) if dict(cell)]
+                    if not cells and str(current_candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
+                        cells = _parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
+                    if not cells:
+                        continue
+                    current_cell = _select_structured_cell(
+                        cells,
+                        operand=operand,
+                        query_years=query_years,
+                        period_focus=_operand_period_focus(operand, period_focus),
+                    )
+                    if not current_cell:
+                        continue
+                    candidate = current_candidate
+                    selected_cell = current_cell
+                    break
+            if not candidate or not selected_cell:
                 continue
-
-            metadata = dict(candidate.get("metadata") or {})
-            cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
-            if not cells and str(candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
-                cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
-            if not cells:
-                continue
-            selected_cell = _select_structured_cell(
-                cells,
+            operand_row = self._build_operand_row_from_candidate_cell(
+                candidate=candidate,
+                selected_cell=selected_cell,
                 operand=operand,
+                index=next_index,
+                period_focus=period_focus,
                 query_years=query_years,
-                period_focus=_operand_period_focus(operand, period_focus),
             )
-            if not selected_cell:
+            if not operand_row:
                 continue
-
-            raw_value = str(selected_cell.get("value_text") or "").strip()
-            raw_unit = str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or "").strip()
-            normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-            if normalized_value is None:
-                continue
-
-            period = _structured_cell_period_text(
-                selected_cell,
-                query_years,
-                _operand_period_focus(operand, period_focus),
-            )
-            row_label = str(metadata.get("row_label") or label).strip() or label
-            operand_rows.append(
-                {
-                    "operand_id": f"op_{index:03d}",
-                    "evidence_id": str(candidate.get("candidate_id") or ""),
-                    "source_anchor": candidate.get("source_anchor"),
-                    "label": f"{period} {row_label}".strip(),
-                    "raw_value": raw_value,
-                    "raw_unit": raw_unit,
-                    "normalized_value": normalized_value,
-                    "normalized_unit": normalized_unit,
-                    "period": period,
-                    "table_source_id": metadata.get("table_source_id"),
-                    "statement_type": metadata.get("statement_type"),
-                    "consolidation_scope": metadata.get("consolidation_scope"),
-                    "matched_operand_label": label,
-                    "matched_operand_concept": str(operand.get("concept") or "").strip(),
-                    "matched_operand_role": str(operand.get("role") or "").strip(),
-                }
-            )
+            operand_rows.append(operand_row)
+            next_index += 1
 
         return operand_rows
 

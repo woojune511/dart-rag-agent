@@ -399,6 +399,269 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[1]["raw_value"], "1,083,717,091,152")
         self.assertEqual(rows[1]["period"], "2022")
 
+    def test_difference_prefers_same_table_pair_over_split_current_prior_rows(self) -> None:
+        label = "법인세비용차감전순이익"
+        shared_metadata = {
+            "chunk_uid": "chunk_pair",
+            "company": "NAVER",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "income_statement",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023", "2022"],
+            "table_source_id": "table_pair",
+            "table_header_context": "제25 기 | 제24 기",
+            "table_summary_text": f"{label} | 제25 기 | 제24 기",
+            "table_row_labels_text": label,
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_pair:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제25 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "1,481,396,317,551",
+                        "unit_hint": "원",
+                    },
+                    {
+                        "value_id": "table_pair:v:0:2",
+                        "row_index": 0,
+                        "column_index": 2,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제24 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "1,083,717,091,152",
+                        "unit_hint": "원",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        current_only_metadata = {
+            **shared_metadata,
+            "chunk_uid": "chunk_current_only",
+            "table_source_id": "table_current_only",
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_current_only:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["2023"],
+                        "period_text": "2023",
+                        "period_labels": ["2023"],
+                        "value_text": "1,481,396,317,551",
+                        "unit_hint": "원",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        prior_only_metadata = {
+            **shared_metadata,
+            "chunk_uid": "chunk_prior_only",
+            "table_source_id": "table_prior_only",
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_prior_only:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": label,
+                        "semantic_aliases": [label],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["2022"],
+                        "period_text": "2022",
+                        "period_labels": ["2022"],
+                        "value_text": "1,083,717,091,152",
+                        "unit_hint": "원",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        state = {
+            "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익의 전년 대비 증감액을 계산해 줘",
+            "years": [2023],
+            "report_scope": {"company": "NAVER", "year": "2023", "consolidation": "연결"},
+            "intent": "comparison",
+            "topic": "법인세비용차감전순이익 증감액",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (Document(page_content="공유 표", metadata=shared_metadata), 1.0),
+                (Document(page_content="현재만 있는 표", metadata=current_only_metadata), 1.0),
+                (Document(page_content="전기만 있는 표", metadata=prior_only_metadata), 1.0),
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_pair",
+                "metric_family": "concept_difference",
+                "metric_label": "법인세비용차감전순이익 증감액",
+                "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익의 전년 대비 증감액을 계산해 줘",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": label, "aliases": [label], "concept": "income_before_income_taxes", "role": "current_period", "required": True, "period_hint": "2023"},
+                    {"label": label, "aliases": [label], "concept": "income_before_income_taxes", "role": "prior_period", "required": True, "period_hint": "2022"},
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "multi_period",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_pair",
+                "matched_operands": [
+                    {"label": label, "role": "current_period", "matched": True, "candidate_ids": ["chunk_current_only::value:0", "chunk_pair::value:0"], "reason": "matched_candidates"},
+                    {"label": label, "role": "prior_period", "matched": True, "candidate_ids": ["chunk_prior_only::value:0", "chunk_pair::value:0"], "reason": "matched_candidates"},
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+        }
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["table_source_id"], "table_pair")
+        self.assertEqual(rows[1]["table_source_id"], "table_pair")
+        self.assertEqual(rows[0]["period"], "2023")
+        self.assertEqual(rows[1]["period"], "2022")
+
+    def test_lookup_prefers_direct_structured_row_before_fallback_reconstruction(self) -> None:
+        label = "법인세비용차감전순이익"
+        metadata = {
+            "chunk_uid": "chunk_lookup_direct",
+            "company": "NAVER",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "income_statement",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023", "2022"],
+            "table_source_id": "table_lookup_direct",
+            "table_header_context": "제25 기 | 제24 기",
+            "table_summary_text": f"{label} | 제25 기 | 제24 기",
+            "table_row_labels_text": label,
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_lookup_direct:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": label,
+                        "semantic_aliases": [label, "세전이익"],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제25 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "1,481,396,317,551",
+                        "unit_hint": "원",
+                    },
+                    {
+                        "value_id": "table_lookup_direct:v:0:2",
+                        "row_index": 0,
+                        "column_index": 2,
+                        "semantic_label": label,
+                        "semantic_aliases": [label, "세전이익"],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["제24 기"],
+                        "period_text": "",
+                        "period_labels": [],
+                        "value_text": "1,083,717,091,152",
+                        "unit_hint": "원",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        state = {
+            "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘",
+            "years": [2023],
+            "report_scope": {"company": "NAVER", "year": "2023", "consolidation": "연결"},
+            "intent": "comparison",
+            "topic": "법인세비용차감전순이익",
+            "evidence_items": [
+                {
+                    "evidence_id": "fallback_001",
+                    "source_anchor": "derived-note",
+                    "claim": "2023년 당기순이익 9,850억원과 법인세비용 5억원을 더해 세전이익을 계산할 수 있습니다.",
+                    "quote_span": "당기순이익 9,850억원, 법인세비용 5억원",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [],
+                    "source_context": "연결 손익계산서",
+                    "raw_row_text": "당기순이익 | 9,850억원 / 법인세비용 | 5억원",
+                    "metadata": {"statement_type": "income_statement"},
+                }
+            ],
+            "evidence_bullets": [],
+            "retrieved_docs": [(Document(page_content="직접 세전이익 표", metadata=metadata), 1.0)],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_lookup_direct",
+                "metric_family": "concept_lookup",
+                "metric_label": label,
+                "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {"label": label, "aliases": [label, "세전이익"], "concept": "income_before_income_taxes", "role": "current_period", "required": True, "period_hint": "2023"},
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_lookup_direct",
+                "matched_operands": [
+                    {"label": label, "role": "current_period", "matched": True, "candidate_ids": ["chunk_lookup_direct::value:0"], "reason": "matched_candidates"},
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = self.agent._extract_calculation_operands(state)
+
+        self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
+        self.assertEqual(len(result.get("calculation_operands") or []), 1)
+        self.assertEqual(result["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
+
     def test_ratio_metric_uses_deterministic_ontology_plan_when_required_operands_are_present(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager

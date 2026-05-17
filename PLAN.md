@@ -101,3 +101,23 @@
 - `NAV_T1_071` is now blocked by:
   - direct-row vs derived-value selection policy
   - same-table prior-period cell binding for the difference task
+
+## 2026-05-18 Latest Update
+
+- `NAV_T1_071` remains the active canary for `lookup + difference` close quality.
+- Planner status:
+  - stable enough for this canary
+  - no longer the main blocker
+- Active runtime fix order:
+  1. make direct pretax-income rows outrank derived `net_income + tax_expense` reconstruction
+  2. make same-table `2023 current` / `2022 prior` cell pairing outrank delta-like or mixed-row candidates
+  3. rerun `NAV_T1_071` until both the final natural-language answer and structured trace close correctly
+- Newly implemented policy work that should now be treated as baseline:
+  - stronger direct-match scoring from semantic labels and aliases
+  - reconciliation entries preserve operand `role` and `concept`
+  - explicit-period `difference` prefers same-candidate current/prior extraction
+  - structured extraction continues past a bad top candidate instead of stopping early
+- Success condition for this mini-epic:
+  - `NAV_T1_071` closes with a direct 2023 pretax-income value
+  - the prior-period value comes from the same table/row family
+  - the `difference` task emits a true current/prior subtraction result, not a reused delta row

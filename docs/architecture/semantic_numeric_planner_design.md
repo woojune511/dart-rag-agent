@@ -1024,3 +1024,31 @@ Example:
   - collapse equivalent retrieval queries
   - cache/reuse query embeddings where possible
   - keep `lookup` / `difference` operation families small and deterministic
+
+## 2026-05-18 Grounding Note
+
+- `NAV_T1_071` is no longer failing because of planner decomposition.
+  - runtime planning now reliably emits one `lookup` task and one `difference` task
+- the remaining failure is grounding policy.
+  - `lookup` can still prefer a derived `net_income + tax_expense` reconstruction over a direct pretax-income row
+  - `difference` can still bind to a delta-like row/value instead of a same-table current/prior pair
+
+The intended precedence for `lookup` / `difference` canaries is:
+
+1. direct row/value for the requested concept
+2. same-table current/prior cell pair for `difference`
+3. direct support rows from nearby notes
+4. only then derived reconstruction
+
+Recent reconciliation changes move the runtime toward that policy by:
+
+- scoring direct semantic-label matches above weaker textual matches
+- preserving operand `role` and `concept` through reconciliation
+- explicitly forming current/prior pairs from the same structured candidate when possible
+- continuing past a bad top candidate and scanning later structured candidates
+
+The next close criterion for this canary is:
+
+- direct 2023 pretax-income grounding
+- same-family 2022 prior-period grounding
+- a structured `difference` result that represents subtraction, not a reused delta row

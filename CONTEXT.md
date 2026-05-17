@@ -127,3 +127,23 @@
 - Immediate next fix is no longer broad retrieval tuning.
   - prefer direct pretax-income rows over derived reconstructions when both exist
   - make same-table prior-period cell binding win for `difference` / `prior_period`
+
+## 2026-05-18 Latest Status
+
+- `NAV_T1_071` is still not fully closed end-to-end.
+  - planner decomposition is now stable: `lookup + difference`
+  - retrieval is alive on the completed NAVER store
+  - the remaining failure is grounding policy, not planning
+- The latest successful runtime trace still shows two wrong choices.
+  - `lookup` can reconstruct pretax income from `net_income + tax_expense` instead of selecting a direct pretax-income row
+  - `difference` can still bind to a delta-like row/value instead of a same-table `2023 current` / `2022 prior` pair
+- Direct row preference and prior-period pair selection were strengthened in reconciliation.
+  - operand matching now uses `semantic_label`, `semantic_aliases`, and `aggregate_label`
+  - explicit `current_period` / `prior_period` rows keep their `role` and `concept` through reconciliation
+  - `difference` now tries to form a same-candidate, same-table current/prior pair before falling back
+  - structured extraction keeps scanning later candidates if the top candidate cannot yield a valid selected cell
+- These policies are covered by unit tests, but `NAV_T1_071` still needs a clean runtime close on a store that exposes the right direct structured values.
+- Immediate next action remains:
+  1. make direct pretax-income rows beat derived reconstructions at runtime
+  2. make `2022 prior_period` binding win from the same table/row family
+  3. rerun `NAV_T1_071` and confirm answer, trace, and evaluator all agree

@@ -37,3 +37,10 @@
   - current blocker:
     - lookup still prefers an indirect pretax-income reconstruction over a direct row
     - difference still misses reliable 2022 prior-period binding
+  - latest policy work:
+    - direct-match scoring now uses semantic labels / aliases
+    - difference pairing now prefers same-table current/prior cells
+    - structured extraction keeps trying later candidates if the top one fails
+  - still not closed end-to-end:
+    - latest successful runtime trace still used derived pretax income
+    - latest successful runtime trace still used a wrong delta-like prior path

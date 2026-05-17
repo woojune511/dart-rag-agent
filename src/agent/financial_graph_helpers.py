@@ -2413,8 +2413,21 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
     row_label = str(metadata.get("row_label") or "").strip()
     if _operand_text_match(row_label, operand):
         return True
+    semantic_label = str(metadata.get("semantic_label") or "").strip()
+    if _operand_text_match(semantic_label, operand):
+        return True
+    semantic_aliases = " ".join(
+        str(item).strip()
+        for item in (metadata.get("semantic_aliases") or [])
+        if str(item).strip()
+    )
+    if _operand_text_match(semantic_aliases, operand):
+        return True
     row_headers = " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip())
     if _operand_text_match(row_headers, operand):
+        return True
+    aggregate_label = str(metadata.get("aggregate_label") or "").strip()
+    if _operand_text_match(aggregate_label, operand):
         return True
     if _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
         return True
@@ -2426,6 +2439,43 @@ def _is_delta_like_row_label(label: str) -> bool:
     if not text:
         return False
     return any(token in text for token in ("증가(감소)", "증가", "감소", "증감", "변동"))
+
+
+def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
+    """Score how directly a candidate label represents the requested operand."""
+    metadata = dict(candidate.get("metadata") or {})
+    surfaces: List[tuple[str, float]] = [
+        (str(metadata.get("semantic_label") or "").strip(), 3.0),
+        (str(metadata.get("row_label") or "").strip(), 2.5),
+        (
+            " ".join(
+                str(item).strip()
+                for item in (metadata.get("semantic_aliases") or [])
+                if str(item).strip()
+            ),
+            2.0,
+        ),
+        (
+            " ".join(
+                str(item).strip()
+                for item in (metadata.get("row_headers") or [])
+                if str(item).strip()
+            ),
+            1.5,
+        ),
+        (str(metadata.get("aggregate_label") or "").strip(), 1.0),
+    ]
+    best = 0.0
+    for surface, exact_bonus in surfaces:
+        normalized_surface = _normalise_spaces(surface)
+        if not normalized_surface:
+            continue
+        if any(_normalise_spaces(needle) == normalized_surface for needle in _operand_needles(operand)):
+            best = max(best, exact_bonus)
+            continue
+        if _operand_text_match(normalized_surface, operand):
+            best = max(best, exact_bonus * 0.5)
+    return best
 
 
 def _score_operand_candidate(
@@ -2451,6 +2501,7 @@ def _score_operand_candidate(
             score += 3.0
         elif _operand_text_match(row_label, operand):
             score += 1.5
+    score += _candidate_direct_match_strength(candidate, operand)
     candidate_kind = str(candidate.get("candidate_kind") or "")
     if candidate_kind == "structured_value":
         score += 2.5
@@ -2546,14 +2597,14 @@ def _score_operand_candidate(
 
     if desired_period_focus == "current":
         if candidate_period_focus == "current":
-            score += 1.5
+            score += 2.5
         elif candidate_period_focus == "prior":
-            score -= 1.5
+            score -= 2.5
     elif desired_period_focus == "prior":
         if candidate_period_focus == "prior":
-            score += 1.5
+            score += 2.5
         elif candidate_period_focus == "current":
-            score -= 1.5
+            score -= 2.5
 
     preferred_value_roles = [
         str(item).strip()
@@ -2700,6 +2751,8 @@ def _deterministic_reconcile_task(
             matched_operands.append(
                 {
                     "label": label,
+                    "role": str(operand.get("role") or "").strip(),
+                    "concept": str(operand.get("concept") or "").strip(),
                     "matched": True,
                     "candidate_ids": [str(item.get("candidate_id") or "") for item in top if str(item.get("candidate_id") or "").strip()],
                     "reason": "matched_candidates",
@@ -2710,6 +2763,8 @@ def _deterministic_reconcile_task(
             matched_operands.append(
                 {
                     "label": label,
+                    "role": str(operand.get("role") or "").strip(),
+                    "concept": str(operand.get("concept") or "").strip(),
                     "matched": False,
                     "candidate_ids": [],
                     "reason": "no_matching_candidate",
