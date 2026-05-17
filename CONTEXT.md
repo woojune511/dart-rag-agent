@@ -102,3 +102,28 @@
   - remaining blocker: retrieval fan-out still triggers repeated embedding calls and can hit `429 RESOURCE_EXHAUSTED`
 - Immediate bottleneck is no longer parser correctness or fresh-store survival.
   - The next runtime optimization target is retrieval query count and/or query-embedding reuse for `lookup + difference` style questions.
+
+## 2026-05-18 Update
+
+- `NAV_T1_071` moved forward from a planner failure to a much narrower runtime issue.
+  - planner now consistently decomposes the question into:
+    - `2023년 법인세비용차감전순이익` / `lookup`
+    - `법인세비용차감전순이익 증감액` / `difference`
+- Runtime ontology now auto-loads the concept-v3 overlay through the default loader, so concept-only planning is no longer a shadow-only path.
+- Parser and grounding were tightened for pretax-income style rows.
+  - standalone statement title tables are promoted into table context hints
+  - statement body tables inherit those hints for `statement_type` / `consolidation_scope`
+  - ontology aliases now include spaced variants such as `법인세비용 차감 전 당기순손익`
+  - deterministic candidate scoring now penalizes delta-like rows for explicit `current_period` / `prior_period` operands
+- Retrieval/runtime stability was improved in two ways.
+  - when `rcept_no` is present for a single-document DART run, retrieval now treats it as the primary scope and disables strict company-name filtering
+  - vector query embedding `429 RESOURCE_EXHAUSTED` now falls back to BM25-only retrieval instead of aborting the run
+- Current `NAV_T1_071` status after these changes:
+  - retrieval is alive again on the completed NAVER store
+  - task 1 no longer collapses to a generic planner failure
+  - the remaining error is now operand choice policy:
+    - the system can still prefer an indirect construction (`당기순이익 + 법인세비용`) over a direct pretax-income row
+    - prior-period (`2022`) binding remains incomplete for the difference task
+- Immediate next fix is no longer broad retrieval tuning.
+  - prefer direct pretax-income rows over derived reconstructions when both exist
+  - make same-table prior-period cell binding win for `difference` / `prior_period`

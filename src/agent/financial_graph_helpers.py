@@ -44,6 +44,7 @@ __all__ = [
     '_desired_consolidation_scope',
     '_metadata_period_match_strength',
     '_prioritize_candidate_items',
+    '_should_apply_strict_company_scope',
     '_query_mentions_metric',
     '_clean_metric_label',
     '_extract_quoted_metric_labels',
@@ -511,6 +512,15 @@ def _prioritize_candidate_items(
         return points, table_counts.get(table_source_id, 0)
 
     return sorted(candidate_items, key=score, reverse=True)
+
+
+def _should_apply_strict_company_scope(companies: List[str], report_scope: Dict[str, Any]) -> bool:
+    if not companies:
+        return False
+    scope_rcept_no = str((report_scope or {}).get("rcept_no") or "").strip()
+    if scope_rcept_no:
+        return False
+    return True
 
 
 def _query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
@@ -2411,6 +2421,13 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
     return _operand_text_match(str(candidate.get("text") or ""), operand)
 
 
+def _is_delta_like_row_label(label: str) -> bool:
+    text = _normalise_spaces(str(label or ""))
+    if not text:
+        return False
+    return any(token in text for token in ("증가(감소)", "증가", "감소", "증감", "변동"))
+
+
 def _score_operand_candidate(
     candidate: Dict[str, Any],
     *,
@@ -2504,6 +2521,8 @@ def _score_operand_candidate(
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
     if desired_period_focus == "unknown":
         desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
+    if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label or row_label):
+        score -= 4.0
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
     local_heading = _normalise_spaces(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")

@@ -539,6 +539,68 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(final_score, detail_score)
 
+    def test_current_period_binding_penalizes_delta_like_row_below_absolute_row(self) -> None:
+        operand = {
+            "label": "2023년 법인세비용차감전순이익",
+            "concept": "income_before_income_taxes",
+            "aliases": [
+                "법인세비용차감전순이익",
+                "법인세비용 차감 전 순이익",
+                "법인세비용 차감 전 당기순손익",
+            ],
+            "role": "current_period",
+            "required": True,
+        }
+        absolute_candidate = {
+            "candidate_id": "ibt_absolute",
+            "candidate_kind": "structured_value",
+            "text": "법인세비용차감전순이익 1,481,396,317,551",
+            "metadata": {
+                "row_label": "법인세비용차감전순이익",
+                "semantic_label": "법인세비용차감전순이익",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023", "2022"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "1,481,396,317,551", "unit_hint": "원"},
+                ],
+            },
+        }
+        delta_candidate = {
+            "candidate_id": "ibt_delta",
+            "candidate_kind": "structured_value",
+            "text": "법인세비용차감전순이익 증가(감소) 71,156,179",
+            "metadata": {
+                "row_label": "법인세비용차감전순이익 증가(감소)",
+                "semantic_label": "법인세비용차감전순이익 증가(감소)",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023", "2022"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "71,156,179", "unit_hint": "원"},
+                ],
+            },
+        }
+
+        absolute_score = _score_operand_candidate(
+            absolute_candidate,
+            operand=operand,
+            preferred_statement_types=["income_statement", "summary_financials", "notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+        delta_score = _score_operand_candidate(
+            delta_candidate,
+            operand=operand,
+            preferred_statement_types=["income_statement", "summary_financials", "notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(absolute_score, delta_score)
+
 
 if __name__ == "__main__":
     unittest.main()

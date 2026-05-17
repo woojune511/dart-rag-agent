@@ -41,6 +41,9 @@ Current implementation status:
 - semantic planning, reconciliation, operand extraction, calculation planning, calculation execution, and aggregation emit first-pass artifact records
 - legacy `calculation_*` fields still remain for evaluator compatibility and should be treated as derived runtime views, not the long-term canonical schema
 - current scope remains DART-only; this schema work is meant to close the disclosure-analysis loop cleanly before any broader agent generalization
+- query-time retrieval now has a deterministic resilience layer:
+  - if vector query embedding fails with `429 RESOURCE_EXHAUSTED`, retrieval falls back to BM25-only search
+  - for single-document DART runs with a known `rcept_no`, retrieval scope should treat `rcept_no` as primary and avoid brittle strict company-name equality checks
 
 
 ## End-to-end Flow
@@ -245,6 +248,24 @@ Current implementation status:
 - parser now also emits `table_row_records_json` containing structured row records
 - reconciliation now supplements chunk candidates with row-aware candidates and prefers structured `rowrec` candidates when available
 - operand extraction now consumes `rowrec` candidates directly for ready numeric subtasks, while broader row/cell-level grounding beyond these direct paths is still incremental
+- explicit-period numeric operands (`current_period`, `prior_period`) now rely more heavily on deterministic scoring and less on optional LLM reranking
+- delta-like rows such as `증가(감소)` are explicitly penalized for `current_period` / `prior_period` binding
+
+### Current bottleneck after 2026-05-18
+
+The active `NAV_T1_071` failure mode is no longer planner decomposition or retrieval collapse.
+
+The remaining issue is operand-selection policy inside a live candidate pool:
+
+- the system can still prefer an indirect reconstruction of pretax income
+  - for example `당기순이익 + 법인세비용`
+  - instead of a direct pretax-income row when both are present
+- the `difference` path still needs stronger same-table prior-period (`2022`) cell binding
+
+That means the next change should target:
+
+1. direct-row preference over derived-value reconstruction for `lookup`
+2. same-table prior-period binding for `difference`
 
 ### Suggested schema
 

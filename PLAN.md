@@ -79,3 +79,25 @@
   - batch missing additions so interrupted ingest can continue on retry
 - Parser and structured value binding are no longer the main blocker for `NAV_T1_071`.
   - The blocker is repeated retrieval-time embedding calls created by planner query expansion.
+
+## 2026-05-18 Immediate Update
+
+- Keep the current scope DART-only and keep pushing on the single-document numeric close loop before widening task scope again.
+- Runtime priority has shifted one step further down the stack:
+  1. prefer direct pretax-income rows over indirect reconstructions for `lookup`
+  2. bind `prior_period` from the same table/cell family for `difference`
+  3. re-run `NAV_T1_071` until both:
+     - `2023 current value`
+     - `2022 prior value`
+     are preserved in structured results
+- Newly stabilized infrastructure should now be treated as baseline behavior:
+  - concept-v3 ontology overlay loaded by default runtime ontology
+  - BM25-only fallback when query embedding returns `429 RESOURCE_EXHAUSTED`
+  - single-document retrieval scoped primarily by `rcept_no`, not strict company-name matching
+- `NAV_T1_071` is no longer blocked by:
+  - planner decomposition
+  - parser statement-type propagation
+  - partial-store survival
+- `NAV_T1_071` is now blocked by:
+  - direct-row vs derived-value selection policy
+  - same-table prior-period cell binding for the difference task

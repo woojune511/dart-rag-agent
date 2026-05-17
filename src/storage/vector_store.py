@@ -124,6 +124,19 @@ def _metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[di
     return True
 
 
+def _is_embedding_capacity_error(exc: Exception) -> bool:
+    message = str(exc or "").lower()
+    markers = (
+        "resource_exhausted",
+        "429",
+        "rate limit",
+        "quota",
+        "error embedding content",
+        "embed_query",
+    )
+    return any(marker in message for marker in markers)
+
+
 class VectorStoreManager:
     def __init__(
         self,
@@ -575,14 +588,25 @@ class VectorStoreManager:
         """Perform Hybrid Search (Vector + BM25) with Reciprocal Rank Fusion."""
         logger.info("Hybrid Searching for: %r | filter=%s", query, where_filter)
 
+        vector_results = []
         try:
             vector_results = self.vector_store.similarity_search_with_score(
                 query,
                 k=k * 2,
                 filter=where_filter,
             )
-        except Exception:
-            vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
+        except Exception as exc:
+            if _is_embedding_capacity_error(exc):
+                logger.warning(
+                    "Vector query embedding unavailable for %r; falling back to BM25-only search: %s",
+                    query,
+                    exc,
+                )
+                vector_results = []
+            elif where_filter:
+                vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
+            else:
+                raise
 
         bm25_results = []
         if self.bm25:

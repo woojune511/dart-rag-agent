@@ -277,6 +277,11 @@ candidate options:
                 reranked_rows.append(current)
                 continue
 
+            operand_role = str(operand.get("role") or "").strip()
+            if operand_role in {"current_period", "prior_period"}:
+                reranked_rows.append(current)
+                continue
+
             matches = [candidate for candidate in candidates if _candidate_matches_operand(candidate, operand)]
             scored_candidates = [
                 {

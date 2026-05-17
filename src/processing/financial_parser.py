@@ -325,12 +325,22 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
         return None
 
     rows = [row for row in table_text.splitlines() if row.strip()]
-    if not rows or len(rows) > 2:
-        return None
-
     row_count = int(table_object.get("row_count") or 0)
     column_count = int(table_object.get("column_count") or 0)
-    if row_count > 2 or column_count > 3:
+    statement_title_hint = any(
+        keyword in table_text
+        for keyword in (
+            "재무상태표",
+            "포괄손익계산서",
+            "손익계산서",
+            "자본변동표",
+            "현금흐름표",
+        )
+    )
+
+    is_compact_context_table = row_count <= 2 and column_count <= 3
+    is_statement_title_table = statement_title_hint and row_count <= 6 and column_count <= 2
+    if not (is_compact_context_table or is_statement_title_table):
         return None
 
     combined = " ".join(rows)
@@ -339,7 +349,7 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
     # Some filings place `(단위 : 백만원)` in a standalone table without an
     # accompanying period token. Those tiny unit-only tables should still
     # annotate the following real numeric table.
-    if not period_labels and not unit_hint:
+    if not period_labels and not unit_hint and not statement_title_hint:
         return None
 
     # Guard against accidentally swallowing real numeric tables: standalone
@@ -1268,8 +1278,19 @@ class FinancialParser:
             )
             if part
         )
+        semantic_context = "\n".join(
+            part
+            for part in (
+                context_prefix or "",
+                local_heading or "",
+                header_context or "",
+            )
+            if part
+        )
         period_labels = _extract_period_labels(bundle_context)
         unit_hint = _infer_unit_hint(bundle_context)
+        inferred_statement_type = _infer_statement_type(section_path, semantic_context or header_context)
+        inferred_consolidation_scope = _infer_consolidation_scope(section_path, semantic_context or header_context)
         if table_object:
             table_row_records = self._build_table_row_records(table_object, unit_hint)
             if table_row_records:
@@ -1286,8 +1307,8 @@ class FinancialParser:
                 table_id=table_source_id,
                 source_section_path=section_path,
                 caption=local_heading or "",
-                statement_type=_infer_statement_type(section_path, header_context),
-                consolidation_scope=_infer_consolidation_scope(section_path, header_context),
+                statement_type=inferred_statement_type,
+                consolidation_scope=inferred_consolidation_scope,
                 unit_hint=unit_hint or "unknown",
                 period_labels=period_labels,
                 period_focus=_infer_period_focus(period_labels),
@@ -1308,8 +1329,8 @@ class FinancialParser:
             "period_labels": period_labels,
             "period_focus": _infer_period_focus(period_labels),
             "unit_hint": unit_hint,
-            "statement_type": _infer_statement_type(section_path, header_context),
-            "consolidation_scope": _infer_consolidation_scope(section_path, header_context),
+            "statement_type": inferred_statement_type,
+            "consolidation_scope": inferred_consolidation_scope,
             "header_propagated": False,
             "table_summary_text": summary_text,
             "table_row_labels_text": row_labels_text,

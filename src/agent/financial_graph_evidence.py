@@ -151,7 +151,8 @@ class FinancialAgentEvidenceMixin:
         companies = list(state.get("companies", []) or [])
         years = list(state.get("years", []) or [])
         scope_company = str(report_scope.get("company") or "").strip()
-        if scope_company and scope_company not in companies:
+        strict_company_scope = _should_apply_strict_company_scope(companies, report_scope)
+        if scope_company and strict_company_scope and scope_company not in companies:
             companies = [scope_company, *companies] if companies else [scope_company]
         scope_year_raw = report_scope.get("year")
         scope_year: Optional[int] = None
@@ -172,7 +173,7 @@ class FinancialAgentEvidenceMixin:
         effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
 
         conditions = []
-        if companies:
+        if companies and strict_company_scope:
             if len(companies) == 1:
                 conditions.append({"company": companies[0]})
             else:
@@ -246,7 +247,7 @@ class FinancialAgentEvidenceMixin:
         # section_filter는 _rerank_docs에서 +0.20 부스트로만 반영.
         # hard filter로 쓰면 LLM이 wrong section을 추출했을 때 관련 청크가 전부 제외됨.
 
-        if companies:
+        if companies and strict_company_scope:
             lowered_companies = {company.lower() for company in companies}
             docs = self._apply_strict_filter(
                 docs,

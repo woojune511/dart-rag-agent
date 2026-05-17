@@ -153,5 +153,22 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         )
 
 
+    def test_default_runtime_ontology_includes_concept_overlay(self) -> None:
+        specs = self.ontology.concept_specs(
+            "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고 전년 대비 증감액을 계산해 줘.",
+            intent="comparison",
+        )
+        concept_keys = [spec["concept"] for spec in specs]
+        self.assertIn("income_before_income_taxes", concept_keys)
+
+    def test_default_runtime_ontology_matches_spaced_income_before_tax_alias(self) -> None:
+        specs = self.ontology.concept_specs(
+            "2023년 연결 손익계산서에서 법인세비용 차감 전 당기순손익을 찾아줘.",
+            intent="comparison",
+        )
+        concept_keys = [spec["concept"] for spec in specs]
+        self.assertIn("income_before_income_taxes", concept_keys)
+
+
 if __name__ == "__main__":
     unittest.main()

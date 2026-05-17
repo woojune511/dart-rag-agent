@@ -130,6 +130,27 @@ class FinancialParserUtilityTests(unittest.TestCase):
             ),
             "defer_section_label",
         )
+
+    def test_standalone_statement_title_table_is_promoted_to_context_hint(self) -> None:
+        table_object = {
+            "table_text": "\n".join(
+                [
+                    "연결 포괄손익계산서",
+                    "제 25 기 2023.01.01 부터 2023.12.31 까지",
+                    "제 24 기 2022.01.01 부터 2022.12.31 까지",
+                    "(단위 : 원)",
+                ]
+            ),
+            "row_count": 4,
+            "column_count": 1,
+        }
+
+        hint = _extract_standalone_table_context_hint(table_object)
+
+        self.assertIsNotNone(hint)
+        self.assertIn("연결 포괄손익계산서", hint or "")
+        self.assertIn("2023.01.01", hint or "")
+        self.assertIn("(단위 : 원)", hint or "")
         self.assertEqual(
             _classify_bracket_heading(
                 "[친환경인프라(건설부문)]",
@@ -305,6 +326,42 @@ class FinancialParserUtilityTests(unittest.TestCase):
         self.assertEqual(value_records[0]["semantic_label"], "부채총계")
         self.assertEqual(value_records[0]["period_text"], "2023")
         self.assertEqual(value_records[0]["value_text"], "92,228,115")
+
+    def test_table_context_bundle_uses_promoted_statement_hint_for_body_table(self) -> None:
+        parser = FinancialParser(chunk_size=8000, chunk_overlap=400)
+        body_table_object = {
+            "grid": [
+                ["", "제 25 기", "제 24 기"],
+                ["법인세비용차감전순이익", "1,481,396,317,551", "1,083,717,091,152"],
+            ],
+            "row_labels": ["제 25 기", "법인세비용차감전순이익"],
+            "row_count": 2,
+            "column_count": 3,
+            "has_spans": False,
+        }
+
+        bundle = parser._build_table_context_bundle(
+            parser._format_table_grid(body_table_object["grid"]),
+            "III. 재무에 관한 사항 > 2. 연결재무제표",
+            "section::table:income-body",
+            table_object=body_table_object,
+            context_prefix="\n".join(
+                [
+                    "연결 포괄손익계산서",
+                    "제 25 기 2023.01.01 부터 2023.12.31 까지",
+                    "제 24 기 2022.01.01 부터 2022.12.31 까지",
+                    "(단위 : 원)",
+                ]
+            ),
+        )
+
+        self.assertEqual(bundle["statement_type"], "income_statement")
+        self.assertEqual(bundle["consolidation_scope"], "consolidated")
+        self.assertEqual(bundle["period_focus"], "multi_period")
+        self.assertIn("2023", bundle["period_labels"])
+        self.assertIn("2022", bundle["period_labels"])
+        self.assertEqual(bundle["unit_hint"], "원")
+        self.assertTrue(bundle["table_value_records_json"])
 
     def test_table_grid_reads_te_cells_from_tbody(self) -> None:
         parser = FinancialParser(chunk_size=2500, chunk_overlap=320)

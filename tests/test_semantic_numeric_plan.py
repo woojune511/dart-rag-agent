@@ -452,6 +452,10 @@ class SemanticNumericPlanTests(unittest.TestCase):
         agent.llm = _StubLLM(
             ConceptPlannerOutput.model_validate(
                 {
+                    "companies": ["네이버"],
+                    "years": [2023, 2022],
+                    "topic": "법인세비용차감전순이익 추출 및 전년 대비 증감액 계산",
+                    "section_filter": "연결 손익계산서",
                     "tasks": [
                         {
                             "metric_label": "2023년 법인세비용차감전순이익",
@@ -515,6 +519,10 @@ class SemanticNumericPlanTests(unittest.TestCase):
                 ("법인세비용차감전순이익", "prior_period"),
             ],
         )
+        self.assertEqual(result["companies"], ["네이버"])
+        self.assertEqual(result["years"], [2023, 2022])
+        self.assertEqual(result["topic"], "법인세비용차감전순이익 추출 및 전년 대비 증감액 계산")
+        self.assertEqual(result["section_filter"], "연결 손익계산서")
 
     def test_replan_mode_appends_patch_tasks_without_overwriting_existing_plan(self) -> None:
         import src.config.ontology as ontology_module

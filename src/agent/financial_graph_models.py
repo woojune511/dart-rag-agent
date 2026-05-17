@@ -344,6 +344,10 @@ class ConceptPlannerTask(BaseModel):
 
 
 class ConceptPlannerOutput(BaseModel):
+    companies: List[str] = Field(default_factory=list, description="planner가 질문에서 파악한 기업명 목록")
+    years: List[int] = Field(default_factory=list, description="planner가 질문에서 파악한 연도 목록")
+    topic: str = Field(default="", description="planner가 정리한 핵심 주제")
+    section_filter: Optional[str] = Field(default=None, description="planner가 추론한 주요 섹션 힌트")
     tasks: List[ConceptPlannerTask] = Field(default_factory=list)
     rationale: str = Field(default="", description="planner가 이렇게 분해한 이유")
 

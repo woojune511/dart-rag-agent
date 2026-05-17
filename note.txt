@@ -28,3 +28,12 @@
   - NAV_T1_071: planner/replan loop OK, structured current/prior binding OK locally
   - remaining blocker is retrieval fan-out -> embedding 429 during question-time retrieval
   - next fix: reduce lookup/difference retrieval query count and reuse embeddings if possible
+
+- 2026-05-18
+  - NAV_T1_071 planner split is now stable: lookup + difference
+  - runtime now loads concept-v3 overlay by default
+  - retrieval no longer dies on embedding 429; BM25 fallback is in place
+  - single-doc retrieval should scope by `rcept_no` first, not strict company-name equality
+  - current blocker:
+    - lookup still prefers an indirect pretax-income reconstruction over a direct row
+    - difference still misses reliable 2022 prior-period binding

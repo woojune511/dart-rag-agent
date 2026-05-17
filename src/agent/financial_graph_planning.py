@@ -30,6 +30,46 @@ class FinancialAgentPlanningMixin:
     def _default_format_preference(self, intent: str) -> str:
         return default_format_preference(intent)
 
+    def _align_scope_hints(
+        self,
+        *,
+        companies: Optional[List[str]],
+        years: Optional[List[int]],
+        report_scope: Dict[str, Any],
+    ) -> tuple[List[str], List[int]]:
+        scope_company = str(report_scope.get("company") or "").strip()
+        scope_year_raw = report_scope.get("year")
+        scope_year: Optional[int] = None
+        try:
+            if scope_year_raw not in (None, ""):
+                scope_year = int(scope_year_raw)
+        except (TypeError, ValueError):
+            scope_year = None
+
+        normalized_companies = [str(item).strip() for item in (companies or []) if str(item).strip()]
+        normalized_years: List[int] = []
+        for item in list(years or []):
+            try:
+                value = int(item)
+            except (TypeError, ValueError):
+                continue
+            if value not in normalized_years:
+                normalized_years.append(value)
+
+        if scope_company:
+            if not normalized_companies:
+                normalized_companies = [scope_company]
+            elif scope_company not in normalized_companies:
+                normalized_companies = [scope_company, *normalized_companies]
+
+        if scope_year is not None:
+            if not normalized_years:
+                normalized_years = [scope_year]
+            elif scope_year not in normalized_years:
+                normalized_years = [scope_year, *normalized_years]
+
+        return normalized_companies, normalized_years
+
     def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Run the lightweight router before any expensive retrieval work."""
         result = self.query_router.route(state["query"])
@@ -43,56 +83,30 @@ class FinancialAgentPlanningMixin:
         }
 
     def _extract_entities(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Extract company/year/topic hints and align them with report scope."""
-        structured_llm = self.llm.with_structured_output(EntityExtraction)
-        prompt = ChatPromptTemplate.from_template(
-            "다음 질문에서 기업명, 연도, 핵심 주제, 관련 섹션을 추출하세요.\n\n질문: {query}"
-        )
-        result: EntityExtraction = (prompt | structured_llm).invoke({"query": state["query"]})
+        """Seed lightweight scope hints before the planner builds the full understanding plan."""
+        query = str(state.get("query") or "")
         report_scope = dict(state.get("report_scope") or {})
-        scope_company = str(report_scope.get("company") or "").strip()
-        scope_year_raw = report_scope.get("year")
-        scope_year: Optional[int] = None
-        try:
-            if scope_year_raw not in (None, ""):
-                scope_year = int(scope_year_raw)
-        except (TypeError, ValueError):
-            scope_year = None
-
-        companies = list(result.companies or [])
-        if scope_company:
-            if not companies:
-                companies = [scope_company]
-            elif scope_company not in companies:
-                companies = [scope_company, *companies]
-
-        years = list(result.years or [])
-        if scope_year is not None:
-            if not years:
-                years = [scope_year]
-            elif scope_year not in years:
-                years = [scope_year, *years]
-
+        query_years = [int(token) for token in re.findall(r"20\d{2}", query)]
+        years = list(dict.fromkeys(query_years))
+        companies, years = self._align_scope_hints(companies=[], years=years, report_scope=report_scope)
         ontology = get_financial_ontology()
         metric = ontology.best_metric_family(
-            state["query"],
-            result.topic,
+            query,
+            query,
             state.get("intent") or state.get("query_type", "qa"),
         )
         target_metric_family = str(metric.get("key") or "") if metric else ""
         logger.info(
-            "[extract] companies=%s years=%s topic=%s section_filter=%s target_metric=%s",
-            result.companies,
-            result.years,
-            result.topic,
-            result.section_filter,
+            "[extract] companies=%s years=%s target_metric=%s",
+            companies,
+            years,
             target_metric_family or "-",
         )
         return {
             "companies": companies,
             "years": years,
-            "topic": result.topic,
-            "section_filter": result.section_filter,
+            "topic": query,
+            "section_filter": None,
             "target_metric_family": target_metric_family,
             "target_metric_family_hint": target_metric_family,
         }
@@ -269,6 +283,12 @@ intent:
 
 report_scope:
 {report_scope}
+
+Also return:
+- companies: normalized company list for this question
+- years: normalized relevant years
+- topic: a concise topic string for retrieval/ranking
+- section_filter: a single best section hint when one section is strongly dominant, otherwise null
 """
         )
         structured_llm = self.llm.with_structured_output(ConceptPlannerOutput)
@@ -396,9 +416,21 @@ report_scope:
         if not planner_tasks:
             return None
 
+        companies, years = self._align_scope_hints(
+            companies=list(planned.companies or []),
+            years=list(planned.years or []),
+            report_scope=report_scope,
+        )
+        topic_text = _normalise_spaces(str(planned.topic or topic or query))
+        section_filter = _normalise_spaces(str(planned.section_filter or "")) or None
+
         return {
             "status": "concept_fallback",
             "fallback_to_general_search": False,
+            "companies": companies,
+            "years": years,
+            "topic": topic_text,
+            "section_filter": section_filter,
             "planned_metric_families": [
                 str(task.get("metric_family") or "").strip()
                 for task in planner_tasks
@@ -613,6 +645,18 @@ report_scope:
                 "tasks": merged_tasks,
                 "planner_notes": planner_notes,
             }
+            companies, years = self._align_scope_hints(
+                companies=list((llm_plan or {}).get("companies") or state.get("companies") or []),
+                years=list((llm_plan or {}).get("years") or state.get("years") or []),
+                report_scope=report_scope,
+            )
+            topic_text = _normalise_spaces(
+                str((llm_plan or {}).get("topic") or state.get("topic") or query)
+            )
+            section_filter = (
+                _normalise_spaces(str((llm_plan or {}).get("section_filter") or ""))
+                or state.get("section_filter")
+            )
             task_records = list(state.get("tasks") or [])
             artifacts = list(state.get("artifacts") or [])
             semantic_artifact_id = f"semantic_plan:{len(artifacts) + 1:03d}"
@@ -655,6 +699,10 @@ report_scope:
                 "planner_mode": "initial",
                 "planner_feedback": "",
                 "plan_loop_count": plan_loop_count + 1,
+                "companies": companies,
+                "years": years,
+                "topic": topic_text,
+                "section_filter": section_filter,
                 "calc_subtasks": merged_tasks,
                 "planned_metric_families": planned_metric_families,
                 "retrieval_queries": retrieval_queries,
@@ -705,6 +753,13 @@ report_scope:
             if str(task.get("metric_family") or "").strip()
         ]
         plan["planned_metric_families"] = planned_metric_families
+        companies, years = self._align_scope_hints(
+            companies=list(plan.get("companies") or state.get("companies") or []),
+            years=list(plan.get("years") or state.get("years") or []),
+            report_scope=report_scope,
+        )
+        topic_text = _normalise_spaces(str(plan.get("topic") or topic or query))
+        section_filter = _normalise_spaces(str(plan.get("section_filter") or "")) or state.get("section_filter")
         retrieval_queries = [query]
         for task in tasks:
             retrieval_queries.extend(str(item).strip() for item in (task.get("retrieval_queries") or []) if str(item).strip())
@@ -745,6 +800,10 @@ report_scope:
             "planner_mode": "initial",
             "planner_feedback": "",
             "plan_loop_count": plan_loop_count,
+            "companies": companies,
+            "years": years,
+            "topic": topic_text,
+            "section_filter": section_filter,
             "calc_subtasks": tasks,
             "planned_metric_families": planned_metric_families,
             "retrieval_queries": retrieval_queries,

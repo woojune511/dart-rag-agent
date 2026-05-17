@@ -37,15 +37,58 @@ def _best_alias_match_span(text: str, aliases: Iterable[str]) -> Optional[tuple[
     return best
 
 
+def _augment_financial_aliases(values: Iterable[str]) -> List[str]:
+    aliases = [str(value).strip() for value in values if str(value).strip()]
+    combined = " ".join(aliases)
+
+    if any(token in combined for token in ("법인세비용차감전순이익", "법인세비용차감전순손익")):
+        aliases.extend(
+            [
+                "법인세비용 차감 전 순이익",
+                "법인세비용 차감 전 순손익",
+                "법인세비용 차감 전 당기순이익",
+                "법인세비용 차감 전 당기순손익",
+                "법인세비용차감전 당기순이익",
+                "법인세비용차감전 당기순손익",
+            ]
+        )
+
+    return _dedupe_preserve_order(aliases)
+
+
 class FinancialOntologyManager:
     def __init__(self, path: Optional[Path] = None) -> None:
         self.path = path or Path(__file__).resolve().with_name("financial_ontology.json")
         self.payload = self._load()
 
+    def _is_default_runtime_path(self) -> bool:
+        default_path = Path(__file__).resolve().with_name("financial_ontology.json")
+        try:
+            return self.path.resolve() == default_path.resolve()
+        except OSError:
+            return self.path == default_path
+
+    def _merge_payloads(self, base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(base or {})
+        for key, value in dict(overlay or {}).items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                nested = dict(merged.get(key) or {})
+                nested.update(value)
+                merged[key] = nested
+            elif value not in (None, ""):
+                merged[key] = value
+        return merged
+
     def _load(self) -> Dict[str, Any]:
         if not self.path.exists():
             return {"metric_families": {}}
-        return json.loads(self.path.read_text(encoding="utf-8"))
+        payload = json.loads(self.path.read_text(encoding="utf-8"))
+        if self._is_default_runtime_path():
+            concept_overlay_path = self.path.with_name("financial_ontology_concepts_v3.draft.json")
+            if concept_overlay_path.exists():
+                overlay = json.loads(concept_overlay_path.read_text(encoding="utf-8"))
+                payload = self._merge_payloads(payload, overlay)
+        return payload
 
     @property
     def metric_families(self) -> Dict[str, Dict[str, Any]]:
@@ -144,7 +187,7 @@ class FinancialOntologyManager:
         values = [concept.get("display_name", ""), concept.get("name", "")]
         values.extend(concept.get("aliases", []) or [])
         values.extend(concept.get("keywords", []) or [])
-        return _dedupe_preserve_order(values)
+        return _augment_financial_aliases(values)
 
     def _group_aliases(self, group: Dict[str, Any]) -> List[str]:
         values = [group.get("display_name", ""), group.get("name", "")]
