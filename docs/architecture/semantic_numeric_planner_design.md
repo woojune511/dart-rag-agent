@@ -1260,3 +1260,35 @@ The next close criterion for this canary is:
 - direct 2023 pretax-income grounding
 - same-family 2022 prior-period grounding
 - a structured `difference` result that represents subtraction, not a reused delta row
+
+## 2026-05-19 Grounding Scoring Direction
+
+The next grounding refactor should not keep growing metric-specific patches.
+Instead, it should move more candidate selection behavior into shared scoring
+and acceptance policy.
+
+See [grounding_scoring_policy.md](grounding_scoring_policy.md) for the working
+classification:
+
+- durable grounding principles to keep
+- metric-specific exceptions to avoid growing
+- shared candidate scoring features to elevate
+
+Operational takeaway:
+
+- `NAV_T1_071` proved that direct-first and same-table current/prior pairing are
+  real general principles
+- `SKH_T1_060` shows that shared scoring can successfully move ratio grounding
+  toward canonical statement rows without adding metric-specific exceptions
+- `KBF_T1_017` remains the open percent-metric canary
+  - planning now emits the right `difference` structure
+  - lookup can close on a direct NIM value
+  - the remaining failure is current/prior binding reusing the same row value
+    instead of selecting distinct period cells
+
+The next close criterion after `NAV_T1_071` is therefore not another planner
+change. It is a stricter percent-metric acceptance rule:
+
+- current/prior cells must be distinct
+- same-row multi-period pairs should outrank single-value percent rows
+- percent `difference` should prefer rows that expose both periods directly

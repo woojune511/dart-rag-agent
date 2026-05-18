@@ -95,6 +95,34 @@ class OperationContractTests(unittest.TestCase):
         self.assertTrue(any("2022년" in item and "전기" in item for item in queries))
         self.assertTrue(any("2023년" in item and "당기" in item for item in queries))
 
+    def test_percent_period_comparison_queries_are_compact_and_without_duplicate_year_tokens(self) -> None:
+        queries = _build_generic_retrieval_queries(
+            query="2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+            metric_label="순이자마진 차이",
+            operand_specs=[
+                {
+                    "label": "2023년 순이자마진",
+                    "aliases": ["순이자마진", "NIM"],
+                    "concept": "net_interest_margin",
+                    "role": "current_period",
+                    "period_hint": "2023",
+                },
+                {
+                    "label": "2022년 순이자마진",
+                    "aliases": ["순이자마진", "NIM"],
+                    "concept": "net_interest_margin",
+                    "role": "prior_period",
+                    "period_hint": "2022",
+                },
+            ],
+            preferred_sections=["영업의 개황", "영업현황"],
+            report_scope={"company": "KB금융", "year": 2023},
+            constraints={"period_focus": "multi_period"},
+        )
+        self.assertTrue(any("2023년 2022년 순이자마진" in item for item in queries))
+        self.assertFalse(any("2023년 2023" in item for item in queries))
+        self.assertFalse(any("2022년 2022" in item for item in queries))
+
     def test_difference_result_exposes_structured_value_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._execute_calculation(

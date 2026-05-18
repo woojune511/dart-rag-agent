@@ -586,6 +586,74 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(final_score, detail_score)
 
+    def test_balance_sheet_aggregate_prefers_canonical_statement_aggregate_over_note_detail(self) -> None:
+        operand = {
+            "label": "유형자산",
+            "concept": "property_plant_equipment",
+            "aliases": ["유형자산"],
+            "required": True,
+            "preferred_statement_types": ["summary_financials", "balance_sheet"],
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        canonical_candidate = {
+            "candidate_id": "ppe_summary",
+            "candidate_kind": "structured_value",
+            "text": "유형자산 52,704,853",
+            "metadata": {
+                "row_label": "유형자산",
+                "semantic_label": "유형자산",
+                "aggregate_label": "유형자산",
+                "aggregate_role": "direct_total",
+                "statement_type": "summary_financials",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                "period_focus": "current",
+                "period_labels": ["2023", "2022"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "52,704,853", "unit_hint": "백만원"},
+                    {"column_headers": ["2022"], "value_text": "48,123,111", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        note_detail_candidate = {
+            "candidate_id": "ppe_note_detail",
+            "candidate_kind": "structured_value",
+            "text": "공시금액 유형자산 7,691",
+            "metadata": {
+                "row_label": "공시금액 유형자산",
+                "semantic_label": "공시금액 유형자산",
+                "aggregate_role": "none",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "7,691", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        canonical_score = _score_operand_candidate(
+            canonical_candidate,
+            operand=operand,
+            preferred_statement_types=["summary_financials", "balance_sheet", "notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+        note_detail_score = _score_operand_candidate(
+            note_detail_candidate,
+            operand=operand,
+            preferred_statement_types=["summary_financials", "balance_sheet", "notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(canonical_score, note_detail_score)
+
     def test_reconcile_preserves_direct_grounding_candidate_even_if_not_in_top_three(self) -> None:
         active_subtask = {
             "task_id": "task_lookup",
@@ -724,6 +792,75 @@ class ReconciliationPlanTests(unittest.TestCase):
         )
 
         self.assertGreater(absolute_score, delta_score)
+
+    def test_percent_metric_multi_period_row_scores_above_single_period_note_row(self) -> None:
+        operand = {
+            "label": "2023년 순이자마진",
+            "concept": "net_interest_margin",
+            "aliases": ["순이자마진", "NIM"],
+            "role": "current_period",
+            "required": True,
+            "period_hint": "2023",
+            "unit_family": "PERCENT",
+            "preferred_statement_types": ["mda", "summary_financials", "notes"],
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        multi_period_candidate = {
+            "candidate_id": "nim_multi",
+            "candidate_kind": "structured_value",
+            "text": "순이자마진 2023 1.83 2022 1.73",
+            "metadata": {
+                "row_label": "순이자마진",
+                "semantic_label": "순이자마진",
+                "semantic_aliases": ["순이자마진", "NIM"],
+                "statement_type": "mda",
+                "consolidation_scope": "consolidated",
+                "section_path": "II. 사업의 내용 > 영업의 개황",
+                "period_labels": ["2023", "2022"],
+                "table_source_id": "nim_table",
+                "structured_cells": [
+                    {"column_headers": ["2023", "NIM"], "value_text": "1.83", "unit_hint": "%", "period_text": "2023"},
+                    {"column_headers": ["2022", "NIM"], "value_text": "1.73", "unit_hint": "%", "period_text": "2022"},
+                ],
+            },
+        }
+        single_period_note_candidate = {
+            "candidate_id": "nim_note_single",
+            "candidate_kind": "structured_value",
+            "text": "순이자마진 1.83",
+            "metadata": {
+                "row_label": "순이자마진",
+                "semantic_label": "순이자마진",
+                "semantic_aliases": ["순이자마진", "NIM"],
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "period_labels": ["2023"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "1.83", "unit_hint": "%", "period_text": "2023"},
+                ],
+            },
+        }
+
+        multi_score = _score_operand_candidate(
+            multi_period_candidate,
+            operand=operand,
+            preferred_statement_types=["mda", "summary_financials", "notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "multi_period"},
+            query_years=[2023, 2022],
+        )
+        single_score = _score_operand_candidate(
+            single_period_note_candidate,
+            operand=operand,
+            preferred_statement_types=["mda", "summary_financials", "notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "multi_period"},
+            query_years=[2023, 2022],
+        )
+
+        self.assertGreater(multi_score, single_score)
 
     def test_pretax_income_operand_rejects_continuing_income_surrogate_candidate(self) -> None:
         operand = {

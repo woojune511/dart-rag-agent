@@ -404,6 +404,105 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[1]["raw_value"], "1,083,717,091,152")
         self.assertEqual(rows[1]["period"], "2022")
 
+    def test_percent_metric_direct_extraction_coerces_structured_cell_unit_to_percent(self) -> None:
+        label = "순이자마진"
+        metadata = {
+            "chunk_uid": "chunk_percent_001",
+            "company": "KB금융",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "mda",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023", "2022"],
+            "table_source_id": "table_percent_001",
+            "table_header_context": "구분 | 2023 | 2022 | 단위: 백만원",
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "value_id": "table_percent_001:v:0:1",
+                        "row_index": 0,
+                        "column_index": 1,
+                        "semantic_label": label,
+                        "semantic_aliases": [label, "NIM"],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["2023", "NIM"],
+                        "period_text": "2023",
+                        "period_labels": ["2023"],
+                        "value_text": "1.83",
+                        "unit_hint": "백만원",
+                    },
+                    {
+                        "value_id": "table_percent_001:v:0:2",
+                        "row_index": 0,
+                        "column_index": 2,
+                        "semantic_label": label,
+                        "semantic_aliases": [label, "NIM"],
+                        "label_source": "row",
+                        "row_label": label,
+                        "row_headers": [label],
+                        "column_headers": ["2022", "NIM"],
+                        "period_text": "2022",
+                        "period_labels": ["2022"],
+                        "value_text": "1.73",
+                        "unit_hint": "백만원",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        state = {
+            "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+            "years": [2023, 2022],
+            "report_scope": {"company": "KB금융", "year": "2023", "consolidation": "연결"},
+            "intent": "comparison",
+            "topic": "순이자마진 증감폭",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [(Document(page_content="영업의 개황", metadata=metadata), 1.0)],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_percent_diff",
+                "metric_family": "concept_difference",
+                "metric_label": "순이자마진 증감폭",
+                "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": label, "aliases": [label, "NIM"], "concept": "net_interest_margin", "role": "current_period", "required": True, "period_hint": "2023", "unit_family": "PERCENT"},
+                    {"label": label, "aliases": [label, "NIM"], "concept": "net_interest_margin", "role": "prior_period", "required": True, "period_hint": "2022", "unit_family": "PERCENT"},
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "multi_period",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_percent_diff",
+                "matched_operands": [
+                    {"label": label, "role": "current_period", "matched": True, "candidate_ids": ["chunk_percent_001::value:0", "chunk_percent_001::value:1"], "reason": "matched_candidates"},
+                    {"label": label, "role": "prior_period", "matched": True, "candidate_ids": ["chunk_percent_001::value:0", "chunk_percent_001::value:1"], "reason": "matched_candidates"},
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+        }
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["raw_unit"], "%")
+        self.assertEqual(rows[0]["normalized_unit"], "PERCENT")
+        self.assertEqual(rows[0]["raw_value"], "1.83")
+        self.assertEqual(rows[1]["raw_unit"], "%")
+        self.assertEqual(rows[1]["normalized_unit"], "PERCENT")
+        self.assertEqual(rows[1]["raw_value"], "1.73")
+
     def test_difference_prefers_same_table_pair_over_split_current_prior_rows(self) -> None:
         label = "법인세비용차감전순이익"
         shared_metadata = {

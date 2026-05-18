@@ -49,6 +49,7 @@ __all__ = [
     '_clean_metric_label',
     '_extract_quoted_metric_labels',
     '_extract_generic_operand_labels',
+    '_label_implies_percent_metric',
     '_is_single_metric_period_comparison',
     '_requires_direct_numeric_grounding',
     '_extract_year_tokens',
@@ -623,6 +624,17 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
     return normalized
 
 
+def _label_implies_percent_metric(label: str) -> bool:
+    normalized = _normalise_spaces(str(label or ""))
+    if not normalized:
+        return False
+    upper = normalized.upper()
+    return any(
+        token in normalized
+        for token in ("비율", "비중", "마진", "이익률", "수익률", "%", "%p")
+    ) or upper in {"NIM", "NIS", "NPL"}
+
+
 def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
     text = _normalise_spaces(query)
     comparison_markers = ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이")
@@ -755,6 +767,7 @@ def _build_generic_required_operands(
     if _is_single_metric_period_comparison(query, operand_labels):
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
         aliases = _build_generic_metric_aliases(base_label)
+        unit_family = "PERCENT" if _label_implies_percent_metric(base_label) else ""
         year_tokens = _extract_year_tokens(query, report_scope)
         if year_tokens:
             current_year = year_tokens[0]
@@ -766,6 +779,7 @@ def _build_generic_required_operands(
                     "role": "current_period",
                     "required": True,
                     "period_hint": str(current_year),
+                    "unit_family": unit_family,
                 },
                 {
                     "label": f"{prior_year}년 {base_label}",
@@ -773,6 +787,7 @@ def _build_generic_required_operands(
                     "role": "prior_period",
                     "required": True,
                     "period_hint": str(prior_year),
+                    "unit_family": unit_family,
                 },
             ]
         return [
@@ -782,6 +797,7 @@ def _build_generic_required_operands(
                 "role": "current_period",
                 "required": True,
                 "period_hint": "당기",
+                "unit_family": unit_family,
             },
             {
                 "label": f"전기 {base_label}",
@@ -789,6 +805,7 @@ def _build_generic_required_operands(
                 "role": "prior_period",
                 "required": True,
                 "period_hint": "전기",
+                "unit_family": unit_family,
             },
         ]
 
@@ -805,6 +822,7 @@ def _build_generic_required_operands(
                 "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
                 "role": "",
                 "required": True,
+                "unit_family": "PERCENT" if _label_implies_percent_metric(label) else "",
             }
         )
     return rows
@@ -828,6 +846,18 @@ def _build_generic_retrieval_queries(
     report_scope: Dict[str, Any],
     constraints: Optional[Dict[str, str]] = None,
 ) -> List[str]:
+    def _collapse_duplicate_query_tokens(raw: str) -> str:
+        pieces = [piece for piece in _normalise_spaces(raw).split(" ") if piece]
+        collapsed: List[str] = []
+        for piece in pieces:
+            if collapsed and collapsed[-1] == piece:
+                continue
+            collapsed.append(piece)
+        return " ".join(collapsed).strip()
+
+    def _strip_leading_period_prefix(text: str) -> str:
+        return _normalise_spaces(re.sub(r"^(20\d{2}년|당기|전기|전년)\s+", "", _normalise_spaces(text or "")))
+
     queries = [query]
     year = str(report_scope.get("year") or "").strip()
     year_prefix = f"{year}년 " if year else ""
@@ -858,27 +888,62 @@ def _build_generic_retrieval_queries(
                 period_hint = "당기"
             elif role == "prior_period":
                 period_hint = "전기"
+        normalized_period_hint = _normalise_spaces(period_hint)
+        if operand_year and normalized_period_hint in {operand_year, f"{operand_year}년"}:
+            period_hint = ""
         if period_hint:
             pieces.append(period_hint)
         return _normalise_spaces(" ".join(pieces))
 
+    if len(operand_specs) == 2:
+        left = dict(operand_specs[0] or {})
+        right = dict(operand_specs[1] or {})
+        left_role = str(left.get("role") or "").strip()
+        right_role = str(right.get("role") or "").strip()
+        left_concept = str(left.get("concept") or "").strip()
+        right_concept = str(right.get("concept") or "").strip()
+        if (
+            {left_role, right_role} == {"current_period", "prior_period"}
+            and left_concept
+            and left_concept == right_concept
+        ):
+            left_year = _year_for_operand(left)
+            right_year = _year_for_operand(right)
+            shared_label = _strip_leading_period_prefix(
+                str(left.get("aliases") or [left.get("label") or ""])[0]
+            ) or _strip_leading_period_prefix(str(left.get("label") or ""))
+            if shared_label:
+                compact_bits = [bit for bit in (f"{left_year}년" if left_year else "", f"{right_year}년" if right_year else "", shared_label) if bit]
+                queries.append(_collapse_duplicate_query_tokens(" ".join(compact_bits)))
+                for section in preferred_sections[:2]:
+                    queries.append(_collapse_duplicate_query_tokens(f"{' '.join(compact_bits)} {section}"))
+                for alias in list(left.get("aliases") or [])[:2]:
+                    alias_text = _strip_leading_period_prefix(str(alias).strip())
+                    if alias_text and alias_text != shared_label:
+                        alias_bits = [bit for bit in (f"{left_year}년" if left_year else "", f"{right_year}년" if right_year else "", alias_text) if bit]
+                        queries.append(_collapse_duplicate_query_tokens(" ".join(alias_bits)))
+                        for section in preferred_sections[:2]:
+                            queries.append(_collapse_duplicate_query_tokens(f"{' '.join(alias_bits)} {section}"))
+
     if metric_label:
-        queries.append(_normalise_spaces(f"{year_prefix}{metric_label}"))
+        queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_label}"))
         for section in preferred_sections[:4]:
-            queries.append(_normalise_spaces(f"{year_prefix}{metric_label} {section}"))
+            queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_label} {section}"))
     for operand in operand_specs:
         label = str(operand.get("label") or "").strip()
         if not label:
             continue
         operand_prefix = _prefix_for_operand(operand) or year_prefix.strip()
-        queries.append(_normalise_spaces(f"{operand_prefix} {label}"))
+        normalized_label = _strip_leading_period_prefix(label)
+        queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_label or label}"))
         for alias in list(operand.get("aliases") or [])[:3]:
             if str(alias).strip():
-                queries.append(_normalise_spaces(f"{operand_prefix} {alias}"))
+                normalized_alias = _strip_leading_period_prefix(str(alias).strip())
+                queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_alias or alias}"))
                 for section in preferred_sections[:2]:
-                    queries.append(_normalise_spaces(f"{operand_prefix} {alias} {section}"))
+                    queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_alias or alias} {section}"))
         for section in preferred_sections[:2]:
-            queries.append(_normalise_spaces(f"{operand_prefix} {label} {section}"))
+            queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_label or label} {section}"))
     return list(dict.fromkeys(item for item in queries if item))
 
 
@@ -897,6 +962,11 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
     if not text:
         return "single_value"
 
+    generic_operand_labels = _extract_generic_operand_labels(query)
+    if _is_percent_point_difference_query(query):
+        return "difference"
+    if _is_single_metric_period_comparison(query, generic_operand_labels):
+        return "difference"
     if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "growth_rate")):
         return "growth_rate"
     if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "ratio")):
@@ -1175,6 +1245,21 @@ def _build_concept_required_operands(
     if operation_family == "ratio":
         if not any(role.startswith("numerator") for role in explicit_roles) or not any(role.startswith("denominator") for role in explicit_roles):
             return []
+
+    if operation_family in {"ratio", "sum"}:
+        deduped_specs: List[Dict[str, Any]] = []
+        deduped_roles: List[str] = []
+        seen_concepts: set[str] = set()
+        for spec, role in zip(ordered_specs, explicit_roles):
+            concept_key = str(spec.get("concept") or "").strip()
+            if concept_key and concept_key in seen_concepts:
+                continue
+            if concept_key:
+                seen_concepts.add(concept_key)
+            deduped_specs.append(spec)
+            deduped_roles.append(role)
+        ordered_specs = deduped_specs
+        explicit_roles = _normalize_operation_roles(operation_family, deduped_roles)
 
     operands: List[Dict[str, Any]] = []
     for index, spec in enumerate(ordered_specs, start=1):
@@ -2535,6 +2620,21 @@ def _candidate_has_numeric_value_signal(candidate: Dict[str, Any]) -> bool:
     return bool(re.search(r"\d", str(candidate.get("text") or "")))
 
 
+def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
+    metadata = dict(candidate.get("metadata") or {})
+    years: set[int] = set()
+    for raw in metadata.get("period_labels") or []:
+        years.update(int(token) for token in re.findall(r"20\d{2}", str(raw or "")))
+    for cell in metadata.get("structured_cells") or []:
+        cell_data = dict(cell or {})
+        for raw in (
+            str(cell_data.get("period_text") or ""),
+            " ".join(str(item).strip() for item in (cell_data.get("column_headers") or []) if str(item).strip()),
+        ):
+            years.update(int(token) for token in re.findall(r"20\d{2}", raw))
+    return sorted(years)
+
+
 def _candidate_is_descriptor_row(candidate: Dict[str, Any]) -> bool:
     metadata = dict(candidate.get("metadata") or {})
     row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
@@ -2560,6 +2660,79 @@ def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
     needles.discard("")
     return any(needle in _BALANCE_SHEET_AGGREGATE_LABELS for needle in needles)
+
+
+def _candidate_source_priority_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    statement_type: str,
+    value_role: str,
+    aggregation_stage: str,
+    local_heading: str,
+) -> float:
+    score = 0.0
+    desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
+
+    if _is_balance_sheet_aggregate_operand(operand):
+        if statement_type in {"summary_financials", "balance_sheet"}:
+            score += 3.0
+            if value_role == "aggregate":
+                score += 1.25
+            elif value_role == "detail":
+                score -= 0.5
+            if aggregation_stage in {"direct", "final"}:
+                score += 0.75
+            if "연결" in local_heading:
+                score += 0.5
+            elif "별도" in local_heading:
+                score -= 0.5
+        elif statement_type == "notes":
+            score -= 1.5
+            if value_role == "detail":
+                score -= 1.25
+
+    if desired_unit_family == "PERCENT":
+        if statement_type in {"mda", "summary_financials"}:
+            score += 1.25
+        elif statement_type == "notes":
+            score -= 0.35
+        if value_role == "adjustment":
+            score -= 1.0
+
+    return score
+
+
+def _candidate_period_table_coherence_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+) -> float:
+    metadata = dict(candidate.get("metadata") or {})
+    years = _candidate_explicit_years(candidate)
+    if not years:
+        return 0.0
+
+    score = 0.0
+    target_years = _operand_target_years(operand, query_years)
+    if target_years:
+        if any(year in years for year in target_years):
+            score += 1.0
+        else:
+            score -= 1.0
+
+    role = str(operand.get("role") or "").strip()
+    if role in {"current_period", "prior_period"} and len(years) >= 2:
+        score += 0.75
+        if str(metadata.get("table_source_id") or "").strip():
+            score += 0.35
+
+    desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
+    if desired_unit_family == "PERCENT" and len(years) >= 2:
+        score += 0.5
+
+    return score
 
 
 def _binding_policy_allows_candidate_shape(
@@ -2715,6 +2888,12 @@ def _candidate_satisfies_direct_acceptance_contract(
     if operation_family in {"lookup", "single_value"}:
         direct_match_strength = _candidate_direct_match_strength(candidate, operand)
         if direct_match_strength < 1.5:
+            return False
+
+    statement_type = str(metadata.get("statement_type") or "unknown").strip()
+    value_role = _candidate_value_role(candidate)
+    if _is_balance_sheet_aggregate_operand(operand):
+        if statement_type == "notes" and value_role == "detail":
             return False
 
     metadata_periods = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
@@ -2983,17 +3162,21 @@ def _score_operand_candidate(
         ):
             score += 0.75
 
-    if _is_balance_sheet_aggregate_operand(operand):
-        if statement_type in {"summary_financials", "balance_sheet"}:
-            score += 1.5
-            if "연결" in local_heading:
-                score += 0.75
-            elif "별도" in local_heading:
-                score -= 0.75
-        elif statement_type == "notes":
-            score -= 0.5
+    score += _candidate_source_priority_bonus(
+        candidate,
+        operand=operand,
+        statement_type=statement_type,
+        value_role=value_role,
+        aggregation_stage=aggregation_stage,
+        local_heading=local_heading,
+    )
 
     score += _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years) * 1.5
+    score += _candidate_period_table_coherence_bonus(
+        candidate,
+        operand=operand,
+        query_years=query_years,
+    )
 
     if str(metadata.get("table_source_id") or "").strip():
         score += 0.25

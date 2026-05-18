@@ -44,3 +44,28 @@
   - still not closed end-to-end:
     - latest successful runtime trace still used derived pretax income
     - latest successful runtime trace still used a wrong delta-like prior path
+
+- 2026-05-19
+  - reviewed remaining hardcoded runtime paths
+  - keep:
+    - direct > derived
+    - same-table > cross-table
+    - period/unit consistency
+    - canonical statement priority
+    - aggregate/detail fit
+  - refactor:
+    - query-type section bias tables
+    - concept-specific surface contracts
+    - percent/NIM surface and unit coercion
+    - string-built statement/section hint rules
+  - policy doc:
+    - docs/architecture/grounding_scoring_policy.md
+
+- 2026-05-19 runtime canary rerun
+  - SKH_T1_060 now closes with shared scoring changes
+    - canonical statement rows win for denominator grounding
+    - this is a positive generalization case, not a benchmark-only patch
+  - KBF_T1_017 is still open
+    - lookup closes on a direct percent value
+    - difference still binds the same row/value to current and prior
+    - next fix is stricter distinct-cell current/prior acceptance for percent metrics

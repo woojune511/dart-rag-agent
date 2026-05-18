@@ -222,6 +222,28 @@
         "연결재무제표 주석"
       ]
     },
+    "net_interest_margin": {
+      "display_name": "순이자마진",
+      "aliases": [
+        "NIM"
+      ],
+      "keywords": [
+        "순이자마진",
+        "NIM"
+      ],
+      "unit_family": "PERCENT",
+      "preferred_statement_types": [
+        "mda",
+        "summary_financials",
+        "notes"
+      ],
+      "preferred_sections": [
+        "영업의 개황",
+        "영업현황",
+        "주요 영업실적",
+        "요약재무정보"
+      ]
+    },
     "total_liabilities": {
       "display_name": "부채총계",
       "aliases": [

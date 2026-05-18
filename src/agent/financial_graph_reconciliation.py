@@ -22,6 +22,34 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentReconciliationMixin:
+    def _structured_candidate_unit_hint(
+        self,
+        *,
+        raw_value: str,
+        raw_unit: str,
+        candidate: Dict[str, Any],
+        operand: Dict[str, Any],
+        selected_cell: Dict[str, Any],
+    ) -> str:
+        desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
+        if desired_unit_family == "PERCENT":
+            if "%" in str(raw_unit or ""):
+                return raw_unit
+            label_surfaces = " ".join(
+                part
+                for part in (
+                    str(operand.get("label") or "").strip(),
+                    " ".join(str(item).strip() for item in (operand.get("aliases") or []) if str(item).strip()),
+                    " ".join(str(item).strip() for item in (selected_cell.get("column_headers") or []) if str(item).strip()),
+                    str((candidate.get("metadata") or {}).get("semantic_label") or "").strip(),
+                    str((candidate.get("metadata") or {}).get("row_label") or "").strip(),
+                )
+                if part
+            )
+            if _label_implies_percent_metric(label_surfaces):
+                return "%"
+        return raw_unit
+
     def _fallback_period_text_for_operand(self, operand: Dict[str, Any], query_years: List[int]) -> str:
         role = str(operand.get("role") or "").strip()
         if query_years and role == "current_period":
@@ -64,6 +92,13 @@ class FinancialAgentReconciliationMixin:
         metadata = dict(candidate.get("metadata") or {})
         raw_value = str(selected_cell.get("value_text") or "").strip()
         raw_unit = str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or "").strip()
+        raw_unit = self._structured_candidate_unit_hint(
+            raw_value=raw_value,
+            raw_unit=raw_unit,
+            candidate=candidate,
+            operand=operand,
+            selected_cell=selected_cell,
+        )
         normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
         if normalized_value is None:
             return None
@@ -569,6 +604,9 @@ candidate options:
 
             operand_role = str(operand.get("role") or "").strip()
             if operand_role in {"current_period", "prior_period"}:
+                reranked_rows.append(current)
+                continue
+            if str(active_subtask.get("operation_family") or "").strip().lower() in {"ratio", "sum"} and str(operand.get("concept") or "").strip():
                 reranked_rows.append(current)
                 continue
 
