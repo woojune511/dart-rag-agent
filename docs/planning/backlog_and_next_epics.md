@@ -96,18 +96,28 @@
 
 - planner가 모은 재료와 최종 답변 요구사항 사이의 contract는 아직 약하다
 - `difference`, `lookup`, `ratio` 결과가 answer-friendly structured result로 충분히 남지 않는다
+- direct lookup false positive를 score만으로 성공 처리하지 않도록 acceptance contract를 더 세게 둘 필요가 있다
 
 다음:
 
 - planner는 재료 수집 task에 집중
 - final synthesizer는 원본 질문 충족 여부와 최종 refusal을 책임
 - `planner_feedback -> replan -> close/refusal` loop를 benchmark 문항으로 고정
+- direct-first policy는 eager dual-plan보다 lazy replan + runtime acceptance contract로 정착
+
+최근 상태:
+
+- `NAV_T1_071`에서 이 루프의 최소 실전 검증은 끝났다
+- direct structured row grounding, same-table current/prior pairing,
+  aggregate evidence propagation이 함께 닫혔다
+- 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하는 것이다
 
 종료 조건:
 
 - `NAV_T1_071`류 질문에서 raw value와 derived value 요구가 함께 닫히고,
 - replan loop가 불필요한 중복 task를 만들지 않으며,
-- 재료 부족 시 aggregate 단계에서 명시적 final refusal이 나온다
+- 재료 부족 시 aggregate 단계에서 명시적 final refusal이 나오고,
+- false positive direct binding은 planner feedback 또는 fallback으로 안전하게 내려간다
 
 ### 1. Curated dataset 운영 경로 정리
 

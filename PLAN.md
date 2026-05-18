@@ -19,6 +19,8 @@
   - planner는 질문을 `operation_family + required_operands` 형태의 재료 수집 task로 분해
   - final synthesizer는 원본 질문과 `subtask_results`를 보고 최종 답 또는 `planner_feedback`를 결정
   - planner는 `planner_feedback`를 받아 기존 `pre_calc_planner`에서 patch append 방식으로 replan
+  - direct lookup은 planner recipe가 아니라 runtime grounding policy로 다룬다
+  - direct candidate는 score만으로 accept하지 않고 binding contract를 만족해야 성공으로 본다
   - runtime state에 `tasks`, `artifacts`, `table_object_json`을 남겨 source of truth를 만들기 시작
   - ambiguous top candidate는 deterministic scoring 후에만 LLM rerank로 보정
 
@@ -30,17 +32,17 @@
 | --- | --- |
 | 목표 | planner는 재료 수집만 하고, final synthesizer가 질문 충족 여부와 최종 refusal을 책임지는 구조 정착 |
 | 현재 자산 | concept-only ontology v3 draft, LLM concept planner, lightweight validator, `planner_feedback`, `plan_loop_count`, aggregate synthesizer |
-| 현재 문제 | `lookup`, `difference`, `ratio`가 answer contract를 충분히 구조화해 남기지 않아 synthesizer가 일부 질문에서 약함 |
-| 다음 할 일 | `NAV_T1_071`류를 기준으로 `planner_feedback -> replan -> close/refusal` 루프를 end-to-end 검증 |
-| 종료 조건 | planner와 synthesizer의 책임 경계가 안정되고, 부족 재료는 planner replan으로 보강하거나 aggregate refusal로 닫힘 |
+| 현재 문제 | `lookup`, `difference`, `ratio`가 answer contract를 충분히 구조화해 남기지 않아 synthesizer가 일부 질문에서 약함. direct false positive를 hard acceptance contract로 막는 규칙도 다른 concept family로 더 넓혀야 함 |
+| 다음 할 일 | `NAV_T1_071`에서 검증한 direct-first acceptance + evidence propagation 계약을 다른 numeric families에도 일반화 |
+| 종료 조건 | planner와 synthesizer의 책임 경계가 안정되고, 부족 재료는 planner replan으로 보강하거나 aggregate refusal로 닫히며, direct success는 score-only가 아닌 grounded contract로 일관되게 승인됨 |
 
 ### 1. Result schema settling
 
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | lookup/difference/ratio 결과를 answer-friendly structured result로 남겨 synthesizer가 안정적으로 조합 |
-| 현재 상태 | `calculation_result.series`, `derived_metrics`는 있으나 `current_value`, `prior_value`, `delta_value` 같은 operation-specific slots는 약함 |
-| 다음 할 일 | operation별 structured result schema 초안 추가 및 renderer / synthesizer가 그 필드를 우선 사용하게 정리 |
+| 현재 상태 | `current_value`, `prior_value`, `delta_value` 같은 슬롯은 생겼지만, renderer / synthesizer / evaluator가 이 슬롯을 일관되게 우선 사용하도록 더 정리해야 함 |
+| 다음 할 일 | operation별 structured result schema를 정리하고 renderer / synthesizer / evaluator contract를 맞추기 |
 | 종료 조건 | single-task와 multi-subtask 모두 원본 질문 충족 여부를 structured result만 보고 판정 가능 |
 
 ### 2. Concept-only planner validation
@@ -48,7 +50,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | concept-only ontology + LLM planner가 implicit / shorthand / multi-metric query를 runtime default로 감당할 수 있는지 검증 |
-| 현재 관측 | concept planner canary에서 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`는 잘 분해된다. `NAV_T1_071`는 planner 차원에서 `lookup + difference`로 개선됐지만 e2e close는 더 확인 필요 |
+| 현재 관측 | concept planner canary에서 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`는 잘 분해된다. `NAV_T1_071`도 `lookup + difference` decomposition과 e2e close까지 확인됐다 |
 | 다음 할 일 | concept planner canary와 ontology shadow compare를 계속 돌리며 default 승격 기준 정리 |
 | 종료 조건 | planner가 benchmark-shaped `metric_family` 없이도 주요 numeric family를 안정적으로 재료 수집 task로 분해 |
 
@@ -104,20 +106,18 @@
 
 ## 2026-05-18 Latest Update
 
-- `NAV_T1_071` remains the active canary for `lookup + difference` close quality.
-- Planner status:
-  - stable enough for this canary
-  - no longer the main blocker
-- Active runtime fix order:
-  1. make direct pretax-income rows outrank derived `net_income + tax_expense` reconstruction
-  2. make same-table `2023 current` / `2022 prior` cell pairing outrank delta-like or mixed-row candidates
-  3. rerun `NAV_T1_071` until both the final natural-language answer and structured trace close correctly
-- Newly implemented policy work that should now be treated as baseline:
-  - stronger direct-match scoring from semantic labels and aliases
-  - reconciliation entries preserve operand `role` and `concept`
-  - explicit-period `difference` prefers same-candidate current/prior extraction
-  - structured extraction continues past a bad top candidate instead of stopping early
-- Success condition for this mini-epic:
-  - `NAV_T1_071` closes with a direct 2023 pretax-income value
-  - the prior-period value comes from the same table/row family
-  - the `difference` task emits a true current/prior subtraction result, not a reused delta row
+- `NAV_T1_071` has now been closed end-to-end and should be treated as a completed canary for the direct-first mini-epic.
+- What actually closed it:
+  1. direct lookup stopped degrading into generic context fallback
+  2. surrogate metrics such as `계속영업순이익` stopped being accepted as pretax-income direct values
+  3. raw table rows remained available as reconciliation candidates even when row/value JSON existed
+  4. same-table `2023 current` / `2022 prior` split rows could be paired into a true subtraction result
+  5. aggregate projection preserved subtask `runtime_evidence`, restoring evaluator `numeric_retrieval_support`
+- Verified outcome on the NAVER rerun bundle:
+  - `Numeric Pass Rate = 1.000`
+  - `Faithfulness = 1.000`
+  - `Completeness = 1.000`
+- Active priority now shifts to:
+  1. generalized result schema settling
+  2. broadening direct-first acceptance/evidence propagation beyond this single canary
+  3. concept-only planner default promotion criteria

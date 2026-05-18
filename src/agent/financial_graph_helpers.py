@@ -50,6 +50,7 @@ __all__ = [
     '_extract_quoted_metric_labels',
     '_extract_generic_operand_labels',
     '_is_single_metric_period_comparison',
+    '_requires_direct_numeric_grounding',
     '_extract_year_tokens',
     '_build_generic_metric_aliases',
     '_infer_statement_and_section_hints',
@@ -75,6 +76,8 @@ __all__ = [
     '_operand_period_focus',
     '_score_structured_cell',
     '_operand_needles',
+    '_text_has_positive_surface',
+    '_text_has_negative_surface',
     '_operand_text_match',
     '_extract_numeric_value_after_operand_text',
     '_operand_row_matches_requirement',
@@ -86,6 +89,8 @@ __all__ = [
     '_build_table_row_reconciliation_candidates',
     '_candidate_has_numeric_value_signal',
     '_candidate_is_descriptor_row',
+    '_candidate_is_direct_grounding_candidate',
+    '_candidate_satisfies_direct_acceptance_contract',
     '_is_balance_sheet_aggregate_operand',
     '_candidate_matches_operand',
     '_score_operand_candidate',
@@ -628,6 +633,39 @@ def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -
     if len(distinct) <= 1:
         return True
     return False
+
+
+def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
+    task = dict(active_subtask or {})
+    operation_family = str(task.get("operation_family") or "").strip().lower()
+    if operation_family in {"lookup", "single_value"}:
+        return True
+    if operation_family not in {"difference", "growth_rate"}:
+        return False
+
+    required_operands = [
+        dict(item)
+        for item in (task.get("required_operands") or [])
+        if bool(item.get("required", True))
+    ]
+    if not required_operands:
+        return False
+
+    concepts = {
+        str(item.get("concept") or "").strip()
+        for item in required_operands
+        if str(item.get("concept") or "").strip()
+    }
+    roles = {
+        str(item.get("role") or "").strip()
+        for item in required_operands
+        if str(item.get("role") or "").strip()
+    }
+    if len(concepts) == 1 and {"current_period", "prior_period"}.issubset(roles):
+        return True
+
+    operand_labels = [str(item.get("label") or "").strip() for item in required_operands if str(item.get("label") or "").strip()]
+    return _is_single_metric_period_comparison(str(task.get("query") or ""), operand_labels)
 
 
 def _extract_year_tokens(query: str, report_scope: Dict[str, Any]) -> List[int]:
@@ -1765,6 +1803,103 @@ def _operand_needles(operand: Dict[str, Any]) -> List[str]:
     return [needle for needle in [label, *aliases] if needle]
 
 
+_CONCEPT_SURFACE_CONTRACTS: Dict[str, Dict[str, List[str]]] = {
+    "income_before_income_taxes": {
+        "positive": [
+            "법인세비용차감전순이익",
+            "법인세비용차감전순손익",
+            "법인세비용 차감 전 순이익",
+            "법인세비용 차감 전 순손익",
+            "세전이익",
+            "세전순이익",
+        ],
+        "negative": [
+            "계속영업순이익",
+            "계속영업순손익",
+            "당기순이익",
+            "당기순손익",
+        ],
+    }
+}
+
+
+def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
+    concept_key = _normalise_spaces(str(operand.get("concept") or ""))
+    if concept_key and concept_key in _CONCEPT_SURFACE_CONTRACTS:
+        return dict(_CONCEPT_SURFACE_CONTRACTS[concept_key])
+
+    needles = " ".join(_operand_needles(operand))
+    for contract in _CONCEPT_SURFACE_CONTRACTS.values():
+        positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
+        if any(_normalise_spaces(term) in _normalise_spaces(needles) for term in positive_terms):
+            return dict(contract)
+    return {}
+
+
+def _text_has_contract_term(text: str, terms: List[str]) -> bool:
+    haystack = _normalise_spaces(text or "")
+    if not haystack:
+        return False
+    haystack_compact = re.sub(r"\s+", "", haystack)
+    for raw_term in terms:
+        normalized_term = _normalise_spaces(raw_term)
+        if not normalized_term:
+            continue
+        term_compact = re.sub(r"\s+", "", normalized_term)
+        if normalized_term in haystack or (term_compact and term_compact in haystack_compact):
+            return True
+    return False
+
+
+def _text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
+    contract = _operand_surface_contract(operand)
+    return _text_has_contract_term(text, list(contract.get("positive") or []))
+
+
+def _text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
+    contract = _operand_surface_contract(operand)
+    return _text_has_contract_term(text, list(contract.get("negative") or []))
+
+
+def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    contract = _operand_surface_contract(operand)
+    if not contract:
+        return False
+
+    metadata = dict(candidate.get("metadata") or {})
+    authoritative_surfaces = [
+        str(metadata.get("semantic_label") or "").strip(),
+        str(metadata.get("row_label") or "").strip(),
+        str(metadata.get("aggregate_label") or "").strip(),
+        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
+        str(metadata.get("table_row_labels_text") or "").strip(),
+    ]
+    authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
+    if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
+        return True
+
+    if any(_text_has_positive_surface(surface, operand) for surface in authoritative_surfaces):
+        return False
+
+    return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
+
+
+def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    contract = _operand_surface_contract(operand)
+    if not contract:
+        return False
+
+    authoritative_surfaces = [
+        str(row.get("matched_operand_label") or "").strip(),
+        str(row.get("label") or "").strip(),
+    ]
+    authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
+    if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
+        return True
+    return False
+
+
 def _operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
     haystack = _normalise_spaces(text or "")
     if not haystack:
@@ -1805,6 +1940,9 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
 
 
 def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    if _operand_row_conflicts_with_requirement(row, operand):
+        return False
+
     bound_label = str(row.get("matched_operand_label") or "").strip()
     operand_label = str(operand.get("label") or "").strip()
     if bound_label and operand_label and _normalise_spaces(bound_label) == _normalise_spaces(operand_label):
@@ -2200,6 +2338,7 @@ def _build_table_row_reconciliation_candidates(
     local_heading = str(metadata.get("local_heading") or "").strip()
     section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
     candidates: List[Dict[str, Any]] = []
+    seen_row_texts: set[str] = set()
     value_candidates = _build_table_value_reconciliation_candidates(
         candidate_id_prefix=candidate_id_prefix,
         anchor=anchor,
@@ -2260,6 +2399,9 @@ def _build_table_row_reconciliation_candidates(
             )
             candidate["metadata"]["row_headers"] = row_headers
             candidate["metadata"]["structured_cells"] = cells
+            row_text = _normalise_spaces(str(candidate["metadata"].get("row_text") or ""))
+            if row_text:
+                seen_row_texts.add(row_text)
             candidates.append(candidate)
         column_candidates = _build_table_column_reconciliation_candidates(
             candidate_id_prefix=candidate_id_prefix,
@@ -2268,16 +2410,19 @@ def _build_table_row_reconciliation_candidates(
             row_records=row_records if isinstance(row_records, list) else [],
         )
         for candidate in column_candidates:
+            row_text = _normalise_spaces(str((candidate.get("metadata") or {}).get("row_text") or ""))
+            if row_text:
+                seen_row_texts.add(row_text)
             candidates.append(candidate)
-        if candidates:
-            return candidates
 
     rows = [_normalise_spaces(row) for row in str(table_text or "").splitlines() if _normalise_spaces(row)]
     if not rows:
-        return []
+        return candidates
 
     for idx, row_text in enumerate(rows):
         if "|" not in row_text:
+            continue
+        if row_text in seen_row_texts:
             continue
         row_label = _extract_table_row_label(row_text)
         composite_text = " ".join(
@@ -2408,7 +2553,176 @@ def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     return any(needle in _BALANCE_SHEET_AGGREGATE_LABELS for needle in needles)
 
 
+def _binding_policy_allows_candidate_shape(
+    *,
+    value_role: str,
+    aggregation_stage: str,
+    operand_binding_policy: Dict[str, Any],
+) -> bool:
+    normalized_value_role = _normalise_spaces(value_role)
+    normalized_stage = _normalise_spaces(aggregation_stage)
+    avoid_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_value_roles") or [])
+        if str(item).strip()
+    }
+    avoid_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    if normalized_value_role and normalized_value_role in avoid_value_roles:
+        return False
+    if normalized_stage and normalized_stage in avoid_aggregation_stages:
+        return False
+
+    preferred_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    }
+    preferred_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    if preferred_value_roles and normalized_value_role not in preferred_value_roles:
+        return False
+    if preferred_aggregation_stages and normalized_stage not in preferred_aggregation_stages:
+        return False
+    return True
+
+
+def _candidate_is_direct_grounding_candidate(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    constraints: Dict[str, Any],
+    query_years: List[int],
+    operation_family: str = "",
+) -> bool:
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
+    if candidate_kind not in {"structured_value", "structured_row", "structured_column_value", "table_row"}:
+        return False
+    if _candidate_is_descriptor_row(candidate):
+        return False
+    if not _candidate_has_numeric_value_signal(candidate):
+        return False
+
+    direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+    if direct_match_strength < 1.0:
+        return False
+
+    operand_binding_policy = dict(operand.get("binding_policy") or {})
+    value_role = _candidate_value_role(candidate)
+    aggregation_stage = _candidate_aggregation_stage(candidate)
+    if not _binding_policy_allows_candidate_shape(
+        value_role=value_role,
+        aggregation_stage=aggregation_stage,
+        operand_binding_policy=operand_binding_policy,
+    ):
+        return False
+
+    desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
+    if desired_consolidation == "unknown":
+        desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
+    candidate_consolidation = str(metadata.get("consolidation_scope") or "unknown").strip()
+    if (
+        desired_consolidation != "unknown"
+        and candidate_consolidation != "unknown"
+        and candidate_consolidation != desired_consolidation
+    ):
+        return False
+
+    desired_period_focus = _operand_period_focus(
+        operand,
+        str((constraints or {}).get("period_focus") or "unknown").strip(),
+    )
+    if desired_period_focus == "unknown":
+        desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
+    semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or metadata.get("row_label") or ""))
+    if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label):
+        return False
+    candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
+    row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
+    trust_candidate_period_focus = not (candidate_kind == "table_row" and row_text)
+    if trust_candidate_period_focus:
+        if desired_period_focus == "current" and candidate_period_focus == "prior":
+            return False
+        if desired_period_focus == "prior" and candidate_period_focus == "current":
+            return False
+
+    if operation_family in {"lookup", "single_value"} and candidate_kind == "table_row":
+        if row_text and _is_delta_like_row_label(row_text):
+            return False
+
+    return True
+
+
+def _candidate_satisfies_direct_acceptance_contract(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    constraints: Dict[str, Any],
+    query_years: List[int],
+    operation_family: str = "",
+    selected_cell: Optional[Dict[str, Any]] = None,
+) -> bool:
+    if not _candidate_is_direct_grounding_candidate(
+        candidate,
+        operand=operand,
+        constraints=constraints,
+        query_years=query_years,
+        operation_family=operation_family,
+    ):
+        return False
+
+    metadata = dict(candidate.get("metadata") or {})
+    desired_period_focus = _operand_period_focus(
+        operand,
+        str((constraints or {}).get("period_focus") or "unknown").strip(),
+    )
+    if selected_cell:
+        period_text = _structured_cell_period_text(
+            selected_cell,
+            query_years,
+            desired_period_focus,
+        )
+        normalized_period = _normalise_spaces(period_text)
+        if desired_period_focus == "current" and normalized_period and any(
+            token in normalized_period for token in ("전기", "이전")
+        ):
+            return False
+        if desired_period_focus == "prior" and normalized_period and any(
+            token in normalized_period for token in ("당기", "현재")
+        ):
+            return False
+        target_years = _operand_target_years(operand, query_years)
+        explicit_years = [int(token) for token in re.findall(r"20\d{2}", period_text or "")]
+        if target_years and explicit_years and not any(year in explicit_years for year in target_years):
+            return False
+
+    if operation_family in {"lookup", "single_value"}:
+        direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+        if direct_match_strength < 1.5:
+            return False
+
+    metadata_periods = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
+    target_years = _operand_target_years(operand, query_years)
+    if desired_period_focus == "prior" and target_years and metadata_periods:
+        flattened = " ".join(metadata_periods)
+        explicit_years = [int(token) for token in re.findall(r"20\d{2}", flattened)]
+        if explicit_years and not any(year in explicit_years for year in target_years):
+            return False
+
+    return True
+
+
 def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    if _candidate_conflicts_with_operand_concept(candidate, operand):
+        return False
+
     metadata = dict(candidate.get("metadata") or {})
     row_label = str(metadata.get("row_label") or "").strip()
     if _operand_text_match(row_label, operand):
@@ -2443,6 +2757,9 @@ def _is_delta_like_row_label(label: str) -> bool:
 
 def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
     """Score how directly a candidate label represents the requested operand."""
+    if _candidate_conflicts_with_operand_concept(candidate, operand):
+        return 0.0
+
     metadata = dict(candidate.get("metadata") or {})
     surfaces: List[tuple[str, float]] = [
         (str(metadata.get("semantic_label") or "").strip(), 3.0),
@@ -2464,6 +2781,8 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
             1.5,
         ),
         (str(metadata.get("aggregate_label") or "").strip(), 1.0),
+        (str(metadata.get("table_row_labels_text") or "").strip(), 1.25),
+        (str(metadata.get("row_text") or "").strip(), 1.0),
     ]
     best = 0.0
     for surface, exact_bonus in surfaces:
@@ -2492,6 +2811,9 @@ def _score_operand_candidate(
     pass before any optional LLM reranking is considered.
     """
     metadata = dict(candidate.get("metadata") or {})
+    if _candidate_conflicts_with_operand_concept(candidate, operand):
+        return -10.0
+
     score = 0.0
     row_label = str(metadata.get("row_label") or "").strip()
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
@@ -2515,6 +2837,13 @@ def _score_operand_candidate(
         score += 0.5
     elif candidate_kind == "chunk":
         score -= 0.25
+
+    if candidate_kind in {"structured_value", "structured_row", "structured_column_value", "table_row"}:
+        direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+        if direct_match_strength >= 2.5:
+            score += 1.25
+        elif direct_match_strength >= 1.5:
+            score += 0.5
 
     value_role = _candidate_value_role(candidate)
     aggregation_stage = _candidate_aggregation_stage(candidate)
@@ -2725,6 +3054,7 @@ def _deterministic_reconcile_task(
 
     preferred_statement_types = [str(item).strip() for item in (active_subtask.get("preferred_statement_types") or []) if str(item).strip()]
     constraints = dict(active_subtask.get("constraints") or {})
+    operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
     required_operands = [dict(item) for item in (active_subtask.get("required_operands") or []) if bool(item.get("required", True))]
 
     matched_operands: List[Dict[str, Any]] = []
@@ -2748,6 +3078,29 @@ def _deterministic_reconcile_task(
         operand_top_candidates[label] = ranked
         if ranked:
             top = ranked[:3]
+            direct_candidate = next(
+                (
+                    candidate
+                    for candidate in ranked
+                    if _candidate_is_direct_grounding_candidate(
+                        candidate,
+                        operand=operand,
+                        constraints=constraints,
+                        query_years=years,
+                        operation_family=operation_family,
+                    )
+                ),
+                None,
+            )
+            if direct_candidate:
+                direct_candidate_id = str(direct_candidate.get("candidate_id") or "").strip()
+                existing_ids = {
+                    str(item.get("candidate_id") or "").strip()
+                    for item in top
+                    if str(item.get("candidate_id") or "").strip()
+                }
+                if direct_candidate_id and direct_candidate_id not in existing_ids:
+                    top = [*top, direct_candidate]
             matched_operands.append(
                 {
                     "label": label,

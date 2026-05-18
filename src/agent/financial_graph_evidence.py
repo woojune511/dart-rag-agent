@@ -483,23 +483,37 @@ class FinancialAgentEvidenceMixin:
 
     def _build_evidence_context(self, docs) -> Dict[str, Any]:
         parts = []
-        anchor_lookup: Dict[str, Dict[str, Any]] = {}
+        anchor_lookup: Dict[str, List[Dict[str, Any]]] = {}
         seen_parents: set = set()
 
         for doc, _score in docs:
             metadata = doc.metadata or {}
             anchor = self._build_source_anchor(metadata)
-            anchor_lookup[anchor] = {
-                "company": metadata.get("company"),
-                "year": metadata.get("year"),
-                "report_type": metadata.get("report_type"),
-                "section": metadata.get("section"),
-                "section_path": metadata.get("section_path", metadata.get("section")),
-                "block_type": metadata.get("block_type"),
-                "graph_relation": metadata.get("graph_relation"),
-                "chunk_uid": metadata.get("chunk_uid"),
-                "parent_id": metadata.get("parent_id"),
-            }
+            anchor_lookup.setdefault(anchor, []).append(
+                {
+                    "metadata": {
+                        "company": metadata.get("company"),
+                        "year": metadata.get("year"),
+                        "report_type": metadata.get("report_type"),
+                        "section": metadata.get("section"),
+                        "section_path": metadata.get("section_path", metadata.get("section")),
+                        "block_type": metadata.get("block_type"),
+                        "graph_relation": metadata.get("graph_relation"),
+                        "chunk_uid": metadata.get("chunk_uid"),
+                        "parent_id": metadata.get("parent_id"),
+                        "table_source_id": metadata.get("table_source_id"),
+                        "table_header_context": metadata.get("table_header_context"),
+                        "table_summary_text": metadata.get("table_summary_text"),
+                        "table_context": metadata.get("table_context"),
+                        "unit_hint": metadata.get("unit_hint"),
+                        "statement_type": metadata.get("statement_type"),
+                        "consolidation_scope": metadata.get("consolidation_scope"),
+                        "period_focus": metadata.get("period_focus"),
+                        "period_labels": metadata.get("period_labels"),
+                    },
+                    "page_content": str(doc.page_content or ""),
+                }
+            )
 
             parent_id = metadata.get("parent_id")
             graph_relation = metadata.get("graph_relation")
@@ -528,13 +542,71 @@ class FinancialAgentEvidenceMixin:
             "available_anchors": list(anchor_lookup.keys()),
         }
 
+    def _resolve_anchor_metadata(
+        self,
+        anchor_lookup: Dict[str, Any],
+        anchor: str,
+        *,
+        quote_surface: str = "",
+        claim_surface: str = "",
+    ) -> Dict[str, Any]:
+        lookup_value = anchor_lookup.get(anchor) or []
+        if isinstance(lookup_value, dict):
+            return dict(lookup_value)
+        entries = [dict(item) for item in lookup_value if isinstance(item, dict)]
+        if not entries:
+            return {}
+
+        desired_surface = _normalise_spaces(quote_surface or claim_surface)
+        desired_tokens = [
+            token
+            for token in re.split(r"[|\s]+", desired_surface)
+            if token and len(token) >= 2
+        ]
+
+        def _entry_score(entry: Dict[str, Any]) -> float:
+            metadata = dict(entry.get("metadata") or {})
+            haystack = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(entry.get("page_content") or ""),
+                        str(metadata.get("table_context") or ""),
+                        str(metadata.get("table_header_context") or ""),
+                        str(metadata.get("table_summary_text") or ""),
+                    )
+                    if part
+                )
+            )
+            score = 0.0
+            if desired_surface and desired_surface in haystack:
+                score += 8.0
+            elif desired_tokens:
+                overlap = sum(1 for token in desired_tokens if token in haystack)
+                score += min(float(overlap), 6.0)
+            if str(metadata.get("block_type") or "").strip().lower() == "table":
+                score += 0.5
+            if str(metadata.get("unit_hint") or "").strip():
+                score += 0.25
+            if str(metadata.get("table_source_id") or "").strip():
+                score += 0.25
+            return score
+
+        best = max(entries, key=_entry_score)
+        return dict(best.get("metadata") or {})
+
     def _build_runtime_evidence_item(
         self,
         item: EvidenceItem,
         index: int,
-        anchor_lookup: Dict[str, Dict[str, Any]],
+        anchor_lookup: Dict[str, Any],
     ) -> Dict[str, Any]:
-        metadata = dict(anchor_lookup.get(item.source_anchor) or {})
+        metadata = self._resolve_anchor_metadata(
+            anchor_lookup,
+            item.source_anchor,
+            quote_surface=str(item.quote_span or ""),
+            claim_surface=str(item.claim or ""),
+        )
         allowed_terms: List[str] = []
         seen_terms = set()
         for term in item.allowed_terms:
@@ -556,6 +628,53 @@ class FinancialAgentEvidenceMixin:
         if item.parent_category:
             result["parent_category"] = item.parent_category.strip()
         return result
+
+    def _evidence_item_conflicts_with_operand(self, item: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+        quote_surface = str(item.get("quote_span") or item.get("raw_row_text") or "").strip()
+        if quote_surface and _text_has_negative_surface(quote_surface, operand):
+            return True
+
+        claim_surface = str(item.get("claim") or "").strip()
+        if claim_surface and _text_has_negative_surface(claim_surface, operand) and not _text_has_positive_surface(claim_surface, operand):
+            return True
+        return False
+
+    def _is_direct_numeric_table_backed_evidence_item(self, item: Dict[str, Any]) -> bool:
+        metadata = dict(item.get("metadata") or {})
+        block_type = str(metadata.get("block_type") or "").strip().lower()
+        has_table_metadata = bool(
+            str(metadata.get("table_source_id") or "").strip()
+            or str(metadata.get("table_header_context") or "").strip()
+            or block_type == "table"
+        )
+        if not has_table_metadata:
+            return False
+
+        surface = _normalise_spaces(
+            str(item.get("raw_row_text") or item.get("quote_span") or "")
+        )
+        if not surface or not re.search(r"\d", surface):
+            return False
+        return True
+
+    def _filter_evidence_items_for_required_operands(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        state: FinancialAgentState,
+    ) -> List[Dict[str, Any]]:
+        required_operands = [
+            dict(item)
+            for item in ((state.get("active_subtask") or {}).get("required_operands") or [])
+            if bool(item.get("required", True))
+        ]
+        if not required_operands:
+            return evidence_items
+
+        filtered: List[Dict[str, Any]] = []
+        for item in evidence_items:
+            if any(not self._evidence_item_conflicts_with_operand(item, operand) for operand in required_operands):
+                filtered.append(item)
+        return filtered
 
     def _sort_evidence_items(self, evidence_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         relevance_order = {"high": 0, "medium": 1, "low": 2}
@@ -1265,6 +1384,7 @@ class FinancialAgentEvidenceMixin:
         docs = state.get("retrieved_docs", [])
         if not docs:
             return {"evidence_bullets": [], "evidence_items": [], "evidence_status": "missing"}
+        direct_numeric_grounding = _requires_direct_numeric_grounding(state.get("active_subtask") or {})
 
         structured_llm = self.llm.with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
@@ -1333,7 +1453,12 @@ class FinancialAgentEvidenceMixin:
                         "support_level": "context",
                         "question_relevance": "medium",
                         "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
-                        "metadata": dict(anchor_lookup.get(anchor) or {}),
+                        "metadata": self._resolve_anchor_metadata(
+                            anchor_lookup,
+                            anchor,
+                            quote_surface=snippet,
+                            claim_surface=snippet,
+                        ),
                     }
                 )
             return bullets, items
@@ -1352,15 +1477,37 @@ class FinancialAgentEvidenceMixin:
                 self._build_runtime_evidence_item(item, index, anchor_lookup)
                 for index, item in enumerate(result.evidence, start=1)
             ]
+            evidence_items = self._filter_evidence_items_for_required_operands(evidence_items, state)
+            if direct_numeric_grounding:
+                evidence_items = [
+                    item for item in evidence_items
+                    if self._is_direct_numeric_table_backed_evidence_item(item)
+                ]
             evidence_bullets = [
-                f"- {item.source_anchor} {item.claim} ({item.support_level})"
-                for item in result.evidence
+                f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
+                for item in evidence_items
             ]
+            if result.evidence and not evidence_items:
+                logger.info("[evidence] filtered all extracted evidence items due to operand binding conflicts")
+            if direct_numeric_grounding and not evidence_items:
+                logger.info("[evidence] direct numeric task produced no grounded evidence — skipping deterministic fallback")
+                return {
+                    "evidence_bullets": [],
+                    "evidence_items": [],
+                    "evidence_status": "missing",
+                }
             logger.info("[evidence] coverage=%s bullets=%s", result.coverage, len(evidence_bullets))
 
             # structured output이 missing을 반환했지만 docs는 있는 경우:
             # hard abstain 대신 deterministic fallback으로 sparse 답변 시도
             if not evidence_bullets and result.coverage == "missing":
+                if direct_numeric_grounding:
+                    logger.info("[evidence] direct numeric task returned missing — preserving missing instead of context fallback")
+                    return {
+                        "evidence_bullets": [],
+                        "evidence_items": [],
+                        "evidence_status": "missing",
+                    }
                 logger.info("[evidence] structured output returned missing with docs present — using deterministic fallback")
                 fallback, fallback_items = _deterministic_fallback(docs)
                 return {
@@ -1375,6 +1522,13 @@ class FinancialAgentEvidenceMixin:
                 "evidence_status": result.coverage,
             }
         except Exception as exc:
+            if direct_numeric_grounding:
+                logger.warning("[evidence] direct numeric extraction failed without grounded evidence: %s", exc)
+                return {
+                    "evidence_bullets": [],
+                    "evidence_items": [],
+                    "evidence_status": "missing",
+                }
             logger.warning("Evidence extraction failed, using deterministic fallback: %s", exc)
             fallback, fallback_items = _deterministic_fallback(docs)
             return {

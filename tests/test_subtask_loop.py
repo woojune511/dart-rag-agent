@@ -130,6 +130,13 @@ class SubtaskLoopTests(unittest.TestCase):
                     "status": "ok",
                     "artifact_ids": ["artifact:001", "artifact:002", "artifact:003"],
                     "selected_claim_ids": ["ev_001"],
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_001",
+                            "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                            "raw_row_text": "부채총계 | 92,228,115",
+                        }
+                    ],
                     "calculation_operands": [
                         {"row_id": "debt", "label_kr": "부채총계", "value": "92228115"},
                         {"row_id": "equity", "label_kr": "자본총계", "value": "363677865"},
@@ -142,6 +149,13 @@ class SubtaskLoopTests(unittest.TestCase):
             "answer": "2023년 연결기준 유동비율은 258.8%입니다.",
             "compressed_answer": "2023년 연결기준 유동비율은 258.8%입니다.",
             "selected_claim_ids": ["ev_002"],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_002",
+                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                    "raw_row_text": "유동자산 | 137,621,922",
+                }
+            ],
             "tasks": [
                 {
                     "task_id": "task_2",
@@ -201,6 +215,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated["calculation_plan"]["mode"], "aggregate_subtasks")
         self.assertEqual(updated["calculation_plan"]["subtask_count"], 2)
         self.assertEqual(updated["calculation_result"]["formatted_result"], updated["answer"])
+        self.assertEqual(len(updated["evidence_items"]), 2)
+        self.assertEqual(
+            [row["evidence_id"] for row in updated["evidence_items"]],
+            ["ev_001", "ev_002"],
+        )
         self.assertEqual(
             updated["calculation_result"]["derived_metrics"]["subtask_ids"],
             ["task_1", "task_2"],

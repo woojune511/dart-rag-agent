@@ -103,6 +103,11 @@ The planner should not answer:
 
 That responsibility belongs to the final synthesizer.
 
+The planner also should not overfit itself to direct-vs-derived execution
+recipes. Its job is to gather enough material for the runtime to choose the best
+grounded answer path, not to pre-bake every fallback branch into ontology or a
+metric-specific recipe table.
+
 ### Current implementation status
 
 - legacy metric-family planning still exists as a compatibility path
@@ -162,6 +167,39 @@ Replan behavior:
 
 This keeps graph topology simple while preserving patch-style planning behavior.
 
+### Current validation point
+
+`NAV_T1_071` is now the first fully closed proof point for this contract:
+
+- planner decomposes into `lookup + difference`
+- runtime grounding prefers direct structured rows
+- aggregate synthesis keeps the material-gathering contract intact
+- aggregate projection now preserves subtask `runtime_evidence` so evaluator and
+  downstream consumers can see the same direct evidence the calculator used
+- the final evaluator run reached:
+  - `numeric_pass_rate = 1.0`
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+
+### Why re-use `pre_calc_planner` instead of a separate replan node
+
+Current design intentionally reuses the same graph node for both:
+
+- initial planning
+- feedback-driven re-planning
+
+The node stays physically the same, but state makes the mode explicit:
+
+- `planner_mode = "initial"`
+- `planner_mode = "replan"`
+
+This keeps graph wiring simple while letting Python code enforce safe behavior:
+
+- initial mode may create a fresh task list
+- replan mode may only append missing tasks
+- existing task results are preserved
+- LLM output is treated as a patch proposal, not an overwrite authority
+
 
 ## Parser Contract
 
@@ -211,6 +249,130 @@ These fields should be available on numeric/table chunks whenever possible:
   - `unit_hint`
 - Empty lists should not be emitted into vector-store metadata.
 - `unknown` is acceptable; silent omission is preferred over wrong confident tags.
+
+## Direct-first grounding policy
+
+For numeric lookup-style questions, the runtime should behave as:
+
+1. try to bind a direct grounded value
+2. accept that value only if it satisfies a stricter binding contract
+3. if direct binding fails, degrade gracefully into a fallback path
+
+This is different from a planner-level "primary plan / fallback plan" recipe.
+The current preferred architecture is:
+
+- ontology stays concept-centric
+- planner stays material-gathering
+- runtime grounding decides whether a direct candidate is acceptable
+- synthesizer and planner feedback decide whether a fallback task is needed
+
+The important implementation detail is that direct-first success is not only a
+ranking decision. It is also an evidence propagation decision:
+
+- the accepted direct row/value must survive into operand extraction
+- subtask-level evidence must survive into aggregate projection
+- final state must still expose that evidence for evaluator and audit paths
+
+Without that last step, a run can be numerically correct but still fail
+`numeric_retrieval_support` because the final trace no longer carries the direct
+row evidence that justified the answer.
+
+### What counts as "direct"
+
+Direct grounding means the selected candidate itself represents the requested
+concept/value, for example:
+
+- a `structured_value` with matching `semantic_label`
+- a statement row that directly exposes the requested amount
+- a same-table current/prior pair for explicit period comparison
+
+Direct grounding does **not** mean:
+
+- a narrative hint that merely mentions the concept
+- a detail row that does not represent the final requested value
+- a delta-like row when the user asked for `current_period` or `prior_period`
+- an indirect reconstruction such as `net_income + tax_expense` when a direct
+  pretax-income row exists
+
+### Acceptance contract for direct lookup
+
+The direct path should not succeed based on score alone.
+
+A direct candidate should be treated as accepted only when it satisfies the
+binding policy implied by the operand and ontology, for example:
+
+- the concept truly matches
+- `value_role` is acceptable
+- `aggregation_stage` is acceptable
+- period binding is compatible with the requested role
+- scope is compatible with the requested company / report / consolidation
+
+If a candidate is only "kind of plausible" but does not satisfy these
+conditions, it should be rejected rather than silently short-circuiting the
+fallback path.
+
+This is especially important for false positives such as:
+
+- detail rows being mistaken for final aggregate values
+- narrative mentions being mistaken for direct answers
+- delta rows being mistaken for current/prior raw values
+- indirect reconstructed values beating a direct row
+
+### Conditional fallback without eager branching
+
+The runtime should prefer lazy fallback over eager plan expansion.
+
+Preferred behavior:
+
+- planner creates the minimum material-gathering tasks needed now
+- reconciliation / extraction attempts direct grounded binding first
+- if direct acceptance fails, downstream synthesis emits `planner_feedback`
+- `pre_calc_planner` re-enters in `replan` mode and appends only the missing
+  tasks
+
+This keeps state lighter than generating both:
+
+- "direct lookup" branch
+- "operand calculation" branch
+
+from the very beginning.
+
+### Current practical implication for `NAV_T1_071`
+
+The active runtime issue is no longer broad planning failure. The direct-first
+policy now needs to be made stricter in two concrete ways:
+
+- a direct pretax-income row must outrank indirect reconstruction from
+  `net_income + tax_expense`
+- an explicit `difference` task must prefer same-table current/prior cell pairs
+  over mixed rows or pre-computed delta-like rows
+
+These are runtime grounding and acceptance problems, not ontology-recipe
+problems.
+
+## Lightweight validator scope
+
+The planner validator should remain intentionally narrow.
+
+It should check only:
+
+- output shape
+- allowed `operation_family`
+- ontology-defined concepts / concept groups
+- basic role compatibility
+- obvious missing required fields
+
+It should not become:
+
+- a second planner
+- a semantic proof engine
+- a query-token heuristic layer for words such as `각각`, `및`, `와`
+
+Those responsibilities belong to:
+
+- ontology concept/group design
+- planner prompting
+- runtime synthesis / feedback loops
 
 
 ## Table-aware Parsing

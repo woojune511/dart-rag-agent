@@ -33,6 +33,8 @@
   - final synthesizer가 원본 질문과 `subtask_results`를 함께 읽고 최종 답을 조합
   - 재료가 부족하면 synthesizer가 `planner_feedback`를 남기고 기존 `pre_calc_planner`를 replan mode로 재사용
   - replan budget을 모두 써도 재료가 부족하면 `aggregate_subtasks`가 사용자-facing 최종 refusal / partial answer를 확정
+  - direct lookup 우선 정책은 planner recipe가 아니라 runtime grounding / acceptance policy로 다룬다
+  - direct candidate는 score만 높다고 성공으로 확정하지 않고 binding contract를 만족해야 accept한다
 - 내부 실행 구조 일반화를 위한 1차 schema를 추가했다.
   - `tasks`, `artifacts` state 추가
   - parser의 `table_object / row_record / cell_record`를 정식 출력으로 승격 시작
@@ -54,29 +56,34 @@
 - 최근 canary / e2e 관측은 다음과 같다.
   - ontology-v2 canary에서 `SKH_T1_060`은 `42.0%`, `MIX_T1_021`은 부채비율 `25.4%` / 유동비율 `258.8%`로 닫혔다
   - concept-planner shadow canary에서는 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`가 concept-only planner로도 자연스럽게 분해된다
-  - `NAV_T1_071`는 planner 차원에서는 `lookup + difference` 재료 수집 구조로 정리됐지만, end-to-end answer contract와 result schema는 아직 더 다듬어야 한다
+  - `NAV_T1_071`는 now closed end-to-end:
+    - planner는 `lookup + difference` 재료 수집 구조로 분해
+    - direct structured row grounding으로 `2023 current` / `2022 prior`를 직접 바인딩
+    - aggregate 단계가 subtask evidence를 최종 state까지 보존해 evaluator `numeric_retrieval_support`까지 `1.0`으로 복구
 
 ## 현재 핵심 한계
 
 - legacy `calculation_*` 필드가 아직 evaluator와 runtime 일부 경로의 사실상 기준처럼 남아 있다.
 - planner / synthesizer / result schema의 경계가 이제 막 생겼기 때문에, single-task와 multi-subtask가 항상 같은 answer contract를 공유하지는 못한다.
 - concept-only planner는 single-metric / group concept / multi-metric 분해 품질이 좋아졌지만, 모든 numeric family에서 runtime default로 올리기엔 아직 canary가 더 필요하다.
-- `NAV_T1_071`류 “현재값 + 전년 대비 증감” 질문은 planner가 재료를 수집하도록 바뀌었지만, `difference` / `lookup` 결과를 더 구조적으로 남기는 result schema 정리가 필요하다.
-- final refusal ownership은 `aggregate_subtasks`로 올라왔지만, 실제 benchmark 문항에서 `planner_feedback -> replan -> close/refusal`이 자연스럽게 도는 end-to-end 검증은 아직 얕다.
+- `difference` / `lookup` / `ratio` 결과를 더 구조적으로 남기는 result schema 정리는 여전히 필요하다.
+- final refusal ownership은 `aggregate_subtasks`로 올라왔고, `NAV_T1_071`를 통해 `planner_feedback -> replan / close` 루프의 최소 실전 검증은 끝났다.
+- direct-first runtime policy는 `NAV_T1_071`에서 닫혔지만, 같은 acceptance/evidence propagation 계약을 다른 numeric family에도 넓혀야 한다.
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `NAV_T1_071` 같은 문항으로 `planner_feedback -> replan -> close/refusal` 루프를 end-to-end 재검증 | planner/synthesizer feedback loop를 실제 질문에서 닫기 |
-| 2 | `lookup`, `difference`, `ratio` 결과를 더 구조화된 result schema로 남기기 | synthesizer가 원본 질문 충족 여부를 더 안정적으로 판정 |
+| 1 | `lookup`, `difference`, `ratio` 결과를 더 구조화된 result schema로 남기기 | synthesizer가 원본 질문 충족 여부를 더 안정적으로 판정 |
+| 2 | direct candidate acceptance contract를 다른 concept family에도 넓히기 | score-only success 대신 grounded direct-first fallback 구조 일반화 |
 | 3 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
 | 4 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
+| 5 | `planner_feedback -> replan -> close/refusal` 루프를 다른 numeric canary에도 확대 | planner/synthesizer feedback loop 일반화 |
 
 ## 현재 우선순위 요약
 
-1. planner/synthesizer feedback loop 검증
-2. result schema settling
+1. result schema settling
+2. direct-first acceptance generalization
 3. concept-only planner default 승격 검토
 4. runtime schema settling
 
@@ -85,6 +92,12 @@
 - 지금 시스템은 “질문 1개 -> 답 1개” 구조에서 더 멀어져, `task + artifact + structured table object + final synthesizer` 중심으로 이동 중이다.
 - planner는 점점 benchmark-shaped metric family보다 **concept + operation + material gathering** 쪽으로 옮겨가고 있다.
 - answer completeness와 최종 refusal은 planner가 아니라 final synthesizer / aggregate 단계가 책임지는 방향으로 경계가 정리되고 있다.
+- direct-first policy는 metric-specific planner branching보다 runtime acceptance contract와 lazy replan 쪽으로 구현하는 것이 현재 방향에 더 맞다.
+- `NAV_T1_071`는 이 방향으로 실제로 닫혔다.
+  - direct structured row grounding
+  - same-family current/prior pairing
+  - aggregate evidence propagation
+  - evaluator numeric pass `1.0`
 - 다만 아직은 완전한 source of truth 이전 단계이며, evaluator 호환을 위해 legacy 필드를 병행 유지한다.
 - 따라서 다음 구현은 retrieval / parser local patch보다 **planner-synthesizer contract와 structured result schema를 더 강하게 만드는 방향**이 맞다.
 ## 2026-05-17 Update
@@ -128,22 +141,22 @@
   - prefer direct pretax-income rows over derived reconstructions when both exist
   - make same-table prior-period cell binding win for `difference` / `prior_period`
 
-## 2026-05-18 Latest Status
+## 2026-05-18 Direct-First Close
 
-- `NAV_T1_071` is still not fully closed end-to-end.
-  - planner decomposition is now stable: `lookup + difference`
-  - retrieval is alive on the completed NAVER store
-  - the remaining failure is grounding policy, not planning
-- The latest successful runtime trace still shows two wrong choices.
-  - `lookup` can reconstruct pretax income from `net_income + tax_expense` instead of selecting a direct pretax-income row
-  - `difference` can still bind to a delta-like row/value instead of a same-table `2023 current` / `2022 prior` pair
-- Direct row preference and prior-period pair selection were strengthened in reconciliation.
-  - operand matching now uses `semantic_label`, `semantic_aliases`, and `aggregate_label`
-  - explicit `current_period` / `prior_period` rows keep their `role` and `concept` through reconciliation
-  - `difference` now tries to form a same-candidate, same-table current/prior pair before falling back
-  - structured extraction keeps scanning later candidates if the top candidate cannot yield a valid selected cell
-- These policies are covered by unit tests, but `NAV_T1_071` still needs a clean runtime close on a store that exposes the right direct structured values.
-- Immediate next action remains:
-  1. make direct pretax-income rows beat derived reconstructions at runtime
-  2. make `2022 prior_period` binding win from the same table/row family
-  3. rerun `NAV_T1_071` and confirm answer, trace, and evaluator all agree
+- `NAV_T1_071` is now closed end-to-end.
+  - planner decomposition remains `lookup + difference`
+  - direct numeric tasks no longer degrade into generic context fallback
+  - pretax-income lookup rejects surrogate metrics such as `계속영업순이익`
+  - raw table rows are preserved as reconciliation candidates even when row/value JSON exists
+  - `difference` can pair split same-table raw rows into `2023 current` / `2022 prior`
+- The final runtime fix was not retrieval itself but state propagation.
+  - subtask-level `runtime_evidence` now survives into aggregate projection
+  - aggregate state now exposes the same direct row evidence that operand grounding used
+  - evaluator `numeric_retrieval_support` therefore returns to `1.0`
+- Verified outcome on `benchmarks/results/nav_t1_071_direct_acceptance_2026-05-18-rerun5`:
+  - `Numeric Pass Rate = 1.000`
+  - `Faithfulness = 1.000`
+  - `Completeness = 1.000`
+- Immediate priority has therefore shifted away from this canary.
+  - next focus is generalized result schema settling
+  - then broadening the same direct-first acceptance/evidence propagation policy to other numeric families

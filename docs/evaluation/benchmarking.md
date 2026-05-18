@@ -205,6 +205,10 @@
 - 현재 확인된 최신 e2e 결과는:
   - `SKH_T1_060`: `42.0%`
   - `MIX_T1_021`: 부채비율 `25.4%`, 유동비율 `258.8%`
+  - `NAV_T1_071`: direct-first close 완료
+    - `numeric_pass_rate = 1.0`
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
 - 따라서 이 subset의 최근 핵심 용도는 retrieval miss보다 **planner / reconciliation / aggregate projection이 함께 닫히는지 보는 end-to-end numeric regression**에 더 가깝다.
 
 ### Concept planner canary
@@ -218,6 +222,13 @@
 | `src/ops/compare_concept_planner_shadow.py` | legacy planner vs concept planner diff |
 
 현재 해석:
+
+- `NAV_T1_071`는 planner-only shadow canary를 넘어 real benchmark rerun에서도 닫혔다.
+- closure의 핵심은 planner 변경 자체보다:
+  - direct structured row acceptance
+  - same-table current/prior pairing
+  - aggregate-stage runtime evidence preservation
+  이었다.
 
 - concept planner는 아래 케이스에서 좋은 분해를 보인다.
   - `SKH_T1_060`

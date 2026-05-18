@@ -22,6 +22,17 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentReconciliationMixin:
+    def _fallback_period_text_for_operand(self, operand: Dict[str, Any], query_years: List[int]) -> str:
+        role = str(operand.get("role") or "").strip()
+        if query_years and role == "current_period":
+            return str(max(query_years))
+        if query_years and role == "prior_period":
+            ordered_years = sorted({int(year) for year in query_years}, reverse=True)
+            if len(ordered_years) >= 2:
+                return str(ordered_years[1])
+            return str(ordered_years[0] - 1)
+        return str(operand.get("period_hint") or "").strip()
+
     def _find_reconciliation_match_entry(
         self,
         reconciliation_result: Dict[str, Any],
@@ -61,7 +72,12 @@ class FinancialAgentReconciliationMixin:
             query_years,
             _operand_period_focus(operand, period_focus),
         )
-        row_label = str(metadata.get("row_label") or metadata.get("semantic_label") or operand.get("label") or "").strip()
+        if (
+            str(operand.get("role") or "").strip() in {"current_period", "prior_period"}
+            and not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period)
+        ):
+            period = self._fallback_period_text_for_operand(operand, query_years)
+        row_label = str(operand.get("label") or metadata.get("semantic_label") or metadata.get("row_label") or "").strip()
         return {
             "operand_id": f"op_{index:03d}",
             "evidence_id": str(candidate.get("candidate_id") or ""),
@@ -90,6 +106,7 @@ class FinancialAgentReconciliationMixin:
         constraints: Dict[str, Any],
         query_years: List[int],
         start_index: int,
+        operation_family: str,
     ) -> tuple[List[Dict[str, Any]], set[tuple[str, str]]]:
         period_focus = str(constraints.get("period_focus") or "unknown").strip()
         grouped: Dict[str, Dict[str, Dict[str, Any]]] = {}
@@ -132,7 +149,10 @@ class FinancialAgentReconciliationMixin:
                 }
             ]
             best_pair: Optional[tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]] = None
+            best_cross_pair: Optional[tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]] = None
             best_score = float("-inf")
+            current_entries: List[tuple[Dict[str, Any], Dict[str, Any], str, float]] = []
+            prior_entries: List[tuple[Dict[str, Any], Dict[str, Any], str, float]] = []
             for candidate in structured_candidates:
                 metadata = dict(candidate.get("metadata") or {})
                 cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
@@ -153,6 +173,24 @@ class FinancialAgentReconciliationMixin:
                     period_focus=_operand_period_focus(prior_operand, period_focus),
                 )
                 if not current_cell or not prior_cell:
+                    continue
+                if not _candidate_satisfies_direct_acceptance_contract(
+                    candidate,
+                    operand=current_operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    operation_family=operation_family,
+                    selected_cell=current_cell,
+                ):
+                    continue
+                if not _candidate_satisfies_direct_acceptance_contract(
+                    candidate,
+                    operand=prior_operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    operation_family=operation_family,
+                    selected_cell=prior_cell,
+                ):
                     continue
                 candidate_score = (
                     _score_operand_candidate(
@@ -176,11 +214,23 @@ class FinancialAgentReconciliationMixin:
                     query_years,
                     _operand_period_focus(current_operand, period_focus),
                 )
+                if (
+                    str(current_operand.get("role") or "").strip() == "current_period"
+                    and not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", current_period)
+                ):
+                    current_period = self._fallback_period_text_for_operand(current_operand, query_years)
                 prior_period = _structured_cell_period_text(
                     prior_cell,
                     query_years,
                     _operand_period_focus(prior_operand, period_focus),
                 )
+                if (
+                    str(prior_operand.get("role") or "").strip() == "prior_period"
+                    and not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", prior_period)
+                ):
+                    prior_period = self._fallback_period_text_for_operand(prior_operand, query_years)
+                current_entries.append((candidate, current_cell, current_period, candidate_score))
+                prior_entries.append((candidate, prior_cell, prior_period, candidate_score))
                 if current_cell == prior_cell or (
                     current_period
                     and prior_period
@@ -195,11 +245,36 @@ class FinancialAgentReconciliationMixin:
                     best_score = candidate_score
                     best_pair = (candidate, current_cell, prior_cell)
 
-            if not best_pair:
+            if not best_pair and current_entries and prior_entries:
+                for current_candidate, current_cell, current_period, current_score in current_entries:
+                    current_metadata = dict(current_candidate.get("metadata") or {})
+                    current_table_id = str(current_metadata.get("table_source_id") or "").strip()
+                    for prior_candidate, prior_cell, prior_period, prior_score in prior_entries:
+                        if str(current_candidate.get("candidate_id") or "").strip() == str(prior_candidate.get("candidate_id") or "").strip():
+                            continue
+                        prior_metadata = dict(prior_candidate.get("metadata") or {})
+                        prior_table_id = str(prior_metadata.get("table_source_id") or "").strip()
+                        if not current_table_id or current_table_id != prior_table_id:
+                            continue
+                        if current_period and prior_period and current_period == prior_period:
+                            continue
+                        pair_score = current_score + prior_score + 3.0
+                        if current_table_id:
+                            pair_score += 1.5
+                        if pair_score > best_score:
+                            best_score = pair_score
+                            best_cross_pair = (current_candidate, current_cell, prior_candidate, prior_cell)
+
+            if not best_pair and not best_cross_pair:
                 continue
-            pair_candidate, current_cell, prior_cell = best_pair
+            if best_pair:
+                pair_candidate, current_cell, prior_cell = best_pair
+                current_candidate = pair_candidate
+                prior_candidate = pair_candidate
+            else:
+                current_candidate, current_cell, prior_candidate, prior_cell = best_cross_pair
             current_row = self._build_operand_row_from_candidate_cell(
-                candidate=pair_candidate,
+                candidate=current_candidate,
                 selected_cell=current_cell,
                 operand=current_operand,
                 index=next_index,
@@ -207,7 +282,7 @@ class FinancialAgentReconciliationMixin:
                 query_years=query_years,
             )
             prior_row = self._build_operand_row_from_candidate_cell(
-                candidate=pair_candidate,
+                candidate=prior_candidate,
                 selected_cell=prior_cell,
                 operand=prior_operand,
                 index=next_index + 1,
@@ -535,6 +610,23 @@ candidate options:
         if str(reconciliation_result.get("status") or "") not in {"ready", "retry_retrieval", "insufficient_operands"}:
             return []
 
+        active_subtask = dict(state.get("active_subtask") or {})
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if bool(item.get("required", True))
+        ]
+        operand_map = {
+            (
+                str(item.get("label") or "").strip(),
+                str(item.get("role") or "").strip(),
+            ): item
+            for item in required_operands
+            if str(item.get("label") or "").strip()
+        }
+        constraints = dict(active_subtask.get("constraints") or {})
+        query_years = _query_years_from_state(state)
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         candidate_map = {
             str(candidate.get("candidate_id") or "").strip(): candidate
             for candidate in self._build_reconciliation_candidates(state)
@@ -543,9 +635,21 @@ candidate options:
         items: List[Dict[str, Any]] = []
         seen: set[str] = set()
         for operand_match in (reconciliation_result.get("matched_operands") or []):
+            operand = (
+                operand_map.get((str(operand_match.get("label") or "").strip(), str(operand_match.get("role") or "").strip()))
+                or operand_map.get((str(operand_match.get("label") or "").strip(), ""))
+                or {}
+            )
             for candidate_id in (operand_match.get("candidate_ids") or [])[:2]:
                 current = candidate_map.get(str(candidate_id).strip())
                 if not current:
+                    continue
+                if operand and not _candidate_is_direct_grounding_candidate(
+                    current,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                ):
                     continue
                 evidence_id = f"recon::{candidate_id}"
                 if evidence_id in seen:
@@ -561,13 +665,14 @@ candidate options:
                         if str(cell.get("value_text") or "").strip()
                     ]
                     raw_row_text = " | ".join([part for part in [row_label, *values] if part])
-                claim = _normalise_spaces(str(current.get("text") or ""))
+                claim = _normalise_spaces(raw_row_text or str(current.get("text") or ""))
+                quote_span = _normalise_spaces(str(raw_row_text or current.get("text") or ""))[:240]
                 items.append(
                     {
                         "evidence_id": evidence_id,
                         "source_anchor": str(current.get("source_anchor") or "").strip(),
                         "claim": claim[:1200],
-                        "quote_span": claim[:240],
+                        "quote_span": quote_span,
                         "support_level": "direct",
                         "question_relevance": "high",
                         "allowed_terms": [],
@@ -598,6 +703,7 @@ candidate options:
             for item in (active_subtask.get("preferred_statement_types") or [])
             if str(item).strip()
         ]
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         period_focus = str(constraints.get("period_focus") or "unknown").strip()
         query_years = _query_years_from_state(state)
         candidates = self._build_reconciliation_candidates(state)
@@ -625,6 +731,7 @@ candidate options:
             constraints=constraints,
             query_years=query_years,
             start_index=1,
+            operation_family=operation_family,
         )
         operand_rows.extend(paired_rows)
         next_index = len(operand_rows) + 1
@@ -681,6 +788,15 @@ candidate options:
                         period_focus=_operand_period_focus(operand, period_focus),
                     )
                     if not current_cell:
+                        continue
+                    if not _candidate_satisfies_direct_acceptance_contract(
+                        current_candidate,
+                        operand=operand,
+                        constraints=constraints,
+                        query_years=query_years,
+                        operation_family=operation_family,
+                        selected_cell=current_cell,
+                    ):
                         continue
                     candidate = current_candidate
                     selected_cell = current_cell

@@ -218,6 +218,18 @@ retrieve
 - single-year query는 `current` period focus로 해석해 `당기` aggregate가 `전기` aggregate보다 앞서도록 보정한다
 - `LLM rerank`는 top candidate가 애매할 때만 보조적으로 호출한다
 
+추가로 최근에는 direct-first numeric close를 위해 다음이 더해졌다.
+
+- raw `table_row` candidates are retained even when `table_row_records_json` or
+  `table_value_records_json` already exists
+- `lookup` and same-concept `difference` tasks can require direct numeric
+  grounding and skip generic context fallback
+- acceptance contract is not score-only:
+  - surrogate metrics can be rejected even if they look numerically plausible
+  - split same-table rows can be paired into `current` / `prior` operands
+- aggregate projection now preserves subtask `runtime_evidence`, which closed
+  evaluator `numeric_retrieval_support` for `NAV_T1_071`
+
 ## 4-3. planner는 metric recipe보다 concept 조합과 재료 수집 쪽으로 이동 중이다
 
 최근 ontology / planner 정리는 “질문 하나마다 metric family를 늘리는” 방향을

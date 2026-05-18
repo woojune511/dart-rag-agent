@@ -86,6 +86,7 @@ class EvalExample:
     expected_calculation_result: Dict[str, Any] = field(default_factory=dict)
     verification_status: str = ""
     notes: str = ""
+    company_aliases: List[str] = field(default_factory=list)
 
     @property
     def canonical_answer_key(self) -> str:
@@ -191,6 +192,32 @@ def _extract_artifact_payload_value(artifact: Dict[str, Any], payload_key: str) 
     if isinstance(value, dict):
         return dict(value)
     return value
+
+
+def _normalise_company_name(value: str) -> str:
+    return str(value or "").strip().lower()
+
+
+def _company_names_for_example(example: EvalExample) -> List[str]:
+    names: List[str] = []
+    for candidate in [example.company, *(example.company_aliases or [])]:
+        normalized = _normalise_company_name(candidate)
+        if normalized and normalized not in names:
+            names.append(normalized)
+    return names
+
+
+def _metadata_company_matches_example(example: EvalExample, metadata: Dict[str, Any]) -> bool:
+    expected_names = _company_names_for_example(example)
+    if not expected_names:
+        return True
+    actual_company = _normalise_company_name(str(metadata.get("company", "")))
+    return actual_company in expected_names
+
+
+def _citation_mentions_example_company(example: EvalExample, citation_blob: str) -> bool:
+    lowered = str(citation_blob or "").lower()
+    return any(company_name in lowered for company_name in _company_names_for_example(example))
 
 
 def _find_task_record(tasks: List[Dict[str, Any]], task_id: str) -> Dict[str, Any]:
@@ -1261,6 +1288,22 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
     section = str(item.get("section") or (expected_sections[0] if expected_sections else ""))
     company = str(item.get("company") or "")
     year = int(item.get("year") or 0)
+    company_aliases: List[str] = []
+    for candidate in [company]:
+        normalized = str(candidate or "").strip()
+        if normalized and normalized not in company_aliases:
+            company_aliases.append(normalized)
+    source_report = item.get("source_report") or {}
+    if isinstance(source_report, dict):
+        corp_name = str(source_report.get("corp_name") or "").strip()
+        if corp_name and corp_name not in company_aliases:
+            company_aliases.append(corp_name)
+    for source_row in item.get("source_reports") or []:
+        if not isinstance(source_row, dict):
+            continue
+        corp_name = str(source_row.get("corp_name") or "").strip()
+        if corp_name and corp_name not in company_aliases:
+            company_aliases.append(corp_name)
     aliases = item.get("aliases") or {}
     normalised_aliases: Dict[str, List[str]] = {}
     if isinstance(aliases, dict):
@@ -1304,6 +1347,7 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
         expected_calculation_result=dict(item.get("expected_calculation_result") or {}),
         verification_status=str(item.get("verification_status") or ""),
         notes=str(item.get("notes") or ""),
+        company_aliases=company_aliases,
     )
 
 
@@ -1416,9 +1460,8 @@ def _doc_relevance(example: EvalExample, metadata: Dict[str, Any]) -> int:
     expected_sections = _expected_sections_for_example(example)
     if not expected_sections:
         return 0
-    company = str(metadata.get("company", "")).lower()
     year = int(metadata.get("year", 0) or 0)
-    if example.company and company != example.company.lower():
+    if example.company and not _metadata_company_matches_example(example, metadata):
         return 0
     if example.year and year != int(example.year):
         return 0
@@ -1465,15 +1508,13 @@ def _compute_ndcg_at_k(example: EvalExample, retrieved_docs: List[Any], k: int) 
 
 
 def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any]) -> float:
-    expected_company = example.company.lower()
     expected_sections = _expected_sections_for_example(example)
     for item in retrieved_docs:
         doc = item[0] if isinstance(item, (tuple, list)) else item
         metadata = getattr(doc, "metadata", {}) or {}
-        company = str(metadata.get("company", "")).lower()
         year = int(metadata.get("year", 0) or 0)
         if (
-            company == expected_company
+            _metadata_company_matches_example(example, metadata)
             and year == int(example.year)
             and any(_contains_section(metadata, expected_section) for expected_section in expected_sections)
         ):
@@ -1501,7 +1542,7 @@ def _compute_citation_coverage(example: EvalExample, citations: List[str]) -> fl
     citation_blob = " ".join(citations).lower()
     expected_sections = _expected_sections_for_example(example)
     checks = [
-        example.company.lower() in citation_blob,
+        _citation_mentions_example_company(example, citation_blob),
         str(example.year) in citation_blob,
         any(expected_section.lower() in citation_blob for expected_section in expected_sections),
     ]

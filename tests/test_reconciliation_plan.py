@@ -12,6 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import (
     _build_table_row_reconciliation_candidates,
+    _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
     _deterministic_reconcile_task,
     _score_operand_candidate,
@@ -179,6 +180,52 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertEqual(candidate["candidate_kind"], "structured_row")
         self.assertEqual(candidate["metadata"].get("row_headers"), ["부채총계"])
         self.assertTrue(_candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+
+    def test_raw_table_rows_are_retained_even_when_row_record_json_exists(self) -> None:
+        metadata = {
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["당기", "전기"],
+            "table_source_id": "table_229",
+            "table_header_context": "공시금액 | 항목 | 값 | 단위: 천원",
+            "table_summary_text": "법인세비용 관련 표",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_id": "r1",
+                        "row_label": "법인세비용",
+                        "row_headers": ["법인세비용"],
+                        "cells": [
+                            {"column_headers": ["당기"], "value_text": "496,378,555", "unit_hint": "천원"},
+                            {"column_headers": ["전기"], "value_text": "410,536,791", "unit_hint": "천원"},
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        table_text = "\n".join(
+            [
+                "공시금액 | 법인세비용 | 496,378,555",
+                "공시금액 | 법인세비용차감전순손익 | 1,481,396,318",
+                "공시금액 | 법인세비용차감전순손익 | 1,083,717,091",
+            ]
+        )
+
+        candidates = _build_table_row_reconciliation_candidates(
+            candidate_id_prefix="doc_229",
+            anchor="[NAVER | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+            table_text=table_text,
+            metadata=metadata,
+        )
+
+        raw_target_rows = [
+            item
+            for item in candidates
+            if item["candidate_kind"] == "table_row"
+            and "법인세비용차감전순손익" in str((item.get("metadata") or {}).get("row_text") or "")
+        ]
+        self.assertTrue(raw_target_rows)
 
     def test_structured_column_candidates_are_built_from_period_rows(self) -> None:
         metadata = {
@@ -539,6 +586,83 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(final_score, detail_score)
 
+    def test_reconcile_preserves_direct_grounding_candidate_even_if_not_in_top_three(self) -> None:
+        active_subtask = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "metric_label": "법인세비용차감전순이익",
+            "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 찾아줘",
+            "operation_family": "lookup",
+            "required_operands": [
+                {
+                    "label": "법인세비용차감전순이익",
+                    "aliases": ["세전이익"],
+                    "concept": "income_before_income_taxes",
+                    "role": "current_period",
+                    "required": True,
+                    "period_hint": "2023",
+                }
+            ],
+            "preferred_statement_types": ["income_statement", "summary_financials"],
+            "constraints": {
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "entity_scope": "company",
+                "segment_scope": "none",
+            },
+        }
+        narrative_candidates = []
+        for index in range(3):
+            narrative_candidates.append(
+                {
+                    "candidate_id": f"chunk_narrative_{index}",
+                    "candidate_kind": "chunk",
+                    "text": f"법인세비용차감전순이익 관련 서술 {index}",
+                    "metadata": {
+                        "statement_type": "income_statement",
+                        "consolidation_scope": "consolidated",
+                        "period_labels": ["2023"],
+                    },
+                }
+            )
+        direct_candidate = {
+            "candidate_id": "chunk_direct::value:0",
+            "candidate_kind": "structured_value",
+            "text": "법인세비용차감전순이익 1,481,396,317,551",
+            "metadata": {
+                "semantic_label": "법인세비용차감전순이익",
+                "semantic_aliases": ["법인세비용차감전순이익", "세전이익"],
+                "row_label": "법인세비용차감전순이익",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023", "2022"],
+                "period_focus": "current",
+                "table_source_id": "table_direct",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "1,481,396,317,551", "unit_hint": "원"},
+                ],
+            },
+        }
+        self.assertTrue(
+            _candidate_is_direct_grounding_candidate(
+                direct_candidate,
+                operand=active_subtask["required_operands"][0],
+                constraints=active_subtask["constraints"],
+                query_years=[2023],
+                operation_family="lookup",
+            )
+        )
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=[*narrative_candidates, direct_candidate],
+            years=[2023],
+            reconciliation_retry_count=0,
+        )
+
+        candidate_ids = result["matched_operands"][0]["candidate_ids"]
+        self.assertIn("chunk_direct::value:0", candidate_ids)
+
     def test_current_period_binding_penalizes_delta_like_row_below_absolute_row(self) -> None:
         operand = {
             "label": "2023년 법인세비용차감전순이익",
@@ -600,6 +724,44 @@ class ReconciliationPlanTests(unittest.TestCase):
         )
 
         self.assertGreater(absolute_score, delta_score)
+
+    def test_pretax_income_operand_rejects_continuing_income_surrogate_candidate(self) -> None:
+        operand = {
+            "label": "2023년 법인세비용차감전순이익",
+            "concept": "income_before_income_taxes",
+            "aliases": [
+                "법인세비용차감전순이익",
+                "법인세비용차감전순손익",
+                "세전이익",
+            ],
+            "role": "current_period",
+            "required": True,
+        }
+        surrogate_candidate = {
+            "candidate_id": "surrogate_continuing_income",
+            "candidate_kind": "chunk",
+            "text": "2023년 연결 손익계산서에서 법인세비용차감전순이익에 해당하는 계속영업순이익은 985,018백만원입니다.",
+            "metadata": {
+                "row_label": "계속영업순이익",
+                "semantic_label": "계속영업순이익",
+                "statement_type": "summary_financials",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023", "2022"],
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand(surrogate_candidate, operand))
+        self.assertLess(
+            _score_operand_candidate(
+                surrogate_candidate,
+                operand=operand,
+                preferred_statement_types=["income_statement", "summary_financials", "notes"],
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+            ),
+            0.0,
+        )
 
 
 if __name__ == "__main__":

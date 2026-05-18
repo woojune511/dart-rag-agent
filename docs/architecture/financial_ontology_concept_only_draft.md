@@ -25,6 +25,8 @@ The ontology should **not** contain:
 - question-shaped composite metrics
 - hard-coded numerator / denominator combinations for every evaluation item
 - one-off formulas that are really planner responsibilities
+- per-metric direct-plan / fallback-plan recipes that belong in runtime control
+  flow rather than reusable DART knowledge
 
 ## What to keep
 
@@ -109,6 +111,80 @@ should be decomposed by the planner into material-gathering tasks such as:
 - `difference(A current_period, A prior_period)`
 
 rather than forcing ontology to encode that query as a dedicated metric family.
+
+## Direct-first is a runtime policy, not a metric recipe
+
+The current architectural direction deliberately avoids turning ontology into a
+catalog of:
+
+- direct-lookup-enabled metrics
+- per-metric fallback formulas
+- graph branching recipes
+
+Why:
+
+- that would re-inflate ontology into a benchmark answer book
+- it couples reusable DART knowledge to transient control-flow design
+- it weakens the boundary between ontology, planner, and runtime binder
+
+Instead, ontology should provide:
+
+- concept aliases
+- concept groups
+- preferred statement / section priors
+- lightweight binding preferences
+
+and the runtime should decide:
+
+- whether a direct candidate is acceptable
+- whether the system should fall back to derived reconstruction
+- whether planner re-entry is needed to gather more material
+
+This split was validated concretely on `NAV_T1_071`.
+
+- ontology supplied concept aliases and priors for
+  `income_before_income_taxes`
+- planner gathered `lookup + difference` materials
+- runtime grounding enforced direct-first acceptance and rejected surrogate
+  metrics
+- aggregate synthesis preserved the accepted direct evidence into the final
+  trace
+
+In other words, the canary closed because ontology stayed concept-centric while
+runtime handled the direct-vs-fallback decision.
+
+In short:
+
+- ontology = what the domain concepts are
+- planner = what material the query seems to require
+- runtime binder = whether a direct grounded value is good enough
+- synthesizer = whether the gathered material actually satisfies the question
+
+## Group concepts are acceptable, metric recipes are not
+
+This draft intentionally allows concept groups such as:
+
+- `tangible_and_intangible_assets`
+- `borrowings`
+
+because those are reusable shorthand patterns in DART language.
+
+This draft intentionally avoids metric-shaped entries such as:
+
+- `debt_ratio`
+- `current_ratio`
+- `free_cash_flow`
+
+when they are being used only as baked-in query decomposition recipes.
+
+That decomposition should come from planner reasoning over:
+
+- query text
+- ontology concepts
+- ontology concept groups
+- allowed operation families
+
+not from an ever-growing metric answer catalog.
 
 ## Proposed V3 shape
 

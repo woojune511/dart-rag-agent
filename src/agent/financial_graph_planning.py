@@ -947,8 +947,10 @@ Also return:
         final_answer: str,
     ) -> Dict[str, Any]:
         aggregate_operands: List[Dict[str, Any]] = []
+        aggregate_evidence: List[Dict[str, Any]] = []
         subtask_plans: List[Dict[str, Any]] = []
         subtask_result_views: List[Dict[str, Any]] = []
+        seen_evidence_ids: set[str] = set()
 
         for row in ordered_results:
             task_id = str(row.get("task_id") or "").strip()
@@ -960,6 +962,27 @@ Also return:
                 operand_row.setdefault("metric_family", metric_family)
                 operand_row.setdefault("metric_label", metric_label)
                 aggregate_operands.append(operand_row)
+
+            for evidence in list(row.get("runtime_evidence") or []):
+                evidence_row = dict(evidence)
+                evidence_id = str(evidence_row.get("evidence_id") or "").strip()
+                dedupe_key = evidence_id or _normalise_spaces(
+                    " ".join(
+                        part
+                        for part in [
+                            str(evidence_row.get("source_anchor") or "").strip(),
+                            str(evidence_row.get("quote_span") or "").strip(),
+                            str(evidence_row.get("raw_row_text") or "").strip(),
+                            str(evidence_row.get("claim") or "").strip(),
+                        ]
+                        if part
+                    )
+                )
+                if dedupe_key and dedupe_key in seen_evidence_ids:
+                    continue
+                if dedupe_key:
+                    seen_evidence_ids.add(dedupe_key)
+                aggregate_evidence.append(evidence_row)
 
             plan = dict(row.get("calculation_plan") or {})
             if plan:
@@ -1004,6 +1027,7 @@ Also return:
             "calculation_operands": aggregate_operands,
             "calculation_plan": calculation_plan,
             "calculation_result": calculation_result,
+            "evidence_items": aggregate_evidence,
         }
 
     def _project_legacy_calculation_fields(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -1065,6 +1089,7 @@ Also return:
             "status": status,
             "artifact_ids": list(projected.get("artifact_ids") or []),
             "selected_claim_ids": list(state.get("selected_claim_ids") or []),
+            "runtime_evidence": [dict(item) for item in (state.get("evidence_items") or [])],
             "calculation_operands": calculation_operands,
             "calculation_plan": calculation_plan,
             "calculation_result": calculation_result,

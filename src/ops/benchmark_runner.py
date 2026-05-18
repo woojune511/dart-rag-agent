@@ -61,6 +61,39 @@ RISK_FAILURE_MARKERS = ("찾지 못", "확인하기 어렵", "확인할 수 없"
 BENCHMARK_CACHE_SCHEMA_VERSION = 1
 
 
+def _normalise_company_name(value: str) -> str:
+    return str(value or "").strip().lower()
+
+
+def _company_names_for_example(example: EvalExample) -> List[str]:
+    names: List[str] = []
+    for candidate in [example.company, *(getattr(example, "company_aliases", []) or [])]:
+        normalized = _normalise_company_name(candidate)
+        if normalized and normalized not in names:
+            names.append(normalized)
+    return names
+
+
+def _metadata_company_matches_example(example: EvalExample, metadata: Dict[str, Any]) -> bool:
+    expected_names = _company_names_for_example(example)
+    if not expected_names:
+        return True
+    actual_company = _normalise_company_name(str(metadata.get("company", "")))
+    return actual_company in expected_names
+
+
+def _company_filter_matches_example(example: EvalExample, company: str) -> bool:
+    expected_names = _company_names_for_example(example)
+    if not expected_names:
+        return True
+    return _normalise_company_name(company) in expected_names
+
+
+def _citation_mentions_example_company(example: EvalExample, citation_blob: str) -> bool:
+    lowered = str(citation_blob or "").lower()
+    return any(company_name in lowered for company_name in _company_names_for_example(example))
+
+
 def _load_json(path: Path) -> Any:
     with open(path, encoding="utf-8") as file:
         return json.load(file)
@@ -318,13 +351,12 @@ def _expected_sections_for_example(example: EvalExample, screening_config: Dict[
 def _metadata_matches_expected(
     metadata: Dict[str, Any],
     *,
-    company: str,
+    example: EvalExample,
     year: int,
     expected_sections: List[str],
 ) -> bool:
-    actual_company = str(metadata.get("company", "")).lower()
     actual_year = int(metadata.get("year", 0) or 0)
-    if actual_company != company or actual_year != year:
+    if not _metadata_company_matches_example(example, metadata) or actual_year != year:
         return False
     section = str(metadata.get("section", ""))
     section_path = str(metadata.get("section_path", ""))
@@ -336,7 +368,6 @@ def _compute_screen_retrieval_hit_at_k(
     retrieved_docs: List[Any],
     screening_config: Dict[str, Any],
 ) -> float:
-    expected_company = example.company.lower()
     expected_year = int(example.year)
     expected_sections = _expected_sections_for_example(example, screening_config)
     for item in retrieved_docs:
@@ -344,7 +375,7 @@ def _compute_screen_retrieval_hit_at_k(
         metadata = getattr(doc, "metadata", {}) or {}
         if _metadata_matches_expected(
             metadata,
-            company=expected_company,
+            example=example,
             year=expected_year,
             expected_sections=expected_sections,
         ):
@@ -382,7 +413,7 @@ def _compute_screen_citation_coverage(
     expected_sections = _expected_sections_for_example(example, screening_config)
     citation_blob = " ".join(citations).lower()
     checks = [
-        example.company.lower() in citation_blob,
+        _citation_mentions_example_company(example, citation_blob),
         str(example.year) in citation_blob,
         any(section.lower() in citation_blob for section in expected_sections),
     ]
@@ -390,7 +421,7 @@ def _compute_screen_citation_coverage(
 
 
 def _compute_contamination_rate(
-    expected_company: str,
+    example: EvalExample,
     expected_year: int,
     metadata_rows: List[Dict[str, Any]],
 ) -> float:
@@ -399,14 +430,13 @@ def _compute_contamination_rate(
 
     mismatched = 0
     considered = 0
-    lowered_company = expected_company.lower()
     for row in metadata_rows:
-        company = str(row.get("company", "")).lower()
         year = int(row.get("year", 0) or 0)
+        company = str(row.get("company", "")).lower()
         if not company and not year:
             continue
         considered += 1
-        if company != lowered_company or year != expected_year:
+        if not _metadata_company_matches_example(example, row) or year != expected_year:
             mismatched += 1
     if considered == 0:
         return 0.0
@@ -640,7 +670,7 @@ def _run_screening_eval(
             logger.error("[%s] screening run failed: %s", example.id, exc)
 
         retrieved_metadata = _extract_retrieved_metadata(retrieved_docs)
-        contamination_rate = _compute_contamination_rate(example.company, int(example.year), retrieved_metadata)
+        contamination_rate = _compute_contamination_rate(example, int(example.year), retrieved_metadata)
         retrieval_hit_at_k = _compute_screen_retrieval_hit_at_k(example, retrieved_docs, screening_config)
         section_match_rate = _compute_screen_section_match_rate(example, retrieved_docs, screening_config)
         citation_coverage = _compute_screen_citation_coverage(example, citations, screening_config)
@@ -807,13 +837,13 @@ def _select_eval_examples(
         return []
 
     examples = _load_eval_dataset(_normalise_path(dataset_path))
-    company = str(report_metadata.get("company", "")).lower()
+    company = str(report_metadata.get("company", ""))
     year = int(report_metadata.get("year", 0) or 0)
 
     filtered = [
         example
         for example in examples
-        if (not company or example.company.lower() == company) and (not year or int(example.year) == year)
+        if (not company or _company_filter_matches_example(example, company)) and (not year or int(example.year) == year)
     ]
 
     eval_mode = config.get("eval_mode", "single_company_slice")

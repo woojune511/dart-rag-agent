@@ -22,6 +22,91 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentCalculationMixin:
+    def _coerce_operand_unit_from_evidence(
+        self,
+        *,
+        raw_value: str,
+        raw_unit: str,
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> str:
+        metadata = dict((evidence_item or {}).get("metadata") or {})
+        unit_hint = str(metadata.get("unit_hint") or "").strip()
+        current_unit = str(raw_unit or "").strip()
+        if not unit_hint:
+            return current_unit
+        if not current_unit:
+            return unit_hint
+        normalized_current = _normalise_spaces(current_unit).lower()
+        normalized_hint = _normalise_spaces(unit_hint).lower()
+        if normalized_current == normalized_hint:
+            return current_unit
+        bare_numeric = bool(re.fullmatch(r"[\(\)\-]?\d[\d,]*(?:\.\d+)?", str(raw_value or "").strip()))
+        if bare_numeric and normalized_current in {"원", "krw"} and normalized_hint in {"천원", "백만원", "억원", "조원"}:
+            return unit_hint
+        return current_unit
+
+    def _build_deterministic_lookup_plan(
+        self,
+        state: FinancialAgentState,
+        operands: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        if operation_family not in {"lookup", "single_value"}:
+            return None
+
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if bool(item.get("required", True))
+        ]
+        if required_operands:
+            matched_rows = [
+                row
+                for row in operands
+                if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+            ]
+            if len(required_operands) != 1 or len(matched_rows) != 1:
+                missing_info = self._infer_missing_info(state, matched_rows)
+                return {
+                    "status": "incomplete",
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "formula": "",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "",
+                    "explanation": "direct lookup requires exactly one grounded operand row.",
+                    "missing_info": missing_info,
+                }
+            target_rows = matched_rows
+        else:
+            if len(operands) != 1:
+                return None
+            target_rows = operands
+
+        row = dict(target_rows[0])
+        operand_id = str(row.get("operand_id") or "").strip()
+        if not operand_id:
+            return None
+        result_unit = str(row.get("raw_unit") or "").strip()
+        operation_text = _display_operand_label(str(row.get("label") or active_subtask.get("metric_label") or "조회값"))
+        return {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "lookup",
+            "ordered_operand_ids": [operand_id],
+            "variable_bindings": [{"variable": "A", "operand_id": operand_id}],
+            "formula": "A",
+            "pairwise_formula": "",
+            "result_unit": result_unit,
+            "operation_text": operation_text,
+            "explanation": "lookup tasks use a directly grounded value row when available.",
+            "missing_info": [],
+        }
+
     def _build_deterministic_ontology_plan(
         self,
         state: FinancialAgentState,
@@ -171,6 +256,8 @@ class FinancialAgentCalculationMixin:
             "calculation_operands": [],
             "calculation_debug_trace": {"coverage": "missing"},
             "answer": "",
+            "evidence_items": evidence_items,
+            "evidence_bullets": evidence_bullets,
         }
         direct_structured_rows = self._extract_structured_operands_from_reconciliation(state)
         reconciliation_evidence = self._evidence_items_from_reconciliation_matches(state)
@@ -190,6 +277,15 @@ class FinancialAgentCalculationMixin:
             if appended:
                 logger.info("[calc_operands] appended reconciled evidence items=%s", appended)
         active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        direct_numeric_grounding = _requires_direct_numeric_grounding(active_subtask)
+        if direct_numeric_grounding and reconciliation_evidence:
+            evidence_items = list(reconciliation_evidence)
+            evidence_bullets = [
+                f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} (reconciled)"
+                for item in reconciliation_evidence
+            ]
+            logger.info("[calc_operands] direct numeric task restricts evidence to reconciled structured candidates=%s", len(evidence_items))
         required_operands = [
             dict(item)
             for item in (active_subtask.get("required_operands") or [])
@@ -232,10 +328,15 @@ class FinancialAgentCalculationMixin:
                     "source": "structured_row_direct",
                     "operands": direct_structured_rows,
                 },
+                "evidence_items": evidence_items,
+                "evidence_bullets": evidence_bullets,
+                "evidence_status": "sufficient",
                 "tasks": tasks,
                 "artifacts": artifacts,
             }
         should_augment_with_docs = (
+            not direct_numeric_grounding
+            and
             bool(retrieved_docs or seed_retrieved_docs)
             and intent in {"comparison", "trend"}
             and (not evidence_items or evidence_status != "sufficient")
@@ -292,6 +393,8 @@ class FinancialAgentCalculationMixin:
                     len(synthesized_items),
                     len(state.get("evidence_items", []) or []),
                 )
+        elif direct_numeric_grounding and (retrieved_docs or seed_retrieved_docs) and (not evidence_items or evidence_status != "sufficient"):
+            logger.info("[calc_operands] direct numeric task skips generic retrieved-doc augmentation")
         if not evidence_items:
             return empty_result
 
@@ -329,13 +432,30 @@ Structured Evidence:
                 {"query": query, "evidence": evidence_text}
             )
             operand_rows: List[Dict[str, Any]] = []
+            evidence_by_id = {
+                str(item.get("evidence_id") or "").strip(): dict(item)
+                for item in evidence_items
+                if str(item.get("evidence_id") or "").strip()
+            }
             for index, item in enumerate(extracted.operands, start=1):
-                normalized_value, normalized_unit = _normalise_operand_value(item.raw_value, item.raw_unit)
                 row = item.model_dump()
+                evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
+                row["raw_unit"] = self._coerce_operand_unit_from_evidence(
+                    raw_value=str(item.raw_value or ""),
+                    raw_unit=str(item.raw_unit or ""),
+                    evidence_item=evidence_item,
+                )
+                normalized_value, normalized_unit = _normalise_operand_value(item.raw_value, row["raw_unit"])
                 row["operand_id"] = f"op_{index:03d}"
                 row["normalized_value"] = normalized_value
                 row["normalized_unit"] = normalized_unit
                 operand_rows.append(row)
+            if operation_family in {"lookup", "single_value"} and required_operands:
+                operand_rows = [
+                    row
+                    for row in operand_rows
+                    if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+                ]
             if direct_structured_rows and required_operands:
                 operand_rows = _merge_operand_rows(
                     direct_structured_rows,
@@ -344,7 +464,7 @@ Structured Evidence:
                 )
 
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required:
+            if missing_required and not direct_numeric_grounding:
                 generic_fallback_rows = self._build_required_operands_from_candidates(
                     evidence_items,
                     required_operands=missing_required,
@@ -360,7 +480,7 @@ Structured Evidence:
                         required_operands=required_operands,
                     )
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required and _is_ratio_percent_query(query):
+            if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
                 fallback_rows = self._build_ratio_operands_from_candidates(
                     [item for item in evidence_items if item.get("raw_row_text")],
                     query,
@@ -419,6 +539,9 @@ Structured Evidence:
                     "direct_structured_rows": direct_structured_rows,
                     "operands": operand_rows,
                 },
+                "evidence_items": evidence_items,
+                "evidence_bullets": evidence_bullets,
+                "evidence_status": str(merged_coverage),
                 "tasks": tasks,
                 "artifacts": artifacts,
             }
@@ -427,12 +550,17 @@ Structured Evidence:
             return {
                 "calculation_operands": [],
                 "calculation_debug_trace": {"coverage": "missing", "error": str(exc)},
+                "evidence_items": evidence_items,
+                "evidence_bullets": evidence_bullets,
+                "evidence_status": "missing",
             }
 
     def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Translate normalized operands into an executable calculation plan."""
         operands = state.get("calculation_operands", [])
         query = self._calc_query(state)
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         if not operands:
             missing_info = self._infer_missing_info(state, [])
             return {
@@ -462,6 +590,86 @@ Structured Evidence:
         ontology = get_financial_ontology()
         metric_key = self._calc_metric_family(state)
         metric_info = ontology.metric_family(metric_key) if metric_key else None
+        deterministic_lookup_plan = self._build_deterministic_lookup_plan(state, operands)
+        if deterministic_lookup_plan:
+            logger.info(
+                "[formula_plan] deterministic lookup mode=%s op=%s vars=%s",
+                deterministic_lookup_plan.get("mode"),
+                deterministic_lookup_plan.get("operation"),
+                len(deterministic_lookup_plan.get("variable_bindings") or []),
+            )
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str(active_subtask.get("task_id") or "calc")
+            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_PLAN,
+                status=str(deterministic_lookup_plan.get("status") or "ok"),
+                summary=f"mode={deterministic_lookup_plan.get('mode')} op={deterministic_lookup_plan.get('operation')}",
+                payload={"calculation_plan": deterministic_lookup_plan},
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.CALCULATION,
+                label=str(active_subtask.get("metric_label") or task_id),
+                status=TaskStatus.IN_PROGRESS,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+                artifact_id=artifact_id,
+            )
+            return {
+                "calculation_plan": deterministic_lookup_plan,
+                "missing_info": [str(item).strip() for item in (deterministic_lookup_plan.get("missing_info") or []) if str(item).strip()],
+                "planner_debug_trace": {
+                    "target_metric_family": metric_key,
+                    "ontology_context": "deterministic_lookup_plan",
+                    "operands_text": "\n".join(
+                        f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
+                        for row in operands
+                    ),
+                    "llm_invoked": False,
+                    "guard_applied": True,
+                    "raw_plan": deterministic_lookup_plan,
+                },
+                "tasks": tasks,
+                "artifacts": artifacts,
+            }
+
+        if operation_family in {"lookup", "single_value"}:
+            missing_info = self._infer_missing_info(state, operands)
+            return {
+                "calculation_plan": {
+                    "status": "incomplete",
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "formula": "",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "",
+                    "explanation": "lookup tasks require a single directly grounded operand row.",
+                    "missing_info": missing_info,
+                },
+                "missing_info": missing_info,
+                "planner_debug_trace": {
+                    "target_metric_family": metric_key,
+                    "ontology_context": "lookup_guard_reject_non_direct",
+                    "operands_text": "\n".join(
+                        f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
+                        for row in operands
+                    ),
+                    "llm_invoked": False,
+                    "guard_applied": True,
+                    "reason": "lookup_non_direct_or_ambiguous",
+                    "missing_info": missing_info,
+                },
+            }
+
         deterministic_plan = self._build_deterministic_ontology_plan(state, operands)
         if deterministic_plan:
             logger.info(
@@ -1357,6 +1565,7 @@ Subtask Results JSON:
             "unsupported_sentences": [],
             "sentence_checks": [],
             "artifacts": artifacts,
+            "evidence_items": aggregate_projection.get("evidence_items", []),
             "calculation_operands": aggregate_projection["calculation_operands"],
             "calculation_plan": aggregate_projection["calculation_plan"],
             "calculation_result": aggregate_projection["calculation_result"],
