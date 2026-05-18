@@ -35,6 +35,8 @@
   - replan budget을 모두 써도 재료가 부족하면 `aggregate_subtasks`가 사용자-facing 최종 refusal / partial answer를 확정
   - direct lookup 우선 정책은 planner recipe가 아니라 runtime grounding / acceptance policy로 다룬다
   - direct candidate는 score만 높다고 성공으로 확정하지 않고 binding contract를 만족해야 accept한다
+  - `CalculationResult.answer_slots`가 `lookup / difference / ratio / sum`의 공통 structured result contract로 추가됐다
+  - aggregate 단계는 이제 `answer_slots`를 보고 `current / prior / delta / primary` 재료 누락을 deterministic하게 먼저 감지할 수 있다
 - 내부 실행 구조 일반화를 위한 1차 schema를 추가했다.
   - `tasks`, `artifacts` state 추가
   - parser의 `table_object / row_record / cell_record`를 정식 출력으로 승격 시작
@@ -67,14 +69,15 @@
 - planner / synthesizer / result schema의 경계가 이제 막 생겼기 때문에, single-task와 multi-subtask가 항상 같은 answer contract를 공유하지는 못한다.
 - concept-only planner는 single-metric / group concept / multi-metric 분해 품질이 좋아졌지만, 모든 numeric family에서 runtime default로 올리기엔 아직 canary가 더 필요하다.
 - `difference` / `lookup` / `ratio` 결과를 더 구조적으로 남기는 result schema 정리는 여전히 필요하다.
+- 다만 이제 `answer_slots`가 공통 contract로 들어와, single-task와 multi-subtask가 같은 structured result vocabulary를 공유하기 시작했다.
 - final refusal ownership은 `aggregate_subtasks`로 올라왔고, `NAV_T1_071`를 통해 `planner_feedback -> replan / close` 루프의 최소 실전 검증은 끝났다.
-- direct-first runtime policy는 `NAV_T1_071`에서 닫혔지만, 같은 acceptance/evidence propagation 계약을 다른 numeric family에도 넓혀야 한다.
+- direct-first runtime policy는 `NAV_T1_071`에서 닫혔고, 이제 `ratio / sum`처럼 explicit concept numeric task까지 direct grounding 대상으로 확대됐다.
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `lookup`, `difference`, `ratio` 결과를 더 구조화된 result schema로 남기기 | synthesizer가 원본 질문 충족 여부를 더 안정적으로 판정 |
+| 1 | `answer_slots` 기반 result schema를 renderer / synthesizer / evaluator contract의 기본값으로 고정 | 질문 충족 여부와 planner feedback을 structured result만 보고 판정 |
 | 2 | direct candidate acceptance contract를 다른 concept family에도 넓히기 | score-only success 대신 grounded direct-first fallback 구조 일반화 |
 | 3 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
 | 4 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
@@ -92,6 +95,7 @@
 - 지금 시스템은 “질문 1개 -> 답 1개” 구조에서 더 멀어져, `task + artifact + structured table object + final synthesizer` 중심으로 이동 중이다.
 - planner는 점점 benchmark-shaped metric family보다 **concept + operation + material gathering** 쪽으로 옮겨가고 있다.
 - answer completeness와 최종 refusal은 planner가 아니라 final synthesizer / aggregate 단계가 책임지는 방향으로 경계가 정리되고 있다.
+- final synthesizer는 이제 LLM 판단만 쓰지 않고, `answer_slots` 기반 deterministic gap checker를 먼저 사용해 재료 부족을 감지한다.
 - direct-first policy는 metric-specific planner branching보다 runtime acceptance contract와 lazy replan 쪽으로 구현하는 것이 현재 방향에 더 맞다.
 - `NAV_T1_071`는 이 방향으로 실제로 닫혔다.
   - direct structured row grounding
@@ -160,3 +164,20 @@
 - Immediate priority has therefore shifted away from this canary.
   - next focus is generalized result schema settling
   - then broadening the same direct-first acceptance/evidence propagation policy to other numeric families
+
+## 2026-05-18 Result Contract Update
+
+- `CalculationResult.answer_slots`가 공통 structured result contract로 추가됐다.
+  - `primary_value`
+  - `current_value`
+  - `prior_value`
+  - `delta_value`
+  - `components_by_role`
+- `difference`는 현재/전기/증감 슬롯을 모두 명시적으로 남긴다.
+- `lookup`은 direct row에서 잡은 값을 `primary_value`로 노출한다.
+- aggregate projection과 evaluator runtime projection도 subtask별 `answer_slots`를 그대로 carry한다.
+- `aggregate_subtasks`는 LLM synthesizer 전에 deterministic gap checker를 실행한다.
+  - `lookup`은 `primary_value`
+  - `difference`는 `current_value`, `prior_value`, `delta_value`
+  - `ratio`, `sum`은 `primary_value`
+  의 존재를 먼저 확인하고, 비어 있으면 `planner_feedback`를 직접 생성한다.

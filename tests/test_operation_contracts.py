@@ -16,6 +16,7 @@ from src.agent.financial_graph_helpers import (
     _build_concept_task_constraints,
     _build_generic_retrieval_queries,
     _operand_row_matches_requirement,
+    _requires_direct_numeric_grounding,
 )
 from src.agent.financial_graph_models import EvidenceExtraction
 from src.config.ontology import FinancialOntologyManager
@@ -157,6 +158,20 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["prior_value"], 1083717091000.0)
         self.assertEqual(calc["delta_value"], 397679227000.0)
         self.assertEqual(calc["source_row_ids"], ["cand_2023", "cand_2022"])
+        self.assertEqual(calc["answer_slots"]["operation_family"], "difference")
+        self.assertEqual(
+            calc["answer_slots"]["current_value"]["rendered_value"],
+            "1조 4,814억원",
+        )
+        self.assertEqual(
+            calc["answer_slots"]["prior_value"]["rendered_value"],
+            "1조 837억원",
+        )
+        self.assertEqual(
+            calc["answer_slots"]["delta_value"]["rendered_value"],
+            "3,977억원",
+        )
+        self.assertEqual(calc["answer_slots"]["direction"], "increase")
 
     def test_lookup_plan_requires_single_direct_operand_instead_of_reconstruction(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -320,6 +335,19 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["evidence_status"], "missing")
         self.assertEqual(result["evidence_items"], [])
         self.assertEqual(result["evidence_bullets"], [])
+
+    def test_ratio_task_with_explicit_concepts_requires_direct_numeric_grounding(self) -> None:
+        self.assertTrue(
+            _requires_direct_numeric_grounding(
+                {
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "부채총계", "concept": "total_liabilities", "role": "numerator_1", "required": True},
+                        {"label": "자본총계", "concept": "total_equity", "role": "denominator_1", "required": True},
+                    ],
+                }
+            )
+        )
 
 
 if __name__ == "__main__":

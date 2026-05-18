@@ -640,8 +640,6 @@ def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
     operation_family = str(task.get("operation_family") or "").strip().lower()
     if operation_family in {"lookup", "single_value"}:
         return True
-    if operation_family not in {"difference", "growth_rate"}:
-        return False
 
     required_operands = [
         dict(item)
@@ -649,6 +647,17 @@ def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
         if bool(item.get("required", True))
     ]
     if not required_operands:
+        return False
+
+    if operation_family in {"ratio", "sum"}:
+        concepts = [
+            str(item.get("concept") or "").strip()
+            for item in required_operands
+            if str(item.get("concept") or "").strip()
+        ]
+        return len(concepts) == len(required_operands)
+
+    if operation_family not in {"difference", "growth_rate"}:
         return False
 
     concepts = {

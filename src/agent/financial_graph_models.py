@@ -266,6 +266,13 @@ class CalculationResult(BaseModel):
     current_period: str = Field(default="", description="현재 기간 라벨")
     prior_period: str = Field(default="", description="직전 기간 라벨")
     source_row_ids: List[str] = Field(default_factory=list, description="결과를 만든 evidence row/candidate id")
+    answer_slots: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "renderer/synthesizer/evaluator가 공통으로 읽는 answer-friendly structured result slots. "
+            "예: primary_value, current_value, prior_value, delta_value, components_by_role"
+        ),
+    )
     derived_metrics: Dict[str, Any] = Field(default_factory=dict, description="계산 과정에서 파생된 보조 지표")
     explanation: str = Field(default="", description="계산 또는 실패 이유 설명")
 

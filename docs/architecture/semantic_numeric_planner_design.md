@@ -44,6 +44,10 @@ Current implementation status:
 - query-time retrieval now has a deterministic resilience layer:
   - if vector query embedding fails with `429 RESOURCE_EXHAUSTED`, retrieval falls back to BM25-only search
   - for single-document DART runs with a known `rcept_no`, retrieval scope should treat `rcept_no` as primary and avoid brittle strict company-name equality checks
+- `CalculationResult.answer_slots` is now the first answer-friendly structured result contract shared by:
+  - renderer
+  - final synthesizer
+  - evaluator runtime projection
 
 
 ## End-to-end Flow
@@ -107,6 +111,13 @@ The planner also should not overfit itself to direct-vs-derived execution
 recipes. Its job is to gather enough material for the runtime to choose the best
 grounded answer path, not to pre-bake every fallback branch into ontology or a
 metric-specific recipe table.
+
+Corollary:
+
+- planner should not decide whether a `difference` task alone is enough prose-wise
+- planner should provide the raw material
+- calculator should expose that material through `answer_slots`
+- final synthesizer should decide whether the gathered structured result is enough
 
 ### Current implementation status
 
@@ -176,6 +187,8 @@ This keeps graph topology simple while preserving patch-style planning behavior.
 - aggregate synthesis keeps the material-gathering contract intact
 - aggregate projection now preserves subtask `runtime_evidence` so evaluator and
   downstream consumers can see the same direct evidence the calculator used
+- aggregate projection also preserves subtask `answer_slots`, so multi-subtask
+  answers can be judged using the same structured contract as single-task ones
 - the final evaluator run reached:
   - `numeric_pass_rate = 1.0`
   - `faithfulness = 1.0`
@@ -257,6 +270,39 @@ For numeric lookup-style questions, the runtime should behave as:
 1. try to bind a direct grounded value
 2. accept that value only if it satisfies a stricter binding contract
 3. if direct binding fails, degrade gracefully into a fallback path
+
+Current implementation direction:
+
+- direct grounding is no longer only for `lookup`
+- it now covers:
+  - `lookup`, `single_value`
+  - single-concept `difference`, `growth_rate`
+  - explicit-concept `ratio`, `sum`
+- the runtime should treat these tasks as structured numeric tasks first, not as
+  generic context retrieval problems
+
+This keeps the policy concept-centric instead of metric-family-centric.
+
+## Deterministic material-gap check
+
+Before asking the final synthesizer LLM whether the question is fully answered,
+the runtime should run a deterministic structured check over `answer_slots`.
+
+Purpose:
+
+- avoid delegating obvious “missing current/prior/delta value” detection to prose-level LLM judgement
+- make `planner_feedback` generation less brittle
+- keep final refusal and replan triggers tied to structured results
+
+Current minimal contract:
+
+- `lookup`, `single_value`: `primary_value`
+- `difference`: `current_value`, `prior_value`, `delta_value`
+- `growth_rate`: `current_value`, `prior_value`, `primary_value`
+- `ratio`, `sum`: `primary_value`
+
+If these slots are missing, the aggregate stage should be allowed to emit
+`planner_feedback` deterministically even before the LLM synthesizer proposes one.
 
 This is different from a planner-level "primary plan / fallback plan" recipe.
 The current preferred architecture is:

@@ -1018,6 +1018,20 @@ Also return:
             "rendered_value": final_answer,
             "formatted_result": final_answer,
             "subtask_results": subtask_result_views,
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": str(item.get("task_id") or ""),
+                        "metric_family": str(item.get("metric_family") or ""),
+                        "metric_label": str(item.get("metric_label") or ""),
+                        "answer": str(item.get("answer") or ""),
+                        "answer_slots": dict((item.get("calculation_result") or {}).get("answer_slots") or {}),
+                        "rendered_value": str((item.get("calculation_result") or {}).get("rendered_value") or ""),
+                    }
+                    for item in subtask_result_views
+                ],
+            },
             "derived_metrics": {
                 "subtask_count": len(subtask_result_views),
                 "subtask_ids": [str(item.get("task_id") or "") for item in subtask_result_views if str(item.get("task_id") or "").strip()],

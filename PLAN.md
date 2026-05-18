@@ -32,8 +32,8 @@
 | --- | --- |
 | 목표 | planner는 재료 수집만 하고, final synthesizer가 질문 충족 여부와 최종 refusal을 책임지는 구조 정착 |
 | 현재 자산 | concept-only ontology v3 draft, LLM concept planner, lightweight validator, `planner_feedback`, `plan_loop_count`, aggregate synthesizer |
-| 현재 문제 | `lookup`, `difference`, `ratio`가 answer contract를 충분히 구조화해 남기지 않아 synthesizer가 일부 질문에서 약함. direct false positive를 hard acceptance contract로 막는 규칙도 다른 concept family로 더 넓혀야 함 |
-| 다음 할 일 | `NAV_T1_071`에서 검증한 direct-first acceptance + evidence propagation 계약을 다른 numeric families에도 일반화 |
+| 현재 문제 | `answer_slots`는 들어왔지만, renderer / synthesizer / evaluator가 이 contract를 default로 간주하는 경계를 더 분명히 정리해야 함. direct false positive를 hard acceptance contract로 막는 규칙도 다른 concept family로 더 넓혀야 함 |
+| 다음 할 일 | `answer_slots` 기반 deterministic gap checker를 일반화하고, `NAV_T1_071`에서 검증한 direct-first acceptance + evidence propagation 계약을 다른 numeric families에도 넓히기 |
 | 종료 조건 | planner와 synthesizer의 책임 경계가 안정되고, 부족 재료는 planner replan으로 보강하거나 aggregate refusal로 닫히며, direct success는 score-only가 아닌 grounded contract로 일관되게 승인됨 |
 
 ### 1. Result schema settling
@@ -41,8 +41,8 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | lookup/difference/ratio 결과를 answer-friendly structured result로 남겨 synthesizer가 안정적으로 조합 |
-| 현재 상태 | `current_value`, `prior_value`, `delta_value` 같은 슬롯은 생겼지만, renderer / synthesizer / evaluator가 이 슬롯을 일관되게 우선 사용하도록 더 정리해야 함 |
-| 다음 할 일 | operation별 structured result schema를 정리하고 renderer / synthesizer / evaluator contract를 맞추기 |
+| 현재 상태 | `CalculationResult.answer_slots`가 들어왔고, `lookup/difference/ratio/sum`에 공통 `primary/current/prior/delta/components` vocabulary가 생겼다 |
+| 다음 할 일 | renderer / synthesizer / evaluator가 `answer_slots`를 1순위 contract로 일관되게 사용하도록 정리하고, aggregate projection에서도 subtask slots를 그대로 carry |
 | 종료 조건 | single-task와 multi-subtask 모두 원본 질문 충족 여부를 structured result만 보고 판정 가능 |
 
 ### 2. Concept-only planner validation
@@ -121,3 +121,15 @@
   1. generalized result schema settling
   2. broadening direct-first acceptance/evidence propagation beyond this single canary
   3. concept-only planner default promotion criteria
+
+## 2026-05-18 Result Contract Update
+
+- `answer_slots`가 이제 numeric runtime의 공통 result contract로 추가되었다.
+- aggregate 단계는 LLM synthesizer에 앞서 deterministic gap checker를 실행한다.
+  - `lookup/single_value`: `primary_value`
+  - `difference`: `current_value`, `prior_value`, `delta_value`
+  - `growth_rate`: `current_value`, `prior_value`, `primary_value`
+  - `ratio/sum`: `primary_value`
+- direct numeric grounding 대상도 확장됐다.
+  - 기존: `lookup`, `single_value`, single-concept `difference/growth_rate`
+  - 현재: explicit concept operand를 가진 `ratio`, `sum`도 structured direct grounding 대상으로 취급

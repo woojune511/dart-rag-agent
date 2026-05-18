@@ -31,7 +31,14 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                         {"row_id": "equity", "label_kr": "자본총계", "value": "363677865"},
                     ],
                     "calculation_plan": {"status": "ok", "operation": "divide"},
-                    "calculation_result": {"status": "ok", "rendered_value": "25.4%"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "25.4%",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "primary_value": {"rendered_value": "25.4%"},
+                        },
+                    },
                 },
                 {
                     "task_id": "task_2",
@@ -44,7 +51,14 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                         {"row_id": "current_liabilities", "label_kr": "유동부채", "value": "53186439"},
                     ],
                     "calculation_plan": {"status": "ok", "operation": "divide"},
-                    "calculation_result": {"status": "ok", "rendered_value": "258.8%"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "258.8%",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "primary_value": {"rendered_value": "258.8%"},
+                        },
+                    },
                 },
             ],
         }
@@ -57,6 +71,10 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(
             trace["calculation_result"]["derived_metrics"]["subtask_ids"],
             ["task_1", "task_2"],
+        )
+        self.assertEqual(
+            trace["calculation_result"]["answer_slots"]["operation_family"],
+            "aggregate_subtasks",
         )
 
     def test_resolve_runtime_trace_can_project_single_task_from_ledger(self) -> None:

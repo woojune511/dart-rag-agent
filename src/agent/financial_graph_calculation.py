@@ -22,6 +22,83 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentCalculationMixin:
+    def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
+        if not isinstance(slot, dict) or not slot:
+            return False
+        if slot.get("normalized_value") is not None:
+            return True
+        return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
+
+    def _material_gap_feedback_for_subtask_result(self, row: Dict[str, Any]) -> str:
+        metric_label = _normalise_spaces(
+            str(row.get("metric_label") or row.get("answer") or row.get("task_id") or "계산 결과")
+        )
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        operation_family = str(
+            answer_slots.get("operation_family")
+            or ((row.get("calculation_plan") or {}).get("operation_family"))
+            or ((calculation_result.get("derived_metrics") or {}).get("operation_family"))
+            or ""
+        ).strip().lower()
+        if not operation_family:
+            operation_family = str((row.get("calculation_plan") or {}).get("operation") or "").strip().lower()
+
+        if operation_family in {"lookup", "single_value"}:
+            if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+                return f"{metric_label} direct value가 누락되었습니다."
+            return ""
+
+        if operation_family in {"difference", "growth_rate"}:
+            current_slot = dict(answer_slots.get("current_value") or {})
+            prior_slot = dict(answer_slots.get("prior_value") or {})
+            primary_slot = dict(answer_slots.get("primary_value") or {})
+            missing_labels: List[str] = []
+            if not self._answer_slot_has_material(current_slot):
+                missing_labels.append(f"{str(current_slot.get('period') or calculation_result.get('current_period') or 'current')} 값")
+            if not self._answer_slot_has_material(prior_slot):
+                missing_labels.append(f"{str(prior_slot.get('period') or calculation_result.get('prior_period') or 'prior')} 값")
+            if operation_family == "difference":
+                if not self._answer_slot_has_material(dict(answer_slots.get("delta_value") or primary_slot)):
+                    missing_labels.append("증감값")
+            else:
+                if not self._answer_slot_has_material(primary_slot):
+                    missing_labels.append("증감률")
+            if missing_labels:
+                return f"{metric_label} 계산에 필요한 {' / '.join(missing_labels)}이 누락되었습니다."
+            return ""
+
+        if operation_family in {"ratio", "sum"}:
+            if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+                return f"{metric_label} 계산 결과가 누락되었습니다."
+            return ""
+
+        return ""
+
+    def _infer_planner_feedback_from_answer_slots(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        for row in ordered_results:
+            status = str(
+                row.get("status")
+                or (row.get("calculation_result") or {}).get("status")
+                or ""
+            ).strip().lower()
+            if status and status != "ok":
+                gap = self._material_gap_feedback_for_subtask_result(row)
+                if gap:
+                    return gap
+                metric_label = _normalise_spaces(
+                    str(row.get("metric_label") or row.get("task_id") or "계산 결과")
+                )
+                return f"{metric_label} 계산에 필요한 재료가 누락되었습니다."
+
+            gap = self._material_gap_feedback_for_subtask_result(row)
+            if gap:
+                return gap
+        return ""
+
     def _coerce_operand_unit_from_evidence(
         self,
         *,
@@ -898,6 +975,182 @@ Ontology Context:
             return f"{value:,.4f}".rstrip("0").rstrip(".")
         return f"{value}"
 
+    def _render_value_with_unit(self, value: float, display_unit: str, normalized_unit: str) -> str:
+        rendered = self._format_calculation_value(value, display_unit, normalized_unit)
+        if normalized_unit == "KRW":
+            return rendered
+        if (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}:
+            return f"{rendered}{display_unit or '%'}"
+        if display_unit:
+            return f"{rendered}{display_unit}"
+        return rendered
+
+    def _build_operand_value_slot(
+        self,
+        row: Dict[str, Any],
+        *,
+        default_role: str = "operand",
+    ) -> Dict[str, Any]:
+        raw_unit = str(row.get("raw_unit") or row.get("result_unit") or "")
+        normalized_unit = str(row.get("normalized_unit") or "")
+        normalized_value = row.get("normalized_value")
+        rendered_value = ""
+        if normalized_value is not None:
+            try:
+                rendered_value = self._render_value_with_unit(float(normalized_value), raw_unit, normalized_unit)
+            except (TypeError, ValueError):
+                rendered_value = str(row.get("raw_value") or "")
+        return {
+            "role": str(row.get("matched_operand_role") or default_role),
+            "label": _display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
+            "concept": str(row.get("matched_operand_concept") or ""),
+            "period": str(row.get("period") or ""),
+            "raw_value": str(row.get("raw_value") or ""),
+            "raw_unit": raw_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "rendered_value": rendered_value,
+            "source_row_id": str(row.get("evidence_id") or row.get("row_id") or ""),
+        }
+
+    def _build_calculated_value_slot(
+        self,
+        *,
+        label: str,
+        normalized_value: Optional[float],
+        normalized_unit: str,
+        display_unit: str,
+        period: str = "",
+        source_row_ids: Optional[List[str]] = None,
+        role: str = "primary_value",
+    ) -> Dict[str, Any]:
+        rendered_value = ""
+        if normalized_value is not None:
+            rendered_value = self._render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
+        return {
+            "role": role,
+            "label": _display_operand_label(label),
+            "period": str(period or ""),
+            "raw_value": "",
+            "raw_unit": str(display_unit or ""),
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "rendered_value": rendered_value,
+            "source_row_ids": list(source_row_ids or []),
+        }
+
+    def _build_answer_slots(
+        self,
+        *,
+        active_subtask: Dict[str, Any],
+        operation_family: str,
+        ordered_operands: List[Dict[str, Any]],
+        result_value: Optional[float],
+        result_unit: str,
+        normalized_unit: str,
+        source_normalized_unit: str,
+        current_value: Optional[float],
+        prior_value: Optional[float],
+        delta_value: Optional[float],
+        current_period: str,
+        prior_period: str,
+        source_row_ids: List[str],
+        current_row: Optional[Dict[str, Any]] = None,
+        prior_row: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        metric_label = str(
+            active_subtask.get("metric_label")
+            or active_subtask.get("query")
+            or active_subtask.get("task_id")
+            or ""
+        )
+        components_by_role: Dict[str, List[Dict[str, Any]]] = {}
+        components_by_group: Dict[str, List[Dict[str, Any]]] = {}
+        for row in ordered_operands:
+            slot = self._build_operand_value_slot(row)
+            role = str(slot.get("role") or "operand")
+            components_by_role.setdefault(role, []).append(slot)
+            role_group = role.split("_", 1)[0] if "_" in role else role
+            components_by_group.setdefault(role_group, []).append(slot)
+
+        answer_slots: Dict[str, Any] = {
+            "operation_family": operation_family or str(active_subtask.get("operation_family") or ""),
+            "metric_label": metric_label,
+            "components_by_role": components_by_role,
+            "components_by_group": components_by_group,
+            "source_row_ids": list(source_row_ids or []),
+        }
+
+        if operation_family in {"lookup", "single_value"} and ordered_operands:
+            answer_slots["primary_value"] = self._build_operand_value_slot(
+                ordered_operands[0],
+                default_role="primary_value",
+            )
+            return answer_slots
+
+        primary_role = "delta_value" if operation_family == "difference" else "primary_value"
+        answer_slots["primary_value"] = self._build_calculated_value_slot(
+            label=metric_label,
+            normalized_value=result_value,
+            normalized_unit=normalized_unit,
+            display_unit=result_unit,
+            period=current_period,
+            source_row_ids=source_row_ids,
+            role=primary_role,
+        )
+
+        if operation_family in {"difference", "growth_rate"}:
+            if current_value is not None:
+                if current_row:
+                    current_slot = self._build_operand_value_slot(current_row, default_role="current_value")
+                    current_slot["role"] = "current_value"
+                    answer_slots["current_value"] = current_slot
+                else:
+                    answer_slots["current_value"] = self._build_calculated_value_slot(
+                        label=metric_label,
+                        normalized_value=current_value,
+                        normalized_unit=source_normalized_unit or normalized_unit,
+                        display_unit="",
+                        period=current_period,
+                        source_row_ids=source_row_ids[:1],
+                        role="current_value",
+                    )
+            if prior_value is not None:
+                if prior_row:
+                    prior_slot = self._build_operand_value_slot(prior_row, default_role="prior_value")
+                    prior_slot["role"] = "prior_value"
+                    answer_slots["prior_value"] = prior_slot
+                else:
+                    answer_slots["prior_value"] = self._build_calculated_value_slot(
+                        label=metric_label,
+                        normalized_value=prior_value,
+                        normalized_unit=source_normalized_unit or normalized_unit,
+                        display_unit="",
+                        period=prior_period,
+                        source_row_ids=source_row_ids[1:2],
+                        role="prior_value",
+                    )
+            if operation_family == "difference" and delta_value is not None:
+                answer_slots["delta_value"] = self._build_calculated_value_slot(
+                    label=metric_label,
+                    normalized_value=delta_value,
+                    normalized_unit=normalized_unit,
+                    display_unit=result_unit,
+                    period=current_period,
+                    source_row_ids=source_row_ids,
+                    role="delta_value",
+                )
+                if current_value is not None and prior_value is not None:
+                    if delta_value > 0:
+                        direction = "increase"
+                    elif delta_value < 0:
+                        direction = "decrease"
+                    else:
+                        direction = "flat"
+                    answer_slots["direction"] = direction
+
+        return answer_slots
+
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
         operands = {row.get("operand_id"): row for row in state.get("calculation_operands", [])}
@@ -936,6 +1189,7 @@ Ontology Context:
                     "rendered_value": "",
                     "formatted_result": "",
                     "series": [],
+                    "answer_slots": {},
                     "derived_metrics": {},
                     "explanation": reason,
                 },
@@ -1036,6 +1290,17 @@ Ontology Context:
                         "rendered_value": rendered_value,
                         "formatted_result": "",
                         "series": result_series,
+                        "answer_slots": {
+                            "operation_family": operation_family or operation,
+                            "metric_label": metric_name,
+                            "primary_value": self._build_calculated_value_slot(
+                                label=metric_name,
+                                normalized_value=result_value,
+                                normalized_unit=normalized_unit,
+                                display_unit=result_unit,
+                                role="primary_value",
+                            ),
+                        },
                         "derived_metrics": {
                             "metric_name": metric_name,
                             "yoy_growth_rates": yoy_growth_rates,
@@ -1088,6 +1353,8 @@ Ontology Context:
         delta_value: Optional[float] = None
         current_period = ""
         prior_period = ""
+        current_row: Optional[Dict[str, Any]] = None
+        prior_row: Optional[Dict[str, Any]] = None
         source_row_ids = [
             str(row.get("evidence_id") or "").strip()
             for row in ordered_operands
@@ -1117,6 +1384,23 @@ Ontology Context:
                 prior_period = str(prior_row.get("period") or "")
             if operation_family == "difference":
                 delta_value = float(result_value)
+        answer_slots = self._build_answer_slots(
+            active_subtask=active_subtask,
+            operation_family=operation_family,
+            ordered_operands=ordered_operands,
+            result_value=result_value,
+            result_unit=result_unit,
+            normalized_unit=normalized_unit,
+            source_normalized_unit=source_normalized_unit,
+            current_value=current_value,
+            prior_value=prior_value,
+            delta_value=delta_value,
+            current_period=current_period,
+            prior_period=prior_period,
+            source_row_ids=source_row_ids,
+            current_row=current_row,
+            prior_row=prior_row,
+        )
         logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
         result_payload = {
             "answer": "",
@@ -1140,6 +1424,7 @@ Ontology Context:
                 "current_period": current_period,
                 "prior_period": prior_period,
                 "source_row_ids": source_row_ids,
+                "answer_slots": answer_slots,
                 "derived_metrics": {
                     "operand_labels": labels,
                     "formula": formula,
@@ -1213,6 +1498,7 @@ Ontology Context:
 
 [렌더링 규칙]
 - CalculationResult의 rendered_value를 그대로 사용하세요. 숫자를 다시 계산하거나 형식을 바꾸지 마세요.
+- CalculationResult의 answer_slots가 있으면 rendered_value/series보다 먼저 참고해 현재값, 전기값, 증감값, 주된 결과값을 파악하세요.
 - operand label에 포함된 연도·기간 정보(예: '2024년', '2023년', '1분기')는 반드시 그대로 유지하세요. '2024년 영업이익'을 '영업이익'으로 줄이지 마세요.
 - direction_hint가 제공된 경우, 그 단어를 그대로 사용하세요. 임의로 '변동', '차이' 등 중립적 표현으로 바꾸지 마세요.
 - time_series 해석(상승·하락·반등 등)은 series 또는 derived_metrics의 수치 변화를 근거로 표현하세요.
@@ -1311,6 +1597,7 @@ Operands:
 - 계산 결과와 질문 의도에 맞는다면 verdict=keep.
 - 숫자, 단위, 방향, 비교 관계가 어긋나면 verdict=rewrite 로 두고 1~2문장으로 바로잡으세요.
 - 답변이 계산 결과와 크게 모순되거나 불필요한 내용을 덧붙였으면 verdict=fallback 으로 두고 deterministic fallback과 같은 뜻으로 작성하세요.
+- CalculationResult.answer_slots가 있으면 그 슬롯을 기준으로 답변이 질문 요구사항을 충족하는지 판단하세요.
 - final_answer는 rendered_value와 direction_hint를 벗어나지 마세요.
 - %p 질문이면 %p를 유지하세요.
 - 단일 값 조회 질문이면 계산 과정 설명을 길게 덧붙이지 마세요.
@@ -1473,6 +1760,7 @@ Operands:
         )
         final_answer = fallback_answer
         planner_feedback = ""
+        deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         max_plan_loops = 2
         if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
@@ -1484,12 +1772,15 @@ Operands:
 입력 데이터:
 1. 원본 질문
 2. subtask 결과 목록
+3. deterministic structured material check
 
 규칙:
 - 최종 답변은 원본 질문이 명시적으로 요구한 값과 계산 결과를 빠짐없이 포함하도록 노력하세요.
 - subtask 결과의 answer, calculation_result.rendered_value, calculation_result.series, calculation_operands를 근거로 사용하세요.
+- subtask 결과의 calculation_result.answer_slots가 있으면 그것을 가장 우선적인 structured result contract로 사용하세요.
 - 새로운 숫자, 연도, 단위를 만들지 마세요.
-- 현재 재료만으로 원본 질문을 완전히 충족할 수 있다면 planner_feedback은 비워 두세요.
+- deterministic structured material check가 비어 있으면, 현재 재료만으로 원본 질문을 완전히 충족한다고 보고 planner_feedback은 비워 두세요.
+- deterministic structured material check가 비어 있지 않으면, 그 누락 재료를 planner_feedback에 반영하세요.
 - 현재 재료만으로는 원본 질문의 요구사항 일부를 충족할 수 없다면, planner_feedback에 planner가 추가로 모아야 할 재료를 한 문장으로 적으세요.
 - planner_feedback은 내부 시스템용이므로 간결하게, 누락된 값/기간/개념 중심으로 쓰세요.
 - final_answer는 사용자용 한국어 답변만 작성하세요.
@@ -1500,6 +1791,9 @@ Operands:
 Fallback Answer:
 {fallback_answer}
 
+Deterministic Structured Material Check:
+{deterministic_feedback}
+
 Subtask Results JSON:
 {subtask_results_json}
 """
@@ -1509,6 +1803,7 @@ Subtask Results JSON:
                     {
                         "query": state["query"],
                         "fallback_answer": fallback_answer,
+                        "deterministic_feedback": deterministic_feedback or "-",
                         "subtask_results_json": json.dumps(ordered_results, ensure_ascii=False, indent=2),
                     }
                 )
@@ -1517,6 +1812,8 @@ Subtask Results JSON:
                 planner_feedback = _normalise_spaces(str(synthesized.planner_feedback or ""))
             except Exception as exc:
                 logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
+        if deterministic_feedback and not planner_feedback:
+            planner_feedback = deterministic_feedback
         should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops
         if planner_feedback and not should_replan:
             refusal_suffix = "다만 질문에 필요한 수치를 끝내 모두 확보하지 못해 원하신 답을 완전히 확정할 수는 없습니다."

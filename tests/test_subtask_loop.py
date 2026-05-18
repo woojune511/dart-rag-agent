@@ -142,7 +142,14 @@ class SubtaskLoopTests(unittest.TestCase):
                         {"row_id": "equity", "label_kr": "자본총계", "value": "363677865"},
                     ],
                     "calculation_plan": {"status": "ok", "operation": "divide"},
-                    "calculation_result": {"status": "ok", "rendered_value": "25.4%"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "25.4%",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "primary_value": {"rendered_value": "25.4%", "role": "primary_value"},
+                        },
+                    },
                     "reconciliation_result": {"status": "ready"},
                 }
             ],
@@ -223,6 +230,14 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(
             updated["calculation_result"]["derived_metrics"]["subtask_ids"],
             ["task_1", "task_2"],
+        )
+        self.assertEqual(
+            updated["calculation_result"]["answer_slots"]["operation_family"],
+            "aggregate_subtasks",
+        )
+        self.assertEqual(
+            len(updated["calculation_result"]["answer_slots"]["subtask_results"]),
+            2,
         )
 
     def test_route_after_aggregate_subtasks_reuses_pre_calc_planner_when_feedback_exists(self) -> None:
@@ -394,6 +409,83 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertIn("2023년 법인세비용차감전순이익은 1조 4,813억원입니다.", updated["answer"])
         self.assertIn("원하신 답을 완전히 확정할 수는 없습니다.", updated["answer"])
+
+    def test_aggregate_subtasks_uses_answer_slots_gap_check_without_llm(self) -> None:
+        state = {
+            "query": "2023년 법인세비용차감전순이익을 보여주고 전년 대비 증감액을 계산해 줘.",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_difference",
+                    "metric_label": "법인세비용차감전순이익 증감액",
+                    "query": "법인세비용차감전순이익 증감액을 계산해 줘.",
+                },
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_difference",
+                "metric_label": "법인세비용차감전순이익 증감액",
+                "query": "법인세비용차감전순이익 증감액을 계산해 줘.",
+            },
+            "subtask_results": [],
+            "answer": "2023년 법인세비용차감전순이익은 1조 4,814억원입니다.",
+            "compressed_answer": "2023년 법인세비용차감전순이익은 1조 4,814억원입니다.",
+            "selected_claim_ids": ["ev_200"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "법인세비용차감전순이익 증감액",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:201", "artifact:202", "artifact:203"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:201",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "payload": {
+                        "calculation_operands": [
+                            {"row_id": "pretax_2023", "label": "2023년 법인세비용차감전순이익", "normalized_value": 1481396318000},
+                        ]
+                    },
+                },
+                {
+                    "artifact_id": "artifact:202",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "payload": {
+                        "calculation_plan": {"status": "ok", "operation": "subtract"}
+                    },
+                },
+                {
+                    "artifact_id": "artifact:203",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "payload": {
+                        "calculation_result": {
+                            "status": "partial",
+                            "rendered_value": "",
+                            "answer_slots": {
+                                "operation_family": "difference",
+                                "current_value": {"period": "2023년", "rendered_value": "1조 4,814억원"},
+                            },
+                        }
+                    },
+                },
+            ],
+            "calculation_result": {"status": "partial"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("법인세비용차감전순이익 증감액 계산에 필요한", updated["planner_feedback"])
+        self.assertIn("prior", updated["planner_feedback"])
 
 
 if __name__ == "__main__":

@@ -95,7 +95,7 @@
 하지만:
 
 - planner가 모은 재료와 최종 답변 요구사항 사이의 contract는 아직 약하다
-- `difference`, `lookup`, `ratio` 결과가 answer-friendly structured result로 충분히 남지 않는다
+- `difference`, `lookup`, `ratio`, `sum` 결과가 같은 structured result vocabulary로 더 단단히 고정되어야 한다
 - direct lookup false positive를 score만으로 성공 처리하지 않도록 acceptance contract를 더 세게 둘 필요가 있다
 
 다음:
@@ -110,6 +110,8 @@
 - `NAV_T1_071`에서 이 루프의 최소 실전 검증은 끝났다
 - direct structured row grounding, same-table current/prior pairing,
   aggregate evidence propagation이 함께 닫혔다
+- `answer_slots`와 deterministic gap checker가 들어와,
+  aggregate 단계가 `primary/current/prior/delta` 누락을 structured하게 먼저 판단할 수 있게 됐다
 - 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하는 것이다
 
 종료 조건:
