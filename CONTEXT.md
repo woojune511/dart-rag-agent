@@ -192,6 +192,18 @@
 - `answer_slots`는 이제 renderer / synthesizer뿐 아니라 evaluator runtime projection의 1순위 contract다.
   - evaluator는 `calculation_operands`보다 먼저 `answer_slots`에서 operand-like rows를 복원한다.
   - `result_value`가 없으면 `answer_slots.primary_value.normalized_value`를 numeric result source로 사용한다.
+- runtime boundary도 같은 방향으로 정리되었다.
+  - `FinancialAgent.run()`은 이제 `resolved_calculation_trace`와 `structured_result`를 함께 반환한다.
+  - `/api/query`도 같은 structured contract를 전달한다.
+  - MAS analyst/critic, benchmark review export, retrospective evaluator scripts도 이 contract를 우선 사용한다.
+
+### Compatibility note
+
+- top-level `calculation_operands`, `calculation_plan`, `calculation_result`는 아직 남아 있지만
+  이제 **compatibility projection**으로 간주한다.
+- 새 consumer / 새 테스트 / 새 디버그 도구는 가능하면 아래 둘만 기준으로 삼는다.
+  - `structured_result`
+  - `resolved_calculation_trace`
 - slot payload는 단순 숫자 dict가 아니라 `status + normalized/raw value + provenance`를 함께 담는 value object로 정리되기 시작했다.
   - missing material은 key omission이 아니라 `status = "missing"`으로 남긴다.
   - direct grounding이 성공한 값은 `source_row_id / source_row_ids / source_anchor`를 carry한다.

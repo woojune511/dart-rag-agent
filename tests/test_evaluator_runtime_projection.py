@@ -135,6 +135,25 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(trace["calculation_plan"]["operation"], "divide")
         self.assertEqual(trace["calculation_result"]["rendered_value"], "25.4%")
 
+    def test_resolve_runtime_trace_prefers_explicit_structured_contract(self) -> None:
+        result = {
+            "calculation_operands": [{"label": "stale", "value": "999"}],
+            "calculation_plan": {"status": "stale"},
+            "calculation_result": {"status": "stale", "rendered_value": "999"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [{"label": "fresh", "value": "123"}],
+                "calculation_plan": {"status": "ok", "operation": "lookup"},
+                "calculation_result": {"status": "ok", "rendered_value": "123"},
+            },
+            "structured_result": {"status": "ok", "rendered_value": "123"},
+        }
+
+        trace = _resolve_runtime_calculation_trace(result)
+
+        self.assertEqual(trace["calculation_operands"], [{"label": "fresh", "value": "123"}])
+        self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
+
     def test_resolve_evaluator_operands_prefers_answer_slots_components(self) -> None:
         operands = [
             {"operand_id": "legacy", "label": "legacy", "raw_value": "999", "raw_unit": "%"},

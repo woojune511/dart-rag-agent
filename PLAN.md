@@ -155,3 +155,49 @@
   - planner bug
   - reconciliation bug
   가 아니라, selective benchmark store가 필요한 섹션을 누락했는지부터 확인해야 한다.
+## 2026-05-19 Projection Unification
+
+- runtime legacy projection and evaluator runtime projection now share the same
+  `_resolve_runtime_calculation_trace(...)` helper path.
+- planning subtask capture now also reuses the shared projection helpers instead
+  of carrying its own ledger trace copy.
+- benchmark review row flattening now resolves `calculation_*` through the same
+  runtime trace helper, so review CSV export follows `answer_slots +
+  tasks/artifacts` before falling back to flat top-level fields.
+- retrospective evaluator/grounding scripts and MAS smoke checks now also read
+  resolved runtime traces instead of raw top-level `calculation_*` where
+  applicable.
+- `FinancialAgent.run()` now also exposes:
+  - `resolved_calculation_trace`
+  - `structured_result`
+  so new callers have a first-class structured contract and do not need to
+  depend on flat `calculation_*` projections.
+- FastAPI `/api/query` now forwards the same structured result contract so
+  external API consumers can adopt it directly.
+- debug/smoke tooling now also carries `structured_result` /
+  `resolved_calculation_trace` in its output where practical, reducing pressure
+  on flat `calculation_*` payloads even in ad hoc inspection flows.
+- benchmark review rows now also persist `structured_result` and
+  `resolved_calculation_trace` explicitly alongside legacy flat calculation
+  columns, so downstream review tooling can migrate without re-running
+  experiments.
+- This makes `answer_slots + tasks/artifacts` closer to the real
+  source-of-truth contract, while flat `calculation_*` fields are more clearly
+  compatibility projections.
+- Remaining cleanup targets are now mostly compatibility-only:
+  1. `FinancialAgentState` and `FinancialAgent.run()` still expose flat
+     `calculation_*` fields for older callers
+  2. some older fixtures and niche tooling still mention flat field names even
+     though their values now come from resolved traces
+
+## 2026-05-20 Runtime validation note
+
+- fresh narrow runtime reruns now confirm:
+  - `NAV_T1_071`: PASS
+  - `MIX_T1_021`: PASS
+- `NAV_T1_030` no longer drifts into a ratio plan.
+  - FCF now uses deterministic subtract planning.
+  - parenthesized negative outflows normalize correctly.
+  - final rendering no longer injects unnecessary uncertainty wording.
+- remaining blocker:
+  - evaluator / structured-result treatment for compositional subtraction metrics such as FCF

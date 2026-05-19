@@ -96,6 +96,8 @@ class QueryResponse(BaseModel):
     companies:  List[str]
     years:      List[int]
     citations:  List[str]
+    structured_result: Dict[str, Any] = Field(default_factory=dict)
+    resolved_calculation_trace: Dict[str, Any] = Field(default_factory=dict)
 
 
 class CompanyInfo(BaseModel):
@@ -256,4 +258,6 @@ async def query(req: QueryRequest):
         companies=result.get("companies", []),
         years=result.get("years", []),
         citations=result.get("citations", []),
+        structured_result=dict(result.get("structured_result") or {}),
+        resolved_calculation_trace=dict(result.get("resolved_calculation_trace") or {}),
     )

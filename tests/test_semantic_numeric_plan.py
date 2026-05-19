@@ -39,6 +39,43 @@ class _StubLLM:
 
 
 class SemanticNumericPlanTests(unittest.TestCase):
+    def test_extract_entities_keeps_metric_family_hint_empty_by_default(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._extract_entities(
+            {
+                "query": "2023년 연결 기준 부채비율을 계산해 줘",
+                "intent": "comparison",
+                "query_type": "comparison",
+                "report_scope": {"company": "삼성전자", "year": 2023},
+            }
+        )
+
+        self.assertEqual(result["companies"], ["삼성전자"])
+        self.assertEqual(result["years"], [2023])
+        self.assertEqual(result["target_metric_family"], "")
+        self.assertEqual(result["target_metric_family_hint"], "")
+
+    def test_calc_metric_family_prefers_active_subtask_only(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        self.assertEqual(
+            agent._calc_metric_family(
+                {
+                    "active_subtask": {"metric_family": "concept_ratio"},
+                    "target_metric_family": "debt_ratio",
+                }
+            ),
+            "concept_ratio",
+        )
+        self.assertEqual(
+            agent._calc_metric_family(
+                {
+                    "active_subtask": {},
+                    "target_metric_family": "debt_ratio",
+                }
+            ),
+            "",
+        )
+
     def test_parse_unstructured_row_uses_header_context(self) -> None:
         cells = _parse_unstructured_table_row_cells(
             "법인세비용차감전순이익 | 1,481,396,318 | 1,083,717,091",
@@ -223,6 +260,38 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertIn("notes", task["preferred_statement_types"])
         self.assertIn("차입금 및 사채", task["preferred_sections"])
 
+    def test_concept_only_ontology_builds_segment_sum_task_with_repeated_addends(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+                topic="SDC와 Harman 부문 매출 합계",
+                intent="comparison",
+                report_scope={"company": "삼성전자", "year": 2024, "report_type": "사업보고서", "consolidation": "연결"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_sum")
+        self.assertEqual(task["operation_family"], "sum")
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"]) for row in task["required_operands"]],
+            [
+                ("SDC 매출액", "addend_1", "revenue"),
+                ("Harman 매출액", "addend_2", "revenue"),
+            ],
+        )
+        self.assertEqual(task["constraints"]["segment_scope"], "segment")
+
     def test_concept_only_ontology_expands_group_concepts_for_ratio_task(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager
@@ -286,6 +355,38 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(
             [row["role"] for row in task["required_operands"]],
             ["current_period", "prior_period"],
+        )
+
+    def test_concept_only_ontology_builds_ratio_task_for_rnd_over_revenue(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                topic="삼성전자 2024 사업보고서에서 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?",
+                intent="comparison",
+                report_scope={"company": "삼성전자", "year": 2024, "report_type": "사업보고서"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        self.assertIn("concept_first_preferred", plan["planner_notes"])
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_ratio")
+        self.assertEqual(task["operation_family"], "ratio")
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"]) for row in task["required_operands"]],
+            [
+                ("연구개발비용", "numerator_1", "research_and_development_expense"),
+                ("매출액", "denominator_1", "revenue"),
+            ],
         )
 
     def test_implicit_ratio_query_is_decomposed_by_llm_concept_planner(self) -> None:
@@ -544,6 +645,68 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(result["years"], [2023, 2022])
         self.assertEqual(result["topic"], "법인세비용차감전순이익 추출 및 전년 대비 증감액 계산")
         self.assertEqual(result["section_filter"], "연결 손익계산서")
+
+    def test_llm_concept_planner_preserves_repeated_concepts_for_segment_sum(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "companies": ["삼성전자"],
+                    "years": [2024],
+                    "topic": "SDC 및 Harman 부문 매출 합계",
+                    "section_filter": "영업부문",
+                    "tasks": [
+                        {
+                            "metric_label": "SDC 및 Harman 부문 매출 합계",
+                            "operation_family": "sum",
+                            "operands": [
+                                {"concept": "revenue", "role": "addend_1"},
+                                {"concept": "revenue", "role": "addend_2"},
+                            ],
+                        }
+                    ],
+                    "rationale": "같은 revenue concept라도 SDC와 Harman 부문의 addend를 분리해 합산해야 한다.",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+                    "intent": "comparison",
+                    "query_type": "comparison",
+                    "topic": "SDC와 Harman 부문 매출 합계",
+                    "report_scope": {"company": "삼성전자", "year": 2024, "report_type": "사업보고서", "consolidation": "연결"},
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        plan = dict(result.get("semantic_plan") or {})
+        self.assertIn("concept_llm_planner", plan.get("planner_notes") or [])
+        self.assertEqual(plan.get("planned_metric_families"), ["concept_sum"])
+        self.assertEqual(len(result["calc_subtasks"]), 1)
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"]) for row in result["calc_subtasks"][0]["required_operands"]],
+            [
+                ("매출액", "addend_1", "revenue"),
+                ("매출액", "addend_2", "revenue"),
+            ],
+        )
+        self.assertEqual(result["companies"], ["삼성전자"])
+        self.assertEqual(result["years"], [2024])
+        self.assertEqual(result["section_filter"], "영업부문")
 
     def test_replan_mode_appends_patch_tasks_without_overwriting_existing_plan(self) -> None:
         import src.config.ontology as ontology_module

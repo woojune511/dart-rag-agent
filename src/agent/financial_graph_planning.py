@@ -90,26 +90,22 @@ class FinancialAgentPlanningMixin:
         query_years = [int(token) for token in re.findall(r"20\d{2}", query)]
         years = list(dict.fromkeys(query_years))
         companies, years = self._align_scope_hints(companies=[], years=years, report_scope=report_scope)
-        ontology = get_financial_ontology()
-        metric = ontology.best_metric_family(
-            query,
-            query,
-            state.get("intent") or state.get("query_type", "qa"),
-        )
-        target_metric_family = str(metric.get("key") or "") if metric else ""
         logger.info(
             "[extract] companies=%s years=%s target_metric=%s",
             companies,
             years,
-            target_metric_family or "-",
+            "-",
         )
         return {
             "companies": companies,
             "years": years,
             "topic": query,
             "section_filter": None,
-            "target_metric_family": target_metric_family,
-            "target_metric_family_hint": target_metric_family,
+            # Keep metric-family hints empty by default so the planner can prefer
+            # concept + operation decomposition instead of eagerly collapsing the
+            # query into a legacy metric family.
+            "target_metric_family": "",
+            "target_metric_family_hint": "",
         }
 
     def _build_llm_concept_numeric_plan(
@@ -216,7 +212,9 @@ available concepts:
 - 사용자가 raw value와 파생 계산(증감액, 증가율, 비율 등)을 함께 요구하면, lookup task와 calculation task를 모두 만들어도 됩니다.
 - difference 또는 growth_rate task는 계산 재료를 모으는 역할이지, 그 task 하나가 최종 답변의 모든 노출 요구를 대신한다고 가정하지 마세요.
 - lookup은 단일 값 조회나, 다른 계산 task와 별도로 원문 질문이 직접 요구한 raw 값을 확보할 때 사용하세요.
-- benchmark 이름을 metric family처럼 만들지 말고, operation과 concept 조합으로 푸세요.
+- benchmark ?????metric family??? ????? ???, operation??concept ?????? ?????
+- ????/?????/?????????(SDC, Harman ??? ???)??company???????? ???????? report_scope???????companies?????? ?????????? segment ?????? ????????
+- ??? concept????? ????/????????? ??????????lookup task ??? ??? ????? ???, ?????sum task ??? ??? concept addend????? ??(addend_1, addend_2, ...) ????????
 - concept는 available concepts 안의 key만 써야 합니다.
 - 질문에 명시되지 않은 company/year는 report_scope 기본값을 따른다고 가정하세요.
 {mode_specific_rules}
@@ -836,134 +834,18 @@ Also return:
 
     def _calc_metric_family(self, state: FinancialAgentState) -> str:
         active_subtask = dict(state.get("active_subtask") or {})
-        return str(active_subtask.get("metric_family") or state.get("target_metric_family") or "")
-
-    def _find_task_record(self, state: FinancialAgentState, task_id: str) -> Dict[str, Any]:
-        task_id = str(task_id or "").strip()
-        if not task_id:
-            return {}
-        for task in reversed(list(state.get("tasks") or [])):
-            if str(task.get("task_id") or "").strip() == task_id:
-                return dict(task)
-        return {}
-
-    def _extract_artifact_payload_value(
-        self,
-        artifact: Dict[str, Any],
-        payload_key: str,
-    ) -> Any:
-        payload = dict(artifact.get("payload") or {})
-        value = payload.get(payload_key)
-        if isinstance(value, list):
-            return [dict(item) if isinstance(item, dict) else item for item in value]
-        if isinstance(value, dict):
-            return dict(value)
-        return value
-
-    def _latest_artifact_value_for_task(
-        self,
-        state: FinancialAgentState,
-        *,
-        task_id: str,
-        kind: ArtifactKind,
-        payload_key: str,
-    ) -> Any:
-        kind_value = str(kind.value if hasattr(kind, "value") else kind)
-        artifacts = [dict(item) for item in (state.get("artifacts") or [])]
-        task_record = self._find_task_record(state, task_id)
-        artifact_ids = [str(value).strip() for value in (task_record.get("artifact_ids") or []) if str(value).strip()]
-
-        for artifact_id in reversed(artifact_ids):
-            for artifact in reversed(artifacts):
-                if str(artifact.get("artifact_id") or "").strip() != artifact_id:
-                    continue
-                if str(artifact.get("kind") or "") != kind_value:
-                    continue
-                return self._extract_artifact_payload_value(artifact, payload_key)
-
-        for artifact in reversed(artifacts):
-            if str(artifact.get("task_id") or "").strip() != str(task_id or "").strip():
-                continue
-            if str(artifact.get("kind") or "") != kind_value:
-                continue
-            return self._extract_artifact_payload_value(artifact, payload_key)
-
-        return {} if payload_key.endswith("_result") or payload_key.endswith("_plan") else []
-
-    def _project_task_trace_from_ledger(
-        self,
-        state: FinancialAgentState,
-        task_id: str,
-    ) -> Dict[str, Any]:
-        task_id = str(task_id or "").strip()
-        active_task_id = str((state.get("active_subtask") or {}).get("task_id") or "").strip()
-        calculation_operands = self._latest_artifact_value_for_task(
-            state,
-            task_id=task_id,
-            kind=ArtifactKind.OPERAND_SET,
-            payload_key="calculation_operands",
-        )
-        calculation_plan = self._latest_artifact_value_for_task(
-            state,
-            task_id=task_id,
-            kind=ArtifactKind.CALCULATION_PLAN,
-            payload_key="calculation_plan",
-        )
-        calculation_result = self._latest_artifact_value_for_task(
-            state,
-            task_id=task_id,
-            kind=ArtifactKind.CALCULATION_RESULT,
-            payload_key="calculation_result",
-        )
-        reconciliation_result = self._latest_artifact_value_for_task(
-            state,
-            task_id=task_id,
-            kind=ArtifactKind.RECONCILIATION_RESULT,
-            payload_key="reconciliation_result",
-        )
-
-        if task_id == active_task_id:
-            if not calculation_operands:
-                calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
-            if not calculation_plan:
-                calculation_plan = dict(state.get("calculation_plan") or {})
-            if not calculation_result:
-                calculation_result = dict(state.get("calculation_result") or {})
-            if not reconciliation_result:
-                reconciliation_result = dict(state.get("reconciliation_result") or {})
-
-        task_record = self._find_task_record(state, task_id)
-        return {
-            "task_id": task_id,
-            "artifact_ids": [str(value).strip() for value in (task_record.get("artifact_ids") or []) if str(value).strip()],
-            "calculation_operands": list(calculation_operands or []),
-            "calculation_plan": dict(calculation_plan or {}),
-            "calculation_result": dict(calculation_result or {}),
-            "reconciliation_result": dict(reconciliation_result or {}),
-        }
+        return str(active_subtask.get("metric_family") or "")
 
     def _build_aggregate_calculation_projection(
         self,
         ordered_results: List[Dict[str, Any]],
         final_answer: str,
     ) -> Dict[str, Any]:
-        aggregate_operands: List[Dict[str, Any]] = []
+        aggregate_projection = _build_aggregate_calculation_projection(ordered_results, final_answer)
         aggregate_evidence: List[Dict[str, Any]] = []
-        subtask_plans: List[Dict[str, Any]] = []
-        subtask_result_views: List[Dict[str, Any]] = []
         seen_evidence_ids: set[str] = set()
 
         for row in ordered_results:
-            task_id = str(row.get("task_id") or "").strip()
-            metric_family = str(row.get("metric_family") or "").strip()
-            metric_label = str(row.get("metric_label") or "").strip()
-            for operand in list(row.get("calculation_operands") or []):
-                operand_row = dict(operand)
-                operand_row.setdefault("task_id", task_id)
-                operand_row.setdefault("metric_family", metric_family)
-                operand_row.setdefault("metric_label", metric_label)
-                aggregate_operands.append(operand_row)
-
             for evidence in list(row.get("runtime_evidence") or []):
                 evidence_row = dict(evidence)
                 evidence_id = str(evidence_row.get("evidence_id") or "").strip()
@@ -984,110 +866,22 @@ Also return:
                 if dedupe_key:
                     seen_evidence_ids.add(dedupe_key)
                 aggregate_evidence.append(evidence_row)
-
-            plan = dict(row.get("calculation_plan") or {})
-            if plan:
-                subtask_plans.append(
-                    {
-                        "task_id": task_id,
-                        "metric_family": metric_family,
-                        "metric_label": metric_label,
-                        "calculation_plan": plan,
-                    }
-                )
-
-            subtask_result_views.append(
-                {
-                    "task_id": task_id,
-                    "metric_family": metric_family,
-                    "metric_label": metric_label,
-                    "answer": _normalise_spaces(str(row.get("answer") or "")),
-                    "status": str(row.get("status") or ""),
-                    "calculation_result": dict(row.get("calculation_result") or {}),
-                }
-            )
-
-        all_ok = all(str(item.get("status") or "") == "ok" for item in subtask_result_views) if subtask_result_views else False
-        calculation_plan = {
-            "status": "ok" if subtask_plans else "empty",
-            "mode": "aggregate_subtasks",
-            "subtask_count": len(subtask_result_views),
-            "subtasks": subtask_plans,
-        }
-        aggregate_answer_slots = validate_answer_slots_payload(
-            {
-                "operation_family": "aggregate_subtasks",
-                "subtask_results": [
-                    {
-                        "task_id": str(item.get("task_id") or ""),
-                        "metric_family": str(item.get("metric_family") or ""),
-                        "metric_label": str(item.get("metric_label") or ""),
-                        "answer": str(item.get("answer") or ""),
-                        "answer_slots": dict((item.get("calculation_result") or {}).get("answer_slots") or {}),
-                        "rendered_value": str((item.get("calculation_result") or {}).get("rendered_value") or ""),
-                    }
-                    for item in subtask_result_views
-                ],
-            }
-        )
-        calculation_result = {
-            "status": "ok" if all_ok else "partial",
-            "rendered_value": final_answer,
-            "formatted_result": final_answer,
-            "subtask_results": subtask_result_views,
-            "answer_slots": aggregate_answer_slots,
-            "derived_metrics": {
-                "subtask_count": len(subtask_result_views),
-                "subtask_ids": [str(item.get("task_id") or "") for item in subtask_result_views if str(item.get("task_id") or "").strip()],
-            },
-        }
         return {
-            "calculation_operands": aggregate_operands,
-            "calculation_plan": calculation_plan,
-            "calculation_result": calculation_result,
+            "calculation_operands": aggregate_projection["calculation_operands"],
+            "calculation_plan": aggregate_projection["calculation_plan"],
+            "calculation_result": aggregate_projection["calculation_result"],
             "evidence_items": aggregate_evidence,
         }
 
     def _project_legacy_calculation_fields(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Project ledger-backed traces into the legacy flat calculation view."""
-        subtask_results = [dict(item) for item in (state.get("subtask_results") or [])]
-        if subtask_results and (
-            str((state.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks"
-            or bool((state.get("calculation_result") or {}).get("subtask_results"))
-        ):
-            return {
-                "calculation_operands": list(state.get("calculation_operands") or []),
-                "calculation_plan": dict(state.get("calculation_plan") or {}),
-                "calculation_result": dict(state.get("calculation_result") or {}),
-            }
-
-        if subtask_results:
-            final_answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
-            return self._build_aggregate_calculation_projection(subtask_results, final_answer)
-
-        active_task_id = str((state.get("active_subtask") or {}).get("task_id") or "").strip()
-        if active_task_id:
-            projected = self._project_task_trace_from_ledger(state, active_task_id)
-            return {
-                "calculation_operands": list(projected.get("calculation_operands") or []),
-                "calculation_plan": dict(projected.get("calculation_plan") or {}),
-                "calculation_result": dict(projected.get("calculation_result") or {}),
-            }
-
-        return {
-            "calculation_operands": list(state.get("calculation_operands") or []),
-            "calculation_plan": dict(state.get("calculation_plan") or {}),
-            "calculation_result": dict(state.get("calculation_result") or {}),
-        }
+        return _resolve_runtime_calculation_trace(dict(state))
 
     def _capture_current_subtask_result(self, state: FinancialAgentState) -> Dict[str, Any]:
         active_subtask = dict(state.get("active_subtask") or {})
         if not active_subtask:
             return {}
-        projected = self._project_task_trace_from_ledger(
-            state,
-            str(active_subtask.get("task_id") or ""),
-        )
+        projected = _project_task_trace_from_state(state, str(active_subtask.get("task_id") or ""))
         calculation_operands = list(projected.get("calculation_operands") or [])
         calculation_plan = dict(projected.get("calculation_plan") or {})
         calculation_result = dict(projected.get("calculation_result") or {})

@@ -24,6 +24,7 @@ from ops.evaluator import (  # noqa: E402
     _safe_float,
     load_eval_examples_from_path,
 )
+from agent.financial_graph_helpers import _resolve_runtime_calculation_trace  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -192,6 +193,9 @@ def _override_operand_selection(
 
 
 def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[str, Any]:
+    resolved_trace = _resolve_runtime_calculation_trace(row)
+    resolved_operands = list(resolved_trace.get("calculation_operands") or [])
+    resolved_result = dict(resolved_trace.get("calculation_result") or {})
     evidence_quotes = [str(item.quote) for item in list(example.evidence or [])]
 
     if case.decision_id == "73":
@@ -233,10 +237,10 @@ def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[s
         }
 
     if case.decision_id == "75":
-        legacy_score = _compute_legacy_operand_selection(example, list(row.get("calculation_operands") or []))
+        legacy_score = _compute_legacy_operand_selection(example, resolved_operands)
         current_score = _compute_operand_selection_correctness(
             example=example,
-            calculation_operands=list(row.get("calculation_operands") or []),
+            calculation_operands=resolved_operands,
         )
         return {
             "decision_id": case.decision_id,
@@ -247,7 +251,7 @@ def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[s
             "baseline_value": legacy_score,
             "baseline_debug": {
                 "expected_labels": [item.get("label") for item in list(example.expected_operands or [])],
-                "actual_labels": [item.get("label") for item in list(row.get("calculation_operands") or [])],
+                "actual_labels": [item.get("label") for item in resolved_operands],
                 "legacy_matches": [
                     {
                         "expected": str(expected.get("label") or ""),
@@ -258,7 +262,7 @@ def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[s
                         ),
                     }
                     for expected in list(example.expected_operands or [])
-                    for actual in list(row.get("calculation_operands") or [])
+                    for actual in resolved_operands
                 ],
             },
             "baseline_judgement": None,
@@ -275,7 +279,7 @@ def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[s
                         ),
                     }
                     for expected in list(example.expected_operands or [])
-                    for actual in list(row.get("calculation_operands") or [])
+                    for actual in resolved_operands
                 ],
             },
             "proposed_judgement": None,
@@ -283,11 +287,11 @@ def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[s
 
     numeric_result_correctness = _compute_numeric_result_correctness(
         example=example,
-        calculation_result=dict(row.get("calculation_result") or {}),
+        calculation_result=resolved_result,
     )
     base_score = _compute_operand_selection_correctness(
         example=example,
-        calculation_operands=list(row.get("calculation_operands") or []),
+        calculation_operands=resolved_operands,
     )
     overridden_score = _override_operand_selection(
         base_score=base_score,

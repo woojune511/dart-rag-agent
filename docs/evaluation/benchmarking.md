@@ -202,6 +202,11 @@
 - `CalculationResult.answer_slots`는 이제 evaluator runtime projection의 1순위 contract다.
   - evaluator는 `calculation_operands`보다 먼저 `answer_slots`에서 operand-like provenance를 복원한다.
   - `result_value`가 비어 있으면 `answer_slots.primary_value.normalized_value`를 numeric result source로 사용한다.
+- benchmark/runtime 결과물도 이제 다음 structured contract를 함께 보존한다.
+  - `resolved_calculation_trace`
+  - `structured_result`
+- review CSV나 historical replay를 볼 때도 flat `calculation_*`만 source of truth로 가정하지 않는다.
+  가능하면 위 structured contract를 먼저 사용하고, flat `calculation_*`는 compatibility projection으로 해석한다.
 - percent numeric equivalence는 source display precision을 존중한다.
   - 예: `25.36%`와 `25.4%`는 rounded display gap으로 허용된다.
 - 대표 canary 확인:

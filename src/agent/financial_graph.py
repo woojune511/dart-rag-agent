@@ -229,6 +229,8 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "answer": "",
             "citations": [],
             "numeric_debug_trace": {},
+            # Compatibility-only flat projections. Runtime truth is carried in
+            # `tasks` / `artifacts` and projected out at the boundary.
             "calculation_operands": [],
             "calculation_plan": {},
             "calculation_result": {},
@@ -257,6 +259,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         # We still project legacy flat fields here while the surrounding
         # evaluator and benchmark code finishes migrating.
         legacy_projection = self._project_legacy_calculation_fields(final)
+        structured_result = dict(legacy_projection.get("calculation_result", {}) or {})
         return {
             "query": final["query"],
             "report_scope": final.get("report_scope", {}),
@@ -286,6 +289,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "unsupported_sentences": final.get("unsupported_sentences", []),
             "sentence_checks": final.get("sentence_checks", []),
             "numeric_debug_trace": final.get("numeric_debug_trace", {}),
+            # Preferred structured runtime contract for external callers.
+            # Legacy flat calculation_* fields below are compatibility
+            # projections derived from this resolved trace.
+            "resolved_calculation_trace": legacy_projection,
+            "structured_result": structured_result,
             "calculation_operands": legacy_projection.get("calculation_operands", []),
             "calculation_plan": legacy_projection.get("calculation_plan", {}),
             "calculation_result": legacy_projection.get("calculation_result", {}),

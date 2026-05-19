@@ -240,6 +240,68 @@ class SubtaskLoopTests(unittest.TestCase):
             2,
         )
 
+    def test_project_legacy_calculation_fields_prefers_ledger_trace_over_stale_top_level(self) -> None:
+        state = {
+            "answer": "2023년 연결기준 부채비율은 25.4%입니다.",
+            "compressed_answer": "2023년 연결기준 부채비율은 25.4%입니다.",
+            "active_subtask": {"task_id": "task_1"},
+            "subtask_results": [],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "부채비율",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:001", "artifact:002", "artifact:003"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:001",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "payload": {
+                        "calculation_operands": [
+                            {"row_id": "debt", "label_kr": "부채총계", "value": "92228115"},
+                            {"row_id": "equity", "label_kr": "자본총계", "value": "363677865"},
+                        ]
+                    },
+                },
+                {
+                    "artifact_id": "artifact:002",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "payload": {
+                        "calculation_plan": {"status": "ok", "operation": "divide"}
+                    },
+                },
+                {
+                    "artifact_id": "artifact:003",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "payload": {
+                        "calculation_result": {
+                            "status": "ok",
+                            "rendered_value": "25.4%",
+                            "answer_slots": {
+                                "operation_family": "ratio",
+                                "primary_value": {"status": "ok", "rendered_value": "25.4%"},
+                            },
+                        }
+                    },
+                },
+            ],
+            "calculation_operands": [{"row_id": "stale"}],
+            "calculation_plan": {"status": "stale"},
+            "calculation_result": {"status": "stale", "rendered_value": "999%"},
+        }
+
+        projected = self.agent._project_legacy_calculation_fields(state)
+
+        self.assertEqual(len(projected["calculation_operands"]), 2)
+        self.assertEqual(projected["calculation_plan"]["operation"], "divide")
+        self.assertEqual(projected["calculation_result"]["rendered_value"], "25.4%")
+
     def test_route_after_aggregate_subtasks_reuses_pre_calc_planner_when_feedback_exists(self) -> None:
         route = self.agent._route_after_aggregate_subtasks(
             {

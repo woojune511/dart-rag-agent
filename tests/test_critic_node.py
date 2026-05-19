@@ -15,6 +15,45 @@ from src.agent.nodes.critic_node import MAX_CRITIC_RETRIES, run_critic
 
 
 class DeterministicCriticTests(unittest.TestCase):
+    def test_critic_prefers_structured_result_when_present(self) -> None:
+        state = build_initial_state("삼성전자 2024년 영업이익률 알려줘")
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "영업이익률 계산",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+            }
+        }
+        state["artifacts"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "creator": "Analyst",
+                "content": {
+                    "answer": "2024년 영업이익률은 10.9%입니다.",
+                    "structured_result": {
+                        "status": "ok",
+                        "rendered_value": "10.9%",
+                        "result_unit": "%",
+                    },
+                    "calculation_result": {
+                        "status": "stale",
+                        "rendered_value": "999",
+                        "result_unit": "KRW",
+                    },
+                },
+                "evidence_links": ["chunk-001"],
+            }
+        }
+
+        updates = run_critic(state)
+
+        self.assertTrue(updates["critic_reports"][0]["passed"])
+        self.assertEqual(updates["critic_reports"][0]["deterministic_score"], 1.0)
+        self.assertIn("Critic passed all artifacts (Deterministic)", updates["execution_trace"])
+
     def test_critic_rejects_analyst_artifact_without_evidence_links(self) -> None:
         state = build_initial_state("삼성전자 2024년 영업이익률 알려줘")
         state["tasks"] = {

@@ -24,6 +24,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.mas_graph import run_mas_graph
 from src.agent.nodes.analyst_node import build_financial_analyst_node
 from src.storage.vector_store import VectorStoreManager
@@ -64,25 +65,45 @@ def _artifact_answer(final_state: Dict[str, Any]) -> str:
 def _artifact_calc_status(final_state: Dict[str, Any]) -> str:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    calculation_result = content.get("calculation_result") or {}
+    calculation_result = (
+        content.get("structured_result")
+        or dict((content.get("resolved_calculation_trace") or {}).get("calculation_result") or {})
+        or content.get("calculation_result")
+        or {}
+    )
     return str(calculation_result.get("status") or "")
 
 
 def _artifact_operand_count(final_state: Dict[str, Any]) -> int:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    operands = content.get("calculation_operands") or []
+    operands = (
+        dict(content.get("resolved_calculation_trace") or {}).get("calculation_operands")
+        or content.get("calculation_operands")
+        or []
+    )
     return len(operands)
 
 
 def _calc_payload(result: Dict[str, Any]) -> Dict[str, Any]:
-    return dict(result.get("calculation_result") or {})
+    resolved = _resolve_runtime_calculation_trace(result)
+    return dict(resolved.get("calculation_result") or {})
+
+
+def _operand_count(result: Dict[str, Any]) -> int:
+    resolved = _resolve_runtime_calculation_trace(result)
+    return len(resolved.get("calculation_operands") or [])
 
 
 def _artifact_calc_payload(final_state: Dict[str, Any]) -> Dict[str, Any]:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    return dict(content.get("calculation_result") or {})
+    return dict(
+        content.get("structured_result")
+        or dict((content.get("resolved_calculation_trace") or {}).get("calculation_result") or {})
+        or content.get("calculation_result")
+        or {}
+    )
 
 
 def _numeric_result_match(left: Dict[str, Any], right: Dict[str, Any], tolerance: float = 1e-9) -> bool:
@@ -137,7 +158,7 @@ def run_smoke(
         mas_calc_payload = _artifact_calc_payload(mas_final)
         direct_calc_status = str(direct_calc_payload.get("status") or "")
         mas_calc_status = _artifact_calc_status(mas_final)
-        direct_operand_count = len(direct.get("calculation_operands") or [])
+        direct_operand_count = _operand_count(direct)
         mas_operand_count = _artifact_operand_count(mas_final)
         mas_artifact = ((mas_final.get("artifacts") or {}).get("task_1") or {})
         evidence_links = list(mas_artifact.get("evidence_links") or [])

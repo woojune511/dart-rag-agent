@@ -24,13 +24,20 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from agent.financial_graph import DEFAULT_CONTEXT_BATCH_SIZE, DEFAULT_CONTEXT_MAX_WORKERS, FinancialAgent
+from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from ops.evaluator import (
     EvalExample,
     RAGEvaluator,
     load_eval_examples_from_path,
 )
 from processing.financial_parser import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, FinancialParser
-from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
+from storage.vector_store import (
+    DEFAULT_COLLECTION_NAME,
+    DEFAULT_EMBEDDING_MODEL,
+    DEFAULT_EMBEDDING_PROVIDER,
+    VectorStoreManager,
+    get_embedding_runtime_spec,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +65,7 @@ ABSTENTION_MARKERS = (
     "현재 검색 결과만으로는 확인하기 어렵습니다",
 )
 RISK_FAILURE_MARKERS = ("찾지 못", "확인하기 어렵", "확인할 수 없", "명시되지")
-BENCHMARK_CACHE_SCHEMA_VERSION = 1
+BENCHMARK_CACHE_SCHEMA_VERSION = 2
 
 
 def _normalise_company_name(value: str) -> str:
@@ -168,10 +175,34 @@ def _build_recorded_settings(
     }
 
 
-def _build_cache_signature(config: Dict[str, Any]) -> Dict[str, Any]:
+def _build_store_signature(config: Dict[str, Any], collection_name: str) -> Dict[str, Any]:
+    embedding_provider = str(
+        config.get("embedding_provider")
+        or config.get("embedding", {}).get("provider")
+        or DEFAULT_EMBEDDING_PROVIDER
+    ).strip().lower()
+    embedding_model_name = str(
+        config.get("embedding_model_name")
+        or config.get("embedding_model")
+        or config.get("embedding", {}).get("model_name")
+        or config.get("embedding", {}).get("model")
+        or DEFAULT_EMBEDDING_MODEL
+    ).strip()
+    embedding_spec = get_embedding_runtime_spec(
+        provider=embedding_provider,
+        model_name=embedding_model_name,
+    )
+    return {
+        "collection_name": collection_name,
+        "embedding": embedding_spec,
+    }
+
+
+def _build_cache_signature(config: Dict[str, Any], collection_name: str) -> Dict[str, Any]:
     parser_path = PROJECT_ROOT / "src" / "processing" / "financial_parser.py"
     runner_path = PROJECT_ROOT / "src" / "ops" / "benchmark_runner.py"
     metadata = config.get("metadata", {})
+    store_signature = _build_store_signature(config, collection_name)
     return {
         "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
         "company": metadata.get("company"),
@@ -192,11 +223,16 @@ def _build_cache_signature(config: Dict[str, Any]) -> Dict[str, Any]:
         "selective_v2_short_table_threshold": config.get("selective_v2_short_table_threshold"),
         "selective_v2_sections": list(config.get("selective_v2_sections", [])),
         "use_zero_cost_prefix": bool(config.get("use_zero_cost_prefix", False)),
+        "store_signature": store_signature,
     }
 
 
 def _cache_meta_path(persist_dir: Path) -> Path:
     return persist_dir / "benchmark_cache_meta.json"
+
+
+def _store_meta_path(persist_dir: Path) -> Path:
+    return persist_dir / "vector_store_meta.json"
 
 
 def _context_cache_path(output_root: Path, experiment_id: str) -> Path:
@@ -218,6 +254,21 @@ def _write_cache_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
     _write_json(_cache_meta_path(persist_dir), payload)
 
 
+def _load_store_meta(persist_dir: Path) -> Dict[str, Any]:
+    path = _store_meta_path(persist_dir)
+    if not path.exists():
+        return {}
+    try:
+        return _load_json(path)
+    except Exception:
+        logger.warning("Failed to load vector store metadata: %s", path)
+        return {}
+
+
+def _write_store_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
+    _write_json(_store_meta_path(persist_dir), payload)
+
+
 def _load_context_cache(output_root: Path, experiment_id: str) -> Dict[str, Any]:
     path = _context_cache_path(output_root, experiment_id)
     if not path.exists():
@@ -235,6 +286,10 @@ def _write_context_cache(output_root: Path, experiment_id: str, payload: Dict[st
 
 def _cache_meta_matches(cache_meta: Dict[str, Any], signature: Dict[str, Any]) -> bool:
     return bool(cache_meta) and cache_meta.get("signature") == signature
+
+
+def _store_signature_matches(store_meta: Dict[str, Any], store_signature: Dict[str, Any]) -> bool:
+    return bool(store_meta) and store_meta.get("store_signature") == store_signature
 
 
 def _cache_meta_is_completed(cache_meta: Dict[str, Any]) -> bool:
@@ -580,6 +635,8 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "dropped_claim_ids": result.dropped_claim_ids,
                 "unsupported_sentences": result.unsupported_sentences,
                 "sentence_checks": result.sentence_checks,
+                "resolved_calculation_trace": result.resolved_calculation_trace,
+                "structured_result": result.structured_result,
                 "calculation_operands": result.calculation_operands,
                 "calculation_plan": result.calculation_plan,
                 "calculation_result": result.calculation_result,
@@ -606,9 +663,13 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
             citations = result.get("citations", [])
             answer = result.get("answer", "") or ""
             query_type = result.get("query_type")
+            resolved_trace = dict(result.get("resolved_calculation_trace") or {})
+            structured_result = dict(result.get("structured_result") or {})
         except Exception as exc:
             error = str(exc)
             logger.error("Smoke query failed: %s", exc)
+            resolved_trace = {}
+            structured_result = {}
         elapsed_sec = time.perf_counter() - started_at
         rows.append(
             {
@@ -623,6 +684,8 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
                 "answer": answer,
                 "answer_preview": answer[:240],
                 "citations": citations,
+                "structured_result": structured_result,
+                "resolved_calculation_trace": resolved_trace,
                 "retrieved_metadata": _extract_retrieved_metadata(retrieved_docs),
                 "retrieved_previews": _extract_retrieved_previews(retrieved_docs),
                 "error": error,
@@ -1606,6 +1669,11 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             for row in result.get("screening_eval", {}).get("per_question", [])
         }
         for question_result in result.get("full_eval", {}).get("per_question", []):
+            resolved_trace = _resolve_runtime_calculation_trace(question_result)
+            resolved_operands = resolved_trace.get("calculation_operands", []) or []
+            resolved_plan = resolved_trace.get("calculation_plan", {}) or {}
+            resolved_result = resolved_trace.get("calculation_result", {}) or {}
+            structured_result = dict(question_result.get("structured_result") or resolved_result or {})
             evidence_rows = question_result.get("evidence") or []
             evidence_quotes = [
                 f"{row.get('section_path', '?')}: {row.get('quote', '')}"
@@ -1722,9 +1790,11 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "trend_interpretation_correctness": question_result.get("trend_interpretation_correctness"),
                     "grounded_rendering_correctness": question_result.get("grounded_rendering_correctness"),
                     "calculation_correctness": question_result.get("calculation_correctness"),
-                    "calculation_operands": json.dumps(question_result.get("calculation_operands", []), ensure_ascii=False),
-                    "calculation_plan": json.dumps(question_result.get("calculation_plan", {}), ensure_ascii=False),
-                    "calculation_result": json.dumps(question_result.get("calculation_result", {}), ensure_ascii=False),
+                    "resolved_calculation_trace": json.dumps(resolved_trace, ensure_ascii=False),
+                    "structured_result": json.dumps(structured_result, ensure_ascii=False),
+                    "calculation_operands": json.dumps(resolved_operands, ensure_ascii=False),
+                    "calculation_plan": json.dumps(resolved_plan, ensure_ascii=False),
+                    "calculation_result": json.dumps(resolved_result, ensure_ascii=False),
                     "missing_info_compliance": question_result.get("missing_info_compliance"),
                     "missing_info_policy": question_result.get("missing_info_policy"),
                     "error": question_result.get("error"),
@@ -1789,6 +1859,8 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "trend_interpretation_correctness",
         "grounded_rendering_correctness",
         "calculation_correctness",
+        "resolved_calculation_trace",
+        "structured_result",
         "calculation_operands",
         "calculation_plan",
         "calculation_result",
@@ -1878,6 +1950,14 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "Calculation Result",
                 "",
                 row.get("calculation_result") or "-",
+                "",
+                "Structured Result",
+                "",
+                row.get("structured_result") or "-",
+                "",
+                "Resolved Calculation Trace",
+                "",
+                row.get("resolved_calculation_trace") or "-",
                 "",
                 "Selected Claims",
                 "",
@@ -2625,14 +2705,21 @@ def run_screening_experiment(
     reuse_store = _resolve_boolean_config(config, "reuse_store", True)
     reuse_context_cache = _resolve_boolean_config(config, "reuse_context_cache", True)
     resume_partial_store = _resolve_boolean_config(config, "resume_partial_store", True)
+    allow_retrieval_fallback = _resolve_boolean_config(config, "allow_retrieval_fallback", False)
 
     collection_name = config.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
-    cache_signature = _build_cache_signature(config)
+    store_signature = _build_store_signature(config, collection_name)
+    embedding_spec = dict(store_signature.get("embedding", {}) or {})
+    embedding_provider = str(embedding_spec.get("provider") or DEFAULT_EMBEDDING_PROVIDER)
+    embedding_model_name = str(embedding_spec.get("model_name") or DEFAULT_EMBEDDING_MODEL)
+    cache_signature = _build_cache_signature(config, collection_name)
     cache_meta = _load_cache_meta(persist_dir) if persist_dir.exists() else {}
+    store_meta = _load_store_meta(persist_dir) if persist_dir.exists() else {}
     context_cache = _load_context_cache(output_root, experiment_id)
 
     store_matches = _cache_meta_matches(cache_meta, cache_signature)
     context_matches = _cache_meta_matches(context_cache, cache_signature)
+    store_signature_matches = _store_signature_matches(store_meta, store_signature)
 
     preserve_legacy_partial_store = (
         persist_dir.exists()
@@ -2640,6 +2727,7 @@ def run_screening_experiment(
         and resume_partial_store
         and not force_reindex
         and not cache_meta
+        and (not store_meta or store_signature_matches)
     )
 
     if force_reindex:
@@ -2650,16 +2738,30 @@ def run_screening_experiment(
     elif persist_dir.exists():
         if preserve_legacy_partial_store:
             logger.info("Preserving legacy partial store without cache metadata for resume: %s", persist_dir)
+        elif store_meta and not store_signature_matches:
+            logger.info(
+                "Discarding store due to embedding/store signature mismatch: expected=%s actual=%s",
+                store_signature,
+                store_meta.get("store_signature"),
+            )
+            shutil.rmtree(persist_dir)
+            cache_meta = {}
+            store_meta = {}
         elif not reuse_store or not store_matches:
             shutil.rmtree(persist_dir)
             cache_meta = {}
+            store_meta = {}
         elif not _cache_meta_is_completed(cache_meta) and not resume_partial_store:
             shutil.rmtree(persist_dir)
             cache_meta = {}
+            store_meta = {}
 
     vsm = VectorStoreManager(
         persist_directory=str(persist_dir),
         collection_name=collection_name,
+        embedding_provider=embedding_provider,
+        embedding_model_name=embedding_model_name,
+        allow_query_embedding_fallback=allow_retrieval_fallback,
     )
     agent = FinancialAgent(
         vsm,
@@ -2684,6 +2786,15 @@ def run_screening_experiment(
         chunk_count = int(parse_info.get("chunk_count", 0) or 0)
         ingest_metrics = _build_cache_hit_ingest_metrics(cache_meta.get("ingest", {}))
         cache_level = "store"
+        _write_store_meta(
+            persist_dir,
+            {
+                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
+                "collection_name": collection_name,
+            },
+        )
     elif reuse_context_cache and not force_reindex and context_matches:
         restore_started = time.perf_counter()
         restore_info = _restore_store_from_context_cache(vsm, context_cache)
@@ -2703,6 +2814,8 @@ def run_screening_experiment(
             {
                 "status": "completed",
                 "signature": cache_signature,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "parse": {
                     "elapsed_sec": parse_elapsed,
                     "chunk_count": chunk_count,
@@ -2711,7 +2824,19 @@ def run_screening_experiment(
                     **(context_cache.get("ingest", {}) or {}),
                     "elapsed_sec": float((context_cache.get("ingest", {}) or {}).get("elapsed_sec", 0.0) or 0.0),
                 },
+                "runtime": {
+                    "allow_retrieval_fallback": bool(allow_retrieval_fallback),
+                },
                 "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+            },
+        )
+        _write_store_meta(
+            persist_dir,
+            {
+                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "collection_name": collection_name,
             },
         )
@@ -2731,6 +2856,8 @@ def run_screening_experiment(
             {
                 "status": "in_progress",
                 "signature": cache_signature,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "parse": {
                     "elapsed_sec": parse_elapsed,
                     "chunk_count": chunk_count,
@@ -2740,7 +2867,19 @@ def run_screening_experiment(
                     "resume_partial_store": bool(resume_partial_store),
                     "resume_batch_size": int(config.get("resume_batch_size", 64) or 64),
                 },
+                "runtime": {
+                    "allow_retrieval_fallback": bool(allow_retrieval_fallback),
+                },
                 "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+            },
+        )
+        _write_store_meta(
+            persist_dir,
+            {
+                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "collection_name": collection_name,
             },
         )
@@ -2751,6 +2890,8 @@ def run_screening_experiment(
             {
                 "status": "completed",
                 "signature": cache_signature,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "parse": {
                     "elapsed_sec": parse_elapsed,
                     "chunk_count": chunk_count,
@@ -2759,7 +2900,19 @@ def run_screening_experiment(
                     **ingest_metrics,
                     "elapsed_sec": float(ingest_metrics.get("elapsed_sec", 0.0) or 0.0),
                 },
+                "runtime": {
+                    "allow_retrieval_fallback": bool(allow_retrieval_fallback),
+                },
                 "metadata": _sanitize_settings(metadata),
+                "collection_name": collection_name,
+            },
+        )
+        _write_store_meta(
+            persist_dir,
+            {
+                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "collection_name": collection_name,
             },
         )
@@ -2769,6 +2922,8 @@ def run_screening_experiment(
             {
                 "status": "completed",
                 "signature": cache_signature,
+                "store_signature": store_signature,
+                "embedding": embedding_spec,
                 "parse": {
                     "elapsed_sec": parse_elapsed,
                     "chunk_count": chunk_count,
@@ -2776,6 +2931,9 @@ def run_screening_experiment(
                 "ingest": {
                     **ingest_metrics,
                     "elapsed_sec": float(ingest_metrics.get("elapsed_sec", 0.0) or 0.0),
+                },
+                "runtime": {
+                    "allow_retrieval_fallback": bool(allow_retrieval_fallback),
                 },
                 "metadata": _sanitize_settings(metadata),
                 "collection_name": collection_name,
@@ -2807,6 +2965,7 @@ def run_screening_experiment(
             "selective_v2_short_table_threshold": config.get("selective_v2_short_table_threshold"),
             "selective_v2_sections": config.get("selective_v2_sections", []),
             "section_aliases": screening_config.get("section_aliases", {}),
+            "allow_retrieval_fallback": bool(allow_retrieval_fallback),
         },
         "report_path": str(report_path),
         "metadata": metadata,
@@ -2814,6 +2973,11 @@ def run_screening_experiment(
         "store": {
             "persist_directory": str(persist_dir),
             "collection_name": collection_name,
+            "embedding_provider": embedding_provider,
+            "embedding_model_name": embedding_model_name,
+            "embedding_dimension": embedding_spec.get("dimension"),
+            "store_signature": store_signature,
+            "allow_retrieval_fallback": bool(allow_retrieval_fallback),
         },
         "parse": {
             "elapsed_sec": parse_elapsed,
@@ -2943,6 +3107,9 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
     vsm = VectorStoreManager(
         persist_directory=store_info["persist_directory"],
         collection_name=store_info["collection_name"],
+        embedding_provider=store_info.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
+        embedding_model_name=store_info.get("embedding_model_name", DEFAULT_EMBEDDING_MODEL),
+        allow_query_embedding_fallback=bool(store_info.get("allow_retrieval_fallback", False)),
     )
     agent = FinancialAgent(
         vsm,

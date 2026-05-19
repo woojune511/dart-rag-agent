@@ -14,13 +14,16 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _build_concept_task_constraints,
+    _build_generic_required_operands,
     _build_generic_retrieval_queries,
     _label_implies_percent_metric,
+    _normalise_operand_value,
     _operand_row_matches_requirement,
     _requires_direct_numeric_grounding,
 )
 from src.agent.financial_graph_models import EvidenceExtraction
 from src.config.ontology import FinancialOntologyManager
+import src.config.ontology as ontology_module
 
 
 class _StubStructuredLLM:
@@ -128,6 +131,165 @@ class OperationContractTests(unittest.TestCase):
         self.assertTrue(any("2023년 2022년 순이자마진" in item for item in queries))
         self.assertFalse(any("2023년 2023" in item for item in queries))
         self.assertFalse(any("2022년 2022" in item for item in queries))
+
+    def test_generic_required_operands_inherit_concept_metadata_when_label_is_known(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            operands = _build_generic_required_operands(
+                "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고, 전년 대비 증감액을 계산해 줘",
+                {"company": "네이버", "year": 2023},
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in operands],
+            [
+                ("income_before_income_taxes", "current_period"),
+                ("income_before_income_taxes", "prior_period"),
+            ],
+        )
+        self.assertTrue(all("income_statement" in row.get("preferred_statement_types", []) for row in operands))
+        self.assertTrue(all(bool(row.get("surface_contract")) for row in operands))
+
+    def test_parenthesized_won_value_normalizes_as_negative_krw(self) -> None:
+        normalized_value, normalized_unit = _normalise_operand_value("(640,623,697,250)", "원")
+        self.assertEqual(normalized_unit, "KRW")
+        self.assertEqual(normalized_value, -640623697250.0)
+
+    def test_operand_requirement_matching_respects_explicit_roles(self) -> None:
+        row = {
+            "label": "2023 법인세비용차감전순이익",
+            "matched_operand_label": "법인세비용차감전순이익",
+            "matched_operand_concept": "income_before_income_taxes",
+            "matched_operand_role": "current_period",
+        }
+        current_req = {
+            "label": "법인세비용차감전순이익",
+            "concept": "income_before_income_taxes",
+            "role": "current_period",
+        }
+        prior_req = {
+            "label": "법인세비용차감전순이익",
+            "concept": "income_before_income_taxes",
+            "role": "prior_period",
+        }
+        self.assertTrue(_operand_row_matches_requirement(row, current_req))
+        self.assertFalse(_operand_row_matches_requirement(row, prior_req))
+
+    def test_difference_task_uses_deterministic_subtract_plan(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            {
+                "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_fcf",
+                    "metric_family": "concept_difference",
+                    "metric_label": "잉여현금흐름(FCF)",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {"label": "영업활동현금흐름", "role": "minuend", "required": True},
+                        {"label": "유형자산 취득액", "role": "subtrahend", "required": True},
+                    ],
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "label": "2023 영업활동현금흐름",
+                        "raw_value": "2,002,233,273,518",
+                        "raw_unit": "원",
+                        "normalized_value": 2002233273518.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "minuend",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "label": "2023 유형자산 취득액",
+                        "raw_value": "(640,623,697,250)",
+                        "raw_unit": "원",
+                        "normalized_value": -640623697250.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "subtrahend",
+                    },
+                ],
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+        plan = result["calculation_plan"]
+        self.assertEqual(plan["status"], "ok")
+        self.assertEqual(plan["operation"], "subtract")
+        self.assertEqual(plan["formula"], "A + B")
+        self.assertEqual(plan["ordered_operand_ids"], ["op_001", "op_002"])
+
+    def test_compositional_difference_uses_primary_value_without_period_slots(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_fcf",
+                    "metric_family": "concept_difference",
+                    "metric_label": "잉여현금흐름(FCF)",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {"label": "영업활동현금흐름", "role": "minuend", "required": True},
+                        {"label": "유형자산 취득액", "role": "subtrahend", "required": True},
+                    ],
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "cf_2023",
+                        "label": "2023 영업활동현금흐름",
+                        "raw_value": "2,002,233,273,518",
+                        "raw_unit": "원",
+                        "normalized_value": 2002233273518.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_role": "minuend",
+                        "matched_operand_concept": "operating_cash_flow",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "ppe_2023",
+                        "label": "2023 유형자산의 취득",
+                        "raw_value": "(640,623,697,250)",
+                        "raw_unit": "원",
+                        "normalized_value": -640623697250.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_role": "subtrahend",
+                        "matched_operand_concept": "property_plant_equipment_acquisition",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "subtract",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "A + B",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "영업활동현금흐름 - 유형자산 취득액",
+                    "explanation": "fcf",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+        slots = result["calculation_result"]["answer_slots"]
+        self.assertEqual(slots["primary_value"]["role"], "primary_value")
+        self.assertEqual(slots["current_value"]["rendered_value"], "2조 22억원")
+        self.assertEqual(slots["prior_value"]["rendered_value"], "-6,406억원")
+        self.assertEqual(slots["delta_value"]["rendered_value"], "1조 3,616억원")
 
     def test_difference_result_exposes_structured_value_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

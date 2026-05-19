@@ -8,6 +8,7 @@ from statistics import mean
 from typing import Any, Dict, List, Optional
 
 from ops.evaluator import _compute_operand_grounding_score, _resolve_numeric_judgement
+from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 
 
 @dataclass(frozen=True)
@@ -53,10 +54,11 @@ def _grounding_confidence(row: Dict[str, Any]) -> float:
 
 
 def _compute_new_judgement(row: Dict[str, Any]) -> Dict[str, Any]:
+    resolved_trace = _resolve_runtime_calculation_trace(row)
     operand_grounding_score, operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=list(row.get("runtime_evidence") or []),
         contexts=[],
-        calculation_operands=list(row.get("calculation_operands") or []),
+        calculation_operands=list(resolved_trace.get("calculation_operands") or []),
     )
     new_judgement, new_confidence = _resolve_numeric_judgement(
         equivalence=row.get("numeric_equivalence"),

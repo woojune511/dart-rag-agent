@@ -31,6 +31,43 @@ DEFAULT_EMBEDDING_MODEL = (
 )
 DEFAULT_COLLECTION_NAME = "dart_reports_v2"
 
+_KNOWN_EMBEDDING_DIMENSIONS = {
+    ("google", "models/gemini-embedding-2"): 3072,
+    ("google", "models/text-embedding-004"): 768,
+    ("openai", "text-embedding-3-large"): 3072,
+    ("openai", "text-embedding-3-small"): 1536,
+    ("openai", "text-embedding-ada-002"): 1536,
+    ("huggingface", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"): 384,
+}
+
+
+def infer_embedding_dimension(
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+) -> Optional[int]:
+    selected_provider = (provider or DEFAULT_EMBEDDING_PROVIDER).strip().lower()
+    selected_model = (model_name or DEFAULT_EMBEDDING_MODEL).strip()
+    override = os.getenv("DART_EMBEDDING_DIMENSION", "").strip()
+    if override:
+        try:
+            return int(override)
+        except ValueError:
+            logger.warning("Ignoring invalid DART_EMBEDDING_DIMENSION=%r", override)
+    return _KNOWN_EMBEDDING_DIMENSIONS.get((selected_provider, selected_model))
+
+
+def get_embedding_runtime_spec(
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    selected_provider = (provider or DEFAULT_EMBEDDING_PROVIDER).strip().lower()
+    selected_model = (model_name or DEFAULT_EMBEDDING_MODEL).strip()
+    return {
+        "provider": selected_provider,
+        "model_name": selected_model,
+        "dimension": infer_embedding_dimension(selected_provider, selected_model),
+    }
+
 
 def create_embeddings(
     provider: Optional[str] = None,
@@ -144,12 +181,18 @@ class VectorStoreManager:
         collection_name: str = DEFAULT_COLLECTION_NAME,
         embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
         embedding_model_name: str = DEFAULT_EMBEDDING_MODEL,
+        allow_query_embedding_fallback: bool = True,
     ):
         self.persist_directory = persist_directory
         os.makedirs(self.persist_directory, exist_ok=True)
         self.collection_name = collection_name
         self.embedding_provider = embedding_provider
         self.embedding_model_name = embedding_model_name
+        self.allow_query_embedding_fallback = bool(allow_query_embedding_fallback)
+        self.embedding_spec = get_embedding_runtime_spec(
+            provider=self.embedding_provider,
+            model_name=self.embedding_model_name,
+        )
 
         logger.info(
             "Loading %s embeddings (%s). A full reindex is recommended when this model changes.",
@@ -596,7 +639,7 @@ class VectorStoreManager:
                 filter=where_filter,
             )
         except Exception as exc:
-            if _is_embedding_capacity_error(exc):
+            if self.allow_query_embedding_fallback and _is_embedding_capacity_error(exc):
                 logger.warning(
                     "Vector query embedding unavailable for %r; falling back to BM25-only search: %s",
                     query,

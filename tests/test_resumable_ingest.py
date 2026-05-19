@@ -10,7 +10,12 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.ops.benchmark_runner import _cache_meta_is_completed
+from src.ops.benchmark_runner import (
+    _build_cache_signature,
+    _build_store_signature,
+    _cache_meta_is_completed,
+    _store_signature_matches,
+)
 from src.storage.vector_store import VectorStoreManager
 
 
@@ -31,6 +36,9 @@ class _FakeVectorStore:
         self.add_calls.append({"texts": list(texts), "metadatas": list(metadatas)})
         self.metadatas.extend(dict(metadata or {}) for metadata in metadatas)
 
+    def similarity_search_with_score(self, query, k=4, filter=None):
+        raise RuntimeError("RESOURCE_EXHAUSTED: synthetic test failure")
+
 
 class ResumableIngestTests(unittest.TestCase):
     def _make_manager(self, existing_metadatas=None):
@@ -38,6 +46,10 @@ class ResumableIngestTests(unittest.TestCase):
         manager.vector_store = _FakeVectorStore(existing_metadatas)
         manager._update_structure_graph = Mock()
         manager._init_bm25 = Mock()
+        manager.allow_query_embedding_fallback = True
+        manager.bm25 = None
+        manager.bm25_docs = []
+        manager.bm25_metadatas = []
         return manager
 
     def test_add_documents_skips_existing_chunk_uids_when_resume_enabled(self) -> None:
@@ -95,6 +107,61 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertTrue(_cache_meta_is_completed({"status": "completed"}))
         self.assertTrue(_cache_meta_is_completed({"signature": {"x": 1}}))
         self.assertFalse(_cache_meta_is_completed({"status": "in_progress"}))
+
+    def test_store_signature_tracks_embedding_backend(self) -> None:
+        config = {
+            "metadata": {"company": "삼성전자", "year": 2024, "report_type": "사업보고서", "rcept_no": "r1"},
+            "chunk_size": 2500,
+            "chunk_overlap": 320,
+            "ingest_mode": "contextual_selective_v2",
+            "k": 8,
+            "embedding_provider": "huggingface",
+            "embedding_model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        }
+        collection_name = "dart_reports_v2_test"
+
+        store_signature = _build_store_signature(config, collection_name)
+        cache_signature = _build_cache_signature(config, collection_name)
+
+        self.assertEqual(store_signature["collection_name"], collection_name)
+        self.assertEqual(store_signature["embedding"]["provider"], "huggingface")
+        self.assertEqual(
+            store_signature["embedding"]["model_name"],
+            "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        )
+        self.assertEqual(store_signature["embedding"]["dimension"], 384)
+        self.assertEqual(cache_signature["store_signature"], store_signature)
+
+    def test_store_signature_mismatch_detects_embedding_dimension_change(self) -> None:
+        expected = {
+            "store_signature": {
+                "collection_name": "dart_reports_v2_test",
+                "embedding": {
+                    "provider": "huggingface",
+                    "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+                    "dimension": 384,
+                },
+            }
+        }
+        actual = {
+            "store_signature": {
+                "collection_name": "dart_reports_v2_test",
+                "embedding": {
+                    "provider": "google",
+                    "model_name": "models/gemini-embedding-2",
+                    "dimension": 3072,
+                },
+            }
+        }
+
+        self.assertFalse(_store_signature_matches(actual, expected["store_signature"]))
+
+    def test_search_raises_when_query_fallback_disabled(self) -> None:
+        manager = self._make_manager()
+        manager.allow_query_embedding_fallback = False
+
+        with self.assertRaises(RuntimeError):
+            manager.search("테스트", k=3)
 
 
 if __name__ == "__main__":

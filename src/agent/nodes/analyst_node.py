@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Protocol, Sequence
 from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus
 
 
@@ -62,6 +63,7 @@ def _extract_doc_links(retrieved_docs: Sequence[Any]) -> List[str]:
 
 
 def _extract_evidence_links(result: Dict[str, Any]) -> List[str]:
+    resolved_trace = _resolve_runtime_calculation_trace(result)
     links: List[str] = []
     links.extend(str(item).strip() for item in result.get("citations", []) or [])
 
@@ -70,7 +72,7 @@ def _extract_evidence_links(result: Dict[str, Any]) -> List[str]:
         if anchor:
             links.append(anchor)
 
-    for operand in result.get("calculation_operands", []) or []:
+    for operand in resolved_trace.get("calculation_operands", []) or []:
         anchor = str(operand.get("source_anchor") or "").strip()
         if anchor:
             links.append(anchor)
@@ -80,6 +82,7 @@ def _extract_evidence_links(result: Dict[str, Any]) -> List[str]:
 
 
 def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    resolved_trace = _resolve_runtime_calculation_trace(result)
     pool: List[Dict[str, Any]] = []
 
     for evidence_item in result.get("evidence_items", []) or []:
@@ -95,7 +98,7 @@ def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[D
             }
         )
 
-    for operand in result.get("calculation_operands", []) or []:
+    for operand in resolved_trace.get("calculation_operands", []) or []:
         pool.append(
             {
                 "task_id": task_id,
@@ -115,6 +118,11 @@ def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[D
 
 
 def _build_analyst_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
+    resolved_trace = _resolve_runtime_calculation_trace(result)
+    calculation_plan = dict(resolved_trace.get("calculation_plan", {}) or {})
+    calculation_result = dict(resolved_trace.get("calculation_result", {}) or {})
+    calculation_operands = list(resolved_trace.get("calculation_operands", []) or [])
+    structured_result = dict(result.get("structured_result") or calculation_result or {})
     return {
         "task_id": task_id,
         "creator": "Analyst",
@@ -122,11 +130,13 @@ def _build_analyst_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
             "answer": result.get("answer", ""),
             "query_type": result.get("query_type", ""),
             "intent": result.get("intent", ""),
-            "target_metric_family": result.get("target_metric_family", ""),
+            "legacy_target_metric_family_hint": result.get("target_metric_family", ""),
             "citations": list(result.get("citations", []) or []),
-            "calculation_plan": dict(result.get("calculation_plan", {}) or {}),
-            "calculation_result": dict(result.get("calculation_result", {}) or {}),
-            "calculation_operands": list(result.get("calculation_operands", []) or []),
+            "resolved_calculation_trace": resolved_trace,
+            "structured_result": structured_result,
+            "calculation_plan": calculation_plan,
+            "calculation_result": calculation_result,
+            "calculation_operands": calculation_operands,
             "reflection_count": int(result.get("reflection_count", 0) or 0),
             "retry_reason": str(result.get("retry_reason", "") or ""),
         },
@@ -136,7 +146,8 @@ def _build_analyst_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
 
 def _is_successful_numeric_result(result: Dict[str, Any]) -> bool:
     answer = str(result.get("answer") or "").strip()
-    calc_result = dict(result.get("calculation_result", {}) or {})
+    resolved_trace = _resolve_runtime_calculation_trace(result)
+    calc_result = dict(result.get("structured_result") or resolved_trace.get("calculation_result", {}) or {})
     calc_status = str(calc_result.get("status") or "").strip().lower()
     if calc_status and calc_status not in {"ok", "success"}:
         return False

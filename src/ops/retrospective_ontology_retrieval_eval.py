@@ -20,6 +20,7 @@ if str(SRC_ROOT) not in sys.path:
 
 import agent.financial_graph as financial_graph_module
 from agent.financial_graph import FinancialAgent
+from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from ops.evaluator import (
     EvalExample,
     _compute_operand_grounding_score,
@@ -199,16 +200,17 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
 
     calc_result = agent._execute_calculation(state)
     state.update(calc_result)
+    resolved_trace = _resolve_runtime_calculation_trace(state)
 
     retrieved_docs = list(state.get("retrieved_docs") or [])
     contexts = [_doc_text(item) for item in retrieved_docs]
     operand_grounding_score, _operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=list(state.get("evidence_items") or []),
         contexts=contexts,
-        calculation_operands=list(state.get("calculation_operands") or []),
+        calculation_operands=list(resolved_trace.get("calculation_operands") or []),
     )
 
-    calculation_result = dict(state.get("calculation_result") or {})
+    calculation_result = dict(resolved_trace.get("calculation_result") or {})
     return QuestionOutcome(
         id=example.id,
         question=example.question,
@@ -217,7 +219,7 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
         section_match_rate=_compute_section_match_rate(example, retrieved_docs),
         ratio_row_candidates=len(ratio_row_candidates),
         component_candidates=len(component_candidates),
-        operand_count=len(list(state.get("calculation_operands") or [])),
+        operand_count=len(list(resolved_trace.get("calculation_operands") or [])),
         operand_grounding_score=operand_grounding_score,
         calc_status=str(calculation_result.get("status") or ""),
         rendered_value=str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or ""),

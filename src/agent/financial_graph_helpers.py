@@ -20,6 +20,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from src.config import get_financial_ontology
+from src.agent.financial_graph_models import validate_answer_slots_payload
 from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
 
 __all__ = [
@@ -30,6 +31,13 @@ __all__ = [
     '_section_hint_alias',
     '_append_artifact',
     '_upsert_task',
+    '_extract_artifact_payload_value',
+    '_find_task_record_in_list',
+    '_latest_artifact_value_for_task_records',
+    '_project_task_trace_from_runtime',
+    '_project_task_trace_from_state',
+    '_build_aggregate_calculation_projection',
+    '_resolve_runtime_calculation_trace',
     '_parse_number_text',
     '_safe_eval_formula',
     '_extract_composite_krw',
@@ -219,16 +227,344 @@ def _upsert_task(
     return updated
 
 
+def _extract_artifact_payload_value(
+    artifact: Dict[str, Any],
+    payload_key: str,
+) -> Any:
+    payload = dict(artifact.get("payload") or {})
+    value = payload.get(payload_key)
+    if isinstance(value, list):
+        return [dict(item) if isinstance(item, dict) else item for item in value]
+    if isinstance(value, dict):
+        return dict(value)
+    return value
+
+
+def _find_task_record_in_list(tasks: List[Dict[str, Any]], task_id: str) -> Dict[str, Any]:
+    task_id = str(task_id or "").strip()
+    if not task_id:
+        return {}
+    for task in reversed(list(tasks or [])):
+        if str(task.get("task_id") or "").strip() == task_id:
+            return dict(task)
+    return {}
+
+
+def _latest_artifact_value_for_task_records(
+    tasks: List[Dict[str, Any]],
+    artifacts: List[Dict[str, Any]],
+    *,
+    task_id: str,
+    kind: ArtifactKind,
+    payload_key: str,
+) -> Any:
+    kind_value = str(kind.value if hasattr(kind, "value") else kind)
+    task_record = _find_task_record_in_list(tasks, task_id)
+    artifact_ids = [
+        str(value).strip()
+        for value in (task_record.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+
+    for artifact_id in reversed(artifact_ids):
+        for artifact in reversed(list(artifacts or [])):
+            if str(artifact.get("artifact_id") or "").strip() != artifact_id:
+                continue
+            if str(artifact.get("kind") or "") != kind_value:
+                continue
+            return _extract_artifact_payload_value(artifact, payload_key)
+
+    for artifact in reversed(list(artifacts or [])):
+        if str(artifact.get("task_id") or "").strip() != str(task_id or "").strip():
+            continue
+        if str(artifact.get("kind") or "") != kind_value:
+            continue
+        return _extract_artifact_payload_value(artifact, payload_key)
+
+    return {} if payload_key.endswith("_result") or payload_key.endswith("_plan") else []
+
+
+def _project_task_trace_from_runtime(
+    result: Dict[str, Any],
+    task_id: str,
+) -> Dict[str, Any]:
+    tasks = [dict(item) for item in (result.get("tasks") or [])]
+    artifacts = [dict(item) for item in (result.get("artifacts") or [])]
+    task_id = str(task_id or "").strip()
+
+    if not task_id or not tasks or not artifacts:
+        return {
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+    return {
+        "calculation_operands": list(
+            _latest_artifact_value_for_task_records(
+                tasks,
+                artifacts,
+                task_id=task_id,
+                kind=ArtifactKind.OPERAND_SET,
+                payload_key="calculation_operands",
+            )
+            or []
+        ),
+        "calculation_plan": dict(
+            _latest_artifact_value_for_task_records(
+                tasks,
+                artifacts,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_PLAN,
+                payload_key="calculation_plan",
+            )
+            or {}
+        ),
+        "calculation_result": dict(
+            _latest_artifact_value_for_task_records(
+                tasks,
+                artifacts,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_RESULT,
+                payload_key="calculation_result",
+            )
+            or {}
+        ),
+    }
+
+
+def _project_task_trace_from_state(
+    state: Dict[str, Any],
+    task_id: str,
+) -> Dict[str, Any]:
+    task_id = str(task_id or "").strip()
+    active_task_id = str((state.get("active_subtask") or {}).get("task_id") or "").strip()
+    tasks = [dict(item) for item in (state.get("tasks") or [])]
+    artifacts = [dict(item) for item in (state.get("artifacts") or [])]
+
+    calculation_operands = _latest_artifact_value_for_task_records(
+        tasks,
+        artifacts,
+        task_id=task_id,
+        kind=ArtifactKind.OPERAND_SET,
+        payload_key="calculation_operands",
+    )
+    calculation_plan = _latest_artifact_value_for_task_records(
+        tasks,
+        artifacts,
+        task_id=task_id,
+        kind=ArtifactKind.CALCULATION_PLAN,
+        payload_key="calculation_plan",
+    )
+    calculation_result = _latest_artifact_value_for_task_records(
+        tasks,
+        artifacts,
+        task_id=task_id,
+        kind=ArtifactKind.CALCULATION_RESULT,
+        payload_key="calculation_result",
+    )
+    reconciliation_result = _latest_artifact_value_for_task_records(
+        tasks,
+        artifacts,
+        task_id=task_id,
+        kind=ArtifactKind.RECONCILIATION_RESULT,
+        payload_key="reconciliation_result",
+    )
+
+    if task_id and task_id == active_task_id:
+        if not calculation_operands:
+            calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
+        if not calculation_plan:
+            calculation_plan = dict(state.get("calculation_plan") or {})
+        if not calculation_result:
+            calculation_result = dict(state.get("calculation_result") or {})
+        if not reconciliation_result:
+            reconciliation_result = dict(state.get("reconciliation_result") or {})
+
+    task_record = _find_task_record_in_list(tasks, task_id)
+    return {
+        "task_id": task_id,
+        "artifact_ids": [str(value).strip() for value in (task_record.get("artifact_ids") or []) if str(value).strip()],
+        "calculation_operands": list(calculation_operands or []),
+        "calculation_plan": dict(calculation_plan or {}),
+        "calculation_result": dict(calculation_result or {}),
+        "reconciliation_result": dict(reconciliation_result or {}),
+    }
+
+
+def _build_aggregate_calculation_projection(
+    subtask_results: List[Dict[str, Any]],
+    final_answer: str,
+) -> Dict[str, Any]:
+    aggregate_operands: List[Dict[str, Any]] = []
+    subtask_plans: List[Dict[str, Any]] = []
+    subtask_result_views: List[Dict[str, Any]] = []
+
+    for row in list(subtask_results or []):
+        task_id = str(row.get("task_id") or "").strip()
+        metric_family = str(row.get("metric_family") or "").strip()
+        metric_label = str(row.get("metric_label") or "").strip()
+
+        for operand in list(row.get("calculation_operands") or []):
+            operand_row = dict(operand)
+            operand_row.setdefault("task_id", task_id)
+            operand_row.setdefault("metric_family", metric_family)
+            operand_row.setdefault("metric_label", metric_label)
+            aggregate_operands.append(operand_row)
+
+        plan = dict(row.get("calculation_plan") or {})
+        if plan:
+            subtask_plans.append(
+                {
+                    "task_id": task_id,
+                    "metric_family": metric_family,
+                    "metric_label": metric_label,
+                    "calculation_plan": plan,
+                }
+            )
+
+        subtask_result_views.append(
+            {
+                "task_id": task_id,
+                "metric_family": metric_family,
+                "metric_label": metric_label,
+                "answer": str(row.get("answer") or "").strip(),
+                "status": str(row.get("status") or ""),
+                "calculation_result": dict(row.get("calculation_result") or {}),
+            }
+        )
+
+    all_ok = all(str(item.get("status") or "") == "ok" for item in subtask_result_views) if subtask_result_views else False
+    return {
+        "calculation_operands": aggregate_operands,
+        "calculation_plan": {
+            "status": "ok" if subtask_plans else "empty",
+            "mode": "aggregate_subtasks",
+            "subtask_count": len(subtask_result_views),
+            "subtasks": subtask_plans,
+        },
+        "calculation_result": {
+            "status": "ok" if all_ok else "partial",
+            "rendered_value": final_answer,
+            "formatted_result": final_answer,
+            "subtask_results": subtask_result_views,
+            "answer_slots": validate_answer_slots_payload(
+                {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [
+                        {
+                            "task_id": str(item.get("task_id") or ""),
+                            "metric_family": str(item.get("metric_family") or ""),
+                            "metric_label": str(item.get("metric_label") or ""),
+                            "answer": str(item.get("answer") or ""),
+                            "answer_slots": dict((item.get("calculation_result") or {}).get("answer_slots") or {}),
+                            "rendered_value": str((item.get("calculation_result") or {}).get("rendered_value") or ""),
+                        }
+                        for item in subtask_result_views
+                    ],
+                }
+            ),
+            "derived_metrics": {
+                "subtask_count": len(subtask_result_views),
+                "subtask_ids": [
+                    str(item.get("task_id") or "")
+                    for item in subtask_result_views
+                    if str(item.get("task_id") or "").strip()
+                ],
+            },
+        },
+    }
+
+
+def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
+    resolved = dict(result.get("resolved_calculation_trace") or {})
+    structured_result = dict(result.get("structured_result") or {})
+
+    operands = list(resolved.get("calculation_operands") or [])
+    plan = dict(resolved.get("calculation_plan") or {})
+    calc_result = dict(resolved.get("calculation_result") or {})
+    if structured_result and not calc_result:
+        calc_result = structured_result
+
+    if operands or plan or calc_result:
+        return {
+            "calculation_operands": operands,
+            "calculation_plan": plan,
+            "calculation_result": calc_result,
+        }
+    return {}
+
+
+def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
+    normalised = _normalise_resolved_calculation_trace(result)
+    if normalised:
+        return normalised
+
+    top_level = {
+        "calculation_operands": list(result.get("calculation_operands") or []),
+        "calculation_plan": dict(result.get("calculation_plan") or {}),
+        "calculation_result": dict(result.get("calculation_result") or {}),
+    }
+    structured_result = dict(result.get("structured_result") or {})
+    if structured_result and not top_level["calculation_result"]:
+        top_level["calculation_result"] = structured_result
+    subtask_results = [dict(item) for item in (result.get("subtask_results") or [])]
+
+    if subtask_results:
+        plan = top_level["calculation_plan"]
+        calc_result = top_level["calculation_result"]
+        if (
+            str(plan.get("mode") or "") == "aggregate_subtasks"
+            or bool(calc_result.get("subtask_results"))
+        ):
+            return top_level
+        final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
+        return _build_aggregate_calculation_projection(subtask_results, final_answer)
+
+    active_task_id = str((result.get("active_subtask") or {}).get("task_id") or "").strip()
+    if not active_task_id:
+        calc_task_ids = [
+            str(task.get("task_id") or "").strip()
+            for task in (result.get("tasks") or [])
+            if str(task.get("task_id") or "").strip()
+            and str(task.get("kind") or "") == "calculation"
+        ]
+        if len(calc_task_ids) == 1:
+            active_task_id = calc_task_ids[0]
+
+    if active_task_id:
+        projected = _project_task_trace_from_runtime(result, active_task_id)
+        if (
+            projected["calculation_operands"]
+            or projected["calculation_plan"]
+            or projected["calculation_result"]
+        ):
+            return projected
+
+    return top_level
+
+
 # ---------------------------------------------------------------------------
 # Numeric parsing and normalization
 # ---------------------------------------------------------------------------
 
 def _parse_number_text(text: str) -> Optional[float]:
-    cleaned = str(text or "").replace(",", "").strip()
+    cleaned = _normalise_spaces(str(text or "")).replace(",", "").strip()
     if not cleaned:
         return None
+    negative = False
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        negative = True
+        cleaned = cleaned[1:-1].strip()
+    if cleaned.startswith("△"):
+        negative = True
+        cleaned = cleaned[1:].strip()
+    if cleaned.startswith("▲"):
+        negative = True
+        cleaned = cleaned[1:].strip()
     try:
-        return float(cleaned)
+        value = float(cleaned)
+        return -value if negative else value
     except ValueError:
         return None
 
@@ -721,6 +1057,121 @@ def _build_generic_metric_aliases(label: str) -> List[str]:
     return list(dict.fromkeys(alias for alias in aliases if alias))
 
 
+def _infer_generic_concept_spec(
+    label: str,
+    ontology: Any,
+) -> Dict[str, Any]:
+    cleaned = _clean_metric_label(label)
+    normalized = _normalise_spaces(cleaned)
+    if not normalized:
+        return {}
+
+    exact_matches: List[Dict[str, Any]] = []
+    fuzzy_matches: List[Dict[str, Any]] = []
+    for spec in list(getattr(ontology, "all_concept_specs", lambda: [])() or []):
+        if bool(spec.get("is_group")):
+            continue
+        alias_values = [
+            str(spec.get("name") or "").strip(),
+            *(spec.get("aliases") or []),
+            *(spec.get("keywords") or []),
+        ]
+        normalized_aliases = [
+            _normalise_spaces(alias)
+            for alias in alias_values
+            if _normalise_spaces(alias)
+        ]
+        if not normalized_aliases:
+            continue
+        if normalized in normalized_aliases:
+            exact_matches.append(dict(spec))
+            continue
+        if any(normalized in alias or alias in normalized for alias in normalized_aliases):
+            fuzzy_matches.append(dict(spec))
+
+    if exact_matches:
+        exact_matches.sort(
+            key=lambda spec: max(
+                (
+                    len(_normalise_spaces(alias))
+                    for alias in [
+                        str(spec.get("name") or "").strip(),
+                        *(spec.get("aliases") or []),
+                    ]
+                    if _normalise_spaces(alias)
+                ),
+                default=0,
+            ),
+            reverse=True,
+        )
+        return exact_matches[0]
+    if fuzzy_matches:
+        return fuzzy_matches[0]
+
+    matched_specs = [
+        dict(spec)
+        for spec in list(ontology.concept_specs(cleaned, cleaned, "comparison") or [])
+        if not bool(spec.get("is_group"))
+    ]
+    return matched_specs[0] if matched_specs else {}
+
+
+def _augment_generic_operand_with_concept(
+    operand: Dict[str, Any],
+    *,
+    concept_spec: Dict[str, Any],
+) -> Dict[str, Any]:
+    if not concept_spec:
+        return dict(operand)
+
+    updated = dict(operand)
+    updated["concept"] = str(concept_spec.get("concept") or "").strip()
+    updated["aliases"] = list(
+        dict.fromkeys(
+            [
+                *(updated.get("aliases") or []),
+                str(concept_spec.get("name") or "").strip(),
+                *(concept_spec.get("aliases") or []),
+            ]
+        )
+    )
+    updated["keywords"] = list(
+        dict.fromkeys(
+            [
+                *(updated.get("keywords") or []),
+                *(concept_spec.get("keywords") or []),
+            ]
+        )
+    )
+    updated["preferred_sections"] = list(
+        dict.fromkeys(
+            [
+                *(updated.get("preferred_sections") or []),
+                *(concept_spec.get("preferred_sections") or []),
+            ]
+        )
+    )
+    updated["preferred_statement_types"] = list(
+        dict.fromkeys(
+            [
+                *(updated.get("preferred_statement_types") or []),
+                *(concept_spec.get("preferred_statement_types") or []),
+            ]
+        )
+    )
+    binding_policy = dict(concept_spec.get("binding_policy") or {})
+    role = str(updated.get("role") or "").strip()
+    if role == "current_period" and not str(binding_policy.get("prefer_period_focus") or "").strip():
+        binding_policy["prefer_period_focus"] = "current"
+    elif role == "prior_period" and not str(binding_policy.get("prefer_period_focus") or "").strip():
+        binding_policy["prefer_period_focus"] = "prior"
+    updated["binding_policy"] = binding_policy
+    updated["surface_contract"] = dict(concept_spec.get("surface_contract") or {})
+    if not str(updated.get("unit_family") or "").strip():
+        updated["unit_family"] = str(concept_spec.get("unit_family") or "").strip()
+    return updated
+
+
 def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]]:
     text = _normalise_spaces(query)
     statement_types = _desired_statement_types(query, query)
@@ -762,63 +1213,81 @@ def _build_generic_required_operands(
     query: str,
     report_scope: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
+    ontology = get_financial_ontology()
     operand_labels = _extract_generic_operand_labels(query)
     if _is_single_metric_period_comparison(query, operand_labels):
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
         aliases = _build_generic_metric_aliases(base_label)
         unit_family = "PERCENT" if _label_implies_percent_metric(base_label) else ""
+        concept_spec = _infer_generic_concept_spec(base_label, ontology)
         year_tokens = _extract_year_tokens(query, report_scope)
         if year_tokens:
             current_year = year_tokens[0]
             prior_year = year_tokens[1] if len(year_tokens) > 1 else current_year - 1
             return [
+                _augment_generic_operand_with_concept(
+                    {
+                        "label": f"{current_year}년 {base_label}",
+                        "aliases": aliases,
+                        "role": "current_period",
+                        "required": True,
+                        "period_hint": str(current_year),
+                        "unit_family": unit_family,
+                    },
+                    concept_spec=concept_spec,
+                ),
+                _augment_generic_operand_with_concept(
+                    {
+                        "label": f"{prior_year}년 {base_label}",
+                        "aliases": aliases,
+                        "role": "prior_period",
+                        "required": True,
+                        "period_hint": str(prior_year),
+                        "unit_family": unit_family,
+                    },
+                    concept_spec=concept_spec,
+                ),
+            ]
+        return [
+            _augment_generic_operand_with_concept(
                 {
-                    "label": f"{current_year}년 {base_label}",
+                    "label": f"당기 {base_label}",
                     "aliases": aliases,
                     "role": "current_period",
                     "required": True,
-                    "period_hint": str(current_year),
+                    "period_hint": "당기",
                     "unit_family": unit_family,
                 },
+                concept_spec=concept_spec,
+            ),
+            _augment_generic_operand_with_concept(
                 {
-                    "label": f"{prior_year}년 {base_label}",
+                    "label": f"전기 {base_label}",
                     "aliases": aliases,
                     "role": "prior_period",
                     "required": True,
-                    "period_hint": str(prior_year),
+                    "period_hint": "전기",
                     "unit_family": unit_family,
                 },
-            ]
-        return [
-            {
-                "label": f"당기 {base_label}",
-                "aliases": aliases,
-                "role": "current_period",
-                "required": True,
-                "period_hint": "당기",
-                "unit_family": unit_family,
-            },
-            {
-                "label": f"전기 {base_label}",
-                "aliases": aliases,
-                "role": "prior_period",
-                "required": True,
-                "period_hint": "전기",
-                "unit_family": unit_family,
-            },
+                concept_spec=concept_spec,
+            ),
         ]
 
     rows: List[Dict[str, Any]] = []
     for label in operand_labels:
         aliases = _build_generic_metric_aliases(label)
+        concept_spec = _infer_generic_concept_spec(label, ontology)
         rows.append(
-            {
-                "label": label,
-                "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
-                "role": "",
-                "required": True,
-                "unit_family": "PERCENT" if _label_implies_percent_metric(label) else "",
-            }
+            _augment_generic_operand_with_concept(
+                {
+                    "label": label,
+                    "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
+                    "role": "",
+                    "required": True,
+                    "unit_family": "PERCENT" if _label_implies_percent_metric(label) else "",
+                },
+                concept_spec=concept_spec,
+            )
         )
     return rows
 
@@ -1182,6 +1651,76 @@ def _assign_ratio_roles_to_concepts(query: str, concept_specs: List[Dict[str, An
     return roles
 
 
+def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any]) -> List[str]:
+    text = _normalise_spaces(query)
+    if not text or not any(marker in text for marker in ("부문", "세그먼트", "segment")):
+        return []
+
+    segment_anchor = ""
+    for marker in ("부문의", "부문", "세그먼트의", "세그먼트", "segment"):
+        if marker in text:
+            segment_anchor = marker
+            break
+    if not segment_anchor:
+        return []
+
+    prefix = text.split(segment_anchor, 1)[0].strip()
+    for boundary in ("에서", "중", "내", ":"):
+        if boundary in prefix:
+            prefix = prefix.rsplit(boundary, 1)[-1].strip()
+    prefix = re.sub(r"\b20\d{2}\b", " ", prefix)
+
+    raw_parts = re.split(r"\s*(?:와|과|및|,|/|·|\+)\s*", prefix)
+    blocked_tokens = {
+        str(report_scope.get("company") or "").strip(),
+        str(report_scope.get("report_type") or "").strip(),
+        "사업보고서",
+        "반기보고서",
+        "분기보고서",
+        "연결",
+        "별도",
+    }
+    labels: List[str] = []
+    for part in raw_parts:
+        normalized = _normalise_spaces(part)
+        if not normalized or normalized in blocked_tokens:
+            continue
+        if any(token in normalized for token in ("사업보고서", "반기보고서", "분기보고서")):
+            continue
+        if len(normalized) > 40:
+            continue
+        labels.append(normalized)
+    return list(dict.fromkeys(label for label in labels if label))
+
+
+def _expand_segment_sum_specs(
+    ordered_specs: List[Dict[str, Any]],
+    query: str,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    if len(ordered_specs) != 1:
+        return ordered_specs
+
+    segment_labels = _extract_segment_labels_from_query(query, report_scope)
+    if len(segment_labels) < 2:
+        return ordered_specs
+
+    base_spec = dict(ordered_specs[0])
+    base_name = str(base_spec.get("name") or "").strip()
+    expanded: List[Dict[str, Any]] = []
+    for index, segment_label in enumerate(segment_labels, start=1):
+        spec = dict(base_spec)
+        spec["name"] = f"{segment_label} {base_name}".strip()
+        aliases = list(spec.get("aliases") or [])
+        spec["aliases"] = list(dict.fromkeys([spec["name"], segment_label, base_name, *aliases]))
+        binding_policy = dict(spec.get("binding_policy") or {})
+        binding_policy["segment_label"] = segment_label
+        spec["binding_policy"] = binding_policy
+        spec["role"] = f"addend_{index}"
+        expanded.append(spec)
+    return expanded
+
+
 def _build_concept_required_operands(
     query: str,
     report_scope: Dict[str, Any],
@@ -1234,6 +1773,10 @@ def _build_concept_required_operands(
         if not any(role.startswith("numerator") for role in role_hints) or not any(role.startswith("denominator") for role in role_hints):
             return []
 
+    if operation_family == "sum" and len(ordered_specs) == 1:
+        ordered_specs = _expand_segment_sum_specs(ordered_specs, query, report_scope)
+        role_hints = [str(spec.get("role") or "").strip() for spec in ordered_specs]
+
     ordered_specs = _expand_group_concept_specs(ordered_specs, role_hints)
     if not ordered_specs:
         return []
@@ -1249,13 +1792,20 @@ def _build_concept_required_operands(
     if operation_family in {"ratio", "sum"}:
         deduped_specs: List[Dict[str, Any]] = []
         deduped_roles: List[str] = []
-        seen_concepts: set[str] = set()
+        seen_keys: set[Any] = set()
         for spec, role in zip(ordered_specs, explicit_roles):
             concept_key = str(spec.get("concept") or "").strip()
-            if concept_key and concept_key in seen_concepts:
+            dedupe_key: Any = concept_key
+            if operation_family == "sum":
+                # Sum tasks can legitimately use the same concept more than once when the
+                # planner is adding segment- or scope-specific values (for example, SDC
+                # revenue + Harman revenue). Preserve distinct addend roles while still
+                # collapsing exact duplicates.
+                dedupe_key = (concept_key, str(role or "").strip())
+            if concept_key and dedupe_key in seen_keys:
                 continue
             if concept_key:
-                seen_concepts.add(concept_key)
+                seen_keys.add(dedupe_key)
             deduped_specs.append(spec)
             deduped_roles.append(role)
         ordered_specs = deduped_specs
@@ -1404,6 +1954,11 @@ def _build_heuristic_numeric_task(
     metric_label = _infer_generic_metric_label(query, topic)
     operand_specs = _build_generic_required_operands(query, report_scope)
     preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
+    for spec in operand_specs:
+        preferred_statement_types.extend(spec.get("preferred_statement_types") or [])
+        preferred_sections.extend(spec.get("preferred_sections") or [])
+    preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
+    preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
     operation_family = _infer_operation_family_from_query(query, get_financial_ontology())
     constraints = {
         "consolidation_scope": _desired_consolidation_scope(query, report_scope),
@@ -1572,6 +2127,22 @@ def _build_semantic_numeric_plan(
     metric_keys: List[str] = []
     planner_notes: List[str] = []
     concept_specs = ontology.concept_specs(query, topic, intent)
+    if not target_metric_family and concept_specs:
+        concept_task = _build_concept_numeric_task(
+            query=query,
+            topic=topic,
+            report_scope=report_scope,
+            ontology=ontology,
+            concept_specs=concept_specs,
+        )
+        if concept_task:
+            return {
+                "status": "concept_fallback",
+                "fallback_to_general_search": False,
+                "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
+                "tasks": [concept_task],
+                "planner_notes": planner_notes + ["concept_first_preferred"],
+            }
     if target_metric_family:
         target_metric = ontology.metric_family(target_metric_family) or {}
         target_operand_specs = ontology.build_operand_spec(target_metric_family) if target_metric else []
@@ -2081,6 +2652,11 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
 
 def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     if _operand_row_conflicts_with_requirement(row, operand):
+        return False
+
+    bound_role = str(row.get("matched_operand_role") or "").strip()
+    operand_role = str(operand.get("role") or "").strip()
+    if bound_role and operand_role and _normalise_spaces(bound_role) != _normalise_spaces(operand_role):
         return False
 
     bound_label = str(row.get("matched_operand_label") or "").strip()

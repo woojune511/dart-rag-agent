@@ -105,6 +105,11 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.COMPLETED)
         artifact = updates["artifacts"]["task_1"]
         self.assertEqual(artifact["creator"], "Analyst")
+        self.assertEqual(artifact["content"]["structured_result"]["result_unit"], "%")
+        self.assertEqual(
+            artifact["content"]["resolved_calculation_trace"]["calculation_plan"]["formula"],
+            "A / B * 100",
+        )
         self.assertEqual(
             artifact["content"]["answer"],
             "2024년 영업이익률은 10.9%입니다.",

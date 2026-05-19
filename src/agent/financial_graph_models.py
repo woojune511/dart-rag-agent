@@ -41,6 +41,10 @@ class FinancialAgentState(TypedDict):
     answer: str
     citations: List[str]
     numeric_debug_trace: Dict[str, Any]
+    # Legacy flat calculation fields are still carried in state for
+    # compatibility with older callers and debugging workflows. The richer
+    # source of truth lives in `tasks` / `artifacts` and structured
+    # `answer_slots`; these top-level fields are compatibility projections.
     calculation_operands: List[Dict[str, Any]]
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]

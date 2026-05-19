@@ -316,6 +316,107 @@ class FinancialAgentCalculationMixin:
             "missing_info": [],
         }
 
+    def _build_deterministic_operation_plan(
+        self,
+        state: FinancialAgentState,
+        operands: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        if operation_family not in {"difference", "growth_rate"}:
+            return None
+
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if bool(item.get("required", True))
+        ]
+        if not required_operands:
+            return None
+
+        matched_rows: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
+        for operand in required_operands:
+            matched_row = next((row for row in operands if _operand_row_matches_requirement(row, operand)), None)
+            if matched_row is None:
+                return None
+            matched_rows.append((operand, matched_row))
+
+        def _first_pair(role: str) -> Optional[tuple[Dict[str, Any], Dict[str, Any]]]:
+            for operand, row in matched_rows:
+                if str(operand.get("role") or "").strip() == role:
+                    return operand, row
+            return None
+
+        ordered_pairs: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
+        if operation_family == "difference":
+            left_pair = _first_pair("current_period") or _first_pair("minuend")
+            right_pair = _first_pair("prior_period") or _first_pair("subtrahend")
+            if left_pair and right_pair:
+                ordered_pairs = [left_pair, right_pair]
+            elif len(matched_rows) == 2:
+                ordered_pairs = matched_rows
+        else:
+            current_pair = _first_pair("current_period")
+            prior_pair = _first_pair("prior_period")
+            if current_pair and prior_pair:
+                ordered_pairs = [current_pair, prior_pair]
+
+        if len(ordered_pairs) != 2:
+            return None
+
+        variable_bindings: List[Dict[str, str]] = []
+        ordered_operand_ids: List[str] = []
+        ordered_labels: List[str] = []
+        for index, (operand, row) in enumerate(ordered_pairs):
+            operand_id = str(row.get("operand_id") or "").strip()
+            if not operand_id:
+                return None
+            variable_bindings.append({"variable": chr(ord("A") + index), "operand_id": operand_id})
+            ordered_operand_ids.append(operand_id)
+            ordered_labels.append(str(operand.get("label") or row.get("label") or "").strip())
+
+        metric_label = str(active_subtask.get("metric_label") or active_subtask.get("task_id") or "").strip()
+        if operation_family == "difference":
+            result_unit = ""
+            if _should_coerce_percent_point_unit(self._calc_query(state), operands, {"operation": "subtract"}):
+                result_unit = "%p"
+            right_role = str(ordered_pairs[1][0].get("role") or "").strip()
+            right_value = ordered_pairs[1][1].get("normalized_value")
+            formula = "A - B"
+            operation_text = f"{ordered_labels[0]} - {ordered_labels[1]}"
+            explanation = f"{metric_label or 'difference'} is computed as A - B."
+            if right_role == "subtrahend" and right_value is not None and float(right_value) < 0:
+                formula = "A + B"
+                operation_text = f"{ordered_labels[0]} + {ordered_labels[1]}"
+                explanation = f"{metric_label or 'difference'} uses sign-aware subtraction because B is already negative."
+            return {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "subtract",
+                "ordered_operand_ids": ordered_operand_ids,
+                "variable_bindings": variable_bindings,
+                "formula": formula,
+                "pairwise_formula": "",
+                "result_unit": result_unit,
+                "operation_text": operation_text,
+                "explanation": explanation,
+                "missing_info": [],
+            }
+
+        return {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "growth_rate",
+            "ordered_operand_ids": ordered_operand_ids,
+            "variable_bindings": variable_bindings,
+            "formula": "((A - B) / B) * 100",
+            "pairwise_formula": "",
+            "result_unit": "%",
+            "operation_text": f"({ordered_labels[0]} - {ordered_labels[1]}) / {ordered_labels[1]} * 100",
+            "explanation": f"{metric_label or 'growth rate'} is computed as ((A - B) / B) * 100.",
+            "missing_info": [],
+        }
+
     def _extract_calculation_operands(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Build the operand set for the current calculation subtask.
 
@@ -705,7 +806,7 @@ Structured Evidence:
                 "calculation_plan": deterministic_lookup_plan,
                 "missing_info": [str(item).strip() for item in (deterministic_lookup_plan.get("missing_info") or []) if str(item).strip()],
                 "planner_debug_trace": {
-                    "target_metric_family": metric_key,
+                    "active_metric_family": metric_key,
                     "ontology_context": "deterministic_lookup_plan",
                     "operands_text": "\n".join(
                         f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
@@ -714,6 +815,55 @@ Structured Evidence:
                     "llm_invoked": False,
                     "guard_applied": True,
                     "raw_plan": deterministic_lookup_plan,
+                },
+                "tasks": tasks,
+                "artifacts": artifacts,
+            }
+
+        deterministic_operation_plan = self._build_deterministic_operation_plan(state, operands)
+        if deterministic_operation_plan:
+            logger.info(
+                "[formula_plan] deterministic op-family mode=%s op=%s vars=%s",
+                deterministic_operation_plan.get("mode"),
+                deterministic_operation_plan.get("operation"),
+                len(deterministic_operation_plan.get("variable_bindings") or []),
+            )
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
+            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.CALCULATION_PLAN,
+                status=str(deterministic_operation_plan.get("status") or "ok"),
+                summary=f"mode={deterministic_operation_plan.get('mode')} op={deterministic_operation_plan.get('operation')}",
+                payload={"calculation_plan": deterministic_operation_plan},
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.CALCULATION,
+                label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
+                status=TaskStatus.IN_PROGRESS,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+                artifact_id=artifact_id,
+            )
+            return {
+                "calculation_plan": deterministic_operation_plan,
+                "missing_info": [],
+                "planner_debug_trace": {
+                    "active_metric_family": metric_key,
+                    "ontology_context": "deterministic_operation_plan",
+                    "operands_text": "\n".join(
+                        f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
+                        for row in operands
+                    ),
+                    "llm_invoked": False,
+                    "guard_applied": True,
+                    "raw_plan": deterministic_operation_plan,
                 },
                 "tasks": tasks,
                 "artifacts": artifacts,
@@ -737,7 +887,7 @@ Structured Evidence:
                 },
                 "missing_info": missing_info,
                 "planner_debug_trace": {
-                    "target_metric_family": metric_key,
+                    "active_metric_family": metric_key,
                     "ontology_context": "lookup_guard_reject_non_direct",
                     "operands_text": "\n".join(
                         f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
@@ -785,7 +935,7 @@ Structured Evidence:
                 "calculation_plan": deterministic_plan,
                 "missing_info": [],
                 "planner_debug_trace": {
-                    "target_metric_family": metric_key,
+                    "active_metric_family": metric_key,
                     "ontology_context": "deterministic_ontology_plan",
                     "operands_text": "\n".join(
                         f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
@@ -843,7 +993,7 @@ Structured Evidence:
             for row in operands
         )
         planner_trace_base = {
-            "target_metric_family": metric_key,
+            "active_metric_family": metric_key,
             "ontology_context": ontology_context or "-",
             "operands_text": operands_text,
         }
@@ -1190,7 +1340,21 @@ Ontology Context:
                 )
             return validate_answer_slots_payload(answer_slots)
 
-        primary_role = "delta_value" if family == "difference" else "primary_value"
+        operand_roles = {
+            str(spec.get("role") or "").strip()
+            for spec in required_operands
+            if str(spec.get("role") or "").strip()
+        }
+        row_roles = {
+            str(row.get("matched_operand_role") or "").strip()
+            for row in ordered_operands
+            if str(row.get("matched_operand_role") or "").strip()
+        }
+        period_difference = family in {"difference", "growth_rate"} and bool(
+            {"current_period", "prior_period"} & (operand_roles | row_roles)
+        )
+
+        primary_role = "delta_value" if family == "difference" and period_difference else "primary_value"
         answer_slots["primary_value"] = self._build_calculated_value_slot(
             label=metric_label,
             normalized_value=result_value,
@@ -1644,6 +1808,7 @@ Ontology Context:
 [렌더링 규칙]
 - CalculationResult의 rendered_value를 그대로 사용하세요. 숫자를 다시 계산하거나 형식을 바꾸지 마세요.
 - CalculationResult의 answer_slots가 있으면 rendered_value/series보다 먼저 참고해 현재값, 전기값, 증감값, 주된 결과값을 파악하세요.
+- components_by_role에 subtrahend가 있고 그 rendered_value가 음수처럼 보여도, 서술에서는 절댓값을 차감하는 표현을 우선 사용하세요. "-X를 차감"처럼 이중 음수 표현을 만들지 마세요.
 - operand label에 포함된 연도·기간 정보(예: '2024년', '2023년', '1분기')는 반드시 그대로 유지하세요. '2024년 영업이익'을 '영업이익'으로 줄이지 마세요.
 - direction_hint가 제공된 경우, 그 단어를 그대로 사용하세요. 임의로 '변동', '차이' 등 중립적 표현으로 바꾸지 마세요.
 - time_series 해석(상승·하락·반등 등)은 series 또는 derived_metrics의 수치 변화를 근거로 표현하세요.
