@@ -193,6 +193,9 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["delta_value"], 397679227000.0)
         self.assertEqual(calc["source_row_ids"], ["cand_2023", "cand_2022"])
         self.assertEqual(calc["answer_slots"]["operation_family"], "difference")
+        self.assertEqual(calc["answer_slots"]["current_value"]["status"], "ok")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["status"], "ok")
+        self.assertEqual(calc["answer_slots"]["delta_value"]["status"], "ok")
         self.assertEqual(
             calc["answer_slots"]["current_value"]["rendered_value"],
             "1조 4,814억원",
@@ -206,6 +209,8 @@ class OperationContractTests(unittest.TestCase):
             "3,977억원",
         )
         self.assertEqual(calc["answer_slots"]["direction"], "increase")
+        self.assertEqual(calc["answer_slots"]["current_value"]["source_row_id"], "cand_2023")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["source_row_id"], "cand_2022")
 
     def test_percent_difference_preserves_two_decimal_percent_rendering(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -265,9 +270,52 @@ class OperationContractTests(unittest.TestCase):
         calc = result["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "0.10%p")
+        self.assertEqual(calc["answer_slots"]["primary_value"]["status"], "ok")
         self.assertEqual(calc["answer_slots"]["current_value"]["rendered_value"], "1.83%")
         self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "1.73%")
         self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "0.10%p")
+
+    def test_failed_lookup_emits_explicit_missing_primary_slot(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
+                "active_subtask": {
+                    "task_id": "task_lookup_missing",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "법인세비용차감전순이익",
+                    "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "법인세비용차감전순이익",
+                            "concept": "income_before_income_taxes",
+                            "role": "operand",
+                            "period_hint": "2023년",
+                        }
+                    ],
+                },
+                "calculation_operands": [],
+                "calculation_plan": {
+                    "status": "incomplete",
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "formula": "",
+                    "pairwise_formula": "",
+                    "result_unit": "천원",
+                    "operation_text": "",
+                    "explanation": "no operation or operands",
+                },
+            }
+        )
+        calc = result["calculation_result"]
+        self.assertEqual(calc["status"], "insufficient_operands")
+        self.assertEqual(calc["answer_slots"]["operation_family"], "lookup")
+        self.assertEqual(calc["answer_slots"]["primary_value"]["status"], "missing")
+        self.assertEqual(calc["answer_slots"]["primary_value"]["label"], "법인세비용차감전순이익")
+        self.assertEqual(calc["answer_slots"]["primary_value"]["concept"], "income_before_income_taxes")
 
     def test_lookup_plan_requires_single_direct_operand_instead_of_reconstruction(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction
+from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 class FinancialAgentCalculationMixin:
     def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
         if not isinstance(slot, dict) or not slot:
+            return False
+        status = str(slot.get("status") or "").strip().lower()
+        if status == "missing":
             return False
         if slot.get("normalized_value") is not None:
             return True
@@ -987,6 +990,54 @@ Ontology Context:
             return f"{rendered}{display_unit}"
         return rendered
 
+    def _slot_status(
+        self,
+        *,
+        normalized_value: Optional[float],
+        rendered_value: str,
+        raw_value: str,
+    ) -> str:
+        if normalized_value is not None:
+            return "ok"
+        if str(rendered_value or raw_value or "").strip():
+            return "derived"
+        return "missing"
+
+    def _coerce_slot_numeric(self, value: Any) -> Optional[float]:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _build_missing_value_slot(
+        self,
+        *,
+        role: str,
+        label: str,
+        concept: str = "",
+        period: str = "",
+        raw_unit: str = "",
+        normalized_unit: str = "UNKNOWN",
+        source_row_ids: Optional[List[str]] = None,
+        source_anchor: str = "",
+    ) -> Dict[str, Any]:
+        row_ids = [str(item).strip() for item in (source_row_ids or []) if str(item).strip()]
+        return {
+            "status": "missing",
+            "role": role,
+            "label": _display_operand_label(label),
+            "concept": concept,
+            "period": str(period or ""),
+            "raw_value": "",
+            "raw_unit": str(raw_unit or ""),
+            "normalized_value": None,
+            "normalized_unit": str(normalized_unit or "UNKNOWN"),
+            "rendered_value": "",
+            "source_row_id": row_ids[0] if row_ids else "",
+            "source_row_ids": row_ids,
+            "source_anchor": str(source_anchor or ""),
+        }
+
     def _build_operand_value_slot(
         self,
         row: Dict[str, Any],
@@ -1002,7 +1053,13 @@ Ontology Context:
                 rendered_value = self._render_value_with_unit(float(normalized_value), raw_unit, normalized_unit)
             except (TypeError, ValueError):
                 rendered_value = str(row.get("raw_value") or "")
+        source_row_id = str(row.get("evidence_id") or row.get("row_id") or "")
         return {
+            "status": self._slot_status(
+                normalized_value=self._coerce_slot_numeric(normalized_value),
+                rendered_value=rendered_value,
+                raw_value=str(row.get("raw_value") or ""),
+            ),
             "role": str(row.get("matched_operand_role") or default_role),
             "label": _display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
             "concept": str(row.get("matched_operand_concept") or ""),
@@ -1012,7 +1069,9 @@ Ontology Context:
             "normalized_value": normalized_value,
             "normalized_unit": normalized_unit,
             "rendered_value": rendered_value,
-            "source_row_id": str(row.get("evidence_id") or row.get("row_id") or ""),
+            "source_row_id": source_row_id,
+            "source_row_ids": [source_row_id] if source_row_id else [],
+            "source_anchor": str(row.get("source_anchor") or ""),
         }
 
     def _build_calculated_value_slot(
@@ -1025,20 +1084,30 @@ Ontology Context:
         period: str = "",
         source_row_ids: Optional[List[str]] = None,
         role: str = "primary_value",
+        source_anchor: str = "",
     ) -> Dict[str, Any]:
         rendered_value = ""
         if normalized_value is not None:
             rendered_value = self._render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
+        row_ids = [str(item).strip() for item in (source_row_ids or []) if str(item).strip()]
         return {
+            "status": self._slot_status(
+                normalized_value=self._coerce_slot_numeric(normalized_value),
+                rendered_value=rendered_value,
+                raw_value="",
+            ),
             "role": role,
             "label": _display_operand_label(label),
+            "concept": "",
             "period": str(period or ""),
             "raw_value": "",
             "raw_unit": str(display_unit or ""),
             "normalized_value": normalized_value,
             "normalized_unit": normalized_unit,
             "rendered_value": rendered_value,
-            "source_row_ids": list(source_row_ids or []),
+            "source_row_id": row_ids[0] if row_ids else "",
+            "source_row_ids": row_ids,
+            "source_anchor": str(source_anchor or ""),
         }
 
     def _build_answer_slots(
@@ -1060,12 +1129,29 @@ Ontology Context:
         current_row: Optional[Dict[str, Any]] = None,
         prior_row: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        family = str(
+            operation_family or active_subtask.get("operation_family") or "single_value"
+        ).strip().lower()
         metric_label = str(
             active_subtask.get("metric_label")
             or active_subtask.get("query")
             or active_subtask.get("task_id")
             or ""
         )
+        required_operands = [dict(item) for item in (active_subtask.get("required_operands") or [])]
+
+        def _seed_for_roles(*roles: str) -> Dict[str, Any]:
+            role_set = {str(role).strip().lower() for role in roles if str(role).strip()}
+            for requirement in required_operands:
+                req_role = str(requirement.get("role") or "").strip().lower()
+                if req_role and req_role in role_set:
+                    return requirement
+            for row in ordered_operands:
+                row_role = str(row.get("matched_operand_role") or "").strip().lower()
+                if row_role and row_role in role_set:
+                    return row
+            return {}
+
         components_by_role: Dict[str, List[Dict[str, Any]]] = {}
         components_by_group: Dict[str, List[Dict[str, Any]]] = {}
         for row in ordered_operands:
@@ -1076,21 +1162,35 @@ Ontology Context:
             components_by_group.setdefault(role_group, []).append(slot)
 
         answer_slots: Dict[str, Any] = {
-            "operation_family": operation_family or str(active_subtask.get("operation_family") or ""),
+            "operation_family": family,
             "metric_label": metric_label,
             "components_by_role": components_by_role,
             "components_by_group": components_by_group,
             "source_row_ids": list(source_row_ids or []),
         }
 
-        if operation_family in {"lookup", "single_value"} and ordered_operands:
-            answer_slots["primary_value"] = self._build_operand_value_slot(
-                ordered_operands[0],
-                default_role="primary_value",
-            )
-            return answer_slots
+        if family in {"lookup", "single_value"}:
+            if ordered_operands:
+                primary_slot = self._build_operand_value_slot(
+                    ordered_operands[0],
+                    default_role="primary_value",
+                )
+                primary_slot["role"] = "primary_value"
+                answer_slots["primary_value"] = primary_slot
+            else:
+                seed = _seed_for_roles("operand", "current_period", "primary_value")
+                answer_slots["primary_value"] = self._build_missing_value_slot(
+                    role="primary_value",
+                    label=str(seed.get("label") or metric_label),
+                    concept=str(seed.get("concept") or seed.get("matched_operand_concept") or ""),
+                    period=str(seed.get("period") or seed.get("period_hint") or current_period or ""),
+                    raw_unit=str(seed.get("raw_unit") or result_unit or ""),
+                    normalized_unit=str(seed.get("normalized_unit") or source_normalized_unit or "UNKNOWN"),
+                    source_anchor=str(seed.get("source_anchor") or ""),
+                )
+            return validate_answer_slots_payload(answer_slots)
 
-        primary_role = "delta_value" if operation_family == "difference" else "primary_value"
+        primary_role = "delta_value" if family == "difference" else "primary_value"
         answer_slots["primary_value"] = self._build_calculated_value_slot(
             label=metric_label,
             normalized_value=result_value,
@@ -1101,38 +1201,62 @@ Ontology Context:
             role=primary_role,
         )
 
-        if operation_family in {"difference", "growth_rate"}:
-            if current_value is not None:
-                if current_row:
-                    current_slot = self._build_operand_value_slot(current_row, default_role="current_value")
-                    current_slot["role"] = "current_value"
-                    answer_slots["current_value"] = current_slot
-                else:
-                    answer_slots["current_value"] = self._build_calculated_value_slot(
-                        label=metric_label,
-                        normalized_value=current_value,
-                        normalized_unit=source_normalized_unit or normalized_unit,
-                        display_unit="",
-                        period=current_period,
-                        source_row_ids=source_row_ids[:1],
-                        role="current_value",
-                    )
-            if prior_value is not None:
-                if prior_row:
-                    prior_slot = self._build_operand_value_slot(prior_row, default_role="prior_value")
-                    prior_slot["role"] = "prior_value"
-                    answer_slots["prior_value"] = prior_slot
-                else:
-                    answer_slots["prior_value"] = self._build_calculated_value_slot(
-                        label=metric_label,
-                        normalized_value=prior_value,
-                        normalized_unit=source_normalized_unit or normalized_unit,
-                        display_unit="",
-                        period=prior_period,
-                        source_row_ids=source_row_ids[1:2],
-                        role="prior_value",
-                    )
-            if operation_family == "difference" and delta_value is not None:
+        if family in {"difference", "growth_rate"}:
+            current_seed = current_row or _seed_for_roles("current_period")
+            if current_row:
+                current_slot = self._build_operand_value_slot(current_row, default_role="current_value")
+                current_slot["role"] = "current_value"
+                answer_slots["current_value"] = current_slot
+            elif current_value is not None:
+                answer_slots["current_value"] = self._build_calculated_value_slot(
+                    label=str(current_seed.get("label") or metric_label),
+                    normalized_value=current_value,
+                    normalized_unit=source_normalized_unit or normalized_unit,
+                    display_unit="",
+                    period=current_period,
+                    source_row_ids=source_row_ids[:1],
+                    role="current_value",
+                    source_anchor=str(current_seed.get("source_anchor") or ""),
+                )
+            else:
+                answer_slots["current_value"] = self._build_missing_value_slot(
+                    role="current_value",
+                    label=str(current_seed.get("label") or metric_label),
+                    concept=str(current_seed.get("concept") or current_seed.get("matched_operand_concept") or ""),
+                    period=str(current_seed.get("period") or current_seed.get("period_hint") or current_period or ""),
+                    raw_unit=str(current_seed.get("raw_unit") or result_unit or ""),
+                    normalized_unit=str(current_seed.get("normalized_unit") or source_normalized_unit or normalized_unit or "UNKNOWN"),
+                    source_anchor=str(current_seed.get("source_anchor") or ""),
+                )
+
+            prior_seed = prior_row or _seed_for_roles("prior_period")
+            if prior_row:
+                prior_slot = self._build_operand_value_slot(prior_row, default_role="prior_value")
+                prior_slot["role"] = "prior_value"
+                answer_slots["prior_value"] = prior_slot
+            elif prior_value is not None:
+                answer_slots["prior_value"] = self._build_calculated_value_slot(
+                    label=str(prior_seed.get("label") or metric_label),
+                    normalized_value=prior_value,
+                    normalized_unit=source_normalized_unit or normalized_unit,
+                    display_unit="",
+                    period=prior_period,
+                    source_row_ids=source_row_ids[1:2],
+                    role="prior_value",
+                    source_anchor=str(prior_seed.get("source_anchor") or ""),
+                )
+            else:
+                answer_slots["prior_value"] = self._build_missing_value_slot(
+                    role="prior_value",
+                    label=str(prior_seed.get("label") or metric_label),
+                    concept=str(prior_seed.get("concept") or prior_seed.get("matched_operand_concept") or ""),
+                    period=str(prior_seed.get("period") or prior_seed.get("period_hint") or prior_period or ""),
+                    raw_unit=str(prior_seed.get("raw_unit") or result_unit or ""),
+                    normalized_unit=str(prior_seed.get("normalized_unit") or source_normalized_unit or normalized_unit or "UNKNOWN"),
+                    source_anchor=str(prior_seed.get("source_anchor") or ""),
+                )
+
+            if family == "difference":
                 answer_slots["delta_value"] = self._build_calculated_value_slot(
                     label=metric_label,
                     normalized_value=delta_value,
@@ -1150,8 +1274,10 @@ Ontology Context:
                     else:
                         direction = "flat"
                     answer_slots["direction"] = direction
+                else:
+                    answer_slots["direction"] = None
 
-        return answer_slots
+        return validate_answer_slots_payload(answer_slots)
 
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
@@ -1175,6 +1301,23 @@ Ontology Context:
 
         def _fail(status: str, reason: str) -> Dict[str, Any]:
             fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
+            failure_slots = self._build_answer_slots(
+                active_subtask=active_subtask,
+                operation_family=operation_family or "single_value",
+                ordered_operands=[dict(row) for row in (state.get("calculation_operands") or [])],
+                result_value=None,
+                result_unit=result_unit,
+                normalized_unit="UNKNOWN",
+                source_normalized_unit=source_normalized_unit or "UNKNOWN",
+                current_value=None,
+                prior_value=None,
+                delta_value=None,
+                current_period="",
+                prior_period="",
+                source_row_ids=[],
+                current_row=None,
+                prior_row=None,
+            )
             return {
                 "answer": fallback,
                 "compressed_answer": fallback,
@@ -1191,7 +1334,7 @@ Ontology Context:
                     "rendered_value": "",
                     "formatted_result": "",
                     "series": [],
-                    "answer_slots": {},
+                    "answer_slots": failure_slots,
                     "derived_metrics": {},
                     "explanation": reason,
                 },

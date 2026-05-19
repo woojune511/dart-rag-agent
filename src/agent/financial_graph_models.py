@@ -2,9 +2,9 @@
 Shared state and structured-output models for the financial graph agent.
 """
 
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 
 
 class FinancialAgentState(TypedDict):
@@ -251,6 +251,114 @@ class ReflectionQueryPlan(BaseModel):
     )
 
 
+NormalizedUnit = Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"]
+AnswerSlotStatus = Literal["ok", "missing", "derived", "ambiguous"]
+
+
+class AnswerSlotValue(BaseModel):
+    status: AnswerSlotStatus = Field(
+        default="ok",
+        description="이 슬롯 값의 상태. missing이면 synthesizer/evaluator가 재료 부족으로 해석한다.",
+    )
+    role: str = Field(default="", description="slot role. 예: primary_value, current_value, prior_value")
+    label: str = Field(default="", description="사용자 친화적 값 레이블")
+    concept: str = Field(default="", description="ontology concept key")
+    period: str = Field(default="", description="이 값이 대응하는 기간 라벨")
+    raw_value: str = Field(default="", description="원문에서 읽은 원본 숫자 문자열")
+    raw_unit: str = Field(default="", description="원문에서 읽은 원본 단위")
+    normalized_value: Optional[float] = Field(default=None, description="정규화된 숫자 값")
+    normalized_unit: NormalizedUnit = Field(default="UNKNOWN", description="정규화된 단위 계열")
+    rendered_value: str = Field(default="", description="답변 렌더링에 바로 쓸 수 있는 값 표현")
+    source_row_id: str = Field(default="", description="대표 source row/candidate id")
+    source_row_ids: List[str] = Field(default_factory=list, description="이 값의 출처 row/candidate id 목록")
+    source_anchor: str = Field(default="", description="대표 evidence source anchor")
+
+
+class BaseAnswerSlots(BaseModel):
+    metric_label: str = Field(default="", description="이 result slot 집합이 대응하는 metric label")
+    components_by_role: Dict[str, List[AnswerSlotValue]] = Field(
+        default_factory=dict,
+        description="역할별 피연산자/구성요소 슬롯",
+    )
+    components_by_group: Dict[str, List[AnswerSlotValue]] = Field(
+        default_factory=dict,
+        description="역할 group별 피연산자/구성요소 슬롯",
+    )
+    source_row_ids: List[str] = Field(default_factory=list, description="이 result 전체를 지지하는 source row/candidate ids")
+
+
+class LookupAnswerSlots(BaseAnswerSlots):
+    operation_family: Literal["lookup"] = "lookup"
+    primary_value: AnswerSlotValue
+
+
+class SingleValueAnswerSlots(BaseAnswerSlots):
+    operation_family: Literal["single_value"] = "single_value"
+    primary_value: AnswerSlotValue
+
+
+class DifferenceAnswerSlots(BaseAnswerSlots):
+    operation_family: Literal["difference"] = "difference"
+    primary_value: AnswerSlotValue
+    current_value: AnswerSlotValue
+    prior_value: AnswerSlotValue
+    delta_value: AnswerSlotValue
+    direction: Optional[Literal["increase", "decrease", "flat"]] = Field(default=None)
+
+
+class GrowthRateAnswerSlots(BaseAnswerSlots):
+    operation_family: Literal["growth_rate"] = "growth_rate"
+    primary_value: AnswerSlotValue
+    current_value: AnswerSlotValue
+    prior_value: AnswerSlotValue
+    direction: Optional[Literal["increase", "decrease", "flat"]] = Field(default=None)
+
+
+class RatioAnswerSlots(BaseAnswerSlots):
+    operation_family: Literal["ratio"] = "ratio"
+    primary_value: AnswerSlotValue
+
+
+class SumAnswerSlots(BaseAnswerSlots):
+    operation_family: Literal["sum"] = "sum"
+    primary_value: AnswerSlotValue
+
+
+class AggregateSubtaskAnswerSlots(BaseModel):
+    task_id: str = Field(default="")
+    metric_family: str = Field(default="")
+    metric_label: str = Field(default="")
+    answer: str = Field(default="")
+    answer_slots: Dict[str, Any] = Field(default_factory=dict)
+    rendered_value: str = Field(default="")
+
+
+class AggregateAnswerSlots(BaseModel):
+    operation_family: Literal["aggregate_subtasks"] = "aggregate_subtasks"
+    subtask_results: List[AggregateSubtaskAnswerSlots] = Field(default_factory=list)
+
+
+AnswerSlotsPayload = Annotated[
+    Union[
+        LookupAnswerSlots,
+        SingleValueAnswerSlots,
+        DifferenceAnswerSlots,
+        GrowthRateAnswerSlots,
+        RatioAnswerSlots,
+        SumAnswerSlots,
+        AggregateAnswerSlots,
+    ],
+    Field(discriminator="operation_family"),
+]
+
+_ANSWER_SLOTS_ADAPTER = TypeAdapter(AnswerSlotsPayload)
+
+
+def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    validated = _ANSWER_SLOTS_ADAPTER.validate_python(payload)
+    return validated.model_dump()
+
+
 class CalculationResult(BaseModel):
     status: Literal["ok", "insufficient_operands", "zero_division", "unsupported_operation", "unit_mismatch", "parse_error"] = Field(
         description="계산 수행 상태"
@@ -270,6 +378,7 @@ class CalculationResult(BaseModel):
         default_factory=dict,
         description=(
             "renderer/synthesizer/evaluator가 공통으로 읽는 answer-friendly structured result slots. "
+            "typed union으로 검증된 payload를 dict로 직렬화해 저장한다. "
             "예: primary_value, current_value, prior_value, delta_value, components_by_role"
         ),
     )

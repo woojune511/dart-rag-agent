@@ -817,6 +817,18 @@ def _currency_display_step(candidate: Dict[str, Any]) -> float:
     return 1.0
 
 
+def _percent_display_step(candidate: Dict[str, Any]) -> float:
+    value_text = str(candidate.get("value_text") or "").strip().replace(",", "")
+    normalized = re.sub(r"[%％퍼센트\s]+", "", value_text)
+    match = re.search(r"(\d+)(?:\.(\d+))?$", normalized)
+    if not match:
+        return 0.01
+    decimals = len(match.group(2) or "")
+    if decimals <= 0:
+        return 1.0
+    return 10 ** (-decimals)
+
+
 def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
     if left.get("kind") != right.get("kind"):
         return False
@@ -830,7 +842,8 @@ def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> b
         display_tolerance = max(_currency_display_step(left), _currency_display_step(right))
         tolerance = max(relative_tolerance, display_tolerance)
     elif left.get("kind") == "percent":
-        tolerance = 1e-4
+        display_tolerance = max(_percent_display_step(left), _percent_display_step(right)) / 2.0
+        tolerance = max(1e-4, display_tolerance)
     else:
         tolerance = 1e-4
     return abs(left_value - right_value) <= tolerance
@@ -1761,6 +1774,10 @@ def _compute_numeric_result_correctness(
         return 0.0
     actual_value = _safe_float(calculation_result.get("result_value"))
     if actual_value is None:
+        primary_slot = dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})
+        if _slot_has_numeric_material(primary_slot):
+            actual_value = _safe_float(primary_slot.get("normalized_value"))
+    if actual_value is None:
         return 0.0
 
     relative_tolerance = float(expected.get("tolerance", 0.0) or 0.0)
@@ -1925,6 +1942,102 @@ def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
         return True
 
     return label_match
+
+
+def _slot_has_numeric_material(slot: Dict[str, Any]) -> bool:
+    if str(slot.get("status") or "").strip().lower() == "missing":
+        return False
+    if _safe_float(slot.get("normalized_value")) is not None:
+        return True
+    return bool(str(slot.get("raw_value") or "").strip() or str(slot.get("rendered_value") or "").strip())
+
+
+def _slot_to_operand_like(slot: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if not slot or not _slot_has_numeric_material(slot):
+        return None
+    role = str(slot.get("role") or "").strip()
+    source_row_id = str(slot.get("source_row_id") or "").strip()
+    source_row_ids = [str(value).strip() for value in (slot.get("source_row_ids") or []) if str(value).strip()]
+    return {
+        "operand_id": role or source_row_id or "slot_operand",
+        "matched_operand_role": role,
+        "label": str(slot.get("label") or "").strip(),
+        "concept": str(slot.get("concept") or "").strip(),
+        "period": str(slot.get("period") or "").strip(),
+        "raw_value": str(slot.get("raw_value") or "").strip(),
+        "raw_unit": str(slot.get("raw_unit") or "").strip(),
+        "normalized_value": _safe_float(slot.get("normalized_value")),
+        "normalized_unit": str(slot.get("normalized_unit") or "").strip(),
+        "rendered_value": str(slot.get("rendered_value") or "").strip(),
+        "source_anchor": str(slot.get("source_anchor") or "").strip(),
+        "source_row_id": source_row_id,
+        "source_row_ids": source_row_ids,
+        "row_id": source_row_id,
+    }
+
+
+def _flatten_answer_slot_components(answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for role, slots in dict(answer_slots.get("components_by_role") or {}).items():
+        for slot in list(slots or []):
+            operand_like = _slot_to_operand_like(dict(slot or {}))
+            if not operand_like:
+                continue
+            key = (
+                operand_like.get("source_row_id"),
+                operand_like.get("period"),
+                operand_like.get("normalized_value"),
+                operand_like.get("normalized_unit"),
+                operand_like.get("label"),
+                operand_like.get("matched_operand_role") or role,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(operand_like)
+    return rows
+
+
+def _derive_operands_from_answer_slots(calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    operation_family = str(answer_slots.get("operation_family") or "").strip().lower()
+    if not answer_slots or not operation_family or operation_family == "aggregate_subtasks":
+        return []
+
+    component_rows = _flatten_answer_slot_components(answer_slots)
+    if component_rows:
+        return component_rows
+
+    derived_rows: List[Dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for key in ("primary_value", "current_value", "prior_value"):
+        operand_like = _slot_to_operand_like(dict(answer_slots.get(key) or {}))
+        if not operand_like:
+            continue
+        dedupe_key = (
+            operand_like.get("source_row_id"),
+            operand_like.get("period"),
+            operand_like.get("normalized_value"),
+            operand_like.get("normalized_unit"),
+            operand_like.get("label"),
+            operand_like.get("matched_operand_role"),
+        )
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        derived_rows.append(operand_like)
+    return derived_rows
+
+
+def _resolve_evaluator_operands(
+    calculation_operands: List[Dict[str, Any]],
+    calculation_result: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    slot_rows = _derive_operands_from_answer_slots(calculation_result)
+    if slot_rows:
+        return slot_rows
+    return list(calculation_operands or [])
 
 
 def _compute_operand_selection_correctness(
@@ -2110,6 +2223,10 @@ class RAGEvaluator:
             calculation_operands = resolved_trace.get("calculation_operands", []) or []
             calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
             calculation_result = resolved_trace.get("calculation_result", {}) or {}
+            calculation_operands = _resolve_evaluator_operands(
+                calculation_operands=calculation_operands,
+                calculation_result=calculation_result,
+            )
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))

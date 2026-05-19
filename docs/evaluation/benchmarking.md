@@ -132,6 +132,25 @@
 | `dev_math_focus` | math / numeric reasoning 기준선 | `comparison`, `ratio`, `growth`, `trend` | 계산 구조 비교 |
 | `dev_math_edge_focus` | 엣지 케이스 회귀 | `%p`, ratio row miss, operand shortfall | math regression debug |
 
+### `selective_v2_sections` scope
+
+`selective_v2_sections`는 일반 runtime planner 옵션이 아니다.
+
+- 적용 위치:
+  - benchmark runner의 `contextual_selective_v2` ingest mode
+- 적용되지 않는 경로:
+  - `agent.ingest(...)`
+  - `agent.contextual_ingest(...)`
+  - 일반 query-time retrieval
+
+즉 이 값은 **benchmark / screening / full-eval bundle을 만들 때 어떤 섹션의 chunk를 우선 contextualize/store에 남길지**를 정하는 ingest-time whitelist다.
+
+실무적으로 중요한 점:
+
+- 이 목록에 필요한 섹션이 빠지면, 해당 row/value는 아예 store에 안 들어갈 수 있다.
+- `KBF_T1_017` follow-up에서 `명목순이자마진(NIM)` row가 있는 `영업의 현황`을 추가해야 PASS가 났던 이유도 여기에 있다.
+- 따라서 `selective_v2_sections` 문제는 planner/reconciliation 문제가 아니라 **benchmark ingest coverage 문제**로 먼저 봐야 한다.
+
 ## 데이터셋
 
 ### Canonical dataset
@@ -177,6 +196,19 @@
 - `multi_report_eval_full.curated.json`
   - single-document으로 닫히지 않는 질문 분리셋
   - 현재 active row `1` (`SAM_T2_002`)
+
+## 2026-05-19 Answer Slots Follow-up
+
+- `CalculationResult.answer_slots`는 이제 evaluator runtime projection의 1순위 contract다.
+  - evaluator는 `calculation_operands`보다 먼저 `answer_slots`에서 operand-like provenance를 복원한다.
+  - `result_value`가 비어 있으면 `answer_slots.primary_value.normalized_value`를 numeric result source로 사용한다.
+- percent numeric equivalence는 source display precision을 존중한다.
+  - 예: `25.36%`와 `25.4%`는 rounded display gap으로 허용된다.
+- 대표 canary 확인:
+  - `NAV_T1_071`: PASS
+  - `SKH_T1_060`: PASS
+  - `MIX_T1_021`: PASS
+  - `KBF_T1_017`: PASS
 
 주의:
 

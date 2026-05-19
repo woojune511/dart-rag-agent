@@ -9,7 +9,13 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.ops.evaluator import _resolve_runtime_calculation_trace
+from src.ops.evaluator import (
+    _compute_numeric_result_correctness,
+    _numeric_values_equivalent,
+    EvalExample,
+    _resolve_evaluator_operands,
+    _resolve_runtime_calculation_trace,
+)
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
@@ -128,6 +134,122 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(trace["calculation_plan"]["operation"], "divide")
         self.assertEqual(trace["calculation_result"]["rendered_value"], "25.4%")
+
+    def test_resolve_evaluator_operands_prefers_answer_slots_components(self) -> None:
+        operands = [
+            {"operand_id": "legacy", "label": "legacy", "raw_value": "999", "raw_unit": "%"},
+        ]
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "difference",
+                "components_by_role": {
+                    "current_period": [
+                        {
+                            "status": "ok",
+                            "role": "current_period",
+                            "label": "2023 명목순이자마진(NIM)",
+                            "concept": "net_interest_margin",
+                            "period": "2023",
+                            "raw_value": "1.83",
+                            "raw_unit": "%",
+                            "normalized_value": 1.83,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "1.83%",
+                            "source_row_id": "row_2023",
+                            "source_row_ids": ["row_2023"],
+                            "source_anchor": "표 A",
+                        }
+                    ],
+                    "prior_period": [
+                        {
+                            "status": "ok",
+                            "role": "prior_period",
+                            "label": "2022 명목순이자마진(NIM)",
+                            "concept": "net_interest_margin",
+                            "period": "2022",
+                            "raw_value": "1.73",
+                            "raw_unit": "%",
+                            "normalized_value": 1.73,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "1.73%",
+                            "source_row_id": "row_2022",
+                            "source_row_ids": ["row_2022"],
+                            "source_anchor": "표 A",
+                        }
+                    ],
+                },
+            },
+        }
+
+        resolved = _resolve_evaluator_operands(operands, calculation_result)
+
+        self.assertEqual(len(resolved), 2)
+        self.assertEqual(resolved[0]["source_row_id"], "row_2023")
+        self.assertEqual(resolved[0]["normalized_value"], 1.83)
+        self.assertEqual(resolved[1]["source_row_id"], "row_2022")
+        self.assertEqual(resolved[1]["normalized_value"], 1.73)
+
+    def test_numeric_result_correctness_can_use_answer_slots_primary_value(self) -> None:
+        example = EvalExample(
+            id="T",
+            question="2023년 KB금융의 순이자마진은?",
+            ground_truth="1.83%",
+            company="KB금융",
+            year=2023,
+            section="II. 사업의 내용",
+            category="numeric_fact",
+            answer_key="1.83%",
+            evidence=[],
+            answer_type="numeric",
+            expected_calculation_result={
+                "normalized_value": 1.83,
+                "normalized_unit": "PERCENT",
+                "tolerance": 0.0,
+            },
+        )
+        calculation_result = {
+            "status": "ok",
+            "result_value": None,
+            "answer_slots": {
+                "operation_family": "lookup",
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": "명목순이자마진(NIM)",
+                    "concept": "net_interest_margin",
+                    "period": "2023",
+                    "raw_value": "1.83",
+                    "raw_unit": "%",
+                    "normalized_value": 1.83,
+                    "normalized_unit": "PERCENT",
+                    "rendered_value": "1.83%",
+                    "source_row_id": "row_1",
+                    "source_row_ids": ["row_1"],
+                    "source_anchor": "표 A",
+                },
+            },
+        }
+
+        score = _compute_numeric_result_correctness(example, calculation_result)
+
+        self.assertEqual(score, 1.0)
+
+    def test_percent_equivalence_allows_display_rounding_gap(self) -> None:
+        left = {
+            "kind": "percent",
+            "value_text": "25.36",
+            "unit_text": "%",
+            "normalized_value": 25.36,
+        }
+        right = {
+            "kind": "percent",
+            "value_text": "25.4",
+            "unit_text": "%",
+            "normalized_value": 25.4,
+        }
+
+        self.assertTrue(_numeric_values_equivalent(left, right))
 
 
 if __name__ == "__main__":

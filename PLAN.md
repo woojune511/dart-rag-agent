@@ -40,10 +40,10 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 목표 | lookup/difference/ratio 결과를 answer-friendly structured result로 남겨 synthesizer가 안정적으로 조합 |
-| 현재 상태 | `CalculationResult.answer_slots`가 들어왔고, `lookup/difference/ratio/sum`에 공통 `primary/current/prior/delta/components` vocabulary가 생겼다 |
-| 다음 할 일 | renderer / synthesizer / evaluator가 `answer_slots`를 1순위 contract로 일관되게 사용하도록 정리하고, aggregate projection에서도 subtask slots를 그대로 carry |
-| 종료 조건 | single-task와 multi-subtask 모두 원본 질문 충족 여부를 structured result만 보고 판정 가능 |
+| 목표 | lookup/difference/ratio 결과를 answer-friendly structured result로 남겨 synthesizer와 evaluator가 안정적으로 사용 |
+| 현재 상태 | `CalculationResult.answer_slots`가 들어왔고, `lookup/difference/ratio/sum`에 공통 `primary/current/prior/delta/components` vocabulary가 생겼다. evaluator runtime projection도 이제 `answer_slots`를 1순위 contract로 본다 |
+| 다음 할 일 | legacy `calculation_*`를 projection으로 더 내리고, slot `status + provenance`를 source of truth로 더 굳히기 |
+| 종료 조건 | single-task와 multi-subtask 모두 원본 질문 충족 여부와 numeric grading을 structured result만 보고 판정 가능 |
 
 ### 2. Concept-only planner validation
 
@@ -146,3 +146,12 @@
 - Active priority now shifts away from percent-specific debugging.
   - next focus is keeping `answer_slots` as the runtime default contract
   - then pushing `tasks + artifacts` further toward source-of-truth status
+
+## 2026-05-19 Ingest Scope Clarification
+
+- `selective_v2_sections`는 runtime 전역 설정이 아니다.
+- 현재 적용 범위는 benchmark runner의 `contextual_selective_v2` ingest mode에 한정된다.
+- 따라서 이 값으로 생기는 실패는 우선:
+  - planner bug
+  - reconciliation bug
+  가 아니라, selective benchmark store가 필요한 섹션을 누락했는지부터 확인해야 한다.

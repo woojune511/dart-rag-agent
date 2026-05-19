@@ -19,6 +19,7 @@ from src.agent.financial_graph_models import (
     ConceptPlannerOutput,
     EntityExtraction,
     FinancialAgentState,
+    validate_answer_slots_payload,
 )
 from src.config import get_financial_ontology
 from src.routing import default_format_preference
@@ -1013,12 +1014,8 @@ Also return:
             "subtask_count": len(subtask_result_views),
             "subtasks": subtask_plans,
         }
-        calculation_result = {
-            "status": "ok" if all_ok else "partial",
-            "rendered_value": final_answer,
-            "formatted_result": final_answer,
-            "subtask_results": subtask_result_views,
-            "answer_slots": {
+        aggregate_answer_slots = validate_answer_slots_payload(
+            {
                 "operation_family": "aggregate_subtasks",
                 "subtask_results": [
                     {
@@ -1031,7 +1028,14 @@ Also return:
                     }
                     for item in subtask_result_views
                 ],
-            },
+            }
+        )
+        calculation_result = {
+            "status": "ok" if all_ok else "partial",
+            "rendered_value": final_answer,
+            "formatted_result": final_answer,
+            "subtask_results": subtask_result_views,
+            "answer_slots": aggregate_answer_slots,
             "derived_metrics": {
                 "subtask_count": len(subtask_result_views),
                 "subtask_ids": [str(item.get("task_id") or "") for item in subtask_result_views if str(item.get("task_id") or "").strip()],

@@ -186,3 +186,23 @@
   - `difference`는 `current_value`, `prior_value`, `delta_value`
   - `ratio`, `sum`은 `primary_value`
   의 존재를 먼저 확인하고, 비어 있으면 `planner_feedback`를 직접 생성한다.
+
+## 2026-05-19 Answer Slots and Selective Ingest Scope
+
+- `answer_slots`는 이제 renderer / synthesizer뿐 아니라 evaluator runtime projection의 1순위 contract다.
+  - evaluator는 `calculation_operands`보다 먼저 `answer_slots`에서 operand-like rows를 복원한다.
+  - `result_value`가 없으면 `answer_slots.primary_value.normalized_value`를 numeric result source로 사용한다.
+- slot payload는 단순 숫자 dict가 아니라 `status + normalized/raw value + provenance`를 함께 담는 value object로 정리되기 시작했다.
+  - missing material은 key omission이 아니라 `status = "missing"`으로 남긴다.
+  - direct grounding이 성공한 값은 `source_row_id / source_row_ids / source_anchor`를 carry한다.
+- percent numeric evaluation은 display precision을 존중한다.
+  - 예: `25.36%`와 `25.4%`는 rounded display gap으로 허용된다.
+- 대표 canary는 현재 모두 PASS 상태다.
+  - `NAV_T1_071`
+  - `SKH_T1_060`
+  - `MIX_T1_021`
+  - `KBF_T1_017`
+- `selective_v2_sections`의 적용 범위도 분명해졌다.
+  - 이것은 benchmark runner의 `contextual_selective_v2` ingest mode에서만 쓰이는 ingest-time 섹션 whitelist다.
+  - 일반 `agent.ingest(...)`, `agent.contextual_ingest(...)`, query-time retrieval에는 적용되지 않는다.
+  - 따라서 `selective_v2_sections` 문제는 runtime planner 이슈가 아니라 benchmark ingest coverage 이슈로 먼저 봐야 한다.
