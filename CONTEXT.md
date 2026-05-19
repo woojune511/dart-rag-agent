@@ -62,6 +62,10 @@
     - planner는 `lookup + difference` 재료 수집 구조로 분해
     - direct structured row grounding으로 `2023 current` / `2022 prior`를 직접 바인딩
     - aggregate 단계가 subtask evidence를 최종 state까지 보존해 evaluator `numeric_retrieval_support`까지 `1.0`으로 복구
+  - `KBF_T1_017`도 now closed:
+    - `lookup`은 `명목순이자마진(NIM)` canonical row를 직접 바인딩
+    - `difference`는 같은 structured row 안의 distinct `2023 / 2022` cell pair를 사용
+    - evaluator는 unitless structured percent row와 operand alias mismatch를 허용해 `numeric_retrieval_support = 1.0`, `operand_selection_correctness = 1.0`으로 복구
 
 ## 현재 핵심 한계
 
@@ -72,6 +76,7 @@
 - 다만 이제 `answer_slots`가 공통 contract로 들어와, single-task와 multi-subtask가 같은 structured result vocabulary를 공유하기 시작했다.
 - final refusal ownership은 `aggregate_subtasks`로 올라왔고, `NAV_T1_071`를 통해 `planner_feedback -> replan / close` 루프의 최소 실전 검증은 끝났다.
 - direct-first runtime policy는 `NAV_T1_071`에서 닫혔고, 이제 `ratio / sum`처럼 explicit concept numeric task까지 direct grounding 대상으로 확대됐다.
+- percent multi-period rows도 별도 metric hardcoding 없이 shared pair-selection / evaluator contract로 닫히기 시작했다.
 
 ## 바로 다음에 할 일
 
@@ -79,8 +84,8 @@
 | --- | --- | --- |
 | 1 | `answer_slots` 기반 result schema를 renderer / synthesizer / evaluator contract의 기본값으로 고정 | 질문 충족 여부와 planner feedback을 structured result만 보고 판정 |
 | 2 | direct candidate acceptance contract를 다른 concept family에도 넓히기 | score-only success 대신 grounded direct-first fallback 구조 일반화 |
-| 3 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
-| 4 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
+| 3 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
+| 4 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
 | 5 | `planner_feedback -> replan -> close/refusal` 루프를 다른 numeric canary에도 확대 | planner/synthesizer feedback loop 일반화 |
 
 ## 현재 우선순위 요약

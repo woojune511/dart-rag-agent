@@ -207,6 +207,68 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(calc["answer_slots"]["direction"], "increase")
 
+    def test_percent_difference_preserves_two_decimal_percent_rendering(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_nim_diff",
+                    "metric_family": "concept_difference",
+                    "metric_label": "순이자마진 증감폭",
+                    "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+                    "operation_family": "difference",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "nim_2023",
+                        "label": "2023년 명목순이자마진(NIM)",
+                        "normalized_value": 1.83,
+                        "normalized_unit": "PERCENT",
+                        "raw_value": "1.83",
+                        "raw_unit": "%",
+                        "period": "2023",
+                        "matched_operand_role": "current_period",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "nim_2022",
+                        "label": "2022년 명목순이자마진(NIM)",
+                        "normalized_value": 1.73,
+                        "normalized_unit": "PERCENT",
+                        "raw_value": "1.73",
+                        "raw_unit": "%",
+                        "period": "2022",
+                        "matched_operand_role": "prior_period",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "subtract",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "A - B",
+                    "pairwise_formula": "",
+                    "result_unit": "%p",
+                    "operation_text": "순이자마진 증감폭",
+                    "explanation": "difference",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+        calc = result["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertEqual(calc["rendered_value"], "0.10%p")
+        self.assertEqual(calc["answer_slots"]["current_value"]["rendered_value"], "1.83%")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "1.73%")
+        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "0.10%p")
+
     def test_lookup_plan_requires_single_direct_operand_instead_of_reconstruction(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         plan_result = agent._plan_formula_calculation(

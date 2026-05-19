@@ -15,6 +15,7 @@ from src.agent.financial_graph import (
     _should_coerce_percent_point_unit,
 )
 from src.ops.evaluator import (
+    _compute_operand_selection_correctness,
     _compute_operand_grounding_score,
     _extract_composite_krw_value,
     _extract_numeric_candidates,
@@ -203,6 +204,69 @@ class CompositeKrwParsingTests(unittest.TestCase):
         )
         self.assertEqual(score, 1.0)
         self.assertEqual(len(debug["matched_operands"]), 2)
+
+    def test_operand_grounding_score_handles_unitless_percent_table_cells(self) -> None:
+        runtime_evidence = [
+            {
+                "source_anchor": "[KB금융 | 2023 | II. 사업의 내용 > 2. 영업의 현황]",
+                "claim": "명목순이자마진(NIM) | 명목순이자마진(NIM) | 1.83 | 1.73 | 1.58",
+                "quote_span": "명목순이자마진(NIM) | 명목순이자마진(NIM) | 1.83 | 1.73 | 1.58",
+                "raw_row_text": "명목순이자마진(NIM) | 명목순이자마진(NIM) | 1.83 | 1.73 | 1.58",
+            }
+        ]
+        operands = [
+            {
+                "operand_id": "op_001",
+                "label": "2023년 NIM",
+                "raw_value": "1.83",
+                "raw_unit": "%",
+                "normalized_value": 1.83,
+                "normalized_unit": "PERCENT",
+                "period": "2023년",
+            },
+            {
+                "operand_id": "op_002",
+                "label": "2022년 NIM",
+                "raw_value": "1.73",
+                "raw_unit": "%",
+                "normalized_value": 1.73,
+                "normalized_unit": "PERCENT",
+                "period": "2022년",
+            },
+        ]
+        score, debug = _compute_operand_grounding_score(
+            runtime_evidence=runtime_evidence,
+            contexts=[],
+            calculation_operands=operands,
+        )
+        self.assertEqual(score, 1.0)
+        self.assertEqual(len(debug["matched_operands"]), 2)
+        self.assertEqual(len(debug["unmatched_operands"]), 0)
+
+    def test_operand_selection_correctness_allows_period_and_value_alias_match(self) -> None:
+        expected_operands = [
+            {"label": "2023년 NIM", "period": "2023", "raw_value": "1.83", "raw_unit": "%"},
+            {"label": "2022년 NIM", "period": "2022", "raw_value": "1.73", "raw_unit": "%"},
+        ]
+        calculation_operands = [
+            {
+                "label": "2023 순이자마진",
+                "period": "2023",
+                "normalized_value": 1.83,
+                "normalized_unit": "PERCENT",
+            },
+            {
+                "label": "2022 순이자마진",
+                "period": "2022",
+                "normalized_value": 1.73,
+                "normalized_unit": "PERCENT",
+            },
+        ]
+        score = _compute_operand_selection_correctness(
+            type("Example", (), {"expected_operands": expected_operands})(),
+            calculation_operands,
+        )
+        self.assertEqual(score, 1.0)
 
 
 if __name__ == "__main__":

@@ -1066,6 +1066,7 @@ def _build_concept_period_operands(
     preferred_sections = list(dict.fromkeys(spec.get("preferred_sections") or []))
     preferred_statement_types = list(dict.fromkeys(spec.get("preferred_statement_types") or []))
     binding_policy = dict(spec.get("binding_policy") or {})
+    surface_contract = dict(spec.get("surface_contract") or {})
     year_tokens = _extract_year_tokens(query, report_scope)
     if year_tokens:
         current_year = year_tokens[0]
@@ -1083,6 +1084,7 @@ def _build_concept_period_operands(
                 "preferred_statement_types": preferred_statement_types,
                 "binding_policy": binding_policy,
                 "unit_family": str(spec.get("unit_family") or "").strip(),
+                "surface_contract": surface_contract,
             },
             {
                 "label": f"{prior_year}년 {label}",
@@ -1096,6 +1098,7 @@ def _build_concept_period_operands(
                 "preferred_statement_types": preferred_statement_types,
                 "binding_policy": binding_policy,
                 "unit_family": str(spec.get("unit_family") or "").strip(),
+                "surface_contract": surface_contract,
             },
         ]
     return [
@@ -1111,6 +1114,7 @@ def _build_concept_period_operands(
             "preferred_statement_types": preferred_statement_types,
             "binding_policy": binding_policy,
             "unit_family": str(spec.get("unit_family") or "").strip(),
+            "surface_contract": surface_contract,
         },
         {
             "label": f"전기 {label}",
@@ -1124,6 +1128,7 @@ def _build_concept_period_operands(
             "preferred_statement_types": preferred_statement_types,
             "binding_policy": binding_policy,
             "unit_family": str(spec.get("unit_family") or "").strip(),
+            "surface_contract": surface_contract,
         },
     ]
 
@@ -1281,6 +1286,7 @@ def _build_concept_required_operands(
                 "preferred_statement_types": list(dict.fromkeys(spec.get("preferred_statement_types") or [])),
                 "binding_policy": dict(spec.get("binding_policy") or {}),
                 "unit_family": str(spec.get("unit_family") or "").strip(),
+                "surface_contract": dict(spec.get("surface_contract") or {}),
             }
         )
     return operands
@@ -1663,6 +1669,7 @@ def _build_semantic_numeric_plan(
                         "preferred_sections": list(spec.get("preferred_sections") or []),
                         "preferred_statement_types": list(spec.get("preferred_statement_types") or []),
                         "binding_policy": dict(spec.get("binding_policy") or {}),
+                        "surface_contract": dict(spec.get("surface_contract") or {}),
                     }
                     for spec in operand_specs
                     if str(spec.get("label") or "").strip()
@@ -1929,7 +1936,7 @@ def _operand_needles(operand: Dict[str, Any]) -> List[str]:
     return [needle for needle in [label, *aliases] if needle]
 
 
-_CONCEPT_SURFACE_CONTRACTS: Dict[str, Dict[str, List[str]]] = {
+_LEGACY_CONCEPT_SURFACE_CONTRACTS: Dict[str, Dict[str, List[str]]] = {
     "income_before_income_taxes": {
         "positive": [
             "법인세비용차감전순이익",
@@ -1950,12 +1957,19 @@ _CONCEPT_SURFACE_CONTRACTS: Dict[str, Dict[str, List[str]]] = {
 
 
 def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
+    explicit_contract = dict(operand.get("surface_contract") or {})
+    if explicit_contract:
+        return {
+            "positive": [str(item).strip() for item in (explicit_contract.get("positive") or []) if str(item).strip()],
+            "negative": [str(item).strip() for item in (explicit_contract.get("negative") or []) if str(item).strip()],
+        }
+
     concept_key = _normalise_spaces(str(operand.get("concept") or ""))
-    if concept_key and concept_key in _CONCEPT_SURFACE_CONTRACTS:
-        return dict(_CONCEPT_SURFACE_CONTRACTS[concept_key])
+    if concept_key and concept_key in _LEGACY_CONCEPT_SURFACE_CONTRACTS:
+        return dict(_LEGACY_CONCEPT_SURFACE_CONTRACTS[concept_key])
 
     needles = " ".join(_operand_needles(operand))
-    for contract in _CONCEPT_SURFACE_CONTRACTS.values():
+    for contract in _LEGACY_CONCEPT_SURFACE_CONTRACTS.values():
         positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
         if any(_normalise_spaces(term) in _normalise_spaces(needles) for term in positive_terms):
             return dict(contract)

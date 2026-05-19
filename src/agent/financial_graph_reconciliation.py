@@ -62,6 +62,64 @@ class FinancialAgentReconciliationMixin:
             return str(ordered_years[0] - 1)
         return str(operand.get("period_hint") or "").strip()
 
+    def _structured_cell_identity(self, cell: Dict[str, Any]) -> str:
+        value_id = str(cell.get("value_id") or "").strip()
+        if value_id:
+            return value_id
+        row_index = str(cell.get("row_index") or "").strip()
+        column_index = str(cell.get("column_index") or "").strip()
+        if row_index or column_index:
+            return f"{row_index}:{column_index}"
+        header_key = "|".join(str(item).strip() for item in (cell.get("column_headers") or []) if str(item).strip())
+        return f"{header_key}|{str(cell.get('value_text') or '').strip()}"
+
+    def _resolved_period_text_for_operand(
+        self,
+        *,
+        operand: Dict[str, Any],
+        cell: Dict[str, Any],
+        query_years: List[int],
+        period_focus: str,
+    ) -> str:
+        effective_period_focus = _operand_period_focus(operand, period_focus)
+        operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
+        period = _structured_cell_period_text(cell, query_years, effective_period_focus)
+        if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period):
+            period = self._fallback_period_text_for_operand(operand_with_period_focus, query_years)
+        return period
+
+    def _pair_candidate_period_score(
+        self,
+        *,
+        candidate: Dict[str, Any],
+        cell: Dict[str, Any],
+        operand: Dict[str, Any],
+        preferred_statement_types: List[str],
+        constraints: Dict[str, Any],
+        query_years: List[int],
+        period_focus: str,
+    ) -> tuple[float, str]:
+        candidate_score = _score_operand_candidate(
+            candidate,
+            operand=operand,
+            preferred_statement_types=preferred_statement_types,
+            constraints=constraints,
+            query_years=query_years,
+        )
+        cell_score = _score_structured_cell(
+            cell,
+            query_years=_operand_target_years(operand, query_years),
+            period_focus=_operand_period_focus(operand, period_focus),
+            operand=operand,
+        )
+        period = self._resolved_period_text_for_operand(
+            operand=operand,
+            cell=cell,
+            query_years=query_years,
+            period_focus=period_focus,
+        )
+        return candidate_score + cell_score, period
+
     def _find_reconciliation_match_entry(
         self,
         reconciliation_result: Dict[str, Any],
@@ -103,15 +161,12 @@ class FinancialAgentReconciliationMixin:
         normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
         if normalized_value is None:
             return None
-        effective_period_focus = _operand_period_focus(operand, period_focus)
-        operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
-        period = _structured_cell_period_text(
-            selected_cell,
-            query_years,
-            effective_period_focus,
+        period = self._resolved_period_text_for_operand(
+            operand=operand,
+            cell=selected_cell,
+            query_years=query_years,
+            period_focus=period_focus,
         )
-        if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period):
-            period = self._fallback_period_text_for_operand(operand_with_period_focus, query_years)
         row_label = str(operand.get("label") or metadata.get("semantic_label") or metadata.get("row_label") or "").strip()
         return {
             "operand_id": f"op_{index:03d}",
@@ -195,97 +250,75 @@ class FinancialAgentReconciliationMixin:
                     cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
                 if not cells:
                     continue
-                current_cell = _select_structured_cell(
-                    cells,
-                    operand=current_operand,
-                    query_years=query_years,
-                    period_focus=_operand_period_focus(current_operand, period_focus),
-                )
-                prior_cell = _select_structured_cell(
-                    cells,
-                    operand=prior_operand,
-                    query_years=query_years,
-                    period_focus=_operand_period_focus(prior_operand, period_focus),
-                )
-                if not current_cell or not prior_cell:
-                    continue
-                if not _candidate_satisfies_direct_acceptance_contract(
-                    candidate,
-                    operand=current_operand,
-                    constraints=constraints,
-                    query_years=query_years,
-                    operation_family=operation_family,
-                    selected_cell=current_cell,
-                ):
-                    continue
-                if not _candidate_satisfies_direct_acceptance_contract(
-                    candidate,
-                    operand=prior_operand,
-                    constraints=constraints,
-                    query_years=query_years,
-                    operation_family=operation_family,
-                    selected_cell=prior_cell,
-                ):
-                    continue
-                candidate_score = (
-                    _score_operand_candidate(
+                enriched_cells: List[Dict[str, Any]] = []
+                for cell in cells:
+                    enriched = dict(cell)
+                    enriched["_sibling_cells"] = [dict(item) for item in cells]
+                    enriched_cells.append(enriched)
+                accepted_current_entries: List[tuple[Dict[str, Any], str, float]] = []
+                accepted_prior_entries: List[tuple[Dict[str, Any], str, float]] = []
+                for cell in enriched_cells:
+                    if _candidate_satisfies_direct_acceptance_contract(
                         candidate,
                         operand=current_operand,
-                        preferred_statement_types=preferred_statement_types,
                         constraints=constraints,
                         query_years=query_years,
-                    )
-                    + _score_operand_candidate(
+                        operation_family=operation_family,
+                        selected_cell=cell,
+                    ):
+                        current_score, current_period = self._pair_candidate_period_score(
+                            candidate=candidate,
+                            cell=cell,
+                            operand=current_operand,
+                            preferred_statement_types=preferred_statement_types,
+                            constraints=constraints,
+                            query_years=query_years,
+                            period_focus=period_focus,
+                        )
+                        accepted_current_entries.append((cell, current_period, current_score))
+                        current_entries.append((candidate, cell, current_period, current_score))
+                    if _candidate_satisfies_direct_acceptance_contract(
                         candidate,
                         operand=prior_operand,
-                        preferred_statement_types=preferred_statement_types,
                         constraints=constraints,
                         query_years=query_years,
-                    )
-                    + 4.0
-                )
-                current_period = _structured_cell_period_text(
-                    current_cell,
-                    query_years,
-                    _operand_period_focus(current_operand, period_focus),
-                )
-                if (
-                    str(current_operand.get("role") or "").strip() == "current_period"
-                    and not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", current_period)
-                ):
-                    current_period = self._fallback_period_text_for_operand(current_operand, query_years)
-                prior_period = _structured_cell_period_text(
-                    prior_cell,
-                    query_years,
-                    _operand_period_focus(prior_operand, period_focus),
-                )
-                if (
-                    str(prior_operand.get("role") or "").strip() == "prior_period"
-                    and not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", prior_period)
-                ):
-                    prior_period = self._fallback_period_text_for_operand(prior_operand, query_years)
-                current_entries.append((candidate, current_cell, current_period, candidate_score))
-                prior_entries.append((candidate, prior_cell, prior_period, candidate_score))
-                if current_cell == prior_cell or (
-                    current_period
-                    and prior_period
-                    and current_period == prior_period
-                ):
-                    continue
-                if current_period and prior_period and current_period != prior_period:
-                    candidate_score += 2.0
-                if str(metadata.get("table_source_id") or "").strip():
-                    candidate_score += 0.75
-                if candidate_score > best_score:
-                    best_score = candidate_score
-                    best_pair = (candidate, current_cell, prior_cell)
+                        operation_family=operation_family,
+                        selected_cell=cell,
+                    ):
+                        prior_score, prior_period = self._pair_candidate_period_score(
+                            candidate=candidate,
+                            cell=cell,
+                            operand=prior_operand,
+                            preferred_statement_types=preferred_statement_types,
+                            constraints=constraints,
+                            query_years=query_years,
+                            period_focus=period_focus,
+                        )
+                        accepted_prior_entries.append((cell, prior_period, prior_score))
+                        prior_entries.append((candidate, cell, prior_period, prior_score))
+
+                for current_cell, current_period, current_score in accepted_current_entries:
+                    current_identity = self._structured_cell_identity(current_cell)
+                    for prior_cell, prior_period, prior_score in accepted_prior_entries:
+                        if current_identity == self._structured_cell_identity(prior_cell):
+                            continue
+                        if current_period and prior_period and current_period == prior_period:
+                            continue
+                        pair_score = current_score + prior_score + 4.0
+                        if current_period and prior_period and current_period != prior_period:
+                            pair_score += 2.0
+                        if str(metadata.get("table_source_id") or "").strip():
+                            pair_score += 0.75
+                        if pair_score > best_score:
+                            best_score = pair_score
+                            best_pair = (candidate, current_cell, prior_cell)
 
             if not best_pair and current_entries and prior_entries:
                 for current_candidate, current_cell, current_period, current_score in current_entries:
                     current_metadata = dict(current_candidate.get("metadata") or {})
                     current_table_id = str(current_metadata.get("table_source_id") or "").strip()
                     for prior_candidate, prior_cell, prior_period, prior_score in prior_entries:
-                        if str(current_candidate.get("candidate_id") or "").strip() == str(prior_candidate.get("candidate_id") or "").strip():
+                        if self._structured_cell_identity(current_cell) == self._structured_cell_identity(prior_cell):
                             continue
                         prior_metadata = dict(prior_candidate.get("metadata") or {})
                         prior_table_id = str(prior_metadata.get("table_source_id") or "").strip()

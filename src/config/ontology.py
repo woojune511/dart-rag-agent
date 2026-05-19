@@ -166,6 +166,7 @@ class FinancialOntologyManager:
                 "preferred_statement_types": preferred_statement_types,
                 "binding_policy": binding_policy,
                 "unit_family": str(concept.get("unit_family") or raw.get("unit_family") or "").strip(),
+                "surface_contract": dict(concept.get("surface_contract") or raw.get("surface_contract") or {}),
             }
         )
         return merged
@@ -216,6 +217,7 @@ class FinancialOntologyManager:
                 concept.get("binding_policy"),
             ),
             "unit_family": str(concept.get("unit_family") or "").strip(),
+            "surface_contract": dict(concept.get("surface_contract") or {}),
         }
 
     def _group_spec_payload(self, key: str, group: Dict[str, Any]) -> Dict[str, Any]:
@@ -264,6 +266,7 @@ class FinancialOntologyManager:
                 group.get("binding_policy"),
             ),
             "unit_family": str(group.get("unit_family") or "").strip(),
+            "surface_contract": dict(group.get("surface_contract") or {}),
             "is_group": True,
             "member_concepts": member_keys,
             "member_specs": member_specs,
@@ -398,6 +401,7 @@ class FinancialOntologyManager:
                     "preferred_statement_types": _dedupe_preserve_order(payload.get("preferred_statement_types", []) or []),
                     "binding_policy": dict(payload.get("binding_policy") or {}),
                     "unit_family": str(payload.get("unit_family") or "").strip(),
+                    "surface_contract": dict(payload.get("surface_contract") or {}),
                 }
             )
         return rows
@@ -466,6 +470,7 @@ class FinancialOntologyManager:
                             if str(item).strip()
                         ],
                         "binding_policy": dict(payload.get("binding_policy") or {}),
+                        "surface_contract": dict(payload.get("surface_contract") or {}),
                     }
                 )
         return specs

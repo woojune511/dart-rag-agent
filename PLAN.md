@@ -33,7 +33,7 @@
 | 목표 | planner는 재료 수집만 하고, final synthesizer가 질문 충족 여부와 최종 refusal을 책임지는 구조 정착 |
 | 현재 자산 | concept-only ontology v3 draft, LLM concept planner, lightweight validator, `planner_feedback`, `plan_loop_count`, aggregate synthesizer |
 | 현재 문제 | `answer_slots`는 들어왔지만, renderer / synthesizer / evaluator가 이 contract를 default로 간주하는 경계를 더 분명히 정리해야 함. direct false positive를 hard acceptance contract로 막는 규칙도 다른 concept family로 더 넓혀야 함 |
-| 다음 할 일 | `answer_slots` 기반 deterministic gap checker를 일반화하고, `NAV_T1_071`에서 검증한 direct-first acceptance + evidence propagation 계약을 다른 numeric families에도 넓히기 |
+| 다음 할 일 | `answer_slots`를 renderer / synthesizer / evaluator의 기본 contract로 더 밀고, direct-first acceptance + evidence propagation을 shared scoring/acceptance policy로 굳히기 |
 | 종료 조건 | planner와 synthesizer의 책임 경계가 안정되고, 부족 재료는 planner replan으로 보강하거나 aggregate refusal로 닫히며, direct success는 score-only가 아닌 grounded contract로 일관되게 승인됨 |
 
 ### 1. Result schema settling
@@ -50,7 +50,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | concept-only ontology + LLM planner가 implicit / shorthand / multi-metric query를 runtime default로 감당할 수 있는지 검증 |
-| 현재 관측 | concept planner canary에서 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`는 잘 분해된다. `NAV_T1_071`도 `lookup + difference` decomposition과 e2e close까지 확인됐다 |
+| 현재 관측 | concept planner canary에서 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`는 잘 분해된다. `NAV_T1_071`와 `KBF_T1_017`도 `lookup + difference` + direct-first/evaluator close까지 확인됐다 |
 | 다음 할 일 | concept planner canary와 ontology shadow compare를 계속 돌리며 default 승격 기준 정리 |
 | 종료 조건 | planner가 benchmark-shaped `metric_family` 없이도 주요 numeric family를 안정적으로 재료 수집 task로 분해 |
 
@@ -133,3 +133,16 @@
 - direct numeric grounding 대상도 확장됐다.
   - 기존: `lookup`, `single_value`, single-concept `difference/growth_rate`
   - 현재: explicit concept operand를 가진 `ratio`, `sum`도 structured direct grounding 대상으로 취급
+
+## 2026-05-19 Percent and Evaluator Close
+
+- `KBF_T1_017` is now closed and should no longer be treated as the open percent canary.
+- What actually closed it:
+  1. single-concept `current/prior` pair selection was generalized into joint pair selection with same-cell reuse rejection
+  2. `net_interest_margin` direct lookup stopped accepting `NIM(은행+카드)` style variant rows through ontology-level surface contracts
+  3. percent rendering preserved source precision (`1.83%`, `1.73%`, `0.10%p`)
+  4. evaluator operand grounding learned to accept unitless structured percent rows from runtime evidence
+  5. evaluator operand selection now tolerates alias-level label differences when period and normalized numeric payload match exactly
+- Active priority now shifts away from percent-specific debugging.
+  - next focus is keeping `answer_slots` as the runtime default contract
+  - then pushing `tasks + artifacts` further toward source-of-truth status

@@ -70,6 +70,14 @@ class ConceptRuntimeContractTests(unittest.TestCase):
                 ("2022년 순이자마진", "prior_period", "net_interest_margin", "PERCENT"),
             ],
         )
+        for operand in task["required_operands"]:
+            self.assertEqual(
+                operand.get("surface_contract"),
+                {
+                    "positive": ["명목순이자마진", "순이자마진"],
+                    "negative": ["NIM(은행+카드)", "은행+카드"],
+                },
+            )
 
 
 if __name__ == "__main__":

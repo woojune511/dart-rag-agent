@@ -209,6 +209,10 @@
     - `numeric_pass_rate = 1.0`
     - `faithfulness = 1.0`
     - `completeness = 1.0`
+  - `KBF_T1_017`: percent/current-prior close 완료
+    - `numeric_retrieval_support = 1.0`
+    - `operand_selection_correctness = 1.0`
+    - `numeric_pass_rate = 1.0`
 - 따라서 이 subset의 최근 핵심 용도는 retrieval miss보다 **planner / reconciliation / aggregate projection이 함께 닫히는지 보는 end-to-end numeric regression**에 더 가깝다.
 
 ### Concept planner canary
@@ -224,6 +228,11 @@
 현재 해석:
 
 - `NAV_T1_071`는 planner-only shadow canary를 넘어 real benchmark rerun에서도 닫혔다.
+- `KBF_T1_017`도 이제 닫혔고, 이 케이스는 percent metric 자체보다
+  - direct canonical lookup
+  - distinct current/prior pair binding
+  - evaluator operand grounding/support contract
+  의 공통 검증 사례로 보는 편이 맞다.
 - closure의 핵심은 planner 변경 자체보다:
   - direct structured row acceptance
   - same-table current/prior pairing
@@ -236,8 +245,8 @@
   - implicit `부채비율`
   - implicit `유동비율`
   - implicit `FCF`
-- `NAV_T1_071`는 planner 차원에서 `lookup + difference` 재료 수집 구조로는
-  정리됐지만, end-to-end answer contract와 result schema는 아직 더 보강해야 한다.
+- `NAV_T1_071`, `KBF_T1_017`는 모두 planner 차원의 `lookup + difference`
+  재료 수집 구조와 end-to-end answer contract가 함께 닫혔다.
 - 따라서 이 canary의 현재 역할은 **planner default 승격 판단 전 quick shadow compare**
   이다.
 

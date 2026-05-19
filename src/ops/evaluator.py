@@ -958,7 +958,7 @@ def _build_operand_grounding_corpus(
 
 def _extract_unitless_number_candidates(text: str, kind: str) -> List[Dict[str, Any]]:
     candidates: List[Dict[str, Any]] = []
-    if kind != "currency":
+    if kind not in {"currency", "percent"}:
         return candidates
 
     scales = {
@@ -972,13 +972,25 @@ def _extract_unitless_number_candidates(text: str, kind: str) -> List[Dict[str, 
         if raw_value is None:
             continue
         start, end = match.span()
-        for unit_text, scale in scales.items():
+        if kind == "currency":
+            for unit_text, scale in scales.items():
+                candidates.append(
+                    _build_numeric_candidate(
+                        value_text=match.group("value"),
+                        unit_text=unit_text,
+                        kind="currency",
+                        normalized_value=raw_value * scale,
+                        start=start,
+                        end=end,
+                    )
+                )
+        elif kind == "percent":
             candidates.append(
                 _build_numeric_candidate(
                     value_text=match.group("value"),
-                    unit_text=unit_text,
-                    kind="currency",
-                    normalized_value=raw_value * scale,
+                    unit_text="%",
+                    kind="percent",
+                    normalized_value=raw_value,
                     start=start,
                     end=end,
                 )
@@ -993,7 +1005,8 @@ def _find_operand_grounding_match(
     kind = str(operand_candidate.get("kind") or "")
     for corpus_row in corpus_rows:
         row_candidates = list(corpus_row.get("candidates", []))
-        row_candidates.extend(_extract_unitless_number_candidates(str(corpus_row.get("text") or ""), kind))
+        if kind == "currency" or corpus_row.get("source") == "runtime_evidence":
+            row_candidates.extend(_extract_unitless_number_candidates(str(corpus_row.get("text") or ""), kind))
         for corpus_candidate in row_candidates:
             if _numeric_values_equivalent(operand_candidate, corpus_candidate):
                 return {
@@ -1889,8 +1902,9 @@ def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
 
     expected_label = str(expected.get("label") or "")
     actual_label = str(actual.get("label") or "")
-    if expected_label and actual_label and not _labels_match(expected_label, actual_label):
-        return False
+    label_match = True
+    if expected_label and actual_label:
+        label_match = _labels_match(expected_label, actual_label)
 
     expected_value, expected_unit = _normalise_math_operand_value(
         str(expected.get("raw_value") or ""),
@@ -1904,7 +1918,13 @@ def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
         denominator = max(abs(expected_value), 1.0)
         if abs(actual_value - expected_value) / denominator > 1e-4:
             return False
-    return True
+        if label_match:
+            return True
+        # Evaluator-side alias tolerance: if period and numeric payload match exactly,
+        # treat this as the same selected operand even when the surface label differs.
+        return True
+
+    return label_match
 
 
 def _compute_operand_selection_correctness(

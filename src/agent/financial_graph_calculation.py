@@ -970,7 +970,9 @@ Ontology Context:
             # normalized_value is always in full KRW — always render as 조/억원 regardless of result_unit hint
             return _format_korean_won_compact(value)
         if (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}:
-            return f"{value:.1f}"
+            if str(result_unit or "").strip() == "%p":
+                return f"{value:.2f}"
+            return f"{value:.2f}".rstrip("0").rstrip(".")
         if normalized_unit in {"COUNT", "USD"}:
             return f"{value:,.4f}".rstrip("0").rstrip(".")
         return f"{value}"

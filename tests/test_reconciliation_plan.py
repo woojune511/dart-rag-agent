@@ -900,6 +900,46 @@ class ReconciliationPlanTests(unittest.TestCase):
             0.0,
         )
 
+    def test_nim_operand_rejects_bank_plus_card_variant_candidate(self) -> None:
+        operand = {
+            "label": "2023년 순이자마진",
+            "concept": "net_interest_margin",
+            "aliases": ["순이자마진", "NIM"],
+            "role": "current_period",
+            "required": True,
+            "unit_family": "PERCENT",
+            "surface_contract": {
+                "positive": ["명목순이자마진", "순이자마진"],
+                "negative": ["NIM(은행+카드)", "은행+카드"],
+            },
+        }
+        surrogate_candidate = {
+            "candidate_id": "nim_bank_card_variant",
+            "candidate_kind": "structured_value",
+            "text": "NIM(은행+카드) 2.44 0.13 2.30",
+            "metadata": {
+                "row_label": "NIM(은행+카드)",
+                "semantic_label": "NIM(은행+카드)",
+                "semantic_aliases": ["NIM(은행+카드)"],
+                "statement_type": "mda",
+                "consolidation_scope": "consolidated",
+                "period_focus": "multi_period",
+                "period_labels": ["2023", "2022"],
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand(surrogate_candidate, operand))
+        self.assertLess(
+            _score_operand_candidate(
+                surrogate_candidate,
+                operand=operand,
+                preferred_statement_types=["mda", "summary_financials", "notes"],
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023, 2022],
+            ),
+            0.0,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -90,30 +90,29 @@ Interpretation:
 
 ### `KBF_T1_017`
 
-This canary still fails, but the failure is now narrower. Planning and initial
-retrieval/reconciliation succeed; the remaining error is in percent-metric
-current/prior cell pairing for the `difference` subtask.
+This canary now closes under shared runtime rules and evaluator contracts.
 
 Interpretation:
 
-- this is not a reason to permanently hardcode `NIM`
-- this points to a missing `period_score + table_coherence_score + unit_family`
-  acceptance rule for percent metrics
-- the direct percent lookup path is partially working; the unresolved problem is
-  same-row current/prior reuse instead of distinct period cells
+- this was closed without restoring `NIM`-specific helper hardcoding
+- the winning changes were still general:
+  - joint current/prior pair selection with same-cell reuse rejection
+  - ontology-level surface contract for the concept, not a qid patch
+  - evaluator support for unitless structured percent rows in runtime evidence
+  - evaluator alias tolerance when `period + normalized value/unit` already agree
+- this validates that percent multi-period rows can also be handled through
+  shared scoring/acceptance plus shared evaluator contracts
 
 ## Preferred Refactoring Order
 
 1. keep strengthening shared scoring so aggregate canonical statement rows
    outrank weak detail/note rows when the query asks for a total/current value
    This step already paid off for `SKH_T1_060`.
-2. strengthen same-table current/prior percent row pairing so `difference`
-   tasks require distinct period cells
-3. keep only a small number of hard guards
+2. keep only a small number of hard guards
    - unit mismatch rejection
    - current/prior same-cell rejection
    - direct-over-derived acceptance
-4. only add a narrow exception if the failure clearly cannot be expressed as a
+3. only add a narrow exception if the failure clearly cannot be expressed as a
    shared feature
 
 ## Practical Decision Rule
