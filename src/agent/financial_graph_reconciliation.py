@@ -51,10 +51,11 @@ class FinancialAgentReconciliationMixin:
         return raw_unit
 
     def _fallback_period_text_for_operand(self, operand: Dict[str, Any], query_years: List[int]) -> str:
+        period_focus = str(operand.get("_effective_period_focus") or "").strip()
         role = str(operand.get("role") or "").strip()
-        if query_years and role == "current_period":
+        if query_years and (role == "current_period" or period_focus == "current"):
             return str(max(query_years))
-        if query_years and role == "prior_period":
+        if query_years and (role == "prior_period" or period_focus == "prior"):
             ordered_years = sorted({int(year) for year in query_years}, reverse=True)
             if len(ordered_years) >= 2:
                 return str(ordered_years[1])
@@ -102,16 +103,15 @@ class FinancialAgentReconciliationMixin:
         normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
         if normalized_value is None:
             return None
+        effective_period_focus = _operand_period_focus(operand, period_focus)
+        operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
         period = _structured_cell_period_text(
             selected_cell,
             query_years,
-            _operand_period_focus(operand, period_focus),
+            effective_period_focus,
         )
-        if (
-            str(operand.get("role") or "").strip() in {"current_period", "prior_period"}
-            and not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period)
-        ):
-            period = self._fallback_period_text_for_operand(operand, query_years)
+        if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period):
+            period = self._fallback_period_text_for_operand(operand_with_period_focus, query_years)
         row_label = str(operand.get("label") or metadata.get("semantic_label") or metadata.get("row_label") or "").strip()
         return {
             "operand_id": f"op_{index:03d}",

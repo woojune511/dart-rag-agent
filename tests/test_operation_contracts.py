@@ -15,6 +15,7 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _build_concept_task_constraints,
     _build_generic_retrieval_queries,
+    _label_implies_percent_metric,
     _operand_row_matches_requirement,
     _requires_direct_numeric_grounding,
 )
@@ -41,6 +42,11 @@ class _StubLLM:
 class OperationContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
+
+    def test_percent_label_inference_uses_generic_surface_markers_only(self) -> None:
+        self.assertTrue(_label_implies_percent_metric("순이자마진"))
+        self.assertTrue(_label_implies_percent_metric("부채비율"))
+        self.assertFalse(_label_implies_percent_metric("NIM"))
 
     def test_lookup_task_prefers_current_period_when_operand_role_is_current(self) -> None:
         constraints = _build_concept_task_constraints(

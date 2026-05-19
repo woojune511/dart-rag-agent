@@ -1074,17 +1074,21 @@ def _format_runtime_evidence_for_numeric_judge(runtime_evidence: List[Dict[str, 
     if not runtime_evidence:
         return "-"
     rows: List[str] = []
-    for row in runtime_evidence[:6]:
+    for row in runtime_evidence[:10]:
         metadata = row.get("metadata") or {}
         section = metadata.get("section_path") or metadata.get("section") or "?"
+        surface = (
+            str(row.get("quote_span") or "").strip()
+            or str(row.get("raw_row_text") or "").strip()
+            or str(row.get("claim") or "").strip()
+        )
         rows.append(
             " | ".join(
                 part
                 for part in [
                     row.get("source_anchor") or "?",
                     f"section={section}",
-                    f"claim={row.get('claim', '')}",
-                    f"quote={row.get('quote_span', '')}",
+                    f"quote={surface}",
                 ]
                 if part
             )

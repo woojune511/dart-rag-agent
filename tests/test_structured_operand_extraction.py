@@ -1421,6 +1421,121 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[0]["raw_value"], "4,145,647")
         self.assertEqual(rows[0]["period"], "당기")
 
+    def test_direct_extraction_prefers_aggregate_cell_within_wide_structured_row(self) -> None:
+        metadata = {
+            "chunk_uid": "chunk_wide_short_term",
+            "company": "SK하이닉스",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "period_labels": ["2023"],
+            "period_focus": "current",
+            "table_source_id": "table_wide_short_term",
+            "table_header_context": "차입금명칭 | 단기차입금",
+            "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "structured_cells": [
+                {
+                    "column_headers": ["차입금명칭", "단기차입금", "OAT Nego-농협은행 등"],
+                    "value_text": "451,284",
+                    "unit_hint": "백만원",
+                },
+                {
+                    "column_headers": ["차입금명칭", "단기차입금", "Banker's Usance-우리은행 등"],
+                    "value_text": "1,041,752",
+                    "unit_hint": "백만원",
+                },
+                {
+                    "column_headers": ["차입금명칭", "단기차입금", "기업어음-SK증권 등"],
+                    "value_text": "800,000",
+                    "unit_hint": "백만원",
+                },
+                {
+                    "column_headers": ["차입금명칭", "단기차입금", "단기차입금 합계"],
+                    "value_text": "4,145,647",
+                    "unit_hint": "백만원",
+                },
+            ],
+        }
+        state = {
+            "query": "2023년 연결 재무상태표에서 단기차입금을 찾아줘",
+            "years": [2023],
+            "report_scope": {"company": "SK하이닉스", "year": "2023", "consolidation": "연결"},
+            "intent": "comparison",
+            "topic": "단기차입금",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_wide_short_term",
+                "metric_family": "concept_lookup",
+                "metric_label": "단기차입금",
+                "query": "2023년 연결 재무상태표에서 단기차입금을 찾아줘",
+                "operation_family": "lookup",
+                "preferred_statement_types": ["notes"],
+                "required_operands": [
+                    {
+                        "label": "단기차입금",
+                        "aliases": ["단기차입금"],
+                        "concept": "short_term_borrowings",
+                        "role": "current_period",
+                        "required": True,
+                    },
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_wide_short_term",
+                "matched_operands": [
+                    {
+                        "label": "단기차입금",
+                        "role": "current_period",
+                        "concept": "short_term_borrowings",
+                        "matched": True,
+                        "candidate_ids": ["chunk_wide_short_term::value:0"],
+                        "reason": "matched_candidates",
+                    }
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+        }
+
+        candidate = {
+            "candidate_id": "chunk_wide_short_term::value:0",
+            "candidate_kind": "structured_value",
+            "text": "단기차입금 합계 4,145,647",
+            "metadata": {
+                **metadata,
+                "row_label": "단기차입금 합계",
+                "semantic_label": "단기차입금 합계",
+                "semantic_aliases": ["단기차입금 합계", "단기차입금"],
+                "aggregate_label": "단기차입금 합계",
+                "aggregate_role": "direct_total",
+                "value_role": "aggregate",
+                "aggregation_stage": "direct",
+            },
+            "source_anchor": "[SK하이닉스 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+        }
+
+        self.agent._build_reconciliation_candidates = lambda _state: [candidate]
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "4,145,647")
+        self.assertEqual(rows[0]["matched_operand_label"], "단기차입금")
+        self.assertEqual(rows[0]["period"], "2023")
+
 
 if __name__ == "__main__":
     unittest.main()

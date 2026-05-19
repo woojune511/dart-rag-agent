@@ -1077,6 +1077,7 @@ class FinancialAgentEvidenceMixin:
                                 cell,
                                 query_years=target_years,
                                 period_focus="unknown",
+                                operand=operand,
                             ),
                             reverse=True,
                         )

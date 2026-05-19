@@ -628,11 +628,10 @@ def _label_implies_percent_metric(label: str) -> bool:
     normalized = _normalise_spaces(str(label or ""))
     if not normalized:
         return False
-    upper = normalized.upper()
     return any(
         token in normalized
         for token in ("비율", "비중", "마진", "이익률", "수익률", "%", "%p")
-    ) or upper in {"NIM", "NIS", "NPL"}
+    )
 
 
 def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
@@ -812,10 +811,6 @@ def _build_generic_required_operands(
     rows: List[Dict[str, Any]] = []
     for label in operand_labels:
         aliases = _build_generic_metric_aliases(label)
-        if label == "NIM":
-            aliases.append("순이자마진")
-        if label == "순이자마진":
-            aliases.append("NIM")
         rows.append(
             {
                 "label": label,
@@ -1835,6 +1830,7 @@ def _select_structured_cell(
             cell,
             query_years=_operand_target_years(operand, query_years),
             period_focus=period_focus,
+            operand=operand,
         ),
         reverse=True,
     )
@@ -1863,11 +1859,45 @@ def _operand_period_focus(operand: Dict[str, Any], default_period_focus: str) ->
     return default_period_focus
 
 
+def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, Any]) -> float:
+    headers = [
+        _normalise_spaces(str(item))
+        for item in (cell.get("column_headers") or [])
+        if _normalise_spaces(str(item))
+    ]
+    if not headers:
+        return 0.0
+
+    non_generic_headers = [header for header in headers if header not in _GENERIC_COLUMN_HEADERS]
+    last_header = non_generic_headers[-1] if non_generic_headers else headers[-1]
+    needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    if not needles:
+        return 0.0
+
+    score = 0.0
+    if any(last_header == needle for needle in needles):
+        score += 4.0
+    elif _operand_text_match(last_header, operand):
+        score += 2.0
+
+    if any(header == needle for header in headers for needle in needles):
+        score += 0.75
+    elif any(_operand_text_match(header, operand) for header in headers):
+        score += 0.35
+
+    aggregate_tokens = ("합계", "총계", "소계", "계")
+    if any(token in last_header for token in aggregate_tokens) and _operand_text_match(last_header, operand):
+        score += 4.0
+
+    return score
+
+
 def _score_structured_cell(
     cell: Dict[str, Any],
     *,
     query_years: List[int],
     period_focus: str,
+    operand: Optional[Dict[str, Any]] = None,
 ) -> float:
     headers = [str(item).strip() for item in (cell.get("column_headers") or []) if str(item).strip()]
     header_text = " ".join(headers)
@@ -1886,6 +1916,8 @@ def _score_structured_cell(
             score += 4.0
         if any(token in header_text for token in ("당기", "현재")):
             score -= 1.0
+    if operand:
+        score += _structured_cell_operand_affinity(cell, operand)
     if not header_text:
         score -= 0.25
     return score
@@ -2672,7 +2704,6 @@ def _candidate_source_priority_bonus(
     local_heading: str,
 ) -> float:
     score = 0.0
-    desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
 
     if _is_balance_sheet_aggregate_operand(operand):
         if statement_type in {"summary_financials", "balance_sheet"}:
@@ -2691,14 +2722,6 @@ def _candidate_source_priority_bonus(
             score -= 1.5
             if value_role == "detail":
                 score -= 1.25
-
-    if desired_unit_family == "PERCENT":
-        if statement_type in {"mda", "summary_financials"}:
-            score += 1.25
-        elif statement_type == "notes":
-            score -= 0.35
-        if value_role == "adjustment":
-            score -= 1.0
 
     return score
 
