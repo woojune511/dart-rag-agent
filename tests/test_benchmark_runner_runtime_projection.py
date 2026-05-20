@@ -87,20 +87,18 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         rows = _flatten_review_rows(results)
 
         self.assertEqual(len(rows), 1)
-        calculation_operands = json.loads(rows[0]["calculation_operands"])
-        calculation_plan = json.loads(rows[0]["calculation_plan"])
-        calculation_result = json.loads(rows[0]["calculation_result"])
         structured_result = json.loads(rows[0]["structured_result"])
         resolved_trace = json.loads(rows[0]["resolved_calculation_trace"])
 
-        self.assertEqual(calculation_operands, [{"label": "fresh", "value": "123"}])
-        self.assertEqual(calculation_plan["operation"], "lookup")
-        self.assertEqual(calculation_result["rendered_value"], "123")
+        self.assertEqual(rows[0]["resolved_operand_count"], 1)
         self.assertEqual(structured_result["rendered_value"], "123")
         self.assertEqual(
             resolved_trace["calculation_result"]["answer_slots"]["operation_family"],
             "lookup",
         )
+        self.assertNotIn("calculation_operands", rows[0])
+        self.assertNotIn("calculation_plan", rows[0])
+        self.assertNotIn("calculation_result", rows[0])
 
     def test_serialise_eval_results_keeps_structured_runtime_contract(self) -> None:
         result = SimpleNamespace(
@@ -169,9 +167,9 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                 "rendered_value": "123",
                 "answer_slots": {"operation_family": "lookup"},
             },
-            calculation_operands=[{"label": "fresh", "value": "123"}],
-            calculation_plan={"operation": "lookup"},
-            calculation_result={"status": "ok", "rendered_value": "123"},
+            calculation_operands=[{"label": "stale", "value": "999"}],
+            calculation_plan={"status": "stale"},
+            calculation_result={"status": "stale", "rendered_value": "999"},
             missing_info_policy=None,
             error=None,
         )
@@ -184,6 +182,10 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             rows[0]["resolved_calculation_trace"]["calculation_plan"]["operation"],
             "lookup",
         )
+        self.assertEqual(rows[0]["resolved_operand_count"], 1)
+        self.assertNotIn("calculation_operands", rows[0])
+        self.assertNotIn("calculation_plan", rows[0])
+        self.assertNotIn("calculation_result", rows[0])
 
 
 if __name__ == "__main__":

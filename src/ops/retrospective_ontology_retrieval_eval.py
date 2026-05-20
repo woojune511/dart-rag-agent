@@ -20,7 +20,10 @@ if str(SRC_ROOT) not in sys.path:
 
 import agent.financial_graph as financial_graph_module
 from agent.financial_graph import FinancialAgent
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from agent.financial_graph_helpers import (
+    _resolve_runtime_calculation_trace,
+    _resolve_runtime_structured_result,
+)
 from ops.evaluator import (
     EvalExample,
     _compute_operand_grounding_score,
@@ -201,6 +204,13 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
     calc_result = agent._execute_calculation(state)
     state.update(calc_result)
     resolved_trace = _resolve_runtime_calculation_trace(state)
+    structured_result = _resolve_runtime_structured_result(
+        {
+            "resolved_calculation_trace": resolved_trace,
+            "structured_result": state.get("structured_result"),
+            "calculation_result": state.get("calculation_result"),
+        }
+    )
 
     retrieved_docs = list(state.get("retrieved_docs") or [])
     contexts = [_doc_text(item) for item in retrieved_docs]
@@ -210,7 +220,7 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
         calculation_operands=list(resolved_trace.get("calculation_operands") or []),
     )
 
-    calculation_result = dict(resolved_trace.get("calculation_result") or {})
+    calculation_result = structured_result
     return QuestionOutcome(
         id=example.id,
         question=example.question,

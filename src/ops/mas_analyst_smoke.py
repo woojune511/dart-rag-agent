@@ -24,7 +24,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
 from src.agent.mas_graph import run_mas_graph
 from src.agent.nodes.analyst_node import build_financial_analyst_node
 from src.storage.vector_store import VectorStoreManager
@@ -65,24 +65,15 @@ def _artifact_answer(final_state: Dict[str, Any]) -> str:
 def _artifact_calc_status(final_state: Dict[str, Any]) -> str:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    calculation_result = (
-        content.get("structured_result")
-        or dict((content.get("resolved_calculation_trace") or {}).get("calculation_result") or {})
-        or content.get("calculation_result")
-        or {}
-    )
+    calculation_result = _resolve_runtime_structured_result(content)
     return str(calculation_result.get("status") or "")
 
 
 def _artifact_operand_count(final_state: Dict[str, Any]) -> int:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    operands = (
-        dict(content.get("resolved_calculation_trace") or {}).get("calculation_operands")
-        or content.get("calculation_operands")
-        or []
-    )
-    return len(operands)
+    resolved = _resolve_runtime_calculation_trace(content)
+    return len(resolved.get("calculation_operands") or [])
 
 
 def _calc_payload(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -98,12 +89,7 @@ def _operand_count(result: Dict[str, Any]) -> int:
 def _artifact_calc_payload(final_state: Dict[str, Any]) -> Dict[str, Any]:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    return dict(
-        content.get("structured_result")
-        or dict((content.get("resolved_calculation_trace") or {}).get("calculation_result") or {})
-        or content.get("calculation_result")
-        or {}
-    )
+    return _resolve_runtime_structured_result(content)
 
 
 def _numeric_result_match(left: Dict[str, Any], right: Dict[str, Any], tolerance: float = 1e-9) -> bool:

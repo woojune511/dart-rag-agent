@@ -24,7 +24,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from agent.financial_graph import DEFAULT_CONTEXT_BATCH_SIZE, DEFAULT_CONTEXT_MAX_WORKERS, FinancialAgent
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
 from ops.evaluator import (
     EvalExample,
     RAGEvaluator,
@@ -578,6 +578,12 @@ def _estimate_cost_usd(ingest_metrics: Dict[str, Any], pricing: Dict[str, Any] |
 def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
     serialised: List[Dict[str, Any]] = []
     for result in results:
+        runtime_projection = {
+            "resolved_calculation_trace": getattr(result, "resolved_calculation_trace", {}) or {},
+            "structured_result": getattr(result, "structured_result", {}) or {},
+        }
+        resolved_trace = _resolve_runtime_calculation_trace(runtime_projection)
+        structured_result = _resolve_runtime_structured_result(runtime_projection)
         serialised.append(
             {
                 "id": result.id,
@@ -635,11 +641,9 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "dropped_claim_ids": result.dropped_claim_ids,
                 "unsupported_sentences": result.unsupported_sentences,
                 "sentence_checks": result.sentence_checks,
-                "resolved_calculation_trace": result.resolved_calculation_trace,
-                "structured_result": result.structured_result,
-                "calculation_operands": result.calculation_operands,
-                "calculation_plan": result.calculation_plan,
-                "calculation_result": result.calculation_result,
+                "resolved_calculation_trace": resolved_trace,
+                "structured_result": structured_result,
+                "resolved_operand_count": len(resolved_trace.get("calculation_operands", []) or []),
                 "missing_info_policy": result.missing_info_policy,
                 "error": result.error,
             }
@@ -663,8 +667,12 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
             citations = result.get("citations", [])
             answer = result.get("answer", "") or ""
             query_type = result.get("query_type")
-            resolved_trace = dict(result.get("resolved_calculation_trace") or {})
-            structured_result = dict(result.get("structured_result") or {})
+            runtime_projection = {
+                "resolved_calculation_trace": result.get("resolved_calculation_trace"),
+                "structured_result": result.get("structured_result"),
+            }
+            resolved_trace = _resolve_runtime_calculation_trace(runtime_projection)
+            structured_result = _resolve_runtime_structured_result(runtime_projection)
         except Exception as exc:
             error = str(exc)
             logger.error("Smoke query failed: %s", exc)
@@ -1670,10 +1678,9 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         }
         for question_result in result.get("full_eval", {}).get("per_question", []):
             resolved_trace = _resolve_runtime_calculation_trace(question_result)
-            resolved_operands = resolved_trace.get("calculation_operands", []) or []
-            resolved_plan = resolved_trace.get("calculation_plan", {}) or {}
             resolved_result = resolved_trace.get("calculation_result", {}) or {}
-            structured_result = dict(question_result.get("structured_result") or resolved_result or {})
+            structured_result = _resolve_runtime_structured_result(question_result)
+            resolved_operands = resolved_trace.get("calculation_operands", []) or []
             evidence_rows = question_result.get("evidence") or []
             evidence_quotes = [
                 f"{row.get('section_path', '?')}: {row.get('quote', '')}"
@@ -1792,9 +1799,7 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "calculation_correctness": question_result.get("calculation_correctness"),
                     "resolved_calculation_trace": json.dumps(resolved_trace, ensure_ascii=False),
                     "structured_result": json.dumps(structured_result, ensure_ascii=False),
-                    "calculation_operands": json.dumps(resolved_operands, ensure_ascii=False),
-                    "calculation_plan": json.dumps(resolved_plan, ensure_ascii=False),
-                    "calculation_result": json.dumps(resolved_result, ensure_ascii=False),
+                    "resolved_operand_count": len(resolved_operands),
                     "missing_info_compliance": question_result.get("missing_info_compliance"),
                     "missing_info_policy": question_result.get("missing_info_policy"),
                     "error": question_result.get("error"),
@@ -1861,9 +1866,7 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "calculation_correctness",
         "resolved_calculation_trace",
         "structured_result",
-        "calculation_operands",
-        "calculation_plan",
-        "calculation_result",
+        "resolved_operand_count",
         "missing_info_compliance",
         "missing_info_policy",
         "error",
@@ -1939,18 +1942,6 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "",
                 row["runtime_evidence"] or "-",
                 "",
-                "Calculation Operands",
-                "",
-                row.get("calculation_operands") or "-",
-                "",
-                "Calculation Plan",
-                "",
-                row.get("calculation_plan") or "-",
-                "",
-                "Calculation Result",
-                "",
-                row.get("calculation_result") or "-",
-                "",
                 "Structured Result",
                 "",
                 row.get("structured_result") or "-",
@@ -1958,6 +1949,8 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "Resolved Calculation Trace",
                 "",
                 row.get("resolved_calculation_trace") or "-",
+                "",
+                f"Resolved Operand Count: {row.get('resolved_operand_count') if row.get('resolved_operand_count') is not None else '-'}",
                 "",
                 "Selected Claims",
                 "",

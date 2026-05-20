@@ -23,7 +23,10 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from agent.financial_graph import FinancialAgent
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from agent.financial_graph_helpers import (
+    _resolve_runtime_calculation_trace,
+    _resolve_runtime_structured_result,
+)
 from storage.vector_store import VectorStoreManager
 
 logger = logging.getLogger(__name__)
@@ -128,6 +131,13 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
     calc_result = agent._execute_calculation(state)
     state.update(calc_result)
     resolved_trace = _resolve_runtime_calculation_trace(state)
+    structured_result = _resolve_runtime_structured_result(
+        {
+            "resolved_calculation_trace": resolved_trace,
+            "structured_result": state.get("structured_result"),
+            "calculation_result": state.get("calculation_result"),
+        }
+    )
 
     return {
         "query": query,
@@ -154,7 +164,7 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         "calculation_debug_trace": state.get("calculation_debug_trace"),
         "planner_debug_trace": state.get("planner_debug_trace"),
         "resolved_calculation_trace": resolved_trace,
-        "structured_result": dict(resolved_trace.get("calculation_result") or {}),
+        "structured_result": structured_result,
         "calculation_operands": resolved_trace.get("calculation_operands"),
         "calculation_plan": resolved_trace.get("calculation_plan"),
         "calculation_result": resolved_trace.get("calculation_result"),

@@ -69,19 +69,22 @@ class AnalystNodeMigrationTests(unittest.TestCase):
                     "allowed_terms": ["영업이익률", "매출액", "영업이익"],
                 }
             ],
-            "calculation_operands": [
-                {
-                    "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
-                    "label": "2024년 영업이익",
-                    "raw_value": "36,474,516",
-                    "raw_unit": "백만원",
-                    "normalized_value": 36474516000000.0,
-                    "normalized_unit": "KRW",
-                    "period": "2024년",
-                }
-            ],
-            "calculation_plan": {"mode": "single_value", "formula": "A / B * 100"},
-            "calculation_result": {"status": "ok", "value": 10.9, "result_unit": "%"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "source_anchor": "[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                        "label": "2024년 영업이익",
+                        "raw_value": "36,474,516",
+                        "raw_unit": "백만원",
+                        "normalized_value": 36474516000000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2024년",
+                    }
+                ],
+                "calculation_plan": {"mode": "single_value", "formula": "A / B * 100"},
+                "calculation_result": {"status": "ok", "value": 10.9, "result_unit": "%"},
+            },
+            "structured_result": {"status": "ok", "value": 10.9, "result_unit": "%"},
             "reflection_count": 0,
             "retry_reason": "",
             "retrieved_docs": [
@@ -110,6 +113,9 @@ class AnalystNodeMigrationTests(unittest.TestCase):
             artifact["content"]["resolved_calculation_trace"]["calculation_plan"]["formula"],
             "A / B * 100",
         )
+        self.assertNotIn("calculation_plan", artifact["content"])
+        self.assertNotIn("calculation_result", artifact["content"])
+        self.assertNotIn("calculation_operands", artifact["content"])
         self.assertEqual(
             artifact["content"]["answer"],
             "2024년 영업이익률은 10.9%입니다.",
@@ -122,7 +128,7 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         fake = FakeAnalystCore(
             result={
                 "answer": "",
-                "calculation_result": {"status": "insufficient_operands"},
+                "structured_result": {"status": "insufficient_operands"},
             }
         )
         node = make_run_analyst(fake)
@@ -139,9 +145,12 @@ class AnalystNodeMigrationTests(unittest.TestCase):
                 "answer": "2024년 영업이익률은 10.9%입니다.",
                 "query_type": "comparison",
                 "intent": "comparison",
-                "calculation_result": {"status": "ok"},
-                "calculation_plan": {"mode": "single_value"},
-                "calculation_operands": [],
+                "structured_result": {"status": "ok"},
+                "resolved_calculation_trace": {
+                    "calculation_result": {"status": "ok"},
+                    "calculation_plan": {"mode": "single_value"},
+                    "calculation_operands": [],
+                },
                 "evidence_items": [],
                 "citations": ["[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]"],
                 "retrieved_docs": [],

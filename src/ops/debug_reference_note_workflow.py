@@ -18,7 +18,10 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from agent.financial_graph import FinancialAgent
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from agent.financial_graph_helpers import (
+    _resolve_runtime_calculation_trace,
+    _resolve_runtime_structured_result,
+)
 from processing.financial_parser import FinancialParser
 from storage.vector_store import VectorStoreManager
 
@@ -176,6 +179,7 @@ def _graph_smoke(agent: FinancialAgent, query: str) -> Dict[str, Any]:
 
     answer_payload = agent.run(query)
     resolved_trace = _resolve_runtime_calculation_trace(answer_payload)
+    structured_result = _resolve_runtime_structured_result(answer_payload)
 
     return {
         "query": query,
@@ -199,7 +203,7 @@ def _graph_smoke(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         "reference_docs": reference_docs,
         "answer": answer_payload.get("answer"),
         "citations": answer_payload.get("citations"),
-        "structured_result": dict(answer_payload.get("structured_result") or resolved_trace.get("calculation_result") or {}),
+        "structured_result": structured_result,
         "resolved_calculation_trace": resolved_trace,
     }
 

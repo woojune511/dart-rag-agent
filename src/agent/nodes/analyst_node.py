@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Protocol, Sequence
 from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
 from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus
 
 
@@ -119,10 +119,7 @@ def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[D
 
 def _build_analyst_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
     resolved_trace = _resolve_runtime_calculation_trace(result)
-    calculation_plan = dict(resolved_trace.get("calculation_plan", {}) or {})
-    calculation_result = dict(resolved_trace.get("calculation_result", {}) or {})
-    calculation_operands = list(resolved_trace.get("calculation_operands", []) or [])
-    structured_result = dict(result.get("structured_result") or calculation_result or {})
+    structured_result = _resolve_runtime_structured_result(result)
     return {
         "task_id": task_id,
         "creator": "Analyst",
@@ -134,9 +131,6 @@ def _build_analyst_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
             "citations": list(result.get("citations", []) or []),
             "resolved_calculation_trace": resolved_trace,
             "structured_result": structured_result,
-            "calculation_plan": calculation_plan,
-            "calculation_result": calculation_result,
-            "calculation_operands": calculation_operands,
             "reflection_count": int(result.get("reflection_count", 0) or 0),
             "retry_reason": str(result.get("retry_reason", "") or ""),
         },
@@ -147,7 +141,7 @@ def _build_analyst_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
 def _is_successful_numeric_result(result: Dict[str, Any]) -> bool:
     answer = str(result.get("answer") or "").strip()
     resolved_trace = _resolve_runtime_calculation_trace(result)
-    calc_result = dict(result.get("structured_result") or resolved_trace.get("calculation_result", {}) or {})
+    calc_result = _resolve_runtime_structured_result(result)
     calc_status = str(calc_result.get("status") or "").strip().lower()
     if calc_status and calc_status not in {"ok", "success"}:
         return False

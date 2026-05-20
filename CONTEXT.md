@@ -205,11 +205,14 @@
 
 ### Compatibility note
 
-- top-level `calculation_operands`, `calculation_plan`, `calculation_result`는 아직 남아 있지만
-  이제 **compatibility projection**으로 간주한다.
-- 새 consumer / 새 테스트 / 새 디버그 도구는 가능하면 아래 둘만 기준으로 삼는다.
+- public/runtime boundary에서는 top-level `calculation_operands`, `calculation_plan`,
+  `calculation_result`를 더 이상 기본 contract로 노출하지 않는다.
+- 새 consumer / 새 테스트 / 새 디버그 도구는 아래 둘만 기준으로 삼는다.
   - `structured_result`
   - `resolved_calculation_trace`
+- 남아 있는 `calculation_*`는 현재 주로 내부 graph state와 계산 노드의 working state다.
+  즉 external compatibility layer 정리는 끝났고, 남은 정리는 내부 runtime representation
+  리팩터링에 가깝다.
 - slot payload는 단순 숫자 dict가 아니라 `status + normalized/raw value + provenance`를 함께 담는 value object로 정리되기 시작했다.
   - missing material은 key omission이 아니라 `status = "missing"`으로 남긴다.
   - direct grounding이 성공한 값은 `source_row_id / source_row_ids / source_anchor`를 carry한다.

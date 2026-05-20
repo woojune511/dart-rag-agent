@@ -167,28 +167,23 @@
 - retrospective evaluator/grounding scripts and MAS smoke checks now also read
   resolved runtime traces instead of raw top-level `calculation_*` where
   applicable.
-- `FinancialAgent.run()` now also exposes:
+- `FinancialAgent.run()` now uses:
   - `resolved_calculation_trace`
   - `structured_result`
-  so new callers have a first-class structured contract and do not need to
-  depend on flat `calculation_*` projections.
+  as the first-class public runtime contract.
 - FastAPI `/api/query` now forwards the same structured result contract so
   external API consumers can adopt it directly.
 - debug/smoke tooling now also carries `structured_result` /
-  `resolved_calculation_trace` in its output where practical, reducing pressure
-  on flat `calculation_*` payloads even in ad hoc inspection flows.
-- benchmark review rows now also persist `structured_result` and
-  `resolved_calculation_trace` explicitly alongside legacy flat calculation
-  columns, so downstream review tooling can migrate without re-running
-  experiments.
-- This makes `answer_slots + tasks/artifacts` closer to the real
-  source-of-truth contract, while flat `calculation_*` fields are more clearly
-  compatibility projections.
-- Remaining cleanup targets are now mostly compatibility-only:
-  1. `FinancialAgentState` and `FinancialAgent.run()` still expose flat
-     `calculation_*` fields for older callers
-  2. some older fixtures and niche tooling still mention flat field names even
-     though their values now come from resolved traces
+  `resolved_calculation_trace` in its output where practical.
+- benchmark review rows persist `structured_result`,
+  `resolved_calculation_trace`, and `resolved_operand_count` as the canonical
+  replay/debug contract.
+- This makes `answer_slots + tasks/artifacts` the practical source-of-truth
+  contract at the runtime boundary.
+- Remaining cleanup targets are now mostly internal:
+  1. `FinancialAgentState` still carries `calculation_*` as working state
+  2. some internal node/test fixtures still serialize legacy names for
+     compatibility with older traces
 
 ## 2026-05-20 Runtime validation note
 

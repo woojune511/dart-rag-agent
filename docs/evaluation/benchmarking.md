@@ -205,8 +205,11 @@
 - benchmark/runtime 결과물도 이제 다음 structured contract를 함께 보존한다.
   - `resolved_calculation_trace`
   - `structured_result`
-- review CSV나 historical replay를 볼 때도 flat `calculation_*`만 source of truth로 가정하지 않는다.
-  가능하면 위 structured contract를 먼저 사용하고, flat `calculation_*`는 compatibility projection으로 해석한다.
+- review CSV나 historical replay를 볼 때도 flat `calculation_*`를 source of truth로
+  가정하지 않는다.
+  - canonical payload는 `resolved_calculation_trace`, `structured_result`,
+    `resolved_operand_count`
+  - flat `calculation_*`는 public review/export payload에서 제거되었다.
 - percent numeric equivalence는 source display precision을 존중한다.
   - 예: `25.36%`와 `25.4%`는 rounded display gap으로 허용된다.
 - 대표 canary 확인:
@@ -236,7 +239,9 @@
 
 현재 해석:
 
-- 이 subset은 broad quality benchmark보다 **`matched_operands -> calculation_operands -> aggregate projection`** 경로를 보기 위한 회귀용이다.
+- 이 subset은 broad quality benchmark보다
+  **`matched_operands -> resolved_calculation_trace -> aggregate projection`**
+  경로를 보기 위한 회귀용이다.
 - 최근 smoke에서는 retrieval hit은 유지됐고, `SKH_T1_060`은
   - initial refusal
   - unit mismatch

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
+from src.agent.financial_graph_helpers import _resolve_runtime_structured_result
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 
@@ -255,11 +256,14 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "artifacts": [],
         }
         final = self.graph.invoke(initial)
-        # The runtime now stores the richest trace in the task/artifact ledger.
-        # We still project legacy flat fields here while the surrounding
-        # evaluator and benchmark code finishes migrating.
         legacy_projection = self._project_legacy_calculation_fields(final)
-        structured_result = dict(legacy_projection.get("calculation_result", {}) or {})
+        structured_result = _resolve_runtime_structured_result(
+            {
+                "structured_result": final.get("structured_result", {}),
+                "resolved_calculation_trace": legacy_projection,
+                "calculation_result": final.get("calculation_result", {}),
+            }
+        )
         return {
             "query": final["query"],
             "report_scope": final.get("report_scope", {}),
@@ -290,13 +294,8 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "sentence_checks": final.get("sentence_checks", []),
             "numeric_debug_trace": final.get("numeric_debug_trace", {}),
             # Preferred structured runtime contract for external callers.
-            # Legacy flat calculation_* fields below are compatibility
-            # projections derived from this resolved trace.
             "resolved_calculation_trace": legacy_projection,
             "structured_result": structured_result,
-            "calculation_operands": legacy_projection.get("calculation_operands", []),
-            "calculation_plan": legacy_projection.get("calculation_plan", {}),
-            "calculation_result": legacy_projection.get("calculation_result", {}),
             "calculation_debug_trace": final.get("calculation_debug_trace", {}),
             "planner_debug_trace": final.get("planner_debug_trace", {}),
             "missing_info": final.get("missing_info", []),

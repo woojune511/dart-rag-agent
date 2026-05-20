@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Tuple
 
+from src.agent.financial_graph_helpers import _resolve_runtime_structured_result
 from src.agent.mas_types import AgentTask, Artifact, CriticReport, MultiAgentState, TaskStatus
 
 MAX_CRITIC_RETRIES = 2
@@ -28,14 +29,7 @@ def _artifact_answer(artifact: Artifact) -> str:
 def _artifact_calc_result(artifact: Artifact) -> Dict[str, Any]:
     content = artifact.get("content")
     if isinstance(content, dict):
-        structured_result = dict(content.get("structured_result") or {})
-        if structured_result:
-            return structured_result
-        resolved_trace = dict(content.get("resolved_calculation_trace") or {})
-        resolved_result = dict(resolved_trace.get("calculation_result") or {})
-        if resolved_result:
-            return resolved_result
-        return dict(content.get("calculation_result") or {})
+        return _resolve_runtime_structured_result(content)
     return {}
 
 

@@ -38,10 +38,12 @@ class DeterministicCriticTests(unittest.TestCase):
                         "rendered_value": "10.9%",
                         "result_unit": "%",
                     },
-                    "calculation_result": {
-                        "status": "stale",
-                        "rendered_value": "999",
-                        "result_unit": "KRW",
+                    "resolved_calculation_trace": {
+                        "calculation_result": {
+                            "status": "stale",
+                            "rendered_value": "999",
+                            "result_unit": "KRW",
+                        }
                     },
                 },
                 "evidence_links": ["chunk-001"],
@@ -72,7 +74,7 @@ class DeterministicCriticTests(unittest.TestCase):
                 "creator": "Analyst",
                 "content": {
                     "answer": "2024년 영업이익률은 10.9%입니다.",
-                    "calculation_result": {
+                    "structured_result": {
                         "status": "ok",
                         "rendered_value": "10.9%",
                         "result_unit": "%",
@@ -105,7 +107,7 @@ class DeterministicCriticTests(unittest.TestCase):
             "task_1": {
                 "task_id": "task_1",
                 "creator": "Analyst",
-                "content": {"answer": "", "calculation_result": {"status": "insufficient_operands"}},
+                "content": {"answer": "", "structured_result": {"status": "insufficient_operands"}},
                 "evidence_links": [],
             }
         }

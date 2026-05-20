@@ -544,6 +544,19 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
     return top_level
 
 
+def _resolve_runtime_structured_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    structured_result = dict(result.get("structured_result") or {})
+    if structured_result:
+        return structured_result
+
+    resolved_trace = _resolve_runtime_calculation_trace(result)
+    resolved_result = dict(resolved_trace.get("calculation_result") or {})
+    if resolved_result:
+        return resolved_result
+
+    return {}
+
+
 # ---------------------------------------------------------------------------
 # Numeric parsing and normalization
 # ---------------------------------------------------------------------------
