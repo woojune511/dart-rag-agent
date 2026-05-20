@@ -195,9 +195,12 @@
 - fresh narrow runtime reruns now confirm:
   - `NAV_T1_071`: PASS
   - `MIX_T1_021`: PASS
-- `NAV_T1_030` no longer drifts into a ratio plan.
-  - FCF now uses deterministic subtract planning.
-  - parenthesized negative outflows normalize correctly.
-  - final rendering no longer injects unnecessary uncertainty wording.
-- remaining blocker:
-  - evaluator / structured-result treatment for compositional subtraction metrics such as FCF
+  - `NAV_T1_030`: PASS
+- `NAV_T1_030` closure details:
+  - FCF now uses deterministic subtract planning instead of drifting into ratio-style planning
+  - parenthesized negative outflows normalize correctly through runtime/evaluator paths
+  - final rendering rewrites double-negative subtraction phrasing into sign-aware natural language
+  - evaluator now accepts display-scaled KRW operands and parenthesized negative support rows in structured traces
+- immediate priority now moves back to broader contract cleanup:
+  - keep `answer_slots` / `structured_result` as the default runtime contract
+  - continue reducing legacy flat `calculation_*` dependence in compatibility-only paths

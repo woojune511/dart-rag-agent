@@ -12,6 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.ops.evaluator import (
     _compute_numeric_result_correctness,
     _numeric_values_equivalent,
+    _operand_matches,
     EvalExample,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
@@ -269,6 +270,39 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         }
 
         self.assertTrue(_numeric_values_equivalent(left, right))
+
+    def test_operand_match_accepts_parenthesized_negative_and_display_scale(self) -> None:
+        expected = {
+            "label": "영업활동으로 인한 현금흐름",
+            "period": "2023",
+            "raw_value": "2,002",
+            "raw_unit": "십억원",
+        }
+        actual = {
+            "label": "2023 영업활동현금흐름",
+            "period": "2023",
+            "raw_value": "2,002,233,273,518",
+            "raw_unit": "원",
+            "normalized_value": 2002233273518.0,
+            "normalized_unit": "KRW",
+        }
+        negative_expected = {
+            "label": "유형자산의 취득",
+            "period": "2023",
+            "raw_value": "(640,623,697,250)",
+            "raw_unit": "원",
+        }
+        negative_actual = {
+            "label": "2023 유형자산의 취득",
+            "period": "2023",
+            "raw_value": "(640,623,697,250)",
+            "raw_unit": "원",
+            "normalized_value": -640623697250.0,
+            "normalized_unit": "KRW",
+        }
+
+        self.assertTrue(_operand_matches(expected, actual))
+        self.assertTrue(_operand_matches(negative_expected, negative_actual))
 
 
 if __name__ == "__main__":

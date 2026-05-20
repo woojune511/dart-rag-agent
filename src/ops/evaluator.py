@@ -422,8 +422,13 @@ def _parse_number(value: str) -> Optional[float]:
     cleaned = str(value or "").replace(",", "").strip()
     if not cleaned:
         return None
+    sign = 1.0
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        sign = -1.0
+        cleaned = cleaned[1:-1].strip()
+    cleaned = cleaned.replace("−", "-").replace("—", "-")
     try:
-        return float(cleaned)
+        return sign * float(cleaned)
     except ValueError:
         return None
 
@@ -462,6 +467,7 @@ def _normalise_math_operand_value(raw_value: str, raw_unit: str) -> Tuple[Option
         "천원": 1_000.0,
         "백만원": 1_000_000.0,
         "억원": 100_000_000.0,
+        "십억원": 1_000_000_000.0,
         "조원": 1_0000_0000_0000.0,
     }
     usd_scale = {
@@ -514,9 +520,9 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
     occupied_spans: List[Tuple[int, int]] = []
 
     composite_currency_patterns = [
-        re.compile(r"(?P<jo>[\d,]+)\s*조\s*(?P<eok>[\d,]+)\s*억\s*원?"),
-        re.compile(r"(?P<jo>[\d,]+)\s*조\s*(?P<eok>[\d,]+)\s*억원"),
-        re.compile(r"(?P<jo>[\d,]+)\s*조원"),
+        re.compile(r"(?P<sign>\()?((?P<jo>[\d,]+)\s*조\s*(?P<eok>[\d,]+)\s*억\s*원?)(?(sign)\))"),
+        re.compile(r"(?P<sign>\()?((?P<jo>[\d,]+)\s*조\s*(?P<eok>[\d,]+)\s*억원)(?(sign)\))"),
+        re.compile(r"(?P<sign>\()?((?P<jo>[\d,]+)\s*조원)(?(sign)\))"),
     ]
     for pattern in composite_currency_patterns:
         for match in pattern.finditer(text):
@@ -527,7 +533,8 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
             eok_value = _parse_number(match.groupdict().get("eok") or "0")
             if jo_value is None:
                 continue
-            normalized_value = jo_value * 1_0000_0000_0000 + (eok_value or 0.0) * 100_000_000
+            sign = -1.0 if match.groupdict().get("sign") else 1.0
+            normalized_value = sign * (jo_value * 1_0000_0000_0000 + (eok_value or 0.0) * 100_000_000)
             candidates.append(
                 _build_numeric_candidate(
                     value_text=match.group(0),
@@ -541,15 +548,16 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
             occupied_spans.append((start, end))
 
     generic_patterns = [
-        (re.compile(r"(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>백만원|억원|천원|원)"), "currency"),
-        (re.compile(r"(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>%|퍼센트)"), "percent"),
-        (re.compile(r"(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>개|곳|명)"), "count"),
+        (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>십억원|백만원|억원|천원|원)"), "currency"),
+        (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>%|퍼센트)"), "percent"),
+        (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>개|곳|명)"), "count"),
     ]
     currency_scale = {
         "원": 1.0,
         "천원": 1_000.0,
         "백만원": 1_000_000.0,
         "억원": 100_000_000.0,
+        "십억원": 1_000_000_000.0,
     }
 
     for pattern, kind in generic_patterns:
@@ -586,6 +594,8 @@ def _currency_display_step(candidate: Dict[str, Any]) -> float:
     unit_text = str(candidate.get("unit_text") or "")
     normalized = re.sub(r"\s+", "", f"{value_text}{unit_text}")
 
+    if "십억원" in normalized:
+        return 1_000_000_000.0
     if "조" in normalized or "억" in normalized:
         return 100_000_000.0
     if "백만원" in normalized:
@@ -758,7 +768,7 @@ def _extract_unitless_number_candidates(text: str, kind: str) -> List[Dict[str, 
         "백만원": 1_000_000.0,
         "억원": 100_000_000.0,
     }
-    for match in re.finditer(r"(?<![\d,])(?P<value>\d[\d,]*(?:\.\d+)?)(?!\s*(?:조|억|원|천원|백만원|억원|%|퍼센트))", text):
+    for match in re.finditer(r"(?<![\d,])(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)(?!\s*(?:조|억|원|천원|백만원|십억원|억원|%|퍼센트))", text):
         raw_value = _parse_number(match.group("value"))
         if raw_value is None:
             continue
@@ -1710,8 +1720,26 @@ def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
     if expected_value is not None and actual_value is not None:
         if expected_unit and actual_unit and expected_unit != actual_unit:
             return False
-        denominator = max(abs(expected_value), 1.0)
-        if abs(actual_value - expected_value) / denominator > 1e-4:
+        expected_candidate = {
+            "kind": "percent" if expected_unit == "PERCENT" else "currency" if expected_unit == "KRW" else "generic",
+            "value_text": str(expected.get("raw_value") or expected_value),
+            "unit_text": str(expected.get("raw_unit") or expected.get("normalized_unit") or ""),
+            "normalized_value": expected_value,
+        }
+        actual_candidate = {
+            "kind": "percent" if actual_unit == "PERCENT" else "currency" if actual_unit == "KRW" else "generic",
+            "value_text": str(actual.get("raw_value") or actual_value),
+            "unit_text": str(actual.get("raw_unit") or actual.get("normalized_unit") or ""),
+            "normalized_value": actual_value,
+        }
+        if expected_candidate["kind"] == actual_candidate["kind"] and expected_candidate["kind"] in {"currency", "percent"}:
+            if not _numeric_values_equivalent(expected_candidate, actual_candidate):
+                return False
+        else:
+            denominator = max(abs(expected_value), 1.0)
+            if abs(actual_value - expected_value) / denominator > 1e-3:
+                return False
+        if expected_unit and actual_unit and expected_unit != actual_unit:
             return False
         if label_match:
             return True

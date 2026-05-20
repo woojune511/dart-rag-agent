@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from langchain_core.documents import Document
 
@@ -30,6 +31,9 @@ class _StubStructuredLLM:
     def __init__(self, response):
         self._response = response
 
+    def __call__(self, _prompt_value):
+        return self._response
+
     def invoke(self, _prompt_value):
         return self._response
 
@@ -40,6 +44,19 @@ class _StubLLM:
 
     def with_structured_output(self, _schema):
         return _StubStructuredLLM(self._response)
+
+
+class _FailingStructuredLLM:
+    def __call__(self, _prompt_value):
+        raise RuntimeError("structured output disabled for test")
+
+    def invoke(self, _prompt_value):
+        raise RuntimeError("structured output disabled for test")
+
+
+class _FailingLLM:
+    def with_structured_output(self, _schema):
+        return _FailingStructuredLLM()
 
 
 class OperationContractTests(unittest.TestCase):
@@ -290,6 +307,100 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(slots["current_value"]["rendered_value"], "2조 22억원")
         self.assertEqual(slots["prior_value"]["rendered_value"], "-6,406억원")
         self.assertEqual(slots["delta_value"]["rendered_value"], "1조 3,616억원")
+
+    def test_rendered_subtraction_answer_rewrites_double_negative_subtrahend(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            SimpleNamespace(
+                final_answer="2023년 연결기준 잉여현금흐름(FCF)은 1조 3,616억원입니다. 이는 2023년 영업활동현금흐름 2조 22억원에서 2023년 유형자산의 취득 -6,406억원을 차감하여 계산된 결과입니다."
+            )
+        )
+        state = {
+            "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+            "calculation_plan": {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "subtract",
+                "ordered_operand_ids": ["op_001", "op_002"],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "op_001"},
+                    {"variable": "B", "operand_id": "op_002"},
+                ],
+                "formula": "A + B",
+                "pairwise_formula": "",
+                "result_unit": "",
+                "operation_text": "영업활동현금흐름 + 유형자산의 취득",
+                "explanation": "sign-aware subtraction",
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_001",
+                    "label": "2023 영업활동현금흐름",
+                    "raw_value": "2,002,233,273,518",
+                    "raw_unit": "원",
+                    "normalized_value": 2002233273518.0,
+                    "normalized_unit": "KRW",
+                    "matched_operand_role": "minuend",
+                },
+                {
+                    "operand_id": "op_002",
+                    "label": "2023 유형자산의 취득",
+                    "raw_value": "(640,623,697,250)",
+                    "raw_unit": "원",
+                    "normalized_value": -640623697250.0,
+                    "normalized_unit": "KRW",
+                    "matched_operand_role": "subtrahend",
+                },
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 1361609576268.0,
+                "result_unit": "KRW",
+                "rendered_value": "1조 3,616억원",
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "role": "minuend",
+                                "label": "2023 영업활동현금흐름",
+                                "concept": "operating_cash_flow",
+                                "period": "2023",
+                                "raw_value": "2,002,233,273,518",
+                                "raw_unit": "원",
+                                "normalized_value": 2002233273518.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2조 22억원",
+                                "source_row_id": "cf_2023",
+                                "source_row_ids": ["cf_2023"],
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "role": "subtrahend",
+                                "label": "2023 유형자산의 취득",
+                                "concept": "property_plant_equipment_acquisition",
+                                "period": "2023",
+                                "raw_value": "(640,623,697,250)",
+                                "raw_unit": "원",
+                                "normalized_value": -640623697250.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "-6,406억원",
+                                "source_row_id": "ppe_2023",
+                                "source_row_ids": ["ppe_2023"],
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+
+        rendered = agent._render_calculation_answer(state)
+
+        self.assertIn("6,406억원을 차감", rendered["answer"])
+        self.assertNotIn("-6,406억원을 차감", rendered["answer"])
 
     def test_difference_result_exposes_structured_value_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

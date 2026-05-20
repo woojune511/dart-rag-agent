@@ -214,6 +214,10 @@
   - `SKH_T1_060`: PASS
   - `MIX_T1_021`: PASS
   - `KBF_T1_017`: PASS
+  - `NAV_T1_030`: PASS
+    - FCF는 deterministic `subtract` plan으로 계산
+    - evaluator는 괄호 음수 operand와 display-scaled KRW operand를 같은 grounded subtraction trace로 인정
+    - final rendering은 `유형자산의 취득 6,406억원을 차감`처럼 sign-aware phrasing으로 정리
 
 주의:
 

@@ -66,6 +66,11 @@
     - `lookup`은 `명목순이자마진(NIM)` canonical row를 직접 바인딩
     - `difference`는 같은 structured row 안의 distinct `2023 / 2022` cell pair를 사용
     - evaluator는 unitless structured percent row와 operand alias mismatch를 허용해 `numeric_retrieval_support = 1.0`, `operand_selection_correctness = 1.0`으로 복구
+  - `NAV_T1_030`도 now closed:
+    - FCF는 deterministic `subtract` plan으로 유지된다
+    - 괄호 음수 outflow row는 runtime과 evaluator에서 같은 operand로 해석된다
+    - final rendering은 `-X를 차감` 같은 이중 음수 표현을 남기지 않는다
+    - `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`, `numeric_final_judgement = PASS`
 
 ## 현재 핵심 한계
 
@@ -74,6 +79,7 @@
 - concept-only planner는 single-metric / group concept / multi-metric 분해 품질이 좋아졌지만, 모든 numeric family에서 runtime default로 올리기엔 아직 canary가 더 필요하다.
 - `difference` / `lookup` / `ratio` 결과를 더 구조적으로 남기는 result schema 정리는 여전히 필요하다.
 - 다만 이제 `answer_slots`가 공통 contract로 들어와, single-task와 multi-subtask가 같은 structured result vocabulary를 공유하기 시작했다.
+- compositional subtraction(`minuend/subtrahend`)도 같은 contract 안에서 닫히기 시작했지만, evaluator와 tooling 일부는 아직 legacy flat projection을 병행 참조한다.
 - final refusal ownership은 `aggregate_subtasks`로 올라왔고, `NAV_T1_071`를 통해 `planner_feedback -> replan / close` 루프의 최소 실전 검증은 끝났다.
 - direct-first runtime policy는 `NAV_T1_071`에서 닫혔고, 이제 `ratio / sum`처럼 explicit concept numeric task까지 direct grounding 대상으로 확대됐다.
 - percent multi-period rows도 별도 metric hardcoding 없이 shared pair-selection / evaluator contract로 닫히기 시작했다.

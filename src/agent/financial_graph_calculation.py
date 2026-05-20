@@ -1140,6 +1140,72 @@ Ontology Context:
             return f"{rendered}{display_unit}"
         return rendered
 
+    def _absolute_display_value(self, value: str) -> str:
+        text = str(value or "").strip()
+        if text.startswith("-"):
+            return text[1:].strip()
+        if text.startswith("(") and text.endswith(")"):
+            return text[1:-1].strip()
+        return text
+
+    def _collect_negative_subtrahend_slots(
+        self,
+        *,
+        calculation_result: Optional[Dict[str, Any]] = None,
+        subtask_results: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, str]]:
+        rows: List[Dict[str, str]] = []
+
+        def _push_from_answer_slots(answer_slots: Dict[str, Any]) -> None:
+            components = dict(answer_slots.get("components_by_role") or {})
+            for slot in list(components.get("subtrahend") or []):
+                rendered = str(slot.get("rendered_value") or "").strip()
+                positive = self._absolute_display_value(rendered)
+                if not rendered or rendered == positive:
+                    continue
+                rows.append(
+                    {
+                        "label": _display_operand_label(str(slot.get("label") or "")),
+                        "negative": rendered,
+                        "positive": positive,
+                    }
+                )
+
+        if calculation_result:
+            _push_from_answer_slots(dict((calculation_result or {}).get("answer_slots") or {}))
+        for row in list(subtask_results or []):
+            _push_from_answer_slots(dict(row.get("answer_slots") or {}))
+            _push_from_answer_slots(dict((row.get("calculation_result") or {}).get("answer_slots") or {}))
+        return rows
+
+    def _coerce_sign_aware_subtraction_answer(
+        self,
+        answer: str,
+        *,
+        calculation_result: Optional[Dict[str, Any]] = None,
+        subtask_results: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        rewritten = str(answer or "")
+        for row in self._collect_negative_subtrahend_slots(
+            calculation_result=calculation_result,
+            subtask_results=subtask_results,
+        ):
+            label = str(row.get("label") or "").strip()
+            negative = str(row.get("negative") or "").strip()
+            positive = str(row.get("positive") or "").strip()
+            if not negative or not positive or negative == positive:
+                continue
+            replacements = [
+                (f"{label} {negative}", f"{label} {positive}"),
+                (f"{negative}을 차감", f"{positive}을 차감"),
+                (f"{negative}를 차감", f"{positive}를 차감"),
+                (f"{negative} 만큼 차감", f"{positive} 만큼 차감"),
+                (f"{negative}만큼 차감", f"{positive}만큼 차감"),
+            ]
+            for source, target in replacements:
+                rewritten = rewritten.replace(source, target)
+        return _normalise_spaces(rewritten)
+
     def _slot_status(
         self,
         *,
@@ -1850,6 +1916,11 @@ Operands:
             if not answer:
                 answer = "질문에 필요한 수치를 계산했지만 자연어 답변을 생성하지 못했습니다."
 
+        answer = self._coerce_sign_aware_subtraction_answer(
+            answer,
+            calculation_result=calculation_result,
+        )
+
         calculation_result["formatted_result"] = answer
         return {
             "answer": answer,
@@ -1950,6 +2021,10 @@ Operands:
             final_answer = _normalise_spaces(verified.final_answer)
             if verdict == "fallback" or not final_answer:
                 final_answer = deterministic_fallback or answer
+            final_answer = self._coerce_sign_aware_subtraction_answer(
+                final_answer,
+                calculation_result=calculation_result,
+            )
             calculation_result["formatted_result"] = final_answer
             debug_trace = dict(state.get("calculation_debug_trace") or {})
             debug_trace["verification"] = {
@@ -2122,6 +2197,11 @@ Subtask Results JSON:
                 planner_feedback = _normalise_spaces(str(synthesized.planner_feedback or ""))
             except Exception as exc:
                 logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
+        final_answer = self._coerce_sign_aware_subtraction_answer(
+            final_answer,
+            calculation_result=dict(state.get("calculation_result") or {}),
+            subtask_results=ordered_results,
+        )
         if deterministic_feedback and not planner_feedback:
             planner_feedback = deterministic_feedback
         should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops
