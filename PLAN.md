@@ -215,3 +215,72 @@
 - external/public contract cleanup is effectively complete.
 - remaining `calculation_*` fields are now internal compatibility mirrors /
   scratch state, not runtime source of truth.
+
+## Runtime contract gate
+
+## 2026-05-21 Multi-entity grounding gate
+
+- `comparison_001`, `comparison_002`, `comparison_003` now form the focused
+  multi-entity / segment-grounding smoke set.
+- Official profile:
+  - `benchmarks/profiles/curated_multi_entity_grounding_gate.json`
+- Official runbook:
+  - `docs/evaluation/multi_entity_grounding_gate.md`
+- Current direct runtime validation closes all three:
+  - `comparison_001`: `DX = 174조 8,877억원`, `DS = 111조 660억원`, `차이 = 63조 8,217억원`
+  - `comparison_002`: `SDC = 29조 1,578억원`, `Harman = 14조 2,749억원`, `합계 = 43조 4,327억원`
+  - `comparison_003`: `DS = 111조 660억원`, `SDC = 29조 1,578억원`, `차이 = 81조 9,082억원`
+- The key planner/runtime change was generalizing repeated-concept multi-entity
+  grounding beyond `sum`:
+  - entity/segment labels are now reattached to repeated `revenue` operands for
+    `difference` as well as `sum`
+  - deterministic concept fallback can now build entity-scoped `difference`
+    tasks even when ontology concept matching only yields a generic `revenue`
+    concept
+
+- official curated smoke profile:
+  - `benchmarks/profiles/curated_runtime_contract_gate.json`
+- current canonical gate question set:
+  - `NAV_T1_030`
+  - `NAV_T1_071`
+  - `MIX_T1_021`
+  - `KBF_T1_017`
+  - `SKH_T1_060`
+- intent:
+  - use this as the preferred runtime-contract smoke before promoting mainline curated-profile changes
+  - keep `allow_retrieval_fallback = false` so gate comparisons stay backend-stable
+  - canonical runbook lives at `docs/evaluation/runtime_contract_gate.md`
+
+## 2026-05-20 Runtime gate procedure
+
+- Treat `benchmarks/profiles/curated_runtime_contract_gate.json` as the required
+  smoke suite before changing the curated mainline benchmark profile or
+  promoting runtime-contract related planner/grounding changes.
+- Current official gate questions:
+  - `NAV_T1_030`
+  - `NAV_T1_071`
+  - `MIX_T1_021`
+  - `KBF_T1_017`
+  - `SKH_T1_060`
+- Execution policy:
+  - keep `allow_retrieval_fallback = false`
+  - treat any store-signature mismatch as cache miss / reindex, not reuse
+  - record backend identity in `benchmark_cache_meta.json`
+
+## 2026-05-20 Multi-entity comparison status
+
+- `comparison_002` should now be treated as the active multi-entity grounding
+  canary.
+- The failure mode was:
+  - two repeated `revenue` addends collapsing onto the same company-total row
+  - LLM concept planner preserving operation shape (`sum`) but dropping segment
+    identity (`SDC`, `Harman`)
+- Runtime fix now in place:
+  - segment-scoped direct grounding rejects candidates that do not match the
+    operand `segment_label`
+  - LLM concept planner conversion rehydrates segment labels from the original
+    query / metric label when repeated `revenue` addends are used
+- Latest direct runtime check on the Samsung 2024 selective store now closes:
+  - `SDC 매출액 = 29조 1,578억원`
+  - `Harman 매출액 = 14조 2,749억원`
+  - `합계 = 43조 4,327억원`

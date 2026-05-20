@@ -19,6 +19,8 @@ from src.agent.financial_graph import (
     _missing_required_operands,
     _parse_unstructured_table_row_cells,
 )
+from src.agent.financial_graph_helpers import _extract_segment_labels_from_query
+from src.agent.financial_graph_planning import _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
 
 
@@ -700,13 +702,67 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(
             [(row["label"], row["role"], row["concept"]) for row in result["calc_subtasks"][0]["required_operands"]],
             [
-                ("매출액", "addend_1", "revenue"),
-                ("매출액", "addend_2", "revenue"),
+                ("SDC 매출액", "addend_1", "revenue"),
+                ("Harman 매출액", "addend_2", "revenue"),
             ],
+        )
+        self.assertEqual(
+            [dict(row.get("binding_policy") or {}).get("segment_label") for row in result["calc_subtasks"][0]["required_operands"]],
+            ["SDC", "Harman"],
         )
         self.assertEqual(result["companies"], ["삼성전자"])
         self.assertEqual(result["years"], [2024])
         self.assertEqual(result["section_filter"], "영업부문")
+
+    def test_llm_concept_planner_rehydrates_segment_lookup_operand(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "companies": ["삼성전자"],
+                    "years": [2024],
+                    "topic": "SDC 부문 매출액",
+                    "section_filter": "영업부문",
+                    "tasks": [
+                        {
+                            "metric_label": "SDC 부문 매출액",
+                            "operation_family": "lookup",
+                            "operands": [
+                                {"concept": "revenue", "role": ""}
+                            ],
+                        }
+                    ],
+                    "rationale": "SDC 부문 매출액을 조회한다.",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+                    "intent": "comparison",
+                    "query_type": "comparison",
+                    "topic": "SDC 부문 매출액",
+                    "report_scope": {"company": "삼성전자", "year": 2024, "report_type": "사업보고서", "consolidation": "연결"},
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        operand = result["calc_subtasks"][0]["required_operands"][0]
+        self.assertEqual(operand["label"], "SDC 매출액")
+        self.assertEqual(dict(operand.get("binding_policy") or {}).get("segment_label"), "SDC")
 
     def test_replan_mode_appends_patch_tasks_without_overwriting_existing_plan(self) -> None:
         import src.config.ontology as ontology_module
@@ -1034,6 +1090,150 @@ class SemanticNumericPlanTests(unittest.TestCase):
             )
         )
 
+
+    def test_extract_segment_labels_from_query_captures_mixed_segment_and_plain_metric_mentions(self) -> None:
+        labels = _extract_segment_labels_from_query(
+            "Samsung 2024 report에서 DS 부문 매출은 SDC 매출보다 얼마나 더 큰가요?",
+            {"company": "Samsung", "year": 2024, "report_type": "report"},
+        )
+        self.assertEqual(labels, ["DS", "SDC"])
+
+    def test_llm_concept_planner_rehydrates_segment_difference_operands(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "companies": ["Samsung"],
+                    "years": [2024],
+                    "topic": "DX와 DS 부문 매출 차이",
+                    "section_filter": "영업부문",
+                    "tasks": [
+                        {
+                            "metric_label": "DX와 DS 부문 매출 차이",
+                            "operation_family": "difference",
+                            "operands": [
+                                {"concept": "revenue", "role": "minuend"},
+                                {"concept": "revenue", "role": "subtrahend"},
+                            ],
+                        }
+                    ],
+                    "rationale": "DX와 DS 부문 매출 차이를 revenue difference로 해석한다.",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "Samsung 2024 report에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                    "intent": "comparison",
+                    "query_type": "comparison",
+                    "topic": "DX와 DS 부문 매출 차이",
+                    "report_scope": {"company": "Samsung", "year": 2024, "report_type": "report", "consolidation": "연결"},
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        operands = result["calc_subtasks"][0]["required_operands"]
+        self.assertEqual(
+            [(row["label"], row["role"]) for row in operands],
+            [("DX 매출액", "minuend"), ("DS 매출액", "subtrahend")],
+        )
+        self.assertEqual(
+            [dict(row.get("binding_policy") or {}).get("segment_label") for row in operands],
+            ["DX", "DS"],
+        )
+
+    def test_entity_scoped_difference_query_builds_concept_task_without_metric_family_hint(self) -> None:
+        plan = _build_semantic_numeric_plan(
+            query="Samsung 2024 report에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+            topic="DX와 DS 부문 매출 차이",
+            intent="comparison",
+            report_scope={"company": "Samsung", "year": 2024, "report_type": "report"},
+            target_metric_family="",
+        )
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_difference")
+        self.assertEqual(task["operation_family"], "difference")
+        self.assertEqual(
+            [(row["label"], row["role"], dict(row.get("binding_policy") or {}).get("segment_label")) for row in task["required_operands"]],
+            [("DX 매출액", "minuend", "DX"), ("DS 매출액", "subtrahend", "DS")],
+        )
+
+    def test_entity_scoped_difference_query_with_mixed_mentions_builds_concept_task(self) -> None:
+        plan = _build_semantic_numeric_plan(
+            query="Samsung 2024 report에서 DS 부문 매출은 SDC 매출보다 얼마나 더 큰가요?",
+            topic="DS 부문 매출과 SDC 매출 차이",
+            intent="comparison",
+            report_scope={"company": "Samsung", "year": 2024, "report_type": "report"},
+            target_metric_family="",
+        )
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_difference")
+        self.assertEqual(task["operation_family"], "difference")
+        self.assertEqual(
+            [(row["label"], row["role"], dict(row.get("binding_policy") or {}).get("segment_label")) for row in task["required_operands"]],
+            [("DS 매출액", "minuend", "DS"), ("SDC 매출액", "subtrahend", "SDC")],
+        )
+
+    def test_segment_sum_llm_override_is_rejected_when_shape_degrades(self) -> None:
+        base_plan = {
+            "status": "concept_fallback",
+            "tasks": [
+                {
+                    "metric_family": "concept_sum",
+                    "operation_family": "sum",
+                    "constraints": {"segment_scope": "segment"},
+                    "required_operands": [
+                        {"label": "SDC 매출액", "role": "addend_1", "concept": "revenue"},
+                        {"label": "Harman 매출액", "role": "addend_2", "concept": "revenue"},
+                    ],
+                }
+            ],
+        }
+        degraded_llm_plan = {
+            "status": "concept_fallback",
+            "tasks": [
+                {
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "constraints": {"segment_scope": "segment"},
+                    "required_operands": [
+                        {"label": "연구개발비용", "role": "", "concept": "research_and_development_expense"},
+                    ],
+                }
+            ],
+        }
+        preserved_llm_plan = {
+            "status": "concept_fallback",
+            "tasks": [
+                {
+                    "metric_family": "concept_sum",
+                    "operation_family": "sum",
+                    "constraints": {"segment_scope": "segment"},
+                    "required_operands": [
+                        {"label": "매출액", "role": "addend_1", "concept": "revenue"},
+                        {"label": "매출액", "role": "addend_2", "concept": "revenue"},
+                    ],
+                }
+            ],
+        }
+
+        self.assertFalse(_llm_plan_preserves_segment_sum_shape(base_plan, degraded_llm_plan))
+        self.assertTrue(_llm_plan_preserves_segment_sum_shape(base_plan, preserved_llm_plan))
 
 if __name__ == "__main__":
     unittest.main()

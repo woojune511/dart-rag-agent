@@ -941,5 +941,194 @@ class ReconciliationPlanTests(unittest.TestCase):
         )
 
 
+    def test_segment_scoped_sum_prefers_segment_revenue_row_over_company_total_row(self) -> None:
+        operand = {
+            "label": "SDC 매출액",
+            "concept": "revenue",
+            "aliases": ["SDC", "매출액"],
+            "role": "addend_1",
+            "required": True,
+            "binding_policy": {
+                "segment_label": "SDC",
+                "prefer_consolidation_scope": "consolidated",
+                "prefer_period_focus": "current",
+            },
+            "preferred_statement_types": ["notes", "mda", "summary_financials"],
+        }
+        segment_candidate = {
+            "candidate_id": "segment_sdc_revenue",
+            "candidate_kind": "structured_value",
+            "text": "SDC | 매출액 | 25,000,000",
+            "metadata": {
+                "row_label": "SDC",
+                "semantic_label": "SDC 매출액",
+                "semantic_aliases": ["SDC", "매출액"],
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "II. 사업의 내용 > 매출 및 수주상황",
+                "period_focus": "current",
+                "period_labels": ["2024"],
+                "table_source_id": "segment_table",
+                "structured_cells": [
+                    {"column_headers": ["2024", "매출액"], "value_text": "25,000,000", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        total_candidate = {
+            "candidate_id": "company_total_revenue",
+            "candidate_kind": "structured_value",
+            "text": "매출액 300,870,903",
+            "metadata": {
+                "row_label": "매출액",
+                "semantic_label": "매출액",
+                "semantic_aliases": ["Revenue", "매출"],
+                "statement_type": "summary_financials",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                "period_focus": "current",
+                "period_labels": ["2024"],
+                "table_source_id": "summary_revenue_table",
+                "structured_cells": [
+                    {"column_headers": ["2024"], "value_text": "300,870,903", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        segment_score = _score_operand_candidate(
+            segment_candidate,
+            operand=operand,
+            preferred_statement_types=["notes", "mda", "summary_financials"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
+            query_years=[2024],
+        )
+        total_score = _score_operand_candidate(
+            total_candidate,
+            operand=operand,
+            preferred_statement_types=["notes", "mda", "summary_financials"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
+            query_years=[2024],
+        )
+
+        self.assertGreater(segment_score, total_score)
+        self.assertTrue(
+            _candidate_is_direct_grounding_candidate(
+                segment_candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
+                query_years=[2024],
+                operation_family="sum",
+            )
+        )
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                total_candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
+                query_years=[2024],
+                operation_family="sum",
+            )
+        )
+
+    def test_segment_sum_reconcile_splits_sdc_and_harman_addends(self) -> None:
+        active_subtask = {
+            "task_id": "task_sum_segments",
+            "metric_family": "concept_sum",
+            "metric_label": "SDC와 Harman 부문 매출 합계",
+            "query": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+            "operation_family": "sum",
+            "required_operands": [
+                {
+                    "label": "SDC 매출액",
+                    "aliases": ["SDC", "매출액"],
+                    "concept": "revenue",
+                    "role": "addend_1",
+                    "required": True,
+                    "binding_policy": {"segment_label": "SDC", "prefer_consolidation_scope": "consolidated"},
+                },
+                {
+                    "label": "Harman 매출액",
+                    "aliases": ["Harman", "매출액"],
+                    "concept": "revenue",
+                    "role": "addend_2",
+                    "required": True,
+                    "binding_policy": {"segment_label": "Harman", "prefer_consolidation_scope": "consolidated"},
+                },
+            ],
+            "preferred_statement_types": ["notes", "mda", "summary_financials"],
+            "constraints": {
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "entity_scope": "company",
+                "segment_scope": "segment",
+            },
+        }
+        candidates = [
+            {
+                "candidate_id": "company_total_revenue",
+                "candidate_kind": "structured_value",
+                "text": "매출액 300,870,903",
+                "metadata": {
+                    "row_label": "매출액",
+                    "semantic_label": "매출액",
+                    "statement_type": "summary_financials",
+                    "consolidation_scope": "consolidated",
+                    "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+                    "period_focus": "current",
+                    "period_labels": ["2024"],
+                    "table_source_id": "summary_revenue_table",
+                    "structured_cells": [{"column_headers": ["2024"], "value_text": "300,870,903", "unit_hint": "백만원"}],
+                },
+            },
+            {
+                "candidate_id": "segment_sdc_revenue",
+                "candidate_kind": "structured_value",
+                "text": "SDC | 매출액 | 24,200,000",
+                "metadata": {
+                    "row_label": "SDC",
+                    "semantic_label": "SDC 매출액",
+                    "semantic_aliases": ["SDC", "매출액"],
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "section_path": "II. 사업의 내용 > 매출 및 수주상황",
+                    "period_focus": "current",
+                    "period_labels": ["2024"],
+                    "table_source_id": "segment_revenue_table",
+                    "structured_cells": [{"column_headers": ["2024", "매출액"], "value_text": "24,200,000", "unit_hint": "백만원"}],
+                },
+            },
+            {
+                "candidate_id": "segment_harman_revenue",
+                "candidate_kind": "structured_value",
+                "text": "Harman | 매출액 | 19,232,700",
+                "metadata": {
+                    "row_label": "Harman",
+                    "semantic_label": "Harman 매출액",
+                    "semantic_aliases": ["Harman", "매출액"],
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "section_path": "II. 사업의 내용 > 매출 및 수주상황",
+                    "period_focus": "current",
+                    "period_labels": ["2024"],
+                    "table_source_id": "segment_revenue_table",
+                    "structured_cells": [{"column_headers": ["2024", "매출액"], "value_text": "19,232,700", "unit_hint": "백만원"}],
+                },
+            },
+        ]
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=candidates,
+            years=[2024],
+            reconciliation_retry_count=0,
+        )
+
+        self.assertEqual(result["status"], "ready")
+        match_map = {
+            (item["label"], item["role"]): item["candidate_ids"][0]
+            for item in result["matched_operands"]
+        }
+        self.assertEqual(match_map[("SDC 매출액", "addend_1")], "segment_sdc_revenue")
+        self.assertEqual(match_map[("Harman 매출액", "addend_2")], "segment_harman_revenue")
+
 if __name__ == "__main__":
     unittest.main()

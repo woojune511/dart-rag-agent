@@ -99,3 +99,43 @@
   - immediate next fix:
     - split evaluator treatment between period-delta `difference` and compositional subtraction `difference`
     - grade FCF-like metrics from `components_by_role(minuend/subtrahend)` rather than period-comparison expectations
+
+- 2026-05-20 runtime contract gate formalization
+  - official smoke profile added:
+    - `benchmarks/profiles/curated_runtime_contract_gate.json`
+  - current canonical gate subset:
+    - `NAV_T1_030`
+    - `NAV_T1_071`
+    - `MIX_T1_021`
+    - `KBF_T1_017`
+    - `SKH_T1_060`
+  - fresh runtime status:
+    - all 5 canaries are currently PASS
+  - benchmark policy:
+    - `allow_retrieval_fallback = false`
+    - use this gate before promoting mainline curated-profile changes
+
+- 2026-05-20 runtime gate procedure + comparison canary
+  - official runbook:
+    - `docs/evaluation/runtime_contract_gate.md`
+  - `comparison_002` is now the active multi-entity/segment grounding canary
+  - latest direct runtime validation closes with:
+    - `SDC 매출액 = 29조 1,578억원`
+    - `Harman 매출액 = 14조 2,749억원`
+    - `합계 = 43조 4,327억원`
+
+- 2026-05-21 multi-entity grounding gate
+  - official focused profile:
+    - `benchmarks/profiles/curated_multi_entity_grounding_gate.json`
+  - official runbook:
+    - `docs/evaluation/multi_entity_grounding_gate.md`
+  - official benchmark output:
+    - `benchmarks/results/multi_entity_grounding_gate_manual`
+  - current gate questions all PASS:
+    - `comparison_001`
+    - `comparison_002`
+    - `comparison_003`
+  - latest validated values:
+    - `comparison_001`: `DX = 174조 8,877억원`, `DS = 111조 660억원`, `차이 = 63조 8,217억원`
+    - `comparison_002`: `SDC = 29조 1,578억원`, `Harman = 14조 2,749억원`, `합계 = 43조 4,327억원`
+    - `comparison_003`: `DS = 111조 660억원`, `SDC = 29조 1,578억원`, `차이 = 81조 9,082억원`

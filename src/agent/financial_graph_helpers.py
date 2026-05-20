@@ -1507,6 +1507,8 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
         return "single_value"
 
     generic_operand_labels = _extract_generic_operand_labels(query)
+    if any(token in text for token in ("차이", "얼마나 더", "보다 얼마나", "더 큰가", "더 높은가", "더 많은가")):
+        return "difference"
     if _is_percent_point_difference_query(query):
         return "difference"
     if _is_single_metric_period_comparison(query, generic_operand_labels):
@@ -1733,24 +1735,9 @@ def _assign_ratio_roles_to_concepts(query: str, concept_specs: List[Dict[str, An
 
 def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any]) -> List[str]:
     text = _normalise_spaces(query)
-    if not text or not any(marker in text for marker in ("부문", "세그먼트", "segment")):
+    if not text:
         return []
 
-    segment_anchor = ""
-    for marker in ("부문의", "부문", "세그먼트의", "세그먼트", "segment"):
-        if marker in text:
-            segment_anchor = marker
-            break
-    if not segment_anchor:
-        return []
-
-    prefix = text.split(segment_anchor, 1)[0].strip()
-    for boundary in ("에서", "중", "내", ":"):
-        if boundary in prefix:
-            prefix = prefix.rsplit(boundary, 1)[-1].strip()
-    prefix = re.sub(r"\b20\d{2}\b", " ", prefix)
-
-    raw_parts = re.split(r"\s*(?:와|과|및|,|/|·|\+)\s*", prefix)
     blocked_tokens = {
         str(report_scope.get("company") or "").strip(),
         str(report_scope.get("report_type") or "").strip(),
@@ -1759,17 +1746,59 @@ def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any])
         "분기보고서",
         "연결",
         "별도",
+        "매출",
+        "부문",
+        "세그먼트",
+        "segment",
     }
-    labels: List[str] = []
-    for part in raw_parts:
-        normalized = _normalise_spaces(part)
-        if not normalized or normalized in blocked_tokens:
-            continue
+
+    def _valid_label(label: str) -> str:
+        normalized = _normalise_spaces(label)
+        if not normalized:
+            return ""
+        if normalized in blocked_tokens:
+            return ""
+        if "부문" in normalized or "세그먼트" in normalized:
+            return ""
         if any(token in normalized for token in ("사업보고서", "반기보고서", "분기보고서")):
-            continue
+            return ""
+        if re.fullmatch(r"20\d{2}", normalized):
+            return ""
         if len(normalized) > 40:
-            continue
-        labels.append(normalized)
+            return ""
+        return normalized
+
+    labels: List[str] = []
+
+    if any(marker in text for marker in ("부문", "세그먼트", "segment")):
+        segment_anchor = ""
+        for marker in ("부문의", "부문", "세그먼트의", "세그먼트", "segment"):
+            if marker in text:
+                segment_anchor = marker
+                break
+        if segment_anchor:
+            prefix = text.split(segment_anchor, 1)[0].strip()
+            for boundary in ("에서", "중", "내", ":"):
+                if boundary in prefix:
+                    prefix = prefix.rsplit(boundary, 1)[-1].strip()
+            prefix = re.sub(r"\b20\d{2}\b", " ", prefix)
+            raw_parts = re.split(r"\s*(?:와|과|및|,|/|·|\+)\s*", prefix)
+            for part in raw_parts:
+                normalized = _valid_label(part)
+                if normalized:
+                    labels.append(normalized)
+
+    token_patterns = (
+        r"([A-Za-z0-9가-힣&/\-]{1,20})\s*부문",
+        r"([A-Za-z0-9가-힣&/\-]{1,20})\s*세그먼트",
+        r"([A-Za-z0-9가-힣&/\-]{1,20})\s*매출",
+    )
+    for pattern in token_patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            normalized = _valid_label(match.group(1))
+            if normalized:
+                labels.append(normalized)
+
     return list(dict.fromkeys(label for label in labels if label))
 
 
@@ -1934,6 +1963,8 @@ def _build_concept_metric_label(
     if operation_family == "sum" and labels:
         return f"{' + '.join(labels)} 합계"
     if operation_family == "difference" and labels:
+        if len(labels) >= 2:
+            return f"{labels[0]}과 {labels[1]} 차이"
         return f"{labels[0]} 차이"
     if operation_family == "growth_rate" and labels:
         return f"{labels[0]} 증가율"
@@ -2022,6 +2053,53 @@ def _build_concept_numeric_task(
         "retrieval_queries": retrieval_queries,
         "constraints": constraints,
     }
+
+
+def _build_entity_scoped_concept_specs(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+    operation_family: str,
+) -> List[Dict[str, Any]]:
+    labels = _extract_segment_labels_from_query(query, report_scope)
+    if not labels:
+        return []
+    if operation_family in {"sum", "difference"} and len(labels) < 2:
+        return []
+
+    base_label = "매출액" if "매출" in _normalise_spaces(query) else _infer_generic_metric_label(query, "")
+    concept_spec = _infer_generic_concept_spec(base_label, ontology)
+    if not concept_spec:
+        return []
+
+    specs: List[Dict[str, Any]] = []
+    for index, label in enumerate(labels, start=1):
+        spec = dict(concept_spec)
+        spec["name"] = f"{label} {str(concept_spec.get('name') or base_label).strip()}".strip()
+        spec["aliases"] = list(
+            dict.fromkeys(
+                [
+                    spec["name"],
+                    label,
+                    str(concept_spec.get("name") or "").strip(),
+                    *(concept_spec.get("aliases") or []),
+                ]
+            )
+        )
+        binding_policy = dict(spec.get("binding_policy") or {})
+        binding_policy["segment_label"] = label
+        spec["binding_policy"] = binding_policy
+        if operation_family == "sum":
+            spec["role"] = f"addend_{index}"
+        elif operation_family == "difference":
+            spec["role"] = "minuend" if index == 1 else "subtrahend"
+        elif operation_family in {"lookup", "single_value"}:
+            spec["role"] = ""
+        specs.append(spec)
+        if operation_family == "difference" and len(specs) >= 2:
+            break
+    return specs
 
 
 def _build_heuristic_numeric_task(
@@ -2207,6 +2285,23 @@ def _build_semantic_numeric_plan(
     metric_keys: List[str] = []
     planner_notes: List[str] = []
     concept_specs = ontology.concept_specs(query, topic, intent)
+    operation_family = _infer_operation_family_from_query(query, ontology)
+    entity_scoped_specs = _build_entity_scoped_concept_specs(
+        query=query,
+        report_scope=report_scope,
+        ontology=ontology,
+        operation_family=operation_family,
+    )
+    if entity_scoped_specs and (
+        not concept_specs
+        or (
+            operation_family in {"sum", "difference"}
+            and len(concept_specs) == 1
+            and len(entity_scoped_specs) >= 2
+        )
+    ):
+        concept_specs = entity_scoped_specs
+        planner_notes.append("entity_scoped_concept_fallback")
     if not target_metric_family and concept_specs:
         concept_task = _build_concept_numeric_task(
             query=query,
@@ -3364,6 +3459,75 @@ def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     return any(needle in _BALANCE_SHEET_AGGREGATE_LABELS for needle in needles)
 
 
+def _operand_segment_label(operand: Dict[str, Any]) -> str:
+    binding_policy = dict(operand.get("binding_policy") or {})
+    return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
+
+
+def _candidate_segment_surfaces(candidate: Dict[str, Any]) -> List[str]:
+    metadata = dict(candidate.get("metadata") or {})
+    surfaces = [
+        str(metadata.get("semantic_label") or "").strip(),
+        str(metadata.get("row_label") or "").strip(),
+        str(metadata.get("aggregate_label") or "").strip(),
+        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
+        str(metadata.get("row_text") or "").strip(),
+        str(metadata.get("table_row_labels_text") or "").strip(),
+        str(metadata.get("table_context") or "").strip(),
+        str(metadata.get("table_summary_text") or "").strip(),
+        str(metadata.get("local_heading") or "").strip(),
+        str(metadata.get("section_path") or "").strip(),
+        str(candidate.get("text") or "").strip(),
+        str(candidate.get("source_anchor") or "").strip(),
+    ]
+    return [_normalise_spaces(surface) for surface in surfaces if _normalise_spaces(surface)]
+
+
+def _candidate_matches_segment_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    segment_label = _operand_segment_label(operand)
+    if not segment_label:
+        return True
+
+    normalized_segment = _normalise_spaces(segment_label)
+    compact_segment = re.sub(r"\s+", "", normalized_segment)
+    for surface in _candidate_segment_surfaces(candidate):
+        compact_surface = re.sub(r"\s+", "", surface)
+        if normalized_segment in surface or (compact_segment and compact_segment in compact_surface):
+            return True
+    return False
+
+
+def _candidate_segment_binding_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    constraints: Dict[str, Any],
+    statement_type: str,
+    local_heading: str,
+    section_path: str,
+) -> float:
+    segment_label = _operand_segment_label(operand)
+    if not segment_label:
+        return 0.0
+
+    score = 0.0
+    segment_scope = _normalise_spaces(str((constraints or {}).get("segment_scope") or "none"))
+    matches_segment = _candidate_matches_segment_binding(candidate, operand)
+    context_text = " ".join(part for part in (local_heading, section_path) if part)
+    if matches_segment:
+        score += 5.0
+        if any(token in context_text for token in ("매출 및 수주상황", "부문", "세그먼트", "segment")):
+            score += 1.5
+        if statement_type in {"notes", "mda"}:
+            score += 0.75
+    else:
+        score -= 4.5
+        if segment_scope == "segment" and statement_type in {"summary_financials", "income_statement", "balance_sheet"}:
+            score -= 1.5
+    return score
+
+
 def _candidate_source_priority_bonus(
     candidate: Dict[str, Any],
     *,
@@ -3518,6 +3682,8 @@ def _candidate_is_direct_grounding_candidate(
         desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or metadata.get("row_label") or ""))
     if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label):
+        return False
+    if not _candidate_matches_segment_binding(candidate, operand):
         return False
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
     row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
@@ -3789,6 +3955,14 @@ def _score_operand_candidate(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+    score += _candidate_segment_binding_bonus(
+        candidate,
+        operand=operand,
+        constraints=constraints,
+        statement_type=statement_type,
+        local_heading=local_heading,
+        section_path=section_path,
+    )
     if desired_consolidation != "unknown":
         if candidate_consolidation == desired_consolidation:
             score += 2.0

@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
+from src.agent.financial_graph_helpers import _extract_segment_labels_from_query
 from src.agent.financial_graph_models import (
     ConceptPlannerOutput,
     EntityExtraction,
@@ -26,6 +27,107 @@ from src.routing import default_format_preference
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
+
+def _llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
+    """Reject LLM overrides that destroy deterministic segment-sum structure."""
+    base_tasks = [dict(task) for task in (base_plan.get("tasks") or [])]
+    has_segment_sum = any(
+        str(task.get("operation_family") or "").strip().lower() == "sum"
+        and str((task.get("constraints") or {}).get("segment_scope") or "none").strip().lower() == "segment"
+        for task in base_tasks
+    )
+    if not has_segment_sum:
+        return True
+
+    llm_tasks = [dict(task) for task in (llm_plan.get("tasks") or [])]
+    for task in llm_tasks:
+        if str(task.get("operation_family") or "").strip().lower() != "sum":
+            continue
+        if str((task.get("constraints") or {}).get("segment_scope") or "none").strip().lower() != "segment":
+            continue
+        addend_roles = [
+            str(item.get("role") or "").strip()
+            for item in (task.get("required_operands") or [])
+            if str(item.get("role") or "").strip().startswith("addend_")
+        ]
+        if len(addend_roles) >= 2:
+            return True
+    return False
+
+
+def _attach_segment_label_to_resolved_spec(spec: Dict[str, Any], segment_label: str) -> Dict[str, Any]:
+    updated = dict(spec)
+    base_name = str(updated.get("name") or "").strip() or "매출액"
+    updated["name"] = f"{segment_label} {base_name}".strip()
+    aliases = list(updated.get("aliases") or [])
+    updated["aliases"] = list(dict.fromkeys([updated["name"], segment_label, base_name, *aliases]))
+    binding_policy = dict(updated.get("binding_policy") or {})
+    binding_policy["segment_label"] = segment_label
+    updated["binding_policy"] = binding_policy
+    return updated
+
+
+def _apply_segment_labels_to_llm_resolved_specs(
+    *,
+    query: str,
+    metric_label: str,
+    operation_family: str,
+    report_scope: Dict[str, Any],
+    resolved_specs: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Recover segment-scoped operand identity when the LLM only emits repeated concepts.
+
+    The structured planner often emits `revenue` twice for queries like
+    "SDC와 Harman 부문의 매출 합계". We keep the operation-family/role signal from
+    the LLM, but re-attach segment labels from the original query/metric label so
+    downstream grounding can distinguish SDC from Harman instead of binding the
+    same company-total row twice.
+    """
+    specs = [dict(spec) for spec in (resolved_specs or [])]
+    if not specs:
+        return specs
+
+    segment_labels = _extract_segment_labels_from_query(query, report_scope)
+    if not segment_labels:
+        return specs
+
+    metric_label_text = _normalise_spaces(metric_label)
+    segment_labels_lower = [_normalise_spaces(label).lower() for label in segment_labels]
+
+    repeated_same_concept = len({
+        str(spec.get("concept") or "").strip()
+        for spec in specs
+        if str(spec.get("concept") or "").strip()
+    }) == 1
+
+    if operation_family in {"sum", "difference"}:
+        roles = [str(spec.get("role") or "").strip() for spec in specs]
+        expected_role_prefix = "addend_" if operation_family == "sum" else ""
+        valid_difference_roles = {"minuend", "subtrahend"}
+        role_shape_ok = (
+            all(role.startswith(expected_role_prefix) for role in roles)
+            if operation_family == "sum"
+            else valid_difference_roles.issubset(set(roles))
+        )
+        if repeated_same_concept and len(specs) >= 2 and role_shape_ok and len(segment_labels) >= 2:
+            for index, spec in enumerate(specs):
+                if index >= len(segment_labels):
+                    break
+                specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[index])
+            return specs
+
+    if operation_family in {"lookup", "single_value"} and len(specs) == 1:
+        matched_segment = next(
+            (
+                segment_labels[index]
+                for index, segment_key in enumerate(segment_labels_lower)
+                if segment_key and segment_key in metric_label_text.lower()
+            ),
+            "",
+        )
+        if matched_segment:
+            specs[0] = _attach_segment_label_to_resolved_spec(specs[0], matched_segment)
+    return specs
 
 class FinancialAgentPlanningMixin:
     def _default_format_preference(self, intent: str) -> str:
@@ -351,6 +453,15 @@ Also return:
             if not resolved_specs:
                 continue
 
+            raw_metric_label = str(raw_task.metric_label or "").strip()
+            resolved_specs = _apply_segment_labels_to_llm_resolved_specs(
+                query=query,
+                metric_label=raw_metric_label,
+                operation_family=operation_family,
+                report_scope=report_scope,
+                resolved_specs=resolved_specs,
+            )
+
             normalized_operands = _build_concept_required_operands(
                 query,
                 report_scope,
@@ -360,7 +471,7 @@ Also return:
             if not normalized_operands:
                 continue
 
-            metric_label = str(raw_task.metric_label or "").strip() or _build_concept_metric_label(
+            metric_label = raw_metric_label or _build_concept_metric_label(
                 query,
                 resolved_specs,
                 operation_family,
@@ -744,7 +855,12 @@ Also return:
                 report_scope=report_scope,
             )
             if llm_plan:
-                plan = llm_plan
+                if _llm_plan_preserves_segment_sum_shape(plan, llm_plan):
+                    plan = llm_plan
+                else:
+                    planner_notes = list(plan.get("planner_notes") or [])
+                    planner_notes.append("concept_llm_plan_rejected_segment_sum_shape")
+                    plan["planner_notes"] = list(dict.fromkeys(planner_notes))
         tasks = list(plan.get("tasks") or [])
         planned_metric_families = [
             str(task.get("metric_family") or "").strip()
