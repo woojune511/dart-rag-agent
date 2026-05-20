@@ -283,6 +283,72 @@ class OperationContractTests(unittest.TestCase):
             "op_001",
         )
 
+    def test_formula_planner_prefers_task_ledger_over_stale_resolved_trace(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            {
+                "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
+                "active_subtask": {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "법인세비용차감전순이익",
+                    "operation_family": "lookup",
+                },
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {
+                            "operand_id": "stale_row",
+                            "label": "stale",
+                            "raw_value": "999",
+                            "raw_unit": "천원",
+                            "normalized_value": 999000.0,
+                            "normalized_unit": "KRW",
+                        }
+                    ],
+                    "calculation_plan": {"status": "stale"},
+                    "calculation_result": {"status": "stale"},
+                },
+                "tasks": [
+                    {
+                        "task_id": "task_lookup",
+                        "kind": "calculation",
+                        "status": "completed",
+                        "artifact_ids": ["artifact:operands"],
+                    }
+                ],
+                "artifacts": [
+                    {
+                        "artifact_id": "artifact:operands",
+                        "task_id": "task_lookup",
+                        "kind": "operand_set",
+                        "payload": {
+                            "calculation_operands": [
+                                {
+                                    "operand_id": "fresh_row",
+                                    "label": "2023 법인세비용차감전순이익",
+                                    "raw_value": "1,481,396,318",
+                                    "raw_unit": "천원",
+                                    "normalized_value": 1481396318000.0,
+                                    "normalized_unit": "KRW",
+                                }
+                            ]
+                        },
+                    }
+                ],
+                "calculation_operands": [],
+                "calculation_plan": {},
+                "calculation_result": {},
+            }
+        )
+        self.assertEqual(
+            result["resolved_calculation_trace"]["calculation_operands"][0]["operand_id"],
+            "fresh_row",
+        )
+        self.assertEqual(
+            result["resolved_calculation_trace"]["calculation_plan"]["operation"],
+            "lookup",
+        )
+
     def test_compositional_difference_uses_primary_value_without_period_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._execute_calculation(

@@ -514,9 +514,6 @@ def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, A
 
 def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
     normalised = _normalise_resolved_calculation_trace(result)
-    if normalised:
-        return normalised
-
     top_level = {
         "calculation_operands": list(result.get("calculation_operands") or []),
         "calculation_plan": dict(result.get("calculation_plan") or {}),
@@ -526,17 +523,16 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
     if structured_result and not top_level["calculation_result"]:
         top_level["calculation_result"] = structured_result
     subtask_results = [dict(item) for item in (result.get("subtask_results") or [])]
-
-    if subtask_results:
-        plan = top_level["calculation_plan"]
-        calc_result = top_level["calculation_result"]
+    if normalised:
+        plan = dict(normalised.get("calculation_plan") or {})
+        calc_result = dict(normalised.get("calculation_result") or {})
+        answer_slots = dict(calc_result.get("answer_slots") or {})
         if (
             str(plan.get("mode") or "") == "aggregate_subtasks"
             or bool(calc_result.get("subtask_results"))
+            or str(answer_slots.get("operation_family") or "").strip().lower() == "aggregate_subtasks"
         ):
-            return top_level
-        final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
-        return _build_aggregate_calculation_projection(subtask_results, final_answer)
+            return normalised
 
     active_task_id = str((result.get("active_subtask") or {}).get("task_id") or "").strip()
     if not active_task_id:
@@ -557,6 +553,13 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
             or projected["calculation_result"]
         ):
             return projected
+
+    if subtask_results:
+        final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
+        return _build_aggregate_calculation_projection(subtask_results, final_answer)
+
+    if normalised:
+        return normalised
 
     return top_level
 
