@@ -223,6 +223,9 @@
   - `SKH_T1_060`
   - `MIX_T1_021`
   - `KBF_T1_017`
+  - `NAV_T1_030`
+- 최근 public/runtime boundary에서 top-level flat `calculation_*`를 제거한 뒤에도
+  위 대표 canary는 모두 PASS로 유지됐다.
 - `selective_v2_sections`의 적용 범위도 분명해졌다.
   - 이것은 benchmark runner의 `contextual_selective_v2` ingest mode에서만 쓰이는 ingest-time 섹션 whitelist다.
   - 일반 `agent.ingest(...)`, `agent.contextual_ingest(...)`, query-time retrieval에는 적용되지 않는다.

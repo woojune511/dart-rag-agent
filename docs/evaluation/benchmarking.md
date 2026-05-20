@@ -221,6 +221,12 @@
     - FCF는 deterministic `subtract` plan으로 계산
     - evaluator는 괄호 음수 operand와 display-scaled KRW operand를 같은 grounded subtraction trace로 인정
     - final rendering은 `유형자산의 취득 6,406억원을 차감`처럼 sign-aware phrasing으로 정리
+- 추가로, public/runtime boundary에서 top-level flat `calculation_*`를 제거한 뒤
+  다시 돌린 runtime contract canary에서도 위 5개는 모두 유지됐다.
+  - `NAV_T1_071`, `SKH_T1_060`, `MIX_T1_021`는 `contextual_selective_v2`
+    runtime contract canary로 재확인
+  - `KBF_T1_017`는 `contextual_selective_v2` partial-store run이 길어져,
+    plain ingest 단일-question canary로 별도 재확인
 
 주의:
 

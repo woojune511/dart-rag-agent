@@ -187,10 +187,14 @@
 
 ## 2026-05-20 Runtime validation note
 
-- fresh narrow runtime reruns now confirm:
+- legacy flat runtime projection 제거 이후 fresh narrow runtime reruns now confirm:
   - `NAV_T1_071`: PASS
+  - `SKH_T1_060`: PASS
   - `MIX_T1_021`: PASS
+  - `KBF_T1_017`: PASS
   - `NAV_T1_030`: PASS
+- 즉 public/runtime contract를 `resolved_calculation_trace + structured_result`
+  중심으로 정리한 뒤에도 대표 numeric canary는 유지됐다.
 - `NAV_T1_030` closure details:
   - FCF now uses deterministic subtract planning instead of drifting into ratio-style planning
   - parenthesized negative outflows normalize correctly through runtime/evaluator paths
