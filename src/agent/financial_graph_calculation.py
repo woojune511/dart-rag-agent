@@ -434,11 +434,16 @@ class FinancialAgentCalculationMixin:
         query = self._calc_query(state)
         topic = self._calc_topic(state)
         empty_result: Dict[str, Any] = {
-            "calculation_operands": [],
             "calculation_debug_trace": {"coverage": "missing"},
             "answer": "",
             "evidence_items": evidence_items,
             "evidence_bullets": evidence_bullets,
+            **_runtime_trace_state_update(
+                state,
+                calculation_operands=[],
+                calculation_plan={},
+                calculation_result={},
+            ),
         }
         direct_structured_rows = self._extract_structured_operands_from_reconciliation(state)
         reconciliation_evidence = self._evidence_items_from_reconciliation_matches(state)
@@ -503,7 +508,6 @@ class FinancialAgentCalculationMixin:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_operands": direct_structured_rows,
                 "calculation_debug_trace": {
                     "coverage": "sufficient",
                     "source": "structured_row_direct",
@@ -514,6 +518,12 @@ class FinancialAgentCalculationMixin:
                 "evidence_status": "sufficient",
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=direct_structured_rows,
+                    calculation_plan={},
+                    calculation_result={},
+                ),
             }
         should_augment_with_docs = (
             not direct_numeric_grounding
@@ -714,7 +724,6 @@ Structured Evidence:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_operands": operand_rows,
                 "calculation_debug_trace": {
                     "coverage": merged_coverage,
                     "direct_structured_rows": direct_structured_rows,
@@ -725,39 +734,51 @@ Structured Evidence:
                 "evidence_status": str(merged_coverage),
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=operand_rows,
+                    calculation_plan={},
+                    calculation_result={},
+                ),
             }
         except Exception as exc:
             logger.warning("[calc_operands] structured output failed: %s", exc)
             return {
-                "calculation_operands": [],
                 "calculation_debug_trace": {"coverage": "missing", "error": str(exc)},
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": "missing",
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=[],
+                    calculation_plan={},
+                    calculation_result={},
+                ),
             }
 
     def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Translate normalized operands into an executable calculation plan."""
-        operands = state.get("calculation_operands", [])
+        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        operands = list(runtime_trace.get("calculation_operands") or [])
         query = self._calc_query(state)
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         if not operands:
+            empty_plan = {
+                "status": "incomplete",
+                "mode": "none",
+                "operation": "none",
+                "ordered_operand_ids": [],
+                "variable_bindings": [],
+                "formula": "",
+                "pairwise_formula": "",
+                "result_unit": "",
+                "operation_text": "",
+                "explanation": "no operands",
+                "missing_info": self._infer_missing_info(state, []),
+            }
             missing_info = self._infer_missing_info(state, [])
             return {
-                "calculation_plan": {
-                    "status": "incomplete",
-                    "mode": "none",
-                    "operation": "none",
-                    "ordered_operand_ids": [],
-                    "variable_bindings": [],
-                    "formula": "",
-                    "pairwise_formula": "",
-                    "result_unit": "",
-                    "operation_text": "",
-                    "explanation": "no operands",
-                    "missing_info": missing_info,
-                },
                 "missing_info": missing_info,
                 "planner_debug_trace": {
                     "llm_invoked": False,
@@ -765,6 +786,11 @@ Structured Evidence:
                     "reason": "no operands",
                     "missing_info": missing_info,
                 },
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=empty_plan,
+                    calculation_result={},
+                ),
             }
 
         query_text = _normalise_spaces(query)
@@ -803,7 +829,6 @@ Structured Evidence:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_plan": deterministic_lookup_plan,
                 "missing_info": [str(item).strip() for item in (deterministic_lookup_plan.get("missing_info") or []) if str(item).strip()],
                 "planner_debug_trace": {
                     "active_metric_family": metric_key,
@@ -818,6 +843,11 @@ Structured Evidence:
                 },
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=deterministic_lookup_plan,
+                    calculation_result={},
+                ),
             }
 
         deterministic_operation_plan = self._build_deterministic_operation_plan(state, operands)
@@ -852,7 +882,6 @@ Structured Evidence:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_plan": deterministic_operation_plan,
                 "missing_info": [],
                 "planner_debug_trace": {
                     "active_metric_family": metric_key,
@@ -867,24 +896,29 @@ Structured Evidence:
                 },
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=deterministic_operation_plan,
+                    calculation_result={},
+                ),
             }
 
         if operation_family in {"lookup", "single_value"}:
             missing_info = self._infer_missing_info(state, operands)
+            guard_plan = {
+                "status": "incomplete",
+                "mode": "none",
+                "operation": "none",
+                "ordered_operand_ids": [],
+                "variable_bindings": [],
+                "formula": "",
+                "pairwise_formula": "",
+                "result_unit": "",
+                "operation_text": "",
+                "explanation": "lookup tasks require a single directly grounded operand row.",
+                "missing_info": missing_info,
+            }
             return {
-                "calculation_plan": {
-                    "status": "incomplete",
-                    "mode": "none",
-                    "operation": "none",
-                    "ordered_operand_ids": [],
-                    "variable_bindings": [],
-                    "formula": "",
-                    "pairwise_formula": "",
-                    "result_unit": "",
-                    "operation_text": "",
-                    "explanation": "lookup tasks require a single directly grounded operand row.",
-                    "missing_info": missing_info,
-                },
                 "missing_info": missing_info,
                 "planner_debug_trace": {
                     "active_metric_family": metric_key,
@@ -898,6 +932,11 @@ Structured Evidence:
                     "reason": "lookup_non_direct_or_ambiguous",
                     "missing_info": missing_info,
                 },
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=guard_plan,
+                    calculation_result={},
+                ),
             }
 
         deterministic_plan = self._build_deterministic_ontology_plan(state, operands)
@@ -932,7 +971,6 @@ Structured Evidence:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_plan": deterministic_plan,
                 "missing_info": [],
                 "planner_debug_trace": {
                     "active_metric_family": metric_key,
@@ -947,6 +985,11 @@ Structured Evidence:
                 },
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=deterministic_plan,
+                    calculation_result={},
+                ),
             }
         structured_llm = self.llm.with_structured_output(CalculationPlan)
         ontology_context = ""
@@ -1082,7 +1125,6 @@ Ontology Context:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_plan": plan_data,
                 "missing_info": [str(item).strip() for item in (plan_data.get("missing_info") or []) if str(item).strip()],
                 "planner_debug_trace": {
                     **planner_trace_base,
@@ -1092,23 +1134,28 @@ Ontology Context:
                 },
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=plan_data,
+                    calculation_result={},
+                ),
             }
         except Exception as exc:
             logger.warning("[formula_plan] structured output failed: %s", exc)
+            failed_plan = {
+                "status": "incomplete",
+                "mode": "none",
+                "operation": "none",
+                "ordered_operand_ids": [],
+                "variable_bindings": [],
+                "formula": "",
+                "pairwise_formula": "",
+                "result_unit": "",
+                "operation_text": "",
+                "explanation": str(exc),
+                "missing_info": self._infer_missing_info(state, operands),
+            }
             return {
-                "calculation_plan": {
-                    "status": "incomplete",
-                    "mode": "none",
-                    "operation": "none",
-                    "ordered_operand_ids": [],
-                    "variable_bindings": [],
-                    "formula": "",
-                    "pairwise_formula": "",
-                    "result_unit": "",
-                    "operation_text": "",
-                    "explanation": str(exc),
-                    "missing_info": self._infer_missing_info(state, operands),
-                },
                 "missing_info": self._infer_missing_info(state, operands),
                 "planner_debug_trace": {
                     **planner_trace_base,
@@ -1116,6 +1163,11 @@ Ontology Context:
                     "guard_applied": False,
                     "error": str(exc),
                 },
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=failed_plan,
+                    calculation_result={},
+                ),
             }
 
     def _format_calculation_value(self, value: float, result_unit: str, normalized_unit: str) -> str:
@@ -1511,8 +1563,10 @@ Ontology Context:
 
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
-        operands = {row.get("operand_id"): row for row in state.get("calculation_operands", [])}
-        plan = state.get("calculation_plan") or {}
+        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_operands = [dict(row) for row in (runtime_trace.get("calculation_operands") or [])]
+        operands = {row.get("operand_id"): row for row in runtime_operands}
+        plan = dict(runtime_trace.get("calculation_plan") or {})
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         operation = str(plan.get("operation") or "none")
@@ -1534,7 +1588,7 @@ Ontology Context:
             failure_slots = self._build_answer_slots(
                 active_subtask=active_subtask,
                 operation_family=operation_family or "single_value",
-                ordered_operands=[dict(row) for row in (state.get("calculation_operands") or [])],
+                ordered_operands=list(runtime_operands),
                 result_value=None,
                 result_unit=result_unit,
                 normalized_unit="UNKNOWN",
@@ -1557,17 +1611,20 @@ Ontology Context:
                 "dropped_claim_ids": [],
                 "unsupported_sentences": [],
                 "sentence_checks": [],
-                "calculation_result": {
-                    "status": status,
-                    "result_value": None,
-                    "result_unit": result_unit,
-                    "rendered_value": "",
-                    "formatted_result": "",
-                    "series": [],
-                    "answer_slots": failure_slots,
-                    "derived_metrics": {},
-                    "explanation": reason,
-                },
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_result={
+                        "status": status,
+                        "result_value": None,
+                        "result_unit": result_unit,
+                        "rendered_value": "",
+                        "formatted_result": "",
+                        "series": [],
+                        "answer_slots": failure_slots,
+                        "derived_metrics": {},
+                        "explanation": reason,
+                    },
+                ),
             }
 
         if mode == "none" or not variable_bindings:
@@ -1835,12 +1892,19 @@ Ontology Context:
         )
         result_payload["tasks"] = tasks
         result_payload["artifacts"] = artifacts
+        result_payload.update(
+            _runtime_trace_state_update(
+                state,
+                calculation_result=calc_result,
+            )
+        )
         return result_payload
 
     def _render_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
-        calculation_result = dict(state.get("calculation_result") or {})
-        plan = dict(state.get("calculation_plan") or {})
-        operands = list(state.get("calculation_operands") or [])
+        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        calculation_result = dict(runtime_trace.get("calculation_result") or {})
+        plan = dict(runtime_trace.get("calculation_plan") or {})
+        operands = list(runtime_trace.get("calculation_operands") or [])
         if not calculation_result:
             return {"answer": "", "compressed_answer": "", "draft_points": []}
 
@@ -1926,15 +1990,19 @@ Operands:
             "answer": answer,
             "compressed_answer": answer,
             "draft_points": [answer] if answer else [],
-            "calculation_result": calculation_result,
+            **_runtime_trace_state_update(
+                state,
+                calculation_result=calculation_result,
+            ),
         }
 
     def _verify_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Sanity-check that the rendered answer still matches the result."""
         answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
-        calculation_result = dict(state.get("calculation_result") or {})
-        plan = dict(state.get("calculation_plan") or {})
-        operands = list(state.get("calculation_operands", []) or [])
+        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        calculation_result = dict(runtime_trace.get("calculation_result") or {})
+        plan = dict(runtime_trace.get("calculation_plan") or {})
+        operands = list(runtime_trace.get("calculation_operands") or [])
 
         if not answer:
             return {
@@ -1952,6 +2020,7 @@ Operands:
                 "answer": answer,
                 "compressed_answer": answer,
                 "calculation_debug_trace": debug_trace,
+                **_runtime_trace_state_update(state),
             }
 
         deterministic_fallback = str(
@@ -2048,8 +2117,11 @@ Operands:
                         "supporting_claim_ids": state.get("selected_claim_ids", []),
                     }
                 ] if answer else [],
-                "calculation_result": calculation_result,
                 "calculation_debug_trace": debug_trace,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_result=calculation_result,
+                ),
             }
         except Exception as exc:
             logger.warning("[calc_verify] structured output failed, keeping rendered answer: %s", exc)
@@ -2097,9 +2169,6 @@ Operands:
                 "sentence_checks": [],
                 "answer": "",
                 "citations": [],
-                "calculation_operands": [],
-                "calculation_plan": {},
-                "calculation_result": {},
                 "calculation_debug_trace": {},
                 "planner_debug_trace": {},
                 "missing_info": [],
@@ -2109,6 +2178,12 @@ Operands:
                 "reconciliation_retry_count": 0,
                 "reflection_plan": {},
                 "reconciliation_result": {},
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=[],
+                    calculation_plan={},
+                    calculation_result={},
+                ),
             }
         return {
             "subtask_results": subtask_results,
@@ -2199,7 +2274,7 @@ Subtask Results JSON:
                 logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
         final_answer = self._coerce_sign_aware_subtraction_answer(
             final_answer,
-            calculation_result=dict(state.get("calculation_result") or {}),
+            calculation_result=dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_result") or {}),
             subtask_results=ordered_results,
         )
         if deterministic_feedback and not planner_feedback:
@@ -2253,16 +2328,20 @@ Subtask Results JSON:
             "sentence_checks": [],
             "artifacts": artifacts,
             "evidence_items": aggregate_projection.get("evidence_items", []),
-            "calculation_operands": aggregate_projection["calculation_operands"],
-            "calculation_plan": aggregate_projection["calculation_plan"],
-            "calculation_result": aggregate_projection["calculation_result"],
+            **_runtime_trace_state_update(
+                state,
+                calculation_operands=aggregate_projection["calculation_operands"],
+                calculation_plan=aggregate_projection["calculation_plan"],
+                calculation_result=aggregate_projection["calculation_result"],
+            ),
         }
 
     def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
         current_count = int(state.get("reflection_count") or 0)
-        operands = list(state.get("calculation_operands", []) or [])
-        plan = dict(state.get("calculation_plan") or {})
-        calc_result = dict(state.get("calculation_result") or {})
+        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        operands = list(runtime_trace.get("calculation_operands") or [])
+        plan = dict(runtime_trace.get("calculation_plan") or {})
+        calc_result = dict(runtime_trace.get("calculation_result") or {})
         reflection_plan = dict(state.get("reflection_plan") or {})
 
         missing_info = [
@@ -2309,12 +2388,15 @@ Subtask Results JSON:
             "sentence_checks": [],
             "answer": "",
             "citations": [],
-            "calculation_operands": [],
-            "calculation_plan": {},
-            "calculation_result": {},
             "calculation_debug_trace": {},
             "planner_debug_trace": {},
             "reflection_plan": reflection_plan,
+            **_runtime_trace_state_update(
+                state,
+                calculation_operands=[],
+                calculation_plan={},
+                calculation_result={},
+            ),
         }
 
     def _route_after_expand(self, state: FinancialAgentState) -> str:
@@ -2354,7 +2436,7 @@ Subtask Results JSON:
             return "calculator"
         if int(state.get("reflection_count") or 0) >= 1:
             return "calculator"
-        plan = dict(state.get("calculation_plan") or {})
+        plan = dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_plan") or {})
         status = str(plan.get("status") or "ok").lower()
         if status == "incomplete":
             return "reflection_replan"
@@ -2365,7 +2447,7 @@ Subtask Results JSON:
             return "calc_render"
         if int(state.get("reflection_count") or 0) >= 1:
             return "calc_render"
-        result = dict(state.get("calculation_result") or {})
+        result = dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_result") or {})
         status = str(result.get("status") or "")
         if status in {"insufficient_operands", "parse_error"}:
             return "reflection_replan"

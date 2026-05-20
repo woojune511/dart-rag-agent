@@ -242,6 +242,47 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan["formula"], "A + B")
         self.assertEqual(plan["ordered_operand_ids"], ["op_001", "op_002"])
 
+    def test_formula_planner_prefers_resolved_runtime_trace_over_stale_flat_fields(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            {
+                "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
+                "active_subtask": {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "법인세비용차감전순이익",
+                    "operation_family": "lookup",
+                },
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {
+                            "operand_id": "op_001",
+                            "label": "2023 법인세비용차감전순이익",
+                            "raw_value": "1,481,396,318",
+                            "raw_unit": "천원",
+                            "normalized_value": 1481396318000.0,
+                            "normalized_unit": "KRW",
+                        }
+                    ],
+                    "calculation_plan": {},
+                    "calculation_result": {},
+                },
+                "calculation_operands": [],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+        self.assertEqual(
+            result["resolved_calculation_trace"]["calculation_plan"]["operation"],
+            "lookup",
+        )
+        self.assertEqual(
+            result["resolved_calculation_trace"]["calculation_operands"][0]["operand_id"],
+            "op_001",
+        )
+
     def test_compositional_difference_uses_primary_value_without_period_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._execute_calculation(

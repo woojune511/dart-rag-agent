@@ -230,8 +230,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "answer": "",
             "citations": [],
             "numeric_debug_trace": {},
-            # Compatibility-only flat projections. Runtime truth is carried in
-            # `tasks` / `artifacts` and projected out at the boundary.
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            # Compatibility-only flat mirrors. Runtime truth is carried in
+            # `resolved_calculation_trace` / `structured_result` and, beneath
+            # that, the task/artifact ledger.
             "calculation_operands": [],
             "calculation_plan": {},
             "calculation_result": {},

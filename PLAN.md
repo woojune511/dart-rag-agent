@@ -200,6 +200,18 @@
   - parenthesized negative outflows normalize correctly through runtime/evaluator paths
   - final rendering rewrites double-negative subtraction phrasing into sign-aware natural language
   - evaluator now accepts display-scaled KRW operands and parenthesized negative support rows in structured traces
-- immediate priority now moves back to broader contract cleanup:
-  - keep `answer_slots` / `structured_result` as the default runtime contract
-  - continue reducing legacy flat `calculation_*` dependence in compatibility-only paths
+
+## 2026-05-20 Internal-state runtime note
+
+- internal graph-state readers/writers now also prefer
+  `resolved_calculation_trace + structured_result` over top-level
+  `calculation_*`.
+- fresh internal-state canary reruns confirmed no regression:
+  - `NAV_T1_030`: PASS
+  - `NAV_T1_071`: PASS
+  - `SKH_T1_060`: PASS
+  - `MIX_T1_021`: PASS
+  - `KBF_T1_017`: PASS
+- external/public contract cleanup is effectively complete.
+- remaining `calculation_*` fields are now internal compatibility mirrors /
+  scratch state, not runtime source of truth.

@@ -1270,9 +1270,10 @@ candidate options:
         return list(dict.fromkeys(item for item in finalized if item))
 
     def _plan_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
-        operands = list(state.get("calculation_operands", []) or [])
-        plan = dict(state.get("calculation_plan") or {})
-        calc_result = dict(state.get("calculation_result") or {})
+        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        operands = list(runtime_trace.get("calculation_operands") or [])
+        plan = dict(runtime_trace.get("calculation_plan") or {})
+        calc_result = dict(runtime_trace.get("calculation_result") or {})
         query = state["query"]
         topic = state.get("topic") or query
         intent = state.get("intent") or state.get("query_type", "qa")

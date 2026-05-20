@@ -226,6 +226,16 @@
   - `NAV_T1_030`
 - 최근 public/runtime boundary에서 top-level flat `calculation_*`를 제거한 뒤에도
   위 대표 canary는 모두 PASS로 유지됐다.
+- internal graph state도 이제 `resolved_calculation_trace`와
+  `structured_result`를 우선 읽도록 정리됐다.
+  - fresh internal-state canary rerun에서도
+    - `NAV_T1_030`
+    - `NAV_T1_071`
+    - `SKH_T1_060`
+    - `MIX_T1_021`
+    - `KBF_T1_017`
+    모두 PASS였다.
+  - 남은 `calculation_*`는 내부 compatibility mirror / scratch state로만 본다.
 - `selective_v2_sections`의 적용 범위도 분명해졌다.
   - 이것은 benchmark runner의 `contextual_selective_v2` ingest mode에서만 쓰이는 ingest-time 섹션 whitelist다.
   - 일반 `agent.ingest(...)`, `agent.contextual_ingest(...)`, query-time retrieval에는 적용되지 않는다.

@@ -110,6 +110,8 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated["subtask_results"][0]["calculation_plan"]["operation"], "divide")
         self.assertEqual(updated["subtask_results"][0]["calculation_result"]["rendered_value"], "25.4%")
         self.assertEqual(updated["answer"], "")
+        self.assertEqual(updated["resolved_calculation_trace"]["calculation_operands"], [])
+        self.assertEqual(updated["structured_result"], {})
 
     def test_aggregate_subtasks_joins_answers_in_task_order(self) -> None:
         state = {

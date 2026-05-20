@@ -227,6 +227,11 @@
     runtime contract canary로 재확인
   - `KBF_T1_017`는 `contextual_selective_v2` partial-store run이 길어져,
     plain ingest 단일-question canary로 별도 재확인
+- internal graph-state reader/write path를 `resolved_calculation_trace` /
+  `structured_result` 중심으로 옮긴 뒤에도 같은 대표 5개 canary를 다시 돌려
+  모두 PASS를 확인했다.
+  - 이 rerun은 internal state refactor가 external payload 정리뿐 아니라
+    실제 runtime execution path도 깨뜨리지 않았다는 검증이다.
 
 주의:
 

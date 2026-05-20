@@ -38,6 +38,7 @@ __all__ = [
     '_project_task_trace_from_state',
     '_build_aggregate_calculation_projection',
     '_resolve_runtime_calculation_trace',
+    '_runtime_trace_state_update',
     '_parse_number_text',
     '_safe_eval_formula',
     '_extract_composite_krw',
@@ -372,12 +373,28 @@ def _project_task_trace_from_state(
     )
 
     if task_id and task_id == active_task_id:
+        active_trace = _resolve_runtime_calculation_trace(state)
         if not calculation_operands:
-            calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
+            calculation_operands = [
+                dict(item)
+                for item in (
+                    active_trace.get("calculation_operands")
+                    or state.get("calculation_operands")
+                    or []
+                )
+            ]
         if not calculation_plan:
-            calculation_plan = dict(state.get("calculation_plan") or {})
+            calculation_plan = dict(
+                active_trace.get("calculation_plan")
+                or state.get("calculation_plan")
+                or {}
+            )
         if not calculation_result:
-            calculation_result = dict(state.get("calculation_result") or {})
+            calculation_result = dict(
+                active_trace.get("calculation_result")
+                or state.get("calculation_result")
+                or {}
+            )
         if not reconciliation_result:
             reconciliation_result = dict(state.get("reconciliation_result") or {})
 
@@ -555,6 +572,53 @@ def _resolve_runtime_structured_result(result: Dict[str, Any]) -> Dict[str, Any]
         return resolved_result
 
     return {}
+
+
+def _runtime_trace_state_update(
+    state: Dict[str, Any],
+    *,
+    calculation_operands: Optional[List[Dict[str, Any]]] = None,
+    calculation_plan: Optional[Dict[str, Any]] = None,
+    calculation_result: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    current_trace = _resolve_runtime_calculation_trace(state)
+    resolved_trace = {
+        "calculation_operands": [
+            dict(item)
+            for item in (
+                calculation_operands
+                if calculation_operands is not None
+                else list(current_trace.get("calculation_operands") or [])
+            )
+        ],
+        "calculation_plan": dict(
+            calculation_plan
+            if calculation_plan is not None
+            else dict(current_trace.get("calculation_plan") or {})
+        ),
+        "calculation_result": dict(
+            calculation_result
+            if calculation_result is not None
+            else dict(current_trace.get("calculation_result") or {})
+        ),
+    }
+    if calculation_result is not None:
+        structured_result = dict(calculation_result)
+    else:
+        structured_result = _resolve_runtime_structured_result(
+            {
+                "structured_result": state.get("structured_result", {}),
+                "resolved_calculation_trace": resolved_trace,
+            }
+        )
+    return {
+        "resolved_calculation_trace": resolved_trace,
+        "structured_result": structured_result,
+        # Internal compatibility mirror while graph-state callers migrate.
+        "calculation_operands": list(resolved_trace["calculation_operands"]),
+        "calculation_plan": dict(resolved_trace["calculation_plan"]),
+        "calculation_result": dict(resolved_trace["calculation_result"]),
+    }
 
 
 # ---------------------------------------------------------------------------
