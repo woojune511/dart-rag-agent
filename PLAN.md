@@ -311,3 +311,25 @@
 - immediate work therefore shifts from “can this candidate pass the gate?” to:
   1. “does `structural_selective_v2` hold up on broader curated sets?”
   2. “what is the next cheaper-or-better ingest experiment after this baseline?”
+## 2026-05-21 Concept planner shadow
+
+- official curated shadow profile:
+  - `benchmarks/profiles/curated_concept_planner_shadow.json`
+- official shadow runbook:
+  - `docs/evaluation/concept_planner_shadow.md`
+- current curated shadow scope includes:
+  - runtime contract canaries
+  - focused multi-entity grounding canaries
+  - implicit shorthand numeric prompts
+- latest curated shadow run confirms:
+  - `11 / 11` curated cases changed between legacy and concept planning
+  - all concept-side plans were emitted as `concept_fallback`
+- important planner transitions confirmed:
+  - `free_cash_flow` -> `concept_difference`
+  - `generic_numeric` -> `concept_lookup + concept_difference`
+  - `debt_ratio/current_ratio` -> `concept_ratio`
+  - repeated-entity revenue prompts preserve `sum` / `difference` task shape
+- use this profile as the planner-structure smoke whenever changing:
+  - concept ontology
+  - planner prompt / conversion logic
+  - generic numeric fallback behavior

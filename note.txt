@@ -139,3 +139,20 @@
     - `comparison_001`: `DX = 174조 8,877억원`, `DS = 111조 660억원`, `차이 = 63조 8,217억원`
     - `comparison_002`: `SDC = 29조 1,578억원`, `Harman = 14조 2,749억원`, `합계 = 43조 4,327억원`
     - `comparison_003`: `DS = 111조 660억원`, `SDC = 29조 1,578억원`, `차이 = 81조 9,082억원`
+- 2026-05-21 concept planner shadow
+  - official profile:
+    - `benchmarks/profiles/curated_concept_planner_shadow.json`
+  - official runbook:
+    - `docs/evaluation/concept_planner_shadow.md`
+  - current shadow scope:
+    - runtime contract canaries
+    - focused multi-entity grounding canaries
+    - implicit shorthand numeric prompts
+  - latest shadow result:
+    - `11 / 11` curated cases changed between legacy and concept planning
+    - all concept-side plans emitted as `concept_fallback`
+  - representative planner shifts:
+    - `free_cash_flow` -> `concept_difference`
+    - `generic_numeric` -> `concept_lookup + concept_difference`
+    - `debt_ratio/current_ratio` -> `concept_ratio`
+    - repeated-entity revenue prompts now preserve `sum` / `difference` shape
