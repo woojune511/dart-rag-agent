@@ -15,6 +15,12 @@
 - active benchmark/profile track도 curated 중심으로 재정렬하기 시작했다.
   - mainline: `curated_single_doc_core`, `curated_runtime_contract_gate`, `multi_metric_numeric_smoke`, `curated_multi_report_smoke`
   - legacy historical: `dev_fast*`, `dev_math_*`, `release_generalization`
+- 공식 gate 비교 기준도 한 단계 정리됐다.
+  - `plain_prefix_8000_400`: speed / cost baseline
+  - `contextual_selective_v2_prefix_2500_320`: quality baseline
+  - `structural_selective_v2_prefix_2500_320`: current operating candidate
+  - `runtime_contract_gate`에서는 `plain`이 `SKH_T1_060`를 놓쳤고, `structural`과 `contextual`은 대표 5문항을 모두 통과했다
+  - `multi_entity_grounding_gate`에서도 `structural`과 `contextual`이 `comparison_001~003`을 모두 통과했다
 - parser는 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
   - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
   - `table_summary_text`, `table_row_labels_text`, `table_row_records_json`, `table_object_json` 생성
@@ -77,33 +83,35 @@
 
 ## 현재 핵심 한계
 
-- legacy `calculation_*` 필드가 아직 evaluator와 runtime 일부 경로의 사실상 기준처럼 남아 있다.
+- public/runtime boundary에서 legacy `calculation_*`는 이미 projection 계층으로 내렸다.
+- 남아 있는 `calculation_*`는 주로 internal compatibility mirror / scratch state다.
 - planner / synthesizer / result schema의 경계가 이제 막 생겼기 때문에, single-task와 multi-subtask가 항상 같은 answer contract를 공유하지는 못한다.
 - concept-only planner는 single-metric / group concept / multi-metric 분해 품질이 좋아졌지만, 모든 numeric family에서 runtime default로 올리기엔 아직 canary가 더 필요하다.
-- `difference` / `lookup` / `ratio` 결과를 더 구조적으로 남기는 result schema 정리는 여전히 필요하다.
-- 다만 이제 `answer_slots`가 공통 contract로 들어와, single-task와 multi-subtask가 같은 structured result vocabulary를 공유하기 시작했다.
-- compositional subtraction(`minuend/subtrahend`)도 같은 contract 안에서 닫히기 시작했지만, evaluator와 tooling 일부는 아직 legacy flat projection을 병행 참조한다.
+- `difference` / `lookup` / `ratio` 결과를 더 구조적으로 남기는 result schema 정리는 대부분 끝났지만, internal mirror를 완전히 없애는 수준의 graph-state refactor는 아직 남아 있다.
 - profile 운영 기준은 이제 curated track이 우선이고, legacy 2024 dataset profile은 historical replay 용도로만 남긴다.
 - final refusal ownership은 `aggregate_subtasks`로 올라왔고, `NAV_T1_071`를 통해 `planner_feedback -> replan / close` 루프의 최소 실전 검증은 끝났다.
 - direct-first runtime policy는 `NAV_T1_071`에서 닫혔고, 이제 `ratio / sum`처럼 explicit concept numeric task까지 direct grounding 대상으로 확대됐다.
 - percent multi-period rows도 별도 metric hardcoding 없이 shared pair-selection / evaluator contract로 닫히기 시작했다.
+- 다만 ingest 쪽은 여전히 tradeoff가 남아 있다.
+  - `contextual_selective_v2`는 품질은 안정적이지만 ingest 비용이 크다
+  - `structural_selective_v2`는 현재 gate 기준으로 같은 품질을 더 낮은 비용으로 달성한 중간 후보다
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `answer_slots` 기반 result schema를 renderer / synthesizer / evaluator contract의 기본값으로 고정 | 질문 충족 여부와 planner feedback을 structured result만 보고 판정 |
-| 2 | direct candidate acceptance contract를 다른 concept family에도 넓히기 | score-only success 대신 grounded direct-first fallback 구조 일반화 |
-| 3 | `tasks + artifacts`를 runtime source of truth로 더 강하게 쓰고 legacy `calculation_*`를 projection으로 내리기 | multi-step numeric trace를 덮어쓰지 않고 보존 |
+| 1 | `structural_selective_v2_prefix_2500_320`를 `curated_single_doc_core`, `curated_multi_report_smoke` 같은 더 넓은 curated set에서 다시 검증 | gate 밖 broader curated set에서도 운영 후보로 버티는지 확인 |
+| 2 | curated mainline profile에서 default candidate 의미를 더 명확히 정리 | `plain`은 speed baseline, `contextual`은 quality baseline, `structural`은 current operating candidate로 역할 고정 |
+| 3 | 다음 ingest 실험 후보인 `structural_parent_hybrid_v2` 설계 | parent/section/table lineage를 비용 증가 없이 더 보강할 수 있는지 확인 |
 | 4 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
-| 5 | `planner_feedback -> replan -> close/refusal` 루프를 다른 numeric canary에도 확대 | planner/synthesizer feedback loop 일반화 |
+| 5 | internal `calculation_*` mirror를 실제로 제거할지 범위 결정 | runtime source of truth를 `tasks + artifacts + structured_result`로 완전히 정리할지 판단 |
 
 ## 현재 우선순위 요약
 
-1. result schema settling
-2. direct-first acceptance generalization
-3. concept-only planner default 승격 검토
-4. runtime schema settling
+1. structural ingest candidate broader validation
+2. curated mainline candidate/default 정리
+3. 다음 chunking/ingest 실험 설계
+4. concept-only planner default 승격 검토
 
 ## 현재 해석
 
@@ -117,8 +125,12 @@
   - same-family current/prior pairing
   - aggregate evidence propagation
   - evaluator numeric pass `1.0`
-- 다만 아직은 완전한 source of truth 이전 단계이며, evaluator 호환을 위해 legacy 필드를 병행 유지한다.
-- 따라서 다음 구현은 retrieval / parser local patch보다 **planner-synthesizer contract와 structured result schema를 더 강하게 만드는 방향**이 맞다.
+- public/runtime contract 정리는 거의 끝났고, 남은 리팩터링은 internal mirror 정리 쪽에 가깝다.
+- 현재 더 중요한 운영 질문은 planner보다 ingest candidate selection이다.
+  - `plain`은 여전히 하나의 대표 gate를 놓친다
+  - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
+  - `structural_selective_v2`는 현재 gate 기준으로 가장 실용적인 middle ground다
+- 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **broader curated validation + next ingest experiment design** 쪽이 맞다.
 ## 2026-05-17 Update
 
 - Indexing now supports partial-store resume in the benchmark path.
@@ -244,3 +256,19 @@
   - 이것은 benchmark runner의 `contextual_selective_v2` ingest mode에서만 쓰이는 ingest-time 섹션 whitelist다.
   - 일반 `agent.ingest(...)`, `agent.contextual_ingest(...)`, query-time retrieval에는 적용되지 않는다.
   - 따라서 `selective_v2_sections` 문제는 runtime planner 이슈가 아니라 benchmark ingest coverage 이슈로 먼저 봐야 한다.
+
+## 2026-05-21 Ingest Candidate Update
+
+- 공식 gate 기준 ingest 후보 해석은 현재 아래처럼 정리된다.
+  - `plain_prefix_8000_400`
+    - speed / cost baseline
+    - `runtime_contract_gate`에서 `SKH_T1_060` FAIL
+  - `contextual_selective_v2_prefix_2500_320`
+    - quality baseline
+    - `runtime_contract_gate`, `multi_entity_grounding_gate` 모두 PASS
+  - `structural_selective_v2_prefix_2500_320`
+    - `runtime_contract_gate`, `multi_entity_grounding_gate` 모두 PASS
+    - current operating candidate
+- 따라서 지금의 실무 우선순위는 새 planner tweak보다 다음 두 가지다.
+  1. `structural_selective_v2`를 broader curated set에서도 다시 검증
+  2. 그 다음 parent/section/table lineage를 더 보강하는 next ingest experiment 설계

@@ -67,3 +67,18 @@ These three questions cover:
   - `DS 매출액 = 111조 660억원`
   - `SDC 매출액 = 29조 1,578억원`
   - `차이 = 81조 9,082억원`
+
+## Current interpretation
+
+- `contextual_selective_v2_prefix_2500_320`
+  - quality baseline
+  - focused gate PASS
+- `structural_selective_v2_prefix_2500_320`
+  - focused gate PASS
+  - current practical candidate because it preserves entity-scoped grounding
+    quality without paying the full contextual ingest cost
+
+This focused gate exists to reject candidates that collapse repeated concepts
+onto the same company-total row. `structural_selective_v2` currently clears
+that bar, so multi-entity grounding is no longer the blocking concern for that
+candidate.

@@ -63,6 +63,26 @@ These five questions cover:
   - `resolved_calculation_trace`
 - No fallback retrieval backend should be used in benchmark mode.
 
+## Current interpretation
+
+Current gate interpretation is now stable:
+
+- `plain_prefix_8000_400`
+  - speed / cost baseline
+  - not eligible as default because `SKH_T1_060` fails
+- `contextual_selective_v2_prefix_2500_320`
+  - quality baseline
+  - all five gate questions pass
+- `structural_selective_v2_prefix_2500_320`
+  - all five gate questions pass
+  - current operating candidate because it preserves gate quality without the
+    full ingest-time cost of contextual selective ingestion
+
+That means this gate is no longer asking whether contextual selective is the
+quality reference. It is. The active question is whether another candidate can
+match that gate while being cheaper to operate. `structural_selective_v2` is
+the current answer.
+
 ## Related canary
 
 - `comparison_002` is the current multi-entity / segment-grounding canary.

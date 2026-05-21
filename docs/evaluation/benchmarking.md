@@ -17,10 +17,12 @@
 | 항목 | 현재 기본값 / 원칙 |
 | --- | --- |
 | baseline 문서 | `삼성전자 2024 사업보고서` |
-| 운영 baseline | `contextual_all_2500_320` |
+| speed baseline | `plain_prefix_8000_400` |
+| quality baseline | `contextual_selective_v2_prefix_2500_320` |
+| current operating candidate | `structural_selective_v2_prefix_2500_320` |
 | 빠른 회귀 경로 | `debug-first -> store-fixed eval-only -> full benchmark` |
-| math 기준선 | `dev_math_focus` |
-| broader sanity check | `dev_fast_focus_selective_serial` |
+| 대표 numeric gate | `curated_runtime_contract_gate` |
+| focused entity gate | `curated_multi_entity_grounding_gate` |
 | scorecard 결과 위치 | 이 문서의 `Retrospective Results` |
 | 오래된 실험 로그 위치 | [../history/experiment_history.md](../history/experiment_history.md) |
 
@@ -65,26 +67,17 @@
 
 이 원칙은 [single_document_eval_strategy.md](single_document_eval_strategy.md)와 일치한다.
 
-### 현재 운영 baseline
-
-현재 대표 baseline은 다음과 같다.
-
-| baseline | 역할 |
-| --- | --- |
-| `contextual_all_2500_320` | 가장 저렴한 후보가 아니라, 현재까지 가장 안정적인 품질 기준점 |
-
 ### 현재 실전적으로 의미 있는 비교 축
 
 오래된 ingest candidate를 전부 이 문서에 나열하지 않는다. 현재 살아 있는 비교 축만 남긴다.
 
 | 비교 축 | 용도 |
 | --- | --- |
-| `contextual_all_2500_320` | 품질 baseline |
-| `contextual_selective_v2_prefix_2500_320` | 저비용 retrieval 후보 |
-| `plain + graph expansion` | structure-aware retrieval / graph 구조 실험 |
-| `plain + reference_note expansion` | `REFERENCE_NOTE` 확장 효과 검증 |
+| `plain_prefix_8000_400` | speed / cost baseline |
+| `structural_selective_v2_prefix_2500_320` | 현재 운영 기본값 후보 |
+| `contextual_selective_v2_prefix_2500_320` | 품질 baseline |
 
-과거의 `contextual_parent_only`, `contextual_parent_hybrid`, 초기 `selective` 비교는  
+과거의 `contextual_all`, `contextual_parent_only`, `contextual_parent_hybrid`, 초기 `selective` 비교는  
 현재 guide 문서의 핵심이 아니므로 [../history/experiment_history.md](../history/experiment_history.md)에서 본다.
 
 ## 실행 루프
@@ -207,6 +200,29 @@
   - quality baseline
 - `structural_selective_v2_prefix_2500_320`
   - 현재 가장 중요한 운영 기본값 후보
+
+### 최신 official gate 결과
+
+현재 공식 gate 비교의 핵심 결과는 아래와 같다.
+
+- `curated_runtime_contract_gate`
+  - `plain_prefix_8000_400`
+    - `SKH_T1_060` FAIL
+  - `structural_selective_v2_prefix_2500_320`
+    - 대표 5문항 PASS
+  - `contextual_selective_v2_prefix_2500_320`
+    - 대표 5문항 PASS
+- `curated_multi_entity_grounding_gate`
+  - `structural_selective_v2_prefix_2500_320`
+    - `comparison_001~003` PASS
+  - `contextual_selective_v2_prefix_2500_320`
+    - `comparison_001~003` PASS
+
+운영 해석은 단순하다.
+
+- `plain`은 baseline으로 유지하되 default candidate는 아니다
+- `contextual_selective_v2`는 quality reference로 유지한다
+- `structural_selective_v2`는 현재 gate 기준으로 품질을 유지하면서 ingest 비용을 크게 줄인 current operating candidate다
 
 즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
 
