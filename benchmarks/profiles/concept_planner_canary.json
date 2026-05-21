@@ -1,4 +1,7 @@
 {
+  "profile_track": "curated_canary",
+  "profile_role": "planner_shadow_compare",
+  "dataset_track": "curated_dart_review",
   "legacy_ontology_path": "src/config/financial_ontology_v2.draft.json",
   "concept_ontology_path": "src/config/financial_ontology_concepts_v3.draft.json",
   "dataset_path": "benchmarks/datasets/single_doc_eval_multi_metric_numeric.curated.json",

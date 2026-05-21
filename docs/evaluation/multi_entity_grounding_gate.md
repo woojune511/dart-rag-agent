@@ -10,6 +10,15 @@ company-total row when the query asks about multiple business entities.
 - Profile:
   - `benchmarks/profiles/curated_multi_entity_grounding_gate.json`
 
+## Compared candidates
+
+- `structural_selective_v2_prefix_2500_320`
+- `contextual_selective_v2_prefix_2500_320`
+
+This focused gate is intended to show whether deterministic structural prefixes
+can preserve entity-scoped grounding quality without paying the full ingest-time
+cost of Gemini-generated contextual chunk summaries.
+
 ## Gate question set
 
 - `comparison_001`

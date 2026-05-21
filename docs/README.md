@@ -8,12 +8,18 @@
 
 | 순서 | 문서 | 용도 |
 | --- | --- | --- |
-| 1 | [overview/technical_highlights.md](overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
-| 2 | [architecture/architecture_direction.md](architecture/architecture_direction.md) | MAS 방향성과 topology / communication / memory 설계 |
-| 3 | [../CONTEXT.md](../CONTEXT.md) | 현재 기준 상태 snapshot |
-| 4 | [../PLAN.md](../PLAN.md) | 현재 active work |
-| 5 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
-| 6 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
+| 1 | [overview/portfolio_one_pager.md](overview/portfolio_one_pager.md) | 포트폴리오용 1페이지 서사 |
+| 2 | [overview/portfolio_presentation_outline.md](overview/portfolio_presentation_outline.md) | 발표/면접용 슬라이드 구조 |
+| 3 | [overview/portfolio_readme_blueprint.md](overview/portfolio_readme_blueprint.md) | 제출용 README 재구성 가이드 |
+| 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
+| 5 | [architecture/architecture_direction.md](architecture/architecture_direction.md) | MAS 방향성과 topology / communication / memory 설계 |
+| 6 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
+| 7 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | benchmark를 왜 직접 만들었는지와 dataset track rationale |
+| 8 | [evaluation/evaluator_design_rationale.md](evaluation/evaluator_design_rationale.md) | evaluator를 왜 분리했는지와 numeric contract rationale |
+| 9 | [evaluation/dataset_curation_log.md](evaluation/dataset_curation_log.md) | active curated asset과 gate question 선정 기록 |
+| 10 | [../CONTEXT.md](../CONTEXT.md) | 현재 기준 상태 snapshot |
+| 11 | [../PLAN.md](../PLAN.md) | 현재 active work |
+| 12 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
 
 ## 폴더 역할
 
@@ -26,6 +32,7 @@
 ### `evaluation/`
 - benchmark 운영 방식, 단일 문서 평가 기준, metric spec
 - retrospective scorecard 실험 설계는 `evaluation/benchmarking.md` 안에서 함께 관리
+- dataset design rationale, evaluator rationale, curation log도 포함
 
 ### `planning/`
 - backlog, next epics, 향후 구조 과제

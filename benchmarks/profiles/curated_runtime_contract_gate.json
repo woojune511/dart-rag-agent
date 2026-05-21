@@ -30,6 +30,7 @@
   },
   "candidate_ids": [
     "plain_prefix_8000_400",
+    "structural_selective_v2_prefix_2500_320",
     "contextual_selective_v2_prefix_2500_320"
   ],
   "screening": {
@@ -38,10 +39,11 @@
     "retrieval_hit_drop_threshold": 0.1,
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 0,
-    "always_include_full_eval_ids": [
-      "plain_prefix_8000_400",
-      "contextual_selective_v2_prefix_2500_320"
-    ]
+      "always_include_full_eval_ids": [
+        "plain_prefix_8000_400",
+        "structural_selective_v2_prefix_2500_320",
+        "contextual_selective_v2_prefix_2500_320"
+      ]
   },
   "full_evaluation": {
     "enabled": true,
@@ -119,6 +121,13 @@
       "chunk_size": 8000,
       "chunk_overlap": 400,
       "ingest_mode": "plain",
+      "use_zero_cost_prefix": true
+    },
+    {
+      "id": "structural_selective_v2_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "structural_selective_v2",
       "use_zero_cost_prefix": true
     },
     {

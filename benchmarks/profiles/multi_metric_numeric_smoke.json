@@ -1,4 +1,7 @@
 {
+  "profile_track": "mainline_curated",
+  "profile_role": "numeric_trace_smoke",
+  "dataset_track": "curated_dart_review",
   "defaults": {
     "k": 8,
     "ingest_mode": "contextual_selective_v2",

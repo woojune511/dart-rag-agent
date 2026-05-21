@@ -7,6 +7,9 @@
 - 단일 문서 기준선: [single_document_eval_strategy.md](single_document_eval_strategy.md)
 - metric spec: [evaluation_metrics_v1.md](evaluation_metrics_v1.md)
 - Golden dataset schema: [golden_dataset_schema.md](golden_dataset_schema.md)
+- benchmark dataset design rationale: [benchmark_dataset_design.md](benchmark_dataset_design.md)
+- evaluator design rationale: [evaluator_design_rationale.md](evaluator_design_rationale.md)
+- dataset curation record: [dataset_curation_log.md](dataset_curation_log.md)
 - answer generation 원칙: [../architecture/answer_generation_principles.md](../architecture/answer_generation_principles.md)
 
 ## At a Glance
@@ -120,17 +123,18 @@
 
 현재 기준으로 자주 쓰는 프로파일만 남긴다.
 
-| 프로파일 | 목적 | 주요 대상 | 언제 쓰나 |
-| --- | --- | --- | --- |
-| `dev_fast` | 빠른 screening | 단일 회사, mixed query | 새 후보를 빠르게 거를 때 |
-| `curated_single_doc_core` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | curated dataset 기준선 회귀 |
-| `multi_metric_numeric_smoke` | multi-subtask numeric trace 회귀 | curated multi-metric numeric subset | runtime/evaluator projection 검증 |
-| `concept_planner_canary` | legacy planner와 concept-only planner shadow 비교 | implicit / shorthand / multi-metric numeric subset | planner 구조 전환 전 quick sanity check |
-| `curated_multi_report_smoke` | multi-report 분리셋 점검 | multi-report curated subset | multi-report path smoke |
-| `single_document_graph_micro` | graph / structure-aware retrieval 비교 | 소수 문항 마이크로 실험 | 구조 실험 초기 확인 |
-| `release_generalization` | 다기업 일반화 확인 | shortlist 후보 | release-grade 확인 |
-| `dev_math_focus` | math / numeric reasoning 기준선 | `comparison`, `ratio`, `growth`, `trend` | 계산 구조 비교 |
-| `dev_math_edge_focus` | 엣지 케이스 회귀 | `%p`, ratio row miss, operand shortfall | math regression debug |
+| 프로파일 | track | 목적 | 주요 대상 | 언제 쓰나 |
+| --- | --- | --- | --- | --- |
+| `curated_single_doc_core` | `mainline_curated` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | single-doc canonical 기준선 회귀 |
+| `curated_runtime_contract_gate` | `mainline_curated` | 대표 numeric canary 5개 gate | `NAV_T1_030`, `NAV_T1_071`, `SKH_T1_060`, `MIX_T1_021`, `KBF_T1_017` | runtime contract / evaluator / internal-state 회귀 확인 |
+| `multi_metric_numeric_smoke` | `mainline_curated` | multi-subtask numeric trace 회귀 | curated multi-metric numeric subset | runtime/evaluator projection 검증 |
+| `curated_multi_report_smoke` | `mainline_curated` | multi-report 분리셋 점검 | multi-report curated subset | multi-report path smoke |
+| `curated_single_doc_smoke_only` | `mainline_curated` | 가장 빠른 single-doc smoke | single company / single curated source | ingest + smoke 기본 sanity check |
+| `concept_planner_canary` | `curated_canary` | legacy planner와 concept-only planner shadow 비교 | implicit / shorthand / multi-metric numeric subset | planner 구조 전환 전 quick sanity check |
+| `dev_fast`, `dev_fast_focus*`, `dev_fast_supplement`, `dev_fast_fulleval` | `legacy_2024_experimental` | 과거 2024 mixed-query screening 보존 | legacy `eval_dataset.canonical.json` | historical replay / 2024-specific 비교가 필요할 때만 |
+| `dev_math_focus`, `dev_math_edge_focus` | `legacy_2024_experimental` | 과거 2024 math dataset 비교 보존 | legacy `eval_dataset.math_focus.json` | historical math architecture replay가 필요할 때만 |
+| `release_generalization` | `legacy_2024_experimental` | 과거 2024 cross-company generalization 보존 | legacy canonical slices | historical release-style replay가 필요할 때만 |
+| `single_document_graph_micro` | `experimental_micro` | graph / structure-aware retrieval 비교 | 소수 문항 마이크로 실험 | 구조 실험 초기 확인 |
 
 ### `selective_v2_sections` scope
 
@@ -150,6 +154,67 @@
 - 이 목록에 필요한 섹션이 빠지면, 해당 row/value는 아예 store에 안 들어갈 수 있다.
 - `KBF_T1_017` follow-up에서 `명목순이자마진(NIM)` row가 있는 `영업의 현황`을 추가해야 PASS가 났던 이유도 여기에 있다.
 - 따라서 `selective_v2_sections` 문제는 planner/reconciliation 문제가 아니라 **benchmark ingest coverage 문제**로 먼저 봐야 한다.
+
+## Chunking / Ingest Candidates
+
+현재 mainline gate에서 직접 비교하는 ingest 후보는 아래 세 가지다.
+
+| candidate | chunk | 선택 방식 | 추가 문맥 | Gemini ingest API | 현재 역할 |
+| --- | --- | --- | --- | --- | --- |
+| `plain_prefix_8000_400` | `8000 / 400` | 전체 chunk 유지 | zero-cost prefix만 사용 | `0` | 속도/비용 baseline |
+| `structural_selective_v2_prefix_2500_320` | `2500 / 320` | `selective_v2` 규칙으로 중요한 chunk만 유지 | deterministic structural prefix | `0` | 품질-비용 중간 후보 |
+| `contextual_selective_v2_prefix_2500_320` | `2500 / 320` | `selective_v2` 규칙으로 중요한 chunk만 유지 | Gemini-written chunk context + zero-cost prefix | 선택 chunk 수만큼 발생 | 품질 baseline |
+
+### `plain_prefix_8000_400`
+
+- 가장 빠르고 싸다.
+- 큰 chunk 안에 여러 표/행/문단이 섞이기 쉬워서 numeric grounding에서 wrong row, wrong subtotal, wrong entity collapse가 더 잘 난다.
+- 현재 runtime contract gate에서는 `SKH_T1_060`를 놓친다. 따라서 quality gate winner는 아니다.
+
+### `structural_selective_v2_prefix_2500_320`
+
+- `contextual_selective_v2`와 동일한 `selective_v2` chunk filter를 사용한다.
+- selected chunk마다 Gemini로 context 문장을 생성하지 않는다.
+- 대신 아래 구조 신호만 deterministic prefix로 붙인다.
+  - `statement_type`
+  - `consolidation_scope`
+  - `period_focus`
+  - `unit_hint`
+  - `local_heading`
+  - `table_context`
+  - `table_row_labels_text`
+  - `selected_reason`
+- 의도는 다음 둘을 동시에 잡는 것이다.
+  - `plain`보다 표/행/기간 문맥을 더 잘 보존
+  - `contextual_selective_v2`보다 ingest API 비용 제거
+- 현재 가장 중요한 tradeoff 후보다.
+
+### `contextual_selective_v2_prefix_2500_320`
+
+- selected chunk마다 Gemini가 쓴 chunk context를 붙인다.
+- 품질은 현재 가장 안정적이다.
+  - runtime contract gate 대표 5문항 PASS
+  - multi-entity grounding gate PASS
+- 단점은 ingest 비용이다.
+  - selected chunk 수에 비례해 Gemini 호출이 누적된다.
+  - plain/structural 후보 대비 ingest 시간이 크게 증가한다.
+
+### 현재 운영 해석
+
+- `plain_prefix_8000_400`
+  - speed / cost baseline
+- `contextual_selective_v2_prefix_2500_320`
+  - quality baseline
+- `structural_selective_v2_prefix_2500_320`
+  - 현재 가장 중요한 운영 기본값 후보
+
+즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
+
+- large plain chunk의 저비용 이점
+- selective chunk filtering의 구조적 이점
+- Gemini-written contextual prefix의 품질 이점
+
+이 세 축을 어떻게 조합할지, 그리고 `structural_selective_v2`가 `plain`과 `contextual_selective_v2` 사이의 실용적인 middle ground가 될 수 있는지가 현재 mainline 비교의 핵심이다.
 
 ## 데이터셋
 
@@ -197,6 +262,13 @@
   - single-document으로 닫히지 않는 질문 분리셋
   - 현재 active row `1` (`SAM_T2_002`)
 
+프로파일 운영 원칙:
+
+- active regression / gate는 `mainline_curated` track을 기본으로 삼는다.
+- `legacy_2024_experimental` track은 2024 보고서 + legacy dataset 조합을 보존하기 위한 historical asset이다.
+- legacy profile은 curated dataset이 2024 coverage와 question-id 체계를 아직 완전히 대체하지 못한 영역에서만 사용한다.
+- 새로운 회귀나 운영 기준선은 가능하면 curated profile로 추가하고, 임시 profile은 장기 유지하지 않는다.
+
 ## 2026-05-19 Answer Slots Follow-up
 
 - `CalculationResult.answer_slots`는 이제 evaluator runtime projection의 1순위 contract다.
@@ -235,9 +307,9 @@
 
 주의:
 
-- `benchmarks/eval_dataset.canonical.json`, `benchmarks/eval_dataset.math_focus.json`은 여전히 일부 profile / retrospective script에서 사용되는 legacy benchmark asset이다.
-- 따라서 당분간은 **curated dataset과 legacy benchmark dataset이 공존**한다.
-- 다음 정리 단계는 주력 benchmark/profile을 curated dataset 기준으로 재정렬하는 것이다.
+- `benchmarks/eval_dataset.canonical.json`, `benchmarks/eval_dataset.math_focus.json`은 여전히 일부 historical profile / retrospective script에서 사용되는 legacy benchmark asset이다.
+- 다만 active regression 기준선은 이제 `curated_single_doc_core`, `curated_runtime_contract_gate`, `multi_metric_numeric_smoke`, `curated_multi_report_smoke`로 재정렬했다.
+- legacy asset은 2024-specific historical replay가 필요할 때만 유지한다.
 
 ### Multi-metric numeric smoke subset
 

@@ -29,6 +29,7 @@
     "mlflow_experiment_name": "dart_rag_curated_multi_entity_grounding_gate"
   },
   "candidate_ids": [
+    "structural_selective_v2_prefix_2500_320",
     "contextual_selective_v2_prefix_2500_320"
   ],
   "screening": {
@@ -37,9 +38,10 @@
     "retrieval_hit_drop_threshold": 0.1,
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 0,
-    "always_include_full_eval_ids": [
-      "contextual_selective_v2_prefix_2500_320"
-    ]
+      "always_include_full_eval_ids": [
+        "structural_selective_v2_prefix_2500_320",
+        "contextual_selective_v2_prefix_2500_320"
+      ]
   },
   "full_evaluation": {
     "enabled": true,
@@ -68,6 +70,13 @@
     }
   ],
   "experiments": [
+    {
+      "id": "structural_selective_v2_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "structural_selective_v2",
+      "use_zero_cost_prefix": true
+    },
     {
       "id": "contextual_selective_v2_prefix_2500_320",
       "chunk_size": 2500,

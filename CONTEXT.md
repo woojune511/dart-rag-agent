@@ -12,6 +12,9 @@
 ## 최신 상태
 
 - curated benchmark 경로를 실제 profile과 evaluator에 연결했다.
+- active benchmark/profile track도 curated 중심으로 재정렬하기 시작했다.
+  - mainline: `curated_single_doc_core`, `curated_runtime_contract_gate`, `multi_metric_numeric_smoke`, `curated_multi_report_smoke`
+  - legacy historical: `dev_fast*`, `dev_math_*`, `release_generalization`
 - parser는 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
   - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
   - `table_summary_text`, `table_row_labels_text`, `table_row_records_json`, `table_object_json` 생성
@@ -80,6 +83,7 @@
 - `difference` / `lookup` / `ratio` 결과를 더 구조적으로 남기는 result schema 정리는 여전히 필요하다.
 - 다만 이제 `answer_slots`가 공통 contract로 들어와, single-task와 multi-subtask가 같은 structured result vocabulary를 공유하기 시작했다.
 - compositional subtraction(`minuend/subtrahend`)도 같은 contract 안에서 닫히기 시작했지만, evaluator와 tooling 일부는 아직 legacy flat projection을 병행 참조한다.
+- profile 운영 기준은 이제 curated track이 우선이고, legacy 2024 dataset profile은 historical replay 용도로만 남긴다.
 - final refusal ownership은 `aggregate_subtasks`로 올라왔고, `NAV_T1_071`를 통해 `planner_feedback -> replan / close` 루프의 최소 실전 검증은 끝났다.
 - direct-first runtime policy는 `NAV_T1_071`에서 닫혔고, 이제 `ratio / sum`처럼 explicit concept numeric task까지 direct grounding 대상으로 확대됐다.
 - percent multi-period rows도 별도 metric hardcoding 없이 shared pair-selection / evaluator contract로 닫히기 시작했다.

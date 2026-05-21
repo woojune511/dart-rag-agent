@@ -7,13 +7,15 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **planner는 재료를 모으고, synthesizer가 질문 충족 여부를 판단하는 구조를 runtime에 정착** |
+| 현재 1순위 | **curated benchmark/profile 체계를 mainline 기준선으로 굳히고, 그 위에서 planner/runtime 회귀를 관리** |
 | 지금 하지 않을 것 | 범용 agent 확장, broad web workflow, cosmetic retrieval tuning |
 | 다음 큰 순서 | `planner/synthesizer contract -> result schema settling -> concept-only planner canary -> DART multi-document reasoning` |
 
 ## Immediate Focus
 
 - curated dataset 연결과 parser baseline regression은 1차 기준선까지는 지나갔다.
+- active benchmark track은 이제 `curated_single_doc_core`, `curated_runtime_contract_gate`, `multi_metric_numeric_smoke`, `curated_multi_report_smoke`를 기본으로 본다.
+- `dev_fast*`, `dev_math_*`, `release_generalization`은 2024 legacy dataset 기반 historical asset으로만 유지한다.
 - 지금 가장 가까운 구현 초점은 **planner/synthesizer contract + concept-only planning + result schema settling** 이다.
   - ontology는 metric recipe보다 concept / group concept / binding prior 중심으로 축소
   - planner는 질문을 `operation_family + required_operands` 형태의 재료 수집 task로 분해

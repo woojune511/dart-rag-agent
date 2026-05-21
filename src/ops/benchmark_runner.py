@@ -1012,6 +1012,39 @@ def _build_zero_cost_prefixed_text(metadata: Dict[str, Any], content: str) -> st
     return "\n".join(prefix_lines) + f"\n\n{content}"
 
 
+def _compact_structural_value(value: Any, limit: int = 220) -> str:
+    flattened = " ".join(str(value or "").split())
+    if len(flattened) <= limit:
+        return flattened
+    return flattened[: max(limit - 3, 0)].rstrip() + "..."
+
+
+def _build_structural_selective_prefixed_text(
+    metadata: Dict[str, Any],
+    content: str,
+    *,
+    selected_reason: Optional[str] = None,
+) -> str:
+    base = _build_zero_cost_prefixed_text(metadata, content)
+    if not selected_reason:
+        return base
+
+    structural_lines = [f"[선택사유: {selected_reason}]"]
+    for label, key in (
+        ("statement_type", "statement_type"),
+        ("consolidation_scope", "consolidation_scope"),
+        ("period_focus", "period_focus"),
+        ("unit_hint", "unit_hint"),
+        ("local_heading", "local_heading"),
+        ("table_context", "table_context"),
+        ("table_row_labels", "table_row_labels_text"),
+    ):
+        value = _compact_structural_value(metadata.get(key))
+        if value:
+            structural_lines.append(f"[{label}: {value}]")
+    return "\n".join(structural_lines) + "\n" + base
+
+
 def _fallback_context(metadata: Dict[str, Any]) -> str:
     company = metadata.get("company", "?")
     year = metadata.get("year", "?")
@@ -1602,6 +1635,75 @@ def _benchmark_selective_v2_ingest(
         "use_zero_cost_prefix": use_zero_cost_prefix,
         **metrics,
         "elapsed_sec": time.perf_counter() - started_at,
+        },
+        add_metrics,
+    )
+    if return_artifacts:
+        result["artifacts"] = {
+            "texts": texts,
+            "metadatas": metadatas,
+            "parents": parents,
+        }
+    return result
+
+
+def _benchmark_structural_selective_v2_ingest(
+    agent: FinancialAgent,
+    chunks: List[Any],
+    *,
+    short_text_threshold: int = 700,
+    targeted_sections: Optional[List[str]] = None,
+    short_table_threshold: int = 1600,
+    resume_partial_store: bool = False,
+    resume_batch_size: int = 64,
+    return_artifacts: bool = False,
+) -> Dict[str, Any]:
+    started_at = time.perf_counter()
+    parents = _store_parent_chunks(agent, chunks)
+    selected_reasons = _select_chunk_reasons(
+        chunks,
+        _selective_reason_v2,
+        short_text_threshold=short_text_threshold,
+        targeted_sections=targeted_sections,
+        short_table_threshold=short_table_threshold,
+    )
+
+    texts = [
+        _build_structural_selective_prefixed_text(
+            chunk.metadata,
+            chunk.content,
+            selected_reason=selected_reasons.get(idx),
+        )
+        for idx, chunk in enumerate(chunks)
+    ]
+    metadatas = [chunk.metadata for chunk in chunks]
+    add_metrics = agent.vsm.add_documents(
+        texts,
+        metadatas,
+        resume=resume_partial_store,
+        batch_size=resume_batch_size,
+    )
+
+    result = _merge_resume_metrics(
+        {
+            "mode": "structural_selective_v2",
+            "chunks": len(chunks),
+            "stored_parent_chunks": len(parents),
+            "contextualized_chunks": len(selected_reasons),
+            "selector_reason_counts": _count_reason_counts(selected_reasons),
+            "parent_context_calls": 0,
+            "child_context_calls": 0,
+            "api_calls": 0,
+            "fallback_count": 0,
+            "prompt_chars": 0,
+            "response_chars": 0,
+            "prompt_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "max_workers": 0,
+            "batch_size": 0,
+            "use_zero_cost_prefix": True,
+            "elapsed_sec": time.perf_counter() - started_at,
         },
         add_metrics,
     )
@@ -2282,6 +2384,8 @@ def _build_cross_company_rows(company_bundles: List[Dict[str, Any]]) -> List[Dic
                     "ingest_time_reduction_ratio": comparison.get("ingest_time_reduction_ratio"),
                     "estimated_cost_reduction_ratio": comparison.get("estimated_cost_reduction_ratio"),
                     "full_faithfulness": full.get("faithfulness"),
+                    "full_completeness": full.get("completeness"),
+                    "full_numeric_pass_rate": full.get("numeric_pass_rate"),
                     "full_context_recall": full.get("context_recall"),
                     "full_answer_relevancy": full.get("answer_relevancy"),
                     "full_retrieval_hit_at_k": full.get("retrieval_hit_at_k"),
@@ -2313,7 +2417,11 @@ def _build_winner_ranking(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "ingest_time_reduction_ratios": [],
                 "estimated_cost_reduction_ratios": [],
                 "full_faithfulness_values": [],
+                "full_completeness_values": [],
+                "full_numeric_pass_rate_values": [],
                 "full_context_recall_values": [],
+                "full_eval_fail_count": 0,
+                "full_eval_failures": [],
                 "screen_failures": [],
             },
         )
@@ -2325,7 +2433,26 @@ def _build_winner_ranking(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         aggregate["ingest_time_reduction_ratios"].append(row.get("ingest_time_reduction_ratio"))
         aggregate["estimated_cost_reduction_ratios"].append(row.get("estimated_cost_reduction_ratio"))
         aggregate["full_faithfulness_values"].append(row.get("full_faithfulness"))
+        aggregate["full_completeness_values"].append(row.get("full_completeness"))
+        aggregate["full_numeric_pass_rate_values"].append(row.get("full_numeric_pass_rate"))
         aggregate["full_context_recall_values"].append(row.get("full_context_recall"))
+        full_numeric_pass_rate = row.get("full_numeric_pass_rate")
+        full_completeness = row.get("full_completeness")
+        full_faithfulness = row.get("full_faithfulness")
+        full_eval_failed = any(
+            value is None or float(value) < 1.0
+            for value in (full_numeric_pass_rate, full_completeness, full_faithfulness)
+        )
+        if full_eval_failed:
+            aggregate["full_eval_fail_count"] += 1
+            aggregate["full_eval_failures"].append(
+                {
+                    "company": row["company"],
+                    "numeric_pass_rate": full_numeric_pass_rate,
+                    "completeness": full_completeness,
+                    "faithfulness": full_faithfulness,
+                }
+            )
         if row.get("screen_failure_reasons"):
             aggregate["screen_failures"].append(
                 {
@@ -2346,7 +2473,11 @@ def _build_winner_ranking(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "avg_ingest_time_reduction_ratio": _mean_or_none(aggregate["ingest_time_reduction_ratios"]),
                 "avg_estimated_cost_reduction_ratio": _mean_or_none(aggregate["estimated_cost_reduction_ratios"]),
                 "avg_full_faithfulness": _mean_or_none(aggregate["full_faithfulness_values"]),
+                "avg_full_completeness": _mean_or_none(aggregate["full_completeness_values"]),
+                "avg_full_numeric_pass_rate": _mean_or_none(aggregate["full_numeric_pass_rate_values"]),
                 "avg_full_context_recall": _mean_or_none(aggregate["full_context_recall_values"]),
+                "full_eval_fail_count": aggregate["full_eval_fail_count"],
+                "full_eval_failures": aggregate["full_eval_failures"],
                 "screen_failures": aggregate["screen_failures"],
             }
         )
@@ -2354,13 +2485,16 @@ def _build_winner_ranking(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     ranking.sort(
         key=lambda row: (
             -int(row["pass_count"]),
+            int(row["full_eval_fail_count"]),
             int(row["critical_category_miss_count"]),
+            -float(row["avg_full_numeric_pass_rate"] if row["avg_full_numeric_pass_rate"] is not None else -1.0),
+            -float(row["avg_full_completeness"] if row["avg_full_completeness"] is not None else -1.0),
+            -float(row["avg_full_faithfulness"] if row["avg_full_faithfulness"] is not None else -1.0),
+            -float(row["avg_full_context_recall"] if row["avg_full_context_recall"] is not None else -1.0),
             -float(row["avg_api_call_reduction_ratio"] if row["avg_api_call_reduction_ratio"] is not None else -1.0),
             -float(
                 row["avg_ingest_time_reduction_ratio"] if row["avg_ingest_time_reduction_ratio"] is not None else -1.0
             ),
-            -float(row["avg_full_faithfulness"] if row["avg_full_faithfulness"] is not None else -1.0),
-            -float(row["avg_full_context_recall"] if row["avg_full_context_recall"] is not None else -1.0),
             row["experiment_id"],
         )
     )
@@ -2386,6 +2520,8 @@ def _write_cross_company_summary_csv(path: Path, rows: List[Dict[str, Any]]) -> 
         "ingest_time_reduction_ratio",
         "estimated_cost_reduction_ratio",
         "full_faithfulness",
+        "full_completeness",
+        "full_numeric_pass_rate",
         "full_context_recall",
         "full_answer_relevancy",
         "full_retrieval_hit_at_k",
@@ -2414,16 +2550,25 @@ def _render_cross_company_summary_markdown(rows: List[Dict[str, Any]], ranking: 
         "",
         "## Per-Company Results",
         "",
-        "| Company | Experiment | Screen Pass | Critical Misses | Hit@k | Section | Citation | Contam | API Calls | Est. Cost (USD) | Ingest (s) | API Δ | Time Δ | Cost Δ | Full Faithfulness | Full Recall |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Company | Experiment | Screen Pass | Full Eval Fails | Critical Misses | Hit@k | Section | Citation | Contam | API Calls | Est. Cost (USD) | Ingest (s) | API Δ | Time Δ | Cost Δ | Full Numeric | Full Completeness | Full Faithfulness | Full Recall |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
 
     for row in rows:
+        full_eval_failed = any(
+            value is None or float(value) < 1.0
+            for value in (
+                row.get("full_numeric_pass_rate"),
+                row.get("full_completeness"),
+                row.get("full_faithfulness"),
+            )
+        )
         lines.append(
-            "| {company} | {experiment_id} | {passed} | {critical} | {hit} | {section} | {citation} | {contam} | {api_calls} | {cost} | {ingest} | {api_delta} | {time_delta} | {cost_delta} | {faith} | {recall} |".format(
+            "| {company} | {experiment_id} | {passed} | {full_eval_fail} | {critical} | {hit} | {section} | {citation} | {contam} | {api_calls} | {cost} | {ingest} | {api_delta} | {time_delta} | {cost_delta} | {numeric_pass} | {completeness} | {faith} | {recall} |".format(
                 company=row["company"],
                 experiment_id=row["experiment_id"],
                 passed="yes" if row.get("screen_pass") else "no",
+                full_eval_fail=1 if full_eval_failed else 0,
                 critical=int(row.get("critical_category_miss_count", 0) or 0),
                 hit="-" if row.get("retrieval_hit_at_k") is None else f"{float(row['retrieval_hit_at_k']):.3f}",
                 section="-" if row.get("section_match_rate") is None else f"{float(row['section_match_rate']):.3f}",
@@ -2439,6 +2584,12 @@ def _render_cross_company_summary_markdown(rows: List[Dict[str, Any]], ranking: 
                 cost_delta="-"
                 if row.get("estimated_cost_reduction_ratio") is None
                 else f"{float(row['estimated_cost_reduction_ratio']):.1%}",
+                numeric_pass="-"
+                if row.get("full_numeric_pass_rate") is None
+                else f"{float(row['full_numeric_pass_rate']):.3f}",
+                completeness="-"
+                if row.get("full_completeness") is None
+                else f"{float(row['full_completeness']):.3f}",
                 faith="-" if row.get("full_faithfulness") is None else f"{float(row['full_faithfulness']):.3f}",
                 recall="-" if row.get("full_context_recall") is None else f"{float(row['full_context_recall']):.3f}",
             )
@@ -2449,19 +2600,26 @@ def _render_cross_company_summary_markdown(rows: List[Dict[str, Any]], ranking: 
             "",
             "## Winner Ranking",
             "",
-            "| Rank | Experiment | Pass Count | Company Count | Critical Misses | Avg API Δ | Avg Time Δ | Avg Cost Δ | Avg Faithfulness | Avg Recall |",
-            "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+            "| Rank | Experiment | Pass Count | Company Count | Full Eval Fails | Critical Misses | Avg Numeric | Avg Completeness | Avg Faithfulness | Avg Recall | Avg API Δ | Avg Time Δ | Avg Cost Δ |",
+            "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
 
     for index, row in enumerate(ranking, start=1):
         lines.append(
-            "| {rank} | {experiment_id} | {pass_count} | {company_count} | {critical} | {api_delta} | {time_delta} | {cost_delta} | {faith} | {recall} |".format(
+            "| {rank} | {experiment_id} | {pass_count} | {company_count} | {full_eval_fail_count} | {critical} | {numeric_pass} | {completeness} | {faith} | {recall} | {api_delta} | {time_delta} | {cost_delta} |".format(
                 rank=index,
                 experiment_id=row["experiment_id"],
                 pass_count=int(row["pass_count"]),
                 company_count=int(row["company_count"]),
+                full_eval_fail_count=int(row["full_eval_fail_count"]),
                 critical=int(row["critical_category_miss_count"]),
+                numeric_pass="-"
+                if row.get("avg_full_numeric_pass_rate") is None
+                else f"{float(row['avg_full_numeric_pass_rate']):.3f}",
+                completeness="-"
+                if row.get("avg_full_completeness") is None
+                else f"{float(row['avg_full_completeness']):.3f}",
                 api_delta="-"
                 if row.get("avg_api_call_reduction_ratio") is None
                 else f"{float(row['avg_api_call_reduction_ratio']):.1%}",
@@ -2484,6 +2642,18 @@ def _render_cross_company_summary_markdown(rows: List[Dict[str, Any]], ranking: 
             lines.append(f"Failure Notes for `{row['experiment_id']}`")
             for failure in row["screen_failures"]:
                 lines.append(f"- {failure['company']}: {' | '.join(failure['reasons'])}")
+        if row.get("full_eval_failures"):
+            lines.append("")
+            lines.append(f"Full-Eval Failure Notes for `{row['experiment_id']}`")
+            for failure in row["full_eval_failures"]:
+                lines.append(
+                    "- {company}: numeric_pass_rate={numeric_pass_rate}, completeness={completeness}, faithfulness={faithfulness}".format(
+                        company=failure["company"],
+                        numeric_pass_rate=failure["numeric_pass_rate"],
+                        completeness=failure["completeness"],
+                        faithfulness=failure["faithfulness"],
+                    )
+                )
 
     lines.extend(
         [
@@ -2492,11 +2662,14 @@ def _render_cross_company_summary_markdown(rows: List[Dict[str, Any]], ranking: 
             "",
             "The default candidate is ranked by:",
             "1. cross-company screening pass count",
-            "2. critical category misses",
-            "3. average API call reduction ratio",
-            "4. average ingest time reduction ratio",
-            "5. full evaluation faithfulness",
-            "6. full evaluation context recall",
+            "2. full-evaluation fail count",
+            "3. critical category misses",
+            "4. full evaluation numeric pass rate",
+            "5. full evaluation completeness",
+            "6. full evaluation faithfulness",
+            "7. full evaluation context recall",
+            "8. average API call reduction ratio",
+            "9. average ingest time reduction ratio",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -2675,6 +2848,17 @@ def _run_ingest(
             targeted_sections=list(config.get("selective_v2_sections", [])),
             short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
             use_zero_cost_prefix=bool(config.get("use_zero_cost_prefix", False)),
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
+            return_artifacts=return_artifacts,
+        )
+    if ingest_mode == "structural_selective_v2":
+        return _benchmark_structural_selective_v2_ingest(
+            agent,
+            chunks,
+            short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
+            targeted_sections=list(config.get("selective_v2_sections", [])),
+            short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
             resume_partial_store=resume_partial_store,
             resume_batch_size=resume_batch_size,
             return_artifacts=return_artifacts,

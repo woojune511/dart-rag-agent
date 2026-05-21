@@ -1,4 +1,7 @@
 {
+  "profile_track": "mainline_curated",
+  "profile_role": "single_doc_smoke_only",
+  "dataset_track": "curated_dart_review",
   "defaults": {
     "k": 8,
     "ingest_mode": "plain",

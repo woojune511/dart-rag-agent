@@ -11,10 +11,131 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.ops.benchmark_runner import _flatten_review_rows, _serialise_eval_results
+from src.ops.benchmark_runner import (
+    _build_cross_company_rows,
+    _build_winner_ranking,
+    _flatten_review_rows,
+    _render_cross_company_summary_markdown,
+    _serialise_eval_results,
+)
 
 
 class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
+    def test_winner_ranking_prefers_full_eval_pass_over_cheaper_candidate(self) -> None:
+        company_bundles = [
+            {
+                "company_id": "naver_2023_runtime_contract_gate",
+                "company_label": "NAVER 2023",
+                "results": [
+                    {
+                        "id": "plain_prefix_8000_400",
+                        "screen_pass": True,
+                        "screen_failure_reasons": [],
+                        "config": {"ingest_mode": "plain", "chunk_size": 8000, "chunk_overlap": 400},
+                        "ingest": {"api_calls": 0, "elapsed_sec": 100.0},
+                        "comparison_to_baseline": {
+                            "api_call_reduction_ratio": 1.0,
+                            "ingest_time_reduction_ratio": 0.9,
+                            "estimated_cost_reduction_ratio": 1.0,
+                        },
+                        "full_eval": {
+                            "aggregate": {
+                                "faithfulness": 1.0,
+                                "completeness": 1.0,
+                                "numeric_pass_rate": 1.0,
+                                "context_recall": 1.0,
+                            }
+                        },
+                    },
+                    {
+                        "id": "contextual_selective_v2_prefix_2500_320",
+                        "screen_pass": True,
+                        "screen_failure_reasons": [],
+                        "config": {
+                            "ingest_mode": "contextual_selective_v2",
+                            "chunk_size": 2500,
+                            "chunk_overlap": 320,
+                        },
+                        "ingest": {"api_calls": 300, "elapsed_sec": 1200.0},
+                        "comparison_to_baseline": {
+                            "api_call_reduction_ratio": 0.0,
+                            "ingest_time_reduction_ratio": 0.0,
+                            "estimated_cost_reduction_ratio": 0.0,
+                        },
+                        "full_eval": {
+                            "aggregate": {
+                                "faithfulness": 1.0,
+                                "completeness": 1.0,
+                                "numeric_pass_rate": 1.0,
+                                "context_recall": 1.0,
+                            }
+                        },
+                    },
+                ],
+            },
+            {
+                "company_id": "skh_2023_runtime_contract_gate",
+                "company_label": "SK하이닉스 2023",
+                "results": [
+                    {
+                        "id": "plain_prefix_8000_400",
+                        "screen_pass": True,
+                        "screen_failure_reasons": [],
+                        "config": {"ingest_mode": "plain", "chunk_size": 8000, "chunk_overlap": 400},
+                        "ingest": {"api_calls": 0, "elapsed_sec": 40.0},
+                        "comparison_to_baseline": {
+                            "api_call_reduction_ratio": 1.0,
+                            "ingest_time_reduction_ratio": 0.95,
+                            "estimated_cost_reduction_ratio": 1.0,
+                        },
+                        "full_eval": {
+                            "aggregate": {
+                                "faithfulness": 0.3,
+                                "completeness": 0.0,
+                                "numeric_pass_rate": 0.0,
+                                "context_recall": 1.0,
+                            }
+                        },
+                    },
+                    {
+                        "id": "contextual_selective_v2_prefix_2500_320",
+                        "screen_pass": True,
+                        "screen_failure_reasons": [],
+                        "config": {
+                            "ingest_mode": "contextual_selective_v2",
+                            "chunk_size": 2500,
+                            "chunk_overlap": 320,
+                        },
+                        "ingest": {"api_calls": 320, "elapsed_sec": 1260.0},
+                        "comparison_to_baseline": {
+                            "api_call_reduction_ratio": 0.0,
+                            "ingest_time_reduction_ratio": 0.0,
+                            "estimated_cost_reduction_ratio": 0.0,
+                        },
+                        "full_eval": {
+                            "aggregate": {
+                                "faithfulness": 1.0,
+                                "completeness": 1.0,
+                                "numeric_pass_rate": 1.0,
+                                "context_recall": 1.0,
+                            }
+                        },
+                    },
+                ],
+            },
+        ]
+
+        rows = _build_cross_company_rows(company_bundles)
+        ranking = _build_winner_ranking(rows)
+        markdown = _render_cross_company_summary_markdown(rows, ranking)
+
+        self.assertEqual(ranking[0]["experiment_id"], "contextual_selective_v2_prefix_2500_320")
+        self.assertEqual(ranking[0]["full_eval_fail_count"], 0)
+        self.assertEqual(ranking[1]["experiment_id"], "plain_prefix_8000_400")
+        self.assertEqual(ranking[1]["full_eval_fail_count"], 1)
+        self.assertIn("full-evaluation fail count", markdown)
+        self.assertIn("Full-Eval Failure Notes for `plain_prefix_8000_400`", markdown)
+
     def test_flatten_review_rows_prefers_resolved_runtime_trace(self) -> None:
         results = [
             {

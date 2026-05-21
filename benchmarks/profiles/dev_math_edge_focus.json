@@ -1,4 +1,7 @@
 {
+  "profile_track": "legacy_2024_experimental",
+  "dataset_track": "legacy_eval_dataset",
+  "status_note": "Retained for historical 2024 math edge-case debugging. Prefer curated numeric canaries for active regression.",
   "defaults": {
     "k": 8,
     "ingest_mode": "contextual_selective_v2",

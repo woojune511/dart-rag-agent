@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,7 @@ from src.ops.benchmark_runner import (
     _build_cache_signature,
     _build_store_signature,
     _cache_meta_is_completed,
+    _run_ingest,
     _store_signature_matches,
 )
 from src.storage.vector_store import VectorStoreManager
@@ -38,6 +40,30 @@ class _FakeVectorStore:
 
     def similarity_search_with_score(self, query, k=4, filter=None):
         raise RuntimeError("RESOURCE_EXHAUSTED: synthetic test failure")
+
+
+class _FakeIngestVectorManager:
+    def __init__(self):
+        self.parent_calls = []
+        self.document_calls = []
+
+    def add_parents(self, parents):
+        self.parent_calls.append(dict(parents))
+
+    def add_documents(self, texts, metadatas, resume=False, batch_size=64):
+        self.document_calls.append(
+            {
+                "texts": list(texts),
+                "metadatas": list(metadatas),
+                "resume": resume,
+                "batch_size": batch_size,
+            }
+        )
+        return {
+            "added_chunks": len(texts),
+            "skipped_chunks": 0,
+            "batch_count": 1,
+        }
 
 
 class ResumableIngestTests(unittest.TestCase):
@@ -162,6 +188,69 @@ class ResumableIngestTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             manager.search("테스트", k=3)
+
+    def test_structural_selective_v2_ingest_skips_llm_context_generation(self) -> None:
+        agent = SimpleNamespace(
+            vsm=_FakeIngestVectorManager(),
+            llm=SimpleNamespace(batch=Mock(side_effect=AssertionError("llm.batch should not be called"))),
+        )
+        chunks = [
+            SimpleNamespace(
+                content="매출액 | 100",
+                metadata={
+                    "parent_id": "p1",
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "report_type": "사업보고서",
+                    "section": "요약재무정보",
+                    "section_path": "II. 사업의 내용 > 요약재무정보",
+                    "block_type": "table",
+                    "statement_type": "summary_financials",
+                    "consolidation_scope": "consolidated",
+                    "table_context": "주요 부문별 실적",
+                    "table_row_labels_text": "DX\nDS\nSDC",
+                    "period_focus": "current",
+                    "unit_hint": "억원",
+                },
+            ),
+            SimpleNamespace(
+                content="이 문단은 선택되지 않아야 할 정도로 길고 일반적인 설명입니다. " * 50,
+                metadata={
+                    "parent_id": "p2",
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "report_type": "사업보고서",
+                    "section": "기타",
+                    "section_path": "I. 회사의 개요 > 기타",
+                    "block_type": "paragraph",
+                },
+            ),
+        ]
+
+        metrics = _run_ingest(
+            agent,
+            chunks,
+            {
+                "ingest_mode": "structural_selective_v2",
+                "selective_v2_short_text_threshold": 700,
+                "selective_v2_short_table_threshold": 1600,
+                "selective_v2_sections": ["요약재무정보"],
+                "resume_partial_store": False,
+                "resume_batch_size": 64,
+            },
+            return_artifacts=True,
+        )
+
+        self.assertEqual(metrics["mode"], "structural_selective_v2")
+        self.assertEqual(metrics["api_calls"], 0)
+        self.assertEqual(metrics["contextualized_chunks"], 1)
+        self.assertEqual(metrics["child_context_calls"], 0)
+        self.assertEqual(len(agent.vsm.document_calls), 1)
+        texts = agent.vsm.document_calls[0]["texts"]
+        self.assertIn("[선택사유: short_table]", texts[0])
+        self.assertIn("[statement_type: summary_financials]", texts[0])
+        self.assertIn("[table_context: 주요 부문별 실적]", texts[0])
+        self.assertNotIn("[선택사유:", texts[1])
 
 
 if __name__ == "__main__":

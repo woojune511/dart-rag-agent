@@ -10,6 +10,17 @@ projection.
 - Profile:
   - `benchmarks/profiles/curated_runtime_contract_gate.json`
 
+## Compared candidates
+
+- `plain_prefix_8000_400`
+- `structural_selective_v2_prefix_2500_320`
+- `contextual_selective_v2_prefix_2500_320`
+
+`structural_selective_v2` keeps the selective-v2 chunk filter but removes
+Gemini-written chunk context generation. It relies only on deterministic
+structural prefixes derived from local metadata such as section path, statement
+type, table context, and row-label text.
+
 ## Gate question set
 
 - `NAV_T1_030`
@@ -44,6 +55,9 @@ These five questions cover:
 ## Pass criteria
 
 - All five gate questions must finish with `numeric_final_judgement = PASS`.
+- Any candidate with one or more full-evaluation question failures is
+  disqualified as the default runtime candidate, even if it is cheaper or
+  faster to ingest.
 - Runtime outputs must preserve:
   - `structured_result`
   - `resolved_calculation_trace`
