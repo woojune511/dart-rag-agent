@@ -20,7 +20,8 @@
       "위험관리 및 파생거래",
       "매출 및 수주상황",
       "연구개발",
-      "요약재무정보"
+      "요약재무정보",
+      "??? ???? ? ????"
     ],
     "pricing": {
       "input_per_million_tokens_usd": 0.3,
@@ -29,19 +30,17 @@
     "mlflow_experiment_name": "dart_rag_curated_multi_entity_grounding_gate"
   },
   "candidate_ids": [
-    "structural_selective_v2_prefix_2500_320",
-    "contextual_selective_v2_prefix_2500_320"
+    "structural_selective_v2_prefix_2500_320"
   ],
   "screening": {
-    "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+    "baseline_experiment_id": "structural_selective_v2_prefix_2500_320",
     "parallel_experiments": 1,
     "retrieval_hit_drop_threshold": 0.1,
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 0,
-      "always_include_full_eval_ids": [
-        "structural_selective_v2_prefix_2500_320",
-        "contextual_selective_v2_prefix_2500_320"
-      ]
+    "always_include_full_eval_ids": [
+      "structural_selective_v2_prefix_2500_320"
+    ]
   },
   "full_evaluation": {
     "enabled": true,
@@ -75,13 +74,6 @@
       "chunk_size": 2500,
       "chunk_overlap": 320,
       "ingest_mode": "structural_selective_v2",
-      "use_zero_cost_prefix": true
-    },
-    {
-      "id": "contextual_selective_v2_prefix_2500_320",
-      "chunk_size": 2500,
-      "chunk_overlap": 320,
-      "ingest_mode": "contextual_selective_v2",
       "use_zero_cost_prefix": true
     }
   ]

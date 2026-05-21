@@ -1235,5 +1235,38 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertFalse(_llm_plan_preserves_segment_sum_shape(base_plan, degraded_llm_plan))
         self.assertTrue(_llm_plan_preserves_segment_sum_shape(base_plan, preserved_llm_plan))
 
+    def test_concept_only_ontology_builds_capex_growth_task_for_multi_report_query(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="2023년 메모리 반도체 업황 악화에도 불구하고 집행된 시설투자(CAPEX) 총액을 찾고, 전년(2022년) 대비 증감률을 계산해 줘.",
+                topic="시설투자(CAPEX) 총액 및 증감률",
+                intent="comparison",
+                report_scope={"company": "삼성전자", "year": 2023, "report_type": "사업보고서", "consolidation": "연결"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_growth_rate")
+        self.assertEqual(task["operation_family"], "growth_rate")
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in task["required_operands"]],
+            [
+                ("capital_expenditure_total", "current_period"),
+                ("capital_expenditure_total", "prior_period"),
+            ],
+        )
+        self.assertIn("원재료 및 생산설비", task["preferred_sections"])
+        self.assertNotIn("cash_flow", task["preferred_statement_types"])
+
 if __name__ == "__main__":
     unittest.main()

@@ -873,6 +873,28 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
+    def test_generic_required_operands_map_capex_query_to_capital_expenditure_total(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            operands = _build_generic_required_operands(
+                "2023년 시설투자(CAPEX) 총액을 찾고 전년 대비 증감률을 계산해 줘.",
+                {"company": "삼성전자", "year": 2023},
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in operands],
+            [
+                ("capital_expenditure_total", "current_period"),
+                ("capital_expenditure_total", "prior_period"),
+            ],
+        )
+        self.assertTrue(all("원재료 및 생산설비" in row.get("preferred_sections", []) for row in operands))
+
 
 if __name__ == "__main__":
     unittest.main()

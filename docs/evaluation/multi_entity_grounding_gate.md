@@ -10,14 +10,17 @@ company-total row when the query asks about multiple business entities.
 - Profile:
   - `benchmarks/profiles/curated_multi_entity_grounding_gate.json`
 
-## Compared candidates
+## Default candidate
 
 - `structural_selective_v2_prefix_2500_320`
-- `contextual_selective_v2_prefix_2500_320`
 
-This focused gate is intended to show whether deterministic structural prefixes
-can preserve entity-scoped grounding quality without paying the full ingest-time
-cost of Gemini-generated contextual chunk summaries.
+This focused gate is intended to keep multi-entity and segment grounding stable
+on the structural ingest path that we expect to run routinely.
+
+`contextual_selective_v2_prefix_2500_320` remains a historical quality
+reference, but it is no longer part of the default focused-gate profile. Use it
+only when a structural regression needs explicit arbitration against the old
+contextual ingest baseline.
 
 ## Gate question set
 
@@ -34,6 +37,8 @@ These three questions cover:
 ## Execution policy
 
 - Keep `allow_retrieval_fallback = false`.
+- Run this gate with `structural_selective_v2_prefix_2500_320` only in routine
+  validation.
 - Treat embedding-provider/model/dimension mismatch as cache miss and reindex.
 - Reuse the validated Samsung 2024 selective store only when the
   `store_signature` matches exactly.
@@ -71,14 +76,15 @@ These three questions cover:
 ## Current interpretation
 
 - `contextual_selective_v2_prefix_2500_320`
-  - quality baseline
-  - focused gate PASS
+  - historical quality reference
+  - only rerun when explicit comparison against the old contextual baseline is
+    needed
 - `structural_selective_v2_prefix_2500_320`
   - focused gate PASS
-  - current practical candidate because it preserves entity-scoped grounding
+  - current practical default because it preserves entity-scoped grounding
     quality without paying the full contextual ingest cost
 
-This focused gate exists to reject candidates that collapse repeated concepts
-onto the same company-total row. `structural_selective_v2` currently clears
-that bar, so multi-entity grounding is no longer the blocking concern for that
-candidate.
+This focused gate exists to reject structural regressions that collapse
+repeated concepts onto the same company-total row. `structural_selective_v2`
+currently clears that bar, so multi-entity grounding is no longer the blocking
+concern for that candidate.

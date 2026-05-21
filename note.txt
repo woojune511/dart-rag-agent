@@ -156,3 +156,24 @@
     - `generic_numeric` -> `concept_lookup + concept_difference`
     - `debt_ratio/current_ratio` -> `concept_ratio`
     - repeated-entity revenue prompts now preserve `sum` / `difference` shape
+
+- 2026-05-22 structural routine / CAPEX multi-report note
+  - curated routine profiles now run structural-only by default
+    - `curated_runtime_contract_gate`
+    - `curated_multi_entity_grounding_gate`
+    - `curated_single_doc_core`
+    - `curated_multi_report_smoke`
+  - `contextual_selective_v2` is now reserved for explicit arbitration only
+    - profile: `benchmarks/profiles/curated_contextual_arbitration.json`
+    - runbook: `docs/evaluation/contextual_arbitration.md`
+  - `SAM_T2_002` was repaired on the structural multi-report path
+    - added `capital_expenditure_total` concept
+    - business-table aggregate rows (`합 계 / 총 계 / 계`) can now become
+      direct CAPEX operands when positive CAPEX context is present
+    - deterministic reconcile now keeps direct row/value candidates ahead of
+      chunk-only matches
+  - latest direct structural-store replay on Samsung 2023 now closes with:
+    - `2023 CAPEX total = 53조 1,139억원`
+    - `2022 대비 증감률 = 0%`
+  - formal multi-report smoke rerun is still pending if we want the repaired
+    result captured in official benchmark artifacts

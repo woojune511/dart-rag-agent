@@ -10,16 +10,19 @@ projection.
 - Profile:
   - `benchmarks/profiles/curated_runtime_contract_gate.json`
 
-## Compared candidates
+## Default candidate
 
-- `plain_prefix_8000_400`
 - `structural_selective_v2_prefix_2500_320`
-- `contextual_selective_v2_prefix_2500_320`
 
 `structural_selective_v2` keeps the selective-v2 chunk filter but removes
 Gemini-written chunk context generation. It relies only on deterministic
 structural prefixes derived from local metadata such as section path, statement
 type, table context, and row-label text.
+
+`contextual_selective_v2_prefix_2500_320` remains the quality reference, but it
+is no longer part of the routine gate profile. Use it only for explicit
+promotion arbitration or tie-breaker reruns when a structural regression needs
+to be compared against the old ingest-time contextual baseline.
 
 ## Gate question set
 
@@ -40,6 +43,8 @@ These five questions cover:
 ## Execution policy
 
 - Keep `allow_retrieval_fallback = false`.
+- Run this gate with `structural_selective_v2_prefix_2500_320` only in normal
+  development and release checks.
 - Treat embedding-provider/model/dimension mismatch as cache miss and reindex.
 - Use the stored `store_signature` / `benchmark_cache_meta.json` metadata to
   avoid cross-environment store reuse mistakes.
@@ -71,17 +76,14 @@ Current gate interpretation is now stable:
   - speed / cost baseline
   - not eligible as default because `SKH_T1_060` fails
 - `contextual_selective_v2_prefix_2500_320`
-  - quality baseline
-  - all five gate questions pass
+  - historical quality reference
+  - only rerun when explicit arbitration against the old contextual baseline is
+    needed
 - `structural_selective_v2_prefix_2500_320`
   - all five gate questions pass
-  - current operating candidate because it preserves gate quality without the
+  - current operating default candidate because it preserves gate quality
+    without the
     full ingest-time cost of contextual selective ingestion
-
-That means this gate is no longer asking whether contextual selective is the
-quality reference. It is. The active question is whether another candidate can
-match that gate while being cheaper to operate. `structural_selective_v2` is
-the current answer.
 
 ## Related canary
 

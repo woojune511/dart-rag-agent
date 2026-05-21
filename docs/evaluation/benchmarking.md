@@ -733,3 +733,38 @@ retrospective evaluator sub-decision replay:
 ```bash
 python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchmarks/results/dev_math_focus_evalonly_datasetfix_2026-04-29/삼성전자-2024/results.json --dataset benchmarks/eval_dataset.math_focus.json --output-dir benchmarks/results/retrospective_evaluator_ablation_2026-04-30
 ```
+## 2026-05-22 Operating Policy Update
+
+- Treat `structural_selective_v2_prefix_2500_320` as the default ingest path
+  for routine curated validation, smoke gates, and everyday regression checks.
+- Treat `contextual_selective_v2_prefix_2500_320` as a quality-reference
+  baseline only.
+- Do not run contextual selective in ordinary code-change validation unless a
+  structural failure needs explicit arbitration against the older contextual
+  ingest path.
+- In practice this means:
+  - `curated_runtime_contract_gate` runs structural-only by default
+  - `curated_multi_entity_grounding_gate` runs structural-only by default
+  - `curated_single_doc_core` runs structural-only by default
+  - `curated_multi_report_smoke` runs structural-only by default
+
+## 2026-05-22 Multi-report CAPEX follow-up
+
+- `SAM_T2_002` exposed the remaining structural multi-report weakness:
+  the runtime preferred cash-flow-style acquisition evidence over the business
+  section `시설투자(CAPEX)` total.
+- The current repair path is now in place:
+  - `capital_expenditure_total` concept added to the concept-only ontology
+  - aggregate business-table rows such as `합 계 / 총 계 / 계` can be treated
+    as direct numeric candidates when CAPEX-positive context is present
+  - deterministic reconciliation now keeps direct row/value candidates ahead of
+    stale chunk-only matches
+- Latest direct replay against the existing structural Samsung 2023 store now
+  closes with:
+  - `2023 CAPEX total = 53조 1,139억원`
+  - `2022 대비 증감률 = 0%`
+- Important caveat:
+  - this closure is confirmed by direct structural-store replay
+  - the formal `curated_multi_report_smoke` benchmark bundle still needs one
+    clean rerun if we want the repaired result written into official
+    `review.csv` / `summary.md` artifacts

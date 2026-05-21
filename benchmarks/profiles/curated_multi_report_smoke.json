@@ -4,7 +4,7 @@
   "dataset_track": "curated_dart_review",
   "defaults": {
     "k": 8,
-    "ingest_mode": "contextual_selective_v2",
+    "ingest_mode": "structural_selective_v2",
     "max_workers": 2,
     "eval_max_workers": 2,
     "batch_size": 4,
@@ -23,21 +23,22 @@
     "selective_v2_sections": [
       "사업개요",
       "원재료 및 생산설비",
-      "요약재무정보"
+      "요약재무정보",
+      "??? ???? ? ????"
     ],
     "mlflow_experiment_name": "dart_rag_curated_multi_report_smoke"
   },
   "candidate_ids": [
-    "contextual_selective_v2_prefix_2500_320"
+    "structural_selective_v2_prefix_2500_320"
   ],
   "screening": {
-    "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
+    "baseline_experiment_id": "structural_selective_v2_prefix_2500_320",
     "parallel_experiments": 1,
     "retrieval_hit_drop_threshold": 0.1,
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 0,
     "always_include_full_eval_ids": [
-      "contextual_selective_v2_prefix_2500_320"
+      "structural_selective_v2_prefix_2500_320"
     ]
   },
   "full_evaluation": {
@@ -71,10 +72,10 @@
   ],
   "experiments": [
     {
-      "id": "contextual_selective_v2_prefix_2500_320",
+      "id": "structural_selective_v2_prefix_2500_320",
       "chunk_size": 2500,
       "chunk_overlap": 320,
-      "ingest_mode": "contextual_selective_v2",
+      "ingest_mode": "structural_selective_v2",
       "use_zero_cost_prefix": true
     }
   ]

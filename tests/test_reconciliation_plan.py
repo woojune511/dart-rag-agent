@@ -1130,5 +1130,223 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertEqual(match_map[("SDC 매출액", "addend_1")], "segment_sdc_revenue")
         self.assertEqual(match_map[("Harman 매출액", "addend_2")], "segment_harman_revenue")
 
+    def test_capex_total_prefers_business_section_aggregate_over_cash_flow_acquisition(self) -> None:
+        operand = {
+            "label": "시설투자(CAPEX)",
+            "concept": "capital_expenditure_total",
+            "aliases": ["시설투자", "CAPEX", "CapEx"],
+            "required": True,
+            "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+            "preferred_statement_types": [],
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate", "detail"],
+                "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+            "surface_contract": {
+                "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                "negative": ["유형자산의 취득", "유형자산 취득"],
+            },
+        }
+        business_candidate = {
+            "candidate_id": "capex_business_total",
+            "candidate_kind": "structured_value",
+            "text": "합 계 531,139",
+            "metadata": {
+                "row_label": "합 계",
+                "semantic_label": "합 계",
+                "aggregate_label": "합 계",
+                "aggregate_role": "final_total",
+                "statement_type": "unknown",
+                "consolidation_scope": "unknown",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                "local_heading": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                "period_focus": "multi_period",
+                "period_labels": ["2023", "2022"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "531,139", "unit_hint": "억원"},
+                    {"column_headers": ["2022"], "value_text": "531,153", "unit_hint": "억원"},
+                ],
+            },
+        }
+        cash_flow_candidate = {
+            "candidate_id": "capex_cash_flow",
+            "candidate_kind": "structured_value",
+            "text": "유형자산의 취득 (57,611,292)",
+            "metadata": {
+                "row_label": "유형자산의 취득",
+                "semantic_label": "유형자산의 취득",
+                "aggregate_role": "none",
+                "statement_type": "cash_flow",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                "local_heading": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                "period_focus": "multi_period",
+                "period_labels": ["2023", "2022"],
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "(57,611,292)", "unit_hint": "백만원"},
+                    {"column_headers": ["2022"], "value_text": "(49,430,428)", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        business_score = _score_operand_candidate(
+            business_candidate,
+            operand=operand,
+            preferred_statement_types=[],
+            constraints={"consolidation_scope": "unknown", "period_focus": "current"},
+            query_years=[2023, 2022],
+        )
+        cash_flow_score = _score_operand_candidate(
+            cash_flow_candidate,
+            operand=operand,
+            preferred_statement_types=[],
+            constraints={"consolidation_scope": "unknown", "period_focus": "current"},
+            query_years=[2023, 2022],
+        )
+
+        self.assertGreater(business_score, cash_flow_score)
+
+    def test_capex_total_accepts_aggregate_table_row_from_business_section(self) -> None:
+        operand = {
+            "label": "시설투자(CAPEX)",
+            "aliases": ["시설투자", "CAPEX", "CapEx", "시설투자 총액"],
+            "concept": "capital_expenditure_total",
+            "role": "current_period",
+            "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+            "surface_contract": {
+                "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                "negative": ["유형자산의 취득", "유형자산 취득"],
+            },
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate", "detail"],
+                "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+            },
+        }
+        candidates = _build_table_row_reconciliation_candidates(
+            candidate_id_prefix="doc_capex",
+            anchor="[삼성전자 | 2023 | II. 사업의 내용 > 3. 원재료 및 생산설비]",
+            table_text="\n".join(
+                [
+                    "구 분 | 내 용 | 투자기간 | 대상자산 | 투자액",
+                    "DS 부문 | 신ㆍ증설, 보완 등 | 2023.01~2023.12 | 건물ㆍ설비 등 | 483,723",
+                    "SDC | 신ㆍ증설, 보완 등 | 2023.01~2023.12 | 건물ㆍ설비 등 | 23,856",
+                    "기 타 | 신ㆍ증설, 보완 등 | 2023.01~2023.12 | 건물ㆍ설비 등 | 23,560",
+                    "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                ]
+            ),
+            metadata={
+                "statement_type": "unknown",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["2023"],
+                "table_source_id": "table_capex",
+                "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                "table_context": "(시설투자 현황) 2023년 중 DS 부문 및 SDC 등의 첨단공정 증설ㆍ전환과 인프라 투자를 중심으로 53.1조원의 시설투자가 이루어졌습니다.",
+                "table_header_context": "구 분 | 내 용 | 투자기간 | 대상자산 | 투자액",
+            },
+        )
+
+        aggregate_row = next(
+            candidate
+            for candidate in candidates
+            if candidate["candidate_kind"] == "table_row"
+            and str((candidate.get("metadata") or {}).get("row_label") or "") == "합 계"
+        )
+
+        self.assertTrue(_candidate_matches_operand(aggregate_row, operand))
+        self.assertTrue(
+            _candidate_is_direct_grounding_candidate(
+                aggregate_row,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+            )
+        )
+
+        revenue_total = {
+            "candidate_id": "rev_total",
+            "candidate_kind": "table_row",
+            "text": "합 계 | 합 계 | 합 계 | 2,589,355",
+            "metadata": {
+                "row_text": "합 계 | 합 계 | 합 계 | 2,589,355",
+                "row_label": "합 계",
+                "structured_cells": [{"column_headers": ["제55기"], "value_text": "2,589,355", "unit_hint": "억원"}],
+                "aggregate_label": "합 계",
+                "aggregate_role": "final_total",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "table_context": "2023년 매출은 258조 9,355억원으로 전년 대비 14.3% 감소하였습니다.",
+            },
+        }
+        self.assertFalse(_candidate_matches_operand(revenue_total, operand))
+
+    def test_deterministic_reconcile_prioritizes_direct_candidate_ids(self) -> None:
+        active_subtask = {
+            "task_id": "task_capex",
+            "metric_family": "concept_lookup",
+            "metric_label": "2023년 시설투자(CAPEX) 총액",
+            "operation_family": "lookup",
+            "required_operands": [
+                {
+                    "label": "시설투자(CAPEX)",
+                    "aliases": ["시설투자", "CAPEX", "CapEx"],
+                    "concept": "capital_expenditure_total",
+                    "role": "current_period",
+                    "required": True,
+                    "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate", "detail"],
+                        "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                    },
+                    "surface_contract": {
+                        "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                        "negative": ["유형자산의 취득", "유형자산 취득"],
+                    },
+                }
+            ],
+            "preferred_statement_types": [],
+            "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+        }
+        candidates = [
+            {
+                "candidate_id": "chunk_1",
+                "candidate_kind": "chunk",
+                "text": "시설투자 현황 53.1조원",
+                "metadata": {
+                    "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                    "table_context": "(시설투자 현황) 53.1조원의 시설투자가 이루어졌습니다.",
+                },
+            },
+            {
+                "candidate_id": "row_capex",
+                "candidate_kind": "table_row",
+                "text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                "metadata": {
+                    "row_text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                    "row_label": "합 계",
+                    "structured_cells": [{"column_headers": ["투자액"], "value_text": "531,139", "unit_hint": "억원"}],
+                    "aggregate_label": "합 계",
+                    "aggregate_role": "final_total",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                    "table_context": "(시설투자 현황) 53.1조원의 시설투자가 이루어졌습니다.",
+                    "consolidation_scope": "consolidated",
+                },
+            },
+        ]
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=candidates,
+            years=[2023],
+            reconciliation_retry_count=0,
+        )
+        matched = result["matched_operands"][0]
+        self.assertEqual(matched["candidate_ids"][0], "row_capex")
+
 if __name__ == "__main__":
     unittest.main()

@@ -541,6 +541,54 @@
         "현금흐름표"
       ]
     },
+    "capital_expenditure_total": {
+      "display_name": "시설투자(CAPEX)",
+      "aliases": [
+        "시설투자",
+        "CAPEX",
+        "CapEx",
+        "시설투자 총액",
+        "자본적 지출"
+      ],
+      "keywords": [
+        "시설투자(CAPEX)",
+        "시설투자",
+        "CAPEX",
+        "CapEx",
+        "시설투자 총액",
+        "자본적 지출"
+      ],
+      "unit_family": "KRW",
+      "preferred_sections": [
+        "원재료 및 생산설비",
+        "시설투자",
+        "사업의 내용"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal",
+          "none"
+        ]
+      },
+      "surface_contract": {
+        "positive": [
+          "시설투자",
+          "CAPEX",
+          "CapEx",
+          "자본적 지출"
+        ],
+        "negative": [
+          "유형자산의 취득",
+          "유형자산 취득"
+        ]
+      }
+    },
     "property_plant_equipment_acquisition": {
       "display_name": "유형자산의 취득",
       "aliases": [

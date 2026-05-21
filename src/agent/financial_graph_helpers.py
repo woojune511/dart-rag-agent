@@ -973,6 +973,10 @@ _QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“
 _GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
     re.compile(pattern)
     for pattern in [
+        r"시설투자(?:\((?:CAPEX|CapEx)\))?",
+        r"\bCAPEX\b",
+        r"\bCapEx\b",
+        r"자본적\s*지출",
         r"법인세비용차감전순(?:이익|손익)",
         r"외화환산(?:이익|손실)",
         r"순이자마진",
@@ -1033,6 +1037,8 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
                 labels.append(cleaned)
 
     normalized = list(dict.fromkeys(label for label in labels if label))
+    if any("시설투자" in item for item in normalized):
+        normalized = [item for item in normalized if item not in {"CAPEX", "CapEx"}]
     if "영업이익" in normalized and any("부문 영업이익" in item for item in normalized):
         normalized = [item for item in normalized if item != "영업이익"]
     derived_labels = {"총 영업비용", "영업비용률", "순효과"}
@@ -1286,6 +1292,8 @@ def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]
         preferred_sections.extend(["차입금 및 사채", "단기차입금", "장기차입금", "사채", "연결재무제표 주석"])
         if "notes" not in statement_types:
             statement_types.append("notes")
+    if any(keyword in text for keyword in ("시설투자", "capex", "자본적 지출")):
+        preferred_sections.extend(["원재료 및 생산설비", "시설투자", "사업의 내용"])
     return list(dict.fromkeys(statement_types)), list(dict.fromkeys(preferred_sections))
 
 
@@ -1507,6 +1515,8 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
         return "single_value"
 
     generic_operand_labels = _extract_generic_operand_labels(query)
+    if any(token in text for token in ("증감률", "증가율", "감소율", "성장률", "변화율")):
+        return "growth_rate"
     if any(token in text for token in ("차이", "얼마나 더", "보다 얼마나", "더 큰가", "더 높은가", "더 많은가")):
         return "difference"
     if _is_percent_point_difference_query(query):
@@ -2925,6 +2935,21 @@ def _extract_table_row_label(row_text: str) -> str:
     return normalized
 
 
+def _aggregate_like_row_stage(label: str) -> str:
+    compact = re.sub(r"\s+", "", _normalise_spaces(str(label or "")))
+    if not compact:
+        return "none"
+    if compact == "소계":
+        return "subtotal"
+    if compact in {"합계", "총계", "계"}:
+        return "final"
+    return "none"
+
+
+def _aggregate_like_row_role(label: str) -> str:
+    return "aggregate" if _aggregate_like_row_stage(label) != "none" else "detail"
+
+
 def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
     normalized_row = _normalise_spaces(str(row_text or ""))
     if "|" not in normalized_row:
@@ -3316,6 +3341,8 @@ def _build_table_row_reconciliation_candidates(
         if row_text in seen_row_texts:
             continue
         row_label = _extract_table_row_label(row_text)
+        inferred_stage = _aggregate_like_row_stage(row_label)
+        inferred_role = _aggregate_like_row_role(row_label)
         composite_text = " ".join(
             part
             for part in (
@@ -3334,7 +3361,30 @@ def _build_table_row_reconciliation_candidates(
                 candidate_id=f"{candidate_id_prefix}::row:{idx}",
                 anchor=anchor,
                 text=composite_text,
-                metadata={**metadata, "row_text": row_text},
+                metadata={
+                    **metadata,
+                    "row_text": row_text,
+                    "row_context_text": str(table_text or ""),
+                    "structured_cells": _parse_unstructured_table_row_cells(row_text, metadata),
+                    "aggregate_label": row_label if inferred_stage != "none" else str(metadata.get("aggregate_label") or "").strip(),
+                    "aggregate_role": (
+                        "subtotal"
+                        if inferred_stage == "subtotal"
+                        else "final_total"
+                        if inferred_stage == "final"
+                        else str(metadata.get("aggregate_role") or "").strip()
+                    ),
+                    "value_role": (
+                        inferred_role
+                        if not str(metadata.get("value_role") or "").strip()
+                        else str(metadata.get("value_role") or "").strip()
+                    ),
+                    "aggregation_stage": (
+                        inferred_stage
+                        if not str(metadata.get("aggregation_stage") or "").strip()
+                        else str(metadata.get("aggregation_stage") or "").strip()
+                    ),
+                },
                 candidate_kind="table_row",
                 row_label=row_label,
                 row_index=idx,
@@ -3373,6 +3423,11 @@ def _candidate_value_role(candidate: Dict[str, Any]) -> str:
         return "adjustment"
     if aggregate_role in {"direct_total", "subtotal", "final_total"}:
         return "aggregate"
+    inferred_role = _aggregate_like_row_role(
+        str(metadata.get("row_label") or metadata.get("semantic_label") or "")
+    )
+    if inferred_role == "aggregate":
+        return inferred_role
     return "detail"
 
 
@@ -3388,6 +3443,11 @@ def _candidate_aggregation_stage(candidate: Dict[str, Any]) -> str:
         return "subtotal"
     if aggregate_role == "final_total":
         return "final"
+    inferred_stage = _aggregate_like_row_stage(
+        str(metadata.get("row_label") or metadata.get("semantic_label") or "")
+    )
+    if inferred_stage != "none":
+        return inferred_stage
     return "none"
 
 
@@ -3457,6 +3517,18 @@ def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
     needles.discard("")
     return any(needle in _BALANCE_SHEET_AGGREGATE_LABELS for needle in needles)
+
+
+def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
+    concept = str(operand.get("concept") or "").strip()
+    if concept == "capital_expenditure_total":
+        return True
+    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
+    needles.discard("")
+    return any(
+        needle in {"시설투자", "시설투자(capex)", "capex", "자본적지출", "시설투자총액"}
+        for needle in needles
+    )
 
 
 def _operand_segment_label(operand: Dict[str, Any]) -> str:
@@ -3556,6 +3628,18 @@ def _candidate_source_priority_bonus(
             score -= 1.5
             if value_role == "detail":
                 score -= 1.25
+
+    if _is_capex_total_operand(operand):
+        if any(token in local_heading for token in ("원재료 및 생산설비", "시설투자", "사업의 내용")):
+            score += 2.75
+            if value_role == "aggregate":
+                score += 1.0
+            if aggregation_stage in {"final", "direct", "subtotal"}:
+                score += 0.75
+        if statement_type == "cash_flow":
+            score -= 2.5
+            if value_role != "aggregate":
+                score -= 0.5
 
     return score
 
@@ -3792,6 +3876,29 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
         return True
     if _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
         return True
+    if _is_capex_total_operand(operand):
+        section_context = " ".join(
+            part
+            for part in (
+                str(metadata.get("local_heading") or "").strip(),
+                str(metadata.get("table_context") or "").strip(),
+                str(metadata.get("section_path") or "").strip(),
+                str(metadata.get("row_context_text") or "").strip(),
+                str(candidate.get("text") or "").strip(),
+            )
+            if part
+        )
+        preferred_sections = [
+            _normalise_spaces(str(item))
+            for item in (operand.get("preferred_sections") or [])
+            if str(item).strip()
+        ]
+        if preferred_sections and any(section in _normalise_spaces(section_context) for section in preferred_sections):
+            if (
+                _text_has_positive_surface(section_context, operand)
+                and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+            ):
+                return True
     return _operand_text_match(str(candidate.get("text") or ""), operand)
 
 
@@ -3841,6 +3948,39 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
             continue
         if _operand_text_match(normalized_surface, operand):
             best = max(best, exact_bonus * 0.5)
+    if _is_capex_total_operand(operand):
+        context_text = " ".join(
+            part
+            for part in (
+                str(metadata.get("local_heading") or "").strip(),
+                str(metadata.get("table_context") or "").strip(),
+                str(metadata.get("section_path") or "").strip(),
+                str(metadata.get("row_context_text") or "").strip(),
+                str(candidate.get("text") or "").strip(),
+            )
+            if part
+        )
+        context_surfaces = [
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("section_path") or "").strip(),
+        ]
+        preferred_sections = [
+            _normalise_spaces(str(item))
+            for item in (operand.get("preferred_sections") or [])
+            if str(item).strip()
+        ]
+        if preferred_sections and any(
+            section in _normalise_spaces(surface)
+            for section in preferred_sections
+            for surface in context_surfaces
+            if _normalise_spaces(surface)
+        ):
+            if (
+                _text_has_positive_surface(context_text, operand)
+                and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+            ):
+                best = max(best, 1.75)
     return best
 
 
@@ -4136,7 +4276,6 @@ def _deterministic_reconcile_task(
         )
         operand_top_candidates[label] = ranked
         if ranked:
-            top = ranked[:3]
             direct_candidate = next(
                 (
                     candidate
@@ -4153,13 +4292,15 @@ def _deterministic_reconcile_task(
             )
             if direct_candidate:
                 direct_candidate_id = str(direct_candidate.get("candidate_id") or "").strip()
-                existing_ids = {
-                    str(item.get("candidate_id") or "").strip()
-                    for item in top
-                    if str(item.get("candidate_id") or "").strip()
-                }
-                if direct_candidate_id and direct_candidate_id not in existing_ids:
-                    top = [*top, direct_candidate]
+                top = [direct_candidate]
+                top.extend(
+                    candidate
+                    for candidate in ranked
+                    if str(candidate.get("candidate_id") or "").strip() != direct_candidate_id
+                )
+                top = top[:3]
+            else:
+                top = ranked[:3]
             matched_operands.append(
                 {
                     "label": label,

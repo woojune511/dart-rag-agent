@@ -26,7 +26,8 @@
       "위험관리 및 파생거래",
       "매출 및 수주상황",
       "연구개발",
-      "요약재무정보"
+      "요약재무정보",
+      "??? ???? ? ????"
     ],
     "mlflow_experiment_name": "dart_rag_curated_single_doc_smoke_only"
   },

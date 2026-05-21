@@ -1,10 +1,10 @@
 {
   "profile_track": "mainline_curated",
-  "profile_role": "single_doc_core_gate",
+  "profile_role": "contextual_arbitration_reference",
   "dataset_track": "curated_dart_review",
   "defaults": {
     "k": 8,
-    "ingest_mode": "structural_selective_v2",
+    "ingest_mode": "contextual_selective_v2",
     "max_workers": 4,
     "eval_max_workers": 4,
     "batch_size": 8,
@@ -28,19 +28,20 @@
       "요약재무정보",
       "??? ???? ? ????"
     ],
-    "mlflow_experiment_name": "dart_rag_curated_single_doc_core"
+    "mlflow_experiment_name": "dart_rag_curated_contextual_arbitration",
+    "allow_retrieval_fallback": false
   },
   "candidate_ids": [
-    "structural_selective_v2_prefix_2500_320"
+    "contextual_selective_v2_prefix_2500_320"
   ],
   "screening": {
-    "baseline_experiment_id": "structural_selective_v2_prefix_2500_320",
+    "baseline_experiment_id": "contextual_selective_v2_prefix_2500_320",
     "parallel_experiments": 1,
     "retrieval_hit_drop_threshold": 0.1,
     "section_match_drop_threshold": 0.15,
     "max_full_eval_candidates": 0,
     "always_include_full_eval_ids": [
-      "structural_selective_v2_prefix_2500_320"
+      "contextual_selective_v2_prefix_2500_320"
     ]
   },
   "full_evaluation": {
@@ -136,10 +137,10 @@
   ],
   "experiments": [
     {
-      "id": "structural_selective_v2_prefix_2500_320",
+      "id": "contextual_selective_v2_prefix_2500_320",
       "chunk_size": 2500,
       "chunk_overlap": 320,
-      "ingest_mode": "structural_selective_v2",
+      "ingest_mode": "contextual_selective_v2",
       "use_zero_cost_prefix": true
     }
   ]

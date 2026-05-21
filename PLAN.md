@@ -218,6 +218,33 @@
   `resolved_calculation_trace + structured_result` over top-level
   `calculation_*`.
 - fresh internal-state canary reruns confirmed no regression:
+## 2026-05-22 Structural routine + multi-report update
+
+- routine curated validation should now assume:
+  - `structural_selective_v2_prefix_2500_320` is the default operating path
+  - `contextual_selective_v2_prefix_2500_320` is arbitration-only
+- official curated profiles were reduced to structural-only candidates for
+  normal smoke/regression work:
+  - `curated_runtime_contract_gate`
+  - `curated_multi_entity_grounding_gate`
+  - `curated_single_doc_core`
+  - `curated_multi_report_smoke`
+- `SAM_T2_002` is no longer blocked by the old cash-flow fallback path.
+  - runtime now recognizes business-section `시설투자(CAPEX)` totals through
+    the `capital_expenditure_total` concept
+  - aggregate `합 계 / 총 계 / 계` rows from business tables can be promoted
+    as direct numeric candidates when CAPEX-positive context is present
+  - deterministic reconciliation now keeps direct row/value candidates ahead of
+    stale chunk-only matches
+- latest direct structural-store replay on Samsung 2023 now closes:
+  - `2023년 시설투자(CAPEX) 총액 = 53조 1,139억원`
+  - `전년(2022년) 대비 증감률 = 0%`
+- still pending:
+  - rerun the formal `curated_multi_report_smoke` benchmark bundle so the
+    repaired `SAM_T2_002` result is captured in official `review.csv`
+  - then decide whether multi-report structural validation is strong enough to
+    treat `structural_selective_v2_prefix_2500_320` as the effective mainline
+    default rather than just the leading candidate
   - `NAV_T1_030`: PASS
   - `NAV_T1_071`: PASS
   - `SKH_T1_060`: PASS
