@@ -25,6 +25,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from agent.financial_graph import DEFAULT_CONTEXT_BATCH_SIZE, DEFAULT_CONTEXT_MAX_WORKERS, FinancialAgent
 from agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
+from ingestion.dart_fetcher import DARTFetcher, ReportMetadata
 from ops.evaluator import (
     EvalExample,
     RAGEvaluator,
@@ -143,6 +144,98 @@ def _normalise_path(path_value: str | Path) -> Path:
     if not path.is_absolute():
         path = (PROJECT_ROOT / path).resolve()
     return path
+
+
+def _expected_rcept_no(report_path: Path, metadata: Dict[str, Any]) -> str:
+    for candidate in (
+        metadata.get("rcept_no"),
+        report_path.stem.split("_")[-1] if report_path.stem else "",
+    ):
+        value = str(candidate or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _report_selection_key(report: ReportMetadata, target_year: int) -> tuple[int, int, int, str, str]:
+    report_nm = str(report.report_nm or "")
+    exact_report_name_match = int(f"{target_year}.12" in report_nm)
+    exact_year_match = int(int(report.year or 0) == int(target_year or 0))
+    has_local_file = int(bool(report.file_path))
+    return (
+        exact_year_match,
+        exact_report_name_match,
+        has_local_file,
+        str(report.rcept_dt or ""),
+        str(report.rcept_no or ""),
+    )
+
+
+def _ensure_benchmark_report_path(
+    report_path: Path,
+    metadata: Dict[str, Any],
+    config: Dict[str, Any],
+    *,
+    fetcher: Optional[DARTFetcher] = None,
+) -> Path:
+    if report_path.exists():
+        return report_path
+
+    if not _resolve_boolean_config(config, "auto_fetch_missing_report", False):
+        raise FileNotFoundError(f"report_path not found: {report_path}")
+
+    company = str(metadata.get("company") or "").strip()
+    year = int(metadata.get("year") or 0)
+    report_type = str(metadata.get("report_type") or "사업보고서").strip() or "사업보고서"
+    if not company or not year:
+        raise FileNotFoundError(
+            f"report_path not found and auto-fetch metadata is incomplete: {report_path}"
+        )
+
+    report_fetcher = fetcher or DARTFetcher(download_dir=str(PROJECT_ROOT / "data" / "reports"))
+    reports = report_fetcher.fetch_company_reports(company, [year], report_type=report_type)
+    if not reports:
+        raise FileNotFoundError(
+            f"report_path not found and DART fetch returned no reports: {report_path}"
+        )
+
+    expected_rcept_no = _expected_rcept_no(report_path, metadata)
+    selected: Optional[ReportMetadata] = None
+    if expected_rcept_no:
+        exact_matches = [
+            report for report in reports
+            if str(report.rcept_no or "").strip() == expected_rcept_no
+        ]
+        if exact_matches:
+            selected = max(exact_matches, key=lambda report: _report_selection_key(report, year))
+        else:
+            raise FileNotFoundError(
+                f"report_path not found and exact DART receipt could not be fetched: "
+                f"expected_rcept_no={expected_rcept_no} company={company} year={year}"
+            )
+    else:
+        selected = max(reports, key=lambda report: _report_selection_key(report, year))
+
+    if not selected.file_path:
+        raise FileNotFoundError(
+            f"report_path not found and downloaded report has no local file path: "
+            f"company={company} year={year} rcept_no={selected.rcept_no}"
+        )
+
+    resolved_path = _normalise_path(selected.file_path)
+    if not resolved_path.exists():
+        raise FileNotFoundError(
+            f"report_path not found and downloaded file is missing on disk: {resolved_path}"
+        )
+
+    logger.info(
+        "Auto-fetched missing DART report for benchmark run: company=%s year=%s rcept_no=%s path=%s",
+        company,
+        year,
+        selected.rcept_no,
+        resolved_path,
+    )
+    return resolved_path
 
 
 def _is_path_like_key(key: str) -> bool:
@@ -3018,8 +3111,7 @@ def run_screening_experiment(
             },
         )
     else:
-        if not report_path.exists():
-            raise FileNotFoundError(f"report_path not found: {report_path}")
+        report_path = _ensure_benchmark_report_path(report_path, metadata, config)
         parser = FinancialParser(
             chunk_size=int(config.get("chunk_size", DEFAULT_CHUNK_SIZE)),
             chunk_overlap=int(config.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),

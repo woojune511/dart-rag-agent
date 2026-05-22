@@ -14,6 +14,7 @@
     "reuse_store": true,
     "reuse_context_cache": true,
     "force_reindex": false,
+    "auto_fetch_missing_report": true,
     "use_zero_cost_prefix": true,
     "pricing": {
       "input_per_million_tokens_usd": 0.3,

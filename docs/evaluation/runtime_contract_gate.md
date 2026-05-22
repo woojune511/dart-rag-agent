@@ -43,6 +43,8 @@ These five questions cover:
 ## Execution policy
 
 - Keep `allow_retrieval_fallback = false`.
+- Keep `auto_fetch_missing_report = true` so the gate can recover missing local
+  filings from DART without changing the required receipt number.
 - Run this gate with `structural_selective_v2_prefix_2500_320` only in normal
   development and release checks.
 - Treat embedding-provider/model/dimension mismatch as cache miss and reindex.

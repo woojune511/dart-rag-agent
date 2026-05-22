@@ -129,6 +129,25 @@
 | `release_generalization` | `legacy_2024_experimental` | 과거 2024 cross-company generalization 보존 | legacy canonical slices | historical release-style replay가 필요할 때만 |
 | `single_document_graph_micro` | `experimental_micro` | graph / structure-aware retrieval 비교 | 소수 문항 마이크로 실험 | 구조 실험 초기 확인 |
 
+### Missing local report policy
+
+official curated benchmark profile은 `auto_fetch_missing_report = true`를 켜 둔다.
+
+- 적용 대상:
+  - `curated_single_doc_core`
+  - `curated_runtime_contract_gate`
+  - `curated_multi_report_smoke`
+  - `curated_multi_entity_grounding_gate`
+  - 기타 `mainline_curated` smoke/gate profile
+- 동작:
+  - local `report_path`가 없으면 benchmark runner가 DART OpenAPI로 필요한 공시를 받는다
+  - `metadata.rcept_no` 또는 파일명에 receipt number가 있으면 그 값과 **exact match**하는 filing만 허용한다
+- 목적:
+  - local checkout 차이 때문에 curated benchmark가 불필요하게 중단되는 문제를 줄인다
+  - 비슷한 공시를 대충 대체하지 않고, benchmark가 요구한 receipt를 그대로 확보한다
+
+즉 benchmark runner의 자동 다운로드는 편의 기능이 아니라, curated benchmark를 재현 가능한 형태로 돌리기 위한 strict recovery 경로다.
+
 ### `selective_v2_sections` scope
 
 `selective_v2_sections`는 일반 runtime planner 옵션이 아니다.

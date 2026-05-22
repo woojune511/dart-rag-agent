@@ -9,6 +9,7 @@
     "reuse_store": true,
     "reuse_context_cache": true,
     "force_reindex": false,
+    "auto_fetch_missing_report": true,
     "resume_partial_store": true,
     "resume_batch_size": 64,
     "use_zero_cost_prefix": true,

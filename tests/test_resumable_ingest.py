@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,9 +16,11 @@ from src.ops.benchmark_runner import (
     _build_cache_signature,
     _build_store_signature,
     _cache_meta_is_completed,
+    _ensure_benchmark_report_path,
     _run_ingest,
     _store_signature_matches,
 )
+from src.ingestion.dart_fetcher import ReportMetadata
 from src.storage.vector_store import VectorStoreManager
 
 
@@ -251,6 +254,69 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertIn("[statement_type: summary_financials]", texts[0])
         self.assertIn("[table_context: 주요 부문별 실적]", texts[0])
         self.assertNotIn("[선택사유:", texts[1])
+
+    def test_ensure_benchmark_report_path_auto_fetches_exact_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report_file = Path(temp_dir) / "2023_사업보고서_20240313001451.html"
+            report_file.write_text("<html>report</html>", encoding="utf-8")
+            fetcher = Mock()
+            fetcher.fetch_company_reports.return_value = [
+                ReportMetadata(
+                    rcept_no="20240313001451",
+                    corp_name="현대자동차",
+                    corp_code="",
+                    stock_code="005380",
+                    report_nm="사업보고서 (2023.12)",
+                    report_type="사업보고서",
+                    rcept_dt="20240313",
+                    year=2023,
+                    file_path=str(report_file),
+                )
+            ]
+
+            resolved = _ensure_benchmark_report_path(
+                PROJECT_ROOT / "data" / "reports" / "현대자동차" / "2023_사업보고서_20240313001451.html",
+                {
+                    "company": "현대자동차",
+                    "year": 2023,
+                    "report_type": "사업보고서",
+                    "rcept_no": "20240313001451",
+                },
+                {"auto_fetch_missing_report": True},
+                fetcher=fetcher,
+            )
+
+            self.assertEqual(resolved, report_file.resolve())
+            fetcher.fetch_company_reports.assert_called_once_with("현대자동차", [2023], report_type="사업보고서")
+
+    def test_ensure_benchmark_report_path_requires_exact_receipt_when_present(self) -> None:
+        fetcher = Mock()
+        fetcher.fetch_company_reports.return_value = [
+            ReportMetadata(
+                rcept_no="20240314001531",
+                corp_name="현대자동차",
+                corp_code="",
+                stock_code="005380",
+                report_nm="사업보고서 (2022.12) [정정]",
+                report_type="사업보고서",
+                rcept_dt="20240314",
+                year=2023,
+                file_path=str(PROJECT_ROOT / "data" / "reports" / "현대자동차" / "2023_사업보고서_20240314001531.html"),
+            )
+        ]
+
+        with self.assertRaises(FileNotFoundError):
+            _ensure_benchmark_report_path(
+                PROJECT_ROOT / "data" / "reports" / "현대자동차" / "2023_사업보고서_20240313001451.html",
+                {
+                    "company": "현대자동차",
+                    "year": 2023,
+                    "report_type": "사업보고서",
+                    "rcept_no": "20240313001451",
+                },
+                {"auto_fetch_missing_report": True},
+                fetcher=fetcher,
+            )
 
 
 if __name__ == "__main__":
