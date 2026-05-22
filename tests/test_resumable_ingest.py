@@ -13,6 +13,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.ops.benchmark_runner import (
+    _collect_report_inventory,
     _build_cache_signature,
     _build_store_signature,
     _cache_meta_is_completed,
@@ -20,6 +21,7 @@ from src.ops.benchmark_runner import (
     _run_ingest,
     _store_signature_matches,
 )
+from src.ops.evaluator import EvalExample
 from src.ingestion.dart_fetcher import ReportMetadata
 from src.storage.vector_store import VectorStoreManager
 
@@ -161,6 +163,110 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(store_signature["embedding"]["dimension"], 384)
         self.assertEqual(cache_signature["store_signature"], store_signature)
 
+    def test_cache_signature_tracks_multi_report_inventory(self) -> None:
+        base_config = {
+            "report_path": "data/reports/삼성전자/2023_사업보고서_20240312000736.html",
+            "metadata": {
+                "company": "삼성전자",
+                "year": 2023,
+                "report_type": "사업보고서",
+                "rcept_no": "20240312000736",
+            },
+            "chunk_size": 2500,
+            "chunk_overlap": 320,
+            "ingest_mode": "structural_selective_v2",
+            "k": 8,
+        }
+        examples = [
+            EvalExample(
+                id="SAM_T2_002",
+                question="q",
+                ground_truth="g",
+                company="삼성전자",
+                year=2023,
+                section="s",
+                source_reports=[
+                    {
+                        "corp_name": "삼성전자",
+                        "year": 2023,
+                        "report_type": "사업보고서",
+                        "rcept_no": "20240312000736",
+                    },
+                    {
+                        "corp_name": "삼성전자",
+                        "year": 2022,
+                        "report_type": "사업보고서",
+                        "rcept_no": "20230307000542",
+                    },
+                ],
+            )
+        ]
+        report_inventory = _collect_report_inventory(base_config, base_config["metadata"], examples)
+        config_with_inventory = dict(base_config)
+        config_with_inventory["report_inventory"] = report_inventory
+
+        cache_signature = _build_cache_signature(config_with_inventory, "dart_reports_v2_test")
+
+        self.assertEqual(
+            cache_signature["report_inventory"],
+            [
+                {
+                    "company": "삼성전자",
+                    "year": 2023,
+                    "report_type": "사업보고서",
+                    "rcept_no": "20240312000736",
+                },
+                {
+                    "company": "삼성전자",
+                    "year": 2022,
+                    "report_type": "사업보고서",
+                    "rcept_no": "20230307000542",
+                },
+            ],
+        )
+
+    def test_collect_report_inventory_includes_multi_report_sources(self) -> None:
+        config = {
+            "report_path": "data/reports/삼성전자/2023_사업보고서_20240312000736.html",
+        }
+        metadata = {
+            "company": "삼성전자",
+            "year": 2023,
+            "report_type": "사업보고서",
+            "rcept_no": "20240312000736",
+        }
+        examples = [
+            EvalExample(
+                id="SAM_T2_002",
+                question="q",
+                ground_truth="g",
+                company="삼성전자",
+                year=2023,
+                section="s",
+                source_reports=[
+                    {
+                        "corp_name": "삼성전자",
+                        "year": 2023,
+                        "report_type": "사업보고서",
+                        "rcept_no": "20240312000736",
+                    },
+                    {
+                        "corp_name": "삼성전자",
+                        "year": 2022,
+                        "report_type": "사업보고서",
+                        "rcept_no": "20230307000542",
+                    },
+                ],
+            )
+        ]
+
+        report_inventory = _collect_report_inventory(config, metadata, examples)
+
+        self.assertEqual(len(report_inventory), 2)
+        self.assertEqual(report_inventory[0]["metadata"]["rcept_no"], "20240312000736")
+        self.assertEqual(report_inventory[1]["metadata"]["rcept_no"], "20230307000542")
+        self.assertIn("2022_사업보고서_20230307000542.html", report_inventory[1]["report_path"])
+
     def test_store_signature_mismatch_detects_embedding_dimension_change(self) -> None:
         expected = {
             "store_signature": {
@@ -257,62 +363,62 @@ class ResumableIngestTests(unittest.TestCase):
 
     def test_ensure_benchmark_report_path_auto_fetches_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            report_file = Path(temp_dir) / "2023_사업보고서_20240313001451.html"
+            report_file = Path(temp_dir) / "2023_사업보고서_20990101000001.html"
             report_file.write_text("<html>report</html>", encoding="utf-8")
             fetcher = Mock()
             fetcher.fetch_company_reports.return_value = [
                 ReportMetadata(
-                    rcept_no="20240313001451",
-                    corp_name="현대자동차",
+                    rcept_no="20990101000001",
+                    corp_name="테스트자동차",
                     corp_code="",
                     stock_code="005380",
-                    report_nm="사업보고서 (2023.12)",
+                    report_nm="사업보고서 (2099.12)",
                     report_type="사업보고서",
-                    rcept_dt="20240313",
-                    year=2023,
+                    rcept_dt="20990101",
+                    year=2099,
                     file_path=str(report_file),
                 )
             ]
 
             resolved = _ensure_benchmark_report_path(
-                PROJECT_ROOT / "data" / "reports" / "현대자동차" / "2023_사업보고서_20240313001451.html",
+                PROJECT_ROOT / "data" / "reports" / "테스트자동차" / "2099_사업보고서_20990101000001.html",
                 {
-                    "company": "현대자동차",
-                    "year": 2023,
+                    "company": "테스트자동차",
+                    "year": 2099,
                     "report_type": "사업보고서",
-                    "rcept_no": "20240313001451",
+                    "rcept_no": "20990101000001",
                 },
                 {"auto_fetch_missing_report": True},
                 fetcher=fetcher,
             )
 
             self.assertEqual(resolved, report_file.resolve())
-            fetcher.fetch_company_reports.assert_called_once_with("현대자동차", [2023], report_type="사업보고서")
+            fetcher.fetch_company_reports.assert_called_once_with("테스트자동차", [2099], report_type="사업보고서")
 
     def test_ensure_benchmark_report_path_requires_exact_receipt_when_present(self) -> None:
         fetcher = Mock()
         fetcher.fetch_company_reports.return_value = [
             ReportMetadata(
-                rcept_no="20240314001531",
-                corp_name="현대자동차",
+                rcept_no="20990101000002",
+                corp_name="테스트자동차",
                 corp_code="",
                 stock_code="005380",
-                report_nm="사업보고서 (2022.12) [정정]",
+                report_nm="사업보고서 (2099.12) [정정]",
                 report_type="사업보고서",
-                rcept_dt="20240314",
-                year=2023,
-                file_path=str(PROJECT_ROOT / "data" / "reports" / "현대자동차" / "2023_사업보고서_20240314001531.html"),
+                rcept_dt="20990102",
+                year=2099,
+                file_path=str(PROJECT_ROOT / "data" / "reports" / "테스트자동차" / "2099_사업보고서_20990101000002.html"),
             )
         ]
 
         with self.assertRaises(FileNotFoundError):
             _ensure_benchmark_report_path(
-                PROJECT_ROOT / "data" / "reports" / "현대자동차" / "2023_사업보고서_20240313001451.html",
+                PROJECT_ROOT / "data" / "reports" / "테스트자동차" / "2099_사업보고서_20990101000001.html",
                 {
-                    "company": "현대자동차",
-                    "year": 2023,
+                    "company": "테스트자동차",
+                    "year": 2099,
                     "report_type": "사업보고서",
-                    "rcept_no": "20240313001451",
+                    "rcept_no": "20990101000001",
                 },
                 {"auto_fetch_missing_report": True},
                 fetcher=fetcher,

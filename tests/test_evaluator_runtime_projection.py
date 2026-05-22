@@ -210,6 +210,90 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(resolved[1]["source_row_id"], "row_2022")
         self.assertEqual(resolved[1]["normalized_value"], 1.73)
 
+    def test_resolve_evaluator_operands_flattens_aggregate_subtask_answer_slots(self) -> None:
+        operands = [
+            {"operand_id": "stale_current", "label": "2023 시설투자(CAPEX)", "raw_value": "531,139", "raw_unit": "억원"},
+            {"operand_id": "stale_prior", "label": "2022 시설투자(CAPEX)", "raw_value": "531,153", "raw_unit": ""},
+        ]
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": "task_1",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "2023 시설투자(CAPEX)",
+                                "concept": "capital_expenditure_total",
+                                "period": "2023",
+                                "raw_value": "531,139",
+                                "raw_unit": "억원",
+                                "normalized_value": 53113900000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "53조 1,139억원",
+                                "source_row_id": "row_2023",
+                                "source_row_ids": ["row_2023"],
+                                "source_anchor": "표 A",
+                            },
+                        },
+                    },
+                    {
+                        "task_id": "task_2",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "components_by_role": {
+                                "current_period": [
+                                    {
+                                        "status": "ok",
+                                        "role": "current_period",
+                                        "label": "2023 시설투자(CAPEX)",
+                                        "concept": "capital_expenditure_total",
+                                        "period": "2023",
+                                        "raw_value": "531,139",
+                                        "raw_unit": "억원",
+                                        "normalized_value": 53113900000000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "53조 1,139억원",
+                                        "source_row_id": "row_2023",
+                                        "source_row_ids": ["row_2023"],
+                                        "source_anchor": "표 A",
+                                    }
+                                ],
+                                "prior_period": [
+                                    {
+                                        "status": "ok",
+                                        "role": "prior_period",
+                                        "label": "2022 시설투자(CAPEX)",
+                                        "concept": "capital_expenditure_total",
+                                        "period": "2022",
+                                        "raw_value": "531,153",
+                                        "raw_unit": "억원",
+                                        "normalized_value": 53115300000000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "53조 1,153억원",
+                                        "source_row_id": "row_2022",
+                                        "source_row_ids": ["row_2022"],
+                                        "source_anchor": "표 A",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                ],
+            },
+        }
+
+        resolved = _resolve_evaluator_operands(operands, calculation_result)
+
+        self.assertEqual(len(resolved), 2)
+        self.assertEqual(resolved[0]["source_row_id"], "row_2023")
+        self.assertEqual(resolved[1]["source_row_id"], "row_2022")
+        self.assertEqual(resolved[1]["normalized_unit"], "KRW")
+
     def test_numeric_result_correctness_can_use_answer_slots_primary_value(self) -> None:
         example = EvalExample(
             id="T",

@@ -7,7 +7,7 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **`structural_selective_v2_prefix_2500_320`를 broader curated set에서 검증하고, mainline ingest default 후보로 승격할지 결정** |
+| 현재 1순위 | **broader curated blocker(`SAM_T2_002`, `MIX_T1_046`)를 닫고 `structural_selective_v2_prefix_2500_320`를 mainline ingest default 후보로 승격할지 결정** |
 | 지금 하지 않을 것 | 범용 agent 확장, broad web workflow, cosmetic retrieval tuning |
 | 다음 큰 순서 | `broader curated validation -> ingest candidate selection -> next chunking experiment -> concept-only planner canary -> DART multi-document reasoning` |
 
@@ -21,7 +21,8 @@
   - `contextual_selective_v2_prefix_2500_320`: quality baseline, 대표 gate PASS
   - `structural_selective_v2_prefix_2500_320`: 대표 gate PASS, multi-entity gate PASS, 현재 가장 유력한 operating candidate
 - 지금 가장 가까운 구현 초점은 **ingest candidate selection + broader curated validation** 이다.
-  - `structural_selective_v2`가 gate 밖 wider curated set에서도 버티는지 먼저 본다
+  - 먼저 `SAM_T2_002`, `MIX_T1_046` 같은 wider curated blocker를 닫는다
+  - 그 다음 `structural_selective_v2`가 gate 밖 wider curated set에서도 버티는지 다시 본다
   - 그 다음에만 default candidate로 승격 여부를 확정한다
   - 다음 실험 후보는 `structural_parent_hybrid_v2`처럼 parent/section/table lineage를 더 보강하는 쪽으로 잡는다
 
@@ -33,8 +34,8 @@
 | --- | --- |
 | 목표 | `plain / structural / contextual` 3자 비교를 정리하고 mainline ingest default 후보를 결정 |
 | 현재 자산 | `curated_runtime_contract_gate`, `curated_multi_entity_grounding_gate`, `structural_selective_v2`, winner ranking policy |
-| 현재 문제 | `structural_selective_v2`는 gate를 통과했지만 wider curated set 검증이 아직 없다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크다 |
-| 다음 할 일 | `curated_single_doc_core`, `curated_multi_report_smoke`에서 `structural_selective_v2`를 추가 검증하고, 필요하면 candidate order/default 의미를 문서와 profile에 고정 |
+| 현재 문제 | `structural_selective_v2`는 gate를 통과했지만 wider curated set에서 `SAM_T2_002`, `MIX_T1_046` 같은 blocker가 남아 있다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크다 |
+| 다음 할 일 | `curated_multi_report_smoke`, `curated_single_doc_core`를 다시 돌려 blocker를 닫고, 그 뒤 candidate order/default 의미를 문서와 profile에 고정 |
 | 종료 조건 | `structural_selective_v2`가 gate 밖 broader curated set에서도 안정적이면 current operating candidate로 승격하고, `contextual_selective_v2`는 quality reference로 유지 |
 
 ### 1. Planner and synthesizer contract

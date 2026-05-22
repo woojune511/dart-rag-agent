@@ -1177,6 +1177,8 @@ Ontology Context:
         if (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}:
             if str(result_unit or "").strip() == "%p":
                 return f"{value:.2f}"
+            if value and abs(value) < 0.01:
+                return f"{value:.4f}".rstrip("0").rstrip(".")
             return f"{value:.2f}".rstrip("0").rstrip(".")
         if normalized_unit in {"COUNT", "USD"}:
             return f"{value:,.4f}".rstrip("0").rstrip(".")
@@ -1634,6 +1636,46 @@ Ontology Context:
             ordered_ids = [str(binding.get("operand_id") or "") for binding in variable_bindings]
 
         ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
+
+        if operation_family in {"difference", "growth_rate"} and len(ordered_operands) == 2:
+            concept_keys = {
+                str(row.get("matched_operand_concept") or "").strip()
+                for row in ordered_operands
+                if str(row.get("matched_operand_concept") or "").strip()
+            }
+            if len(concept_keys) == 1:
+                known_rows = [
+                    row
+                    for row in ordered_operands
+                    if str(row.get("normalized_unit") or "").strip().upper() not in {"", "UNKNOWN"}
+                ]
+                unknown_rows = [
+                    row
+                    for row in ordered_operands
+                    if str(row.get("normalized_unit") or "").strip().upper() in {"", "UNKNOWN"}
+                ]
+                if len(known_rows) == 1 and len(unknown_rows) == 1:
+                    donor = known_rows[0]
+                    target = dict(unknown_rows[0])
+                    donor_display_unit = str(donor.get("raw_unit") or donor.get("result_unit") or "").strip()
+                    if donor_display_unit:
+                        target["raw_unit"] = donor_display_unit
+                    normalized_value, normalized_unit = _normalise_operand_value(
+                        str(target.get("raw_value") or ""),
+                        str(target.get("raw_unit") or ""),
+                    )
+                    if normalized_value is not None and str(normalized_unit or "").strip().upper() not in {"", "UNKNOWN"}:
+                        target["normalized_value"] = normalized_value
+                        target["normalized_unit"] = normalized_unit
+                        target_id = str(target.get("operand_id") or "").strip()
+                        if target_id:
+                            operands[target_id] = target
+                        runtime_operands = [
+                            dict(operands.get(str(row.get("operand_id") or "").strip()) or row)
+                            for row in runtime_operands
+                        ]
+                        ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
+
         selected_evidence_ids = list(
             dict.fromkeys(str(row.get("evidence_id")) for row in ordered_operands if row.get("evidence_id"))
         )
@@ -1895,6 +1937,7 @@ Ontology Context:
         result_payload.update(
             _runtime_trace_state_update(
                 state,
+                calculation_operands=runtime_operands,
                 calculation_result=calc_result,
             )
         )

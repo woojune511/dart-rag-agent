@@ -85,7 +85,21 @@ class FinancialAgentReconciliationMixin:
         operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
         period = _structured_cell_period_text(cell, query_years, effective_period_focus)
         if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period):
-            period = self._fallback_period_text_for_operand(operand_with_period_focus, query_years)
+            report_year: Optional[int] = None
+            for raw_year in (cell.get("_report_year"), cell.get("report_year"), cell.get("year")):
+                try:
+                    if raw_year not in (None, ""):
+                        report_year = int(raw_year)
+                        break
+                except (TypeError, ValueError):
+                    continue
+            target_years = _operand_target_years(operand, query_years)
+            if report_year is not None and target_years and report_year in target_years:
+                period = str(report_year)
+            elif report_year is not None:
+                period = str(report_year)
+            else:
+                period = self._fallback_period_text_for_operand(operand_with_period_focus, query_years)
         return period
 
     def _pair_candidate_period_score(
@@ -186,6 +200,24 @@ class FinancialAgentReconciliationMixin:
             "matched_operand_role": str(operand.get("role") or "").strip(),
         }
 
+    def _effective_structured_cell_unit_hint(
+        self,
+        *,
+        candidate: Dict[str, Any],
+        selected_cell: Dict[str, Any],
+        operand: Dict[str, Any],
+    ) -> str:
+        metadata = dict(candidate.get("metadata") or {})
+        raw_value = str(selected_cell.get("value_text") or "").strip()
+        raw_unit = str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or "").strip()
+        return self._structured_candidate_unit_hint(
+            raw_value=raw_value,
+            raw_unit=raw_unit,
+            candidate=candidate,
+            operand=operand,
+            selected_cell=selected_cell,
+        )
+
     def _extract_structured_period_pair_rows(
         self,
         *,
@@ -254,6 +286,7 @@ class FinancialAgentReconciliationMixin:
                 for cell in cells:
                     enriched = dict(cell)
                     enriched["_sibling_cells"] = [dict(item) for item in cells]
+                    enriched["_report_year"] = metadata.get("year")
                     enriched_cells.append(enriched)
                 accepted_current_entries: List[tuple[Dict[str, Any], str, float]] = []
                 accepted_prior_entries: List[tuple[Dict[str, Any], str, float]] = []
@@ -341,6 +374,20 @@ class FinancialAgentReconciliationMixin:
                 prior_candidate = pair_candidate
             else:
                 current_candidate, current_cell, prior_candidate, prior_cell = best_cross_pair
+            current_unit_hint = self._effective_structured_cell_unit_hint(
+                candidate=current_candidate,
+                selected_cell=current_cell,
+                operand=current_operand,
+            )
+            prior_unit_hint = self._effective_structured_cell_unit_hint(
+                candidate=prior_candidate,
+                selected_cell=prior_cell,
+                operand=prior_operand,
+            )
+            if current_unit_hint and not prior_unit_hint:
+                prior_cell = {**prior_cell, "unit_hint": current_unit_hint}
+            elif prior_unit_hint and not current_unit_hint:
+                current_cell = {**current_cell, "unit_hint": prior_unit_hint}
             current_row = self._build_operand_row_from_candidate_cell(
                 candidate=current_candidate,
                 selected_cell=current_cell,
@@ -852,6 +899,7 @@ candidate options:
                         cells = _parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
                     if not cells:
                         continue
+                    cells = [{**cell, "_report_year": current_metadata.get("year")} for cell in cells]
                     current_cell = _select_structured_cell(
                         cells,
                         operand=operand,

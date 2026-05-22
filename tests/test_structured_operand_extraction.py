@@ -1238,6 +1238,120 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[0]["period"], "2023")
         self.assertEqual(rows[1]["period"], "2022")
 
+    def test_growth_rate_pair_propagates_unit_hint_across_split_candidates(self) -> None:
+        label = "시설투자(CAPEX)"
+        current_metadata = {
+            "chunk_uid": "chunk_capex_current",
+            "company": "삼성전자",
+            "year": 2023,
+            "block_type": "table",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_capex_pair",
+            "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+            "table_context": "시설투자 현황",
+            "table_header_context": "항목 | 금액",
+            "unit_hint": "억원",
+            "row_label": "합 계",
+            "value_role": "aggregate",
+            "aggregation_stage": "final",
+        }
+        prior_metadata = {
+            "chunk_uid": "chunk_capex_prior",
+            "company": "삼성전자",
+            "year": 2022,
+            "block_type": "table",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_capex_pair",
+            "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+            "table_context": "시설투자 현황",
+            "table_header_context": "항목 | 금액",
+            "unit_hint": "",
+            "row_label": "합 계",
+            "value_role": "aggregate",
+            "aggregation_stage": "final",
+        }
+        state = {
+            "query": "2023년 시설투자(CAPEX) 총액과 전년(2022년) 대비 증감률을 계산해 줘",
+            "years": [2023, 2022],
+            "report_scope": {"company": "삼성전자", "year": "2023", "consolidation": "연결"},
+            "intent": "comparison",
+            "topic": "시설투자(CAPEX) 총액 증감률",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (Document(page_content="합 계 | 531,139", metadata=current_metadata), 1.0),
+                (Document(page_content="합 계 | 531,153", metadata=prior_metadata), 0.95),
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_capex_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "시설투자(CAPEX) 총액 증감률",
+                "query": "2023년 시설투자(CAPEX) 총액과 전년(2022년) 대비 증감률을 계산해 줘",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": label,
+                        "aliases": [label, "시설투자", "CAPEX"],
+                        "concept": "capital_expenditure_total",
+                        "role": "current_period",
+                        "required": True,
+                        "period_hint": "2023",
+                        "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+                        "binding_policy": {
+                            "prefer_value_roles": ["aggregate", "detail"],
+                            "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                        },
+                        "surface_contract": {
+                            "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                            "negative": ["유형자산의 취득", "유형자산 취득"],
+                        },
+                    },
+                    {
+                        "label": label,
+                        "aliases": [label, "시설투자", "CAPEX"],
+                        "concept": "capital_expenditure_total",
+                        "role": "prior_period",
+                        "required": True,
+                        "period_hint": "2022",
+                        "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+                        "binding_policy": {
+                            "prefer_value_roles": ["aggregate", "detail"],
+                            "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                        },
+                        "surface_contract": {
+                            "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                            "negative": ["유형자산의 취득", "유형자산 취득"],
+                        },
+                    },
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "multi_period",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_capex_growth",
+                "matched_operands": [
+                    {"label": label, "role": "current_period", "matched": True, "candidate_ids": ["chunk_capex_current::row:0", "chunk_capex_prior::row:0"], "reason": "matched_candidates"},
+                    {"label": label, "role": "prior_period", "matched": True, "candidate_ids": ["chunk_capex_current::row:0", "chunk_capex_prior::row:0"], "reason": "matched_candidates"},
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+        }
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["normalized_unit"], "KRW")
+        self.assertEqual(rows[1]["normalized_unit"], "KRW")
+
     def test_difference_can_pair_split_table_rows_with_same_table_source(self) -> None:
         label = "법인세비용차감전순이익"
         split_row_metadata = {
@@ -1249,7 +1363,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "consolidation_scope": "consolidated",
             "period_labels": [],
             "table_source_id": "table_split_pair",
-            "table_header_context": "공시금액 | 항목 | 값 | 단위: 천원",
+            "table_header_context": "항목 | 연도 | 값 | 단위: 천원",
             "table_summary_text": "법인세비용차감전순손익 표",
             "table_row_labels_text": label,
             "table_row_records_json": json.dumps(
@@ -1264,10 +1378,27 @@ class StructuredOperandExtractionTests(unittest.TestCase):
                 ensure_ascii=False,
             ),
         }
+        split_row_metadata["table_row_records_json"] = json.dumps(
+            [
+                {
+                    "row_id": "r_current",
+                    "row_label": label,
+                    "row_headers": [label],
+                    "cells": [{"column_headers": ["2023"], "value_text": "1,481,396,318", "unit_hint": "천원"}],
+                },
+                {
+                    "row_id": "r_prior",
+                    "row_label": label,
+                    "row_headers": [label],
+                    "cells": [{"column_headers": ["2022"], "value_text": "1,083,717,091", "unit_hint": "천원"}],
+                },
+            ],
+            ensure_ascii=False,
+        )
         split_rows_text = "\n".join(
             [
-                "공시금액 | 법인세비용차감전순손익 | 1,481,396,318",
-                "공시금액 | 법인세비용차감전순손익 | 1,083,717,091",
+                "법인세비용차감전순손익 | 2023 | 1,481,396,318",
+                "법인세비용차감전순손익 | 2022 | 1,083,717,091",
             ]
         )
         state = {
@@ -1304,8 +1435,8 @@ class StructuredOperandExtractionTests(unittest.TestCase):
                 "status": "ready",
                 "task_id": "task_diff_split_rows",
                 "matched_operands": [
-                    {"label": label, "role": "current_period", "matched": True, "candidate_ids": ["chunk_split_pair::row:0", "chunk_split_pair::row:1"], "reason": "matched_candidates"},
-                    {"label": label, "role": "prior_period", "matched": True, "candidate_ids": ["chunk_split_pair::row:0", "chunk_split_pair::row:1"], "reason": "matched_candidates"},
+                    {"label": label, "role": "current_period", "matched": True, "candidate_ids": ["chunk_split_pair::rowrec:0", "chunk_split_pair::rowrec:1"], "reason": "matched_candidates"},
+                    {"label": label, "role": "prior_period", "matched": True, "candidate_ids": ["chunk_split_pair::rowrec:0", "chunk_split_pair::rowrec:1"], "reason": "matched_candidates"},
                 ],
                 "missing_operands": [],
                 "retry_queries": [],
@@ -1520,7 +1651,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "4,145,647")
-        self.assertEqual(rows[0]["period"], "당기")
+        self.assertEqual(rows[0]["period"], "2023")
 
     def test_direct_extraction_prefers_aggregate_cell_within_wide_structured_row(self) -> None:
         metadata = {

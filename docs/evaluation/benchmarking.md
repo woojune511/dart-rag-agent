@@ -243,6 +243,29 @@ official curated benchmark profile은 `auto_fetch_missing_report = true`를 켜 
 - `contextual_selective_v2`는 quality reference로 유지한다
 - `structural_selective_v2`는 현재 gate 기준으로 품질을 유지하면서 ingest 비용을 크게 줄인 current operating candidate다
 
+### Latest broader curated status
+
+official gate 통과만으로 mainline default를 확정하지는 않는다. 현재는 wider curated set에서도 같은 후보가 버티는지 별도로 본다.
+
+현재 follow-up 해석:
+
+- `curated_multi_report_smoke`
+  - `SAM_T2_002`가 CAPEX current/prior binding 문제로 한 번 실패했다
+  - 이후 local fix에서는 same-concept growth path의 unit/trace propagation을 보강해 single-question rerun을 PASS로 좁혔다
+- `curated_single_doc_core`
+  - `MIX_T1_046`는 generic share-of-total ratio(`A 중 B가 차지하는 비중`) 분해와 direct aggregate denominator binding이 약해서 실패했다
+  - 현재는
+    - numerator/denominator explicit role extraction
+    - parenthesized alias expansion
+    - liability-row rejection
+    - aggregate total row를 `table_context`로 직접 분모에 매칭하는 fallback
+    까지 들어간 상태다
+
+즉 최신 판단은 다음과 같다.
+
+- `structural_selective_v2`는 여전히 가장 유력한 operating candidate다
+- 다만 wider curated set에서 남아 있는 blocker rerun이 끝나기 전까지는 final default 승격을 확정하지 않는다
+
 즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
 
 - large plain chunk의 저비용 이점

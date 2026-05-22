@@ -95,20 +95,23 @@
 - 다만 ingest 쪽은 여전히 tradeoff가 남아 있다.
   - `contextual_selective_v2`는 품질은 안정적이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 gate 기준으로 같은 품질을 더 낮은 비용으로 달성한 중간 후보다
+- broader curated validation은 아직 진행 중이다.
+  - `curated_multi_report_smoke`에서 `SAM_T2_002`는 CAPEX current/prior binding 문제를 로컬 fix로 좁혔다
+  - `curated_single_doc_core`의 `MIX_T1_046`는 generic share-of-total ratio 분해와 aggregate denominator binding hardening까지 들어갔지만, broader rerun으로 최종 close를 다시 확인해야 한다
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `structural_selective_v2_prefix_2500_320`를 `curated_single_doc_core`, `curated_multi_report_smoke` 같은 더 넓은 curated set에서 다시 검증 | gate 밖 broader curated set에서도 운영 후보로 버티는지 확인 |
-| 2 | curated mainline profile에서 default candidate 의미를 더 명확히 정리 | `plain`은 speed baseline, `contextual`은 quality baseline, `structural`은 current operating candidate로 역할 고정 |
+| 1 | `curated_multi_report_smoke`, `curated_single_doc_core`를 다시 돌려 `SAM_T2_002`, `MIX_T1_046` 후속 상태 확인 | `structural_selective_v2` broader curated blocker 재검증 |
+| 2 | broader curated set이 닫히면 `structural_selective_v2_prefix_2500_320`를 mainline default candidate로 승격 | `plain`은 speed baseline, `contextual`은 quality reference로 역할 고정 |
 | 3 | 다음 ingest 실험 후보인 `structural_parent_hybrid_v2` 설계 | parent/section/table lineage를 비용 증가 없이 더 보강할 수 있는지 확인 |
 | 4 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
 | 5 | internal `calculation_*` mirror를 실제로 제거할지 범위 결정 | runtime source of truth를 `tasks + artifacts + structured_result`로 완전히 정리할지 판단 |
 
 ## 현재 우선순위 요약
 
-1. structural ingest candidate broader validation
+1. broader curated blocker close and structural ingest candidate validation
 2. curated mainline candidate/default 정리
 3. 다음 chunking/ingest 실험 설계
 4. concept-only planner default 승격 검토
@@ -131,6 +134,10 @@
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 gate 기준으로 가장 실용적인 middle ground다
 - 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **broader curated validation + next ingest experiment design** 쪽이 맞다.
+- 다만 그 broader curated validation 안에서 남은 immediate blocker는 현재
+  - `SAM_T2_002` follow-up rerun
+  - `MIX_T1_046` ratio direct-binding rerun
+  이다.
 ## 2026-05-17 Update
 
 - Indexing now supports partial-store resume in the benchmark path.

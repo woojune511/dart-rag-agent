@@ -238,6 +238,104 @@ def _ensure_benchmark_report_path(
     return resolved_path
 
 
+def _report_inventory_entry_key(entry: Dict[str, Any]) -> tuple[str, int, str, str]:
+    metadata = dict(entry.get("metadata") or {})
+    return (
+        str(metadata.get("company") or "").strip(),
+        int(metadata.get("year") or 0),
+        str(metadata.get("report_type") or "사업보고서").strip(),
+        str(metadata.get("rcept_no") or "").strip(),
+    )
+
+
+def _build_report_inventory_entry(
+    report_path: Path,
+    metadata: Dict[str, Any],
+) -> Dict[str, Any]:
+    normalized_metadata = {
+        "company": str(metadata.get("company") or "").strip(),
+        "stock_code": str(metadata.get("stock_code") or "").strip(),
+        "year": int(metadata.get("year") or 0),
+        "report_type": str(metadata.get("report_type") or "사업보고서").strip() or "사업보고서",
+        "rcept_no": str(metadata.get("rcept_no") or "").strip(),
+    }
+    return {
+        "report_path": str(report_path),
+        "metadata": normalized_metadata,
+    }
+
+
+def _entry_from_source_report(
+    source_row: Dict[str, Any],
+    *,
+    fallback_company: str,
+    fallback_report_type: str,
+) -> Optional[Dict[str, Any]]:
+    company = str(source_row.get("corp_name") or source_row.get("company") or fallback_company).strip()
+    year = int(source_row.get("year") or 0)
+    report_type = str(source_row.get("report_type") or fallback_report_type or "사업보고서").strip() or "사업보고서"
+    rcept_no = str(source_row.get("rcept_no") or "").strip()
+    if not company or not year:
+        return None
+    if source_row.get("file_path"):
+        report_path = _normalise_path(str(source_row["file_path"]))
+    else:
+        filename = f"{year}_{report_type}"
+        if rcept_no:
+            filename = f"{filename}_{rcept_no}"
+        report_path = PROJECT_ROOT / "data" / "reports" / company / f"{filename}.html"
+    return _build_report_inventory_entry(
+        report_path,
+        {
+            "company": company,
+            "year": year,
+            "report_type": report_type,
+            "rcept_no": rcept_no,
+        },
+    )
+
+
+def _collect_report_inventory(
+    config: Dict[str, Any],
+    metadata: Dict[str, Any],
+    examples: List[EvalExample],
+) -> List[Dict[str, Any]]:
+    primary_entry = _build_report_inventory_entry(_normalise_path(config["report_path"]), metadata)
+    inventory: List[Dict[str, Any]] = [primary_entry]
+    seen = {_report_inventory_entry_key(primary_entry)}
+    fallback_company = str(metadata.get("company") or "").strip()
+    fallback_report_type = str(metadata.get("report_type") or "사업보고서").strip() or "사업보고서"
+
+    for example in examples:
+        source_rows = list(getattr(example, "source_reports", []) or [])
+        if not source_rows and getattr(example, "source_report", None):
+            source_rows = [dict(getattr(example, "source_report", {}) or {})]
+        for source_row in source_rows:
+            if not isinstance(source_row, dict):
+                continue
+            entry = _entry_from_source_report(
+                source_row,
+                fallback_company=fallback_company,
+                fallback_report_type=fallback_report_type,
+            )
+            if not entry:
+                continue
+            entry_key = _report_inventory_entry_key(entry)
+            if entry_key in seen:
+                continue
+            seen.add(entry_key)
+            inventory.append(entry)
+
+    inventory.sort(
+        key=lambda entry: (
+            int(entry["metadata"].get("year") or 0),
+            str(entry["metadata"].get("rcept_no") or ""),
+        ),
+        reverse=True,
+    )
+    return inventory
+
+
 def _is_path_like_key(key: str) -> bool:
     lowered = key.lower()
     return lowered.endswith("_path") or "directory" in lowered
@@ -296,6 +394,16 @@ def _build_cache_signature(config: Dict[str, Any], collection_name: str) -> Dict
     runner_path = PROJECT_ROOT / "src" / "ops" / "benchmark_runner.py"
     metadata = config.get("metadata", {})
     store_signature = _build_store_signature(config, collection_name)
+    report_inventory = [
+        {
+            "company": str(dict(entry.get("metadata") or {}).get("company") or "").strip(),
+            "year": int(dict(entry.get("metadata") or {}).get("year") or 0),
+            "report_type": str(dict(entry.get("metadata") or {}).get("report_type") or "사업보고서").strip(),
+            "rcept_no": str(dict(entry.get("metadata") or {}).get("rcept_no") or "").strip(),
+        }
+        for entry in list(config.get("report_inventory") or [])
+        if isinstance(entry, dict)
+    ]
     return {
         "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
         "company": metadata.get("company"),
@@ -316,6 +424,7 @@ def _build_cache_signature(config: Dict[str, Any], collection_name: str) -> Dict
         "selective_v2_short_table_threshold": config.get("selective_v2_short_table_threshold"),
         "selective_v2_sections": list(config.get("selective_v2_sections", [])),
         "use_zero_cost_prefix": bool(config.get("use_zero_cost_prefix", False)),
+        "report_inventory": report_inventory,
         "store_signature": store_signature,
     }
 
@@ -2969,20 +3078,24 @@ def run_screening_experiment(
     report_path = _normalise_path(config["report_path"])
 
     metadata = dict(config["metadata"])
+    screening_examples = _select_eval_examples(config, metadata)
+    report_inventory = _collect_report_inventory(config, metadata, screening_examples)
+    config_with_inventory = dict(config)
+    config_with_inventory["report_inventory"] = report_inventory
     persist_dir = output_root / "stores" / _slugify(experiment_id)
     context_cache_path = _context_cache_path(output_root, experiment_id)
-    force_reindex = _resolve_boolean_config(config, "force_reindex", False)
-    reuse_store = _resolve_boolean_config(config, "reuse_store", True)
-    reuse_context_cache = _resolve_boolean_config(config, "reuse_context_cache", True)
-    resume_partial_store = _resolve_boolean_config(config, "resume_partial_store", True)
-    allow_retrieval_fallback = _resolve_boolean_config(config, "allow_retrieval_fallback", False)
+    force_reindex = _resolve_boolean_config(config_with_inventory, "force_reindex", False)
+    reuse_store = _resolve_boolean_config(config_with_inventory, "reuse_store", True)
+    reuse_context_cache = _resolve_boolean_config(config_with_inventory, "reuse_context_cache", True)
+    resume_partial_store = _resolve_boolean_config(config_with_inventory, "resume_partial_store", True)
+    allow_retrieval_fallback = _resolve_boolean_config(config_with_inventory, "allow_retrieval_fallback", False)
 
-    collection_name = config.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
-    store_signature = _build_store_signature(config, collection_name)
+    collection_name = config_with_inventory.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
+    store_signature = _build_store_signature(config_with_inventory, collection_name)
     embedding_spec = dict(store_signature.get("embedding", {}) or {})
     embedding_provider = str(embedding_spec.get("provider") or DEFAULT_EMBEDDING_PROVIDER)
     embedding_model_name = str(embedding_spec.get("model_name") or DEFAULT_EMBEDDING_MODEL)
-    cache_signature = _build_cache_signature(config, collection_name)
+    cache_signature = _build_cache_signature(config_with_inventory, collection_name)
     cache_meta = _load_cache_meta(persist_dir) if persist_dir.exists() else {}
     store_meta = _load_store_meta(persist_dir) if persist_dir.exists() else {}
     context_cache = _load_context_cache(output_root, experiment_id)
@@ -3035,8 +3148,8 @@ def run_screening_experiment(
     )
     agent = FinancialAgent(
         vsm,
-        k=int(config.get("k", 8)),
-        graph_expansion_config=_build_graph_expansion_config(config),
+        k=int(config_with_inventory.get("k", 8)),
+        graph_expansion_config=_build_graph_expansion_config(config_with_inventory),
     )
 
     store_cache_hit = (
@@ -3111,13 +3224,21 @@ def run_screening_experiment(
             },
         )
     else:
-        report_path = _ensure_benchmark_report_path(report_path, metadata, config)
         parser = FinancialParser(
-            chunk_size=int(config.get("chunk_size", DEFAULT_CHUNK_SIZE)),
-            chunk_overlap=int(config.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
+            chunk_size=int(config_with_inventory.get("chunk_size", DEFAULT_CHUNK_SIZE)),
+            chunk_overlap=int(config_with_inventory.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
         )
         parse_started = time.perf_counter()
-        chunks = parser.process_document(str(report_path), metadata)
+        chunks = []
+        resolved_report_paths: List[Path] = []
+        for report_entry in report_inventory:
+            report_metadata = dict(report_entry.get("metadata") or {})
+            candidate_path = _normalise_path(report_entry["report_path"])
+            resolved_report_path = _ensure_benchmark_report_path(candidate_path, report_metadata, config_with_inventory)
+            resolved_report_paths.append(resolved_report_path)
+            chunks.extend(parser.process_document(str(resolved_report_path), report_metadata))
+        if resolved_report_paths:
+            report_path = resolved_report_paths[0]
         parse_elapsed = time.perf_counter() - parse_started
         chunk_count = len(chunks)
         _write_cache_meta(
@@ -3132,9 +3253,9 @@ def run_screening_experiment(
                     "chunk_count": chunk_count,
                 },
                 "ingest": {
-                    "mode": str(config.get("ingest_mode", "contextual_all")),
+                    "mode": str(config_with_inventory.get("ingest_mode", "contextual_all")),
                     "resume_partial_store": bool(resume_partial_store),
-                    "resume_batch_size": int(config.get("resume_batch_size", 64) or 64),
+                    "resume_batch_size": int(config_with_inventory.get("resume_batch_size", 64) or 64),
                 },
                 "runtime": {
                     "allow_retrieval_fallback": bool(allow_retrieval_fallback),
@@ -3152,7 +3273,7 @@ def run_screening_experiment(
                 "collection_name": collection_name,
             },
         )
-        ingest_metrics = _run_ingest(agent, chunks, config, return_artifacts=True)
+        ingest_metrics = _run_ingest(agent, chunks, config_with_inventory, return_artifacts=True)
         artifacts = dict(ingest_metrics.pop("artifacts", {}) or {})
         _write_cache_meta(
             persist_dir,
@@ -3210,35 +3331,35 @@ def run_screening_experiment(
             },
         )
 
-    smoke = _run_smoke_queries(agent, list(config.get("smoke_queries", [])))
-    screening_examples = _select_eval_examples(config, metadata)
+    smoke = _run_smoke_queries(agent, list(config_with_inventory.get("smoke_queries", [])))
     screening_eval = _run_screening_eval(agent, screening_examples, screening_config) if screening_examples else {}
-    estimated_cost = _estimate_cost_usd(ingest_metrics, config.get("pricing"))
+    estimated_cost = _estimate_cost_usd(ingest_metrics, config_with_inventory.get("pricing"))
 
     return {
         "id": experiment_id,
         "config": {
-            "chunk_size": config.get("chunk_size"),
-            "chunk_overlap": config.get("chunk_overlap"),
-            "ingest_mode": config.get("ingest_mode"),
-            "graph_expansion": _sanitize_settings(config.get("graph_expansion", {})),
-            "k": config.get("k", 8),
-            "max_workers": config.get("max_workers"),
-            "batch_size": config.get("batch_size"),
+            "chunk_size": config_with_inventory.get("chunk_size"),
+            "chunk_overlap": config_with_inventory.get("chunk_overlap"),
+            "ingest_mode": config_with_inventory.get("ingest_mode"),
+            "graph_expansion": _sanitize_settings(config_with_inventory.get("graph_expansion", {})),
+            "k": config_with_inventory.get("k", 8),
+            "max_workers": config_with_inventory.get("max_workers"),
+            "batch_size": config_with_inventory.get("batch_size"),
             "collection_name": collection_name,
-            "parent_hybrid_short_text_threshold": config.get("parent_hybrid_short_text_threshold"),
-            "parent_hybrid_sections": config.get("parent_hybrid_sections", []),
-            "selective_short_text_threshold": config.get("selective_short_text_threshold"),
-            "selective_sections": config.get("selective_sections", []),
-            "selective_v2_short_text_threshold": config.get("selective_v2_short_text_threshold"),
-            "selective_v2_short_table_threshold": config.get("selective_v2_short_table_threshold"),
-            "selective_v2_sections": config.get("selective_v2_sections", []),
+            "parent_hybrid_short_text_threshold": config_with_inventory.get("parent_hybrid_short_text_threshold"),
+            "parent_hybrid_sections": config_with_inventory.get("parent_hybrid_sections", []),
+            "selective_short_text_threshold": config_with_inventory.get("selective_short_text_threshold"),
+            "selective_sections": config_with_inventory.get("selective_sections", []),
+            "selective_v2_short_text_threshold": config_with_inventory.get("selective_v2_short_text_threshold"),
+            "selective_v2_short_table_threshold": config_with_inventory.get("selective_v2_short_table_threshold"),
+            "selective_v2_sections": config_with_inventory.get("selective_v2_sections", []),
             "section_aliases": screening_config.get("section_aliases", {}),
             "allow_retrieval_fallback": bool(allow_retrieval_fallback),
         },
         "report_path": str(report_path),
+        "report_inventory": report_inventory,
         "metadata": metadata,
-        "recorded_settings": _build_recorded_settings(config, screening_config, full_eval_config),
+        "recorded_settings": _build_recorded_settings(config_with_inventory, screening_config, full_eval_config),
         "store": {
             "persist_directory": str(persist_dir),
             "collection_name": collection_name,

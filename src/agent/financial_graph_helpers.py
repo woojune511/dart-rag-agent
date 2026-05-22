@@ -865,6 +865,8 @@ def _desired_statement_types(query: str, topic: str) -> List[str]:
         desired.extend(["balance_sheet", "summary_financials"])
     if any(keyword in text for keyword in ("영업이익", "당기순이익", "순이익", "매출액", "매출원가", "판매비와관리비", "이익률", "ROE", "ROA")):
         desired.extend(["income_statement", "summary_financials", "segment_note"])
+    if any(keyword in text for keyword in ("영업비용", "종업원급여", "인건비")):
+        desired.extend(["income_statement", "notes", "summary_financials"])
     if any(keyword in text for keyword in ("영업활동현금흐름", "투자활동현금흐름", "재무활동현금흐름", "FCF", "현금흐름")):
         desired.extend(["cash_flow", "summary_financials"])
     return list(dict.fromkeys(desired))
@@ -970,6 +972,11 @@ def _query_component_match_count(
 
 
 _QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“”‘’「」『』]+)['"“”‘’「」『』]""")
+_GENERIC_RATIO_SHARE_RE = re.compile(
+    r"(?P<denominator>[가-힣A-Za-z0-9·/&\-\s\(\)]+?)\s*중\s*"
+    r"(?P<numerator>[가-힣A-Za-z0-9·/&\-\s\(\)]+?)\s*(?:이|가)\s*차지하는\s*"
+    r"(?:비중|비율)"
+)
 _GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
     re.compile(pattern)
     for pattern in [
@@ -1044,6 +1051,34 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
     derived_labels = {"총 영업비용", "영업비용률", "순효과"}
     normalized = [item for item in normalized if item not in derived_labels]
     return normalized
+
+
+def _extract_generic_ratio_operand_specs(query: str) -> List[Dict[str, Any]]:
+    text = _normalise_spaces(query)
+    if not text:
+        return []
+
+    match = _GENERIC_RATIO_SHARE_RE.search(text)
+    if not match:
+        return []
+
+    denominator = _clean_metric_label(match.group("denominator"))
+    numerator = _clean_metric_label(match.group("numerator"))
+    if not denominator or not numerator or denominator == numerator:
+        return []
+
+    return [
+        {
+            "label": numerator,
+            "role": "numerator_1",
+            "required": True,
+        },
+        {
+            "label": denominator,
+            "role": "denominator_1",
+            "required": True,
+        },
+    ]
 
 
 def _label_implies_percent_metric(label: str) -> bool:
@@ -1132,6 +1167,13 @@ def _build_generic_metric_aliases(label: str) -> List[str]:
     if not base:
         return []
     aliases = [base]
+    without_parens = _normalise_spaces(re.sub(r"\([^)]*\)", " ", base))
+    if without_parens and without_parens != base:
+        aliases.append(without_parens)
+    for inner in re.findall(r"\(([^)]*)\)", base):
+        cleaned_inner = _normalise_spaces(inner)
+        if cleaned_inner:
+            aliases.append(cleaned_inner)
     if "순이익" in base:
         aliases.append(base.replace("순이익", "순손익"))
     if "순손익" in base:
@@ -1294,6 +1336,10 @@ def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]
             statement_types.append("notes")
     if any(keyword in text for keyword in ("시설투자", "capex", "자본적 지출")):
         preferred_sections.extend(["원재료 및 생산설비", "시설투자", "사업의 내용"])
+    if any(keyword in text for keyword in ("영업비용", "종업원급여", "인건비")):
+        preferred_sections.extend(["영업비용", "연결재무제표 주석", "재무제표 주석", "연결 손익계산서", "손익계산서"])
+        if "notes" not in statement_types:
+            statement_types.append("notes")
     return list(dict.fromkeys(statement_types)), list(dict.fromkeys(preferred_sections))
 
 
@@ -1302,6 +1348,39 @@ def _build_generic_required_operands(
     report_scope: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
     ontology = get_financial_ontology()
+    ratio_operand_specs = _extract_generic_ratio_operand_specs(query)
+    if ratio_operand_specs:
+        preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
+        rows: List[Dict[str, Any]] = []
+        for spec in ratio_operand_specs:
+            label = str(spec.get("label") or "").strip()
+            aliases = _build_generic_metric_aliases(label)
+            concept_spec = _infer_generic_concept_spec(label, ontology)
+            role = str(spec.get("role") or "").strip()
+            binding_policy: Dict[str, Any] = {}
+            if role.startswith("denominator"):
+                binding_policy = {
+                    "prefer_value_roles": ["aggregate"],
+                    "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                }
+            rows.append(
+                _augment_generic_operand_with_concept(
+                    {
+                        "label": label,
+                        "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
+                        "role": role,
+                        "required": True,
+                        "unit_family": "PERCENT" if _label_implies_percent_metric(label) else "",
+                        "preferred_statement_types": list(preferred_statement_types),
+                        "preferred_sections": list(preferred_sections),
+                        "binding_policy": binding_policy,
+                    },
+                    concept_spec=concept_spec,
+                )
+            )
+        if rows:
+            return rows
+
     operand_labels = _extract_generic_operand_labels(query)
     if _is_single_metric_period_comparison(query, operand_labels):
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
@@ -1476,6 +1555,21 @@ def _build_generic_retrieval_queries(
                         queries.append(_collapse_duplicate_query_tokens(" ".join(alias_bits)))
                         for section in preferred_sections[:2]:
                             queries.append(_collapse_duplicate_query_tokens(f"{' '.join(alias_bits)} {section}"))
+        else:
+            numerator = left if left_role.startswith("numerator") else right if right_role.startswith("numerator") else {}
+            denominator = left if left_role.startswith("denominator") else right if right_role.startswith("denominator") else {}
+            if numerator and denominator:
+                numerator_label = _strip_leading_period_prefix(str(numerator.get("label") or ""))
+                denominator_label = _strip_leading_period_prefix(str(denominator.get("label") or ""))
+                pair_queries = [
+                    _collapse_duplicate_query_tokens(" ".join(bit for bit in (year_prefix.strip(), denominator_label, numerator_label) if bit)),
+                    _collapse_duplicate_query_tokens(" ".join(bit for bit in (year_prefix.strip(), numerator_label, denominator_label) if bit)),
+                ]
+                for pair_query in pair_queries:
+                    if pair_query:
+                        queries.append(pair_query)
+                        for section in preferred_sections[:3]:
+                            queries.append(_collapse_duplicate_query_tokens(f"{pair_query} {section}"))
 
     if metric_label:
         queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_label}"))
@@ -2511,6 +2605,14 @@ def _query_years_from_state(state: Dict[str, Any]) -> List[int]:
 
 def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str:
     headers = [str(item).strip() for item in (cell.get("column_headers") or []) if str(item).strip()]
+    report_year: Optional[int] = None
+    for raw_year in (cell.get("_report_year"), cell.get("report_year"), cell.get("year")):
+        try:
+            if raw_year not in (None, ""):
+                report_year = int(raw_year)
+                break
+        except (TypeError, ValueError):
+            continue
     if query_years:
         for year in query_years:
             year_text = str(year)
@@ -2518,12 +2620,16 @@ def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], p
                 return year_text
     header_text = " ".join(headers)
     if period_focus == "current" and any(token in header_text for token in ("당기", "현재")):
+        if report_year is not None:
+            return str(report_year)
         return "당기"
     if period_focus == "prior" and any(token in header_text for token in ("전기", "이전")):
+        if report_year is not None:
+            return str(report_year - 1)
         return "전기"
     fiscal_rank = _structured_cell_fiscal_rank(cell)
-    if fiscal_rank is not None and query_years:
-        current_year = max(query_years)
+    if fiscal_rank is not None and (report_year is not None or query_years):
+        current_year = report_year if report_year is not None else max(query_years)
         return str(current_year - fiscal_rank)
     return header_text
 
@@ -2609,7 +2715,26 @@ def _operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> Li
             years.append(year)
     if years:
         return years
-    return list(query_years or [])
+    ordered_years: List[int] = []
+    for raw_year in list(query_years or []):
+        try:
+            year = int(raw_year)
+        except (TypeError, ValueError):
+            continue
+        if year not in ordered_years:
+            ordered_years.append(year)
+    if not ordered_years:
+        return []
+
+    period_focus = _operand_period_focus(operand, "unknown")
+    if period_focus == "current":
+        return [max(ordered_years)]
+    if period_focus == "prior":
+        ranked_years = sorted(ordered_years, reverse=True)
+        if len(ranked_years) >= 2:
+            return [ranked_years[1]]
+        return [ranked_years[0] - 1]
+    return ordered_years
 
 
 def _operand_period_focus(operand: Dict[str, Any], default_period_focus: str) -> str:
@@ -2758,9 +2883,8 @@ def _text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
 
 
 def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    contract = _operand_surface_contract(operand)
-    if not contract:
-        return False
+    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    expects_liability = any("부채" in needle for needle in normalized_needles)
 
     metadata = dict(candidate.get("metadata") or {})
     authoritative_surfaces = [
@@ -2772,6 +2896,13 @@ def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand
         str(metadata.get("table_row_labels_text") or "").strip(),
     ]
     authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
+    if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
+        return True
+
+    contract = _operand_surface_contract(operand)
+    if not contract:
+        return False
+
     if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
         return True
 
@@ -2782,15 +2913,20 @@ def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand
 
 
 def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    contract = _operand_surface_contract(operand)
-    if not contract:
-        return False
-
+    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    expects_liability = any("부채" in needle for needle in normalized_needles)
     authoritative_surfaces = [
         str(row.get("matched_operand_label") or "").strip(),
         str(row.get("label") or "").strip(),
     ]
     authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
+    if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
+        return True
+
+    contract = _operand_surface_contract(operand)
+    if not contract:
+        return False
+
     if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
         return True
     return False
@@ -3814,6 +3950,25 @@ def _candidate_satisfies_direct_acceptance_contract(
             query_years,
             desired_period_focus,
         )
+        if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period_text):
+            report_year: Optional[int] = None
+            for raw_year in (
+                selected_cell.get("_report_year"),
+                selected_cell.get("report_year"),
+                selected_cell.get("year"),
+            ):
+                try:
+                    if raw_year not in (None, ""):
+                        report_year = int(raw_year)
+                        break
+                except (TypeError, ValueError):
+                    continue
+            if report_year is not None:
+                target_years = _operand_target_years(operand, query_years)
+                if target_years and report_year in target_years:
+                    period_text = str(report_year)
+                else:
+                    period_text = str(report_year)
         normalized_period = _normalise_spaces(period_text)
         if desired_period_focus == "current" and normalized_period and any(
             token in normalized_period for token in ("전기", "이전")
@@ -3835,9 +3990,31 @@ def _candidate_satisfies_direct_acceptance_contract(
 
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
     value_role = _candidate_value_role(candidate)
+    aggregation_stage = _candidate_aggregation_stage(candidate)
+    local_heading = _normalise_spaces(
+        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
+    )
+    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
     if _is_balance_sheet_aggregate_operand(operand):
         if statement_type == "notes" and value_role == "detail":
             return False
+    if _is_capex_total_operand(operand):
+        preferred_sections = [
+            _normalise_spaces(str(item))
+            for item in (operand.get("preferred_sections") or [])
+            if str(item).strip()
+        ]
+        aggregate_like = value_role == "aggregate" or aggregation_stage in {"final", "direct", "subtotal"}
+        if candidate.get("candidate_kind") in {"structured_value", "structured_column_value"} and not aggregate_like:
+            return False
+        if preferred_sections:
+            in_preferred_section = any(
+                section_term in local_heading or section_term in section_path
+                for section_term in preferred_sections
+                if section_term
+            )
+            if not in_preferred_section and not aggregate_like:
+                return False
 
     metadata_periods = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
     target_years = _operand_target_years(operand, query_years)

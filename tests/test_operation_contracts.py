@@ -17,10 +17,13 @@ from src.agent.financial_graph_helpers import (
     _build_concept_task_constraints,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
+    _candidate_satisfies_direct_acceptance_contract,
     _label_implies_percent_metric,
     _normalise_operand_value,
+    _operand_target_years,
     _operand_row_matches_requirement,
     _requires_direct_numeric_grounding,
+    _structured_cell_period_text,
 )
 from src.agent.financial_graph_models import EvidenceExtraction
 from src.config.ontology import FinancialOntologyManager
@@ -67,6 +70,100 @@ class OperationContractTests(unittest.TestCase):
         self.assertTrue(_label_implies_percent_metric("순이자마진"))
         self.assertTrue(_label_implies_percent_metric("부채비율"))
         self.assertFalse(_label_implies_percent_metric("NIM"))
+
+    def test_structured_cell_period_text_uses_report_year_for_current_fiscal_cell(self) -> None:
+        period = _structured_cell_period_text(
+            {
+                "column_headers": ["제54기"],
+                "_report_year": 2022,
+                "_sibling_cells": [
+                    {"column_headers": ["제54기"], "_report_year": 2022},
+                    {"column_headers": ["제53기"], "_report_year": 2022},
+                ],
+            },
+            [2023, 2022],
+            "current",
+        )
+        self.assertEqual(period, "2022")
+
+    def test_structured_cell_period_text_uses_report_year_for_prior_fiscal_cell(self) -> None:
+        period = _structured_cell_period_text(
+            {
+                "column_headers": ["제53기"],
+                "_report_year": 2022,
+                "_sibling_cells": [
+                    {"column_headers": ["제54기"], "_report_year": 2022},
+                    {"column_headers": ["제53기"], "_report_year": 2022},
+                ],
+            },
+            [2023, 2022],
+            "prior",
+        )
+        self.assertEqual(period, "2021")
+
+    def test_resolved_period_text_prefers_report_year_when_it_matches_target_year(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        period = agent._resolved_period_text_for_operand(
+            operand={"label": "2023 시설투자(CAPEX)", "role": "current_period", "period_hint": "2023"},
+            cell={"column_headers": [], "_report_year": 2022},
+            query_years=[2023, 2022],
+            period_focus="multi_period",
+        )
+        self.assertEqual(period, "2022")
+
+    def test_resolved_period_text_does_not_shift_report_year_for_prior_without_explicit_headers(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        period = agent._resolved_period_text_for_operand(
+            operand={"label": "2022 시설투자(CAPEX)", "role": "prior_period", "period_hint": "2022"},
+            cell={"column_headers": [], "_report_year": 2023},
+            query_years=[2023, 2022],
+            period_focus="multi_period",
+        )
+        self.assertEqual(period, "2023")
+
+    def test_operand_target_years_prefers_latest_year_for_current_period_role(self) -> None:
+        years = _operand_target_years(
+            {"label": "시설투자(CAPEX)", "role": "current_period"},
+            [2023, 2022],
+        )
+        self.assertEqual(years, [2023])
+
+    def test_operand_target_years_prefers_second_latest_year_for_prior_period_role(self) -> None:
+        years = _operand_target_years(
+            {"label": "시설투자(CAPEX)", "role": "prior_period"},
+            [2023, 2022],
+        )
+        self.assertEqual(years, [2022])
+
+    def test_capex_total_rejects_non_aggregate_note_detail_candidate(self) -> None:
+        operand = {
+            "label": "시설투자(CAPEX)",
+            "concept": "capital_expenditure_total",
+            "role": "operand",
+            "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "row_label": "일반취득 및 자본적지출(*1)",
+                "semantic_label": "일반취득 및 자본적지출",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "local_heading": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "statement_type": "notes",
+                "value_role": "detail",
+                "aggregation_stage": "none",
+            },
+        }
+        self.assertFalse(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"period_focus": "unknown"},
+                query_years=[2022],
+                operation_family="lookup",
+                selected_cell={"column_headers": ["2022"], "value_text": "117,933", "unit_hint": "백만원"},
+            )
+        )
 
     def test_lookup_task_prefers_current_period_when_operand_role_is_current(self) -> None:
         constraints = _build_concept_task_constraints(
@@ -171,6 +268,105 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertTrue(all("income_statement" in row.get("preferred_statement_types", []) for row in operands))
         self.assertTrue(all(bool(row.get("surface_contract")) for row in operands))
+
+    def test_generic_required_operands_extract_share_of_total_ratio_roles(self) -> None:
+        operands = _build_generic_required_operands(
+            "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+            {"company": "네이버", "year": 2023},
+        )
+        self.assertEqual(
+            [(row["label"], row["role"]) for row in operands],
+            [
+                ("인건비(종업원급여)", "numerator_1"),
+                ("영업비용", "denominator_1"),
+            ],
+        )
+        self.assertIn("종업원급여", operands[0]["aliases"])
+        self.assertIn("인건비", operands[0]["aliases"])
+        self.assertEqual(
+            operands[1]["binding_policy"],
+            {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+            },
+        )
+
+    def test_generic_ratio_retrieval_queries_include_combined_numerator_denominator_terms(self) -> None:
+        queries = _build_generic_retrieval_queries(
+            query="2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+            metric_label="영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+            operand_specs=[
+                {
+                    "label": "인건비(종업원급여)",
+                    "aliases": ["인건비", "종업원급여"],
+                    "role": "numerator_1",
+                },
+                {
+                    "label": "영업비용",
+                    "aliases": ["영업비용"],
+                    "role": "denominator_1",
+                },
+            ],
+            preferred_sections=["영업비용", "연결재무제표 주석", "손익계산서"],
+            report_scope={"company": "네이버", "year": 2023},
+            constraints={"period_focus": "current"},
+        )
+        self.assertTrue(any("2023년 영업비용 인건비(종업원급여)" in item for item in queries))
+        self.assertTrue(any("2023년 종업원급여 연결재무제표 주석" in item for item in queries))
+
+    def test_generic_ratio_operand_rejects_liability_row_for_non_liability_label(self) -> None:
+        row = {
+            "label": "단기종업원급여부채",
+            "matched_operand_label": "",
+            "matched_operand_concept": "",
+            "matched_operand_role": "numerator_1",
+        }
+        operand = {
+            "label": "인건비(종업원급여)",
+            "aliases": ["인건비", "종업원급여"],
+            "role": "numerator_1",
+        }
+        self.assertFalse(_operand_row_matches_requirement(row, operand))
+
+    def test_generic_ratio_denominator_accepts_aggregate_total_row_via_table_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석(영업비용)]",
+                    "source_context": "[표: III. 재무에 관한 사항 > 연결재무제표 주석(영업비용)]",
+                    "raw_row_text": "합계 | 8,181,823,307 | 7,520,000,000",
+                    "metadata": {
+                        "table_context": "III. 재무에 관한 사항 > 연결재무제표 주석(영업비용)",
+                        "table_header_context": "구분 | 2023년 | 2022년",
+                        "unit_hint": "천원",
+                        "statement_type": "notes",
+                        "consolidation_scope": "consolidated",
+                    },
+                }
+            ],
+            required_operands=[
+                {
+                    "label": "영업비용",
+                    "aliases": ["영업비용"],
+                    "role": "denominator_1",
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate"],
+                        "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                    },
+                }
+            ],
+            query="2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+            topic="영업비용",
+            report_scope={"company": "네이버", "year": 2023},
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["matched_operand_label"], "영업비용")
+        self.assertEqual(rows[0]["matched_operand_role"], "denominator_1")
+        self.assertEqual(rows[0]["period"], "2023년")
+        self.assertEqual(rows[0]["normalized_unit"], "KRW")
+        self.assertEqual(rows[0]["normalized_value"], 8181823307000.0)
 
     def test_parenthesized_won_value_normalizes_as_negative_krw(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(640,623,697,250)", "원")
@@ -654,6 +850,73 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["answer_slots"]["current_value"]["rendered_value"], "1.83%")
         self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "1.73%")
         self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "0.10%p")
+
+    def test_growth_rate_coerces_unknown_prior_unit_from_same_concept_current_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_capex_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "시설투자(CAPEX) 총액 증감률",
+                    "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
+                    "operation_family": "growth_rate",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "capex_2023",
+                        "label": "2023 시설투자(CAPEX)",
+                        "raw_value": "531,139",
+                        "raw_unit": "억원",
+                        "normalized_value": 53113900000000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_concept": "capital_expenditure_total",
+                        "matched_operand_role": "current_period",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "capex_2022",
+                        "label": "2022 시설투자(CAPEX)",
+                        "raw_value": "531,153",
+                        "raw_unit": "",
+                        "normalized_value": 531153.0,
+                        "normalized_unit": "UNKNOWN",
+                        "period": "2022",
+                        "matched_operand_concept": "capital_expenditure_total",
+                        "matched_operand_role": "prior_period",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "((A - B) / B) * 100",
+                    "pairwise_formula": "",
+                    "result_unit": "%",
+                    "operation_text": "시설투자(CAPEX) 총액 증감률",
+                    "explanation": "growth rate",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+        calc = result["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_unit"], "KRW")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["raw_unit"], "억원")
+        self.assertEqual(calc["rendered_value"], "-0.0026%")
+        trace_operands = list((result.get("resolved_calculation_trace") or {}).get("calculation_operands") or [])
+        prior_operand = next(row for row in trace_operands if row.get("operand_id") == "op_002")
+        self.assertEqual(prior_operand["normalized_unit"], "KRW")
+        self.assertEqual(prior_operand["raw_unit"], "억원")
 
     def test_failed_lookup_emits_explicit_missing_primary_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

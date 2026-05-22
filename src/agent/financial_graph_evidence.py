@@ -1054,11 +1054,54 @@ class FinancialAgentEvidenceMixin:
                 continue
             for item in prioritized_items:
                 raw_row = _normalise_spaces(str(item.get("raw_row_text") or item.get("claim") or ""))
-                if not raw_row or not _operand_text_match(raw_row, operand):
+                if not raw_row:
+                    continue
+                metadata = dict(item.get("metadata") or {})
+                row_label = _extract_table_row_label(raw_row)
+                context_text = _normalise_spaces(
+                    " ".join(
+                        part
+                        for part in (
+                            str(item.get("source_context") or ""),
+                            str(metadata.get("table_context") or ""),
+                            str(metadata.get("table_header_context") or ""),
+                            str(metadata.get("table_summary_text") or ""),
+                            str(metadata.get("local_heading") or ""),
+                            str(metadata.get("section_path") or metadata.get("section") or ""),
+                            raw_row,
+                        )
+                        if part
+                    )
+                )
+                aggregate_context_match = False
+                compact_row_label = re.sub(r"\s+", "", _normalise_spaces(row_label))
+                aggregate_stage = (
+                    "subtotal"
+                    if compact_row_label == "소계"
+                    else "final"
+                    if compact_row_label in {"합계", "총계", "계"}
+                    else "none"
+                )
+                if aggregate_stage != "none":
+                    binding_policy = dict(operand.get("binding_policy") or {})
+                    prefer_value_roles = {
+                        str(item).strip().lower()
+                        for item in (binding_policy.get("prefer_value_roles") or [])
+                        if str(item).strip()
+                    }
+                    prefer_aggregation_stages = {
+                        str(item).strip().lower()
+                        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+                        if str(item).strip()
+                    }
+                    aggregate_context_match = (
+                        ("aggregate" in prefer_value_roles or aggregate_stage in prefer_aggregation_stages)
+                        and _operand_text_match(context_text, operand)
+                    )
+                if not _operand_text_match(raw_row, operand) and not aggregate_context_match:
                     continue
 
                 period = ""
-                context_text = _normalise_spaces(f"{item.get('source_context') or ''} {raw_row}")
                 for token in query_years or year_pattern.findall(context_text):
                     period = token
                     break
@@ -1067,7 +1110,6 @@ class FinancialAgentEvidenceMixin:
                 raw_unit = str(item.get("matched_unit") or "")
 
                 if not raw_value:
-                    metadata = dict(item.get("metadata") or {})
                     parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
                     if parsed_cells:
                         target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
@@ -1125,6 +1167,9 @@ class FinancialAgentEvidenceMixin:
                         "evidence_id": item.get("evidence_id"),
                         "source_anchor": item.get("source_anchor"),
                         "label": f"{period} {label_name}".strip(),
+                        "matched_operand_label": label_name,
+                        "matched_operand_role": str(operand.get("role") or "").strip(),
+                        "matched_operand_concept": str(operand.get("concept") or "").strip(),
                         "raw_value": raw_value,
                         "raw_unit": raw_unit or "원",
                         "normalized_value": normalized_value,

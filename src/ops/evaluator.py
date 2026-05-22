@@ -87,6 +87,8 @@ class EvalExample:
     verification_status: str = ""
     notes: str = ""
     company_aliases: List[str] = field(default_factory=list)
+    source_report: Dict[str, Any] = field(default_factory=dict)
+    source_reports: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def canonical_answer_key(self) -> str:
@@ -1180,6 +1182,12 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
         verification_status=str(item.get("verification_status") or ""),
         notes=str(item.get("notes") or ""),
         company_aliases=company_aliases,
+        source_report=dict(source_report) if isinstance(source_report, dict) else {},
+        source_reports=[
+            dict(source_row)
+            for source_row in (item.get("source_reports") or [])
+            if isinstance(source_row, dict)
+        ],
     )
 
 
@@ -1805,35 +1813,54 @@ def _flatten_answer_slot_components(answer_slots: Dict[str, Any]) -> List[Dict[s
     return rows
 
 
-def _derive_operands_from_answer_slots(calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
-    answer_slots = dict(calculation_result.get("answer_slots") or {})
-    operation_family = str(answer_slots.get("operation_family") or "").strip().lower()
-    if not answer_slots or not operation_family or operation_family == "aggregate_subtasks":
-        return []
-
-    component_rows = _flatten_answer_slot_components(answer_slots)
-    if component_rows:
-        return component_rows
-
-    derived_rows: List[Dict[str, Any]] = []
+def _dedupe_operand_like_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    deduped: List[Dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
-    for key in ("primary_value", "current_value", "prior_value"):
-        operand_like = _slot_to_operand_like(dict(answer_slots.get(key) or {}))
-        if not operand_like:
-            continue
-        dedupe_key = (
+    for operand_like in rows:
+        key = (
             operand_like.get("source_row_id"),
             operand_like.get("period"),
             operand_like.get("normalized_value"),
             operand_like.get("normalized_unit"),
             operand_like.get("label"),
-            operand_like.get("matched_operand_role"),
         )
-        if dedupe_key in seen:
+        if key in seen:
             continue
-        seen.add(dedupe_key)
+        seen.add(key)
+        deduped.append(operand_like)
+    return deduped
+
+
+def _derive_operands_from_answer_slot_payload(answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
+    operation_family = str(answer_slots.get("operation_family") or "").strip().lower()
+    if not answer_slots or not operation_family:
+        return []
+
+    if operation_family == "aggregate_subtasks":
+        nested_rows: List[Dict[str, Any]] = []
+        for subtask in list(answer_slots.get("subtask_results") or []):
+            subtask_answer_slots = dict(subtask.get("answer_slots") or {})
+            if not subtask_answer_slots:
+                subtask_answer_slots = dict((subtask.get("calculation_result") or {}).get("answer_slots") or {})
+            nested_rows.extend(_derive_operands_from_answer_slot_payload(subtask_answer_slots))
+        return _dedupe_operand_like_rows(nested_rows)
+
+    component_rows = _flatten_answer_slot_components(answer_slots)
+    if component_rows:
+        return _dedupe_operand_like_rows(component_rows)
+
+    derived_rows: List[Dict[str, Any]] = []
+    for key in ("primary_value", "current_value", "prior_value"):
+        operand_like = _slot_to_operand_like(dict(answer_slots.get(key) or {}))
+        if not operand_like:
+            continue
         derived_rows.append(operand_like)
-    return derived_rows
+    return _dedupe_operand_like_rows(derived_rows)
+
+
+def _derive_operands_from_answer_slots(calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    return _derive_operands_from_answer_slot_payload(answer_slots)
 
 
 def _resolve_evaluator_operands(
