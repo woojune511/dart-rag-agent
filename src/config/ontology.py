@@ -218,6 +218,7 @@ class FinancialOntologyManager:
             ),
             "unit_family": str(concept.get("unit_family") or "").strip(),
             "surface_contract": dict(concept.get("surface_contract") or {}),
+            "lookup_hints": dict(concept.get("lookup_hints") or {}),
         }
 
     def _group_spec_payload(self, key: str, group: Dict[str, Any]) -> Dict[str, Any]:
@@ -270,6 +271,7 @@ class FinancialOntologyManager:
             "is_group": True,
             "member_concepts": member_keys,
             "member_specs": member_specs,
+            "decomposition_hints": dict(group.get("decomposition_hints") or {}),
         }
 
     def has_concept_key(self, key: str) -> bool:

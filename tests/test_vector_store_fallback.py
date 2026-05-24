@@ -29,6 +29,16 @@ class _SimpleBM25:
         return list(self._scores)
 
 
+class _BrokenHnswVectorStore:
+    def similarity_search_with_score(self, query, k=4, filter=None):
+        raise RuntimeError("Error sending backfill request to compactor: Error constructing hnsw segment reader: Error loading hnsw index")
+
+
+class _BrokenGetVectorStore:
+    def get(self):
+        raise RuntimeError("Error loading hnsw index")
+
+
 class VectorStoreFallbackTests(unittest.TestCase):
     def _build_manager(self, vector_store, *, docs, metadatas, scores):
         manager = object.__new__(VectorStoreManager)
@@ -36,6 +46,7 @@ class VectorStoreFallbackTests(unittest.TestCase):
         manager.bm25 = _SimpleBM25(scores)
         manager.bm25_docs = docs
         manager.bm25_metadatas = metadatas
+        manager.allow_query_embedding_fallback = True
         return manager
 
     def test_search_falls_back_to_bm25_when_embedding_capacity_is_exhausted(self) -> None:
@@ -71,6 +82,43 @@ class VectorStoreFallbackTests(unittest.TestCase):
 
         self.assertEqual(vector_store.calls, 1)
         self.assertEqual(len(results), 1)
+
+    def test_search_falls_back_to_bm25_when_hnsw_reader_is_unavailable(self) -> None:
+        manager = self._build_manager(
+            _BrokenHnswVectorStore(),
+            docs=["시설투자 총액 531,139억원"],
+            metadatas=[{"company": "삼성전자", "year": 2023, "chunk_uid": "capex"}],
+            scores=[4.0],
+        )
+
+        results = manager.search("시설투자 총액", k=1, where_filter={"company": "삼성전자", "year": 2023})
+
+        self.assertEqual(len(results), 1)
+        self.assertIn("531,139", results[0][0].page_content)
+
+    def test_init_bm25_recovers_from_structure_graph_when_chroma_get_fails(self) -> None:
+        manager = object.__new__(VectorStoreManager)
+        manager.vector_store = _BrokenGetVectorStore()
+        manager._structure_graph = {
+            "nodes": {
+                "chunk-a": {
+                    "chunk_uid": "chunk-a",
+                    "chunk_id": 1,
+                    "sub_chunk_idx": 0,
+                    "text": "시설투자 총액 531,139억원",
+                    "metadata": {"company": "삼성전자", "year": 2023, "chunk_uid": "chunk-a"},
+                }
+            }
+        }
+        manager.bm25 = None
+        manager.bm25_docs = []
+        manager.bm25_metadatas = []
+
+        manager._init_bm25()
+
+        self.assertIsNotNone(manager.bm25)
+        self.assertEqual(manager.bm25_docs, ["시설투자 총액 531,139억원"])
+        self.assertEqual(manager.bm25_metadatas[0]["chunk_uid"], "chunk-a")
 
 
 if __name__ == "__main__":

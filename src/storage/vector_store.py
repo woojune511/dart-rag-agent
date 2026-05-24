@@ -174,6 +174,18 @@ def _is_embedding_capacity_error(exc: Exception) -> bool:
     return any(marker in message for marker in markers)
 
 
+def _is_vector_store_read_error(exc: Exception) -> bool:
+    message = str(exc or "").lower()
+    markers = (
+        "error loading hnsw index",
+        "hnsw",
+        "segment reader",
+        "backfill request to compactor",
+        "constructing hnsw segment reader",
+    )
+    return any(marker in message for marker in markers)
+
+
 class VectorStoreManager:
     def __init__(
         self,
@@ -211,34 +223,74 @@ class VectorStoreManager:
         )
         logger.info("Initialized ChromaDB at %s (collection=%s)", self.persist_directory, self.collection_name)
 
-        self.bm25 = None
-        self.bm25_docs: List[str] = []
-        self.bm25_metadatas: List[dict] = []
-        self._init_bm25()
-
         # Parent chunk store — persisted as JSON alongside the ChromaDB directory
         self._parents_path = Path(self.persist_directory) / "parents.json"
         self._parents: Dict[str, str] = self._load_parents()
         self._graph_path = Path(self.persist_directory) / "document_structure_graph.json"
         self._structure_graph: Dict[str, Any] = self._load_structure_graph()
 
-    def _init_bm25(self):
-        try:
-            docs = self.vector_store.get()
-            if docs and docs.get("documents"):
-                from rank_bm25 import BM25Okapi
+        self.bm25 = None
+        self.bm25_docs: List[str] = []
+        self.bm25_metadatas: List[dict] = []
+        self._init_bm25()
 
-                tokenized_corpus = [_tokenize_ko(doc) for doc in docs["documents"]]
-                self.bm25 = BM25Okapi(tokenized_corpus)
-                self.bm25_docs = docs["documents"]
-                self.bm25_metadatas = docs["metadatas"]
-                logger.info("Initialized BM25 index with %s documents.", len(self.bm25_docs))
-            else:
-                self.bm25 = None
-                self.bm25_docs = []
-                self.bm25_metadatas = []
+    def _init_bm25(self):
+        docs: List[str] = []
+        metadatas: List[dict] = []
+        try:
+            payload = self.vector_store.get()
+            docs = list(payload.get("documents") or []) if payload else []
+            metadatas = list(payload.get("metadatas") or []) if payload else []
         except Exception as e:
-            logger.warning("Could not initialize BM25: %s", e)
+            logger.warning("Could not initialize BM25 from Chroma collection: %s", e)
+
+        if docs:
+            self._build_bm25_index(docs, metadatas)
+            logger.info("Initialized BM25 index with %s documents.", len(self.bm25_docs))
+            return
+
+        docs, metadatas = self._structure_graph_bm25_payload()
+        if docs:
+            self._build_bm25_index(docs, metadatas)
+            logger.info("Initialized BM25 index from structure graph with %s documents.", len(self.bm25_docs))
+            return
+
+        self.bm25 = None
+        self.bm25_docs = []
+        self.bm25_metadatas = []
+
+    def _build_bm25_index(self, docs: List[str], metadatas: List[dict]) -> None:
+        from rank_bm25 import BM25Okapi
+
+        tokenized_corpus = [_tokenize_ko(doc) for doc in docs]
+        self.bm25 = BM25Okapi(tokenized_corpus)
+        self.bm25_docs = list(docs)
+        self.bm25_metadatas = list(metadatas or [{} for _ in docs])
+
+    def _structure_graph_bm25_payload(self) -> tuple[List[str], List[dict]]:
+        nodes = dict((self._structure_graph or {}).get("nodes", {}) or {})
+        if not nodes:
+            return [], []
+
+        ordered_nodes = sorted(
+            nodes.values(),
+            key=lambda node: (
+                str((node.get("metadata") or {}).get("rcept_no") or ""),
+                int(node.get("chunk_id", 0) or 0),
+                int(node.get("sub_chunk_idx", 0) or 0),
+                str(node.get("chunk_uid") or ""),
+            ),
+        )
+        docs: List[str] = []
+        metadatas: List[dict] = []
+        for node in ordered_nodes:
+            text = str(node.get("text") or "").strip()
+            metadata = dict(node.get("metadata") or {})
+            if not text:
+                continue
+            docs.append(text)
+            metadatas.append(metadata)
+        return docs, metadatas
 
     # ------------------------------------------------------------------
     # Parent chunk storage
@@ -639,14 +691,16 @@ class VectorStoreManager:
                 filter=where_filter,
             )
         except Exception as exc:
-            if self.allow_query_embedding_fallback and _is_embedding_capacity_error(exc):
+            if self.allow_query_embedding_fallback and (
+                _is_embedding_capacity_error(exc) or _is_vector_store_read_error(exc)
+            ):
                 logger.warning(
-                    "Vector query embedding unavailable for %r; falling back to BM25-only search: %s",
+                    "Vector search unavailable for %r; falling back to BM25-only search: %s",
                     query,
                     exc,
                 )
                 vector_results = []
-            elif where_filter:
+            elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
                 vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
             else:
                 raise

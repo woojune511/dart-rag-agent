@@ -83,9 +83,10 @@ Current gate interpretation is now stable:
     needed
 - `structural_selective_v2_prefix_2500_320`
   - all five gate questions pass
-  - current operating default candidate because it preserves gate quality
-    without the
+  - current operating default because it preserves gate quality without the
     full ingest-time cost of contextual selective ingestion
+  - latest `SKH_T1_060` closure came from note-aggregate lookup hardening for
+    `장기차입금` / `사채`, not from relaxing the gate
 
 ## Related canary
 

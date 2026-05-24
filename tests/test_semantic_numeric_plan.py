@@ -20,6 +20,7 @@ from src.agent.financial_graph import (
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_graph_helpers import _extract_segment_labels_from_query
+from src.agent.financial_graph_helpers import _annotate_task_dependencies
 from src.agent.financial_graph_planning import _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
 
@@ -41,6 +42,210 @@ class _StubLLM:
 
 
 class SemanticNumericPlanTests(unittest.TestCase):
+    def test_dependency_annotation_reorders_lookup_tasks_before_growth_rate(self) -> None:
+        tasks = _annotate_task_dependencies(
+            [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "시설투자(CAPEX) 증감률",
+                    "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
+                    "operation_family": "growth_rate",
+                    "required_operands": [
+                        {"label": "2023년 시설투자(CAPEX) 총액", "concept": "capital_expenditure_total", "role": "current_period"},
+                        {"label": "2022년 시설투자(CAPEX) 총액", "concept": "capital_expenditure_total", "role": "prior_period"},
+                    ],
+                },
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 시설투자(CAPEX) 총액",
+                    "query": "2023년 시설투자(CAPEX) 총액을 찾아 줘.",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {"label": "2023년 시설투자(CAPEX) 총액", "concept": "capital_expenditure_total", "role": "current_period"},
+                    ],
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022년 시설투자(CAPEX) 총액",
+                    "query": "2022년 시설투자(CAPEX) 총액을 찾아 줘.",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {"label": "2022년 시설투자(CAPEX) 총액", "concept": "capital_expenditure_total", "role": "prior_period"},
+                    ],
+                },
+            ],
+            report_scope={"company": "삼성전자", "year": 2023},
+        )
+
+        self.assertEqual([task["task_id"] for task in tasks], ["task_1", "task_3", "task_2"])
+        self.assertEqual(tasks[2]["depends_on"], ["task_1", "task_3"])
+        self.assertEqual(
+            [(item["role"], item["preferred_task_id"]) for item in tasks[2]["inputs"]],
+            [("current_period", "task_1"), ("prior_period", "task_3")],
+        )
+
+    def test_dependency_annotation_synthesizes_missing_prior_lookup_task(self) -> None:
+        tasks = _annotate_task_dependencies(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 시설투자(CAPEX) 총액",
+                    "query": "2023년 시설투자(CAPEX) 총액을 찾아 줘.",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "시설투자(CAPEX)",
+                            "concept": "capital_expenditure_total",
+                            "role": "current_period",
+                            "preferred_sections": ["원재료 및 생산설비"],
+                        },
+                    ],
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "시설투자(CAPEX) 증감률",
+                    "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
+                    "operation_family": "growth_rate",
+                    "required_operands": [
+                        {
+                            "label": "시설투자(CAPEX)",
+                            "concept": "capital_expenditure_total",
+                            "role": "current_period",
+                            "preferred_sections": ["원재료 및 생산설비"],
+                        },
+                        {
+                            "label": "시설투자(CAPEX)",
+                            "concept": "capital_expenditure_total",
+                            "role": "prior_period",
+                            "preferred_sections": ["원재료 및 생산설비"],
+                        },
+                    ],
+                    "preferred_sections": ["원재료 및 생산설비"],
+                    "constraints": {"consolidation_scope": "consolidated", "period_focus": "multi_period", "entity_scope": "company", "segment_scope": "none"},
+                },
+            ],
+            report_scope={"company": "삼성전자", "year": 2023},
+        )
+
+        self.assertEqual([task["task_id"] for task in tasks], ["task_1", "task_3", "task_2"])
+        self.assertEqual(tasks[1]["operation_family"], "lookup")
+        self.assertEqual(tasks[1]["metric_family"], "concept_lookup")
+        self.assertEqual(tasks[1]["required_operands"][0]["role"], "prior_period")
+        self.assertIn("2022년", tasks[1]["metric_label"])
+        self.assertEqual(tasks[2]["depends_on"], ["task_1", "task_3"])
+
+    def test_dependency_annotation_synthesizes_lookup_tasks_for_ratio(self) -> None:
+        tasks = _annotate_task_dependencies(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "종업원급여 비중",
+                    "query": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {
+                            "label": "종업원급여",
+                            "concept": "employee_benefits_expense",
+                            "role": "numerator_1",
+                            "preferred_sections": ["영업비용"],
+                        },
+                        {
+                            "label": "영업비용",
+                            "concept": "operating_expense_total",
+                            "role": "denominator_1",
+                            "preferred_sections": ["영업비용"],
+                        },
+                    ],
+                    "preferred_sections": ["영업비용"],
+                    "constraints": {
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                        "entity_scope": "company",
+                        "segment_scope": "none",
+                    },
+                }
+            ],
+            report_scope={"company": "네이버", "year": 2023},
+        )
+
+        self.assertEqual([task["task_id"] for task in tasks], ["task_2", "task_3", "task_1"])
+        self.assertEqual([task["operation_family"] for task in tasks], ["lookup", "lookup", "ratio"])
+        self.assertEqual(tasks[2]["depends_on"], ["task_2", "task_3"])
+        self.assertEqual(
+            [(item["role"], item["preferred_task_id"]) for item in tasks[2]["inputs"]],
+            [("numerator_1", "task_2"), ("denominator_1", "task_3")],
+        )
+        self.assertEqual(
+            [(task["metric_label"], task["required_operands"][0]["role"]) for task in tasks[:2]],
+            [("2023년 종업원급여", "numerator_1"), ("2023년 영업비용", "denominator_1")],
+        )
+        self.assertNotIn("prefer_value_roles", tasks[0]["required_operands"][0].get("binding_policy") or {})
+        self.assertNotIn("prefer_aggregation_stages", tasks[1]["required_operands"][0].get("binding_policy") or {})
+        self.assertEqual(tasks[1]["preferred_statement_types"][:2], ["income_statement", "summary_financials"])
+        self.assertEqual(tasks[1]["preferred_sections"][:4], ["연결 손익계산서", "손익계산서", "요약재무정보", "영업비용"])
+
+    def test_dependency_annotation_synthesizes_lookup_tasks_for_segment_sum(self) -> None:
+        tasks = _annotate_task_dependencies(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_sum",
+                    "metric_label": "SDC 및 Harman 부문 매출 합계",
+                    "query": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
+                    "operation_family": "sum",
+                    "required_operands": [
+                        {
+                            "label": "SDC 매출액",
+                            "concept": "revenue",
+                            "role": "addend_1",
+                            "preferred_sections": ["매출 및 수주상황"],
+                            "binding_policy": {"segment_label": "SDC"},
+                        },
+                        {
+                            "label": "Harman 매출액",
+                            "concept": "revenue",
+                            "role": "addend_2",
+                            "preferred_sections": ["매출 및 수주상황"],
+                            "binding_policy": {"segment_label": "Harman"},
+                        },
+                    ],
+                    "preferred_sections": ["매출 및 수주상황"],
+                    "constraints": {
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                        "entity_scope": "company",
+                        "segment_scope": "segment",
+                    },
+                }
+            ],
+            report_scope={"company": "삼성전자", "year": 2024},
+        )
+
+        self.assertEqual([task["task_id"] for task in tasks], ["task_2", "task_3", "task_1"])
+        self.assertEqual([task["operation_family"] for task in tasks], ["lookup", "lookup", "sum"])
+        self.assertEqual(tasks[2]["depends_on"], ["task_2", "task_3"])
+        self.assertEqual(
+            [(item["role"], item["preferred_task_id"]) for item in tasks[2]["inputs"]],
+            [("addend_1", "task_2"), ("addend_2", "task_3")],
+        )
+        self.assertEqual(
+            [
+                (
+                    task["metric_label"],
+                    task["required_operands"][0]["role"],
+                    dict(task["required_operands"][0].get("binding_policy") or {}).get("segment_label"),
+                )
+                for task in tasks[:2]
+            ],
+            [("2024년 SDC 매출액", "addend_1", "SDC"), ("2024년 Harman 매출액", "addend_2", "Harman")],
+        )
+
     def test_extract_entities_keeps_metric_family_hint_empty_by_default(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._extract_entities(
@@ -391,6 +596,102 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ],
         )
 
+    def test_concept_only_ontology_builds_ratio_task_for_employee_benefits_share_of_operating_expense(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+                topic="영업비용 중 인건비(종업원급여)가 차지하는 비중",
+                intent="comparison",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        self.assertIn("concept_first_preferred", plan["planner_notes"])
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_ratio")
+        self.assertEqual(task["operation_family"], "ratio")
+        self.assertEqual(
+            sorted((row["label"], row["role"], row["concept"]) for row in task["required_operands"]),
+            sorted(
+                [
+                    ("종업원급여", "numerator_1", "employee_benefits_expense"),
+                    ("영업비용", "denominator_1", "operating_expense_total"),
+                ]
+            ),
+        )
+
+    def test_concept_only_ontology_builds_component_operating_expense_ratio_task(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="2023년 손익계산서에서 매출원가와 판매비와관리비를 합산해 총 영업비용을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+                topic="총 영업비용 비율",
+                intent="comparison",
+                report_scope={"company": "현대자동차", "year": 2023, "report_type": "사업보고서"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_ratio")
+        self.assertEqual(task["operation_family"], "ratio")
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"]) for row in task["required_operands"]],
+            [
+                ("매출원가", "numerator_1", "cost_of_sales"),
+                ("판매비와관리비", "numerator_2", "selling_general_administrative_expense"),
+                ("매출액", "denominator_1", "revenue"),
+            ],
+        )
+
+    def test_dependency_annotation_synthesizes_lookup_tasks_for_component_operating_expense_ratio(self) -> None:
+        tasks = _annotate_task_dependencies(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "매출액 대비 영업비용률",
+                    "query": "2023년 손익계산서에서 매출원가와 판매비와관리비를 합산해 총 영업비용을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "매출원가", "concept": "cost_of_sales", "role": "numerator_1"},
+                        {"label": "판매비와관리비", "concept": "selling_general_administrative_expense", "role": "numerator_2"},
+                        {"label": "매출액", "concept": "revenue", "role": "denominator_1"},
+                    ],
+                }
+            ],
+            report_scope={"company": "현대자동차", "year": 2023},
+        )
+
+        self.assertEqual(
+            [task["operation_family"] for task in tasks],
+            ["lookup", "lookup", "lookup", "ratio"],
+        )
+        ratio_task = tasks[-1]
+        self.assertEqual(ratio_task["depends_on"], ["task_2", "task_3", "task_4"])
+        self.assertEqual(
+            [(item["role"], item["preferred_task_id"]) for item in ratio_task["inputs"]],
+            [("numerator_1", "task_2"), ("numerator_2", "task_3"), ("denominator_1", "task_4")],
+        )
+
     def test_implicit_ratio_query_is_decomposed_by_llm_concept_planner(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager
@@ -438,9 +739,15 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(plan.get("status"), "concept_fallback")
         self.assertIn("concept_llm_planner", plan.get("planner_notes") or [])
         self.assertEqual(plan.get("planned_metric_families"), ["concept_ratio"])
-        task = result["calc_subtasks"][0]
+        self.assertEqual([task["operation_family"] for task in result["calc_subtasks"]], ["lookup", "lookup", "ratio"])
+        task = next(
+            task
+            for task in result["calc_subtasks"]
+            if task.get("metric_family") == "concept_ratio"
+        )
         self.assertEqual(task["metric_family"], "concept_ratio")
         self.assertEqual(task["operation_family"], "ratio")
+        self.assertEqual(len(task.get("depends_on") or []), 2)
         self.assertEqual(
             [(row["label"], row["role"], row["concept"]) for row in task["required_operands"]],
             [
@@ -501,11 +808,17 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
         self.assertEqual(result["planned_metric_families"], ["concept_ratio", "concept_ratio"])
-        self.assertEqual(len(result["calc_subtasks"]), 2)
+        self.assertEqual(len(result["calc_subtasks"]), 6)
         self.assertEqual(
-            [task["metric_label"] for task in result["calc_subtasks"]],
-            ["부채비율", "유동비율"],
+            [task["operation_family"] for task in result["calc_subtasks"]],
+            ["lookup", "lookup", "ratio", "lookup", "lookup", "ratio"],
         )
+        ratio_labels = [
+            task["metric_label"]
+            for task in result["calc_subtasks"]
+            if task.get("operation_family") == "ratio"
+        ]
+        self.assertEqual(ratio_labels, ["부채비율", "유동비율"])
 
     def test_llm_concept_planner_can_override_deterministic_group_fallback(self) -> None:
         import src.config.ontology as ontology_module
@@ -555,7 +868,15 @@ class SemanticNumericPlanTests(unittest.TestCase):
 
         plan = dict(result.get("semantic_plan") or {})
         self.assertIn("concept_llm_planner", plan.get("planner_notes") or [])
-        task = result["calc_subtasks"][0]
+        self.assertEqual(
+            [task["operation_family"] for task in result["calc_subtasks"][-1:]],
+            ["ratio"],
+        )
+        task = next(
+            task
+            for task in result["calc_subtasks"]
+            if task.get("metric_family") == "concept_ratio"
+        )
         self.assertEqual(task["metric_label"], "유·무형자산 대비 차입금 비중")
         self.assertEqual(
             [(row["label"], row["role"], row["concept"]) for row in task["required_operands"]],
@@ -698,16 +1019,25 @@ class SemanticNumericPlanTests(unittest.TestCase):
         plan = dict(result.get("semantic_plan") or {})
         self.assertIn("concept_llm_planner", plan.get("planner_notes") or [])
         self.assertEqual(plan.get("planned_metric_families"), ["concept_sum"])
-        self.assertEqual(len(result["calc_subtasks"]), 1)
+        self.assertEqual(len(result["calc_subtasks"]), 3)
         self.assertEqual(
-            [(row["label"], row["role"], row["concept"]) for row in result["calc_subtasks"][0]["required_operands"]],
+            [task["operation_family"] for task in result["calc_subtasks"]],
+            ["lookup", "lookup", "sum"],
+        )
+        sum_task = next(
+            task
+            for task in result["calc_subtasks"]
+            if task.get("metric_family") == "concept_sum"
+        )
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"]) for row in sum_task["required_operands"]],
             [
                 ("SDC 매출액", "addend_1", "revenue"),
                 ("Harman 매출액", "addend_2", "revenue"),
             ],
         )
         self.assertEqual(
-            [dict(row.get("binding_policy") or {}).get("segment_label") for row in result["calc_subtasks"][0]["required_operands"]],
+            [dict(row.get("binding_policy") or {}).get("segment_label") for row in sum_task["required_operands"]],
             ["SDC", "Harman"],
         )
         self.assertEqual(result["companies"], ["삼성전자"])
@@ -761,7 +1091,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
         operand = result["calc_subtasks"][0]["required_operands"][0]
-        self.assertEqual(operand["label"], "SDC 매출액")
+        self.assertEqual(operand["label"], "2024년 SDC 매출액")
         self.assertEqual(dict(operand.get("binding_policy") or {}).get("segment_label"), "SDC")
 
     def test_replan_mode_appends_patch_tasks_without_overwriting_existing_plan(self) -> None:
@@ -855,17 +1185,18 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(result["planner_mode"], "initial")
         self.assertEqual(result["planner_feedback"], "")
         self.assertEqual(result["plan_loop_count"], 1)
-        self.assertEqual(len(result["calc_subtasks"]), 2)
+        self.assertEqual(len(result["calc_subtasks"]), 4)
         self.assertEqual(
-            [task["task_id"] for task in result["calc_subtasks"]],
-            ["task_1", "task_2"],
+            [task["operation_family"] for task in result["calc_subtasks"]],
+            ["ratio", "lookup", "lookup", "ratio"],
         )
         self.assertEqual(
-            [task["metric_label"] for task in result["calc_subtasks"]],
+            [task["metric_label"] for task in result["semantic_plan"]["tasks"]],
             ["부채비율", "유동비율"],
         )
         self.assertEqual(result["active_subtask_index"], 1)
-        self.assertEqual(result["active_subtask"]["task_id"], "task_2")
+        self.assertEqual(result["active_subtask"]["operation_family"], "lookup")
+        self.assertEqual(result["active_subtask"]["metric_label"], "2023년 유동자산")
         self.assertEqual(len(result["subtask_results"]), 1)
         self.assertEqual(result["subtask_results"][0]["task_id"], "task_1")
         self.assertIn("planner_replan", result["semantic_plan"]["planner_notes"])

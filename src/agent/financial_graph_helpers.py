@@ -14,8 +14,10 @@ re-implementing small pieces of logic in each phase module.
 """
 
 import ast
+from functools import lru_cache
 import json
 import math
+from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional
 
@@ -39,6 +41,8 @@ __all__ = [
     '_build_aggregate_calculation_projection',
     '_resolve_runtime_calculation_trace',
     '_runtime_trace_state_update',
+    '_candidate_row_block_signature',
+    '_resolve_candidate_local_unit_hint',
     '_parse_number_text',
     '_safe_eval_formula',
     '_extract_composite_krw',
@@ -77,6 +81,7 @@ __all__ = [
     '_build_task_constraints',
     '_build_retrieval_query_bundle',
     '_build_metric_task_query',
+    '_annotate_task_dependencies',
     '_build_semantic_numeric_plan',
     '_build_reconciliation_candidate',
     '_query_years_from_state',
@@ -115,6 +120,10 @@ __all__ = [
     '_active_preferred_statement_types',
     '_retrieval_hint_from_topic'
 ]
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_REPORT_ROOT = _PROJECT_ROOT / "data" / "reports"
+_UNIT_HINT_HTML_PATTERN = re.compile(r"\(\s*단위\s*:\s*([^)]+?)\s*\)")
 
 # ---------------------------------------------------------------------------
 # Text and ledger utilities
@@ -373,28 +382,55 @@ def _project_task_trace_from_state(
     )
 
     if task_id and task_id == active_task_id:
-        active_trace = _resolve_runtime_calculation_trace(state)
-        if not calculation_operands:
+        active_trace = _normalise_resolved_calculation_trace(state)
+        if not active_trace:
+            active_trace = _resolve_runtime_calculation_trace(state)
+        active_trace_result = dict(active_trace.get("calculation_result") or {})
+        active_trace_slots = dict(active_trace_result.get("answer_slots") or {})
+        active_trace_operation = _normalise_spaces(
+            str(active_trace_slots.get("operation_family") or "")
+        ).lower()
+        live_state_result = dict(state.get("calculation_result") or {})
+        live_state_slots = dict(live_state_result.get("answer_slots") or {})
+        live_state_operation = _normalise_spaces(
+            str(live_state_slots.get("operation_family") or "")
+        ).lower()
+        prefer_live_state = (
+            active_trace_operation == "aggregate_subtasks"
+            and live_state_operation
+            and live_state_operation != "aggregate_subtasks"
+        ) or (
+            str(active_trace_result.get("status") or "").strip().lower() == "partial"
+            and str(live_state_result.get("status") or "").strip().lower() == "ok"
+        )
+        if prefer_live_state and state.get("calculation_operands"):
+            calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
+        elif active_trace.get("calculation_operands"):
             calculation_operands = [
                 dict(item)
                 for item in (
                     active_trace.get("calculation_operands")
-                    or state.get("calculation_operands")
                     or []
                 )
             ]
-        if not calculation_plan:
+        elif not calculation_operands:
+            calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
+        if prefer_live_state and state.get("calculation_plan"):
+            calculation_plan = dict(state.get("calculation_plan") or {})
+        elif active_trace.get("calculation_plan"):
             calculation_plan = dict(
                 active_trace.get("calculation_plan")
-                or state.get("calculation_plan")
-                or {}
             )
-        if not calculation_result:
+        elif not calculation_plan:
+            calculation_plan = dict(state.get("calculation_plan") or {})
+        if prefer_live_state and live_state_result:
+            calculation_result = live_state_result
+        elif active_trace.get("calculation_result"):
             calculation_result = dict(
                 active_trace.get("calculation_result")
-                or state.get("calculation_result")
-                or {}
             )
+        elif not calculation_result:
+            calculation_result = dict(state.get("calculation_result") or {})
         if not reconciliation_result:
             reconciliation_result = dict(state.get("reconciliation_result") or {})
 
@@ -769,6 +805,40 @@ def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[fl
     return value, "UNKNOWN"
 
 
+def _coerce_lookup_magnitude_value(
+    *,
+    normalized_value: Optional[float],
+    normalized_unit: str,
+    raw_value: str,
+    concept: str,
+    statement_type: str,
+    row_label: str = "",
+    semantic_label: str = "",
+) -> Optional[float]:
+    if normalized_value is None or normalized_unit != "KRW" or normalized_value >= 0:
+        return normalized_value
+
+    lookup_hints = _lookup_hints_for_concept_key(concept)
+    normalized_statement_type = _normalise_spaces(statement_type).lower()
+    if not bool(lookup_hints.get("coerce_parenthesized_negative_to_positive_magnitude")):
+        return normalized_value
+    if normalized_statement_type not in {"income_statement", "summary_financials", "notes"}:
+        return normalized_value
+
+    magnitude_surface_tokens = [
+        _normalise_spaces(str(token))
+        for token in (lookup_hints.get("magnitude_surface_tokens") or [])
+        if _normalise_spaces(str(token))
+    ]
+    surface = _normalise_spaces(" ".join(part for part in (row_label, semantic_label) if part))
+    if surface and magnitude_surface_tokens and not any(token in surface for token in magnitude_surface_tokens):
+        return normalized_value
+    raw_surface = str(raw_value or "")
+    if not any(marker in raw_surface for marker in ("(", ")", "△", "▲", "-")):
+        return normalized_value
+    return abs(normalized_value)
+
+
 def _extract_period_sort_key(period: str) -> int:
     text = _normalise_spaces(period)
     year_match = re.search(r"(19|20)\d{2}", text)
@@ -850,6 +920,15 @@ def _is_ratio_percent_query(text: str) -> bool:
     return any(keyword in normalized for keyword in ("비율", "비중", "%", "%p", "이익률", "차지"))
 
 
+def _matched_ontology_concept_specs(query: str, topic: str = "") -> List[Dict[str, Any]]:
+    ontology = get_financial_ontology()
+    return [
+        dict(spec)
+        for spec in (ontology.concept_specs(query, topic, "comparison") or [])
+        if dict(spec)
+    ]
+
+
 def _desired_statement_types(query: str, topic: str) -> List[str]:
     text = _normalise_spaces(f"{query} {topic}")
     desired: List[str] = []
@@ -863,10 +942,16 @@ def _desired_statement_types(query: str, topic: str) -> List[str]:
         desired.extend(["notes"])
     if any(keyword in text for keyword in ("부채비율", "유동비율", "자산총계", "부채총계", "자본총계", "유동자산", "유동부채")):
         desired.extend(["balance_sheet", "summary_financials"])
-    if any(keyword in text for keyword in ("영업이익", "당기순이익", "순이익", "매출액", "매출원가", "판매비와관리비", "이익률", "ROE", "ROA")):
+    for spec in _matched_ontology_concept_specs(query, topic):
+        desired.extend(str(item).strip() for item in (spec.get("preferred_statement_types") or []) if str(item).strip())
+        for member_spec in (spec.get("member_specs") or []):
+            desired.extend(
+                str(item).strip()
+                for item in (dict(member_spec).get("preferred_statement_types") or [])
+                if str(item).strip()
+            )
+    if any(keyword in text for keyword in ("이익률", "ROE", "ROA")):
         desired.extend(["income_statement", "summary_financials", "segment_note"])
-    if any(keyword in text for keyword in ("영업비용", "종업원급여", "인건비")):
-        desired.extend(["income_statement", "notes", "summary_financials"])
     if any(keyword in text for keyword in ("영업활동현금흐름", "투자활동현금흐름", "재무활동현금흐름", "FCF", "현금흐름")):
         desired.extend(["cash_flow", "summary_financials"])
     return list(dict.fromkeys(desired))
@@ -947,6 +1032,360 @@ def _should_apply_strict_company_scope(companies: List[str], report_scope: Dict[
     return True
 
 
+def _report_scope_source_reports(report_scope: Dict[str, Any]) -> List[Dict[str, Any]]:
+    scope = dict(report_scope or {})
+    rows: List[Dict[str, Any]] = []
+    for key in ("source_reports", "report_inventory"):
+        for item in list(scope.get(key) or []):
+            current = dict(item or {})
+            receipt_no = str(
+                current.get("rcept_no")
+                or current.get("receipt_no")
+                or str((current.get("metadata") or {}).get("rcept_no") or "")
+            ).strip()
+            year_raw = current.get("year")
+            if year_raw in (None, ""):
+                year_raw = (current.get("metadata") or {}).get("year")
+            try:
+                year = int(year_raw) if year_raw not in (None, "") else None
+            except (TypeError, ValueError):
+                year = None
+            if not receipt_no and year is None:
+                continue
+            rows.append(
+                {
+                    "rcept_no": receipt_no,
+                    "year": year,
+                    "report_type": str(
+                        current.get("report_type")
+                        or current.get("report_nm")
+                        or (current.get("metadata") or {}).get("report_type")
+                        or ""
+                    ).strip(),
+                }
+            )
+    return rows
+
+
+def _report_scope_source_receipts(report_scope: Dict[str, Any]) -> List[str]:
+    receipts: List[str] = []
+    for row in _report_scope_source_reports(report_scope):
+        receipt_no = str(row.get("rcept_no") or "").strip()
+        if receipt_no and receipt_no not in receipts:
+            receipts.append(receipt_no)
+    return receipts
+
+
+def _operand_target_receipts(
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> List[str]:
+    source_rows = _report_scope_source_reports(report_scope)
+    if not source_rows:
+        return []
+
+    target_years = _operand_target_years(operand, query_years)
+    receipts: List[str] = []
+    if target_years:
+        for year in target_years:
+            for row in source_rows:
+                if row.get("year") == year:
+                    receipt_no = str(row.get("rcept_no") or "").strip()
+                    if receipt_no and receipt_no not in receipts:
+                        receipts.append(receipt_no)
+        if receipts:
+            return receipts
+
+    role = str(operand.get("role") or "").strip()
+    year_ranked = [
+        row for row in sorted(source_rows, key=lambda current: int(current.get("year") or -1), reverse=True)
+        if row.get("year") is not None and str(row.get("rcept_no") or "").strip()
+    ]
+    if role == "current_period" and year_ranked:
+        return [str(year_ranked[0].get("rcept_no") or "").strip()]
+    if role == "prior_period" and len(year_ranked) >= 2:
+        return [str(year_ranked[1].get("rcept_no") or "").strip()]
+    return []
+
+
+def _candidate_matches_target_report_scope(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> bool:
+    source_rows = _report_scope_source_reports(report_scope)
+    if not source_rows:
+        return True
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_receipt = str(metadata.get("rcept_no") or "").strip()
+    candidate_year: Optional[int] = None
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            candidate_year = int(raw_year)
+    except (TypeError, ValueError):
+        candidate_year = None
+    explicit_years = _candidate_explicit_years(candidate)
+    target_years = _operand_target_years(operand, query_years)
+    target_receipts = _operand_target_receipts(operand, query_years, report_scope)
+
+    if target_receipts:
+        if candidate_receipt:
+            return candidate_receipt in target_receipts
+        if target_years and explicit_years and any(year in explicit_years for year in target_years):
+            return True
+        return False
+
+    if target_years:
+        if explicit_years:
+            return any(year in explicit_years for year in target_years)
+        if candidate_year is not None:
+            return candidate_year in target_years
+    return True
+
+
+def _candidate_report_scope_binding_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> float:
+    source_rows = _report_scope_source_reports(report_scope)
+    if not source_rows:
+        return 0.0
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_receipt = str(metadata.get("rcept_no") or "").strip()
+    explicit_years = _candidate_explicit_years(candidate)
+    candidate_year: Optional[int] = None
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            candidate_year = int(raw_year)
+    except (TypeError, ValueError):
+        candidate_year = None
+
+    target_years = _operand_target_years(operand, query_years)
+    target_receipts = _operand_target_receipts(operand, query_years, report_scope)
+
+    if target_receipts:
+        if candidate_receipt:
+            return 3.0 if candidate_receipt in target_receipts else -3.0
+        if explicit_years and target_years and any(year in explicit_years for year in target_years):
+            return 1.0
+        return -3.0
+
+    if target_years:
+        if explicit_years and any(year in explicit_years for year in target_years):
+            return 1.0
+        if candidate_year is not None and candidate_year in target_years:
+            return 0.75
+        if candidate_year is not None:
+            return -0.75
+    return 0.0
+
+
+def _candidate_matches_operand_target_year(
+    candidate: Dict[str, Any],
+    operand: Dict[str, Any],
+    query_years: List[int],
+) -> bool:
+    target_years = _operand_target_years(operand, query_years)
+    if not target_years:
+        return False
+
+    explicit_years = _candidate_explicit_years(candidate)
+    if explicit_years and any(year in explicit_years for year in target_years):
+        return True
+
+    metadata = dict(candidate.get("metadata") or {})
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            candidate_year = int(raw_year)
+            candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+            if candidate_period_focus == "prior":
+                return (candidate_year - 1) in target_years
+            if candidate_period_focus == "current":
+                return candidate_year in target_years
+            return candidate_year in target_years
+    except (TypeError, ValueError):
+        return False
+    return False
+
+
+def _candidate_selected_cell_for_operand(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    period_focus: str,
+) -> Optional[Dict[str, Any]]:
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
+    cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+    if not cells and candidate_kind in {"table_row", "evidence_row"}:
+        cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+    if not cells:
+        return None
+    cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
+    return _select_structured_cell(
+        cells,
+        operand=operand,
+        query_years=query_years,
+        period_focus=period_focus,
+    )
+
+
+def _candidate_direct_logical_signature(
+    candidate: Dict[str, Any],
+    *,
+    selected_cell: Optional[Dict[str, Any]] = None,
+) -> tuple[str, str, str, str]:
+    metadata = dict(candidate.get("metadata") or {})
+    block_key = _candidate_row_block_signature(candidate)
+    table_source_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
+    row_label = _normalise_spaces(
+        str(
+            metadata.get("row_label")
+            or metadata.get("semantic_label")
+            or metadata.get("aggregate_label")
+            or ""
+        )
+    )
+    value_text = _normalise_spaces(str((selected_cell or {}).get("value_text") or ""))
+    if not value_text:
+        value_text = _normalise_spaces(str(metadata.get("row_text") or str(candidate.get("text") or "")))
+    period_marker = _normalise_spaces(
+        " ".join(str(item).strip() for item in ((selected_cell or {}).get("column_headers") or []) if str(item).strip())
+    )
+    if not period_marker:
+        period_marker = _normalise_spaces(str(metadata.get("period_focus") or ""))
+    scope_key = block_key or table_source_id or _normalise_spaces(str(metadata.get("section_path") or ""))
+    return (scope_key, row_label, value_text, period_marker)
+
+
+def _candidate_direct_family_signature(
+    candidate: Dict[str, Any],
+    *,
+    selected_cell: Optional[Dict[str, Any]] = None,
+) -> tuple[str, str, str, str]:
+    metadata = dict(candidate.get("metadata") or {})
+    block_key = _candidate_row_block_signature(candidate)
+    table_source_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
+    row_label = _normalise_spaces(
+        str(
+            metadata.get("row_label")
+            or metadata.get("semantic_label")
+            or metadata.get("aggregate_label")
+            or ""
+        )
+    )
+    period_marker = _normalise_spaces(
+        " ".join(str(item).strip() for item in ((selected_cell or {}).get("column_headers") or []) if str(item).strip())
+    )
+    statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+    scope_key = block_key or table_source_id or _normalise_spaces(str(metadata.get("section_path") or ""))
+    return (scope_key, row_label, period_marker, statement_type)
+
+
+def _candidate_is_canonical_statement_winner(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+) -> bool:
+    if not _lookup_prefers_canonical_statement_rows(operand):
+        return False
+    metadata = dict(candidate.get("metadata") or {})
+    statement_type = str(metadata.get("statement_type") or "").strip()
+    canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+    if canonical_types and statement_type not in canonical_types:
+        return False
+    local_heading = _normalise_spaces(
+        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
+    )
+    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+    note_context = "주석" in local_heading or "주석" in section_path
+    allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+    if note_context and not allows_note_canonical:
+        return False
+    if canonical_sections and not any(
+        _normalise_spaces(section) in local_heading or _normalise_spaces(section) in section_path
+        for section in canonical_sections
+        if _normalise_spaces(section)
+    ):
+        return False
+    if _candidate_direct_match_strength(candidate, operand) < 2.5:
+        return False
+    if not _candidate_matches_operand_target_year(candidate, operand, query_years):
+        candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+        desired_period_focus = _operand_period_focus(operand, "unknown")
+        if desired_period_focus in {"current", "prior"} and candidate_period_focus != desired_period_focus:
+            return False
+    return True
+
+
+def _direct_candidate_semantic_priority(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    preferred_statement_types: List[str],
+    query_years: List[int],
+) -> tuple[int, int, int, int, int]:
+    metadata = dict(candidate.get("metadata") or {})
+    binding_policy = dict(operand.get("binding_policy") or {})
+    normalized_preferred_types = [
+        _normalise_spaces(str(item))
+        for item in preferred_statement_types
+        if _normalise_spaces(str(item))
+    ]
+    preferred_value_roles = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if _normalise_spaces(str(item))
+    ]
+    preferred_aggregation_stages = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if _normalise_spaces(str(item))
+    ]
+
+    statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+    value_role = _candidate_value_role(candidate)
+    aggregation_stage = _candidate_aggregation_stage(candidate)
+    direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+    candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
+
+    statement_rank = 0
+    if statement_type in normalized_preferred_types:
+        statement_rank = len(normalized_preferred_types) - normalized_preferred_types.index(statement_type)
+
+    value_role_rank = 0
+    if value_role in preferred_value_roles:
+        value_role_rank = len(preferred_value_roles) - preferred_value_roles.index(value_role)
+
+    aggregation_stage_rank = 0
+    if aggregation_stage in preferred_aggregation_stages:
+        aggregation_stage_rank = len(preferred_aggregation_stages) - preferred_aggregation_stages.index(aggregation_stage)
+
+    target_year_match = 1 if _candidate_matches_operand_target_year(candidate, operand, query_years) else 0
+    structured_value_rank = 1 if candidate_kind == "structured_value" else 0
+
+    return (
+        aggregation_stage_rank,
+        value_role_rank,
+        statement_rank,
+        target_year_match,
+        structured_value_rank + int(direct_match_strength * 10),
+    )
+
+
 def _query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
     combined = _normalise_spaces(query)
     aliases = [str(metric.get("display_name") or "").strip()]
@@ -991,23 +1430,10 @@ _GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
         r"무형자산상각비",
         r"세액공제",
         r"\bAMPC\b",
-        r"매출원가",
-        r"판매비와관리비",
-        r"매출액",
-        r"유형자산",
-        r"무형자산",
-        r"단기차입금",
-        r"장기차입금",
-        r"사채",
         r"(?:차량|금융)\s*부문\s*영업이익",
         r"전체\s*(?:연결\s*)?영업이익",
         r"연결\s*영업이익",
         r"영업손실",
-        r"영업이익",
-        r"유동자산",
-        r"유동부채",
-        r"부채총계",
-        r"자본총계",
     ]
 ]
 
@@ -1036,6 +1462,11 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
         labels.extend(["유형자산", "무형자산"])
 
     labels.extend(_extract_quoted_metric_labels(text))
+    labels.extend(
+        str(spec.get("name") or "").strip()
+        for spec in _matched_ontology_concept_specs(query)
+        if not bool(spec.get("is_group")) and str(spec.get("name") or "").strip()
+    )
 
     for pattern in _GENERIC_NUMERIC_OPERAND_PATTERNS:
         for match in pattern.finditer(text):
@@ -1796,6 +2227,52 @@ def _assign_ratio_roles_to_concepts(query: str, concept_specs: List[Dict[str, An
         for offset, index in enumerate(indices, start=1):
             roles[index] = f"{prefix}_{offset}"
 
+    def _candidate_score(spec: Dict[str, Any], target_label: str) -> tuple[int, int, float]:
+        normalized_target = _normalise_spaces(target_label)
+        alias_values = [
+            str(spec.get("name") or "").strip(),
+            *(spec.get("aliases") or []),
+            *(spec.get("keywords") or []),
+        ]
+        normalized_aliases = [
+            _normalise_spaces(alias)
+            for alias in alias_values
+            if _normalise_spaces(alias)
+        ]
+        exact = any(normalized_target == alias for alias in normalized_aliases)
+        overlap = any(
+            normalized_target in alias or alias in normalized_target
+            for alias in normalized_aliases
+        )
+        if not exact and not overlap:
+            return (0, 0, math.inf)
+        best_position = _concept_alias_position(spec, target_label)
+        best_alias_length = max((len(alias) for alias in normalized_aliases), default=0)
+        return (2 if exact else 1, best_alias_length, best_position)
+
+    share_specs = _extract_generic_ratio_operand_specs(query)
+    if share_specs:
+        assigned: set[int] = set()
+        for share_spec in share_specs:
+            target_label = str(share_spec.get("label") or "").strip()
+            target_role = str(share_spec.get("role") or "").strip()
+            candidates: List[tuple[int, int, float, int]] = []
+            for index, spec in enumerate(ordered):
+                if index in assigned:
+                    continue
+                score = _candidate_score(spec, target_label)
+                if score[0] <= 0:
+                    continue
+                candidates.append((*score, index))
+            if not candidates:
+                continue
+            candidates.sort(key=lambda item: (item[0], item[1], -item[2]), reverse=True)
+            chosen_index = candidates[0][3]
+            roles[chosen_index] = target_role
+            assigned.add(chosen_index)
+        if any(role.startswith("numerator") for role in roles) and any(role.startswith("denominator") for role in roles):
+            return roles
+
     text = str(query or "")
     if "대비" in text:
         before_text, after_text = text.split("대비", 1)
@@ -2108,55 +2585,27 @@ def _build_concept_numeric_task(
     ontology: Any,
     concept_specs: List[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
+    group_decomposition_task = _build_group_decomposition_task(
+        query=query,
+        report_scope=report_scope,
+        ontology=ontology,
+        concept_specs=concept_specs,
+    )
+    if group_decomposition_task:
+        return group_decomposition_task
     operation_family = _infer_operation_family_from_query(query, ontology)
     operand_specs = _build_concept_required_operands(query, report_scope, concept_specs, operation_family)
     if not operand_specs:
         return None
-    preferred_statement_types: List[str] = []
-    preferred_sections: List[str] = []
-    query_statement_types, query_sections = _infer_statement_and_section_hints(query)
-    preferred_statement_types.extend(query_statement_types)
-    preferred_sections.extend(query_sections)
-    for spec in operand_specs:
-        preferred_statement_types.extend(spec.get("preferred_statement_types") or [])
-        preferred_sections.extend(spec.get("preferred_sections") or [])
-    preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
-    preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
     metric_label = _build_concept_metric_label(query, concept_specs, operation_family)
-    constraints = _build_concept_task_constraints(
-        query,
-        report_scope,
-        ontology,
-        operand_specs=operand_specs,
-        operation_family=operation_family,
-    )
-    retrieval_queries = _build_generic_retrieval_queries(
+    return _compose_concept_numeric_task(
         query=query,
-        metric_label=metric_label,
-        operand_specs=operand_specs,
-        preferred_sections=preferred_sections,
         report_scope=report_scope,
-        constraints=constraints,
-    )
-    task_query = _build_metric_task_query(
-        original_query=query,
+        ontology=ontology,
         metric_label=metric_label,
-        constraints=constraints,
+        operation_family=operation_family,
         operand_specs=operand_specs,
-        report_scope=report_scope,
     )
-    return {
-        "task_id": "task_1",
-        "metric_family": f"concept_{operation_family}",
-        "metric_label": metric_label,
-        "query": task_query,
-        "operation_family": operation_family,
-        "required_operands": operand_specs,
-        "preferred_statement_types": preferred_statement_types,
-        "preferred_sections": preferred_sections,
-        "retrieval_queries": retrieval_queries,
-        "constraints": constraints,
-    }
 
 
 def _build_entity_scoped_concept_specs(
@@ -2255,6 +2704,627 @@ def _build_heuristic_numeric_task(
         "retrieval_queries": retrieval_queries,
         "constraints": constraints,
     }
+
+
+def _task_dependency_query_years(task: Dict[str, Any], report_scope: Dict[str, Any]) -> List[int]:
+    query_text = " ".join(
+        part
+        for part in [
+            str(task.get("query") or "").strip(),
+            str(task.get("metric_label") or "").strip(),
+        ]
+        if part
+    )
+    years = _extract_year_tokens(query_text, report_scope)
+    if not years:
+        scope_year_raw = report_scope.get("year")
+        try:
+            if scope_year_raw not in (None, ""):
+                years = [int(scope_year_raw)]
+        except (TypeError, ValueError):
+            years = []
+    return years
+
+
+def _task_binding_period_hint(
+    operand: Dict[str, Any],
+    *,
+    task: Dict[str, Any],
+    report_scope: Dict[str, Any],
+) -> str:
+    query_years = _task_dependency_query_years(task, report_scope)
+    target_years = _operand_target_years(operand, query_years)
+    if target_years:
+        return str(target_years[0])
+    period_hint = _normalise_spaces(str(operand.get("period_hint") or ""))
+    if period_hint:
+        return period_hint
+    label_match = re.search(r"(20\d{2})", str(operand.get("label") or ""))
+    if label_match:
+        return str(label_match.group(1))
+    return ""
+
+
+def _task_binding_segment_label(operand: Dict[str, Any]) -> str:
+    binding_policy = dict(operand.get("binding_policy") or {})
+    return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
+
+
+def _task_output_slots_for_dependency(
+    task: Dict[str, Any],
+    *,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    operation_family = str(task.get("operation_family") or "").strip().lower()
+    if operation_family not in {"lookup", "single_value"}:
+        return []
+    outputs: List[Dict[str, Any]] = []
+    for operand in list(task.get("required_operands") or []):
+        concept = _normalise_spaces(str(operand.get("concept") or ""))
+        if not concept:
+            continue
+        outputs.append(
+            {
+                "slot": "primary_value",
+                "role": _normalise_spaces(str(operand.get("role") or "")) or "primary_value",
+                "concept": concept,
+                "period": _task_binding_period_hint(dict(operand), task=task, report_scope=report_scope),
+                "label": _normalise_spaces(str(operand.get("label") or task.get("metric_label") or "")),
+                "segment_label": _task_binding_segment_label(dict(operand)),
+            }
+        )
+    return outputs
+
+
+def _task_input_bindings_for_dependency(
+    task: Dict[str, Any],
+    *,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    operation_family = str(task.get("operation_family") or "").strip().lower()
+    if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
+        return []
+    bindings: List[Dict[str, Any]] = []
+    for operand in list(task.get("required_operands") or []):
+        concept = _normalise_spaces(str(operand.get("concept") or ""))
+        if not concept:
+            continue
+        bindings.append(
+            {
+                "role": _normalise_spaces(str(operand.get("role") or "")),
+                "concept": concept,
+                "period": _task_binding_period_hint(dict(operand), task=task, report_scope=report_scope),
+                "label": _normalise_spaces(str(operand.get("label") or "")),
+                "preferred_task_id": "",
+                "source_slot": "primary_value",
+                "source_preference": ["retrieval"],
+                "segment_label": _task_binding_segment_label(dict(operand)),
+            }
+        )
+    return bindings
+
+
+def _next_dependency_task_id(tasks: List[Dict[str, Any]]) -> int:
+    max_index = 0
+    for task in tasks:
+        match = re.match(r"task_(\d+)$", str(task.get("task_id") or "").strip())
+        if match:
+            max_index = max(max_index, int(match.group(1)))
+    return max_index + 1
+
+
+def _dependency_metric_label(binding: Dict[str, Any]) -> str:
+    label = _normalise_spaces(str(binding.get("label") or ""))
+    period = _normalise_spaces(str(binding.get("period") or ""))
+    if period and label and period not in label:
+        return f"{period}년 {label}" if re.fullmatch(r"20\d{2}", period) else f"{period} {label}"
+    return label or (f"{period} 값" if period else "조회값")
+
+
+def _lookup_constraint_from_binding(binding: Dict[str, Any], base_constraints: Dict[str, Any]) -> Dict[str, str]:
+    constraints = dict(base_constraints or {})
+    role = _normalise_spaces(str(binding.get("role") or ""))
+    if role == "current_period":
+        constraints["period_focus"] = "current"
+    elif role == "prior_period":
+        constraints["period_focus"] = "prior"
+    else:
+        constraints["period_focus"] = str(constraints.get("period_focus") or "unknown")
+    return constraints
+
+
+def _lookup_hints_for_concept_key(concept_key: str) -> Dict[str, Any]:
+    normalized_key = _normalise_spaces(str(concept_key or ""))
+    if not normalized_key:
+        return {}
+
+    ontology = get_financial_ontology()
+    concept = ontology.concept(str(concept_key or "").strip())
+    if concept:
+        return dict(concept.get("lookup_hints") or {})
+
+    for spec in list(getattr(ontology, "all_concept_specs", lambda: [])() or []):
+        if bool(spec.get("is_group")):
+            continue
+        if _normalise_spaces(str(spec.get("concept") or "")) == normalized_key:
+            return dict(spec.get("lookup_hints") or {})
+    return {}
+
+
+def _lookup_prefers_canonical_statement_rows(operand: Dict[str, Any]) -> bool:
+    if _operand_segment_label(operand):
+        return False
+    lookup_hints = _lookup_hints_for_concept_key(str(operand.get("concept") or ""))
+    return bool(lookup_hints.get("prefer_canonical_statement_rows"))
+
+
+def _lookup_canonical_statement_preferences(operand: Dict[str, Any]) -> tuple[List[str], List[str]]:
+    lookup_hints = _lookup_hints_for_concept_key(str(operand.get("concept") or ""))
+    return (
+        [
+            str(item).strip()
+            for item in (lookup_hints.get("canonical_statement_types") or [])
+            if str(item).strip()
+        ],
+        [
+            str(item).strip()
+            for item in (lookup_hints.get("canonical_sections") or [])
+            if str(item).strip()
+        ],
+    )
+
+
+def _lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]:
+    lookup_hints = _lookup_hints_for_concept_key(str(operand.get("concept") or ""))
+    return [
+        str(item).strip()
+        for item in (lookup_hints.get("aggregate_query_surfaces") or [])
+        if str(item).strip()
+    ]
+
+
+def _concept_spec_for_key(ontology: Any, key: str) -> Dict[str, Any]:
+    concept_key = _normalise_spaces(str(key or ""))
+    if not concept_key:
+        return {}
+    for spec in list(getattr(ontology, "all_concept_specs", lambda: [])() or []):
+        if bool(spec.get("is_group")):
+            continue
+        if _normalise_spaces(str(spec.get("concept") or "")) == concept_key:
+            return dict(spec)
+    return {}
+
+
+def _spec_mentions_query(spec: Dict[str, Any], query: str) -> bool:
+    text = _normalise_spaces(query)
+    if not text:
+        return False
+    values = [
+        str(spec.get("name") or "").strip(),
+        *(spec.get("aliases") or []),
+        *(spec.get("keywords") or []),
+    ]
+    return any(
+        _normalise_spaces(value) in text
+        for value in values
+        if _normalise_spaces(value)
+    )
+
+
+def _group_decomposition_query_matches(
+    *,
+    query: str,
+    group_spec: Dict[str, Any],
+    hints: Dict[str, Any],
+    ontology: Any,
+) -> bool:
+    text = _normalise_spaces(query)
+    if not text:
+        return False
+
+    any_of = [
+        _normalise_spaces(str(token))
+        for token in (hints.get("query_any_of") or [])
+        if _normalise_spaces(str(token))
+    ]
+    all_of = [
+        _normalise_spaces(str(token))
+        for token in (hints.get("query_all_of") or [])
+        if _normalise_spaces(str(token))
+    ]
+    if any_of and not any(token in text for token in any_of):
+        return False
+    if all_of and not all(token in text for token in all_of):
+        return False
+
+    member_specs = [dict(spec) for spec in (group_spec.get("member_specs") or []) if dict(spec)]
+    if bool(hints.get("require_all_member_mentions", False)) and any(
+        not _spec_mentions_query(spec, query) for spec in member_specs
+    ):
+        return False
+
+    denominator_concepts = [
+        str(item).strip()
+        for item in (hints.get("denominator_concepts") or [])
+        if str(item).strip()
+    ]
+    denominator_specs = [_concept_spec_for_key(ontology, key) for key in denominator_concepts]
+    denominator_specs = [spec for spec in denominator_specs if spec]
+    if bool(hints.get("require_denominator_mentions", False)) and any(
+        not _spec_mentions_query(spec, query) for spec in denominator_specs
+    ):
+        return False
+    return True
+
+
+def _build_group_decomposition_task(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+    concept_specs: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    for group_spec in _order_concept_specs_by_query(concept_specs, query):
+        if not bool(group_spec.get("is_group")):
+            continue
+        hints = dict(group_spec.get("decomposition_hints") or {})
+        if not hints:
+            continue
+        if not _group_decomposition_query_matches(
+            query=query,
+            group_spec=group_spec,
+            hints=hints,
+            ontology=ontology,
+        ):
+            continue
+
+        operation_family = str(hints.get("preferred_operation") or "").strip() or _infer_operation_family_from_query(query, ontology)
+        member_role_prefix = str(hints.get("member_role_prefix") or "numerator").strip() or "numerator"
+        numerator_specs = [
+            {**dict(spec), "role": f"{member_role_prefix}_{index}"}
+            for index, spec in enumerate((group_spec.get("member_specs") or []), start=1)
+            if dict(spec)
+        ]
+        denominator_specs: List[Dict[str, Any]] = []
+        for index, concept_key in enumerate((hints.get("denominator_concepts") or []), start=1):
+            concept_spec = _concept_spec_for_key(ontology, str(concept_key).strip())
+            if not concept_spec:
+                continue
+            denominator_specs.append({**concept_spec, "role": f"denominator_{index}"})
+
+        if not numerator_specs or not denominator_specs:
+            continue
+
+        ordered_specs = [*numerator_specs, *denominator_specs]
+        operand_specs = _build_concept_required_operands(
+            query,
+            report_scope,
+            ordered_specs,
+            operation_family,
+        )
+        if not operand_specs:
+            continue
+
+        metric_label = str(hints.get("metric_label") or "").strip() or _build_concept_metric_label(
+            query,
+            ordered_specs,
+            operation_family,
+        )
+        task = _compose_concept_numeric_task(
+            query=query,
+            report_scope=report_scope,
+            ontology=ontology,
+            metric_label=metric_label,
+            operation_family=operation_family,
+            operand_specs=operand_specs,
+        )
+        if task and hints:
+            task["decomposition_hints"] = dict(hints)
+        return task
+    return None
+
+
+def _compose_concept_numeric_task(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+    metric_label: str,
+    operation_family: str,
+    operand_specs: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    if not operand_specs:
+        return None
+    preferred_statement_types: List[str] = []
+    preferred_sections: List[str] = []
+    query_statement_types, query_sections = _infer_statement_and_section_hints(query)
+    preferred_statement_types.extend(query_statement_types)
+    preferred_sections.extend(query_sections)
+    for spec in operand_specs:
+        preferred_statement_types.extend(spec.get("preferred_statement_types") or [])
+        preferred_sections.extend(spec.get("preferred_sections") or [])
+    preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
+    preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
+    constraints = _build_concept_task_constraints(
+        query,
+        report_scope,
+        ontology,
+        operand_specs=operand_specs,
+        operation_family=operation_family,
+    )
+    retrieval_queries = _build_generic_retrieval_queries(
+        query=query,
+        metric_label=metric_label,
+        operand_specs=operand_specs,
+        preferred_sections=preferred_sections,
+        report_scope=report_scope,
+        constraints=constraints,
+    )
+    task_query = _build_metric_task_query(
+        original_query=query,
+        metric_label=metric_label,
+        constraints=constraints,
+        operand_specs=operand_specs,
+        report_scope=report_scope,
+    )
+    return {
+        "task_id": "task_1",
+        "metric_family": f"concept_{operation_family}",
+        "metric_label": metric_label,
+        "query": task_query,
+        "operation_family": operation_family,
+        "required_operands": operand_specs,
+        "preferred_statement_types": preferred_statement_types,
+        "preferred_sections": preferred_sections,
+        "retrieval_queries": retrieval_queries,
+        "constraints": constraints,
+    }
+
+
+def _build_lookup_producer_task_from_binding(
+    *,
+    binding: Dict[str, Any],
+    consumer_task: Dict[str, Any],
+    next_task_id: str,
+    report_scope: Dict[str, Any],
+) -> Dict[str, Any]:
+    consumer_operands = [dict(item) for item in (consumer_task.get("required_operands") or [])]
+    source_operand = next(
+        (
+            dict(item)
+            for item in consumer_operands
+            if _normalise_spaces(str(item.get("role") or "")) == _normalise_spaces(str(binding.get("role") or ""))
+            and _normalise_spaces(str(item.get("concept") or "")) == _normalise_spaces(str(binding.get("concept") or ""))
+        ),
+        {},
+    )
+    operand = dict(source_operand or {})
+    operand["label"] = _dependency_metric_label(binding)
+    operand["period_hint"] = _normalise_spaces(str(binding.get("period") or operand.get("period_hint") or ""))
+    operand["role"] = _normalise_spaces(str(binding.get("role") or operand.get("role") or ""))
+    binding_policy = dict(operand.get("binding_policy") or {})
+    # Producer lookups should be free to bind to canonical statement rows even
+    # when the downstream derived task prefers aggregate note-table shapes.
+    binding_policy.pop("prefer_value_roles", None)
+    binding_policy.pop("prefer_aggregation_stages", None)
+    binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
+    if binding_segment:
+        binding_policy["segment_label"] = binding_segment
+    operand["binding_policy"] = binding_policy
+    lookup_query_surfaces = _lookup_query_surface_preferences(operand)
+    if lookup_query_surfaces:
+        existing_aliases = [str(item).strip() for item in (operand.get("aliases") or []) if str(item).strip()]
+        operand["aliases"] = list(dict.fromkeys([*lookup_query_surfaces, *existing_aliases]))
+
+    constraints = _lookup_constraint_from_binding(
+        binding,
+        dict(consumer_task.get("constraints") or {}),
+    )
+    preferred_sections = list(
+        dict.fromkeys(
+            [
+                *list(operand.get("preferred_sections") or []),
+                *list(consumer_task.get("preferred_sections") or []),
+            ]
+        )
+    )
+    preferred_statement_types = list(
+        dict.fromkeys(
+            [
+                *list(operand.get("preferred_statement_types") or []),
+                *list(consumer_task.get("preferred_statement_types") or []),
+            ]
+        )
+    )
+    if _lookup_prefers_canonical_statement_rows(operand):
+        canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+        preferred_statement_types = list(dict.fromkeys([*canonical_types, *preferred_statement_types]))
+        preferred_sections = list(dict.fromkeys([*canonical_sections, *preferred_sections]))
+        operand["preferred_statement_types"] = list(preferred_statement_types)
+        operand["preferred_sections"] = list(preferred_sections)
+    retrieval_queries = _build_generic_retrieval_queries(
+        query=str(consumer_task.get("query") or consumer_task.get("metric_label") or ""),
+        metric_label=str(operand.get("label") or ""),
+        operand_specs=[operand],
+        preferred_sections=preferred_sections,
+        report_scope=report_scope,
+        constraints=constraints,
+    )
+    task_query = _build_metric_task_query(
+        original_query=str(consumer_task.get("query") or consumer_task.get("metric_label") or ""),
+        metric_label=str(operand.get("label") or ""),
+        constraints=constraints,
+        operand_specs=[operand],
+        report_scope=report_scope,
+    )
+    return {
+        "task_id": next_task_id,
+        "metric_family": "concept_lookup" if _normalise_spaces(str(binding.get("concept") or "")) else "generic_numeric",
+        "metric_label": str(operand.get("label") or ""),
+        "query": task_query,
+        "operation_family": "lookup",
+        "required_operands": [operand],
+        "preferred_statement_types": preferred_statement_types,
+        "preferred_sections": preferred_sections,
+        "retrieval_queries": retrieval_queries,
+        "constraints": constraints,
+    }
+
+
+def _synthesize_missing_lookup_dependency_tasks(
+    tasks: List[Dict[str, Any]],
+    *,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    base_tasks = [dict(task) for task in (tasks or [])]
+    producer_catalog: List[tuple[str, Dict[str, Any]]] = []
+    for task in base_tasks:
+        producer_task_id = _normalise_spaces(str(task.get("task_id") or ""))
+        if not producer_task_id:
+            continue
+        for output in _task_output_slots_for_dependency(task, report_scope=report_scope):
+            producer_catalog.append((producer_task_id, dict(output)))
+
+    next_index = _next_dependency_task_id(base_tasks)
+    created_keys: set[tuple[str, str, str]] = set()
+    synthetic_tasks: List[Dict[str, Any]] = []
+    for task in base_tasks:
+        operation_family = _normalise_spaces(str(task.get("operation_family") or "")).lower()
+        if operation_family not in {"growth_rate", "ratio", "sum"}:
+            continue
+        for binding in _task_input_bindings_for_dependency(task, report_scope=report_scope):
+            if any(_dependency_binding_matches_output(binding, output) for _task_id, output in producer_catalog):
+                continue
+            binding_key = (
+                _normalise_spaces(str(binding.get("concept") or "")),
+                _normalise_spaces(str(binding.get("period") or "")),
+                _normalise_spaces(str(binding.get("segment_label") or "")),
+            )
+            if not binding_key[0] or binding_key in created_keys:
+                continue
+            synthetic_task = _build_lookup_producer_task_from_binding(
+                binding=binding,
+                consumer_task=task,
+                next_task_id=f"task_{next_index}",
+                report_scope=report_scope,
+            )
+            next_index += 1
+            synthetic_tasks.append(synthetic_task)
+            created_keys.add(binding_key)
+            producer_catalog.append(
+                (
+                    str(synthetic_task.get("task_id") or "").strip(),
+                    {
+                        "slot": "primary_value",
+                        "role": _normalise_spaces(str(binding.get("role") or "")) or "primary_value",
+                        "concept": _normalise_spaces(str(binding.get("concept") or "")),
+                        "period": _normalise_spaces(str(binding.get("period") or "")),
+                        "label": _normalise_spaces(str(binding.get("label") or "")),
+                        "segment_label": _normalise_spaces(str(binding.get("segment_label") or "")),
+                    },
+                )
+            )
+    return base_tasks + synthetic_tasks
+
+
+def _dependency_binding_matches_output(
+    binding: Dict[str, Any],
+    output: Dict[str, Any],
+) -> bool:
+    if _normalise_spaces(str(binding.get("concept") or "")) != _normalise_spaces(str(output.get("concept") or "")):
+        return False
+    binding_period = _normalise_spaces(str(binding.get("period") or ""))
+    output_period = _normalise_spaces(str(output.get("period") or ""))
+    if binding_period and output_period and binding_period != output_period:
+        return False
+    binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
+    output_segment = _normalise_spaces(str(output.get("segment_label") or ""))
+    if binding_segment and output_segment and binding_segment != output_segment:
+        return False
+    if binding_segment and not output_segment:
+        label_text = _normalise_spaces(str(output.get("label") or "")).lower()
+        if binding_segment.lower() not in label_text:
+            return False
+    return True
+
+
+def _topologically_order_dependency_tasks(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    task_ids = [str(task.get("task_id") or "").strip() for task in tasks]
+    if not task_ids:
+        return tasks
+    indegree: Dict[str, int] = {task_id: 0 for task_id in task_ids if task_id}
+    adjacency: Dict[str, List[str]] = {task_id: [] for task_id in indegree}
+    original_index = {task_id: index for index, task_id in enumerate(task_ids) if task_id}
+    task_by_id = {str(task.get("task_id") or "").strip(): dict(task) for task in tasks if str(task.get("task_id") or "").strip()}
+
+    for task in tasks:
+        task_id = str(task.get("task_id") or "").strip()
+        if not task_id:
+            continue
+        for dependency in list(task.get("depends_on") or []):
+            dependency_id = _normalise_spaces(str(dependency or ""))
+            if not dependency_id or dependency_id not in indegree or dependency_id == task_id:
+                continue
+            indegree[task_id] += 1
+            adjacency[dependency_id].append(task_id)
+
+    ready = sorted(
+        [task_id for task_id, count in indegree.items() if count == 0],
+        key=lambda value: original_index.get(value, 10_000),
+    )
+    ordered_ids: List[str] = []
+    while ready:
+        task_id = ready.pop(0)
+        ordered_ids.append(task_id)
+        for child in sorted(adjacency.get(task_id, []), key=lambda value: original_index.get(value, 10_000)):
+            indegree[child] -= 1
+            if indegree[child] == 0:
+                ready.append(child)
+                ready.sort(key=lambda value: original_index.get(value, 10_000))
+
+    if len(ordered_ids) != len(indegree):
+        return [dict(task) for task in tasks]
+    return [task_by_id[task_id] for task_id in ordered_ids]
+
+
+def _annotate_task_dependencies(
+    tasks: List[Dict[str, Any]],
+    *,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    annotated_tasks = _synthesize_missing_lookup_dependency_tasks(
+        tasks,
+        report_scope=report_scope,
+    )
+    producer_catalog: List[tuple[str, Dict[str, Any]]] = []
+
+    for task in annotated_tasks:
+        outputs = _task_output_slots_for_dependency(task, report_scope=report_scope)
+        task["produces"] = outputs
+        producer_task_id = _normalise_spaces(str(task.get("task_id") or ""))
+        if not producer_task_id:
+            continue
+        for output in outputs:
+            producer_catalog.append((producer_task_id, dict(output)))
+
+    for task in annotated_tasks:
+        inputs = _task_input_bindings_for_dependency(task, report_scope=report_scope)
+        dependencies: List[str] = []
+        for binding in inputs:
+            for producer_task_id, output in producer_catalog:
+                if producer_task_id == _normalise_spaces(str(task.get("task_id") or "")):
+                    continue
+                if not _dependency_binding_matches_output(binding, output):
+                    continue
+                binding["preferred_task_id"] = producer_task_id
+                binding["source_preference"] = ["task_output", "retrieval"]
+                if producer_task_id not in dependencies:
+                    dependencies.append(producer_task_id)
+                break
+        task["inputs"] = inputs
+        task["depends_on"] = dependencies
+
+    return _topologically_order_dependency_tasks(annotated_tasks)
 
 
 def _infer_period_focus(query: str, default_value: str = "unknown") -> str:
@@ -2893,7 +3963,6 @@ def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand
         str(metadata.get("aggregate_label") or "").strip(),
         " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
         " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
-        str(metadata.get("table_row_labels_text") or "").strip(),
     ]
     authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
     if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
@@ -2933,22 +4002,61 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
 
 
 def _operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
-    haystack = _normalise_spaces(text or "")
-    if not haystack:
+    haystack_variants = _surface_match_variants(text)
+    if not haystack_variants:
         return False
-    haystack_compact = re.sub(r"\s+", "", haystack)
-    for needle in _operand_needles(operand):
-        normalized_needle = _normalise_spaces(needle)
-        if not normalized_needle:
-            continue
-        needle_compact = re.sub(r"\s+", "", normalized_needle)
-        if (
-            haystack == normalized_needle
-            or normalized_needle in haystack
-            or (needle_compact and needle_compact in haystack_compact)
-        ):
-            return True
+    for haystack in haystack_variants:
+        haystack_compact = re.sub(r"\s+", "", haystack)
+        for needle in _operand_needles(operand):
+            for normalized_needle in _surface_match_variants(needle):
+                needle_compact = re.sub(r"\s+", "", normalized_needle)
+                if (
+                    haystack == normalized_needle
+                    or normalized_needle in haystack
+                    or (needle_compact and needle_compact in haystack_compact)
+                ):
+                    return True
     return False
+
+
+def _strip_financial_label_annotations(text: str) -> str:
+    normalized = _normalise_spaces(text or "")
+    if not normalized:
+        return ""
+    # Strip footnote-style parentheticals such as "(주25)" or "(*)", but keep
+    # other semantic qualifiers intact.
+    normalized = re.sub(r"\((?:주\s*\d+[^\)]*|\*)\)", "", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _strip_leading_period_qualifiers(text: str) -> str:
+    normalized = _normalise_spaces(text or "")
+    if not normalized:
+        return ""
+    pattern = re.compile(
+        r"^(?:(?:20\d{2}\s*년?)|(?:제\s*\d+\s*기)|(?:당기|전기|현재|이전|직전|이번|금년)(?:\s*연도)?)(?:\s+|$)"
+    )
+    stripped = normalized
+    while True:
+        updated = pattern.sub("", stripped, count=1).strip()
+        if updated == stripped:
+            break
+        stripped = updated
+    return stripped
+
+
+def _surface_match_variants(text: str) -> List[str]:
+    normalized = _normalise_spaces(text or "")
+    if not normalized:
+        return []
+    variants = [
+        normalized,
+        _strip_financial_label_annotations(normalized),
+        _strip_leading_period_qualifiers(normalized),
+        _strip_leading_period_qualifiers(_strip_financial_label_annotations(normalized)),
+    ]
+    return list(dict.fromkeys(item for item in variants if item))
 
 
 def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str:
@@ -3529,6 +4637,108 @@ def _build_table_row_reconciliation_candidates(
     return candidates
 
 
+def _candidate_row_block_signature(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    row_context_text = str(metadata.get("row_context_text") or "").strip()
+    if not row_context_text:
+        return ""
+    try:
+        row_index = int(metadata.get("row_index"))
+    except (TypeError, ValueError):
+        return ""
+
+    rows = [_normalise_spaces(line) for line in row_context_text.splitlines() if _normalise_spaces(line)]
+    if row_index < 0 or row_index >= len(rows):
+        return ""
+
+    header_end: Optional[int] = None
+    for current_index in range(row_index - 1, -1, -1):
+        if rows[current_index].startswith("|"):
+            header_end = current_index
+            break
+    if header_end is None:
+        return ""
+
+    header_start = header_end
+    while header_start - 1 >= 0 and rows[header_start - 1].startswith("|"):
+        header_start -= 1
+
+    header_block = " || ".join(rows[header_start : header_end + 1])
+    table_source_id = str(metadata.get("table_source_id") or "").strip()
+    return f"{table_source_id}::{header_start}:{header_block}".strip(":")
+
+
+@lru_cache(maxsize=64)
+def _cached_report_text(report_path: str) -> str:
+    try:
+        return Path(report_path).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return ""
+
+
+@lru_cache(maxsize=128)
+def _resolve_report_path_from_receipt(receipt_no: str, report_year: str = "") -> str:
+    receipt_no = str(receipt_no or "").strip()
+    report_year = str(report_year or "").strip()
+    if not receipt_no:
+        return ""
+    pattern = f"*_{receipt_no}.html"
+    try:
+        candidates = sorted(_REPORT_ROOT.rglob(pattern))
+    except OSError:
+        return ""
+    if report_year:
+        for candidate in candidates:
+            if candidate.name.startswith(f"{report_year}_"):
+                return str(candidate)
+    return str(candidates[0]) if candidates else ""
+
+
+def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    receipt_no = str(metadata.get("rcept_no") or "").strip()
+    if not receipt_no:
+        chunk_uid = str(metadata.get("chunk_uid") or "").strip()
+        if ":" in chunk_uid:
+            receipt_no = chunk_uid.split(":", 1)[0].strip()
+    report_year = str(metadata.get("year") or "").strip()
+    if not receipt_no or not str(raw_value or "").strip():
+        return ""
+
+    report_path = _resolve_report_path_from_receipt(receipt_no, report_year)
+    if not report_path:
+        return ""
+
+    report_text = _cached_report_text(report_path)
+    if not report_text:
+        return ""
+
+    row_label = str(metadata.get("row_label") or "").strip()
+    search_value = str(raw_value or "").strip()
+    candidate_positions = [match.start() for match in re.finditer(re.escape(search_value), report_text)]
+    if row_label:
+        narrowed_positions = [
+            position
+            for position in candidate_positions
+            if row_label in report_text[max(0, position - 500) : position + 100]
+        ]
+        if narrowed_positions:
+            candidate_positions = narrowed_positions
+    if not candidate_positions:
+        return ""
+
+    position = candidate_positions[0]
+    window = report_text[max(0, position - 2500) : position]
+    unit_matches = list(_UNIT_HINT_HTML_PATTERN.finditer(window))
+    if not unit_matches:
+        return ""
+
+    resolved = _normalise_spaces(unit_matches[-1].group(1)).replace(" ", "")
+    if not resolved:
+        return ""
+    return resolved
+
+
 _NON_VALUE_ROW_LABELS = {
     "범위",
     "하위범위",
@@ -3667,6 +4877,92 @@ def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
     )
 
 
+def _operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
+    binding_policy = dict(operand.get("binding_policy") or {})
+    preferred_value_roles = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    ]
+    preferred_aggregation_stages = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    ]
+    if "aggregate" not in preferred_value_roles:
+        return False
+    if not any(stage in {"final", "subtotal", "direct"} for stage in preferred_aggregation_stages):
+        return False
+    return bool(_operand_surface_contract(operand).get("positive"))
+
+
+def _operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
+    preferred_statement_types = {
+        _normalise_spaces(str(item))
+        for item in (operand.get("preferred_statement_types") or [])
+        if str(item).strip()
+    }
+    if "notes" not in preferred_statement_types:
+        return False
+
+    binding_policy = dict(operand.get("binding_policy") or {})
+    preferred_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    }
+    preferred_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    return "aggregate" in preferred_value_roles and bool(
+        {"final", "subtotal", "direct"} & preferred_aggregation_stages
+    )
+
+
+def _candidate_contextual_aggregate_context(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    return " ".join(
+        part
+        for part in (
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("table_header_context") or "").strip(),
+            str(metadata.get("table_summary_text") or "").strip(),
+            str(metadata.get("section_path") or "").strip(),
+        )
+        if part
+    )
+
+
+def _candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
+    explicit = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
+    if explicit and explicit != "unknown":
+        return explicit
+
+    context_text = " ".join(
+        part
+        for part in (
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("section_path") or "").strip(),
+            str(metadata.get("table_header_context") or "").strip(),
+        )
+        if part
+    )
+    normalized_context = _normalise_spaces(context_text)
+    if "연결재무제표" in normalized_context or "연결" in normalized_context:
+        return "consolidated"
+    if "별도" in normalized_context:
+        return "separate"
+    if re.search(r"(^|>)\s*4\.\s*재무제표(?!\s*주석)", normalized_context):
+        return "separate"
+    if re.search(r"(^|>)\s*5\.\s*재무제표\s*주석", normalized_context):
+        return "separate"
+    return explicit or "unknown"
+
+
 def _operand_segment_label(operand: Dict[str, Any]) -> str:
     binding_policy = dict(operand.get("binding_policy") or {})
     return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
@@ -3777,6 +5073,36 @@ def _candidate_source_priority_bonus(
             if value_role != "aggregate":
                 score -= 0.5
 
+    if _operand_prefers_contextual_aggregate_match(operand):
+        context_text = _candidate_contextual_aggregate_context(candidate)
+        if (
+            value_role == "aggregate"
+            and aggregation_stage in {"final", "subtotal", "direct"}
+            and _text_has_positive_surface(context_text, operand)
+        ):
+            score += 2.0
+        elif value_role == "detail" and _text_has_positive_surface(context_text, operand):
+            score -= 1.0
+
+    if _operand_prefers_note_aggregate_lookup(operand):
+        candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
+        metadata = dict(candidate.get("metadata") or {})
+        row_context_text = str(metadata.get("row_context_text") or "")
+        if statement_type == "notes":
+            if candidate_kind == "structured_value":
+                if value_role == "aggregate" and aggregation_stage == "final":
+                    score += 2.75
+                elif value_role == "aggregate" and aggregation_stage == "subtotal":
+                    score += 1.5
+                elif value_role == "aggregate" and aggregation_stage == "direct":
+                    score += 1.0
+            elif candidate_kind == "table_row":
+                score -= 1.0
+                if row_context_text and len(row_context_text) > 2500:
+                    score -= 0.75
+                if value_role != "aggregate":
+                    score -= 0.5
+
     return score
 
 
@@ -3852,6 +5178,27 @@ def _binding_policy_allows_candidate_shape(
     return True
 
 
+def _table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    for key in ("table_row_records_json", "table_value_records_json"):
+        payload = str(metadata.get(key) or "").strip()
+        if not payload:
+            continue
+        try:
+            records = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        for record in records:
+            surfaces = [
+                str(record.get("row_label") or "").strip(),
+                str(record.get("semantic_label") or "").strip(),
+                " ".join(str(item).strip() for item in (record.get("row_headers") or []) if str(item).strip()),
+                " ".join(str(item).strip() for item in (record.get("semantic_aliases") or []) if str(item).strip()),
+            ]
+            if any(_operand_text_match(surface, operand) for surface in surfaces if surface):
+                return True
+    return False
+
+
 def _candidate_is_direct_grounding_candidate(
     candidate: Dict[str, Any],
     *,
@@ -3859,6 +5206,7 @@ def _candidate_is_direct_grounding_candidate(
     constraints: Dict[str, Any],
     query_years: List[int],
     operation_family: str = "",
+    report_scope: Optional[Dict[str, Any]] = None,
 ) -> bool:
     metadata = dict(candidate.get("metadata") or {})
     candidate_kind = str(candidate.get("candidate_kind") or "").strip()
@@ -3876,6 +5224,7 @@ def _candidate_is_direct_grounding_candidate(
     operand_binding_policy = dict(operand.get("binding_policy") or {})
     value_role = _candidate_value_role(candidate)
     aggregation_stage = _candidate_aggregation_stage(candidate)
+    statement_type = str(metadata.get("statement_type") or "unknown").strip()
     if not _binding_policy_allows_candidate_shape(
         value_role=value_role,
         aggregation_stage=aggregation_stage,
@@ -3883,10 +5232,14 @@ def _candidate_is_direct_grounding_candidate(
     ):
         return False
 
+    if _lookup_prefers_canonical_statement_rows(operand) and candidate_kind == "table_row":
+        if statement_type not in {"income_statement", "summary_financials", "notes"}:
+            return False
+
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     if desired_consolidation == "unknown":
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
-    candidate_consolidation = str(metadata.get("consolidation_scope") or "unknown").strip()
+    candidate_consolidation = _candidate_consolidation_scope(metadata)
     if (
         desired_consolidation != "unknown"
         and candidate_consolidation != "unknown"
@@ -3905,16 +5258,29 @@ def _candidate_is_direct_grounding_candidate(
         return False
     if not _candidate_matches_segment_binding(candidate, operand):
         return False
+    if not _candidate_matches_target_report_scope(
+        candidate,
+        operand=operand,
+        query_years=query_years,
+        report_scope=dict(report_scope or {}),
+    ):
+        return False
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
     row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
-    trust_candidate_period_focus = not (candidate_kind == "table_row" and row_text)
+    trust_candidate_period_focus = (
+        candidate_period_focus in {"current", "prior"}
+        or not (candidate_kind == "table_row" and row_text)
+    )
+    target_year_match = _candidate_matches_operand_target_year(candidate, operand, query_years)
     if trust_candidate_period_focus:
-        if desired_period_focus == "current" and candidate_period_focus == "prior":
+        if desired_period_focus == "current" and candidate_period_focus == "prior" and not target_year_match:
             return False
-        if desired_period_focus == "prior" and candidate_period_focus == "current":
+        if desired_period_focus == "prior" and candidate_period_focus == "current" and not target_year_match:
             return False
 
     if operation_family in {"lookup", "single_value"} and candidate_kind == "table_row":
+        if _table_row_has_matching_structured_sibling(metadata, operand):
+            return False
         if row_text and _is_delta_like_row_label(row_text):
             return False
 
@@ -3929,6 +5295,7 @@ def _candidate_satisfies_direct_acceptance_contract(
     query_years: List[int],
     operation_family: str = "",
     selected_cell: Optional[Dict[str, Any]] = None,
+    report_scope: Optional[Dict[str, Any]] = None,
 ) -> bool:
     if not _candidate_is_direct_grounding_candidate(
         candidate,
@@ -3936,6 +5303,7 @@ def _candidate_satisfies_direct_acceptance_contract(
         constraints=constraints,
         query_years=query_years,
         operation_family=operation_family,
+        report_scope=report_scope,
     ):
         return False
 
@@ -3950,6 +5318,11 @@ def _candidate_satisfies_direct_acceptance_contract(
             query_years,
             desired_period_focus,
         )
+        candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+        if desired_period_focus == "current" and candidate_period_focus == "prior":
+            return False
+        if desired_period_focus == "prior" and candidate_period_focus == "current":
+            return False
         if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period_text):
             report_year: Optional[int] = None
             for raw_year in (
@@ -3985,7 +5358,7 @@ def _candidate_satisfies_direct_acceptance_contract(
 
     if operation_family in {"lookup", "single_value"}:
         direct_match_strength = _candidate_direct_match_strength(candidate, operand)
-        if direct_match_strength < 1.5:
+        if direct_match_strength < 2.0:
             return False
 
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
@@ -4031,6 +5404,14 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
     if _candidate_conflicts_with_operand_concept(candidate, operand):
         return False
 
+    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
+    structured_candidate = candidate_kind in {
+        "structured_value",
+        "structured_row",
+        "structured_column_value",
+        "table_row",
+        "evidence_row",
+    }
     metadata = dict(candidate.get("metadata") or {})
     row_label = str(metadata.get("row_label") or "").strip()
     if _operand_text_match(row_label, operand):
@@ -4051,7 +5432,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
     aggregate_label = str(metadata.get("aggregate_label") or "").strip()
     if _operand_text_match(aggregate_label, operand):
         return True
-    if _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
+    if candidate_kind != "table_row" and _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
         return True
     if _is_capex_total_operand(operand):
         section_context = " ".join(
@@ -4076,6 +5457,31 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
                 and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 return True
+    if _operand_prefers_contextual_aggregate_match(operand):
+        section_context = _candidate_contextual_aggregate_context(candidate)
+        aggregate_surface = _normalise_spaces(
+            " ".join(
+                part
+                for part in (
+                    str(metadata.get("aggregate_label") or "").strip(),
+                    str(metadata.get("row_label") or "").strip(),
+                    str(metadata.get("semantic_label") or "").strip(),
+                )
+                if part
+            )
+        )
+        aggregate_like = (
+            _candidate_value_role(candidate) == "aggregate"
+            or _candidate_aggregation_stage(candidate) in {"final", "subtotal"}
+            or _aggregate_like_row_stage(aggregate_surface) != "none"
+        )
+        if (
+            _text_has_positive_surface(section_context, operand)
+            and aggregate_like
+        ):
+            return True
+    if structured_candidate:
+        return False
     return _operand_text_match(str(candidate.get("text") or ""), operand)
 
 
@@ -4092,6 +5498,7 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
         return 0.0
 
     metadata = dict(candidate.get("metadata") or {})
+    candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
     surfaces: List[tuple[str, float]] = [
         (str(metadata.get("semantic_label") or "").strip(), 3.0),
         (str(metadata.get("row_label") or "").strip(), 2.5),
@@ -4112,15 +5519,28 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
             1.5,
         ),
         (str(metadata.get("aggregate_label") or "").strip(), 1.0),
-        (str(metadata.get("table_row_labels_text") or "").strip(), 1.25),
-        (str(metadata.get("row_text") or "").strip(), 1.0),
     ]
+    if candidate_kind != "table_row":
+        surfaces.extend(
+            [
+                (str(metadata.get("table_row_labels_text") or "").strip(), 1.25),
+                (str(metadata.get("row_text") or "").strip(), 1.0),
+            ]
+        )
     best = 0.0
     for surface, exact_bonus in surfaces:
         normalized_surface = _normalise_spaces(surface)
         if not normalized_surface:
             continue
+        surface_variants = set(_surface_match_variants(normalized_surface))
         if any(_normalise_spaces(needle) == normalized_surface for needle in _operand_needles(operand)):
+            best = max(best, exact_bonus)
+            continue
+        if any(
+            needle_variant in surface_variants
+            for needle in _operand_needles(operand)
+            for needle_variant in _surface_match_variants(needle)
+        ):
             best = max(best, exact_bonus)
             continue
         if _operand_text_match(normalized_surface, operand):
@@ -4158,6 +5578,13 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
                 and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 best = max(best, 1.75)
+    if _operand_prefers_contextual_aggregate_match(operand):
+        context_text = _candidate_contextual_aggregate_context(candidate)
+        if (
+            _text_has_positive_surface(context_text, operand)
+            and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+        ):
+            best = max(best, 2.0)
     return best
 
 
@@ -4168,6 +5595,7 @@ def _score_operand_candidate(
     preferred_statement_types: List[str],
     constraints: Dict[str, Any],
     query_years: List[int],
+    report_scope: Optional[Dict[str, Any]] = None,
 ) -> float:
     """Rank candidate rows/chunks for a single operand.
 
@@ -4183,7 +5611,12 @@ def _score_operand_candidate(
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
     operand_binding_policy = dict(operand.get("binding_policy") or {})
     if row_label:
-        if any(_normalise_spaces(row_label) == _normalise_spaces(needle) for needle in _operand_needles(operand)):
+        row_label_variants = set(_surface_match_variants(row_label))
+        if any(
+            needle_variant in row_label_variants
+            for needle in _operand_needles(operand)
+            for needle_variant in _surface_match_variants(needle)
+        ):
             score += 3.0
         elif _operand_text_match(row_label, operand):
             score += 1.5
@@ -4258,8 +5691,51 @@ def _score_operand_candidate(
         elif statement_type != "unknown":
             score -= 0.35
 
+    local_heading = _normalise_spaces(
+        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
+    )
+    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+    if _lookup_prefers_canonical_statement_rows(operand):
+        canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+        canonical_section_hit = bool(canonical_sections) and any(
+            _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
+            for section_term in canonical_sections
+            if _normalise_spaces(section_term)
+        )
+        note_context = "주석" in local_heading or "주석" in section_path
+        allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+        if statement_type == "income_statement":
+            score += 1.0
+        elif statement_type == "summary_financials":
+            score += 0.5
+        elif statement_type == "notes":
+            score -= 0.5
+        if canonical_section_hit:
+            score += 1.0
+        elif note_context and not allows_note_canonical:
+            score -= 2.5
+
+        related_party_context = " ".join(
+            part
+            for part in (
+                str(metadata.get("table_context") or "").strip(),
+                str(metadata.get("table_row_labels_text") or "").strip(),
+                str(metadata.get("section_path") or "").strip(),
+                str(metadata.get("local_heading") or "").strip(),
+                " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+                " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+            )
+            if part
+        )
+        if any(token in related_party_context for token in ("특수관계자", "관계기업", "공동기업")):
+            score -= 3.0
+        stripped_row_label = _strip_financial_label_annotations(row_label)
+        stripped_needles = {_strip_financial_label_annotations(needle) for needle in _operand_needles(operand)}
+        if stripped_row_label and "등" in stripped_row_label and stripped_row_label not in stripped_needles:
+            score -= 1.5
+
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
-    candidate_consolidation = str(metadata.get("consolidation_scope") or "unknown").strip()
+    candidate_consolidation = _candidate_consolidation_scope(metadata)
     desired_period_focus = _operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
     if desired_consolidation == "unknown":
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
@@ -4268,10 +5744,6 @@ def _score_operand_candidate(
     if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label or row_label):
         score -= 4.0
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
-    local_heading = _normalise_spaces(
-        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
-    )
-    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
     score += _candidate_segment_binding_bonus(
         candidate,
         operand=operand,
@@ -4300,12 +5772,18 @@ def _score_operand_candidate(
         if candidate_period_focus == "current":
             score += 2.5
         elif candidate_period_focus == "prior":
-            score -= 2.5
+            if _candidate_matches_operand_target_year(candidate, operand, query_years):
+                score += 0.5
+            else:
+                score -= 2.5
     elif desired_period_focus == "prior":
         if candidate_period_focus == "prior":
             score += 2.5
         elif candidate_period_focus == "current":
-            score -= 2.5
+            if _candidate_matches_operand_target_year(candidate, operand, query_years):
+                score += 0.5
+            else:
+                score -= 2.5
 
     preferred_value_roles = [
         str(item).strip()
@@ -4361,6 +5839,12 @@ def _score_operand_candidate(
         operand=operand,
         query_years=query_years,
     )
+    score += _candidate_report_scope_binding_bonus(
+        candidate,
+        operand=operand,
+        query_years=query_years,
+        report_scope=dict(report_scope or {}),
+    )
 
     if str(metadata.get("table_source_id") or "").strip():
         score += 0.25
@@ -4393,15 +5877,33 @@ def _build_reconciliation_retry_queries(
     for operand_label in missing_operands:
         spec = dict(operand_map.get(operand_label) or {})
         aliases = [str(item).strip() for item in (spec.get("aliases") or []) if str(item).strip()]
-        base_bits = prefixes + [operand_label, metric_label]
-        if preferred_sections:
-            base_bits.append(preferred_sections[0])
-        queries.append(_normalise_spaces(" ".join(base_bits)))
-        if aliases:
-            alias_bits = prefixes + [aliases[0], metric_label]
+        query_surfaces: List[str] = [operand_label, *aliases]
+        binding_policy = dict(spec.get("binding_policy") or {})
+        preferred_value_roles = {
+            _normalise_spaces(str(item))
+            for item in (binding_policy.get("prefer_value_roles") or [])
+            if str(item).strip()
+        }
+        if "aggregate" in preferred_value_roles:
+            aggregate_expansions: List[str] = []
+            for surface in list(query_surfaces):
+                normalized_surface = _strip_financial_label_annotations(surface)
+                if not normalized_surface:
+                    continue
+                aggregate_expansions.extend(
+                    [
+                        f"{normalized_surface} 합계",
+                        f"합계 {normalized_surface}",
+                        f"{normalized_surface} 총계",
+                    ]
+                )
+            query_surfaces.extend(aggregate_expansions)
+        deduped_surfaces = list(dict.fromkeys(_normalise_spaces(surface) for surface in query_surfaces if _normalise_spaces(surface)))
+        for surface in deduped_surfaces[:4]:
+            base_bits = prefixes + [surface, metric_label]
             if preferred_sections:
-                alias_bits.append(preferred_sections[0])
-            queries.append(_normalise_spaces(" ".join(alias_bits)))
+                base_bits.append(preferred_sections[0])
+            queries.append(_normalise_spaces(" ".join(base_bits)))
     return list(dict.fromkeys(item for item in queries if item))
 
 
@@ -4411,6 +5913,7 @@ def _deterministic_reconcile_task(
     candidates: List[Dict[str, Any]],
     years: List[int],
     reconciliation_retry_count: int,
+    report_scope: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Match required operands to the best available candidates.
 
@@ -4448,13 +5951,152 @@ def _deterministic_reconcile_task(
                 preferred_statement_types=preferred_statement_types,
                 constraints=constraints,
                 query_years=years,
+                report_scope=report_scope,
             ),
             reverse=True,
         )
         operand_top_candidates[label] = ranked
+        requires_direct_grounding = operation_family in {"lookup", "single_value"}
         if ranked:
-            direct_candidate = next(
-                (
+            direct_candidates: List[Dict[str, Any]] = []
+            if requires_direct_grounding:
+                period_focus = _operand_period_focus(
+                    operand,
+                    str((constraints or {}).get("period_focus") or "unknown").strip(),
+                )
+                direct_entries: List[Dict[str, Any]] = []
+                for candidate in ranked:
+                    selected_cell = _candidate_selected_cell_for_operand(
+                        candidate,
+                        operand=operand,
+                        query_years=years,
+                        period_focus=period_focus,
+                    )
+                    if not _candidate_satisfies_direct_acceptance_contract(
+                        candidate,
+                        operand=operand,
+                        constraints=constraints,
+                        query_years=years,
+                        operation_family=operation_family,
+                        selected_cell=selected_cell,
+                        report_scope=report_scope,
+                    ):
+                        continue
+                    direct_entries.append(
+                        {
+                            "candidate": candidate,
+                            "logical_signature": _candidate_direct_logical_signature(
+                                candidate,
+                                selected_cell=selected_cell,
+                            ),
+                            "family_signature": _candidate_direct_family_signature(
+                                candidate,
+                                selected_cell=selected_cell,
+                            ),
+                            "selected_value_text": _normalise_spaces(
+                                str((selected_cell or {}).get("value_text") or "")
+                            ),
+                            "score": _score_operand_candidate(
+                                candidate,
+                                operand=operand,
+                                preferred_statement_types=preferred_statement_types,
+                                constraints=constraints,
+                                query_years=years,
+                                report_scope=report_scope,
+                            ),
+                            "canonical_winner": _candidate_is_canonical_statement_winner(
+                                candidate,
+                                operand=operand,
+                                query_years=years,
+                            ),
+                        }
+                    )
+                collapsed_entries: List[Dict[str, Any]] = []
+                if direct_entries:
+                    family_signatures = {
+                        tuple(entry.get("family_signature") or ())
+                        for entry in direct_entries
+                        if tuple(entry.get("family_signature") or ())
+                    }
+                    distinct_values = {
+                        str(entry.get("selected_value_text") or "").strip()
+                        for entry in direct_entries
+                        if str(entry.get("selected_value_text") or "").strip()
+                    }
+                    if len(family_signatures) == 1 and len(distinct_values) <= 1:
+                        collapsed_entries = sorted(
+                            direct_entries,
+                            key=lambda entry: (
+                                bool(entry.get("canonical_winner")),
+                                float(entry.get("score") or 0.0),
+                            ),
+                            reverse=True,
+                        )[:1]
+                    else:
+                        best_by_signature: Dict[tuple[str, str, str, str], Dict[str, Any]] = {}
+                        for entry in direct_entries:
+                            signature = tuple(entry.get("logical_signature") or ())
+                            existing = best_by_signature.get(signature)
+                            if existing is None or (
+                                bool(entry.get("canonical_winner")),
+                                float(entry.get("score") or 0.0),
+                            ) > (
+                                bool(existing.get("canonical_winner")),
+                                float(existing.get("score") or 0.0),
+                            ):
+                                best_by_signature[signature] = entry
+                        collapsed_entries = list(best_by_signature.values())
+                        canonical_entries = [
+                            entry for entry in collapsed_entries if bool(entry.get("canonical_winner"))
+                        ]
+                        if len(canonical_entries) == 1:
+                            collapsed_entries = canonical_entries
+                        elif len(collapsed_entries) > 1:
+                            ranked_by_priority = sorted(
+                                collapsed_entries,
+                                key=lambda entry: (
+                                    _direct_candidate_semantic_priority(
+                                        dict(entry.get("candidate") or {}),
+                                        operand=operand,
+                                        preferred_statement_types=preferred_statement_types,
+                                        query_years=years,
+                                    ),
+                                    float(entry.get("score") or 0.0),
+                                ),
+                                reverse=True,
+                            )
+                            top_priority = _direct_candidate_semantic_priority(
+                                dict(ranked_by_priority[0].get("candidate") or {}),
+                                operand=operand,
+                                preferred_statement_types=preferred_statement_types,
+                                query_years=years,
+                            )
+                            next_priority = _direct_candidate_semantic_priority(
+                                dict(ranked_by_priority[1].get("candidate") or {}),
+                                operand=operand,
+                                preferred_statement_types=preferred_statement_types,
+                                query_years=years,
+                            )
+                            if top_priority > next_priority:
+                                collapsed_entries = [ranked_by_priority[0]]
+                            else:
+                                ranked_collapsed = sorted(
+                                    collapsed_entries,
+                                    key=lambda entry: (
+                                        bool(entry.get("canonical_winner")),
+                                        float(entry.get("score") or 0.0),
+                                    ),
+                                    reverse=True,
+                                )
+                                top_score = float(ranked_collapsed[0].get("score") or 0.0)
+                                next_score = float(ranked_collapsed[1].get("score") or 0.0)
+                                if top_score >= next_score + 0.75:
+                                    collapsed_entries = [ranked_collapsed[0]]
+                                else:
+                                    collapsed_entries = ranked_collapsed
+                direct_candidates = [dict(entry.get("candidate") or {}) for entry in collapsed_entries]
+            else:
+                direct_candidates = [
                     candidate
                     for candidate in ranked
                     if _candidate_is_direct_grounding_candidate(
@@ -4463,10 +6105,10 @@ def _deterministic_reconcile_task(
                         constraints=constraints,
                         query_years=years,
                         operation_family=operation_family,
+                        report_scope=report_scope,
                     )
-                ),
-                None,
-            )
+                ]
+            direct_candidate = direct_candidates[0] if len(direct_candidates) == 1 else None
             if direct_candidate:
                 direct_candidate_id = str(direct_candidate.get("candidate_id") or "").strip()
                 top = [direct_candidate]
@@ -4476,18 +6118,41 @@ def _deterministic_reconcile_task(
                     if str(candidate.get("candidate_id") or "").strip() != direct_candidate_id
                 )
                 top = top[:3]
+                matched_operands.append(
+                    {
+                        "label": label,
+                        "role": str(operand.get("role") or "").strip(),
+                        "concept": str(operand.get("concept") or "").strip(),
+                        "matched": True,
+                        "candidate_ids": [str(item.get("candidate_id") or "") for item in top if str(item.get("candidate_id") or "").strip()],
+                            "reason": "matched_direct_candidate" if requires_direct_grounding else "matched_candidates",
+                        }
+                    )
             else:
-                top = ranked[:3]
-            matched_operands.append(
-                {
-                    "label": label,
-                    "role": str(operand.get("role") or "").strip(),
-                    "concept": str(operand.get("concept") or "").strip(),
-                    "matched": True,
-                    "candidate_ids": [str(item.get("candidate_id") or "") for item in top if str(item.get("candidate_id") or "").strip()],
-                    "reason": "matched_candidates",
-                }
-            )
+                top = direct_candidates[:3] if direct_candidates else ranked[:3]
+                if requires_direct_grounding:
+                    missing_operands.append(label)
+                    matched_operands.append(
+                        {
+                            "label": label,
+                            "role": str(operand.get("role") or "").strip(),
+                            "concept": str(operand.get("concept") or "").strip(),
+                            "matched": False,
+                            "candidate_ids": [str(item.get("candidate_id") or "") for item in top if str(item.get("candidate_id") or "").strip()],
+                            "reason": "ambiguous_direct_grounding_candidates" if direct_candidates else "no_direct_grounding_candidate",
+                        }
+                    )
+                else:
+                    matched_operands.append(
+                        {
+                            "label": label,
+                            "role": str(operand.get("role") or "").strip(),
+                            "concept": str(operand.get("concept") or "").strip(),
+                            "matched": True,
+                            "candidate_ids": [str(item.get("candidate_id") or "") for item in top if str(item.get("candidate_id") or "").strip()],
+                            "reason": "matched_candidates",
+                        }
+                    )
         else:
             missing_operands.append(label)
             matched_operands.append(

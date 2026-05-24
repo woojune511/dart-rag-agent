@@ -20,6 +20,7 @@ from src.ops.evaluator import (
     _extract_composite_krw_value,
     _extract_numeric_candidates,
     _normalise_math_operand_value,
+    _normalise_period_text,
     _numeric_values_equivalent,
 )
 
@@ -243,6 +244,35 @@ class CompositeKrwParsingTests(unittest.TestCase):
         self.assertEqual(len(debug["matched_operands"]), 2)
         self.assertEqual(len(debug["unmatched_operands"]), 0)
 
+    def test_operand_grounding_score_accepts_resolved_direct_operand_when_corpus_is_sparse(self) -> None:
+        runtime_evidence = []
+        contexts = []
+        operands = [
+            {
+                "operand_id": "op_001",
+                "label": "2023 매출원가",
+                "concept": "cost_of_sales",
+                "period": "2023",
+                "raw_value": "129,179,183",
+                "raw_unit": "백만원",
+                "normalized_value": 129_179_183_000_000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "20240313001451:54:1::value:3",
+                "source_anchor": "[현대자동차 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표]",
+            }
+        ]
+
+        score, debug = _compute_operand_grounding_score(
+            runtime_evidence=runtime_evidence,
+            contexts=contexts,
+            calculation_operands=operands,
+        )
+
+        self.assertEqual(score, 1.0)
+        self.assertEqual(len(debug["matched_operands"]), 1)
+        self.assertEqual(debug["matched_operands"][0]["matched_source"], "resolved_operand")
+        self.assertEqual(len(debug["unmatched_operands"]), 0)
+
     def test_operand_selection_correctness_allows_period_and_value_alias_match(self) -> None:
         expected_operands = [
             {"label": "2023년 NIM", "period": "2023", "raw_value": "1.83", "raw_unit": "%"},
@@ -267,6 +297,39 @@ class CompositeKrwParsingTests(unittest.TestCase):
             calculation_operands,
         )
         self.assertEqual(score, 1.0)
+
+    def test_operand_selection_correctness_normalises_year_suffix_in_periods(self) -> None:
+        expected_operands = [
+            {"label": "영업비용 합계", "period": "2023년", "raw_value": "8,181,823,307", "raw_unit": "천원"},
+            {"label": "종업원급여", "period": "2023년", "raw_value": "1,701,418,940", "raw_unit": "천원"},
+        ]
+        calculation_operands = [
+            {
+                "label": "2023 영업비용",
+                "period": "2023",
+                "normalized_value": 8_181_823_307_000.0,
+                "normalized_unit": "KRW",
+                "raw_value": "8,181,823,307",
+                "raw_unit": "천원",
+            },
+            {
+                "label": "2023 종업원급여",
+                "period": "2023",
+                "normalized_value": 1_701_418_940_000.0,
+                "normalized_unit": "KRW",
+                "raw_value": "1,701,418,940",
+                "raw_unit": "천원",
+            },
+        ]
+        score = _compute_operand_selection_correctness(
+            type("Example", (), {"expected_operands": expected_operands})(),
+            calculation_operands,
+        )
+        self.assertEqual(score, 1.0)
+
+    def test_normalise_period_text_collapses_year_suffix(self) -> None:
+        self.assertEqual(_normalise_period_text("2023년"), "2023")
+        self.assertEqual(_normalise_period_text("2023"), "2023")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 
@@ -14,14 +15,25 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
+    _assign_ratio_roles_to_concepts,
     _build_concept_task_constraints,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
+    _candidate_direct_match_strength,
+    _candidate_is_direct_grounding_candidate,
+    _candidate_matches_operand,
+    _candidate_matches_operand_target_year,
+    _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
+    _coerce_lookup_magnitude_value,
+    _desired_statement_types,
+    _extract_generic_operand_labels,
     _label_implies_percent_metric,
     _normalise_operand_value,
     _operand_target_years,
     _operand_row_matches_requirement,
+    _order_concept_specs_by_query,
+    _resolve_candidate_local_unit_hint,
     _requires_direct_numeric_grounding,
     _structured_cell_period_text,
 )
@@ -100,6 +112,64 @@ class OperationContractTests(unittest.TestCase):
             "prior",
         )
         self.assertEqual(period, "2021")
+
+    def test_operating_expense_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
+        normalized_value, normalized_unit = _normalise_operand_value("(8,181,823,307)", "천원")
+        coerced = _coerce_lookup_magnitude_value(
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            raw_value="(8,181,823,307)",
+            concept="operating_expense_total",
+            statement_type="income_statement",
+            row_label="영업비용 (주25)",
+            semantic_label="영업비용",
+        )
+        self.assertEqual(normalized_unit, "KRW")
+        self.assertEqual(coerced, 8_181_823_307_000.0)
+
+    def test_cost_of_sales_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
+        normalized_value, normalized_unit = _normalise_operand_value("(60,000,000)", "백만원")
+        coerced = _coerce_lookup_magnitude_value(
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            raw_value="(60,000,000)",
+            concept="cost_of_sales",
+            statement_type="income_statement",
+            row_label="매출원가",
+            semantic_label="매출원가",
+        )
+        self.assertEqual(normalized_unit, "KRW")
+        self.assertEqual(coerced, 60_000_000_000_000.0)
+
+    def test_desired_statement_types_uses_ontology_matched_concepts(self) -> None:
+        statement_types = _desired_statement_types(
+            "2023년 손익계산서에서 매출원가와 판매비와관리비를 합산해 매출액 대비 영업비용률을 계산해 줘.",
+            "",
+        )
+        self.assertIn("income_statement", statement_types)
+        self.assertIn("summary_financials", statement_types)
+
+    def test_extract_generic_operand_labels_uses_ontology_match_seeds(self) -> None:
+        labels = _extract_generic_operand_labels(
+            "2023년 손익계산서에서 매출원가와 판매비와관리비를 합산해 총 영업비용을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘."
+        )
+        self.assertIn("매출원가", labels)
+        self.assertIn("판매비와관리비", labels)
+        self.assertIn("매출액", labels)
+
+    def test_non_expense_lookup_preserves_negative_parenthesized_value(self) -> None:
+        normalized_value, normalized_unit = _normalise_operand_value("(1,234)", "천원")
+        coerced = _coerce_lookup_magnitude_value(
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            raw_value="(1,234)",
+            concept="pretax_income",
+            statement_type="income_statement",
+            row_label="법인세비용차감전순이익",
+            semantic_label="법인세비용차감전순이익",
+        )
+        self.assertEqual(normalized_unit, "KRW")
+        self.assertEqual(coerced, -1_234_000.0)
 
     def test_resolved_period_text_prefers_report_year_when_it_matches_target_year(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -283,12 +353,10 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertIn("종업원급여", operands[0]["aliases"])
         self.assertIn("인건비", operands[0]["aliases"])
+        self.assertEqual(operands[1]["binding_policy"]["prefer_value_roles"][:1], ["aggregate"])
         self.assertEqual(
-            operands[1]["binding_policy"],
-            {
-                "prefer_value_roles": ["aggregate"],
-                "prefer_aggregation_stages": ["final", "subtotal", "direct"],
-            },
+            operands[1]["binding_policy"]["prefer_aggregation_stages"][:3],
+            ["final", "subtotal", "direct"],
         )
 
     def test_generic_ratio_retrieval_queries_include_combined_numerator_denominator_terms(self) -> None:
@@ -367,6 +435,649 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["period"], "2023년")
         self.assertEqual(rows[0]["normalized_unit"], "KRW")
         self.assertEqual(rows[0]["normalized_value"], 8181823307000.0)
+
+    def test_share_of_total_ratio_assigns_roles_from_query_shape(self) -> None:
+        concept_specs = [
+            {
+                "name": "영업비용",
+                "concept": "operating_expense_total",
+                "aliases": ["영업비용 합계"],
+                "keywords": ["영업비용"],
+            },
+            {
+                "name": "종업원급여",
+                "concept": "employee_benefits_expense",
+                "aliases": ["인건비", "인건비(종업원급여)"],
+                "keywords": ["종업원급여", "인건비"],
+            },
+        ]
+
+        roles = _assign_ratio_roles_to_concepts(
+            "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+            concept_specs,
+        )
+
+        ordered_specs = _order_concept_specs_by_query(
+            concept_specs,
+            "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+        )
+        paired = sorted(
+            [
+                (spec["concept"], role)
+                for spec, role in zip(ordered_specs, roles)
+                if role
+            ]
+        )
+        self.assertEqual(
+            paired,
+            [
+                ("employee_benefits_expense", "numerator_1"),
+                ("operating_expense_total", "denominator_1"),
+            ],
+        )
+
+    def test_contextual_aggregate_match_requires_local_metric_context(self) -> None:
+        operand = {
+            "label": "영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용 합계", "영업비용 총계"],
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+            },
+            "surface_contract": {
+                "positive": ["영업비용"],
+                "negative": [],
+            },
+        }
+        broad_context_candidate = {
+            "candidate_kind": "table_row",
+            "text": "합계 | 12,602,060",
+            "metadata": {
+                "row_label": "합계",
+                "row_text": "합계 | 12,602,060",
+                "row_context_text": "공시금액 종업원급여(*) ... 합계 8,181,823,307 영업비용",
+                "local_heading": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "table_context": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+            },
+        }
+        local_metric_candidate = {
+            "candidate_kind": "table_row",
+            "text": "합계 | 8,181,823,307",
+            "metadata": {
+                "row_label": "합계",
+                "row_text": "합계 | 8,181,823,307",
+                "row_context_text": "종업원급여(*) 1,701,418,940 ... 합계 8,181,823,307",
+                "local_heading": "25. 영업비용 (연결)",
+                "table_context": "25. 영업비용 (연결)",
+                "table_summary_text": "당기 및 전기 중 영업비용의 내역은 다음과 같습니다.",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand(broad_context_candidate, operand))
+        self.assertLess(_candidate_direct_match_strength(broad_context_candidate, operand), 1.0)
+        self.assertTrue(_candidate_matches_operand(local_metric_candidate, operand))
+        self.assertGreaterEqual(_candidate_direct_match_strength(local_metric_candidate, operand), 1.0)
+
+    def test_structured_value_does_not_match_only_broad_table_context(self) -> None:
+        operand = {
+            "label": "영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용 합계", "영업비용 총계"],
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+            },
+            "surface_contract": {
+                "positive": ["영업비용"],
+                "negative": [],
+            },
+        }
+        wrong_structured_value = {
+            "candidate_kind": "structured_value",
+            "text": "25. 영업비용 (연결) 종업원급여(*) 1,492,548,615 합계 6,915,414,298",
+            "metadata": {
+                "row_label": "종업원급여(*)",
+                "semantic_label": "종업원급여",
+                "local_heading": "25. 영업비용 (연결)",
+                "table_context": "25. 영업비용 (연결)",
+                "row_context_text": "종업원급여(*) 1,492,548,615 ... 합계 6,915,414,298 영업비용",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "value_role": "detail",
+                "aggregation_stage": "direct",
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand(wrong_structured_value, operand))
+
+    def test_candidate_row_block_signature_tracks_local_subtable_header(self) -> None:
+        row_context_text = "\n".join(
+            [
+                "| 주식결제형 주식기준보상 | 현금결제형 주식기준보상 | 양도제한조건부 주식",
+                "종업원 주식기준보상거래로부터의 비용 | 85,523 | 55,935 | 49,909",
+                "| 공시금액",
+                "법정적립금(*) | 8,240,670",
+                "합계 | 24,544,359,051",
+                "| 공시금액",
+                "종업원급여(*) | 1,701,418,940",
+                "합계 | 8,181,823,307",
+            ]
+        )
+        reserve_candidate = {
+            "metadata": {
+                "table_source_id": "notes_table",
+                "row_index": 4,
+                "row_text": "합계 | 24,544,359,051",
+                "row_context_text": row_context_text,
+            }
+        }
+        operating_expense_candidate = {
+            "metadata": {
+                "table_source_id": "notes_table",
+                "row_index": 7,
+                "row_text": "합계 | 8,181,823,307",
+                "row_context_text": row_context_text,
+            }
+        }
+
+        self.assertNotEqual(
+            _candidate_row_block_signature(reserve_candidate),
+            _candidate_row_block_signature(operating_expense_candidate),
+        )
+
+    def test_candidate_target_year_respects_prior_period_focus(self) -> None:
+        current_operand = {
+            "label": "2023년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "role": "current_period",
+            "period_hint": "2023",
+        }
+        prior_operand = {
+            "label": "2022년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "role": "prior_period",
+            "period_hint": "2022",
+        }
+        prior_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "year": 2023,
+                "period_focus": "prior",
+                "period_labels": ["전기"],
+            },
+        }
+        current_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "year": 2023,
+                "period_focus": "current",
+                "period_labels": ["당기"],
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand_target_year(prior_candidate, current_operand, [2023]))
+        self.assertTrue(_candidate_matches_operand_target_year(current_candidate, current_operand, [2023]))
+        self.assertTrue(_candidate_matches_operand_target_year(prior_candidate, prior_operand, [2023]))
+
+    def test_unknown_separate_note_candidate_is_rejected_for_consolidated_lookup(self) -> None:
+        operand = {
+            "label": "2023년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "aliases": ["종업원급여", "인건비"],
+            "role": "current_period",
+            "period_hint": "2023",
+        }
+        separate_note_candidate = {
+            "candidate_kind": "structured_row",
+            "text": "종업원급여(*) | 594,106,898",
+            "metadata": {
+                "row_label": "종업원급여(*)",
+                "semantic_label": "종업원급여",
+                "statement_type": "notes",
+                "consolidation_scope": "unknown",
+                "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                "table_context": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                "period_focus": "current",
+                "period_labels": ["당기"],
+                "year": 2023,
+                "structured_cells": [
+                    {"column_headers": ["공시금액"], "value_text": "594,106,898", "unit_hint": "천원"}
+                ],
+            },
+        }
+
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                separate_note_candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_unknown_section_four_financial_statement_candidate_is_inferred_as_separate(self) -> None:
+        operand = {
+            "label": "영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용", "영업비용 합계"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        separate_candidate = {
+            "candidate_kind": "structured_value",
+            "text": "영업비용 (주24) | (3,896,593,637,516)",
+            "metadata": {
+                "row_label": "영업비용 (주24)",
+                "semantic_label": "영업비용 (주24)",
+                "statement_type": "income_statement",
+                "consolidation_scope": "unknown",
+                "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
+                "period_focus": "current",
+                "period_labels": ["제 25 기"],
+                "year": 2023,
+                "structured_cells": [
+                    {"column_headers": ["제 25 기"], "value_text": "(3,896,593,637,516)", "unit_hint": "원"}
+                ],
+            },
+        }
+
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                separate_candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_prior_table_row_candidate_is_rejected_for_current_lookup(self) -> None:
+        operand = {
+            "label": "2023년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "aliases": ["종업원급여", "종업원급여(*)", "인건비"],
+            "role": "numerator_1",
+            "period_hint": "2023",
+            "binding_policy": {
+                "prefer_value_roles": ["detail", "aggregate"],
+                "prefer_aggregation_stages": ["direct", "final", "subtotal", "none"],
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "table_row",
+            "text": "종업원급여(*) | 1,492,548,615",
+            "metadata": {
+                "row_label": "종업원급여(*)",
+                "row_text": "종업원급여(*) | 1,492,548,615",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "table_context": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "period_focus": "prior",
+                "year": 2023,
+            },
+        }
+
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_table_row_broad_row_labels_do_not_create_direct_match(self) -> None:
+        operand = {
+            "label": "2023년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "aliases": ["종업원급여", "종업원급여(*)", "인건비"],
+            "role": "numerator_1",
+            "period_hint": "2023",
+            "binding_policy": {
+                "prefer_value_roles": ["detail", "aggregate"],
+                "prefer_aggregation_stages": ["direct", "final", "subtotal", "none"],
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "table_row",
+            "text": "합계 | 6,915,414,298",
+            "metadata": {
+                "row_label": "합계",
+                "aggregate_label": "합계",
+                "row_text": "합계 | 6,915,414,298",
+                "table_row_labels_text": "\n".join(["공시금액", "종업원급여(*)", "기타", "합계"]),
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "table_context": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "period_focus": "current",
+                "year": 2023,
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertLess(_candidate_direct_match_strength(candidate, operand), 1.0)
+
+    def test_lookup_direct_acceptance_rejects_raw_table_row_when_structured_records_exist(self) -> None:
+        operand = {
+            "label": "영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용", "영업비용 합계", "영업비용 총계"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "table_row",
+            "text": "영업비용 (주25) | (8,181,823,306,977)",
+            "metadata": {
+                "row_label": "영업비용 (주25)",
+                "row_text": "영업비용 (주25) | (8,181,823,306,977)",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["제 25 기"],
+                "year": 2023,
+                "table_row_records_json": "[{\"row_id\":\"0:0\",\"row_label\":\"영업비용 (주25)\",\"row_headers\":[\"영업비용 (주25)\"]}]",
+                "table_value_records_json": "[{\"value_id\":\"x\",\"row_label\":\"영업비용 (주25)\",\"semantic_label\":\"영업비용 (주25)\",\"semantic_aliases\":[\"영업비용 (주25)\"]}]",
+            },
+        }
+
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_lookup_direct_acceptance_allows_raw_table_row_when_no_matching_structured_sibling_exists(self) -> None:
+        operand = {
+            "label": "2023년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "aliases": ["종업원급여", "종업원급여(*)", "인건비"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "table_row",
+            "text": "종업원급여(*) | 1,701,418,940",
+            "metadata": {
+                "row_label": "종업원급여(*)",
+                "row_text": "종업원급여(*) | 1,701,418,940",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_focus": "unknown",
+                "period_labels": [],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "table_row_records_json": "[{\"row_id\":\"0:0\",\"row_label\":\"무위험이자율\",\"row_headers\":[\"무위험이자율\"]}]",
+                "table_value_records_json": "[{\"value_id\":\"x\",\"row_label\":\"무위험이자율\",\"semantic_label\":\"무위험이자율\",\"semantic_aliases\":[\"무위험이자율\"]}]",
+            },
+        }
+
+        self.assertTrue(
+            _candidate_is_direct_grounding_candidate(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_lookup_direct_match_strips_note_reference_parentheticals(self) -> None:
+        operand = {
+            "label": "영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용", "영업비용 합계", "영업비용 총계"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "영업비용 (주25) | (8,181,823,306,977)",
+            "metadata": {
+                "row_label": "영업비용 (주25)",
+                "semantic_label": "영업비용 (주25)",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["제 25 기", "제 24 기"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "structured_cells": [
+                    {"column_headers": ["제 25 기"], "value_text": "(8,181,823,306,977)", "unit_hint": "원"},
+                    {"column_headers": ["제 24 기"], "value_text": "(6,915,414,298,267)", "unit_hint": "원"},
+                ],
+            },
+        }
+
+        self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
+        self.assertTrue(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell={"column_headers": ["제 25 기"], "value_text": "(8,181,823,306,977)", "unit_hint": "원", "_report_year": 2023},
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_operand_text_match_ignores_leading_year_prefix_for_lookup_labels(self) -> None:
+        operand = {
+            "label": "2023년 영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용", "영업비용 합계", "영업비용 총계"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "영업비용 (주25) | (8,181,823,306,977)",
+            "metadata": {
+                "row_label": "영업비용 (주25)",
+                "semantic_label": "영업비용 (주25)",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["제 25 기", "제 24 기"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "structured_cells": [
+                    {"column_headers": ["제 25 기"], "value_text": "(8,181,823,306,977)", "unit_hint": "원"},
+                    {"column_headers": ["제 24 기"], "value_text": "(6,915,414,298,267)", "unit_hint": "원"},
+                ],
+            },
+        }
+
+        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
+
+    def test_operand_text_match_ignores_leading_year_prefix_for_note_rows(self) -> None:
+        operand = {
+            "label": "2023년 종업원급여",
+            "concept": "employee_benefits_expense",
+            "aliases": ["종업원급여", "종업원급여(*)", "인건비"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "종업원급여(*) | 1,701,418,940",
+            "metadata": {
+                "row_label": "종업원급여(*)",
+                "semantic_label": "종업원급여(*)",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "structured_cells": [
+                    {"column_headers": ["공시금액"], "value_text": "1,701,418,940", "unit_hint": "천원"},
+                ],
+            },
+        }
+
+        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
+
+    def test_lookup_direct_acceptance_rejects_broad_partial_related_party_label(self) -> None:
+        operand = {
+            "label": "영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용", "영업비용 합계", "영업비용 총계"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "영업비용 등 | 11,781,510",
+            "metadata": {
+                "row_label": "영업비용 등",
+                "semantic_label": "영업비용 등",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "structured_cells": [
+                    {
+                        "column_headers": ["전체 특수관계자", "특수관계자", "관계기업"],
+                        "value_text": "11,781,510",
+                        "unit_hint": "천원",
+                    }
+                ],
+            },
+        }
+
+        self.assertLess(_candidate_direct_match_strength(candidate, operand), 2.0)
+        self.assertFalse(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell={
+                    "column_headers": ["전체 특수관계자", "특수관계자", "관계기업"],
+                    "value_text": "11,781,510",
+                    "unit_hint": "천원",
+                    "_report_year": 2023,
+                },
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_lookup_direct_acceptance_rejects_mda_raw_table_row_for_canonical_statement_operand(self) -> None:
+        operand = {
+            "label": "2023년 영업비용",
+            "concept": "operating_expense_total",
+            "aliases": ["영업비용", "영업비용 합계", "영업비용 총계"],
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "table_row",
+            "text": "영업비용 | 8,181.8 | 6,915.4 | 18.3% | 100.0%",
+            "metadata": {
+                "row_label": "영업비용",
+                "row_text": "영업비용 | 8,181.8 | 6,915.4 | 18.3% | 100.0%",
+                "statement_type": "mda",
+                "consolidation_scope": "unknown",
+                "period_focus": "multi_period",
+                "period_labels": ["당기", "2023", "2022"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+            },
+        }
+
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_resolve_candidate_local_unit_hint_uses_nearest_report_unit(self) -> None:
+        candidate = {
+            "metadata": {
+                "chunk_uid": "20240318000844:240:156",
+                "year": 2023,
+                "row_label": "종업원급여(*)",
+            }
+        }
+        report_html = """
+        <P>당기</P>
+        <P>(단위 : 천원)</P>
+        <P USERMARK=\"F-GL11\">종업원급여(*)</P>
+        <P USERMARK=\"F-GL11\">1,701,418,940</P>
+        """
+        with patch("src.agent.financial_graph_helpers._resolve_report_path_from_receipt", return_value="dummy.html"), patch(
+            "src.agent.financial_graph_helpers._cached_report_text",
+            return_value=report_html,
+        ):
+            self.assertEqual(
+                _resolve_candidate_local_unit_hint(candidate, "1,701,418,940"),
+                "천원",
+            )
 
     def test_parenthesized_won_value_normalizes_as_negative_krw(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(640,623,697,250)", "원")

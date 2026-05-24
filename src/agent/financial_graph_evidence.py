@@ -17,6 +17,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
+from src.agent.financial_graph_helpers import _report_scope_source_receipts
 from src.agent.financial_graph_models import CompressionOutput, EvidenceExtraction, EvidenceItem, FinancialAgentState, NumericExtraction, ValidationOutput
 from src.config import get_financial_ontology
 
@@ -165,6 +166,8 @@ class FinancialAgentEvidenceMixin:
             years = [scope_year, *years] if years else [scope_year]
         scope_report_type = str(report_scope.get("report_type") or "").strip()
         scope_rcept_no = str(report_scope.get("rcept_no") or "").strip()
+        scope_source_receipts = _report_scope_source_receipts(report_scope)
+        has_multi_source_scope = len(scope_source_receipts) > 1
         scope_consolidation = str(report_scope.get("consolidation") or "").strip()
         section_filter = state.get("section_filter")
         intent = state.get("intent") or state.get("query_type", "qa")
@@ -180,7 +183,12 @@ class FinancialAgentEvidenceMixin:
                 conditions.append({"company": {"$in": companies}})
         if years:
             int_years = [int(year) for year in years]
-            if intent in {"comparison", "trend"} and len(int_years) > 1:
+            if has_multi_source_scope:
+                logger.info(
+                    "[retrieve] multi-report source scope detected; skipping strict metadata year filter and using source receipts only: %s",
+                    scope_source_receipts,
+                )
+            elif intent in {"comparison", "trend"} and len(int_years) > 1:
                 logger.info(
                     "[retrieve] multi-period %s query detected; skipping strict metadata year filter and keeping years in query text only: %s",
                     intent,
@@ -194,6 +202,11 @@ class FinancialAgentEvidenceMixin:
             conditions.append({"report_type": scope_report_type})
         if scope_rcept_no:
             conditions.append({"rcept_no": scope_rcept_no})
+        elif scope_source_receipts:
+            if len(scope_source_receipts) == 1:
+                conditions.append({"rcept_no": scope_source_receipts[0]})
+            else:
+                conditions.append({"rcept_no": {"$in": scope_source_receipts}})
 
         if not conditions:
             where_filter = None

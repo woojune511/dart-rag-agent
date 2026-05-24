@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
+from src.agent.financial_graph_helpers import _coerce_lookup_magnitude_value
 from src.agent.financial_graph_models import FinancialAgentState, ReconciliationCandidateRerank, ReflectionQueryPlan
 from src.config import get_financial_ontology
 from src.schema import ArtifactKind, TaskKind, TaskStatus
@@ -48,6 +49,13 @@ class FinancialAgentReconciliationMixin:
             )
             if _label_implies_percent_metric(label_surfaces):
                 return "%"
+        candidate_metadata = dict(candidate.get("metadata") or {})
+        statement_type = str(candidate_metadata.get("statement_type") or "").strip().lower()
+        current_unit = str(raw_unit or "").strip()
+        if current_unit in {"", "원", "KRW"}:
+            resolved_local_unit = _resolve_candidate_local_unit_hint(candidate, raw_value)
+            if resolved_local_unit and (current_unit == "" or statement_type == "notes"):
+                return resolved_local_unit
         return raw_unit
 
     def _fallback_period_text_for_operand(self, operand: Dict[str, Any], query_years: List[int]) -> str:
@@ -112,6 +120,7 @@ class FinancialAgentReconciliationMixin:
         constraints: Dict[str, Any],
         query_years: List[int],
         period_focus: str,
+        report_scope: Optional[Dict[str, Any]] = None,
     ) -> tuple[float, str]:
         candidate_score = _score_operand_candidate(
             candidate,
@@ -119,6 +128,7 @@ class FinancialAgentReconciliationMixin:
             preferred_statement_types=preferred_statement_types,
             constraints=constraints,
             query_years=query_years,
+            report_scope=report_scope,
         )
         cell_score = _score_structured_cell(
             cell,
@@ -173,6 +183,15 @@ class FinancialAgentReconciliationMixin:
             selected_cell=selected_cell,
         )
         normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+        normalized_value = _coerce_lookup_magnitude_value(
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            raw_value=raw_value,
+            concept=str(operand.get("concept") or ""),
+            statement_type=str(metadata.get("statement_type") or ""),
+            row_label=str(metadata.get("row_label") or ""),
+            semantic_label=str(metadata.get("semantic_label") or ""),
+        )
         if normalized_value is None:
             return None
         period = self._resolved_period_text_for_operand(
@@ -218,6 +237,64 @@ class FinancialAgentReconciliationMixin:
             selected_cell=selected_cell,
         )
 
+    def _repair_note_operand_units_from_same_block(
+        self,
+        operand_rows: List[Dict[str, Any]],
+        candidate_map: Dict[str, Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        if len(operand_rows) < 2:
+            return operand_rows
+
+        ambiguous_units = {"", "원", "KRW"}
+        rows = [dict(row) for row in operand_rows]
+        block_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+        for row in rows:
+            if str(row.get("statement_type") or "").strip().lower() != "notes":
+                continue
+            evidence_id = str(row.get("evidence_id") or "").strip()
+            candidate = candidate_map.get(evidence_id) or {}
+            block_key = _candidate_row_block_signature(candidate)
+            if not block_key:
+                continue
+            block_groups.setdefault(block_key, []).append(row)
+
+        for block_rows in block_groups.values():
+            resolved_units = list(
+                dict.fromkeys(
+                    str(row.get("raw_unit") or "").strip()
+                    for row in block_rows
+                    if str(row.get("raw_unit") or "").strip() not in ambiguous_units
+                )
+            )
+            if len(resolved_units) != 1:
+                continue
+            inherited_unit = resolved_units[0]
+            for row in block_rows:
+                current_unit = str(row.get("raw_unit") or "").strip()
+                if current_unit not in ambiguous_units:
+                    continue
+                normalized_value, normalized_unit = _normalise_operand_value(
+                    str(row.get("raw_value") or "").strip(),
+                    inherited_unit,
+                )
+                normalized_value = _coerce_lookup_magnitude_value(
+                    normalized_value=normalized_value,
+                    normalized_unit=normalized_unit,
+                    raw_value=str(row.get("raw_value") or "").strip(),
+                    concept=str(row.get("matched_operand_concept") or ""),
+                    statement_type=str(row.get("statement_type") or ""),
+                    row_label=str(row.get("matched_operand_label") or ""),
+                    semantic_label=str(row.get("matched_operand_label") or ""),
+                )
+                if normalized_value is None:
+                    continue
+                row["raw_unit"] = inherited_unit
+                row["normalized_value"] = normalized_value
+                row["normalized_unit"] = normalized_unit
+
+        return rows
+
     def _extract_structured_period_pair_rows(
         self,
         *,
@@ -229,6 +306,7 @@ class FinancialAgentReconciliationMixin:
         query_years: List[int],
         start_index: int,
         operation_family: str,
+        report_scope: Optional[Dict[str, Any]] = None,
     ) -> tuple[List[Dict[str, Any]], set[tuple[str, str]]]:
         period_focus = str(constraints.get("period_focus") or "unknown").strip()
         grouped: Dict[str, Dict[str, Dict[str, Any]]] = {}
@@ -298,6 +376,7 @@ class FinancialAgentReconciliationMixin:
                         query_years=query_years,
                         operation_family=operation_family,
                         selected_cell=cell,
+                        report_scope=report_scope,
                     ):
                         current_score, current_period = self._pair_candidate_period_score(
                             candidate=candidate,
@@ -307,6 +386,7 @@ class FinancialAgentReconciliationMixin:
                             constraints=constraints,
                             query_years=query_years,
                             period_focus=period_focus,
+                            report_scope=report_scope,
                         )
                         accepted_current_entries.append((cell, current_period, current_score))
                         current_entries.append((candidate, cell, current_period, current_score))
@@ -317,6 +397,7 @@ class FinancialAgentReconciliationMixin:
                         query_years=query_years,
                         operation_family=operation_family,
                         selected_cell=cell,
+                        report_scope=report_scope,
                     ):
                         prior_score, prior_period = self._pair_candidate_period_score(
                             candidate=candidate,
@@ -326,6 +407,7 @@ class FinancialAgentReconciliationMixin:
                             constraints=constraints,
                             query_years=query_years,
                             period_focus=period_focus,
+                            report_scope=report_scope,
                         )
                         accepted_prior_entries.append((cell, prior_period, prior_score))
                         prior_entries.append((candidate, cell, prior_period, prior_score))
@@ -655,6 +737,7 @@ candidate options:
             if str(item).strip()
         ]
         constraints = dict(active_subtask.get("constraints") or {})
+        report_scope = dict(state.get("report_scope") or {})
 
         updated = dict(result or {})
         notes = [str(item).strip() for item in (updated.get("notes") or []) if str(item).strip()]
@@ -700,6 +783,7 @@ candidate options:
                         preferred_statement_types=preferred_statement_types,
                         constraints=constraints,
                         query_years=years,
+                        report_scope=report_scope,
                     ),
                 }
                 for candidate in matches
@@ -744,6 +828,7 @@ candidate options:
         }
         constraints = dict(active_subtask.get("constraints") or {})
         query_years = _query_years_from_state(state)
+        report_scope = dict(state.get("report_scope") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         candidate_map = {
             str(candidate.get("candidate_id") or "").strip(): candidate
@@ -767,6 +852,7 @@ candidate options:
                     operand=operand,
                     constraints=constraints,
                     query_years=query_years,
+                    report_scope=report_scope,
                 ):
                     continue
                 evidence_id = f"recon::{candidate_id}"
@@ -822,8 +908,22 @@ candidate options:
             if str(item).strip()
         ]
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        if operation_family == "ratio":
+            required_operands = sorted(
+                required_operands,
+                key=lambda item: (
+                    0
+                    if str(item.get("role") or "").strip().startswith("numerator")
+                    else 1
+                    if str(item.get("role") or "").strip().startswith("denominator")
+                    else 2,
+                    str(item.get("role") or "").strip(),
+                    str(item.get("label") or "").strip(),
+                ),
+            )
         period_focus = str(constraints.get("period_focus") or "unknown").strip()
         query_years = _query_years_from_state(state)
+        report_scope = dict(state.get("report_scope") or {})
         candidates = self._build_reconciliation_candidates(state)
         candidate_map = {
             str(candidate.get("candidate_id") or "").strip(): candidate
@@ -850,6 +950,7 @@ candidate options:
             query_years=query_years,
             start_index=1,
             operation_family=operation_family,
+            report_scope=report_scope,
         )
         operand_rows.extend(paired_rows)
         next_index = len(operand_rows) + 1
@@ -889,6 +990,7 @@ candidate options:
                         preferred_statement_types=preferred_statement_types,
                         constraints=constraints,
                         query_years=query_years,
+                        report_scope=report_scope,
                     ),
                     reverse=True,
                 )
@@ -915,11 +1017,114 @@ candidate options:
                         query_years=query_years,
                         operation_family=operation_family,
                         selected_cell=current_cell,
+                        report_scope=report_scope,
                     ):
                         continue
                     candidate = current_candidate
                     selected_cell = current_cell
                     break
+            if (not candidate or not selected_cell) and operation_family == "ratio":
+                operand_role = str(operand.get("role") or "").strip()
+                if operand_role.startswith("denominator"):
+                    counterpart_prefix = "numerator"
+                elif operand_role.startswith("numerator"):
+                    counterpart_prefix = "denominator"
+                else:
+                    counterpart_prefix = ""
+                same_table_ids = {
+                    str(row.get("table_source_id") or "").strip()
+                    for row in operand_rows
+                    if str(row.get("table_source_id") or "").strip()
+                    and (
+                        not counterpart_prefix
+                        or str(row.get("matched_operand_role") or "").strip().startswith(counterpart_prefix)
+                    )
+                }
+                same_block_keys = {
+                    _candidate_row_block_signature(candidate_map.get(str(row.get("evidence_id") or "").strip()) or {})
+                    for row in operand_rows
+                    if str(row.get("table_source_id") or "").strip()
+                    and (
+                        not counterpart_prefix
+                        or str(row.get("matched_operand_role") or "").strip().startswith(counterpart_prefix)
+                    )
+                }
+                same_block_keys = {key for key in same_block_keys if key}
+                if same_table_ids:
+                    same_table_candidates: List[Dict[str, Any]] = []
+                    for current_candidate in candidate_map.values():
+                        if str(current_candidate.get("candidate_kind") or "") not in {
+                            "structured_value",
+                            "structured_row",
+                            "structured_column_value",
+                            "table_row",
+                            "evidence_row",
+                        }:
+                            continue
+                        current_metadata = dict(current_candidate.get("metadata") or {})
+                        table_source_id = str(current_metadata.get("table_source_id") or "").strip()
+                        if table_source_id and table_source_id in same_table_ids:
+                            if same_block_keys:
+                                candidate_block_key = _candidate_row_block_signature(current_candidate)
+                                if candidate_block_key and candidate_block_key not in same_block_keys:
+                                    continue
+                            same_table_candidates.append(current_candidate)
+                    same_table_candidates.sort(
+                        key=lambda current: (
+                            6.0 if same_block_keys and _candidate_row_block_signature(current) in same_block_keys else 0.0
+                        ) + (
+                            3.0
+                            + _score_operand_candidate(
+                                current,
+                                operand=operand,
+                                preferred_statement_types=preferred_statement_types,
+                                constraints=constraints,
+                                query_years=query_years,
+                                report_scope=report_scope,
+                            )
+                        ),
+                        reverse=True,
+                    )
+                    for current_candidate in same_table_candidates:
+                        current_metadata = dict(current_candidate.get("metadata") or {})
+                        cells = [dict(cell) for cell in (current_metadata.get("structured_cells") or []) if dict(cell)]
+                        if not cells and str(current_candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
+                            cells = _parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
+                        if not cells:
+                            continue
+                        cells = [{**cell, "_report_year": current_metadata.get("year")} for cell in cells]
+                        current_cell = _select_structured_cell(
+                            cells,
+                            operand=operand,
+                            query_years=query_years,
+                            period_focus=_operand_period_focus(operand, period_focus),
+                        )
+                        if not current_cell:
+                            continue
+                        direct_accept = _candidate_satisfies_direct_acceptance_contract(
+                            current_candidate,
+                            operand=operand,
+                            constraints=constraints,
+                            query_years=query_years,
+                            operation_family=operation_family,
+                            selected_cell=current_cell,
+                            report_scope=report_scope,
+                        )
+                        if not direct_accept:
+                            current_metadata = dict(current_candidate.get("metadata") or {})
+                            candidate_value_role = str(current_metadata.get("value_role") or "").strip().lower()
+                            candidate_aggregation_stage = str(current_metadata.get("aggregation_stage") or "").strip().lower()
+                            relaxed_same_table_ratio_accept = (
+                                operand_role.startswith("denominator")
+                                and _candidate_has_numeric_value_signal(current_candidate)
+                                and candidate_value_role == "aggregate"
+                                and candidate_aggregation_stage in {"final", "subtotal", "direct"}
+                            )
+                            if not relaxed_same_table_ratio_accept:
+                                continue
+                        candidate = current_candidate
+                        selected_cell = current_cell
+                        break
             if not candidate or not selected_cell:
                 continue
             operand_row = self._build_operand_row_from_candidate_cell(
@@ -935,7 +1140,7 @@ candidate options:
             operand_rows.append(operand_row)
             next_index += 1
 
-        return operand_rows
+        return self._repair_note_operand_units_from_same_block(operand_rows, candidate_map)
 
     def _reconcile_retrieved_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Match required operands to the best available evidence candidates."""
@@ -958,12 +1163,17 @@ candidate options:
             candidates=candidates,
             years=years,
             reconciliation_retry_count=retry_count,
+            report_scope=report_scope,
         )
         result = self._rerank_reconciliation_matches_with_llm(
             state,
             result,
             candidates,
             years,
+        )
+        result["retry_strategy"] = self._select_retry_strategy_for_reconciliation(
+            state,
+            result,
         )
         status = str(result.get("status") or "ready")
         logger.info(
@@ -1013,6 +1223,7 @@ candidate options:
         if status == "retry_retrieval":
             updates.update(
                 {
+                    "retry_strategy": str(result.get("retry_strategy") or "retry_retrieval"),
                     "retry_queries": list(result.get("retry_queries") or []),
                     "retry_reason": "missing_operands",
                     "reconciliation_retry_count": retry_count + 1,
@@ -1030,13 +1241,30 @@ candidate options:
                     "answer": answer,
                     "compressed_answer": answer,
                     "draft_points": [answer],
+                    "retry_strategy": str(result.get("retry_strategy") or "stop_insufficient"),
                     "retry_queries": [],
                     "retry_reason": "insufficient_operands",
                 }
             )
         else:
-            updates.update({"retry_queries": [], "retry_reason": ""})
+            updates.update({"retry_strategy": "", "retry_queries": [], "retry_reason": ""})
         return updates
+
+    def _select_retry_strategy_for_reconciliation(
+        self,
+        state: FinancialAgentState,
+        result: Dict[str, Any],
+    ) -> str:
+        status = _normalise_spaces(str(result.get("status") or "")).lower()
+        if status == "ready":
+            return ""
+        if self._task_prefers_sibling_output_synthesis(state):
+            dependency_rows = self._build_dependency_operand_rows(state)
+            if dependency_rows:
+                return "synthesize_from_task_outputs"
+        if status == "insufficient_operands":
+            return "stop_insufficient"
+        return "retry_retrieval"
 
     def _apply_strict_filter(self, docs, predicate):
         filtered = [item for item in docs if predicate(item[0])]
@@ -1213,6 +1441,11 @@ candidate options:
         retry_objective: str = "generic_retry",
         explanation: str = "",
     ) -> Dict[str, Any]:
+        retry_strategy = "retry_retrieval"
+        if self._task_prefers_sibling_output_synthesis(state) and self._build_dependency_operand_rows(state):
+            retry_strategy = "synthesize_from_task_outputs"
+        elif not operands and not (state.get("missing_info") or []):
+            retry_strategy = "stop_insufficient"
         missing_info = [
             str(item).strip()
             for item in (state.get("missing_info") or [])
@@ -1229,6 +1462,7 @@ candidate options:
         return {
             "status": "ready" if subqueries else "skip",
             "retry_objective": retry_objective if subqueries else "generic_retry",
+            "retry_strategy": retry_strategy,
             "missing_info": missing_info,
             "subqueries": subqueries,
             "preferred_sections": preferred_sections,
@@ -1414,6 +1648,10 @@ candidate options:
 
 규칙:
 - status는 재검색이 의미 있으면 ready, 아니면 skip.
+- retry_strategy는 아래 셋 중 하나만 고르세요.
+  - retry_retrieval: 재검색을 더 시도한다
+  - synthesize_from_task_outputs: 이미 확보한 sibling task output만으로 계산을 시도하고, broad retrieval fallback은 피한다
+  - stop_insufficient: 현재 근거로는 더 진행해도 의미가 낮다
 - retry_objective는 이번 재검색의 목적만 고르세요.
   - find_missing_values: 필요한 값 일부가 빠졌음
   - find_direct_row: 질문이 요구하는 직접적인 row/요약값을 찾고 싶음
@@ -1429,6 +1667,7 @@ candidate options:
 - preferred_sections는 재검색에서 특히 유력한 섹션 힌트만 짧게 넣으세요.
 - 기존 seed sections에 이미 충분히 있는 정보를 그대로 반복하지 말고, 부족한 부분을 겨냥하세요.
 - 하드 필터는 코드가 따로 처리하므로, 기업/연도는 query text에 포함하되 너무 장황하게 쓰지 마세요.
+- derived task가 sibling lookup output에 의존하는 상황이면 retry_retrieval보다 synthesize_from_task_outputs를 우선 검토하세요.
 
 질문: {query}
 의도: {intent}
@@ -1493,6 +1732,10 @@ Ontology Context:
                 for item in (plan_data.get("preferred_sections") or [])
                 if _normalise_spaces(str(item))
             ]
+            retry_strategy = _normalise_spaces(str(plan_data.get("retry_strategy") or "")).lower()
+            if retry_strategy not in {"retry_retrieval", "synthesize_from_task_outputs", "stop_insufficient"}:
+                retry_strategy = str(heuristic_plan.get("retry_strategy") or "retry_retrieval")
+            plan_data["retry_strategy"] = retry_strategy
             if not plan_data["missing_info"]:
                 plan_data["missing_info"] = missing_info
             if not plan_data["preferred_sections"]:

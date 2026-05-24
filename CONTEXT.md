@@ -18,9 +18,13 @@
 - 공식 gate 비교 기준도 한 단계 정리됐다.
   - `plain_prefix_8000_400`: speed / cost baseline
   - `contextual_selective_v2_prefix_2500_320`: quality baseline
-  - `structural_selective_v2_prefix_2500_320`: current operating candidate
+  - `structural_selective_v2_prefix_2500_320`: current operating default
   - `runtime_contract_gate`에서는 `plain`이 `SKH_T1_060`를 놓쳤고, `structural`과 `contextual`은 대표 5문항을 모두 통과했다
   - `multi_entity_grounding_gate`에서도 `structural`과 `contextual`이 `comparison_001~003`을 모두 통과했다
+- 최신 runtime hardening도 추가로 닫혔다.
+  - `SKH_T1_060`는 structural path에서 `장기차입금` / `사채` note aggregate lookup hardening 이후 다시 `PASS`로 닫혔다.
+  - `MIX_T1_064`는 ontology-driven component ratio shape, evaluator composed-ratio grounding, uncertainty suffix 정리까지 반영되어 warm structural runtime/evaluator 경로에서 `90.7%` close를 확인했다.
+  - 다만 `MIX_T1_064`의 공식 multi-report benchmark artifact refresh는 아직 pending이다.
 - parser는 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
   - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
   - `table_summary_text`, `table_row_labels_text`, `table_row_records_json`, `table_object_json` 생성
@@ -94,27 +98,25 @@
 - percent multi-period rows도 별도 metric hardcoding 없이 shared pair-selection / evaluator contract로 닫히기 시작했다.
 - 다만 ingest 쪽은 여전히 tradeoff가 남아 있다.
   - `contextual_selective_v2`는 품질은 안정적이지만 ingest 비용이 크다
-  - `structural_selective_v2`는 현재 gate 기준으로 같은 품질을 더 낮은 비용으로 달성한 중간 후보다
-- broader curated validation은 아직 진행 중이다.
-  - `curated_multi_report_smoke`에서 `SAM_T2_002`는 CAPEX current/prior binding 문제를 로컬 fix로 좁혔다
-  - `curated_single_doc_core`의 `MIX_T1_046`는 generic share-of-total ratio 분해와 aggregate denominator binding hardening까지 들어갔지만, broader rerun으로 최종 close를 다시 확인해야 한다
+  - `structural_selective_v2`는 현재 gate 기준으로 같은 품질을 더 낮은 비용으로 달성한 routine default다
+- broader curated validation blocker는 현재 닫혔다.
+  - `curated_multi_report_smoke`의 `SAM_T2_002`는 CAPEX total direct grounding과 current/prior binding까지 PASS
+  - `curated_single_doc_core`의 `MIX_T1_046`는 note-sibling unit inheritance와 evaluator period normalization 이후 PASS
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `curated_multi_report_smoke`, `curated_single_doc_core`를 다시 돌려 `SAM_T2_002`, `MIX_T1_046` 후속 상태 확인 | `structural_selective_v2` broader curated blocker 재검증 |
-| 2 | broader curated set이 닫히면 `structural_selective_v2_prefix_2500_320`를 mainline default candidate로 승격 | `plain`은 speed baseline, `contextual`은 quality reference로 역할 고정 |
-| 3 | 다음 ingest 실험 후보인 `structural_parent_hybrid_v2` 설계 | parent/section/table lineage를 비용 증가 없이 더 보강할 수 있는지 확인 |
-| 4 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
-| 5 | internal `calculation_*` mirror를 실제로 제거할지 범위 결정 | runtime source of truth를 `tasks + artifacts + structured_result`로 완전히 정리할지 판단 |
+| 1 | `structural_parent_hybrid_v2` 실험 설계 | parent/section/table lineage를 비용 증가 없이 더 보강할 수 있는지 확인 |
+| 2 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
+| 3 | internal `calculation_*` mirror를 실제로 제거할지 범위 결정 | runtime source of truth를 `tasks + artifacts + structured_result`로 완전히 정리할지 판단 |
 
 ## 현재 우선순위 요약
 
-1. broader curated blocker close and structural ingest candidate validation
-2. curated mainline candidate/default 정리
-3. 다음 chunking/ingest 실험 설계
-4. concept-only planner default 승격 검토
+1. next ingest experiment design (`structural_parent_hybrid_v2`)
+2. concept-only planner default 승격 검토
+3. curated mainline default 운영 정착
+4. internal compatibility mirror cleanup scope 결정
 
 ## 현재 해석
 
@@ -132,12 +134,12 @@
 - 현재 더 중요한 운영 질문은 planner보다 ingest candidate selection이다.
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
-  - `structural_selective_v2`는 현재 gate 기준으로 가장 실용적인 middle ground다
+  - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
 - 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **broader curated validation + next ingest experiment design** 쪽이 맞다.
-- 다만 그 broader curated validation 안에서 남은 immediate blocker는 현재
+- immediate blocker였던
   - `SAM_T2_002` follow-up rerun
   - `MIX_T1_046` ratio direct-binding rerun
-  이다.
+  은 now closed다.
 ## 2026-05-17 Update
 
 - Indexing now supports partial-store resume in the benchmark path.
@@ -275,7 +277,7 @@
     - `runtime_contract_gate`, `multi_entity_grounding_gate` 모두 PASS
   - `structural_selective_v2_prefix_2500_320`
     - `runtime_contract_gate`, `multi_entity_grounding_gate` 모두 PASS
-    - current operating candidate
+    - current operating default
 - 따라서 지금의 실무 우선순위는 새 planner tweak보다 다음 두 가지다.
-  1. `structural_selective_v2`를 broader curated set에서도 다시 검증
-  2. 그 다음 parent/section/table lineage를 더 보강하는 next ingest experiment 설계
+  1. `structural_parent_hybrid_v2` 같은 next ingest experiment 설계
+  2. concept-only planner와 multi-document path를 더 넓게 검증

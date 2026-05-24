@@ -128,6 +128,56 @@
           "none"
         ]
       }
+    },
+    "operating_expense_components": {
+      "display_name": "총 영업비용 구성항목",
+      "aliases": [
+        "총 영업비용",
+        "영업비용률",
+        "영업비용 비율",
+        "영업비용 비중",
+        "원가율"
+      ],
+      "keywords": [
+        "총 영업비용",
+        "영업비용률",
+        "영업비용 비율",
+        "영업비용 비중",
+        "원가율"
+      ],
+      "member_concepts": [
+        "cost_of_sales",
+        "selling_general_administrative_expense"
+      ],
+      "preferred_statement_types": [
+        "income_statement",
+        "summary_financials",
+        "notes"
+      ],
+      "preferred_sections": [
+        "연결 손익계산서",
+        "손익계산서",
+        "요약재무정보",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ],
+      "decomposition_hints": {
+        "preferred_operation": "ratio",
+        "metric_label": "매출액 대비 영업비용률",
+        "member_role_prefix": "numerator",
+        "denominator_concepts": [
+          "revenue"
+        ],
+        "require_all_member_mentions": true,
+        "require_denominator_mentions": true,
+        "query_any_of": [
+          "영업비용률",
+          "영업비용 비율",
+          "영업비용 비중",
+          "원가율",
+          "총 영업비용"
+        ]
+      }
     }
   },
   "concepts": {
@@ -174,7 +224,10 @@
         "요약재무정보",
         "연결 손익계산서",
         "손익계산서"
-      ]
+      ],
+      "lookup_hints": {
+        "prefer_canonical_statement_rows": true
+      }
     },
     "net_income": {
       "display_name": "당기순이익",
@@ -196,7 +249,10 @@
         "요약재무정보",
         "연결 손익계산서",
         "손익계산서"
-      ]
+      ],
+      "lookup_hints": {
+        "prefer_canonical_statement_rows": true
+      }
     },
     "income_before_income_taxes": {
       "display_name": "법인세비용차감전순이익",
@@ -223,6 +279,9 @@
         "요약재무정보",
         "연결재무제표 주석"
       ],
+      "lookup_hints": {
+        "prefer_canonical_statement_rows": true
+      },
       "surface_contract": {
         "positive": [
           "법인세비용차감전순이익",
@@ -450,6 +509,13 @@
         "재무상태표",
         "요약재무정보"
       ],
+      "lookup_hints": {
+        "aggregate_query_surfaces": [
+          "장기차입금 합계",
+          "합계, 장기차입금",
+          "차감 계, 장기차입금"
+        ]
+      },
       "binding_policy": {
         "prefer_value_roles": [
           "aggregate",
@@ -486,6 +552,13 @@
         "재무상태표",
         "요약재무정보"
       ],
+      "lookup_hints": {
+        "aggregate_query_surfaces": [
+          "사채 합계",
+          "차입금명칭 합계",
+          "차감 계"
+        ]
+      },
       "binding_policy": {
         "prefer_value_roles": [
           "aggregate",
@@ -522,6 +595,259 @@
         "연구개발실적",
         "요약재무정보"
       ]
+    },
+    "cost_of_sales": {
+      "display_name": "매출원가",
+      "aliases": [
+        "매출 원가",
+        "cost of sales"
+      ],
+      "keywords": [
+        "매출원가",
+        "매출 원가",
+        "cost of sales"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "income_statement",
+        "summary_financials",
+        "notes"
+      ],
+      "preferred_sections": [
+        "연결 손익계산서",
+        "손익계산서",
+        "요약재무정보",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ],
+      "lookup_hints": {
+        "prefer_canonical_statement_rows": true,
+        "canonical_statement_types": [
+          "income_statement",
+          "summary_financials"
+        ],
+        "canonical_sections": [
+          "연결 손익계산서",
+          "손익계산서",
+          "요약재무정보"
+        ],
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "매출원가",
+          "매출 원가"
+        ]
+      },
+      "binding_policy": {
+        "prefer_value_roles": [
+          "detail",
+          "aggregate"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "final",
+          "subtotal",
+          "none"
+        ]
+      },
+      "surface_contract": {
+        "positive": [
+          "매출원가",
+          "매출 원가"
+        ],
+        "negative": [
+          "매출액",
+          "영업비용",
+          "판매비와관리비"
+        ]
+      }
+    },
+    "selling_general_administrative_expense": {
+      "display_name": "판매비와관리비",
+      "aliases": [
+        "판관비",
+        "판매관리비"
+      ],
+      "keywords": [
+        "판매비와관리비",
+        "판관비",
+        "판매관리비"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "income_statement",
+        "summary_financials",
+        "notes"
+      ],
+      "preferred_sections": [
+        "연결 손익계산서",
+        "손익계산서",
+        "요약재무정보",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ],
+      "lookup_hints": {
+        "prefer_canonical_statement_rows": true,
+        "canonical_statement_types": [
+          "income_statement",
+          "summary_financials"
+        ],
+        "canonical_sections": [
+          "연결 손익계산서",
+          "손익계산서",
+          "요약재무정보"
+        ],
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "판매비와관리비",
+          "판관비",
+          "판매관리비"
+        ]
+      },
+      "binding_policy": {
+        "prefer_value_roles": [
+          "detail",
+          "aggregate"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "final",
+          "subtotal",
+          "none"
+        ]
+      },
+      "surface_contract": {
+        "positive": [
+          "판매비와관리비",
+          "판관비",
+          "판매관리비"
+        ],
+        "negative": [
+          "매출액",
+          "영업비용",
+          "매출원가"
+        ]
+      }
+    },
+    "operating_expense_total": {
+      "display_name": "영업비용",
+      "aliases": [
+        "영업비용 합계",
+        "영업비용 총계",
+        "총 영업비용",
+        "영업비용 계"
+      ],
+      "keywords": [
+        "영업비용",
+        "영업비용 합계",
+        "영업비용 총계",
+        "총 영업비용",
+        "영업비용 계"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "영업비용",
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "연결 손익계산서",
+        "손익계산서"
+      ],
+      "lookup_hints": {
+        "prefer_canonical_statement_rows": true,
+        "canonical_statement_types": [
+          "income_statement",
+          "summary_financials"
+        ],
+        "canonical_sections": [
+          "연결 손익계산서",
+          "손익계산서",
+          "요약재무정보",
+          "영업비용"
+        ],
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "영업비용"
+        ]
+      },
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "subtotal",
+          "direct"
+        ]
+      },
+      "surface_contract": {
+        "positive": [
+          "영업비용",
+          "영업비용 합계",
+          "영업비용 총계",
+          "총 영업비용",
+          "영업비용 계"
+        ],
+        "negative": [
+          "매출액",
+          "영업수익",
+          "영업이익",
+          "종업원급여"
+        ]
+      }
+    },
+    "employee_benefits_expense": {
+      "display_name": "종업원급여",
+      "aliases": [
+        "인건비",
+        "인건비(종업원급여)",
+        "종업원급여(*)"
+      ],
+      "keywords": [
+        "종업원급여",
+        "인건비",
+        "인건비(종업원급여)"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "영업비용",
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "연결 손익계산서",
+        "손익계산서"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "detail",
+          "aggregate"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "final",
+          "subtotal",
+          "none"
+        ]
+      },
+      "surface_contract": {
+        "positive": [
+          "종업원급여",
+          "인건비",
+          "인건비(종업원급여)"
+        ],
+        "negative": [
+          "단기종업원급여부채",
+          "장기종업원급여부채",
+          "종업원급여부채"
+        ]
+      }
     },
     "operating_cash_flow": {
       "display_name": "영업활동현금흐름",

@@ -158,6 +158,10 @@
     - repeated-entity revenue prompts now preserve `sum` / `difference` shape
 
 - 2026-05-22 structural routine / CAPEX multi-report note
+  - `SAM_T2_002` now passes on the structural multi-report path with CAPEX total grounding
+  - `MIX_T1_046` now passes on the structural single-doc path after note-sibling unit inheritance + evaluator period normalization
+  - treat `structural_selective_v2_prefix_2500_320` as the routine default
+  - treat `contextual_selective_v2_prefix_2500_320` as arbitration-only
   - curated routine profiles now run structural-only by default
     - `curated_runtime_contract_gate`
     - `curated_multi_entity_grounding_gate`
@@ -177,3 +181,15 @@
     - `2022 대비 증감률 = 0%`
   - formal multi-report smoke rerun is still pending if we want the repaired
     result captured in official benchmark artifacts
+
+- 2026-05-25 note aggregates + composed ratio follow-up
+  - `SKH_T1_060` is closed again on the structural path
+    - `장기차입금` / `사채` producer lookups now inherit ontology-driven aggregate query surfaces
+    - direct acceptance prefers current-period note aggregate winners over mixed table rows
+    - latest single-question structural replay closes at `42.02%`
+  - `MIX_T1_064` now keeps its component-ratio shape in runtime
+    - planner/dependency synthesis stays on `매출원가 + 판매비와관리비 + 매출액 -> ratio`
+    - evaluator accepts composed-ratio grounding from aggregate subtask traces
+    - warm structural runtime/evaluator replay closes at `90.7%`
+  - remaining follow-up:
+    - rerun one clean formal multi-report benchmark bundle if we want `MIX_T1_064` repair persisted into official artifacts

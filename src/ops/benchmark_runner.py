@@ -29,6 +29,7 @@ from ingestion.dart_fetcher import DARTFetcher, ReportMetadata
 from ops.evaluator import (
     EvalExample,
     RAGEvaluator,
+    _build_example_report_scope,
     load_eval_examples_from_path,
 )
 from processing.financial_parser import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, FinancialParser
@@ -933,7 +934,10 @@ def _run_screening_eval(
         retrieved_docs: List[Any] = []
         citations: List[str] = []
         try:
-            result = agent.run(example.question)
+            result = agent.run(
+                example.question,
+                report_scope=_build_example_report_scope(example),
+            )
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
             retrieved_docs = result.get("retrieved_docs", [])
@@ -1245,6 +1249,32 @@ def _build_structural_selective_prefixed_text(
         if value:
             structural_lines.append(f"[{label}: {value}]")
     return "\n".join(structural_lines) + "\n" + base
+
+
+def _build_structural_parent_hybrid_prefixed_text(
+    metadata: Dict[str, Any],
+    content: str,
+    *,
+    parent_text: Optional[str] = None,
+    selected_reason: Optional[str] = None,
+) -> str:
+    base = _build_structural_selective_prefixed_text(
+        metadata,
+        content,
+        selected_reason=selected_reason,
+    )
+    parent_preview = _compact_structural_value(parent_text, limit=320)
+    if not parent_preview:
+        return base
+
+    parent_lines = [
+        f"[parent_section: {metadata.get('section_path', metadata.get('section', '?'))}]",
+        f"[parent_preview: {parent_preview}]",
+    ]
+    local_heading = _compact_structural_value(metadata.get("local_heading"))
+    if local_heading:
+        parent_lines.insert(1, f"[parent_local_heading: {local_heading}]")
+    return "\n".join(parent_lines) + "\n" + base
 
 
 def _fallback_context(metadata: Dict[str, Any]) -> str:
@@ -1889,6 +1919,80 @@ def _benchmark_structural_selective_v2_ingest(
     result = _merge_resume_metrics(
         {
             "mode": "structural_selective_v2",
+            "chunks": len(chunks),
+            "stored_parent_chunks": len(parents),
+            "contextualized_chunks": len(selected_reasons),
+            "selector_reason_counts": _count_reason_counts(selected_reasons),
+            "parent_context_calls": 0,
+            "child_context_calls": 0,
+            "api_calls": 0,
+            "fallback_count": 0,
+            "prompt_chars": 0,
+            "response_chars": 0,
+            "prompt_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "max_workers": 0,
+            "batch_size": 0,
+            "use_zero_cost_prefix": True,
+            "elapsed_sec": time.perf_counter() - started_at,
+        },
+        add_metrics,
+    )
+    if return_artifacts:
+        result["artifacts"] = {
+            "texts": texts,
+            "metadatas": metadatas,
+            "parents": parents,
+        }
+    return result
+
+
+def _benchmark_structural_parent_hybrid_v2_ingest(
+    agent: FinancialAgent,
+    chunks: List[Any],
+    *,
+    short_text_threshold: int = 700,
+    targeted_sections: Optional[List[str]] = None,
+    short_table_threshold: int = 1600,
+    resume_partial_store: bool = False,
+    resume_batch_size: int = 64,
+    return_artifacts: bool = False,
+) -> Dict[str, Any]:
+    started_at = time.perf_counter()
+    parents = _store_parent_chunks(agent, chunks)
+    selected_reasons = _select_chunk_reasons(
+        chunks,
+        _selective_reason_v2,
+        short_text_threshold=short_text_threshold,
+        targeted_sections=targeted_sections,
+        short_table_threshold=short_table_threshold,
+    )
+
+    texts = []
+    for idx, chunk in enumerate(chunks):
+        metadata = chunk.metadata or {}
+        parent_id = str(metadata.get("parent_id") or f"chunk-{idx}")
+        parent_text = parents.get(parent_id) or chunk.content
+        texts.append(
+            _build_structural_parent_hybrid_prefixed_text(
+                metadata,
+                chunk.content,
+                parent_text=parent_text,
+                selected_reason=selected_reasons.get(idx),
+            )
+        )
+    metadatas = [chunk.metadata for chunk in chunks]
+    add_metrics = agent.vsm.add_documents(
+        texts,
+        metadatas,
+        resume=resume_partial_store,
+        batch_size=resume_batch_size,
+    )
+
+    result = _merge_resume_metrics(
+        {
+            "mode": "structural_parent_hybrid_v2",
             "chunks": len(chunks),
             "stored_parent_chunks": len(parents),
             "contextualized_chunks": len(selected_reasons),
@@ -3056,6 +3160,17 @@ def _run_ingest(
         )
     if ingest_mode == "structural_selective_v2":
         return _benchmark_structural_selective_v2_ingest(
+            agent,
+            chunks,
+            short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
+            targeted_sections=list(config.get("selective_v2_sections", [])),
+            short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
+            resume_partial_store=resume_partial_store,
+            resume_batch_size=resume_batch_size,
+            return_artifacts=return_artifacts,
+        )
+    if ingest_mode == "structural_parent_hybrid_v2":
+        return _benchmark_structural_parent_hybrid_v2_ingest(
             agent,
             chunks,
             short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),

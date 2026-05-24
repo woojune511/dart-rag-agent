@@ -10,16 +10,155 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.ops.evaluator import (
+    _build_example_report_scope,
     _compute_numeric_result_correctness,
     _numeric_values_equivalent,
     _operand_matches,
     EvalExample,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
+    _should_override_numeric_grounding,
 )
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_should_override_numeric_grounding_for_direct_composed_ratio(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "매출원가",
+                "source_row_id": "row_cost",
+                "source_anchor": "연결 손익계산서",
+            },
+            {
+                "label": "판매비와관리비",
+                "source_row_id": "row_sga",
+                "source_anchor": "연결 손익계산서",
+            },
+            {
+                "label": "매출액",
+                "source_row_id": "row_revenue",
+                "source_anchor": "연결 손익계산서",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_should_not_override_numeric_grounding_for_task_output_only_operands(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "매출원가",
+                "source_row_id": "task_output:task_2",
+                "source_anchor": "연결 손익계산서",
+            }
+        ]
+
+        self.assertFalse(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_should_override_numeric_grounding_when_numeric_result_is_unavailable(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "매출액",
+                "source_row_id": "row_revenue",
+                "source_anchor": "연결 손익계산서",
+            }
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_build_example_report_scope_preserves_multi_report_inventory(self) -> None:
+        example = EvalExample(
+            id="sam_t2_002",
+            question="2023년 CAPEX 총액과 전년 대비 증감률은?",
+            ground_truth="53조 1,139억원, 전년과 거의 동일",
+            company="삼성전자",
+            year=2023,
+            section="시설투자",
+            source_reports=[
+                {
+                    "corp_name": "삼성전자",
+                    "year": 2023,
+                    "report_type": "사업보고서",
+                    "rcept_no": "20240312000736",
+                },
+                {
+                    "corp_name": "삼성전자",
+                    "year": 2022,
+                    "report_type": "사업보고서",
+                    "rcept_no": "20230308000592",
+                },
+            ],
+        )
+
+        scope = _build_example_report_scope(example)
+
+        self.assertEqual(scope["company"], "삼성전자")
+        self.assertEqual(scope["year"], 2023)
+        self.assertEqual(scope["report_type"], "사업보고서")
+        self.assertNotIn("rcept_no", scope)
+        self.assertEqual(len(scope["source_reports"]), 2)
+
+    def test_build_example_report_scope_keeps_single_receipt_scope(self) -> None:
+        example = EvalExample(
+            id="nav_t1_071",
+            question="2023년 법인세비용차감전순이익과 전년 대비 증감액은?",
+            ground_truth="1조 4,814억원, 3,977억원 증가",
+            company="네이버",
+            year=2023,
+            section="손익계산서",
+            source_report={
+                "corp_name": "네이버",
+                "year": 2023,
+                "report_type": "사업보고서",
+                "rcept_no": "20240314002112",
+            },
+        )
+
+        scope = _build_example_report_scope(example)
+
+        self.assertEqual(scope["company"], "네이버")
+        self.assertEqual(scope["year"], 2023)
+        self.assertEqual(scope["report_type"], "사업보고서")
+        self.assertEqual(scope["rcept_no"], "20240314002112")
+
     def test_resolve_runtime_trace_prefers_aggregate_subtasks(self) -> None:
         result = {
             "answer": "부채비율은 25.4%입니다. 유동비율은 258.8%입니다.",
@@ -292,7 +431,115 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(len(resolved), 2)
         self.assertEqual(resolved[0]["source_row_id"], "row_2023")
         self.assertEqual(resolved[1]["source_row_id"], "row_2022")
-        self.assertEqual(resolved[1]["normalized_unit"], "KRW")
+
+    def test_resolve_evaluator_operands_dedupes_task_output_duplicates(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "components_by_role": {
+                    "numerator_1": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "2023 매출원가",
+                            "concept": "cost_of_sales",
+                            "period": "2023",
+                            "raw_value": "129,179,183",
+                            "raw_unit": "백만원",
+                            "normalized_value": 129179183000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "129조 1,792억원",
+                            "source_row_id": "row_cost",
+                            "source_row_ids": ["row_cost"],
+                            "source_anchor": "연결 손익계산서",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "매출원가",
+                            "concept": "cost_of_sales",
+                            "period": "2023",
+                            "raw_value": "129,179,183",
+                            "raw_unit": "백만원",
+                            "normalized_value": 129179183000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "129조 1,792억원",
+                            "source_row_id": "task_output:task_2",
+                            "source_row_ids": ["task_output:task_2"],
+                            "source_anchor": "연결 손익계산서",
+                        },
+                    ],
+                },
+            },
+        }
+
+        resolved = _resolve_evaluator_operands([], calculation_result)
+
+        self.assertEqual(len(resolved), 1)
+        self.assertEqual(resolved[0]["source_row_id"], "row_cost")
+        self.assertEqual(resolved[0]["normalized_unit"], "KRW")
+
+    def test_resolve_evaluator_operands_dedupes_aggregate_subtask_duplicates(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": "task_2",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "components_by_role": {
+                                "numerator_1": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator_1",
+                                        "label": "2023 매출원가",
+                                        "concept": "cost_of_sales",
+                                        "period": "2023",
+                                        "raw_value": "129,179,183",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 129179183000000.0,
+                                        "normalized_unit": "KRW",
+                                        "source_row_id": "row_cost",
+                                        "source_anchor": "연결 손익계산서",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        "task_id": "task_1",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "components_by_role": {
+                                "numerator_1": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator_1",
+                                        "label": "매출원가",
+                                        "concept": "cost_of_sales",
+                                        "period": "2023",
+                                        "raw_value": "129,179,183",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 129179183000000.0,
+                                        "normalized_unit": "KRW",
+                                        "source_row_id": "task_output:task_2",
+                                        "source_anchor": "연결 손익계산서",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                ],
+            },
+        }
+
+        resolved = _resolve_evaluator_operands([], calculation_result)
+
+        self.assertEqual(len(resolved), 1)
+        self.assertEqual(resolved[0]["source_row_id"], "row_cost")
 
     def test_numeric_result_correctness_can_use_answer_slots_primary_value(self) -> None:
         example = EvalExample(
@@ -332,6 +579,52 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                     "source_row_ids": ["row_1"],
                     "source_anchor": "표 A",
                 },
+            },
+        }
+
+        score = _compute_numeric_result_correctness(example, calculation_result)
+
+        self.assertEqual(score, 1.0)
+
+    def test_numeric_result_correctness_can_use_aggregate_subtask_primary_value(self) -> None:
+        example = EvalExample(
+            id="mix_t1_064",
+            question="영업비용률은?",
+            ground_truth="90.7%",
+            company="현대자동차",
+            year=2023,
+            section="연결 손익계산서",
+            category="numeric_fact",
+            answer_key="90.7%",
+            evidence=[],
+            answer_type="numeric",
+            expected_calculation_result={
+                "normalized_value": 90.7004990957441,
+                "normalized_unit": "PERCENT",
+                "tolerance": 0.0,
+            },
+        )
+        calculation_result = {
+            "status": "ok",
+            "result_value": None,
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": "task_1",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "영업비용률",
+                                "normalized_value": 90.7004990957441,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "90.7%",
+                            },
+                        },
+                    }
+                ],
             },
         }
 

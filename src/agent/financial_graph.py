@@ -180,7 +180,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             {"reflection_replan": "reflection_replan", "calculator": "calculator"},
         )
         graph.add_edge("reflection_replan", "prepare_retry")
-        graph.add_edge("prepare_retry", "retrieve")
+        graph.add_conditional_edges(
+            "prepare_retry",
+            self._route_after_prepare_retry,
+            {"operand_extractor": "operand_extractor", "retrieve": "retrieve"},
+        )
         graph.add_conditional_edges(
             "calculator",
             self._route_after_calculator,
@@ -253,6 +257,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "missing_info": [],
             "reflection_count": 0,
             "retry_reason": "",
+            "retry_strategy": "",
             "retry_queries": [],
             "reconciliation_retry_count": 0,
             "reflection_plan": {},
@@ -314,6 +319,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "missing_info": final.get("missing_info", []),
             "reflection_count": final.get("reflection_count", 0),
             "retry_reason": final.get("retry_reason", ""),
+            "retry_strategy": final.get("retry_strategy", ""),
             "retry_queries": final.get("retry_queries", []),
             "reconciliation_retry_count": final.get("reconciliation_retry_count", 0),
             "reflection_plan": final.get("reflection_plan", {}),

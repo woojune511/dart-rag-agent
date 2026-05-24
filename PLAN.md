@@ -7,7 +7,7 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **broader curated blocker(`SAM_T2_002`, `MIX_T1_046`)를 닫고 `structural_selective_v2_prefix_2500_320`를 mainline ingest default 후보로 승격할지 결정** |
+| 현재 1순위 | **`structural_parent_hybrid_v2` 실험을 설계하고, structural routine default 위에 다음 ingest 후보를 정의** |
 | 지금 하지 않을 것 | 범용 agent 확장, broad web workflow, cosmetic retrieval tuning |
 | 다음 큰 순서 | `broader curated validation -> ingest candidate selection -> next chunking experiment -> concept-only planner canary -> DART multi-document reasoning` |
 
@@ -19,11 +19,13 @@
 - 공식 gate 비교 결과는 현재 다음처럼 정리된다.
   - `plain_prefix_8000_400`: speed / cost baseline, 그러나 `SKH_T1_060` FAIL
   - `contextual_selective_v2_prefix_2500_320`: quality baseline, 대표 gate PASS
-  - `structural_selective_v2_prefix_2500_320`: 대표 gate PASS, multi-entity gate PASS, 현재 가장 유력한 operating candidate
-- 지금 가장 가까운 구현 초점은 **ingest candidate selection + broader curated validation** 이다.
-  - 먼저 `SAM_T2_002`, `MIX_T1_046` 같은 wider curated blocker를 닫는다
-  - 그 다음 `structural_selective_v2`가 gate 밖 wider curated set에서도 버티는지 다시 본다
-  - 그 다음에만 default candidate로 승격 여부를 확정한다
+  - `structural_selective_v2_prefix_2500_320`: 대표 gate PASS, multi-entity gate PASS, broader curated blocker close까지 확인된 current operating default
+- 지금 가장 가까운 구현 초점은 **next ingest experiment design + concept-only planner 확대 검증** 이다.
+  - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
+  - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
+  - `MIX_T1_064`는 ontology-driven component ratio shape + evaluator composed-ratio close까지 확인됐고, 공식 multi-report benchmark artifact rerun만 남아 있다
+  - routine curated validation은 `structural_selective_v2`를 기본값으로 본다
+  - `contextual_selective_v2`는 arbitration-only quality reference로 유지한다
   - 다음 실험 후보는 `structural_parent_hybrid_v2`처럼 parent/section/table lineage를 더 보강하는 쪽으로 잡는다
 
 ## Active Workstreams
@@ -32,11 +34,11 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 목표 | `plain / structural / contextual` 3자 비교를 정리하고 mainline ingest default 후보를 결정 |
-| 현재 자산 | `curated_runtime_contract_gate`, `curated_multi_entity_grounding_gate`, `structural_selective_v2`, winner ranking policy |
-| 현재 문제 | `structural_selective_v2`는 gate를 통과했지만 wider curated set에서 `SAM_T2_002`, `MIX_T1_046` 같은 blocker가 남아 있다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크다 |
-| 다음 할 일 | `curated_multi_report_smoke`, `curated_single_doc_core`를 다시 돌려 blocker를 닫고, 그 뒤 candidate order/default 의미를 문서와 profile에 고정 |
-| 종료 조건 | `structural_selective_v2`가 gate 밖 broader curated set에서도 안정적이면 current operating candidate로 승격하고, `contextual_selective_v2`는 quality reference로 유지 |
+| 목표 | `plain / structural / contextual` 3자 비교를 정리한 뒤, structural default 위에서 다음 ingest 후보를 설계 |
+| 현재 자산 | `curated_runtime_contract_gate`, `curated_multi_entity_grounding_gate`, `structural_selective_v2`, broader curated blocker close, winner ranking policy |
+| 현재 문제 | `structural_selective_v2`는 이제 default로 굳었지만, 다음 ingest 실험 후보(`structural_parent_hybrid_v2`)를 어떤 평가 축으로 볼지 아직 설계가 덜 됐다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크다 |
+| 다음 할 일 | structural default는 고정하고, `structural_parent_hybrid_v2` 실험 설계와 concept-only planner 확대 검증으로 넘어간다 |
+| 종료 조건 | `structural_selective_v2` default가 운영 문서와 curated profile에 고정되고, next ingest experiment 비교 축이 정의됨 |
 
 ### 1. Planner and synthesizer contract
 
@@ -335,10 +337,10 @@
     - passes both official gates
   - `structural_selective_v2_prefix_2500_320`
     - passes both official gates
-    - is now the current operating candidate
+    - is now the current operating default
 - immediate work therefore shifts from “can this candidate pass the gate?” to:
-  1. “does `structural_selective_v2` hold up on broader curated sets?”
-  2. “what is the next cheaper-or-better ingest experiment after this baseline?”
+  1. “what is the next cheaper-or-better ingest experiment after this baseline?”
+  2. “how far can concept-only planner and multi-document reasoning be pushed on top of this default?”
 ## 2026-05-21 Concept planner shadow
 
 - official curated shadow profile:

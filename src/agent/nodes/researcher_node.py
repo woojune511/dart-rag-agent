@@ -75,6 +75,17 @@ def _build_where_filter(report_scope: Dict[str, Any] | None) -> Optional[Dict[st
     rcept_no = str(scope.get("rcept_no") or "").strip()
     if rcept_no:
         conditions.append({"rcept_no": rcept_no})
+    else:
+        source_rows = list(scope.get("source_reports") or scope.get("report_inventory") or [])
+        source_receipts = _dedupe_preserve_order(
+            str((row.get("metadata") or {}).get("rcept_no") or row.get("rcept_no") or "").strip()
+            for row in source_rows
+            if isinstance(row, dict)
+        )
+        if len(source_receipts) == 1:
+            conditions.append({"rcept_no": source_receipts[0]})
+        elif len(source_receipts) > 1:
+            conditions.append({"rcept_no": {"$in": source_receipts}})
 
     if not conditions:
         return None

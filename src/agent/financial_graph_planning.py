@@ -28,6 +28,62 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
 
+
+def _project_logical_tasks_from_execution_tasks(
+    logical_tasks: List[Dict[str, Any]],
+    execution_tasks: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Keep semantic-plan tasks compact while borrowing dependency annotations.
+
+    Planner-facing payloads should preserve the original semantic task list
+    (e.g. one ratio task), while executor-facing payloads can expand into
+    lookup producers plus a derived consumer. We therefore copy dependency
+    annotations back onto the original logical tasks without exposing the
+    synthetic execution-only lookup tasks in `semantic_plan.tasks`.
+    """
+    execution_by_id = {
+        str(task.get("task_id") or "").strip(): dict(task)
+        for task in execution_tasks
+        if str(task.get("task_id") or "").strip()
+    }
+    projected: List[Dict[str, Any]] = []
+    for task in logical_tasks:
+        task_id = str(task.get("task_id") or "").strip()
+        if task_id and task_id in execution_by_id:
+            projected.append(dict(execution_by_id[task_id]))
+        else:
+            projected.append(dict(task))
+    return projected
+
+
+def _dependency_closure_task_ids(
+    tasks: List[Dict[str, Any]],
+    seed_task_ids: List[str],
+) -> set[str]:
+    """Return the dependency closure (ancestors + seeds) for the given tasks."""
+    task_by_id = {
+        str(task.get("task_id") or "").strip(): dict(task)
+        for task in tasks
+        if str(task.get("task_id") or "").strip()
+    }
+    closure = {
+        _normalise_spaces(task_id)
+        for task_id in seed_task_ids
+        if _normalise_spaces(task_id)
+    }
+    pending = list(closure)
+    while pending:
+        task_id = pending.pop()
+        task = task_by_id.get(task_id)
+        if not task:
+            continue
+        for dependency in list(task.get("depends_on") or []):
+            dependency_id = _normalise_spaces(str(dependency or ""))
+            if dependency_id and dependency_id not in closure:
+                closure.add(dependency_id)
+                pending.append(dependency_id)
+    return closure
+
 def _llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
     """Reject LLM overrides that destroy deterministic segment-sum structure."""
     base_tasks = [dict(task) for task in (base_plan.get("tasks") or [])]
@@ -526,6 +582,15 @@ Also return:
         if not planner_tasks:
             return None
 
+        execution_tasks = _annotate_task_dependencies(
+            planner_tasks,
+            report_scope=report_scope,
+        )
+        planner_tasks = _project_logical_tasks_from_execution_tasks(
+            planner_tasks,
+            execution_tasks,
+        )
+
         companies, years = self._align_scope_hints(
             companies=list(planned.companies or []),
             years=list(planned.years or []),
@@ -706,7 +771,11 @@ Also return:
             }
 
         if planner_mode == "replan":
-            existing_tasks = [dict(task) for task in (state.get("calc_subtasks") or [])]
+            existing_execution_tasks = [dict(task) for task in (state.get("calc_subtasks") or [])]
+            existing_tasks = [
+                dict(task)
+                for task in (dict(state.get("semantic_plan") or {}).get("tasks") or existing_execution_tasks)
+            ]
             existing_subtask_results = [dict(item) for item in (state.get("subtask_results") or [])]
             existing_plan = dict(state.get("semantic_plan") or {})
             llm_plan = self._build_llm_concept_numeric_plan(
@@ -720,9 +789,38 @@ Also return:
             )
             patch_tasks = [dict(task) for task in (llm_plan or {}).get("tasks", [])]
             merged_tasks, appended_tasks = self._append_replanned_tasks(existing_tasks, patch_tasks)
+            execution_tasks = _annotate_task_dependencies(
+                merged_tasks,
+                report_scope=report_scope,
+            )
+            semantic_plan_tasks = _project_logical_tasks_from_execution_tasks(
+                merged_tasks,
+                execution_tasks,
+            )
+            appended_task_ids = {
+                str(task.get("task_id") or "").strip()
+                for task in appended_tasks
+                if str(task.get("task_id") or "").strip()
+            }
+            appended_execution_ids = _dependency_closure_task_ids(execution_tasks, list(appended_task_ids))
+            completed_task_ids = {
+                str(item.get("task_id") or "").strip()
+                for item in existing_subtask_results
+                if str(item.get("task_id") or "").strip()
+            }
+            replanned_execution_tasks = [
+                dict(task)
+                for task in execution_tasks
+                if str(task.get("task_id") or "").strip() in appended_execution_ids
+            ]
+            pending_execution_tasks = [
+                dict(task)
+                for task in replanned_execution_tasks
+                if str(task.get("task_id") or "").strip() not in completed_task_ids
+            ]
             planned_metric_families = [
                 str(task.get("metric_family") or "").strip()
-                for task in merged_tasks
+                for task in semantic_plan_tasks
                 if str(task.get("metric_family") or "").strip()
             ]
             planner_notes = list(dict.fromkeys([
@@ -732,18 +830,18 @@ Also return:
                 *(["planner_replan_no_patch"] if not appended_tasks else []),
             ]))
             retrieval_queries = [query]
-            for task in appended_tasks:
+            for task in pending_execution_tasks or replanned_execution_tasks:
                 retrieval_queries.extend(
                     str(item).strip()
                     for item in (task.get("retrieval_queries") or [])
                     if str(item).strip()
                 )
             retrieval_queries = list(dict.fromkeys(item for item in retrieval_queries if item))
-            active_subtask = dict(appended_tasks[0]) if appended_tasks else dict(state.get("active_subtask") or {})
-            if appended_tasks:
+            active_subtask = dict((pending_execution_tasks or replanned_execution_tasks or [dict(state.get("active_subtask") or {})])[0])
+            if pending_execution_tasks or replanned_execution_tasks:
                 active_subtask_index = next(
-                    (index for index, task in enumerate(merged_tasks) if str(task.get("task_id") or "") == str(active_subtask.get("task_id") or "")),
-                    len(existing_tasks),
+                    (index for index, task in enumerate(execution_tasks) if str(task.get("task_id") or "") == str(active_subtask.get("task_id") or "")),
+                    len(existing_execution_tasks),
                 )
             else:
                 active_subtask_index = int(state.get("active_subtask_index") or 0)
@@ -752,7 +850,7 @@ Also return:
                 "status": plan_status,
                 "fallback_to_general_search": False,
                 "planned_metric_families": planned_metric_families,
-                "tasks": merged_tasks,
+                "tasks": semantic_plan_tasks,
                 "planner_notes": planner_notes,
             }
             companies, years = self._align_scope_hints(
@@ -783,9 +881,10 @@ Also return:
                     "planner_feedback": planner_feedback,
                     "base_task_count": len(existing_tasks),
                     "appended_task_count": len(appended_tasks),
+                    "execution_task_count": len(execution_tasks),
                 },
             )
-            for task in appended_tasks:
+            for task in pending_execution_tasks or replanned_execution_tasks:
                 task_records = _upsert_task(
                     task_records,
                     task_id=str(task.get("task_id") or ""),
@@ -800,7 +899,7 @@ Also return:
             logger.info(
                 "[semantic_plan_replan] base_tasks=%s appended=%s retrieval_queries=%s feedback=%s",
                 len(existing_tasks),
-                len(appended_tasks),
+                len(replanned_execution_tasks),
                 len(retrieval_queries),
                 planner_feedback,
             )
@@ -813,7 +912,7 @@ Also return:
                 "years": years,
                 "topic": topic_text,
                 "section_filter": section_filter,
-                "calc_subtasks": merged_tasks,
+                "calc_subtasks": execution_tasks,
                 "planned_metric_families": planned_metric_families,
                 "retrieval_queries": retrieval_queries,
                 "active_subtask_index": active_subtask_index,
@@ -822,19 +921,19 @@ Also return:
                 "subtask_debug_trace": {
                     **dict(state.get("subtask_debug_trace") or {}),
                     "status": plan_status,
-                    "task_count": len(merged_tasks),
+                    "task_count": len(execution_tasks),
                     "planner_notes": planner_notes,
                     "planner_feedback": planner_feedback,
                     "planner_replan": True,
-                    "appended_task_count": len(appended_tasks),
+                    "appended_task_count": len(replanned_execution_tasks),
                 },
-                "subtask_loop_complete": False if appended_tasks else bool(state.get("subtask_loop_complete", False)),
+                "subtask_loop_complete": False if replanned_execution_tasks else bool(state.get("subtask_loop_complete", False)),
                 "planner_debug_trace": {
                     **dict(state.get("planner_debug_trace") or {}),
                     "planner_replan": True,
                     "planner_feedback": planner_feedback,
                     "base_task_count": len(existing_tasks),
-                    "appended_task_count": len(appended_tasks),
+                    "appended_task_count": len(replanned_execution_tasks),
                 },
                 "tasks": task_records,
                 "artifacts": artifacts,
@@ -861,10 +960,15 @@ Also return:
                     planner_notes = list(plan.get("planner_notes") or [])
                     planner_notes.append("concept_llm_plan_rejected_segment_sum_shape")
                     plan["planner_notes"] = list(dict.fromkeys(planner_notes))
-        tasks = list(plan.get("tasks") or [])
+        logical_tasks = [dict(task) for task in (plan.get("tasks") or [])]
+        tasks = _annotate_task_dependencies(
+            logical_tasks,
+            report_scope=report_scope,
+        )
+        plan["tasks"] = _project_logical_tasks_from_execution_tasks(logical_tasks, tasks)
         planned_metric_families = [
             str(task.get("metric_family") or "").strip()
-            for task in tasks
+            for task in (plan.get("tasks") or [])
             if str(task.get("metric_family") or "").strip()
         ]
         plan["planned_metric_families"] = planned_metric_families

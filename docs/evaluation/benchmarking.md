@@ -19,7 +19,7 @@
 | baseline 문서 | `삼성전자 2024 사업보고서` |
 | speed baseline | `plain_prefix_8000_400` |
 | quality baseline | `contextual_selective_v2_prefix_2500_320` |
-| current operating candidate | `structural_selective_v2_prefix_2500_320` |
+| current operating default | `structural_selective_v2_prefix_2500_320` |
 | 빠른 회귀 경로 | `debug-first -> store-fixed eval-only -> full benchmark` |
 | 대표 numeric gate | `curated_runtime_contract_gate` |
 | focused entity gate | `curated_multi_entity_grounding_gate` |
@@ -74,7 +74,7 @@
 | 비교 축 | 용도 |
 | --- | --- |
 | `plain_prefix_8000_400` | speed / cost baseline |
-| `structural_selective_v2_prefix_2500_320` | 현재 운영 기본값 후보 |
+| `structural_selective_v2_prefix_2500_320` | 현재 운영 기본값 |
 | `contextual_selective_v2_prefix_2500_320` | 품질 baseline |
 
 과거의 `contextual_all`, `contextual_parent_only`, `contextual_parent_hybrid`, 초기 `selective` 비교는  
@@ -174,7 +174,7 @@ official curated benchmark profile은 `auto_fetch_missing_report = true`를 켜 
 | candidate | chunk | 선택 방식 | 추가 문맥 | Gemini ingest API | 현재 역할 |
 | --- | --- | --- | --- | --- | --- |
 | `plain_prefix_8000_400` | `8000 / 400` | 전체 chunk 유지 | zero-cost prefix만 사용 | `0` | 속도/비용 baseline |
-| `structural_selective_v2_prefix_2500_320` | `2500 / 320` | `selective_v2` 규칙으로 중요한 chunk만 유지 | deterministic structural prefix | `0` | 품질-비용 중간 후보 |
+| `structural_selective_v2_prefix_2500_320` | `2500 / 320` | `selective_v2` 규칙으로 중요한 chunk만 유지 | deterministic structural prefix | `0` | 현재 routine default |
 | `contextual_selective_v2_prefix_2500_320` | `2500 / 320` | `selective_v2` 규칙으로 중요한 chunk만 유지 | Gemini-written chunk context + zero-cost prefix | 선택 chunk 수만큼 발생 | 품질 baseline |
 
 ### `plain_prefix_8000_400`
@@ -241,7 +241,7 @@ official curated benchmark profile은 `auto_fetch_missing_report = true`를 켜 
 
 - `plain`은 baseline으로 유지하되 default candidate는 아니다
 - `contextual_selective_v2`는 quality reference로 유지한다
-- `structural_selective_v2`는 현재 gate 기준으로 품질을 유지하면서 ingest 비용을 크게 줄인 current operating candidate다
+- `structural_selective_v2`는 현재 gate 기준으로 품질을 유지하면서 ingest 비용을 크게 줄인 current operating default다
 
 ### Latest broader curated status
 
@@ -263,7 +263,7 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 
 즉 최신 판단은 다음과 같다.
 
-- `structural_selective_v2`는 여전히 가장 유력한 operating candidate다
+- `structural_selective_v2`는 현재 routine curated validation의 operating default다
 - 다만 wider curated set에서 남아 있는 blocker rerun이 끝나기 전까지는 final default 승격을 확정하지 않는다
 
 즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
@@ -810,3 +810,24 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - the formal `curated_multi_report_smoke` benchmark bundle still needs one
     clean rerun if we want the repaired result written into official
     `review.csv` / `summary.md` artifacts
+
+## 2026-05-25 Note aggregates and composed ratios
+
+- `SKH_T1_060` is now closed again on the structural routine path after
+  note-aggregate hardening.
+  - `long_term_borrowings` and `bonds_payable` now carry ontology-driven
+    aggregate query surfaces so producer lookups search for note-table totals
+    such as `장기차입금 합계`, `차감 계, 장기차입금`, `사채 합계`
+  - direct acceptance also prefers unique semantic winners from current-period
+    note aggregates instead of broad mixed table rows
+  - latest single-question structural replay closes at `42.02%`
+- `MIX_T1_064` now holds its ontology-driven component ratio shape in runtime.
+  - planner / dependency synthesis keep the query as
+    `매출원가 + 판매비와관리비 + 매출액 -> ratio`
+    instead of degrading into direct `영업비용` lookup
+  - evaluator now recognizes composed-ratio grounding from resolved operands and
+    aggregate subtask traces
+  - warm structural runtime/evaluator replay closes at `90.7%`
+- Caveat:
+  - `MIX_T1_064` still needs one clean formal multi-report benchmark rerun if
+    we want the repaired closure written into official benchmark artifacts

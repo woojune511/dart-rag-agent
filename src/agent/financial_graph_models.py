@@ -54,6 +54,7 @@ class FinancialAgentState(TypedDict):
     missing_info: List[str]
     reflection_count: int
     retry_reason: str
+    retry_strategy: str
     retry_queries: List[str]
     reconciliation_retry_count: int
     reflection_plan: Dict[str, Any]
@@ -237,6 +238,14 @@ class ReflectionQueryPlan(BaseModel):
     ] = Field(
         default="generic_retry",
         description="이번 retry의 목적. 세부 연산 분류보다 재검색 목적만 나타낸다"
+    )
+    retry_strategy: Literal[
+        "retry_retrieval",
+        "synthesize_from_task_outputs",
+        "stop_insufficient",
+    ] = Field(
+        default="retry_retrieval",
+        description="실패 대응 전략. 재검색을 계속할지, 기존 task output으로 합성할지, 근거 부족으로 중단할지 선택한다.",
     )
     missing_info: List[str] = Field(
         default_factory=list,
@@ -438,6 +447,29 @@ class TaskConstraints(BaseModel):
     segment_scope: str = Field(default="none")
 
 
+class TaskInputBinding(BaseModel):
+    role: str = Field(default="", description="consumer operand role. 예: current_period, prior_period")
+    concept: str = Field(default="", description="required ontology concept key")
+    period: str = Field(default="", description="required period hint. 예: 2023, 2022")
+    label: str = Field(default="", description="human-friendly input label")
+    preferred_task_id: str = Field(default="", description="이 입력을 우선 채워야 하는 producer task id")
+    source_slot: str = Field(default="primary_value", description="producer answer_slots에서 읽을 slot 이름")
+    source_preference: List[str] = Field(
+        default_factory=lambda: ["retrieval"],
+        description="입력 해석 우선순위. 예: task_output, retrieval",
+    )
+    segment_label: str = Field(default="", description="segment/entity-scoped binding label")
+
+
+class TaskOutputSlot(BaseModel):
+    slot: str = Field(default="primary_value", description="producer answer_slots slot name")
+    role: str = Field(default="", description="producer operand role or semantic slot role")
+    concept: str = Field(default="", description="produced ontology concept key")
+    period: str = Field(default="", description="produced period hint. 예: 2023")
+    label: str = Field(default="", description="human-friendly produced label")
+    segment_label: str = Field(default="", description="segment/entity-scoped output label")
+
+
 class RetrievalTask(BaseModel):
     task_id: str
     metric_family: str
@@ -445,6 +477,9 @@ class RetrievalTask(BaseModel):
     query: str
     operation_family: str = Field(default="", description="ratio, sum, difference, growth_rate 같은 planner-level generic operation")
     required_operands: List[OperandRequirement] = Field(default_factory=list)
+    depends_on: List[str] = Field(default_factory=list, description="producer task ids that should complete before this task")
+    inputs: List[TaskInputBinding] = Field(default_factory=list, description="typed consumer input bindings")
+    produces: List[TaskOutputSlot] = Field(default_factory=list, description="typed task output slots available to downstream tasks")
     preferred_statement_types: List[str] = Field(default_factory=list)
     preferred_sections: List[str] = Field(default_factory=list)
     retrieval_queries: List[str] = Field(default_factory=list)

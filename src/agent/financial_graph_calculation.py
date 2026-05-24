@@ -32,6 +32,281 @@ class FinancialAgentCalculationMixin:
             return True
         return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
 
+    def _slot_metric_keys(self, slot: Dict[str, Any]) -> set[str]:
+        keys: set[str] = set()
+        concept = _normalise_spaces(str(slot.get("concept") or ""))
+        if concept:
+            keys.add(concept)
+        label = _normalise_spaces(str(slot.get("label") or ""))
+        if label:
+            label = re.sub(r"20\d{2}\s*년?", " ", label)
+            for needle in ("총액", "증감률", "증감액", "증가율", "비중", "비율"):
+                label = label.replace(needle, " ")
+            label = label.replace("(", " ").replace(")", " ")
+            label = _normalise_spaces(label)
+            if label:
+                keys.add(label)
+        return keys
+
+    def _slot_period_hint(self, slot: Dict[str, Any]) -> str:
+        period = _normalise_spaces(str(slot.get("period") or ""))
+        if period:
+            return period
+        label = _normalise_spaces(str(slot.get("label") or ""))
+        match = re.search(r"20\d{2}\s*년?", label)
+        if match:
+            return _normalise_spaces(match.group(0))
+        return ""
+
+    def _sibling_lookup_gap_is_satisfied(
+        self,
+        row: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        operation_family = str(
+            answer_slots.get("operation_family")
+            or ((row.get("calculation_plan") or {}).get("operation_family"))
+            or ((calculation_result.get("derived_metrics") or {}).get("operation_family"))
+            or ""
+        ).strip().lower()
+        if operation_family not in {"difference", "growth_rate"}:
+            return False
+
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+        current_material = self._answer_slot_has_material(current_slot)
+        prior_material = self._answer_slot_has_material(prior_slot)
+        if current_material and prior_material:
+            return False
+
+        target_keys = set()
+        target_keys.update(self._slot_metric_keys(current_slot))
+        target_keys.update(self._slot_metric_keys(prior_slot))
+        if not target_keys:
+            components = dict(answer_slots.get("components_by_role") or {})
+            for role in ("current_period", "prior_period", "minuend", "subtrahend"):
+                for slot in list(components.get(role) or []):
+                    target_keys.update(self._slot_metric_keys(dict(slot or {})))
+        if not target_keys:
+            target_keys.add(_normalise_spaces(str(row.get("metric_label") or "")))
+
+        current_period = self._slot_period_hint(current_slot)
+        prior_period = self._slot_period_hint(prior_slot)
+        sibling_periods: set[str] = set()
+
+        for sibling in ordered_results:
+            if sibling is row:
+                continue
+            sibling_result = dict(sibling.get("calculation_result") or {})
+            sibling_slots = dict(sibling_result.get("answer_slots") or {})
+            primary_slot = dict(sibling_slots.get("primary_value") or {})
+            if not self._answer_slot_has_material(primary_slot):
+                continue
+            sibling_keys = self._slot_metric_keys(primary_slot)
+            if not sibling_keys:
+                continue
+            if not (target_keys & sibling_keys):
+                continue
+            period_hint = self._slot_period_hint(primary_slot)
+            if period_hint:
+                sibling_periods.add(period_hint)
+
+        if not sibling_periods:
+            return False
+        if not current_material and current_period and current_period in sibling_periods:
+            current_material = True
+        if not prior_material and prior_period and prior_period in sibling_periods:
+            prior_material = True
+        if not current_material and sibling_periods:
+            current_material = True
+        if not prior_material:
+            if current_period:
+                prior_material = any(period != current_period for period in sibling_periods)
+            else:
+                prior_material = len(sibling_periods) >= 2
+        return current_material and prior_material
+
+    def _dependency_slot_matches_input(
+        self,
+        binding: Dict[str, Any],
+        slot: Dict[str, Any],
+        *,
+        sibling_row: Dict[str, Any],
+    ) -> bool:
+        binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
+        slot_concept = _normalise_spaces(str(slot.get("concept") or ""))
+        if binding_concept and slot_concept and binding_concept != slot_concept:
+            return False
+
+        binding_period = _normalise_spaces(str(binding.get("period") or ""))
+        slot_period = _normalise_spaces(str(slot.get("period") or ""))
+        if binding_period and slot_period and binding_period != slot_period:
+            return False
+
+        binding_label = _normalise_spaces(str(binding.get("label") or ""))
+        slot_label = _normalise_spaces(str(slot.get("label") or ""))
+        sibling_label = _normalise_spaces(str(sibling_row.get("metric_label") or ""))
+        if binding_label and slot_label and binding_label != slot_label:
+            if binding_label not in slot_label and binding_label not in sibling_label:
+                return False
+
+        binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
+        if binding_segment:
+            label_text = " ".join(
+                part
+                for part in [
+                    slot_label.lower(),
+                    sibling_label.lower(),
+                ]
+                if part
+            )
+            if binding_segment.lower() not in label_text:
+                return False
+
+        return True
+
+    def _infer_dependency_row_unit(
+        self,
+        slot: Dict[str, Any],
+        sibling_result: Dict[str, Any],
+    ) -> tuple[str, str]:
+        raw_unit = _normalise_spaces(
+            str(
+                slot.get("raw_unit")
+                or sibling_result.get("result_unit")
+                or ""
+            )
+        )
+        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "UNKNOWN")).upper() or "UNKNOWN"
+        if normalized_unit == "UNKNOWN":
+            if raw_unit in {"%", "%p"}:
+                normalized_unit = "PERCENT"
+            elif raw_unit in {"원", "천원", "백만원", "억원", "조원"}:
+                normalized_unit = "KRW"
+            elif raw_unit in {"개", "명"}:
+                normalized_unit = "COUNT"
+        return raw_unit, normalized_unit
+
+    def _build_dependency_operand_rows(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        input_bindings = [dict(item) for item in (active_subtask.get("inputs") or [])]
+        if not input_bindings:
+            return []
+
+        sibling_rows = {
+            str(row.get("task_id") or "").strip(): dict(row)
+            for row in (state.get("subtask_results") or [])
+            if str(row.get("task_id") or "").strip()
+        }
+        dependency_rows: List[Dict[str, Any]] = []
+        for index, binding in enumerate(input_bindings, start=1):
+            source_preference = [
+                _normalise_spaces(str(item or "")).lower()
+                for item in (binding.get("source_preference") or [])
+                if _normalise_spaces(str(item or ""))
+            ]
+            if "task_output" not in source_preference:
+                continue
+            preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+            if not preferred_task_id:
+                continue
+            sibling_row = sibling_rows.get(preferred_task_id)
+            if not sibling_row:
+                continue
+            sibling_result = dict(sibling_row.get("calculation_result") or {})
+            answer_slots = dict(sibling_result.get("answer_slots") or {})
+            source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
+            source_slot = dict(answer_slots.get(source_slot_name) or {})
+            if not self._answer_slot_has_material(source_slot):
+                continue
+            if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row):
+                continue
+            raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+            normalized_value = source_slot.get("normalized_value")
+            if normalized_value is None:
+                normalized_value = sibling_result.get("result_value")
+            dependency_rows.append(
+                {
+                    "operand_id": f"dep_{preferred_task_id}_{index:03d}",
+                    "evidence_id": f"task_output:{preferred_task_id}",
+                    "source_anchor": _normalise_spaces(str(source_slot.get("source_anchor") or "")),
+                    "label": _normalise_spaces(
+                        str(binding.get("label") or source_slot.get("label") or sibling_row.get("metric_label") or "")
+                    ),
+                    "raw_value": _normalise_spaces(
+                        str(
+                            source_slot.get("raw_value")
+                            or source_slot.get("rendered_value")
+                            or sibling_result.get("rendered_value")
+                            or ""
+                        )
+                    ),
+                    "raw_unit": raw_unit,
+                    "normalized_value": normalized_value,
+                    "normalized_unit": normalized_unit,
+                    "period": _normalise_spaces(str(source_slot.get("period") or binding.get("period") or "")),
+                    "matched_operand_label": _normalise_spaces(str(binding.get("label") or "")),
+                    "matched_operand_concept": _normalise_spaces(str(binding.get("concept") or "")),
+                    "matched_operand_role": _normalise_spaces(str(binding.get("role") or "")),
+                    "source_task_id": preferred_task_id,
+                    "source_slot": source_slot_name,
+                    "dependency_resolved": True,
+                }
+            )
+        return dependency_rows
+
+    def _active_retry_strategy(self, state: FinancialAgentState) -> str:
+        for candidate in (
+            state.get("retry_strategy"),
+            dict(state.get("reconciliation_result") or {}).get("retry_strategy"),
+            dict(state.get("reflection_plan") or {}).get("retry_strategy"),
+        ):
+            cleaned = _normalise_spaces(str(candidate or "")).lower()
+            if cleaned:
+                return cleaned
+        return ""
+
+    def _task_prefers_sibling_output_synthesis(self, state: FinancialAgentState) -> bool:
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+        if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
+            return False
+        for binding in (active_subtask.get("inputs") or []):
+            binding_data = dict(binding)
+            source_preference = [
+                _normalise_spaces(str(item or "")).lower()
+                for item in (binding_data.get("source_preference") or [])
+                if _normalise_spaces(str(item or ""))
+            ]
+            if "task_output" in source_preference and _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
+                return True
+        return False
+
+    def _task_output_input_bindings(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        bindings: List[Dict[str, Any]] = []
+        for binding in (active_subtask.get("inputs") or []):
+            binding_data = dict(binding)
+            source_preference = [
+                _normalise_spaces(str(item or "")).lower()
+                for item in (binding_data.get("source_preference") or [])
+                if _normalise_spaces(str(item or ""))
+            ]
+            if "task_output" not in source_preference:
+                continue
+            if not _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
+                continue
+            bindings.append(binding_data)
+        return bindings
+
+    def _dependency_binding_identity(self, binding: Dict[str, Any]) -> tuple[str, str]:
+        return (
+            _normalise_spaces(str(binding.get("label") or "")),
+            _normalise_spaces(str(binding.get("role") or "")),
+        )
+
     def _material_gap_feedback_for_subtask_result(self, row: Dict[str, Any]) -> str:
         metric_label = _normalise_spaces(
             str(row.get("metric_label") or row.get("answer") or row.get("task_id") or "계산 결과")
@@ -46,6 +321,25 @@ class FinancialAgentCalculationMixin:
         ).strip().lower()
         if not operation_family:
             operation_family = str((row.get("calculation_plan") or {}).get("operation") or "").strip().lower()
+
+        if operation_family == "aggregate_subtasks":
+            nested_results = list(
+                answer_slots.get("subtask_results")
+                or calculation_result.get("subtask_results")
+                or []
+            )
+            for nested_row in reversed(nested_results):
+                nested_metric_label = _normalise_spaces(
+                    str(
+                        nested_row.get("metric_label")
+                        or nested_row.get("task_id")
+                        or ""
+                    )
+                )
+                if metric_label and nested_metric_label and nested_metric_label != metric_label:
+                    continue
+                if not self._material_gap_feedback_for_subtask_result(dict(nested_row)):
+                    return ""
 
         if operation_family in {"lookup", "single_value"}:
             if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
@@ -89,6 +383,8 @@ class FinancialAgentCalculationMixin:
                 or ""
             ).strip().lower()
             if status and status != "ok":
+                if self._sibling_lookup_gap_is_satisfied(row, ordered_results):
+                    continue
                 gap = self._material_gap_feedback_for_subtask_result(row)
                 if gap:
                     return gap
@@ -98,9 +394,86 @@ class FinancialAgentCalculationMixin:
                 return f"{metric_label} 계산에 필요한 재료가 누락되었습니다."
 
             gap = self._material_gap_feedback_for_subtask_result(row)
+            if gap and self._sibling_lookup_gap_is_satisfied(row, ordered_results):
+                continue
             if gap:
                 return gap
         return ""
+
+    def _aggregate_result_operation_family(self, row: Dict[str, Any]) -> str:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        operation_family = _normalise_spaces(
+            str(
+                row.get("operation_family")
+                or answer_slots.get("operation_family")
+                or (row.get("calculation_plan") or {}).get("operation")
+                or ""
+            )
+        ).lower()
+        if not operation_family:
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if metric_family.startswith("concept_"):
+                operation_family = metric_family.removeprefix("concept_")
+        return operation_family
+
+    def _aggregate_result_signature(self, row: Dict[str, Any]) -> str:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        metric_label = _normalise_spaces(
+            str(
+                row.get("metric_label")
+                or answer_slots.get("metric_label")
+                or row.get("task_id")
+                or ""
+            )
+        )
+        if not metric_label:
+            return ""
+        return metric_label
+
+    def _aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        status = _normalise_spaces(
+            str(
+                row.get("status")
+                or calculation_result.get("status")
+                or ""
+            )
+        ).lower()
+        status_rank = {
+            "ok": 4,
+            "partial": 3,
+            "ready": 3,
+            "insufficient_operands": 1,
+            "retry_retrieval": 1,
+            "missing": 0,
+        }.get(status, 0)
+        material_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
+        answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
+        operand_rank = len(list(calculation_result.get("source_row_ids") or []))
+        return status_rank, material_rank, answer_rank, operand_rank
+
+    def _dedupe_aggregate_subtask_results(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        winners: Dict[str, tuple[int, tuple[int, int, int, int], Dict[str, Any]]] = {}
+        passthrough: List[tuple[int, Dict[str, Any]]] = []
+        for index, row in enumerate(ordered_results):
+            signature = self._aggregate_result_signature(row)
+            if not signature:
+                passthrough.append((index, row))
+                continue
+            rank = self._aggregate_result_rank(row)
+            incumbent = winners.get(signature)
+            if incumbent is None or rank > incumbent[1] or (rank == incumbent[1] and index > incumbent[0]):
+                winners[signature] = (index, rank, row)
+        deduped = sorted(
+            [item for item in winners.values()] + [(index, (0, 0, 0, 0), row) for index, row in passthrough],
+            key=lambda item: item[0],
+        )
+        return [dict(item[2]) for item in deduped]
 
     def _coerce_operand_unit_from_evidence(
         self,
@@ -124,6 +497,56 @@ class FinancialAgentCalculationMixin:
         if bare_numeric and normalized_current in {"원", "krw"} and normalized_hint in {"천원", "백만원", "억원", "조원"}:
             return unit_hint
         return current_unit
+
+    def _ratio_components_have_suspicious_scale(
+        self,
+        calculation_result: Dict[str, Any],
+    ) -> bool:
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        components_by_role = dict(answer_slots.get("components_by_role") or {})
+        for entries in components_by_role.values():
+            for entry in entries or []:
+                raw_unit = _normalise_spaces(str((entry or {}).get("raw_unit") or "")).lower()
+                raw_value = str((entry or {}).get("raw_value") or "").strip()
+                if raw_unit not in {"원", "krw"}:
+                    continue
+                if not re.fullmatch(r"[\(\)\-]?\d[\d,]*(?:\.\d+)?", raw_value):
+                    continue
+                digit_count = len(re.sub(r"\D", "", raw_value))
+                if digit_count >= 8:
+                    return True
+        return False
+
+    def _compact_ratio_answer(
+        self,
+        state: FinancialAgentState,
+        calculation_result: Dict[str, Any],
+    ) -> str:
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        metric_label = _normalise_spaces(
+            str(
+                answer_slots.get("metric_label")
+                or (state.get("active_subtask") or {}).get("metric_label")
+                or (state.get("active_subtask") or {}).get("task_id")
+                or "비율"
+            )
+        )
+        primary_value = dict(answer_slots.get("primary_value") or {})
+        rendered_value = _normalise_spaces(
+            str(primary_value.get("rendered_value") or calculation_result.get("rendered_value") or "")
+        )
+        periods: List[str] = []
+        for entries in dict(answer_slots.get("components_by_group") or {}).values():
+            for entry in entries or []:
+                period = _normalise_spaces(str((entry or {}).get("period") or ""))
+                if period and period not in periods:
+                    periods.append(period)
+        period_prefix = ""
+        if len(periods) == 1 and re.fullmatch(r"20\d{2}", periods[0]):
+            period_prefix = f"{periods[0]}년 "
+        if metric_label and rendered_value:
+            return f"{period_prefix}{metric_label}은 {rendered_value}입니다."
+        return rendered_value or metric_label
 
     def _build_deterministic_lookup_plan(
         self,
@@ -477,6 +900,78 @@ class FinancialAgentCalculationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
+        dependency_rows = self._build_dependency_operand_rows(state)
+        dependency_bindings = self._task_output_input_bindings(state)
+        retry_strategy = self._active_retry_strategy(state)
+        synthesis_only_retry = (
+            retry_strategy == "synthesize_from_task_outputs"
+            and self._task_prefers_sibling_output_synthesis(state)
+        )
+        if dependency_rows:
+            direct_structured_rows = _merge_operand_rows(
+                dependency_rows,
+                direct_structured_rows,
+                required_operands=required_operands,
+            )
+            logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
+        dependency_binding_keys = {
+            self._dependency_binding_identity(binding)
+            for binding in dependency_bindings
+            if any(self._dependency_binding_identity(binding))
+        }
+        resolved_dependency_keys = {
+            (
+                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+                _normalise_spaces(str(row.get("matched_operand_role") or "")),
+            )
+            for row in dependency_rows
+        }
+        if dependency_binding_keys and direct_structured_rows:
+            filtered_rows: List[Dict[str, Any]] = []
+            for row in direct_structured_rows:
+                if bool(row.get("dependency_resolved")):
+                    filtered_rows.append(row)
+                    continue
+                row_key = (
+                    _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+                    _normalise_spaces(str(row.get("matched_operand_role") or "")),
+                )
+                if row_key in dependency_binding_keys:
+                    continue
+                filtered_rows.append(row)
+            direct_structured_rows = filtered_rows
+        missing_dependency_bindings = [
+            dict(binding)
+            for binding in dependency_bindings
+            if self._dependency_binding_identity(binding) not in resolved_dependency_keys
+        ]
+        dependency_guard_active = bool(dependency_bindings) and bool(missing_dependency_bindings)
+        if dependency_guard_active:
+            coverage = "partial" if direct_structured_rows else "missing"
+            logger.info(
+                "[calc_operands] dependency binding guard blocks fallback missing_bindings=%s operands=%s",
+                len(missing_dependency_bindings),
+                len(direct_structured_rows),
+            )
+            return {
+                "calculation_debug_trace": {
+                    "coverage": coverage,
+                    "source": "dependency_binding_guard",
+                    "retry_strategy": retry_strategy,
+                    "dependency_operands": dependency_rows,
+                    "missing_dependency_bindings": missing_dependency_bindings,
+                    "operands": direct_structured_rows,
+                },
+                "evidence_items": evidence_items,
+                "evidence_bullets": evidence_bullets,
+                "evidence_status": coverage,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=direct_structured_rows,
+                    calculation_plan={},
+                    calculation_result={},
+                ),
+            }
         # If reconciliation already found every required operand as clean
         # structured rows, skip the broader fallback path entirely.
         if direct_structured_rows and (
@@ -511,6 +1006,7 @@ class FinancialAgentCalculationMixin:
                 "calculation_debug_trace": {
                     "coverage": "sufficient",
                     "source": "structured_row_direct",
+                    "dependency_operands": dependency_rows,
                     "operands": direct_structured_rows,
                 },
                 "evidence_items": evidence_items,
@@ -518,6 +1014,37 @@ class FinancialAgentCalculationMixin:
                 "evidence_status": "sufficient",
                 "tasks": tasks,
                 "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=direct_structured_rows,
+                    calculation_plan={},
+                    calculation_result={},
+                ),
+            }
+        if synthesis_only_retry:
+            coverage = "missing"
+            if direct_structured_rows:
+                coverage = (
+                    "sufficient"
+                    if not _missing_required_operands(required_operands, direct_structured_rows)
+                    else "partial"
+                )
+            logger.info(
+                "[calc_operands] synthesis-only retry blocks broad fallback coverage=%s operands=%s",
+                coverage,
+                len(direct_structured_rows),
+            )
+            return {
+                "calculation_debug_trace": {
+                    "coverage": coverage,
+                    "source": "dependency_synthesis_only",
+                    "retry_strategy": retry_strategy,
+                    "dependency_operands": dependency_rows,
+                    "operands": direct_structured_rows,
+                },
+                "evidence_items": evidence_items,
+                "evidence_bullets": evidence_bullets,
+                "evidence_status": coverage,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=direct_structured_rows,
@@ -2027,6 +2554,8 @@ Operands:
             answer,
             calculation_result=calculation_result,
         )
+        if operation == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+            answer = self._compact_ratio_answer(state, calculation_result)
 
         calculation_result["formatted_result"] = answer
         return {
@@ -2137,6 +2666,8 @@ Operands:
                 final_answer,
                 calculation_result=calculation_result,
             )
+            if operation == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+                final_answer = self._compact_ratio_answer(state, calculation_result)
             calculation_result["formatted_result"] = final_answer
             debug_trace = dict(state.get("calculation_debug_trace") or {})
             debug_trace["verification"] = {
@@ -2253,6 +2784,7 @@ Operands:
             subtask_results,
             key=lambda row: (order_map.get(str(row.get("task_id") or ""), 10_000), str(row.get("task_id") or "")),
         )
+        ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
         answer_parts = [
             _normalise_spaces(str(row.get("answer") or ""))
             for row in ordered_results
@@ -2320,7 +2852,12 @@ Subtask Results JSON:
             calculation_result=dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_result") or {}),
             subtask_results=ordered_results,
         )
-        if deterministic_feedback and not planner_feedback:
+        # Prefer the deterministic structured-material check over a conservative
+        # synthesizer hint. When the deterministic check sees no missing
+        # material, do not append a user-facing uncertainty suffix.
+        if not deterministic_feedback:
+            planner_feedback = ""
+        elif not planner_feedback:
             planner_feedback = deterministic_feedback
         should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops
         if planner_feedback and not should_replan:
@@ -2418,6 +2955,9 @@ Subtask Results JSON:
             "missing_info": missing_info,
             "reflection_count": current_count + 1,
             "retry_reason": retry_reason,
+            "retry_strategy": _normalise_spaces(
+                str(reflection_plan.get("retry_strategy") or state.get("retry_strategy") or "retry_retrieval")
+            ).lower(),
             "retry_queries": retry_queries,
             "evidence_bullets": [],
             "evidence_items": [],
@@ -2442,6 +2982,11 @@ Subtask Results JSON:
             ),
         }
 
+    def _route_after_prepare_retry(self, state: FinancialAgentState) -> str:
+        if self._active_retry_strategy(state) == "synthesize_from_task_outputs":
+            return "operand_extractor"
+        return "retrieve"
+
     def _route_after_expand(self, state: FinancialAgentState) -> str:
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent == "numeric_fact":
@@ -2457,7 +3002,10 @@ Subtask Results JSON:
     def _route_after_reconcile_plan(self, state: FinancialAgentState) -> str:
         result = dict(state.get("reconciliation_result") or {})
         status = str(result.get("status") or "ready")
+        retry_strategy = _normalise_spaces(str(result.get("retry_strategy") or "")).lower()
         if status == "ready":
+            return "operand_extractor"
+        if retry_strategy == "synthesize_from_task_outputs":
             return "operand_extractor"
         if status == "retry_retrieval":
             return "retrieve"

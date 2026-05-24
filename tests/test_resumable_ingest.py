@@ -361,6 +361,66 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertIn("[table_context: 주요 부문별 실적]", texts[0])
         self.assertNotIn("[선택사유:", texts[1])
 
+    def test_structural_parent_hybrid_v2_adds_parent_digest_without_llm_calls(self) -> None:
+        agent = SimpleNamespace(
+            vsm=_FakeIngestVectorManager(),
+            llm=SimpleNamespace(batch=Mock(side_effect=AssertionError("llm.batch should not be called"))),
+        )
+        chunks = [
+            SimpleNamespace(
+                content="매출액 | 100",
+                metadata={
+                    "parent_id": "p1",
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "report_type": "사업보고서",
+                    "section": "요약재무정보",
+                    "section_path": "II. 사업의 내용 > 요약재무정보",
+                    "block_type": "table",
+                    "statement_type": "summary_financials",
+                    "table_context": "주요 부문별 실적",
+                    "local_heading": "연결 실적",
+                },
+            ),
+            SimpleNamespace(
+                content="DS 부문은 메모리 중심으로 성장했습니다. " * 8,
+                metadata={
+                    "parent_id": "p1",
+                    "company": "삼성전자",
+                    "year": 2024,
+                    "report_type": "사업보고서",
+                    "section": "요약재무정보",
+                    "section_path": "II. 사업의 내용 > 요약재무정보",
+                    "block_type": "paragraph",
+                    "local_heading": "연결 실적",
+                },
+            ),
+        ]
+
+        metrics = _run_ingest(
+            agent,
+            chunks,
+            {
+                "ingest_mode": "structural_parent_hybrid_v2",
+                "selective_v2_short_text_threshold": 700,
+                "selective_v2_short_table_threshold": 1600,
+                "selective_v2_sections": ["요약재무정보"],
+                "resume_partial_store": False,
+                "resume_batch_size": 64,
+            },
+            return_artifacts=True,
+        )
+
+        self.assertEqual(metrics["mode"], "structural_parent_hybrid_v2")
+        self.assertEqual(metrics["api_calls"], 0)
+        self.assertEqual(metrics["stored_parent_chunks"], 1)
+        self.assertEqual(len(agent.vsm.document_calls), 1)
+        texts = agent.vsm.document_calls[0]["texts"]
+        self.assertIn("[parent_preview:", texts[0])
+        self.assertIn("[parent_local_heading: 연결 실적]", texts[0])
+        self.assertIn("[선택사유: short_table]", texts[0])
+        self.assertIn("[parent_preview:", texts[1])
+
     def test_ensure_benchmark_report_path_auto_fetches_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             report_file = Path(temp_dir) / "2023_사업보고서_20990101000001.html"
