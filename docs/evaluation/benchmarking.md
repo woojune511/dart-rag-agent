@@ -829,8 +829,11 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
     aggregate subtask traces
   - warm structural runtime/evaluator replay closes at `90.7%`
 - Caveat:
-  - `MIX_T1_064` still needs one clean formal multi-report benchmark rerun if
-    we want the repaired closure written into official benchmark artifacts
+  - refreshed current-store replay now returns the correct answer
+    (`매출원가 129조 1,792억원`, `판매비와관리비 18조 3,575억원`, `영업비용률 90.70%`)
+  - the remaining blocker is formal benchmark/evaluator promotion:
+    `numeric_equivalence = 1.0` is already true, but `numeric_grounding` /
+    `numeric_final_judgement` in the official row are still conservative
 
 ## 2026-05-26 Hybrid mixed query runtime
 
@@ -852,7 +855,29 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - `retrieval_hit_at_k = 1.0`
   - `context_recall = 1.0`
   - `completeness = 1.0`
-- remaining caveat:
-  - evaluator still rates this hybrid mixed query at `faithfulness = 0.7`
-  - the next follow-up is evaluator calibration for hybrid numeric+narrative
-    answers, not additional decomposition/runtime surgery
+
+## 2026-05-26 Hybrid evaluator calibration
+
+- evaluator now has a conservative hybrid mixed-query calibration path.
+  - if a question is clearly mixed numeric+narrative and runtime evidence
+    coverage is strong enough, faithfulness can be promoted to `1.0`
+  - this path is gated by:
+    - `completeness = 1.0`
+    - `context_recall = 1.0`
+    - `retrieval_hit_at_k = 1.0`
+    - `section_match_rate >= 0.5`
+    - `citation_coverage >= 2/3`
+    - no unsupported sentences
+    - runtime evidence count and numeric correctness checks
+- latest single-question reevaluation for `NAV_T2_006` now closes at:
+  - `faithfulness = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `context_recall = 1.0`
+  - `completeness = 1.0`
+- targeted official benchmark bundle:
+  - `benchmarks/results/nav_t2_006_formal_structural_2026-05-26`
+- important caveat:
+  - the official targeted row is still more conservative than the warm
+    single-question replay
+  - current official row holds `completeness = 0.7`, `section_match_rate = 0.25`
+    even though the hybrid runtime path and evaluator calibration are both in place

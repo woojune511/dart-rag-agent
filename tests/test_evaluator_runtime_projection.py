@@ -21,6 +21,7 @@ from src.ops.evaluator import (
     EvalExample,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
+    _should_override_hybrid_faithfulness,
     _should_override_numeric_grounding,
 )
 
@@ -149,6 +150,84 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 operand_selection_correctness=1.0,
                 numeric_result_correctness=None,
                 grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_should_override_hybrid_faithfulness_for_mixed_query(self) -> None:
+        example = EvalExample(
+            id="nav_t2_006",
+            question="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            ground_truth="41.4%와 포시마크 영향",
+            company="네이버",
+            year=2023,
+            section="경영진단",
+            expected_sections=[
+                "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적"
+            ],
+        )
+        runtime_evidence = [
+            {
+                "claim": "커머스 부문은 2023년에 전년 대비 41.4% 성장했다.",
+                "quote_span": "전년 대비 41.4% 성장",
+                "source_anchor": "NAVER | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+            {
+                "claim": "Poshmark의 성공적인 체질 개선이 성장에 기여했다.",
+                "quote_span": "Poshmark의 성공적인 체질 개선",
+                "source_anchor": "NAVER | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_hybrid_faithfulness(
+                example=example,
+                answer="네이버 커머스 부문은 2023년에 전년 대비 41.4% 성장했습니다. 이러한 성장은 포시마크의 체질 개선에 기인합니다.",
+                raw_faithfulness=0.7,
+                runtime_evidence=runtime_evidence,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=0.6,
+                citation_coverage=2.0 / 3.0,
+                entity_coverage=0.75,
+                completeness=1.0,
+                calculation_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+                unsupported_sentences=[],
+            )
+        )
+
+    def test_should_not_override_hybrid_faithfulness_without_enough_evidence(self) -> None:
+        example = EvalExample(
+            id="nav_t2_006",
+            question="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            ground_truth="41.4%와 포시마크 영향",
+            company="네이버",
+            year=2023,
+            section="경영진단",
+        )
+        runtime_evidence = [
+            {
+                "claim": "커머스 부문은 2023년에 전년 대비 41.4% 성장했다.",
+                "quote_span": "전년 대비 41.4% 성장",
+                "source_anchor": "NAVER | 2023 | IV. 이사의 경영진단 및 분석의견",
+            }
+        ]
+
+        self.assertFalse(
+            _should_override_hybrid_faithfulness(
+                example=example,
+                answer="네이버 커머스 부문은 2023년에 전년 대비 41.4% 성장했습니다.",
+                raw_faithfulness=0.7,
+                runtime_evidence=runtime_evidence,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=0.6,
+                citation_coverage=2.0 / 3.0,
+                entity_coverage=0.75,
+                completeness=1.0,
+                calculation_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+                unsupported_sentences=[],
             )
         )
 

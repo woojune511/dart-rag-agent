@@ -23,9 +23,9 @@
 - 지금 가장 가까운 구현 초점은 **next ingest experiment design + concept-only planner 확대 검증** 이다.
   - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
   - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
-  - `MIX_T1_064`는 ontology-driven component ratio shape + evaluator composed-ratio close까지 확인됐고, 공식 multi-report benchmark artifact rerun만 남아 있다
-  - `NAV_T2_006`는 hybrid decomposition(`lookup -> lookup -> growth_rate -> narrative_summary`)과 narrative evidence selection 보강으로 direct structural path에서 `completeness = 1.0`까지 회복됐다
-  - 이 mixed query family의 남은 follow-up은 evaluator의 hybrid narrative `faithfulness` calibration이다
+  - `MIX_T1_064`는 ontology-driven component ratio shape + evaluator composed-ratio close까지 확인됐고, current-store runtime 답은 `90.70%`로 맞다. 남은 blocker는 공식 benchmark row에서 `numeric_grounding` / `numeric_final_judgement` 승격을 끝내는 일이다
+  - `NAV_T2_006`는 hybrid decomposition(`lookup -> lookup -> growth_rate -> narrative_summary`)과 narrative evidence selection 보강 이후 direct structural path에서 `faithfulness = 1.0`, `completeness = 1.0`까지 회복됐다
+  - targeted official bundle `nav_t2_006_formal_structural_2026-05-26`도 남겼지만, 공식 row는 아직 `completeness = 0.7`로 single-question replay보다 보수적이다
   - routine curated validation은 `structural_selective_v2`를 기본값으로 본다
   - `contextual_selective_v2`는 arbitration-only quality reference로 유지한다
   - 다음 실험 후보는 `structural_parent_hybrid_v2`처럼 parent/section/table lineage를 더 보강하는 쪽으로 잡는다

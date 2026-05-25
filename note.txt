@@ -192,7 +192,8 @@
     - evaluator accepts composed-ratio grounding from aggregate subtask traces
     - warm structural runtime/evaluator replay closes at `90.7%`
   - remaining follow-up:
-    - rerun one clean formal multi-report benchmark bundle if we want `MIX_T1_064` repair persisted into official artifacts
+    - current-store runtime answer is now correct, but formal benchmark/evaluator row still leaves `numeric_grounding` / `numeric_final_judgement` conservative
+    - next cleanup is composed-ratio benchmark promotion, not additional runtime decomposition surgery
 
 - 2026-05-26 hybrid mixed query follow-up
   - `NAV_T2_006` no longer relies on a numeric-only shortcut
@@ -208,6 +209,9 @@
     - `retrieval_hit_at_k = 1.0`
     - `context_recall = 1.0`
     - `completeness = 1.0`
+    - `faithfulness = 1.0`
+  - targeted official bundle:
+    - `benchmarks/results/nav_t2_006_formal_structural_2026-05-26`
   - remaining caveat:
-    - evaluator still scores this hybrid mixed query at `faithfulness = 0.7`
-    - next cleanup is evaluator calibration, not decomposition/runtime structure
+    - the official benchmark row is still more conservative than warm replay (`completeness = 0.7`, low section match)
+    - next cleanup is hybrid benchmark row calibration, not more runtime decomposition work

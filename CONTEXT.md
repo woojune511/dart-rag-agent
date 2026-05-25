@@ -24,10 +24,13 @@
 - 최신 runtime hardening도 추가로 닫혔다.
   - `SKH_T1_060`는 structural path에서 `장기차입금` / `사채` note aggregate lookup hardening 이후 다시 `PASS`로 닫혔다.
   - `MIX_T1_064`는 ontology-driven component ratio shape, evaluator composed-ratio grounding, uncertainty suffix 정리까지 반영되어 warm structural runtime/evaluator 경로에서 `90.7%` close를 확인했다.
-  - 다만 `MIX_T1_064`의 공식 multi-report benchmark artifact refresh는 아직 pending이다.
+  - 현재 남은 `MIX_T1_064` blocker는 runtime 계산이 아니라 공식 benchmark/evaluator row다.
+    - 최신 current-store replay에서는 정답 `90.70%`가 나온다.
+    - 다만 formal benchmark 판정은 아직 `numeric_grounding` / `numeric_final_judgement`를 보수적으로 남겨 composed-ratio 승격 정리가 더 필요하다.
   - `NAV_T2_006`는 direct `financial_graph` 경로에서도 hybrid query decomposition(`lookup -> lookup -> growth_rate -> narrative_summary`)이 실제 runtime에서 끝까지 돌도록 정리됐다.
-  - 최신 warm structural replay에서 `NAV_T2_006`는 `커머스 매출 성장률 41.4%`와 `Poshmark 체질 개선`, `연결 편입 효과`까지 답변에 포함되고, evaluator 기준 `retrieval_hit_at_k = 1.0`, `context_recall = 1.0`, `completeness = 1.0`으로 회복됐다.
-  - 남은 caveat는 hybrid mixed numeric+narrative answer를 evaluator가 아직 다소 보수적으로 봐 `faithfulness = 0.7`에 머무는 점이다.
+  - 최신 warm structural replay에서 `NAV_T2_006`는 `커머스 매출 성장률 41.4%`와 `Poshmark 체질 개선`, `연결 편입 효과`까지 답변에 포함되고, evaluator 기준 `retrieval_hit_at_k = 1.0`, `context_recall = 1.0`, `completeness = 1.0`, `faithfulness = 1.0`까지 회복됐다.
+  - targeted official bundle `nav_t2_006_formal_structural_2026-05-26`도 남겼다.
+    - 다만 이 공식 row는 여전히 `completeness = 0.7`, `section_match_rate = 0.25`로 single-question warm replay보다 보수적이다.
 - parser는 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
   - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
   - `table_summary_text`, `table_row_labels_text`, `table_row_records_json`, `table_object_json` 생성
@@ -110,15 +113,15 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `structural_parent_hybrid_v2` 실험 설계 | parent/section/table lineage를 비용 증가 없이 더 보강할 수 있는지 확인 |
-| 2 | concept-only planner canary를 더 넓혀 runtime default 승격 가능성 검토 | benchmark-shaped metric ontology 의존 축소 |
-| 3 | internal `calculation_*` mirror를 실제로 제거할지 범위 결정 | runtime source of truth를 `tasks + artifacts + structured_result`로 완전히 정리할지 판단 |
+| 1 | `MIX_T1_064` composed-ratio benchmark 승격 정리 | current-store 정답을 공식 benchmark PASS로 끌어올릴 evaluator policy 마감 |
+| 2 | hybrid mixed-query official row calibration | `NAV_T2_006`류에서 warm replay와 공식 artifact의 narrative grading 차이를 줄이기 |
+| 3 | `structural_parent_hybrid_v2` 실험 설계 | parent/section/table lineage를 비용 증가 없이 더 보강할 수 있는지 확인 |
 
 ## 현재 우선순위 요약
 
-1. next ingest experiment design (`structural_parent_hybrid_v2`)
-2. concept-only planner default 승격 검토
-3. curated mainline default 운영 정착
+1. composed-ratio / hybrid mixed-query benchmark promotion
+2. next ingest experiment design (`structural_parent_hybrid_v2`)
+3. concept-only planner default 승격 검토
 4. internal compatibility mirror cleanup scope 결정
 
 ## 현재 해석
@@ -138,7 +141,7 @@
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
-- 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **broader curated validation + next ingest experiment design** 쪽이 맞다.
+- 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **composed-ratio / hybrid mixed-query benchmark promotion + next ingest experiment design** 쪽이 맞다.
 - immediate blocker였던
   - `SAM_T2_002` follow-up rerun
   - `MIX_T1_046` ratio direct-binding rerun

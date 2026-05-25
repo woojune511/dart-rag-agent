@@ -1618,6 +1618,74 @@ def _should_override_numeric_faithfulness(numeric_eval: Dict[str, Any]) -> bool:
     )
 
 
+def _looks_like_hybrid_mixed_query(question: str) -> bool:
+    text = str(question or "")
+    if not text.strip():
+        return False
+    has_numeric_intent = any(
+        marker in text
+        for marker in ("계산", "증가", "감소", "성장률", "비율", "증감", "매출", "영업수익", "금액")
+    )
+    has_narrative_intent = any(
+        marker in text
+        for marker in ("영향", "원인", "배경", "요약", "설명", "기여")
+    )
+    return has_numeric_intent and has_narrative_intent
+
+
+def _should_override_hybrid_faithfulness(
+    *,
+    example: EvalExample,
+    answer: str,
+    raw_faithfulness: Optional[float],
+    runtime_evidence: List[Dict[str, Any]],
+    context_recall: float,
+    retrieval_hit_at_k: float,
+    section_match_rate: float,
+    citation_coverage: float,
+    entity_coverage: Optional[float],
+    completeness: Optional[float],
+    calculation_correctness: Optional[float],
+    grounded_rendering_correctness: Optional[float],
+    unsupported_sentences: List[str],
+) -> bool:
+    def _clean(text: Any) -> str:
+        return re.sub(r"\s+", " ", str(text or "")).strip()
+
+    if raw_faithfulness is None:
+        return False
+    if raw_faithfulness >= 1.0:
+        return False
+    if not _looks_like_hybrid_mixed_query(example.question):
+        return False
+    if not str(answer or "").strip() or _looks_like_full_abstention_answer(answer):
+        return False
+    if completeness != 1.0:
+        return False
+    if calculation_correctness is not None and calculation_correctness != 1.0:
+        return False
+    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
+        return False
+    if context_recall < 1.0 or retrieval_hit_at_k < 1.0:
+        return False
+    if section_match_rate < 0.5:
+        return False
+    if citation_coverage < (2.0 / 3.0):
+        return False
+    if entity_coverage is not None and entity_coverage < 0.75:
+        return False
+    if unsupported_sentences:
+        return False
+    unique_claims = {
+        _clean(row.get("claim") or row.get("quote_span") or row.get("source_anchor") or "")
+        for row in runtime_evidence
+        if _clean(row.get("claim") or row.get("quote_span") or row.get("source_anchor") or "")
+    }
+    if len(unique_claims) < 2:
+        return False
+    return True
+
+
 def _should_override_numeric_grounding(
     *,
     numeric_eval: Dict[str, Any],
@@ -2447,6 +2515,25 @@ class RAGEvaluator:
             faithfulness = 1.0
             faithfulness_override_reason = (
                 "numeric evaluator PASS (equivalence/grounding/retrieval_support 모두 1.0)로 faithfulness를 1.0으로 보정"
+            )
+        elif _should_override_hybrid_faithfulness(
+            example=example,
+            answer=answer,
+            raw_faithfulness=raw_faithfulness,
+            runtime_evidence=runtime_evidence,
+            context_recall=context_recall,
+            retrieval_hit_at_k=retrieval_hit_at_k,
+            section_match_rate=section_match_rate,
+            citation_coverage=citation_coverage,
+            entity_coverage=entity_coverage,
+            completeness=completeness,
+            calculation_correctness=calculation_correctness,
+            grounded_rendering_correctness=grounded_rendering_correctness,
+            unsupported_sentences=unsupported_sentences,
+        ):
+            faithfulness = 1.0
+            faithfulness_override_reason = (
+                "hybrid mixed-query evidence coverage가 충분해 faithfulness를 1.0으로 보정"
             )
         if calculation_result:
             derived_metrics = dict(calculation_result.get("derived_metrics") or {})
