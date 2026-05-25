@@ -831,3 +831,28 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
 - Caveat:
   - `MIX_T1_064` still needs one clean formal multi-report benchmark rerun if
     we want the repaired closure written into official benchmark artifacts
+
+## 2026-05-26 Hybrid mixed query runtime
+
+- `NAV_T2_006` is now treated as a true hybrid query in the direct
+  `financial_graph` path rather than a numeric-only shortcut.
+  - runtime executes
+    `2023 커머스 매출 lookup -> 2022 커머스 매출 lookup -> growth_rate -> narrative_summary`
+  - the `narrative_summary` subtask performs its own retrieval and no longer
+    reuses numeric-only evidence
+- impact-query narrative retrieval/selection is now biased toward realized
+  business impact paragraphs instead of contract-purpose paragraphs.
+  - `주요계약` / expected-effect snippets are demoted when richer
+    `경영진단` / commerce-impact paragraphs exist
+  - extraction keeps multiple impact claims such as `Poshmark 체질 개선` and
+    `연결 편입 효과`
+- latest warm structural replay for `NAV_T2_006` now yields:
+  - answer with `커머스 매출 성장률 41.4%`
+  - answer also includes `Poshmark 체질 개선` and `연결 편입 효과`
+  - `retrieval_hit_at_k = 1.0`
+  - `context_recall = 1.0`
+  - `completeness = 1.0`
+- remaining caveat:
+  - evaluator still rates this hybrid mixed query at `faithfulness = 0.7`
+  - the next follow-up is evaluator calibration for hybrid numeric+narrative
+    answers, not additional decomposition/runtime surgery

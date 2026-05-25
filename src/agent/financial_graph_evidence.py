@@ -61,17 +61,23 @@ class FinancialAgentEvidenceMixin:
         return bias
 
     def _rerank_docs(self, docs, state: FinancialAgentState):
+        active_subtask = dict(state.get("active_subtask") or {})
         companies = {company.lower() for company in state.get("companies", [])}
         years = {int(year) for year in state.get("years", [])}
         topic_terms = _tokenize_terms(state.get("topic") or state["query"])
         section_filter = (state.get("section_filter") or "").strip()
-        intent = state.get("intent") or state.get("query_type", "qa")
-        format_preference = state.get("format_preference") or self._default_format_preference(intent)
+        intent = str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type", "qa"))
+        format_preference = str(
+            active_subtask.get("format_preference_override")
+            or state.get("format_preference")
+            or self._default_format_preference(intent)
+        )
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
         desired_statement_types = set(_active_preferred_statement_types(state, state["query"], state.get("topic") or ""))
         desired_consolidation = _desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
         query_years = sorted(years)
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
 
         reranked = []
         for doc, score in docs:
@@ -139,15 +145,148 @@ class FinancialAgentEvidenceMixin:
             elif format_preference == "table" and block_type == "paragraph":
                 boosted -= 0.04
 
+            if operation_family == "narrative_summary":
+                if block_type == "paragraph":
+                    boosted += 0.12
+                elif block_type == "table":
+                    boosted -= 0.14
+                causal_markers = ("영향", "기여", "편입효과", "배경", "요인", "성장")
+                if any(marker in body_text or marker in section_path for marker in causal_markers):
+                    boosted += 0.08
+
             reranked.append((doc, boosted))
 
         reranked.sort(key=lambda item: item[1], reverse=True)
         return reranked
 
+    def _select_narrative_summary_docs(self, reranked, state: FinancialAgentState, effective_k: int):
+        query = str(state.get("query") or "")
+        query_lower = query.lower()
+        impact_query = any(marker in query for marker in ("영향", "기여", "원인", "요약"))
+        preferred_section_markers = (
+            "iv. 이사의 경영진단 및 분석의견",
+            "재무상태 및 영업실적",
+            "나. 영업실적",
+        )
+        causal_markers = (
+            "영향",
+            "기여",
+            "편입효과",
+            "체질 개선",
+            "성장",
+            "인수",
+            "브랜드스토어",
+            "스마트스토어",
+            "연결 편입",
+        )
+
+        def _paragraph_priority(item) -> tuple[int, float]:
+            doc, score = item
+            metadata = doc.metadata or {}
+            block_type = str(metadata.get("block_type") or "").strip().lower()
+            section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
+            text = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(doc.page_content or ""),
+                        str(metadata.get("table_context") or ""),
+                    )
+                    if part
+                )
+            ).lower()
+            focus_markers = []
+            if "커머스" in query:
+                focus_markers.extend(["커머스", "쇼핑", "스마트스토어", "브랜드스토어"])
+            if "포시마크" in query or "poshmark" in query_lower:
+                focus_markers.extend(["poshmark", "체질 개선", "연결 편입", "편입효과"])
+            priority = 0
+            if block_type == "paragraph":
+                priority += 3
+            if any(marker in section_path for marker in preferred_section_markers):
+                priority += 2
+            if "나. 영업실적".lower() in section_path or "기타 참고사항".lower() in section_path:
+                priority += 1
+            if any(marker.lower() in text for marker in causal_markers):
+                priority += 2
+            if impact_query:
+                realised_markers = (
+                    "전년 대비",
+                    "스마트스토어",
+                    "브랜드스토어",
+                    "연결 편입",
+                    "편입효과",
+                    "체질 개선",
+                )
+                if any(marker.lower() in text for marker in realised_markers):
+                    priority += 3
+                if (
+                    "주요계약 및 연구개발활동".lower() in section_path
+                    or "경영상의 주요 계약".lower() in text
+                    or "계약의 목적 및 내용".lower() in text
+                    or "예상효과".lower() in text
+                ):
+                    priority -= 2
+            if "poshmark" in query_lower and "poshmark" in text:
+                priority += 2
+            if "커머스" in query and "커머스" in text:
+                priority += 1
+            if focus_markers:
+                focus_hits = sum(1 for marker in focus_markers if marker.lower() in text)
+                if focus_hits:
+                    priority += min(focus_hits, 3)
+                elif impact_query:
+                    priority -= 2
+            return priority, float(score)
+
+        paragraph_candidates = []
+        remainder = []
+        for item in reranked:
+            doc = item[0] if isinstance(item, (tuple, list)) else item
+            metadata = getattr(doc, "metadata", {}) or {}
+            if str(metadata.get("block_type") or "").strip().lower() == "paragraph":
+                paragraph_candidates.append(item)
+            else:
+                remainder.append(item)
+
+        paragraph_candidates.sort(key=_paragraph_priority, reverse=True)
+        selected = []
+        seen_chunk_ids = set()
+        for item in paragraph_candidates:
+            doc = item[0] if isinstance(item, (tuple, list)) else item
+            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+            if chunk_id and chunk_id in seen_chunk_ids:
+                continue
+            selected.append(item)
+            if chunk_id:
+                seen_chunk_ids.add(chunk_id)
+            if len(selected) >= min(max(effective_k // 2, 3), effective_k):
+                break
+
+        for item in reranked:
+            doc = item[0] if isinstance(item, (tuple, list)) else item
+            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+            if chunk_id and chunk_id in seen_chunk_ids:
+                continue
+            selected.append(item)
+            if chunk_id:
+                seen_chunk_ids.add(chunk_id)
+            if len(selected) >= effective_k:
+                break
+
+        return selected[:effective_k]
+
     def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Retrieve top candidate chunks and rerank them for the active task."""
         query = state["query"]
         retrieval_queries = [str(item).strip() for item in (state.get("retrieval_queries") or []) if str(item).strip()]
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask_query = str(active_subtask.get("query") or "").strip()
+        active_subtask_retrieval_queries = [
+            str(item).strip()
+            for item in (active_subtask.get("retrieval_queries") or [])
+            if str(item).strip()
+        ]
         report_scope = dict(state.get("report_scope") or {})
         companies = list(state.get("companies", []) or [])
         years = list(state.get("years", []) or [])
@@ -170,7 +309,7 @@ class FinancialAgentEvidenceMixin:
         has_multi_source_scope = len(scope_source_receipts) > 1
         scope_consolidation = str(report_scope.get("consolidation") or "").strip()
         section_filter = state.get("section_filter")
-        intent = state.get("intent") or state.get("query_type", "qa")
+        intent = str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type", "qa"))
         reflection_count = int(state.get("reflection_count") or 0)
         retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
         effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
@@ -217,7 +356,12 @@ class FinancialAgentEvidenceMixin:
 
         retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, intent)
         preferred_sections = _active_preferred_sections(state, query, state.get("topic") or "", intent)
-        query_bundle = retrieval_queries or [query]
+        query_bundle = (
+            active_subtask_retrieval_queries
+            or ([active_subtask_query] if active_subtask_query else [])
+            or retrieval_queries
+            or [query]
+        )
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
             enriched_query = f"{' '.join(companies)} {base_query}" if companies else base_query
@@ -283,25 +427,33 @@ class FinancialAgentEvidenceMixin:
 
         reranked = self._rerank_docs(docs, state)
 
-        # format_preference에 따라 표/단락 비율 보장
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         intent = state.get("intent") or state.get("query_type", "qa")
-        format_preference = state.get("format_preference") or self._default_format_preference(intent)
-        if format_preference == "table":
-            # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
-            tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
-            paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
-            min_para = min(2, len(paras))
-            docs = (tables[: effective_k - min_para] + paras[:min_para])
-            docs.sort(key=lambda x: x[1], reverse=True)
-        elif format_preference == "paragraph":
-            # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
-            tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
-            paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
-            min_para = min(effective_k // 2, len(paras))
-            docs = (paras[:min_para] + tables[: effective_k - min_para])
-            docs.sort(key=lambda x: x[1], reverse=True)
+        format_preference = str(
+            active_subtask.get("format_preference_override")
+            or state.get("format_preference")
+            or self._default_format_preference(intent)
+        ).strip().lower()
+        if operation_family == "narrative_summary":
+            docs = self._select_narrative_summary_docs(reranked, state, effective_k)
         else:
-            docs = reranked
+            # format_preference에 따라 표/단락 비율 보장
+            if format_preference == "table":
+                # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
+                tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
+                paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
+                min_para = min(2, len(paras))
+                docs = (tables[: effective_k - min_para] + paras[:min_para])
+                docs.sort(key=lambda x: x[1], reverse=True)
+            elif format_preference == "paragraph":
+                # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
+                tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
+                paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
+                min_para = min(effective_k // 2, len(paras))
+                docs = (paras[:min_para] + tables[: effective_k - min_para])
+                docs.sort(key=lambda x: x[1], reverse=True)
+            else:
+                docs = reranked
 
         seed_docs = reranked[: min(len(reranked), effective_k * 4)]
         docs = docs[: effective_k]
@@ -669,6 +821,102 @@ class FinancialAgentEvidenceMixin:
         if not surface or not re.search(r"\d", surface):
             return False
         return True
+
+    def _is_narrative_supporting_evidence_item(self, item: Dict[str, Any]) -> bool:
+        if self._is_direct_numeric_table_backed_evidence_item(item):
+            return False
+
+        metadata = dict(item.get("metadata") or {})
+        block_type = str(metadata.get("block_type") or "").strip().lower()
+        graph_relation = str(metadata.get("graph_relation") or "").strip().lower()
+        merged = _normalise_spaces(
+            " ".join(
+                part
+                for part in (
+                    str(item.get("claim") or ""),
+                    str(item.get("quote_span") or ""),
+                    str(item.get("source_context") or ""),
+                    str(metadata.get("section_path") or metadata.get("section") or ""),
+                )
+                if part
+            )
+        )
+        if not merged:
+            return False
+        if _query_requests_narrative_context(merged):
+            return True
+        return block_type in {"paragraph", "parent_context", "section_lead", "described_by_paragraph"} or graph_relation in {
+            "parent_context",
+            "section_lead",
+            "described_by_paragraph",
+        }
+
+    def _restrict_direct_numeric_evidence_items(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        *,
+        preserve_narrative_context: bool = False,
+    ) -> List[Dict[str, Any]]:
+        direct_items: List[Dict[str, Any]] = []
+        seen_direct_keys: set[str] = set()
+        for item in evidence_items:
+            if not self._is_direct_numeric_table_backed_evidence_item(item):
+                continue
+            dedupe_key = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(item.get("source_anchor") or ""),
+                        str(item.get("raw_row_text") or item.get("quote_span") or item.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            if dedupe_key and dedupe_key in seen_direct_keys:
+                continue
+            if dedupe_key:
+                seen_direct_keys.add(dedupe_key)
+            direct_items.append(dict(item))
+        if not preserve_narrative_context:
+            return direct_items
+
+        narrative_items: List[Dict[str, Any]] = []
+        seen_keys = {
+            _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(item.get("source_anchor") or ""),
+                        str(item.get("raw_row_text") or item.get("quote_span") or item.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            for item in direct_items
+        }
+        for item in self._sort_evidence_items(evidence_items):
+            if self._is_direct_numeric_table_backed_evidence_item(item):
+                continue
+            if not self._is_narrative_supporting_evidence_item(item):
+                continue
+            dedupe_key = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(item.get("source_anchor") or ""),
+                        str(item.get("raw_row_text") or item.get("quote_span") or item.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            if dedupe_key and dedupe_key in seen_keys:
+                continue
+            if dedupe_key:
+                seen_keys.add(dedupe_key)
+            narrative_items.append(dict(item))
+            if len(narrative_items) >= 2:
+                break
+        return direct_items + narrative_items
 
     def _filter_evidence_items_for_required_operands(
         self,
@@ -1394,6 +1642,14 @@ class FinancialAgentEvidenceMixin:
         }
 
     def _compression_guidance(self, query_type: str, query: str, coverage: str) -> Dict[str, str]:
+        trend_instruction = "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요."
+        trend_output_style = "2~4문장."
+        if _query_requests_narrative_context(query):
+            trend_instruction = (
+                "시계열 변화와 함께 실적에 직접 기여한 운영 요인을 1~2개까지 정리하세요. "
+                "계약 목적이나 기대효과보다 실제 성과 원인(예: 연결 편입효과, 스마트스토어/브랜드스토어 성장, 체질 개선)을 우선하세요."
+            )
+            trend_output_style = "2~5문장."
         instructions = {
             "numeric_fact": (
                 "질문이 요청한 숫자·금액·비율만 답하세요. claim과 quote_span에 있는 표기를 그대로 유지하고, "
@@ -1414,7 +1670,7 @@ class FinancialAgentEvidenceMixin:
                 "evidence에 없는 새로운 상위 범주를 만들지 마세요."
             ),
             "comparison": "각 항목을 나란히 비교하되, evidence에 직접 있는 차이만 정리하세요.",
-            "trend": "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요.",
+            "trend": trend_instruction,
             "qa": "질문에 직접 답하는 핵심 사실만 짧게 답하세요.",
         }
         output_styles = {
@@ -1422,7 +1678,7 @@ class FinancialAgentEvidenceMixin:
             "business_overview": "각 부문의 구체적 제품/역할이 포함된 3~5개의 bullet.",
             "risk": "항목별로 이름과 짧은 설명(1~2줄)이 함께 있는 bullet. 항목 수는 evidence 범위를 넘기지 말 것.",
             "comparison": "짧은 bullet 비교.",
-            "trend": "2~4문장.",
+            "trend": trend_output_style,
             "qa": "짧고 직접적으로.",
         }
 
@@ -1444,6 +1700,12 @@ class FinancialAgentEvidenceMixin:
         if not docs:
             return {"evidence_bullets": [], "evidence_items": [], "evidence_status": "missing"}
         direct_numeric_grounding = _requires_direct_numeric_grounding(state.get("active_subtask") or {})
+        preserve_narrative_context = (
+            direct_numeric_grounding
+            and _query_requests_narrative_context(str(state.get("query") or ""))
+        )
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
 
         structured_llm = self.llm.with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
@@ -1468,6 +1730,15 @@ class FinancialAgentEvidenceMixin:
                 "\n- 문서에서 여러 하위 항목이 상위 부문 아래 묶여 있다면(예: 'DS부문' 아래 메모리·시스템반도체·파운드리), "
                 "각 하위 항목의 parent_category 필드에 해당 상위 부문 명칭을 그대로 적으세요. "
                 "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
+            )
+        elif operation_family == "narrative_summary":
+            extra_rules = (
+                "\n- 질문이 영향/원인을 묻는 경우, 계약 목적이나 예상효과만 적힌 문단보다 "
+                "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
+                "\n- 가능하면 서로 다른 관점의 근거를 2개 이상 추출하세요. "
+                "예: (1) 실적 변화나 성장률을 직접 설명하는 문단, "
+                "(2) 그 배경 driver(연결 편입효과, 스마트스토어/브랜드스토어 성장, 체질 개선 등)를 설명하는 문단."
+                "\n- '주요 계약' 문단은 실제 성과 영향 문단이 부족할 때만 보조 근거로 사용하세요."
             )
         else:
             extra_rules = ""
@@ -1538,10 +1809,10 @@ class FinancialAgentEvidenceMixin:
             ]
             evidence_items = self._filter_evidence_items_for_required_operands(evidence_items, state)
             if direct_numeric_grounding:
-                evidence_items = [
-                    item for item in evidence_items
-                    if self._is_direct_numeric_table_backed_evidence_item(item)
-                ]
+                evidence_items = self._restrict_direct_numeric_evidence_items(
+                    evidence_items,
+                    preserve_narrative_context=preserve_narrative_context,
+                )
             evidence_bullets = [
                 f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
                 for item in evidence_items

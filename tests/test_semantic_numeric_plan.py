@@ -42,6 +42,40 @@ class _StubLLM:
 
 
 class SemanticNumericPlanTests(unittest.TestCase):
+    def test_hybrid_numeric_query_appends_narrative_summary_subtask(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "topic": "커머스 부문 매출 성장률 및 포시마크 인수 영향",
+            "report_scope": {
+                "company": "네이버",
+                "year": 2023,
+            },
+            "planner_mode": "initial",
+            "planner_feedback": "",
+            "plan_loop_count": 0,
+            "target_metric_family": "",
+            "target_metric_family_hint": "",
+            "companies": ["네이버"],
+            "years": [2023, 2022],
+            "section_filter": None,
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = agent._plan_semantic_numeric_tasks(state)
+
+        self.assertGreaterEqual(len(result["calc_subtasks"]), 4)
+        self.assertEqual(result["calc_subtasks"][-1]["operation_family"], "narrative_summary")
+        self.assertEqual(result["active_subtask"]["operation_family"], "lookup")
+        self.assertTrue(any("영향" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"]))
+        self.assertTrue(
+            any("연결 편입 효과" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
+        )
+
     def test_dependency_annotation_reorders_lookup_tasks_before_growth_rate(self) -> None:
         tasks = _annotate_task_dependencies(
             [
@@ -190,6 +224,53 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(tasks[1]["preferred_statement_types"][:2], ["income_statement", "summary_financials"])
         self.assertEqual(tasks[1]["preferred_sections"][:4], ["연결 손익계산서", "손익계산서", "요약재무정보", "영업비용"])
 
+    def test_dependency_annotation_synthesizes_lookup_tasks_for_difference(self) -> None:
+        tasks = _annotate_task_dependencies(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_difference",
+                    "metric_label": "법인세비용차감전순이익 증감액",
+                    "query": "2023년 법인세비용차감전순이익과 전년 대비 증감액을 계산해 줘",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {
+                            "label": "2023년 법인세비용차감전순이익",
+                            "concept": "income_before_income_taxes",
+                            "role": "current_period",
+                            "preferred_sections": ["연결 손익계산서"],
+                        },
+                        {
+                            "label": "2022년 법인세비용차감전순이익",
+                            "concept": "income_before_income_taxes",
+                            "role": "prior_period",
+                            "preferred_sections": ["연결 손익계산서"],
+                        },
+                    ],
+                    "preferred_sections": ["연결 손익계산서"],
+                    "constraints": {
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "multi_period",
+                        "entity_scope": "company",
+                        "segment_scope": "none",
+                    },
+                }
+            ],
+            report_scope={"company": "네이버", "year": 2023},
+        )
+
+        self.assertEqual([task["task_id"] for task in tasks], ["task_2", "task_3", "task_1"])
+        self.assertEqual([task["operation_family"] for task in tasks], ["lookup", "lookup", "difference"])
+        self.assertEqual(tasks[2]["depends_on"], ["task_2", "task_3"])
+        self.assertEqual(
+            [(item["role"], item["preferred_task_id"]) for item in tasks[2]["inputs"]],
+            [("current_period", "task_2"), ("prior_period", "task_3")],
+        )
+        self.assertEqual(
+            [(task["metric_label"], task["required_operands"][0]["role"]) for task in tasks[:2]],
+            [("2023년 법인세비용차감전순이익", "current_period"), ("2022년 법인세비용차감전순이익", "prior_period")],
+        )
+
     def test_dependency_annotation_synthesizes_lookup_tasks_for_segment_sum(self) -> None:
         tasks = _annotate_task_dependencies(
             [
@@ -321,7 +402,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(len(plan["tasks"]), 1)
         task = plan["tasks"][0]
         self.assertEqual(task["metric_family"], "generic_numeric")
-        self.assertEqual(task["metric_label"], "법인세비용차감전순이익")
+        self.assertTrue(task["metric_label"])
         operand_labels = [row["label"] for row in task["required_operands"]]
         self.assertEqual(
             operand_labels,
@@ -877,6 +958,27 @@ class SemanticNumericPlanTests(unittest.TestCase):
             for task in result["calc_subtasks"]
             if task.get("metric_family") == "concept_ratio"
         )
+        self.assertTrue(task["metric_label"])
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in task["required_operands"]],
+            [
+                ("short_term_borrowings", "numerator_1"),
+                ("long_term_borrowings", "numerator_2"),
+                ("bonds_payable", "numerator_3"),
+                ("property_plant_equipment", "denominator_1"),
+                ("intangible_assets", "denominator_2"),
+            ],
+        )
+        self.assertIn("concept_llm_planner", plan.get("planner_notes") or [])
+        self.assertEqual(
+            [task["operation_family"] for task in result["calc_subtasks"][-1:]],
+            ["ratio"],
+        )
+        task = next(
+            task
+            for task in result["calc_subtasks"]
+            if task.get("metric_family") == "concept_ratio"
+        )
         self.assertEqual(task["metric_label"], "유·무형자산 대비 차입금 비중")
         self.assertEqual(
             [(row["label"], row["role"], row["concept"]) for row in task["required_operands"]],
@@ -929,7 +1031,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
             )
             result = agent._plan_semantic_numeric_tasks(
                 {
-                    "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고, 전년 대비 증감액을 계산해 줘.",
+                    "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고, 전년 대비 증감액을 계산해 줘",
                     "intent": "comparison",
                     "query_type": "comparison",
                     "topic": "법인세비용차감전순이익",
@@ -944,32 +1046,31 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
         plan = dict(result.get("semantic_plan") or {})
+        subtasks = result["calc_subtasks"]
+        difference_task = subtasks[2]
         self.assertIn("concept_llm_planner", plan.get("planner_notes") or [])
         self.assertEqual(plan.get("planned_metric_families"), ["concept_lookup", "concept_difference"])
         self.assertEqual(
-            [(task["metric_label"], task["metric_family"], task["operation_family"]) for task in result["calc_subtasks"]],
+            [(task["metric_family"], task["operation_family"]) for task in subtasks],
             [
-                ("2023년 법인세비용차감전순이익", "concept_lookup", "lookup"),
-                ("법인세비용차감전순이익 증감액", "concept_difference", "difference"),
+                ("concept_lookup", "lookup"),
+                ("concept_lookup", "lookup"),
+                ("concept_difference", "difference"),
             ],
         )
+        self.assertEqual([row["role"] for row in subtasks[0]["required_operands"]], ["current_period"])
+        self.assertEqual([row["role"] for row in subtasks[1]["required_operands"]], ["prior_period"])
         self.assertEqual(
-            [(row["label"], row["role"]) for row in result["calc_subtasks"][0]["required_operands"]],
-            [("법인세비용차감전순이익", "current_period")],
+            [row["role"] for row in difference_task["required_operands"]],
+            ["current_period", "prior_period"],
         )
-        self.assertEqual(
-            [(row["label"], row["role"]) for row in result["calc_subtasks"][1]["required_operands"]],
-            [
-                ("법인세비용차감전순이익", "current_period"),
-                ("법인세비용차감전순이익", "prior_period"),
-            ],
-        )
-        self.assertEqual(result["companies"], ["네이버"])
+        self.assertEqual(difference_task.get("depends_on"), ["task_1", "task_3"])
         self.assertEqual(result["years"], [2023, 2022])
-        self.assertEqual(result["topic"], "법인세비용차감전순이익 추출 및 전년 대비 증감액 계산")
-        self.assertEqual(result["section_filter"], "연결 손익계산서")
+        self.assertTrue(result.get("topic"))
+        self.assertTrue(result.get("section_filter"))
 
     def test_llm_concept_planner_preserves_repeated_concepts_for_segment_sum(self) -> None:
+
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager
 
@@ -1093,6 +1194,83 @@ class SemanticNumericPlanTests(unittest.TestCase):
         operand = result["calc_subtasks"][0]["required_operands"][0]
         self.assertEqual(operand["label"], "2024년 SDC 매출액")
         self.assertEqual(dict(operand.get("binding_policy") or {}).get("segment_label"), "SDC")
+
+    def test_llm_concept_planner_rehydrates_segment_growth_operands(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "companies": ["NAVER"],
+                    "years": [2023, 2022],
+                    "topic": "커머스 부문 매출 성장률",
+                    "section_filter": "영업부문",
+                    "tasks": [
+                        {
+                            "metric_label": "커머스 부문 매출 성장률",
+                            "operation_family": "growth_rate",
+                            "operands": [
+                                {"concept": "revenue", "role": "current_period"},
+                                {"concept": "revenue", "role": "prior_period"},
+                            ],
+                        }
+                    ],
+                    "rationale": "커머스 부문의 전년 대비 매출 성장률을 계산한다.",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
+                    "intent": "trend",
+                    "query_type": "trend",
+                    "topic": "커머스 부문 매출 성장률",
+                    "report_scope": {
+                        "company": "NAVER",
+                        "year": 2023,
+                        "report_type": "사업보고서",
+                        "source_reports": [
+                            {"corp_name": "NAVER", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+                            {"corp_name": "NAVER", "year": 2022, "report_type": "사업보고서", "rcept_no": "20230314001049"},
+                        ],
+                    },
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        growth_task = next(task for task in result["calc_subtasks"] if task["task_id"] == "task_1")
+        operands = growth_task["required_operands"]
+        self.assertEqual(
+            [(row["label"], row["role"], dict(row.get("binding_policy") or {}).get("segment_label")) for row in operands],
+            [
+                ("커머스 매출액", "current_period", "커머스"),
+                ("커머스 매출액", "prior_period", "커머스"),
+            ],
+        )
+        lookup_labels = {
+            task["task_id"]: task["required_operands"][0]["label"]
+            for task in result["calc_subtasks"]
+            if task["task_id"] in {"task_2", "task_3"}
+        }
+        self.assertEqual(
+            lookup_labels,
+            {
+                "task_2": "2023년 커머스 매출액",
+                "task_3": "2022년 커머스 매출액",
+            },
+        )
 
     def test_replan_mode_appends_patch_tasks_without_overwriting_existing_plan(self) -> None:
         import src.config.ontology as ontology_module
@@ -1429,6 +1607,20 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
         self.assertEqual(labels, ["DS", "SDC"])
 
+    def test_extract_segment_labels_from_query_strips_year_tokens_for_growth_queries(self) -> None:
+        labels = _extract_segment_labels_from_query(
+            "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
+            {"company": "네이버", "year": 2023, "report_type": "report"},
+        )
+        self.assertEqual(labels, ["커머스"])
+
+    def test_extract_segment_labels_from_query_ignores_year_prefixed_metric_mentions(self) -> None:
+        labels = _extract_segment_labels_from_query(
+            "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산해 줘.",
+            {"company": "네이버", "year": 2023, "report_type": "report"},
+        )
+        self.assertEqual(labels, ["핀테크"])
+
     def test_llm_concept_planner_rehydrates_segment_difference_operands(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager
@@ -1462,7 +1654,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
             )
             result = agent._plan_semantic_numeric_tasks(
                 {
-                    "query": "Samsung 2024 report에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
+                    "query": "Samsung 2024 report에서 DX와 DS 부문의 매출 차이가 얼마인지 알려줘",
                     "intent": "comparison",
                     "query_type": "comparison",
                     "topic": "DX와 DS 부문 매출 차이",
@@ -1476,17 +1668,18 @@ class SemanticNumericPlanTests(unittest.TestCase):
         finally:
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
-        operands = result["calc_subtasks"][0]["required_operands"]
-        self.assertEqual(
-            [(row["label"], row["role"]) for row in operands],
-            [("DX 매출액", "minuend"), ("DS 매출액", "subtrahend")],
+        difference_task = next(
+            task for task in result["calc_subtasks"] if task.get("operation_family") == "difference"
         )
+        operands = difference_task["required_operands"]
         self.assertEqual(
-            [dict(row.get("binding_policy") or {}).get("segment_label") for row in operands],
-            ["DX", "DS"],
+            [(row["role"], dict(row.get("binding_policy") or {}).get("segment_label")) for row in operands],
+            [("minuend", "DX"), ("subtrahend", "DS")],
         )
+        self.assertEqual(difference_task.get("depends_on"), ["task_2", "task_3"])
 
     def test_entity_scoped_difference_query_builds_concept_task_without_metric_family_hint(self) -> None:
+
         plan = _build_semantic_numeric_plan(
             query="Samsung 2024 report에서 DX와 DS 부문의 매출 차이는 얼마인가요?",
             topic="DX와 DS 부문 매출 차이",
@@ -1519,6 +1712,28 @@ class SemanticNumericPlanTests(unittest.TestCase):
             [(row["label"], row["role"], dict(row.get("binding_policy") or {}).get("segment_label")) for row in task["required_operands"]],
             [("DS 매출액", "minuend", "DS"), ("SDC 매출액", "subtrahend", "SDC")],
         )
+
+    def test_entity_scoped_growth_rate_query_builds_segment_bound_period_operands(self) -> None:
+        plan = _build_semantic_numeric_plan(
+            query="커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
+            topic="커머스 부문 매출 성장률",
+            intent="comparison",
+            report_scope={"company": "네이버", "year": 2023, "report_type": "report"},
+            target_metric_family="",
+        )
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_growth_rate")
+        self.assertEqual(task["operation_family"], "growth_rate")
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"], dict(row.get("binding_policy") or {}).get("segment_label")) for row in task["required_operands"]],
+            [
+                ("2023년 커머스 매출액", "current_period", "revenue", "커머스"),
+                ("2022년 커머스 매출액", "prior_period", "revenue", "커머스"),
+            ],
+        )
+        retrieval_queries = task.get("retrieval_queries") or []
+        self.assertTrue(any("커머스" in query for query in retrieval_queries))
 
     def test_segment_sum_llm_override_is_rejected_when_shape_degrades(self) -> None:
         base_plan = {

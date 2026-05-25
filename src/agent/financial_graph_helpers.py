@@ -64,6 +64,7 @@ __all__ = [
     '_extract_generic_operand_labels',
     '_label_implies_percent_metric',
     '_is_single_metric_period_comparison',
+    '_query_requests_narrative_context',
     '_requires_direct_numeric_grounding',
     '_extract_year_tokens',
     '_build_generic_metric_aliases',
@@ -1026,8 +1027,11 @@ def _prioritize_candidate_items(
 def _should_apply_strict_company_scope(companies: List[str], report_scope: Dict[str, Any]) -> bool:
     if not companies:
         return False
-    scope_rcept_no = str((report_scope or {}).get("rcept_no") or "").strip()
+    scope = dict(report_scope or {})
+    scope_rcept_no = str(scope.get("rcept_no") or "").strip()
     if scope_rcept_no:
+        return False
+    if _report_scope_source_receipts(scope):
         return False
     return True
 
@@ -1109,6 +1113,47 @@ def _operand_target_receipts(
     return []
 
 
+def _candidate_allows_comparative_report_scope_fallback(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> bool:
+    source_rows = _report_scope_source_reports(report_scope)
+    if len(source_rows) < 2:
+        return False
+
+    target_years = _operand_target_years(operand, query_years)
+    explicit_years = _candidate_explicit_years(candidate)
+    if not target_years or not explicit_years or not any(year in explicit_years for year in target_years):
+        return False
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_receipt = str(metadata.get("rcept_no") or "").strip()
+    if not candidate_receipt:
+        return False
+
+    year_ranked = [
+        row
+        for row in sorted(source_rows, key=lambda current: int(current.get("year") or -1), reverse=True)
+        if row.get("year") is not None and str(row.get("rcept_no") or "").strip()
+    ]
+    if not year_ranked:
+        return False
+    latest_receipt = str(year_ranked[0].get("rcept_no") or "").strip()
+    if candidate_receipt != latest_receipt:
+        return False
+
+    role = str(operand.get("role") or "").strip()
+    candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+    if role == "prior_period" and candidate_period_focus == "current":
+        return False
+    if role == "current_period" and candidate_period_focus == "prior":
+        return False
+    return True
+
+
 def _candidate_matches_target_report_scope(
     candidate: Dict[str, Any],
     *,
@@ -1135,7 +1180,16 @@ def _candidate_matches_target_report_scope(
 
     if target_receipts:
         if candidate_receipt:
-            return candidate_receipt in target_receipts
+            if candidate_receipt in target_receipts:
+                return True
+            if _candidate_allows_comparative_report_scope_fallback(
+                candidate,
+                operand=operand,
+                query_years=query_years,
+                report_scope=report_scope,
+            ):
+                return True
+            return False
         if target_years and explicit_years and any(year in explicit_years for year in target_years):
             return True
         return False
@@ -1175,7 +1229,16 @@ def _candidate_report_scope_binding_bonus(
 
     if target_receipts:
         if candidate_receipt:
-            return 3.0 if candidate_receipt in target_receipts else -3.0
+            if candidate_receipt in target_receipts:
+                return 3.0
+            if _candidate_allows_comparative_report_scope_fallback(
+                candidate,
+                operand=operand,
+                query_years=query_years,
+                report_scope=report_scope,
+            ):
+                return 1.25
+            return -3.0
         if explicit_years and target_years and any(year in explicit_years for year in target_years):
             return 1.0
         return -3.0
@@ -1522,6 +1585,33 @@ def _label_implies_percent_metric(label: str) -> bool:
     )
 
 
+_NARRATIVE_CONTEXT_HINTS = (
+    "요약",
+    "원인",
+    "배경",
+    "설명",
+    "사례",
+    "영향",
+    "전략",
+    "리스크",
+    "의미",
+    "왜",
+    "어떤",
+    "어떻게",
+    "적용",
+    "관리",
+    "대응",
+    "기여",
+)
+
+
+def _query_requests_narrative_context(query: str) -> bool:
+    normalized = _normalise_spaces(str(query or "")).lower()
+    if not normalized:
+        return False
+    return any(token in normalized for token in _NARRATIVE_CONTEXT_HINTS)
+
+
 def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
     text = _normalise_spaces(query)
     comparison_markers = ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이")
@@ -1590,6 +1680,16 @@ def _extract_year_tokens(query: str, report_scope: Dict[str, Any]) -> List[int]:
                 years.insert(0, scope_year)
     except (TypeError, ValueError):
         pass
+    for row in _report_scope_source_reports(report_scope):
+        year_raw = row.get("year")
+        if year_raw in (None, ""):
+            year_raw = dict(row.get("metadata") or {}).get("year")
+        try:
+            year = int(year_raw)
+        except (TypeError, ValueError):
+            continue
+        if year not in years:
+            years.append(year)
     return years
 
 
@@ -1971,9 +2071,10 @@ def _build_generic_retrieval_queries(
         ):
             left_year = _year_for_operand(left)
             right_year = _year_for_operand(right)
-            shared_label = _strip_leading_period_prefix(
-                str(left.get("aliases") or [left.get("label") or ""])[0]
-            ) or _strip_leading_period_prefix(str(left.get("label") or ""))
+            alias_candidates = [str(item).strip() for item in (left.get("aliases") or []) if str(item).strip()]
+            shared_label = _strip_leading_period_prefix(alias_candidates[0] if alias_candidates else "") or _strip_leading_period_prefix(
+                str(left.get("label") or "")
+            )
             if shared_label:
                 compact_bits = [bit for bit in (f"{left_year}년" if left_year else "", f"{right_year}년" if right_year else "", shared_label) if bit]
                 queries.append(_collapse_duplicate_query_tokens(" ".join(compact_bits)))
@@ -2011,11 +2112,14 @@ def _build_generic_retrieval_queries(
         if not label:
             continue
         operand_prefix = _prefix_for_operand(operand) or year_prefix.strip()
+        segment_label = _operand_segment_label(operand)
         normalized_label = _strip_leading_period_prefix(label)
         queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_label or label}"))
         for alias in list(operand.get("aliases") or [])[:3]:
             if str(alias).strip():
                 normalized_alias = _strip_leading_period_prefix(str(alias).strip())
+                if segment_label and normalized_alias and segment_label not in normalized_alias:
+                    normalized_alias = _normalise_spaces(f"{segment_label} {normalized_alias}")
                 queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_alias or alias}"))
                 for section in preferred_sections[:2]:
                     queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_alias or alias} {section}"))
@@ -2332,18 +2436,36 @@ def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any])
         "세그먼트",
         "segment",
     }
+    blocked_exact_labels = {
+        "대비",
+        "전년",
+        "전기",
+        "당기",
+        "증가율",
+        "감소율",
+        "성장률",
+        "변화율",
+        "결제액",
+        "영업수익",
+        "매출액",
+        "매출",
+    }
 
     def _valid_label(label: str) -> str:
         normalized = _normalise_spaces(label)
+        normalized = _normalise_spaces(re.sub(r"^20\d{2}년\s*", "", normalized))
+        normalized = _normalise_spaces(re.sub(r"\b(?:전년|전기|당기)\s*$", "", normalized))
         if not normalized:
             return ""
         if normalized in blocked_tokens:
+            return ""
+        if normalized in blocked_exact_labels:
             return ""
         if "부문" in normalized or "세그먼트" in normalized:
             return ""
         if any(token in normalized for token in ("사업보고서", "반기보고서", "분기보고서")):
             return ""
-        if re.fullmatch(r"20\d{2}", normalized):
+        if re.fullmatch(r"20\d{2}(?:년)?", normalized):
             return ""
         if len(normalized) > 40:
             return ""
@@ -2620,6 +2742,8 @@ def _build_entity_scoped_concept_specs(
         return []
     if operation_family in {"sum", "difference"} and len(labels) < 2:
         return []
+    if operation_family in {"growth_rate", "lookup", "single_value"} and len(labels) < 1:
+        return []
 
     base_label = "매출액" if "매출" in _normalise_spaces(query) else _infer_generic_metric_label(query, "")
     concept_spec = _infer_generic_concept_spec(base_label, ontology)
@@ -2651,6 +2775,8 @@ def _build_entity_scoped_concept_specs(
             spec["role"] = ""
         specs.append(spec)
         if operation_family == "difference" and len(specs) >= 2:
+            break
+        if operation_family in {"growth_rate", "lookup", "single_value"}:
             break
     return specs
 
@@ -3190,7 +3316,7 @@ def _synthesize_missing_lookup_dependency_tasks(
     synthetic_tasks: List[Dict[str, Any]] = []
     for task in base_tasks:
         operation_family = _normalise_spaces(str(task.get("operation_family") or "")).lower()
-        if operation_family not in {"growth_rate", "ratio", "sum"}:
+        if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
             continue
         for binding in _task_input_bindings_for_dependency(task, report_scope=report_scope):
             if any(_dependency_binding_matches_output(binding, output) for _task_id, output in producer_catalog):
@@ -3466,12 +3592,20 @@ def _build_semantic_numeric_plan(
         ontology=ontology,
         operation_family=operation_family,
     )
+    concept_specs_have_segment_binding = any(
+        _normalise_spaces(str(dict(spec.get("binding_policy") or {}).get("segment_label") or ""))
+        for spec in concept_specs
+    )
     if entity_scoped_specs and (
         not concept_specs
         or (
             operation_family in {"sum", "difference"}
             and len(concept_specs) == 1
             and len(entity_scoped_specs) >= 2
+        )
+        or (
+            operation_family in {"growth_rate", "lookup", "single_value"}
+            and not concept_specs_have_segment_binding
         )
     ):
         concept_specs = entity_scoped_specs
@@ -4828,6 +4962,13 @@ def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
     years: set[int] = set()
     for raw in metadata.get("period_labels") or []:
         years.update(int(token) for token in re.findall(r"20\d{2}", str(raw or "")))
+    report_year: Optional[int] = None
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            report_year = int(raw_year)
+    except (TypeError, ValueError):
+        report_year = None
     for cell in metadata.get("structured_cells") or []:
         cell_data = dict(cell or {})
         for raw in (
@@ -4835,6 +4976,17 @@ def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
             " ".join(str(item).strip() for item in (cell_data.get("column_headers") or []) if str(item).strip()),
         ):
             years.update(int(token) for token in re.findall(r"20\d{2}", raw))
+        if report_year is None:
+            continue
+        period_headers = _normalise_spaces(
+            " ".join(str(item).strip() for item in (cell_data.get("column_headers") or []) if str(item).strip())
+        )
+        if not period_headers:
+            continue
+        if any(token in period_headers for token in ("당기", "현재")):
+            years.add(report_year)
+        if any(token in period_headers for token in ("전기", "이전")):
+            years.add(report_year - 1)
     return sorted(years)
 
 
@@ -4968,7 +5120,7 @@ def _operand_segment_label(operand: Dict[str, Any]) -> str:
     return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
 
 
-def _candidate_segment_surfaces(candidate: Dict[str, Any]) -> List[str]:
+def _candidate_segment_surfaces(candidate: Dict[str, Any], *, strict: bool = False) -> List[str]:
     metadata = dict(candidate.get("metadata") or {})
     surfaces = [
         str(metadata.get("semantic_label") or "").strip(),
@@ -4977,29 +5129,60 @@ def _candidate_segment_surfaces(candidate: Dict[str, Any]) -> List[str]:
         " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
         " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
         str(metadata.get("row_text") or "").strip(),
-        str(metadata.get("table_row_labels_text") or "").strip(),
-        str(metadata.get("table_context") or "").strip(),
-        str(metadata.get("table_summary_text") or "").strip(),
-        str(metadata.get("local_heading") or "").strip(),
-        str(metadata.get("section_path") or "").strip(),
-        str(candidate.get("text") or "").strip(),
-        str(candidate.get("source_anchor") or "").strip(),
     ]
+    if not strict:
+        surfaces.extend(
+            [
+                str(metadata.get("table_row_labels_text") or "").strip(),
+                str(metadata.get("table_context") or "").strip(),
+                str(metadata.get("local_heading") or "").strip(),
+                str(metadata.get("section_path") or "").strip(),
+                str(metadata.get("table_summary_text") or "").strip(),
+                str(candidate.get("text") or "").strip(),
+                str(candidate.get("source_anchor") or "").strip(),
+            ]
+        )
     return [_normalise_spaces(surface) for surface in surfaces if _normalise_spaces(surface)]
 
 
-def _candidate_matches_segment_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+def _candidate_matches_segment_binding(candidate: Dict[str, Any], operand: Dict[str, Any], *, strict: bool = False) -> bool:
     segment_label = _operand_segment_label(operand)
     if not segment_label:
         return True
 
     normalized_segment = _normalise_spaces(segment_label)
     compact_segment = re.sub(r"\s+", "", normalized_segment)
-    for surface in _candidate_segment_surfaces(candidate):
+    for surface in _candidate_segment_surfaces(candidate, strict=strict):
         compact_surface = re.sub(r"\s+", "", surface)
         if normalized_segment in surface or (compact_segment and compact_segment in compact_surface):
             return True
     return False
+
+
+def _candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    segment_label = _operand_segment_label(operand)
+    if not segment_label:
+        return True
+    if _candidate_matches_segment_binding(candidate, operand, strict=True):
+        return True
+    return _candidate_supports_segment_metric_combo(candidate, operand)
+
+
+def _candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    segment_label = _operand_segment_label(operand)
+    if not segment_label:
+        return False
+    if not _candidate_matches_segment_binding(candidate, operand, strict=True):
+        return False
+
+    metadata = dict(candidate.get("metadata") or {})
+    metric_surfaces = [
+        str(metadata.get("table_row_labels_text") or "").strip(),
+        str(metadata.get("table_context") or "").strip(),
+        str(metadata.get("table_summary_text") or "").strip(),
+        " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+    ]
+    return any(_operand_text_match(surface, operand) for surface in metric_surfaces if surface)
 
 
 def _candidate_segment_binding_bonus(
@@ -5256,7 +5439,7 @@ def _candidate_is_direct_grounding_candidate(
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or metadata.get("row_label") or ""))
     if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label):
         return False
-    if not _candidate_matches_segment_binding(candidate, operand):
+    if not _candidate_matches_segment_binding(candidate, operand, strict=True):
         return False
     if not _candidate_matches_target_report_scope(
         candidate,
@@ -5585,6 +5768,8 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
             and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
         ):
             best = max(best, 2.0)
+    if _candidate_supports_segment_metric_combo(candidate, operand):
+        best = max(best, 2.25)
     return best
 
 
@@ -5943,6 +6128,14 @@ def _deterministic_reconcile_task(
     for operand in required_operands:
         label = str(operand.get("label") or "").strip()
         matches = [candidate for candidate in candidates if _candidate_matches_operand(candidate, operand)]
+        if _operand_segment_label(operand):
+            segment_local_matches = [
+                candidate
+                for candidate in matches
+                if _candidate_has_segment_local_binding(candidate, operand)
+            ]
+            if segment_local_matches:
+                matches = segment_local_matches
         ranked = sorted(
             matches,
             key=lambda candidate: _score_operand_candidate(

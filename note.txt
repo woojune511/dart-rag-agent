@@ -193,3 +193,21 @@
     - warm structural runtime/evaluator replay closes at `90.7%`
   - remaining follow-up:
     - rerun one clean formal multi-report benchmark bundle if we want `MIX_T1_064` repair persisted into official artifacts
+
+- 2026-05-26 hybrid mixed query follow-up
+  - `NAV_T2_006` no longer relies on a numeric-only shortcut
+    - direct `financial_graph` runtime now executes
+      `2023 커머스 매출 lookup -> 2022 커머스 매출 lookup -> growth_rate -> narrative_summary`
+    - narrative_summary now performs its own retrieval instead of reusing numeric docs
+  - narrative selection / extraction was tightened for impact questions
+    - `주요계약` / expected-effect paragraphs are no longer preferred over realized impact paragraphs
+    - evidence extraction now preserves multiple impact claims such as
+      `Poshmark 체질 개선` and `연결 편입 효과`
+  - latest warm structural single-question replay now yields:
+    - answer with `41.4%` growth + `Poshmark 체질 개선` + `연결 편입 효과`
+    - `retrieval_hit_at_k = 1.0`
+    - `context_recall = 1.0`
+    - `completeness = 1.0`
+  - remaining caveat:
+    - evaluator still scores this hybrid mixed query at `faithfulness = 0.7`
+    - next cleanup is evaluator calibration, not decomposition/runtime structure

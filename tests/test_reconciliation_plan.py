@@ -621,6 +621,97 @@ class ReconciliationPlanTests(unittest.TestCase):
             {"status": "retry_retrieval", "missing_operands": ["영업비용"]},
         )
 
+        self.assertEqual(strategy, "retry_retrieval")
+
+    def test_retry_strategy_prefers_synthesis_only_after_all_dependency_outputs_resolve(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "employee expense ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "employee benefits expense", "concept": "employee_benefits_expense", "role": "numerator_1"},
+                    {"label": "operating expense total", "concept": "operating_expense_total", "role": "denominator_1"},
+                ],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "employee_benefits_expense",
+                        "period": "2023",
+                        "label": "employee benefits expense",
+                        "preferred_task_id": "task_2",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "operating_expense_total",
+                        "period": "2023",
+                        "label": "operating expense total",
+                        "preferred_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 employee benefits expense",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "2023 employee benefits expense",
+                                "concept": "employee_benefits_expense",
+                                "period": "2023",
+                                "raw_value": "1,701,418,940",
+                                "raw_unit": "KRW",
+                                "normalized_value": 1701418940000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "1.7T KRW",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 operating expense total",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "2023 operating expense total",
+                                "concept": "operating_expense_total",
+                                "period": "2023",
+                                "raw_value": "8,181,823,307",
+                                "raw_unit": "KRW",
+                                "normalized_value": 8181823307000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "8.2T KRW",
+                            },
+                        },
+                    },
+                },
+            ],
+            "reconciliation_result": {},
+            "reflection_plan": {},
+            "retry_strategy": "",
+        }
+
+        strategy = agent._select_retry_strategy_for_reconciliation(
+            state,
+            {"status": "retry_retrieval", "missing_operands": []},
+        )
+
         self.assertEqual(strategy, "synthesize_from_task_outputs")
 
     def test_report_scope_prefers_prior_year_receipt_for_multi_report_lookup(self) -> None:
@@ -720,6 +811,74 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertTrue(
             _candidate_is_direct_grounding_candidate(
                 prior_candidate,
+                operand=operand,
+                constraints=constraints,
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope=report_scope,
+            )
+        )
+
+    def test_report_scope_allows_latest_comparative_prior_column(self) -> None:
+        operand = {
+            "label": "2022년 법인세비용차감전순이익",
+            "aliases": ["법인세비용차감전순이익", "법인세비용차감전순손익"],
+            "role": "prior_period",
+            "preferred_sections": ["연결재무제표 주석"],
+            "binding_policy": {
+                "prefer_value_roles": ["detail", "aggregate"],
+                "prefer_aggregation_stages": ["direct", "final", "subtotal"],
+                "prefer_period_focus": "prior",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        constraints = {
+            "consolidation_scope": "consolidated",
+            "period_focus": "prior",
+        }
+        report_scope = {
+            "company": "네이버",
+            "year": 2023,
+            "source_reports": [
+                {"corp_name": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+                {"corp_name": "네이버", "year": 2022, "report_type": "사업보고서", "rcept_no": "20230314001049"},
+            ],
+        }
+        comparative_candidate = {
+            "candidate_id": "tax_note_prior_column",
+            "candidate_kind": "structured_value",
+            "text": "법인세비용차감전순손익 1,083,717,091",
+            "metadata": {
+                "company": "네이버",
+                "year": 2023,
+                "rcept_no": "20240318000844",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_focus": "prior",
+                "row_label": "법인세비용차감전순손익",
+                "semantic_label": "법인세비용차감전순손익",
+                "value_role": "detail",
+                "aggregation_stage": "direct",
+                "local_heading": "28. 법인세비용 (연결)",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 28. 법인세용 (연결)",
+                "period_labels": ["2023", "2022"],
+                "table_source_id": "tax_note_2023",
+            },
+        }
+
+        score = _score_operand_candidate(
+            comparative_candidate,
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints=constraints,
+            query_years=[2023],
+            report_scope=report_scope,
+        )
+
+        self.assertGreater(score, 0.0)
+        self.assertTrue(
+            _candidate_is_direct_grounding_candidate(
+                comparative_candidate,
                 operand=operand,
                 constraints=constraints,
                 query_years=[2023],
@@ -2070,6 +2229,94 @@ class ReconciliationPlanTests(unittest.TestCase):
         }
         self.assertEqual(match_map[("SDC 매출액", "addend_1")], "segment_sdc_revenue")
         self.assertEqual(match_map[("Harman 매출액", "addend_2")], "segment_harman_revenue")
+
+    def test_segment_lookup_reconcile_filters_company_total_when_segment_row_exists(self) -> None:
+        active_subtask = {
+            "task_id": "task_growth_current",
+            "metric_family": "concept_lookup",
+            "metric_label": "2023년 커머스 매출액",
+            "query": "네이버 2023년 커머스 부문의 매출은 얼마인가요?",
+            "operation_family": "lookup",
+            "required_operands": [
+                {
+                    "label": "2023년 커머스 매출액",
+                    "aliases": ["커머스", "매출액", "매출", "영업수익"],
+                    "concept": "revenue",
+                    "role": "primary",
+                    "required": True,
+                    "binding_policy": {
+                        "segment_label": "커머스",
+                        "prefer_consolidation_scope": "consolidated",
+                        "prefer_period_focus": "current",
+                    },
+                    "preferred_statement_types": ["notes", "mda", "summary_financials"],
+                }
+            ],
+            "preferred_statement_types": ["notes", "mda", "summary_financials"],
+            "constraints": {
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "entity_scope": "company",
+                "segment_scope": "segment",
+            },
+        }
+        total_candidate = {
+            "candidate_id": "company_total_revenue",
+            "candidate_kind": "structured_value",
+            "text": "영업수익 9,670,600",
+            "metadata": {
+                "row_label": "영업수익",
+                "semantic_label": "영업수익",
+                "semantic_aliases": ["영업수익", "매출액", "매출"],
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "local_heading": "가. 부문별 매출실적 > (2) 서비스별 영업현황",
+                "table_row_labels_text": "영업수익 | - 서치플랫폼 | - 커머스 | - 핀테크",
+                "table_context": "서비스별 영업현황",
+                "period_focus": "current",
+                "period_labels": ["2023", "2022"],
+                "table_source_id": "segment_revenue_table",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "9,670,600", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        segment_candidate = {
+            "candidate_id": "segment_commerce_revenue",
+            "candidate_kind": "structured_value",
+            "text": "- 커머스 2,546,649",
+            "metadata": {
+                "row_label": "- 커머스",
+                "semantic_label": "- 커머스",
+                "semantic_aliases": ["커머스"],
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "local_heading": "가. 부문별 매출실적 > (2) 서비스별 영업현황",
+                "table_row_labels_text": "영업수익 | - 서치플랫폼 | - 커머스 | - 핀테크",
+                "table_context": "서비스별 영업현황",
+                "period_focus": "current",
+                "period_labels": ["2023", "2022"],
+                "table_source_id": "segment_revenue_table",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "2,546,649", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=[total_candidate, segment_candidate],
+            years=[2023, 2022],
+            reconciliation_retry_count=0,
+        )
+
+        self.assertEqual(result["status"], "ready")
+        matched = result["matched_operands"][0]
+        self.assertEqual(matched["reason"], "matched_direct_candidate")
+        self.assertEqual(matched["candidate_ids"][0], "segment_commerce_revenue")
+        self.assertNotIn("company_total_revenue", matched["candidate_ids"][:1])
 
     def test_capex_total_prefers_business_section_aggregate_over_cash_flow_acquisition(self) -> None:
         operand = {

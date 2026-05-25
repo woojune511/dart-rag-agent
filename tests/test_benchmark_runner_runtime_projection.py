@@ -247,12 +247,16 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             completeness_reason="ok",
             refusal_accuracy=1.0,
             numeric_equivalence=1.0,
+            raw_numeric_grounding=0.5,
             numeric_grounding=1.0,
             numeric_retrieval_support=1.0,
+            raw_numeric_final_judgement="UNCERTAIN",
             numeric_final_judgement="PASS",
+            raw_numeric_confidence=0.6,
             numeric_confidence=1.0,
             numeric_debug={},
             absolute_error_rate=0.0,
+            raw_operand_selection_correctness=0.5,
             operand_selection_correctness=1.0,
             unit_consistency_pass=1.0,
             numeric_result_correctness=1.0,
@@ -304,6 +308,12 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             "lookup",
         )
         self.assertEqual(rows[0]["resolved_operand_count"], 1)
+        self.assertEqual(rows[0]["raw_numeric_grounding"], 0.5)
+        self.assertEqual(rows[0]["numeric_grounding"], 1.0)
+        self.assertEqual(rows[0]["raw_numeric_final_judgement"], "UNCERTAIN")
+        self.assertEqual(rows[0]["numeric_final_judgement"], "PASS")
+        self.assertEqual(rows[0]["raw_operand_selection_correctness"], 0.5)
+        self.assertEqual(rows[0]["operand_selection_correctness"], 1.0)
         self.assertNotIn("calculation_operands", rows[0])
         self.assertNotIn("calculation_plan", rows[0])
         self.assertNotIn("calculation_result", rows[0])

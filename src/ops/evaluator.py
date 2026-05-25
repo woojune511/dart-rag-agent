@@ -186,6 +186,7 @@ class EvalResult:
     latency_sec: float
     routing_scores: Dict[str, float] = field(default_factory=dict)
     absolute_error_rate: Optional[float] = None
+    raw_operand_selection_correctness: Optional[float] = None
     operand_selection_correctness: Optional[float] = None
     unit_consistency_pass: Optional[float] = None
     numeric_result_correctness: Optional[float] = None
@@ -203,9 +204,12 @@ class EvalResult:
     unsupported_sentences: List[str] = field(default_factory=list)
     sentence_checks: List[Dict[str, Any]] = field(default_factory=list)
     numeric_equivalence: Optional[float] = None
+    raw_numeric_grounding: Optional[float] = None
     numeric_grounding: Optional[float] = None
     numeric_retrieval_support: Optional[float] = None
+    raw_numeric_final_judgement: Optional[str] = None
     numeric_final_judgement: Optional[str] = None
+    raw_numeric_confidence: Optional[float] = None
     numeric_confidence: Optional[float] = None
     numeric_debug: Dict[str, Any] = field(default_factory=dict)
     resolved_calculation_trace: Dict[str, Any] = field(default_factory=dict)
@@ -441,7 +445,80 @@ def _tokenize_ko(text: str) -> set[str]:
 def _contains_section(metadata: Dict[str, Any], expected_section: str) -> bool:
     section = str(metadata.get("section", ""))
     section_path = str(metadata.get("section_path", ""))
-    return expected_section == section or expected_section in section_path
+    expected = str(expected_section or "").strip()
+    if not expected:
+        return False
+    if expected == section or expected in section_path:
+        return True
+    if section_path and section_path in expected:
+        return True
+    if section and section in expected:
+        return True
+    return False
+
+
+def _runtime_evidence_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
+    metadata = dict(row.get("metadata") or {})
+    if metadata:
+        return metadata
+    return {
+        "company": row.get("company"),
+        "year": row.get("year"),
+        "section": row.get("section"),
+        "section_path": row.get("section_path"),
+    }
+
+
+def _compute_runtime_evidence_retrieval_hit_at_k(example: EvalExample, runtime_evidence: List[Dict[str, Any]]) -> float:
+    expected_sections = _expected_sections_for_example(example)
+    if not expected_sections:
+        return 0.0
+    for row in runtime_evidence:
+        metadata = _runtime_evidence_metadata(row)
+        year = int(metadata.get("year", 0) or 0)
+        if (
+            _metadata_company_matches_example(example, metadata)
+            and year == int(example.year)
+            and any(_contains_section(metadata, expected_section) for expected_section in expected_sections)
+        ):
+            return 1.0
+    return 0.0
+
+
+def _compute_runtime_evidence_section_match_rate(example: EvalExample, runtime_evidence: List[Dict[str, Any]]) -> float:
+    if not runtime_evidence:
+        return 0.0
+    expected_sections = _expected_sections_for_example(example)
+    if not expected_sections:
+        return 0.0
+    matched = 0
+    for row in runtime_evidence:
+        metadata = _runtime_evidence_metadata(row)
+        if any(_contains_section(metadata, expected_section) for expected_section in expected_sections):
+            matched += 1
+    return matched / len(runtime_evidence)
+
+
+def _build_runtime_evidence_contexts(runtime_evidence: List[Dict[str, Any]], limit: int = 8) -> List[str]:
+    contexts: List[str] = []
+    seen: set[str] = set()
+    for row in runtime_evidence:
+        metadata = _runtime_evidence_metadata(row)
+        section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
+        claim = str(row.get("claim") or "").strip()
+        quote_span = str(row.get("quote_span") or row.get("raw_row_text") or row.get("quote") or "").strip()
+        source_context = str(row.get("source_context") or "").strip()
+        text_parts = [part for part in [section_path, claim, quote_span, source_context] if part]
+        if not text_parts:
+            continue
+        context = "\n".join(text_parts)
+        if context in seen:
+            continue
+        seen.add(context)
+        contexts.append(context)
+        if len(contexts) >= limit:
+            break
+    return contexts
 
 
 def _looks_like_missing_answer(text: str) -> bool:
@@ -2234,6 +2311,9 @@ class RAGEvaluator:
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
+            for context in _build_runtime_evidence_contexts(runtime_evidence):
+                if context and context not in contexts:
+                    contexts.append(context)
         except Exception as exc:
             error = str(exc)
             logger.error("[%s] agent.run failed: %s", example.id, exc)
@@ -2247,6 +2327,15 @@ class RAGEvaluator:
         context_recall = _compute_context_recall(example, contexts)
         retrieval_hit_at_k = _compute_retrieval_hit_at_k(example, retrieved_docs)
         section_match_rate = _compute_section_match_rate(example, retrieved_docs)
+        if runtime_evidence:
+            retrieval_hit_at_k = max(
+                retrieval_hit_at_k,
+                _compute_runtime_evidence_retrieval_hit_at_k(example, runtime_evidence),
+            )
+            section_match_rate = max(
+                section_match_rate,
+                _compute_runtime_evidence_section_match_rate(example, runtime_evidence),
+            )
         citation_coverage = _compute_citation_coverage(example, citations)
         missing_info_compliance = _compute_missing_info_compliance(example, answer)
         numeric_eval: Dict[str, Any] = {}
@@ -2287,6 +2376,7 @@ class RAGEvaluator:
             example=example,
             calculation_operands=calculation_operands,
         )
+        raw_operand_selection_correctness = operand_selection_correctness
         unit_consistency_pass = _compute_unit_consistency_pass(
             calculation_operands=calculation_operands,
             calculation_plan=calculation_plan,
@@ -2295,6 +2385,9 @@ class RAGEvaluator:
             example=example,
             calculation_result=calculation_result,
         )
+        raw_numeric_grounding = numeric_eval.get("numeric_grounding")
+        raw_numeric_final_judgement = numeric_eval.get("numeric_final_judgement")
+        raw_numeric_confidence = numeric_eval.get("numeric_confidence")
         # If the final result is numerically correct AND grounded in the retrieved
         # context, the planner found a valid derivation path. Do not penalise it
         # for choosing a mathematically equivalent operand set.
@@ -2403,6 +2496,7 @@ class RAGEvaluator:
             missing_info_compliance=missing_info_compliance,
             refusal_accuracy=refusal_accuracy,
             absolute_error_rate=absolute_error_rate,
+            raw_operand_selection_correctness=raw_operand_selection_correctness,
             operand_selection_correctness=operand_selection_correctness,
             unit_consistency_pass=unit_consistency_pass,
             numeric_result_correctness=numeric_result_correctness,
@@ -2428,9 +2522,12 @@ class RAGEvaluator:
             unsupported_sentences=unsupported_sentences,
             sentence_checks=sentence_checks,
             numeric_equivalence=numeric_eval.get("numeric_equivalence"),
+            raw_numeric_grounding=raw_numeric_grounding,
             numeric_grounding=numeric_eval.get("numeric_grounding"),
             numeric_retrieval_support=numeric_eval.get("numeric_retrieval_support"),
+            raw_numeric_final_judgement=raw_numeric_final_judgement,
             numeric_final_judgement=numeric_eval.get("numeric_final_judgement"),
+            raw_numeric_confidence=raw_numeric_confidence,
             numeric_confidence=numeric_eval.get("numeric_confidence"),
             numeric_debug=numeric_eval.get("numeric_debug", {}),
             resolved_calculation_trace=resolved_calculation_trace,
@@ -2506,12 +2603,18 @@ class RAGEvaluator:
                 }
                 if result.numeric_equivalence is not None:
                     metrics["numeric_equivalence"] = result.numeric_equivalence
+                if result.raw_numeric_grounding is not None:
+                    metrics["raw_numeric_grounding"] = result.raw_numeric_grounding
                 if result.numeric_grounding is not None:
                     metrics["numeric_grounding"] = result.numeric_grounding
                 if result.numeric_retrieval_support is not None:
                     metrics["numeric_retrieval_support"] = result.numeric_retrieval_support
+                if result.raw_numeric_confidence is not None:
+                    metrics["raw_numeric_confidence"] = result.raw_numeric_confidence
                 if result.numeric_confidence is not None:
                     metrics["numeric_confidence"] = result.numeric_confidence
+                if result.raw_operand_selection_correctness is not None:
+                    metrics["raw_operand_selection_correctness"] = result.raw_operand_selection_correctness
                 if result.operand_selection_correctness is not None:
                     metrics["operand_selection_correctness"] = result.operand_selection_correctness
                 if result.unit_consistency_pass is not None:
@@ -2568,10 +2671,13 @@ class RAGEvaluator:
                 "completeness": _average_optional("completeness"),
                 "refusal_accuracy": _average_optional("refusal_accuracy"),
                 "numeric_equivalence": _average_optional("numeric_equivalence"),
+                "raw_numeric_grounding": _average_optional("raw_numeric_grounding"),
                 "numeric_grounding": _average_optional("numeric_grounding"),
                 "numeric_retrieval_support": _average_optional("numeric_retrieval_support"),
+                "raw_numeric_confidence": _average_optional("raw_numeric_confidence"),
                 "numeric_confidence": _average_optional("numeric_confidence"),
                 "absolute_error_rate": _average_optional("absolute_error_rate"),
+                "raw_operand_selection_correctness": _average_optional("raw_operand_selection_correctness"),
                 "operand_selection_correctness": _average_optional("operand_selection_correctness"),
                 "unit_consistency_pass": _average_optional("unit_consistency_pass"),
                 "numeric_result_correctness": _average_optional("numeric_result_correctness"),
@@ -2610,11 +2716,15 @@ class RAGEvaluator:
                             "completeness": result.completeness,
                             "refusal_accuracy": result.refusal_accuracy,
                             "numeric_equivalence": result.numeric_equivalence,
+                            "raw_numeric_grounding": result.raw_numeric_grounding,
                             "numeric_grounding": result.numeric_grounding,
                             "numeric_retrieval_support": result.numeric_retrieval_support,
+                            "raw_numeric_final_judgement": result.raw_numeric_final_judgement,
                             "numeric_final_judgement": result.numeric_final_judgement,
+                            "raw_numeric_confidence": result.raw_numeric_confidence,
                             "numeric_confidence": result.numeric_confidence,
                             "absolute_error_rate": result.absolute_error_rate,
+                            "raw_operand_selection_correctness": result.raw_operand_selection_correctness,
                             "operand_selection_correctness": result.operand_selection_correctness,
                             "unit_consistency_pass": result.unit_consistency_pass,
                             "numeric_result_correctness": result.numeric_result_correctness,

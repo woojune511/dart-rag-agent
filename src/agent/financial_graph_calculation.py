@@ -301,6 +301,40 @@ class FinancialAgentCalculationMixin:
             bindings.append(binding_data)
         return bindings
 
+    def _dependency_binding_resolution_state(self, state: FinancialAgentState) -> Dict[str, Any]:
+        dependency_bindings = self._task_output_input_bindings(state)
+        dependency_rows = self._build_dependency_operand_rows(state)
+        dependency_binding_keys = {
+            self._dependency_binding_identity(binding)
+            for binding in dependency_bindings
+            if any(self._dependency_binding_identity(binding))
+        }
+        resolved_dependency_keys = {
+            (
+                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+                _normalise_spaces(str(row.get("matched_operand_role") or "")),
+            )
+            for row in dependency_rows
+        }
+        missing_dependency_bindings = [
+            dict(binding)
+            for binding in dependency_bindings
+            if self._dependency_binding_identity(binding) not in resolved_dependency_keys
+        ]
+        resolved_binding_count = max(len(dependency_bindings) - len(missing_dependency_bindings), 0)
+        return {
+            "bindings": dependency_bindings,
+            "rows": dependency_rows,
+            "binding_keys": dependency_binding_keys,
+            "resolved_keys": resolved_dependency_keys,
+            "missing_bindings": missing_dependency_bindings,
+            "binding_count": len(dependency_bindings),
+            "resolved_binding_count": resolved_binding_count,
+            "has_bindings": bool(dependency_bindings),
+            "has_rows": bool(dependency_rows),
+            "all_resolved": bool(dependency_bindings) and not missing_dependency_bindings and bool(dependency_rows),
+        }
+
     def _dependency_binding_identity(self, binding: Dict[str, Any]) -> tuple[str, str]:
         return (
             _normalise_spaces(str(binding.get("label") or "")),
@@ -888,20 +922,40 @@ class FinancialAgentCalculationMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         direct_numeric_grounding = _requires_direct_numeric_grounding(active_subtask)
+        preserve_narrative_context = (
+            direct_numeric_grounding
+            and _query_requests_narrative_context(str(state.get("query") or ""))
+        )
         if direct_numeric_grounding and reconciliation_evidence:
-            evidence_items = list(reconciliation_evidence)
-            evidence_bullets = [
-                f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} (reconciled)"
-                for item in reconciliation_evidence
-            ]
-            logger.info("[calc_operands] direct numeric task restricts evidence to reconciled structured candidates=%s", len(evidence_items))
+            if preserve_narrative_context:
+                evidence_items = self._restrict_direct_numeric_evidence_items(
+                    evidence_items,
+                    preserve_narrative_context=True,
+                )
+                evidence_bullets = [
+                    f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} ({'reconciled' if self._is_direct_numeric_table_backed_evidence_item(item) else 'narrative'})"
+                    for item in evidence_items
+                ]
+                logger.info(
+                    "[calc_operands] direct numeric task preserves hybrid evidence structured=%s total=%s",
+                    len(reconciliation_evidence),
+                    len(evidence_items),
+                )
+            else:
+                evidence_items = list(reconciliation_evidence)
+                evidence_bullets = [
+                    f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} (reconciled)"
+                    for item in reconciliation_evidence
+                ]
+                logger.info("[calc_operands] direct numeric task restricts evidence to reconciled structured candidates=%s", len(evidence_items))
         required_operands = [
             dict(item)
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
-        dependency_rows = self._build_dependency_operand_rows(state)
-        dependency_bindings = self._task_output_input_bindings(state)
+        dependency_state = self._dependency_binding_resolution_state(state)
+        dependency_rows = list(dependency_state.get("rows") or [])
+        dependency_bindings = list(dependency_state.get("bindings") or [])
         retry_strategy = self._active_retry_strategy(state)
         synthesis_only_retry = (
             retry_strategy == "synthesize_from_task_outputs"
@@ -914,18 +968,7 @@ class FinancialAgentCalculationMixin:
                 required_operands=required_operands,
             )
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
-        dependency_binding_keys = {
-            self._dependency_binding_identity(binding)
-            for binding in dependency_bindings
-            if any(self._dependency_binding_identity(binding))
-        }
-        resolved_dependency_keys = {
-            (
-                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
-                _normalise_spaces(str(row.get("matched_operand_role") or "")),
-            )
-            for row in dependency_rows
-        }
+        dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
         if dependency_binding_keys and direct_structured_rows:
             filtered_rows: List[Dict[str, Any]] = []
             for row in direct_structured_rows:
@@ -940,11 +983,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 filtered_rows.append(row)
             direct_structured_rows = filtered_rows
-        missing_dependency_bindings = [
-            dict(binding)
-            for binding in dependency_bindings
-            if self._dependency_binding_identity(binding) not in resolved_dependency_keys
-        ]
+        missing_dependency_bindings = list(dependency_state.get("missing_bindings") or [])
         dependency_guard_active = bool(dependency_bindings) and bool(missing_dependency_bindings)
         if dependency_guard_active:
             coverage = "partial" if direct_structured_rows else "missing"
@@ -2988,12 +3027,18 @@ Subtask Results JSON:
         return "retrieve"
 
     def _route_after_expand(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary":
+            return "evidence"
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent == "numeric_fact":
             return "numeric_extractor"
         return "evidence"
 
     def _route_after_evidence(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary":
+            return "compress"
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent in {"comparison", "trend"}:
             return "reconcile_plan"
@@ -3014,12 +3059,21 @@ Subtask Results JSON:
     def _route_after_advance_subtask(self, state: FinancialAgentState) -> str:
         if bool(state.get("subtask_loop_complete")):
             return "aggregate_subtasks"
+        active_subtask = dict(state.get("active_subtask") or {})
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary":
+            return "retrieve"
         return "reconcile_plan"
 
     def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
         planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
         if planner_feedback and int(state.get("plan_loop_count") or 0) < 2:
             return "pre_calc_planner"
+        return "cite"
+
+    def _route_after_validate(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary" and list(state.get("calc_subtasks") or []):
+            return "advance_subtask"
         return "cite"
 
     def _route_after_formula_planner(self, state: FinancialAgentState) -> str:

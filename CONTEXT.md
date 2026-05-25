@@ -25,6 +25,9 @@
   - `SKH_T1_060`는 structural path에서 `장기차입금` / `사채` note aggregate lookup hardening 이후 다시 `PASS`로 닫혔다.
   - `MIX_T1_064`는 ontology-driven component ratio shape, evaluator composed-ratio grounding, uncertainty suffix 정리까지 반영되어 warm structural runtime/evaluator 경로에서 `90.7%` close를 확인했다.
   - 다만 `MIX_T1_064`의 공식 multi-report benchmark artifact refresh는 아직 pending이다.
+  - `NAV_T2_006`는 direct `financial_graph` 경로에서도 hybrid query decomposition(`lookup -> lookup -> growth_rate -> narrative_summary`)이 실제 runtime에서 끝까지 돌도록 정리됐다.
+  - 최신 warm structural replay에서 `NAV_T2_006`는 `커머스 매출 성장률 41.4%`와 `Poshmark 체질 개선`, `연결 편입 효과`까지 답변에 포함되고, evaluator 기준 `retrieval_hit_at_k = 1.0`, `context_recall = 1.0`, `completeness = 1.0`으로 회복됐다.
+  - 남은 caveat는 hybrid mixed numeric+narrative answer를 evaluator가 아직 다소 보수적으로 봐 `faithfulness = 0.7`에 머무는 점이다.
 - parser는 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
   - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
   - `table_summary_text`, `table_row_labels_text`, `table_row_records_json`, `table_object_json` 생성

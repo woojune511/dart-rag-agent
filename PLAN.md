@@ -24,6 +24,8 @@
   - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
   - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
   - `MIX_T1_064`는 ontology-driven component ratio shape + evaluator composed-ratio close까지 확인됐고, 공식 multi-report benchmark artifact rerun만 남아 있다
+  - `NAV_T2_006`는 hybrid decomposition(`lookup -> lookup -> growth_rate -> narrative_summary`)과 narrative evidence selection 보강으로 direct structural path에서 `completeness = 1.0`까지 회복됐다
+  - 이 mixed query family의 남은 follow-up은 evaluator의 hybrid narrative `faithfulness` calibration이다
   - routine curated validation은 `structural_selective_v2`를 기본값으로 본다
   - `contextual_selective_v2`는 arbitration-only quality reference로 유지한다
   - 다음 실험 후보는 `structural_parent_hybrid_v2`처럼 parent/section/table lineage를 더 보강하는 쪽으로 잡는다

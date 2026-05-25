@@ -195,7 +195,12 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         graph.add_conditional_edges(
             "advance_subtask",
             self._route_after_advance_subtask,
-            {"reconcile_plan": "reconcile_plan", "aggregate_subtasks": "aggregate_subtasks"},
+            {
+                "reconcile_plan": "reconcile_plan",
+                "retrieve": "retrieve",
+                "evidence": "evidence",
+                "aggregate_subtasks": "aggregate_subtasks",
+            },
         )
         graph.add_conditional_edges(
             "aggregate_subtasks",
@@ -203,7 +208,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             {"pre_calc_planner": "pre_calc_planner", "cite": "cite"},
         )
         graph.add_edge("compress", "validate")
-        graph.add_edge("validate", "cite")
+        graph.add_conditional_edges(
+            "validate",
+            self._route_after_validate,
+            {"advance_subtask": "advance_subtask", "cite": "cite"},
+        )
         graph.add_edge("cite", END)
 
         return graph.compile()

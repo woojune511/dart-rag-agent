@@ -23,6 +23,35 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentReconciliationMixin:
+    def _dependency_resolved_reconciliation_result(
+        self,
+        *,
+        active_subtask: Dict[str, Any],
+        dependency_state: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        matched_operands: List[Dict[str, Any]] = []
+        for binding in list(dependency_state.get("bindings") or []):
+            preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+            matched_operands.append(
+                {
+                    "label": _normalise_spaces(str(binding.get("label") or "")),
+                    "role": _normalise_spaces(str(binding.get("role") or "")),
+                    "concept": _normalise_spaces(str(binding.get("concept") or "")),
+                    "matched": True,
+                    "candidate_ids": [f"task_output:{preferred_task_id}"] if preferred_task_id else [],
+                    "reason": "resolved_from_task_outputs",
+                }
+            )
+        return {
+            "status": "ready",
+            "task_id": str(active_subtask.get("task_id") or ""),
+            "matched_operands": matched_operands,
+            "missing_operands": [],
+            "retry_queries": [],
+            "notes": ["dependency_task_outputs_ready"],
+            "retry_strategy": "",
+        }
+
     def _structured_candidate_unit_hint(
         self,
         *,
@@ -1145,6 +1174,61 @@ candidate options:
     def _reconcile_retrieved_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Match required operands to the best available evidence candidates."""
         active_subtask = dict(state.get("active_subtask") or {})
+        dependency_state = self._dependency_binding_resolution_state(state)
+        if dependency_state.get("all_resolved") and self._task_prefers_sibling_output_synthesis(state):
+            result = self._dependency_resolved_reconciliation_result(
+                active_subtask=active_subtask,
+                dependency_state=dependency_state,
+            )
+            status = "ready"
+            logger.info(
+                "[reconcile] status=%s task=%s candidates=%s missing=%s retry_count=%s",
+                status,
+                result.get("task_id"),
+                0,
+                0,
+                int(state.get("reconciliation_retry_count") or 0),
+            )
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str(active_subtask.get("task_id") or "reconcile")
+            artifact_id = f"reconcile:{task_id}:{len(artifacts) + 1:03d}"
+            candidate_ids = [
+                str(match_id).strip()
+                for item in (result.get("matched_operands") or [])
+                for match_id in (item.get("candidate_ids") or [])
+                if str(match_id).strip()
+            ]
+            artifacts = _append_artifact(
+                artifacts,
+                artifact_id=artifact_id,
+                task_id=task_id,
+                kind=ArtifactKind.RECONCILIATION_RESULT,
+                status=status,
+                summary="reconciliation=ready(dependency_outputs)",
+                payload={"reconciliation_result": result},
+                evidence_refs=candidate_ids,
+            )
+            tasks = _upsert_task(
+                tasks,
+                task_id=task_id,
+                kind=TaskKind.RECONCILIATION,
+                label=f"reconcile {active_subtask.get('metric_label') or active_subtask.get('metric_family') or task_id}",
+                status=TaskStatus.COMPLETED,
+                query=str(active_subtask.get("query") or ""),
+                metric_family=str(active_subtask.get("metric_family") or ""),
+                constraints=dict(active_subtask.get("constraints") or {}),
+                artifact_id=artifact_id,
+            )
+            return {
+                "reconciliation_result": result,
+                "retry_strategy": "",
+                "retry_queries": [],
+                "retry_reason": "",
+                "tasks": tasks,
+                "artifacts": artifacts,
+            }
+
         years = _query_years_from_state(state)
         report_scope = dict(state.get("report_scope") or {})
         scope_year_raw = report_scope.get("year")
@@ -1259,8 +1343,8 @@ candidate options:
         if status == "ready":
             return ""
         if self._task_prefers_sibling_output_synthesis(state):
-            dependency_rows = self._build_dependency_operand_rows(state)
-            if dependency_rows:
+            dependency_state = self._dependency_binding_resolution_state(state)
+            if dependency_state.get("all_resolved"):
                 return "synthesize_from_task_outputs"
         if status == "insufficient_operands":
             return "stop_insufficient"
@@ -1442,7 +1526,8 @@ candidate options:
         explanation: str = "",
     ) -> Dict[str, Any]:
         retry_strategy = "retry_retrieval"
-        if self._task_prefers_sibling_output_synthesis(state) and self._build_dependency_operand_rows(state):
+        dependency_state = self._dependency_binding_resolution_state(state)
+        if self._task_prefers_sibling_output_synthesis(state) and dependency_state.get("all_resolved"):
             retry_strategy = "synthesize_from_task_outputs"
         elif not operands and not (state.get("missing_info") or []):
             retry_strategy = "stop_insufficient"

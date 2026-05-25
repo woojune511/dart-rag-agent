@@ -9,6 +9,15 @@ class _EvidenceBiasProbe:
     _section_bias = FinancialAgent._section_bias
 
 
+class _QueryCaptureVSM:
+    def __init__(self) -> None:
+        self.queries = []
+
+    def search(self, query, k=0, where_filter=None):
+        self.queries.append({"query": query, "k": k, "where_filter": where_filter})
+        return []
+
+
 class RetrievalScopeTests(unittest.TestCase):
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(
@@ -23,6 +32,21 @@ class RetrievalScopeTests(unittest.TestCase):
             _should_apply_strict_company_scope(
                 ["네이버"],
                 {"company": "네이버", "year": 2023},
+            )
+        )
+
+    def test_strict_company_scope_is_disabled_when_multi_report_receipts_are_present(self) -> None:
+        self.assertFalse(
+            _should_apply_strict_company_scope(
+                ["네이버"],
+                {
+                    "company": "네이버",
+                    "year": 2023,
+                    "source_reports": [
+                        {"corp_name": "네이버", "year": 2023, "rcept_no": "20240318000844"},
+                        {"corp_name": "네이버", "year": 2022, "rcept_no": "20230314001049"},
+                    ],
+                },
             )
         )
 
@@ -48,6 +72,38 @@ class RetrievalScopeTests(unittest.TestCase):
         )
         self.assertGreater(mda_bias, board_bias)
         self.assertGreater(mda_bias, 0.0)
+
+    def test_active_subtask_retrieval_queries_override_global_query_bundle(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._hybrid_rerank = lambda docs, query, intent, companies, years, report_scope=None: docs
+
+        state = {
+            "query": "전체 subtraction 질문",
+            "retrieval_queries": ["전체 subtraction 질문", "전역 쿼리"],
+            "active_subtask": {
+                "query": "2023년 법인세비용차감전순이익",
+                "retrieval_queries": ["2023년 법인세비용차감전순이익 연결 손익계산서"],
+            },
+            "report_scope": {"company": "네이버", "year": 2023},
+            "companies": ["네이버"],
+            "years": [2023],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "",
+        }
+
+        agent._retrieve(state)
+
+        self.assertTrue(agent.vsm.queries)
+        first_query = agent.vsm.queries[0]["query"]
+        self.assertIn("2023년 법인세비용차감전순이익 연결 손익계산서", first_query)
+        self.assertNotIn("전역 쿼리", first_query)
 
 
 if __name__ == "__main__":

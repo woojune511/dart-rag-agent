@@ -16,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
+    _candidate_explicit_years,
     _build_concept_task_constraints,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
@@ -23,6 +24,7 @@ from src.agent.financial_graph_helpers import (
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
     _candidate_matches_operand_target_year,
+    _candidate_selected_cell_for_operand,
     _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
     _coerce_lookup_magnitude_value,
@@ -112,6 +114,18 @@ class OperationContractTests(unittest.TestCase):
             "prior",
         )
         self.assertEqual(period, "2021")
+
+    def test_candidate_explicit_years_infers_current_and_prior_from_relative_headers(self) -> None:
+        candidate = {
+            "metadata": {
+                "year": 2023,
+                "structured_cells": [
+                    {"column_headers": ["연결", "당기", "금액"], "value_text": "2,546,649"},
+                    {"column_headers": ["연결", "전기", "금액"], "value_text": "1,801,079"},
+                ],
+            }
+        }
+        self.assertEqual(_candidate_explicit_years(candidate), [2022, 2023])
 
     def test_operating_expense_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(8,181,823,307)", "천원")
@@ -287,6 +301,7 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertTrue(any("2022년" in item and "전기" in item for item in queries))
         self.assertTrue(any("2023년" in item and "당기" in item for item in queries))
+        self.assertFalse(any("2023년 2022년 [" in item for item in queries))
 
     def test_percent_period_comparison_queries_are_compact_and_without_duplicate_year_tokens(self) -> None:
         queries = _build_generic_retrieval_queries(
@@ -381,6 +396,35 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertTrue(any("2023년 영업비용 인건비(종업원급여)" in item for item in queries))
         self.assertTrue(any("2023년 종업원급여 연결재무제표 주석" in item for item in queries))
+
+    def test_segment_bound_retrieval_queries_prefix_generic_aliases_with_segment_label(self) -> None:
+        queries = _build_generic_retrieval_queries(
+            query="커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
+            metric_label="커머스 부문 매출 성장률",
+            operand_specs=[
+                {
+                    "label": "2023년 커머스 매출액",
+                    "aliases": ["매출액", "매출", "영업수익"],
+                    "role": "current_period",
+                    "period_hint": "당기",
+                    "binding_policy": {"segment_label": "커머스"},
+                },
+                {
+                    "label": "2022년 커머스 매출액",
+                    "aliases": ["매출액", "매출", "영업수익"],
+                    "role": "prior_period",
+                    "period_hint": "전기",
+                    "binding_policy": {"segment_label": "커머스"},
+                },
+            ],
+            preferred_sections=["부문정보", "영업부문"],
+            report_scope={"company": "네이버", "year": 2023},
+            constraints={"period_focus": "multi_period", "segment_scope": "segment"},
+        )
+        self.assertTrue(any("2023년 당기 커머스 매출액" in item for item in queries))
+        self.assertTrue(any("2022년 전기 커머스 영업수익" in item for item in queries))
+        self.assertFalse(any(item == "2023년 매출액" for item in queries))
+        self.assertFalse(any(item == "2022년 영업수익" for item in queries))
 
     def test_generic_ratio_operand_rejects_liability_row_for_non_liability_label(self) -> None:
         row = {
@@ -1053,6 +1097,167 @@ class OperationContractTests(unittest.TestCase):
                 query_years=[2023],
                 operation_family="lookup",
                 report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+            )
+        )
+
+    def test_lookup_direct_acceptance_requires_row_local_segment_surface(self) -> None:
+        operand = {
+            "label": "2023년 커머스 매출액",
+            "concept": "revenue",
+            "aliases": ["커머스 매출액", "커머스 매출", "매출액", "매출", "영업수익", "수익"],
+            "role": "current_period",
+            "binding_policy": {
+                "segment_label": "커머스",
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "매출액 9조 6,706억원 (커머스 부문 실적 설명 포함)",
+            "metadata": {
+                "row_label": "매출액",
+                "semantic_label": "매출액",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "year": 2023,
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "local_heading": "연결 손익계산서",
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결 손익계산서",
+                "table_summary_text": "커머스 부문 실적 설명과 함께 매출액이 언급된다.",
+            },
+        }
+
+        self.assertFalse(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell=None,
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서"},
+            )
+        )
+
+    def test_lookup_direct_acceptance_allows_segment_row_when_row_surface_matches(self) -> None:
+        operand = {
+            "label": "2023년 커머스 매출액",
+            "concept": "revenue",
+            "aliases": ["커머스 매출액", "커머스 매출", "매출액", "매출", "영업수익", "수익"],
+            "role": "current_period",
+            "binding_policy": {
+                "segment_label": "커머스",
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "- 커머스 | 2,546,649",
+            "metadata": {
+                "row_label": "- 커머스",
+                "semantic_label": "- 커머스",
+                "semantic_aliases": ["- 커머스", "연결", "금액"],
+                "row_headers": ["- 커머스"],
+                "table_row_labels_text": "영업수익\n- 커머스\n- 핀테크",
+                "value_text": "2,546,649",
+                "statement_type": "unknown",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["당기"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "local_heading": "가. 부문별 매출실적 > (2) 서비스별 영업현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "structured_cells": [
+                    {
+                        "column_headers": ["연결", "당기", "금액"],
+                        "value_text": "2,546,649",
+                        "unit_hint": "백만원",
+                    }
+                ],
+            },
+        }
+
+        self.assertTrue(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell=None,
+                report_scope={"company": "네이버", "year": 2023, "report_type": "사업보고서"},
+            )
+        )
+
+    def test_lookup_direct_acceptance_allows_prior_segment_row_from_latest_multi_report_receipt(self) -> None:
+        operand = {
+            "label": "2022년 커머스 매출액",
+            "concept": "revenue",
+            "aliases": ["커머스 매출액", "커머스 매출", "매출액", "매출", "영업수익", "수익"],
+            "role": "prior_period",
+            "binding_policy": {
+                "segment_label": "커머스",
+                "prefer_period_focus": "prior",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "- 커머스 | 2,546,649 | 1,801,079",
+            "metadata": {
+                "row_label": "- 커머스",
+                "semantic_label": "- 커머스",
+                "semantic_aliases": ["- 커머스", "연결", "금액"],
+                "row_headers": ["- 커머스"],
+                "table_row_labels_text": "영업수익\n- 커머스\n- 핀테크",
+                "statement_type": "unknown",
+                "consolidation_scope": "consolidated",
+                "period_focus": "multi_period",
+                "period_labels": ["당기", "전기"],
+                "year": 2023,
+                "rcept_no": "20240318000844",
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "local_heading": "가. 부문별 매출실적 > (2) 서비스별 영업현황",
+                "section_path": "II. 사업의 내용 > 4. 매출 및 수주상황",
+                "structured_cells": [
+                    {"column_headers": ["연결", "당기", "금액"], "value_text": "2,546,649", "unit_hint": "백만원"},
+                    {"column_headers": ["연결", "당기", "비중"], "value_text": "26.4", "unit_hint": "백만원"},
+                    {"column_headers": ["연결", "전기", "금액"], "value_text": "1,801,079", "unit_hint": "백만원"},
+                    {"column_headers": ["연결", "전기", "비중"], "value_text": "21.9", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        selected_cell = _candidate_selected_cell_for_operand(
+            candidate,
+            operand=operand,
+            query_years=[2023, 2022],
+            period_focus="prior",
+        )
+        self.assertIsNotNone(selected_cell)
+        self.assertEqual((selected_cell or {}).get("value_text"), "1,801,079")
+        self.assertTrue(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "prior", "segment_scope": "segment"},
+                query_years=[2023, 2022],
+                operation_family="lookup",
+                selected_cell=selected_cell,
+                report_scope={
+                    "source_reports": [
+                        {"corp_name": "NAVER", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+                        {"corp_name": "NAVER", "year": 2022, "report_type": "사업보고서", "rcept_no": "20230314001049"},
+                    ]
+                },
             )
         )
 
@@ -1846,6 +2051,273 @@ class OperationContractTests(unittest.TestCase):
                 }
             )
         )
+
+    def test_direct_numeric_mixed_query_preserves_narrative_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            EvidenceExtraction(
+                coverage="sufficient",
+                evidence=[
+                    {
+                        "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적]",
+                        "claim": "커머스 부문 매출은 2조 5,466억원으로 전년 대비 41.4% 증가했다.",
+                        "quote_span": "커머스 | 2,546,649 | 1,801,079",
+                        "support_level": "direct",
+                        "question_relevance": "high",
+                        "allowed_terms": ["커머스", "매출"],
+                    },
+                    {
+                        "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                        "claim": "2023년 초 글로벌 C2C 경쟁력 강화를 위해 인수한 Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                        "quote_span": "Poshmark의 성공적인 체질 개선",
+                        "support_level": "direct",
+                        "question_relevance": "high",
+                        "allowed_terms": ["Poshmark", "커머스"],
+                    },
+                ],
+            )
+        )
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "query_type": "trend",
+            "topic": "커머스 부문 매출 성장률과 포시마크 영향",
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="커머스 | 2,546,649 | 1,801,079",
+                        metadata={
+                            "company": "NAVER",
+                            "year": 2023,
+                            "section_path": "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적",
+                            "block_type": "table",
+                            "table_source_id": "20240318000844:418:3",
+                            "table_header_context": "서비스별 영업수익 당기 전기",
+                        },
+                    ),
+                    1.0,
+                ),
+                (
+                    Document(
+                        page_content="2023년 초 글로벌 C2C 경쟁력 강화를 위해 인수한 Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                        metadata={
+                            "company": "NAVER",
+                            "year": 2023,
+                            "section_path": "IV. 이사의 경영진단 및 분석의견",
+                            "block_type": "paragraph",
+                        },
+                    ),
+                    0.9,
+                ),
+            ],
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "커머스 부문 매출 성장률",
+                "query": "2023년 커머스 부문 매출 성장률을 계산해 줘.",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": "2023년 커머스 매출액",
+                        "concept": "revenue",
+                        "role": "current_period",
+                        "required": True,
+                    },
+                    {
+                        "label": "2022년 커머스 매출액",
+                        "concept": "revenue",
+                        "role": "prior_period",
+                        "required": True,
+                    },
+                ],
+            },
+        }
+
+        result = agent._extract_evidence(state)
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(len(result["evidence_items"]), 2)
+        self.assertTrue(any("Poshmark" in str(item.get("claim") or "") for item in result["evidence_items"]))
+        self.assertTrue(
+            any(
+                "Poshmark" in str(item.get("claim") or "")
+                and str((item.get("metadata") or {}).get("block_type") or "") == "paragraph"
+                for item in result["evidence_items"]
+            )
+        )
+
+    def test_narrative_summary_doc_selection_prefers_mda_paragraphs(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="커머스 | 2,546.6 | 1,801.1 | 41.4%",
+                    metadata={
+                        "chunk_id": "table-1",
+                        "block_type": "table",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적",
+                    },
+                ),
+                0.95,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "서치플랫폼은 신규 상품 출시와 AI 기술을 활용한 플랫폼 고도화로 "
+                        "광고 효율을 개선했습니다."
+                    ),
+                    metadata={
+                        "chunk_id": "generic-iv",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.99,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "Poshmark 인수 계약의 목적 및 내용은 글로벌 커머스 시장 진출이며, "
+                        "예상효과는 Discovery형 소셜 커머스를 결합해 북미 시장을 공략하는 것입니다."
+                    ),
+                    metadata={
+                        "chunk_id": "contract-1",
+                        "block_type": "paragraph",
+                        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+                    },
+                ),
+                0.98,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "네이버의 커머스 사업은 스마트스토어와 브랜드스토어의 지속적인 성장, "
+                        "그리고 2023년 초 글로벌 C2C 경쟁력 강화를 위해 인수한 Poshmark의 성공적인 체질 개선 등으로 "
+                        "전년 대비 41.4% 성장하였습니다."
+                    ),
+                    metadata={
+                        "chunk_id": "para-1",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적",
+                    },
+                ),
+                0.72,
+            ),
+            (
+                Document(
+                    page_content="사업 개요 문단",
+                    metadata={
+                        "chunk_id": "para-2",
+                        "block_type": "paragraph",
+                        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+                    },
+                ),
+                0.70,
+            ),
+        ]
+        state = {
+            "query": "커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+
+        self.assertEqual(docs[0][0].metadata.get("chunk_id"), "para-1")
+        self.assertNotEqual(docs[0][0].metadata.get("chunk_id"), "contract-1")
+        self.assertNotEqual(docs[0][0].metadata.get("chunk_id"), "generic-iv")
+
+    def test_direct_numeric_operand_extraction_preserves_narrative_supplement_for_mixed_query(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "topic": "커머스 부문 매출 성장률과 포시마크 영향",
+            "active_subtask": {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 커머스 매출액",
+                "query": "2023년 커머스 매출액을 찾아 줘.",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {
+                        "label": "2023년 커머스 매출액",
+                        "concept": "revenue",
+                        "role": "current_period",
+                        "required": True,
+                    }
+                ],
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적]",
+                    "claim": "커머스 | 2,546,649 | 1,801,079",
+                    "quote_span": "커머스 | 2,546,649 | 1,801,079",
+                    "support_level": "direct",
+                    "metadata": {
+                        "block_type": "table",
+                        "table_source_id": "20240318000844:418:3",
+                    },
+                    "raw_row_text": "커머스 | 2,546,649 | 1,801,079",
+                },
+                {
+                    "evidence_id": "ev_002",
+                    "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                    "claim": "2023년 초 글로벌 C2C 경쟁력 강화를 위해 인수한 Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                    "quote_span": "Poshmark의 성공적인 체질 개선",
+                    "support_level": "direct",
+                    "metadata": {"block_type": "paragraph"},
+                },
+            ],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "sufficient",
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "subtask_results": [],
+        }
+        direct_rows = [
+            {
+                "evidence_id": "ev_recon_001",
+                "label": "2023년 커머스 매출액",
+                "matched_operand_label": "2023년 커머스 매출액",
+                "matched_operand_role": "current_period",
+                "raw_value": "2조 5,466억원",
+                "normalized_value": 2546649000000.0,
+                "normalized_unit": "KRW",
+                "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적]",
+            }
+        ]
+        reconciliation_evidence = [
+            {
+                "evidence_id": "ev_recon_001",
+                "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적]",
+                "claim": "커머스 | 2,546,649 | 1,801,079",
+                "quote_span": "커머스 | 2,546,649 | 1,801,079",
+                "raw_row_text": "커머스 | 2,546,649 | 1,801,079",
+                "support_level": "direct",
+                "metadata": {
+                    "block_type": "table",
+                    "table_source_id": "20240318000844:418:3",
+                },
+            }
+        ]
+
+        with patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows), patch.object(
+            agent,
+            "_evidence_items_from_reconciliation_matches",
+            return_value=reconciliation_evidence,
+        ):
+            result = agent._extract_calculation_operands(state)
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(len(result["evidence_items"]), 2)
+        self.assertTrue(any("Poshmark" in str(item.get("claim") or "") for item in result["evidence_items"]))
 
     def test_generic_required_operands_map_capex_query_to_capital_expenditure_total(self) -> None:
         original_singleton = ontology_module._ONTOLOGY_SINGLETON

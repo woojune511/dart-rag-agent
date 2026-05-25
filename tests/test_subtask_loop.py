@@ -156,6 +156,133 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(planned["calculation_plan"]["operation"], "growth_rate")
         self.assertEqual(len(planned["calculation_plan"]["ordered_operand_ids"]), 2)
 
+    def test_narrative_summary_subtask_routes_from_evidence_to_compress_and_then_retrieve(self) -> None:
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "calc_subtasks": [
+                {"task_id": "task_1", "operation_family": "lookup"},
+                {"task_id": "task_2", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        self.assertEqual(self.agent._route_after_evidence(state), "compress")
+        self.assertEqual(self.agent._route_after_validate(state), "advance_subtask")
+        self.assertEqual(self.agent._route_after_advance_subtask(state), "retrieve")
+
+    def test_reconcile_short_circuits_when_dependency_outputs_are_fully_resolved(self) -> None:
+        state = {
+            "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "report_scope": {
+                "source_reports": [
+                    {"corp_name": "NAVER", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+                    {"corp_name": "NAVER", "year": 2022, "report_type": "사업보고서", "rcept_no": "20230314001049"},
+                ]
+            },
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "커머스 부문 매출 성장률",
+                "query": "연결기준 커머스 부문 매출 성장률(커머스 매출액/커머스 매출액)을 계산해 줘.",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {"label": "커머스 매출액", "concept": "revenue", "role": "current_period"},
+                    {"label": "커머스 매출액", "concept": "revenue", "role": "prior_period"},
+                ],
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "label": "커머스 매출액",
+                        "preferred_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                        "segment_label": "커머스",
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "revenue",
+                        "period": "2022",
+                        "label": "커머스 매출액",
+                        "preferred_task_id": "task_2",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                        "segment_label": "커머스",
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022년 커머스 매출액",
+                    "status": "ok",
+                    "calculation_result": {
+                        "result_value": 1801079000000,
+                        "result_unit": "KRW",
+                        "answer_slots": {
+                            "primary_value": {
+                                "label": "2022년 커머스 매출액",
+                                "raw_value": "1조 8,011억원",
+                                "raw_unit": "원",
+                                "normalized_value": 1801079000000,
+                                "normalized_unit": "KRW",
+                                "period": "2022",
+                                "source_anchor": "[NAVER | 2022 | IV. 이사의 경영진단 및 분석의견]",
+                            }
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 커머스 매출액",
+                    "status": "ok",
+                    "calculation_result": {
+                        "result_value": 2546649000000,
+                        "result_unit": "KRW",
+                        "answer_slots": {
+                            "primary_value": {
+                                "label": "2023년 커머스 매출액",
+                                "raw_value": "2조 5,466억원",
+                                "raw_unit": "원",
+                                "normalized_value": 2546649000000,
+                                "normalized_unit": "KRW",
+                                "period": "2023",
+                                "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                            }
+                        },
+                    },
+                },
+            ],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_items": [],
+            "reconciliation_retry_count": 0,
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updates = self.agent._reconcile_retrieved_evidence(state)
+        result = updates["reconciliation_result"]
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(
+            [item["reason"] for item in result["matched_operands"]],
+            ["resolved_from_task_outputs", "resolved_from_task_outputs"],
+        )
+        self.assertEqual(updates["retry_strategy"], "")
+
     def test_ratio_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
             "query": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",

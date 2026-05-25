@@ -84,6 +84,131 @@ def _dependency_closure_task_ids(
                 pending.append(dependency_id)
     return closure
 
+
+def _is_narrative_summary_task(task: Dict[str, Any]) -> bool:
+    operation_family = _normalise_spaces(str(task.get("operation_family") or "")).lower()
+    metric_family = _normalise_spaces(str(task.get("metric_family") or "")).lower()
+    return operation_family == "narrative_summary" or metric_family == "narrative_summary"
+
+
+def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
+    return intent in {"comparison", "trend", "numeric_fact"} and _query_requests_narrative_context(query)
+
+
+def _build_hybrid_narrative_subtask(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    next_task_id: str,
+) -> Dict[str, Any]:
+    consolidation_scope = _desired_consolidation_scope(query, report_scope)
+    period_focus = _infer_period_focus(query, "unknown")
+    retrieval_queries = [
+        _normalise_spaces(query),
+        _normalise_spaces(f"{query} 원인 배경 영향 설명"),
+        _normalise_spaces(f"{query} 경영진단 사업의 내용"),
+    ]
+    if "인수" in query or "영향" in query:
+        retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입 효과 성장 기여"))
+    preferred_sections = [
+        "IV. 이사의 경영진단 및 분석의견",
+        "II. 사업의 내용",
+        "사업의 개요",
+        "나. 영업실적",
+    ]
+    return {
+        "task_id": next_task_id,
+        "metric_family": "narrative_summary",
+        "metric_label": "질문 관련 배경/영향 설명",
+        "query": query,
+        "operation_family": "narrative_summary",
+        "required_operands": [],
+        "preferred_statement_types": [],
+        "preferred_sections": preferred_sections,
+        "retrieval_queries": list(dict.fromkeys(item for item in retrieval_queries if item)),
+        "constraints": {
+            "consolidation_scope": consolidation_scope,
+            "period_focus": period_focus,
+            "entity_scope": "unknown",
+            "segment_scope": "none",
+            "context_scope": "narrative",
+        },
+        "intent_override": "qa",
+        "format_preference_override": "paragraph",
+    }
+
+
+def _append_hybrid_narrative_task(
+    tasks: List[Dict[str, Any]],
+    *,
+    query: str,
+    intent: str,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    base_tasks = [dict(task) for task in (tasks or [])]
+    if not _needs_hybrid_narrative_subtask(query, intent):
+        return base_tasks
+    if any(_is_narrative_summary_task(task) for task in base_tasks):
+        return base_tasks
+    next_index = 1
+    if base_tasks:
+        next_index = max(
+            1,
+            max(
+                (
+                    int(match.group(1))
+                    for match in (
+                        re.match(r"task_(\d+)$", str(task.get("task_id") or "").strip())
+                        for task in base_tasks
+                    )
+                    if match
+                ),
+                default=0,
+            )
+            + 1,
+        )
+    base_tasks.append(
+        _build_hybrid_narrative_subtask(
+            query=query,
+            report_scope=report_scope,
+            next_task_id=f"task_{next_index}",
+        )
+    )
+    return base_tasks
+
+
+def _push_narrative_tasks_after_numeric(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    ordered = [dict(task) for task in (tasks or [])]
+    numeric_task_ids = [
+        str(task.get("task_id") or "").strip()
+        for task in ordered
+        if not _is_narrative_summary_task(task) and str(task.get("task_id") or "").strip()
+    ]
+    if not numeric_task_ids:
+        return ordered
+
+    changed = False
+    for task in ordered:
+        if not _is_narrative_summary_task(task):
+            continue
+        task_id = str(task.get("task_id") or "").strip()
+        dependencies = [
+            _normalise_spaces(str(item or ""))
+            for item in (task.get("depends_on") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        for dependency_id in numeric_task_ids:
+            if dependency_id == task_id or dependency_id in dependencies:
+                continue
+            dependencies.append(dependency_id)
+            changed = True
+        task["depends_on"] = dependencies
+    if not changed:
+        return ordered
+    numeric_tasks = [task for task in ordered if not _is_narrative_summary_task(task)]
+    narrative_tasks = [task for task in ordered if _is_narrative_summary_task(task)]
+    return numeric_tasks + narrative_tasks
+
 def _llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
     """Reject LLM overrides that destroy deterministic segment-sum structure."""
     base_tasks = [dict(task) for task in (base_plan.get("tasks") or [])]
@@ -156,20 +281,30 @@ def _apply_segment_labels_to_llm_resolved_specs(
         if str(spec.get("concept") or "").strip()
     }) == 1
 
-    if operation_family in {"sum", "difference"}:
+    if operation_family in {"sum", "difference", "growth_rate"}:
         roles = [str(spec.get("role") or "").strip() for spec in specs]
         expected_role_prefix = "addend_" if operation_family == "sum" else ""
         valid_difference_roles = {"minuend", "subtrahend"}
+        valid_growth_roles = {"current_period", "prior_period"}
         role_shape_ok = (
             all(role.startswith(expected_role_prefix) for role in roles)
             if operation_family == "sum"
-            else valid_difference_roles.issubset(set(roles))
+            else (
+                valid_difference_roles.issubset(set(roles))
+                if operation_family == "difference"
+                else valid_growth_roles.issubset(set(roles))
+            )
         )
-        if repeated_same_concept and len(specs) >= 2 and role_shape_ok and len(segment_labels) >= 2:
-            for index, spec in enumerate(specs):
-                if index >= len(segment_labels):
-                    break
-                specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[index])
+        required_segment_labels = 2 if operation_family in {"sum", "difference"} else 1
+        if repeated_same_concept and len(specs) >= 2 and role_shape_ok and len(segment_labels) >= required_segment_labels:
+            if operation_family == "growth_rate":
+                for index, spec in enumerate(specs):
+                    specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[0])
+            else:
+                for index, spec in enumerate(specs):
+                    if index >= len(segment_labels):
+                        break
+                    specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[index])
             return specs
 
     if operation_family in {"lookup", "single_value"} and len(specs) == 1:
@@ -789,10 +924,17 @@ Also return:
             )
             patch_tasks = [dict(task) for task in (llm_plan or {}).get("tasks", [])]
             merged_tasks, appended_tasks = self._append_replanned_tasks(existing_tasks, patch_tasks)
+            merged_tasks = _append_hybrid_narrative_task(
+                merged_tasks,
+                query=query,
+                intent=intent,
+                report_scope=report_scope,
+            )
             execution_tasks = _annotate_task_dependencies(
                 merged_tasks,
                 report_scope=report_scope,
             )
+            execution_tasks = _push_narrative_tasks_after_numeric(execution_tasks)
             semantic_plan_tasks = _project_logical_tasks_from_execution_tasks(
                 merged_tasks,
                 execution_tasks,
@@ -961,10 +1103,17 @@ Also return:
                     planner_notes.append("concept_llm_plan_rejected_segment_sum_shape")
                     plan["planner_notes"] = list(dict.fromkeys(planner_notes))
         logical_tasks = [dict(task) for task in (plan.get("tasks") or [])]
+        logical_tasks = _append_hybrid_narrative_task(
+            logical_tasks,
+            query=query,
+            intent=intent,
+            report_scope=report_scope,
+        )
         tasks = _annotate_task_dependencies(
             logical_tasks,
             report_scope=report_scope,
         )
+        tasks = _push_narrative_tasks_after_numeric(tasks)
         plan["tasks"] = _project_logical_tasks_from_execution_tasks(logical_tasks, tasks)
         planned_metric_families = [
             str(task.get("metric_family") or "").strip()
