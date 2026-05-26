@@ -648,6 +648,16 @@ Also return:
                 continue
 
             raw_metric_label = str(raw_task.metric_label or "").strip()
+            if operation_family in {"lookup", "single_value"} and raw_metric_label and len(resolved_specs) == 1:
+                metric_spec = _infer_generic_concept_spec(raw_metric_label, ontology)
+                metric_concept = _normalise_spaces(str(metric_spec.get("concept") or ""))
+                operand_concept = _normalise_spaces(str(resolved_specs[0].get("concept") or ""))
+                if metric_concept and operand_concept and metric_concept != operand_concept:
+                    validation_notes.append(
+                        f"lookup_metric_operand_mismatch:{raw_metric_label}:{operand_concept}->{metric_concept}"
+                    )
+                    continue
+
             resolved_specs = _apply_segment_labels_to_llm_resolved_specs(
                 query=query,
                 metric_label=raw_metric_label,

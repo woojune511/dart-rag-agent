@@ -854,6 +854,87 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ],
         )
 
+    def test_llm_lookup_task_with_mismatched_metric_label_is_rejected_and_resynthesized(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "tasks": [
+                        {
+                            "metric_label": "영업비용 중 인건비(종업원급여) 비중",
+                            "operation_family": "ratio",
+                            "operands": [
+                                {"concept": "employee_benefits_expense", "role": "numerator_1"},
+                                {"concept": "operating_expense_total", "role": "denominator_1"},
+                            ],
+                        },
+                        {
+                            "metric_label": "2023년 영업비용",
+                            "operation_family": "lookup",
+                            "operands": [
+                                {"concept": "employee_benefits_expense", "role": "denominator_1"},
+                            ],
+                        },
+                        {
+                            "metric_label": "2023년 종업원급여",
+                            "operation_family": "lookup",
+                            "operands": [
+                                {"concept": "employee_benefits_expense", "role": "numerator_1"},
+                            ],
+                        },
+                    ],
+                    "rationale": "비중 계산을 위한 조회 작업을 분리한다.",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+                    "intent": "comparison",
+                    "query_type": "comparison",
+                    "topic": "영업비용 중 인건비(종업원급여)가 차지하는 비중",
+                    "report_scope": {"company": "NAVER", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240318000844"},
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        notes = result["semantic_plan"].get("planner_notes") or []
+        self.assertTrue(any(str(note).startswith("lookup_metric_operand_mismatch:") for note in notes))
+        lookups = [task for task in result["calc_subtasks"] if task.get("operation_family") == "lookup"]
+        operating_expense_lookups = [
+            task
+            for task in lookups
+            if any(
+                operand.get("concept") == "operating_expense_total"
+                for operand in task.get("required_operands") or []
+            )
+        ]
+        self.assertEqual(len(operating_expense_lookups), 1)
+        self.assertIn("영업비용", operating_expense_lookups[0]["metric_label"])
+        self.assertFalse(
+            any(
+                "영업비용" in str(task.get("metric_label") or "")
+                and any(
+                    operand.get("concept") == "employee_benefits_expense"
+                    for operand in task.get("required_operands") or []
+                )
+                for task in lookups
+            )
+        )
+
     def test_implicit_multi_metric_query_is_split_by_llm_concept_planner(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager

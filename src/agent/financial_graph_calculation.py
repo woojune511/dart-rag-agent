@@ -1173,6 +1173,27 @@ class FinancialAgentCalculationMixin:
         intent = state.get("intent") or state.get("query_type", "qa")
         query = self._calc_query(state)
         topic = self._calc_topic(state)
+        report_scope = dict(state.get("report_scope") or {})
+        desired_consolidation_scope = _desired_consolidation_scope(query, report_scope)
+
+        def evidence_conflicts_requested_scope(item: Dict[str, Any]) -> bool:
+            if desired_consolidation_scope == "unknown":
+                return False
+            metadata = dict((item or {}).get("metadata") or {})
+            scope = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
+            section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or ""))
+            if scope == desired_consolidation_scope:
+                return False
+            if desired_consolidation_scope == "consolidated":
+                if scope == "separate":
+                    return True
+                return bool(section_path and "연결" not in section_path)
+            if desired_consolidation_scope == "separate":
+                if scope == "consolidated":
+                    return True
+                return bool("연결" in section_path)
+            return False
+
         empty_result: Dict[str, Any] = {
             "calculation_debug_trace": {"coverage": "missing"},
             "answer": "",
@@ -1236,6 +1257,12 @@ class FinancialAgentCalculationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
+        if direct_structured_rows and required_operands:
+            direct_structured_rows = [
+                row
+                for row in direct_structured_rows
+                if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+            ]
         dependency_state = self._dependency_binding_resolution_state(state)
         dependency_rows = list(dependency_state.get("rows") or [])
         dependency_bindings = list(dependency_state.get("bindings") or [])
@@ -1283,7 +1310,22 @@ class FinancialAgentCalculationMixin:
                     for binding in missing_dependency_bindings
                     if self._dependency_binding_identity(binding) not in direct_resolved_keys
                 ]
-        dependency_guard_active = bool(dependency_bindings) and bool(missing_dependency_bindings)
+        has_retrieved_docs_for_dependency_fallback = bool(retrieved_docs or seed_retrieved_docs)
+        allow_dependency_retry_fallback = (
+            operation_family == "ratio"
+            and bool(missing_dependency_bindings)
+            and (
+                int(state.get("reconciliation_retry_count") or 0) > 0
+                or has_retrieved_docs_for_dependency_fallback
+            )
+        )
+        if allow_dependency_retry_fallback:
+            direct_numeric_grounding = False
+        dependency_guard_active = (
+            bool(dependency_bindings)
+            and bool(missing_dependency_bindings)
+            and not allow_dependency_retry_fallback
+        )
         if dependency_guard_active:
             coverage = "partial" if direct_structured_rows else "missing"
             logger.info(
@@ -1422,12 +1464,28 @@ class FinancialAgentCalculationMixin:
                         for item in component_candidates
                     )
                     seen_anchors.update(str(item.get("source_anchor") or "") for item in component_candidates)
-            for index, (doc, _score) in enumerate(candidate_docs[: min(8, len(candidate_docs))], start=1):
+            doc_fallback_limit = 16 if missing_dependency_bindings else 8
+            for index, (doc, _score) in enumerate(candidate_docs[: min(doc_fallback_limit, len(candidate_docs))], start=1):
                 metadata = dict(doc.metadata or {})
                 anchor = self._build_source_anchor(metadata)
-                if anchor in seen_anchors:
-                    continue
                 text = _normalise_spaces(doc.page_content)
+                provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
+                if evidence_conflicts_requested_scope(provisional_item):
+                    continue
+                missing_terms: List[str] = []
+                for binding in missing_dependency_bindings:
+                    missing_terms.extend(_operand_needles(dict(binding)))
+                    label = _normalise_spaces(str(binding.get("label") or ""))
+                    if label:
+                        missing_terms.append(label)
+                missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
+                duplicate_anchor_has_missing_term = bool(
+                    anchor in seen_anchors
+                    and missing_terms
+                    and any(term in text for term in missing_terms)
+                )
+                if anchor in seen_anchors and not duplicate_anchor_has_missing_term:
+                    continue
                 claim = text[:1200]
                 item = {
                     "evidence_id": f"ev_doc_{index:03d}",
@@ -1496,11 +1554,18 @@ Structured Evidence:
             for index, item in enumerate(extracted.operands, start=1):
                 row = item.model_dump()
                 evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
+                if evidence_item and evidence_conflicts_requested_scope(evidence_item):
+                    continue
                 row["raw_unit"] = self._coerce_operand_unit_from_evidence(
                     raw_value=str(item.raw_value or ""),
                     raw_unit=str(item.raw_unit or ""),
                     evidence_item=evidence_item,
                 )
+                if evidence_item:
+                    metadata = dict(evidence_item.get("metadata") or {})
+                    row["statement_type"] = metadata.get("statement_type")
+                    row["consolidation_scope"] = metadata.get("consolidation_scope")
+                    row["table_source_id"] = metadata.get("table_source_id")
                 normalized_value, normalized_unit = _normalise_operand_value(item.raw_value, row["raw_unit"])
                 row["operand_id"] = f"op_{index:03d}"
                 row["normalized_value"] = normalized_value

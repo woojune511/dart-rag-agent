@@ -106,9 +106,11 @@
 - 다만 ingest 쪽은 여전히 tradeoff가 남아 있다.
   - `contextual_selective_v2`는 품질은 안정적이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 gate 기준으로 같은 품질을 더 낮은 비용으로 달성한 routine default다
-- broader curated validation blocker는 현재 닫혔다.
+- broader curated validation blocker 중 multi-report CAPEX와 `MIX_T1_046` runtime blocker는 현재 닫혔다.
   - `curated_multi_report_smoke`의 `SAM_T2_002`는 CAPEX total direct grounding과 current/prior binding까지 PASS
-  - `curated_single_doc_core`의 `MIX_T1_046`는 note-sibling unit inheritance와 evaluator period normalization 이후 PASS
+  - `curated_single_doc_core`의 `MIX_T1_046`는 parent-hybrid probe의 fresh NAVER 2023 bundle에서 `영업비용` denominator binding failure가 다시 노출됐지만, calculation fallback/document scope/operand filtering 보강 후 store-fixed eval-only에서 다시 PASS했다
+    - latest answer: `20.8%`
+    - `faithfulness = 1.0`, `completeness = 1.0`, `numeric_pass = 1.0`
   - fresh structural store 기준으로도 `SAM_T2_002`는 multi-source receipt scope, auto-fetch inventory, dependency binding guard, aggregate answer-slot gap suppression, narrative context synthesis 보강 이후 다시 닫혔다
     - `structured_result.status = ok`
     - `faithfulness = 1.0`
@@ -119,16 +121,16 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `structural_parent_hybrid_v2` 실험 설계 | structural default 위에 parent/section/table lineage를 더 보강할 수 있는지 확인 |
-| 2 | `curated_concept_planner_shadow` 확대 검증 | concept-only planner drift를 runtime gate와 분리해서 확인 |
-| 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
-| 4 | `curated_multi_report_smoke`를 broader curated gate에 유지 | multi-report CAPEX / mixed-context 회귀 방지 |
+| 1 | `curated_concept_planner_shadow` 확대 검증 | concept-only planner drift를 runtime gate와 분리해서 확인 |
+| 2 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
+| 3 | `curated_multi_report_smoke`와 `MIX_T1_046`를 broader curated gate에 유지 | multi-report CAPEX / share-of-total ratio 회귀 방지 |
+| 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
 
 ## 현재 우선순위 요약
 
-1. next ingest experiment design (`structural_parent_hybrid_v2`)
-2. concept-only planner default 승격 검토
-3. contextual arbitration / benchmark maintenance 정리
+1. concept-only planner default 승격 검토
+2. contextual arbitration / benchmark maintenance 정리
+3. broader curated gate maintenance
 4. internal compatibility mirror cleanup scope 결정
 
 ## 현재 해석
@@ -148,11 +150,10 @@
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
-- 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **composed-ratio / hybrid mixed-query benchmark promotion + next ingest experiment design** 쪽이 맞다.
-- immediate blocker였던
-  - `SAM_T2_002` follow-up rerun
-  - `MIX_T1_046` ratio direct-binding rerun
-  은 now closed다.
+- 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **concept planner shadow 확대 + benchmark maintenance** 쪽이 맞다.
+- immediate blocker였던 `SAM_T2_002` follow-up rerun과 `MIX_T1_046` denominator binding은 now closed다.
+- `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
+
 ## 2026-05-17 Update
 
 - Indexing now supports partial-store resume in the benchmark path.

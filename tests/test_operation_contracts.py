@@ -20,6 +20,7 @@ from src.agent.financial_graph_helpers import (
     _build_concept_task_constraints,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
+    _build_lookup_producer_task_from_binding,
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
@@ -372,6 +373,73 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(
             operands[1]["binding_policy"]["prefer_aggregation_stages"][:3],
             ["final", "subtotal", "direct"],
+        )
+
+    def test_lookup_producer_task_preserves_binding_concept_for_generic_consumer_operand(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            task = _build_lookup_producer_task_from_binding(
+                binding={
+                    "role": "denominator_1",
+                    "concept": "operating_expense_total",
+                    "period": "2023",
+                    "label": "영업비용",
+                },
+                consumer_task={
+                    "query": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+                    "metric_label": "종업원급여 비중",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "종업원급여", "role": "numerator_1"},
+                        {"label": "영업비용", "role": "denominator_1"},
+                    ],
+                    "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+                },
+                next_task_id="task_2",
+                report_scope={"company": "NAVER", "year": 2023, "report_type": "사업보고서"},
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        operand = task["required_operands"][0]
+        self.assertEqual(task["metric_family"], "concept_lookup")
+        self.assertEqual(operand["concept"], "operating_expense_total")
+        self.assertIn("영업비용", operand["surface_contract"]["positive"])
+        self.assertIn("종업원급여", operand["surface_contract"]["negative"])
+        self.assertEqual(task["preferred_statement_types"], ["income_statement", "summary_financials"])
+
+        employee_benefits_candidate = {
+            "candidate_kind": "table_row",
+            "text": "종업원급여(*) | 1,701,418,940",
+            "metadata": {
+                "row_label": "종업원급여(*)",
+                "row_text": "종업원급여(*) | 1,701,418,940",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "table_context": "25. 영업비용 (연결)",
+                "local_heading": "25. 영업비용 (연결)",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "1,701,418,940", "unit_hint": "천원"}
+                ],
+            },
+        }
+        self.assertFalse(
+            _candidate_is_direct_grounding_candidate(
+                employee_benefits_candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                report_scope={"company": "NAVER", "year": 2023, "report_type": "사업보고서"},
+            )
         )
 
     def test_generic_ratio_retrieval_queries_include_combined_numerator_denominator_terms(self) -> None:
@@ -1976,6 +2044,20 @@ class OperationContractTests(unittest.TestCase):
             "period": "2023년",
             "raw_value": "985,018",
             "raw_unit": "백만원",
+        }
+        self.assertFalse(_operand_row_matches_requirement(row, operand))
+
+    def test_operand_requirement_rejects_conflicting_row_concept_even_when_label_matches(self) -> None:
+        row = {
+            "label": "2023년 영업비용",
+            "concept": "employee_benefits_expense",
+            "matched_operand_role": "primary_value",
+            "raw_value": "1,701,418,940",
+        }
+        operand = {
+            "label": "2023년 영업비용",
+            "concept": "operating_expense_total",
+            "role": "primary_value",
         }
         self.assertFalse(_operand_row_matches_requirement(row, operand))
 

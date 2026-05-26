@@ -71,6 +71,7 @@ __all__ = [
     '_infer_statement_and_section_hints',
     '_build_generic_required_operands',
     '_infer_generic_metric_label',
+    '_infer_generic_concept_spec',
     '_build_generic_retrieval_queries',
     '_planner_intent_cues',
     '_infer_operation_family_from_query',
@@ -3282,6 +3283,12 @@ def _build_lookup_producer_task_from_binding(
     operand["label"] = _dependency_metric_label(binding)
     operand["period_hint"] = _normalise_spaces(str(binding.get("period") or operand.get("period_hint") or ""))
     operand["role"] = _normalise_spaces(str(binding.get("role") or operand.get("role") or ""))
+    binding_concept = _normalise_spaces(str(binding.get("concept") or operand.get("concept") or ""))
+    if binding_concept:
+        operand["concept"] = binding_concept
+        concept_spec = _concept_spec_for_key(get_financial_ontology(), binding_concept)
+        if concept_spec:
+            operand = _augment_generic_operand_with_concept(operand, concept_spec=concept_spec)
     binding_policy = dict(operand.get("binding_policy") or {})
     # Producer lookups should be free to bind to canonical statement rows even
     # when the downstream derived task prefers aggregate note-table shapes.
@@ -4175,6 +4182,14 @@ def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand
 
 
 def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    operand_concept = _normalise_spaces(str(operand.get("concept") or ""))
+    row_concepts = [
+        _normalise_spaces(str(row.get("matched_operand_concept") or "")),
+        _normalise_spaces(str(row.get("concept") or "")),
+    ]
+    if operand_concept and any(row_concept and row_concept != operand_concept for row_concept in row_concepts):
+        return True
+
     normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
     expects_liability = any("부채" in needle for needle in normalized_needles)
     authoritative_surfaces = [

@@ -2,6 +2,9 @@ import sys
 import unittest
 from pathlib import Path
 
+from langchain_core.documents import Document
+from langchain_core.runnables import RunnableLambda
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 for path in (PROJECT_ROOT, SRC_ROOT):
@@ -10,12 +13,15 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_models import AggregateSynthesisOutput
+from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, OperandExtraction
 
 
 class _StubStructuredLLM:
     def __init__(self, response):
         self._response = response
+
+    def __call__(self, _prompt_value):
+        return self._response
 
     def invoke(self, _prompt_value):
         return self._response
@@ -26,7 +32,7 @@ class _StubLLM:
         self._response = response
 
     def with_structured_output(self, _schema):
-        return _StubStructuredLLM(self._response)
+        return RunnableLambda(lambda _prompt_value: self._response)
 
 
 class SubtaskLoopTests(unittest.TestCase):
@@ -631,6 +637,121 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(
             extracted["calculation_debug_trace"]["missing_dependency_bindings"][0]["role"],
             "denominator_1",
+        )
+
+    def test_ratio_missing_dependency_binding_can_fall_back_to_retrieved_docs(self) -> None:
+        state = {
+            "query": "Calculate employee benefits as a share of 2023 operating expense.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "NAVER", "year": 2023},
+            "topic": "employee benefits ratio",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "employee benefits ratio",
+                "query": "Calculate employee benefits as a share of 2023 operating expense.",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "employee benefits", "concept": "employee_benefits_expense", "role": "numerator_1"},
+                    {"label": "operating expense", "concept": "operating_expense_total", "role": "denominator_1"},
+                ],
+                "depends_on": ["task_2", "task_3"],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "employee_benefits_expense",
+                        "period": "2023",
+                        "label": "employee benefits",
+                        "preferred_task_id": "task_2",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "operating_expense_total",
+                        "period": "2023",
+                        "label": "operating expense",
+                        "preferred_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 employee benefits",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "employee benefits",
+                                "concept": "employee_benefits_expense",
+                                "period": "2023",
+                                "raw_value": "1,701,418,940",
+                                "raw_unit": "thousand KRW",
+                                "normalized_value": 1701418940000.0,
+                                "normalized_unit": "KRW",
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="operating expense | 8,181,823,307",
+                        metadata={"block_type": "table", "table_source_id": "naver-op-expense"},
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        self.agent.llm = _StubLLM(
+            OperandExtraction(
+                coverage="sufficient",
+                operands=[
+                    CalculationOperand(
+                        operand_id="op_001",
+                        evidence_id="ev_doc_001",
+                        source_anchor="[NAVER | 2023]",
+                        label="operating expense",
+                        raw_value="8,181,823,307",
+                        raw_unit="thousand KRW",
+                        normalized_value=8181823307000.0,
+                        normalized_unit="KRW",
+                        period="2023",
+                    )
+                ],
+            )
+        )
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+
+        extracted = self.agent._extract_calculation_operands(state)
+
+        self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(len(extracted["calculation_operands"]), 2)
+        self.assertEqual(
+            [row.get("matched_operand_role") for row in extracted["calculation_operands"]],
+            ["numerator_1", None],
         )
 
     def test_growth_rate_direct_rows_can_fill_missing_task_output_binding(self) -> None:

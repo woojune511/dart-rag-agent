@@ -259,7 +259,7 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
     - `numeric_pass = 1.0`
     - `structured_result.status = ok`
 - `curated_single_doc_core`
-  - `MIX_T1_046`는 generic share-of-total ratio 분해, unit inheritance, evaluator period normalization 보강 이후 PASS로 닫혔다
+  - `MIX_T1_046`는 generic share-of-total ratio 분해, unit inheritance, evaluator period normalization 보강 이후 한 차례 PASS했고, parent-hybrid probe의 fresh NAVER 2023 bundle에서 다시 노출된 `영업비용` denominator binding failure도 calculation fallback 보강 후 store-fixed eval-only에서 다시 PASS했다
   - missing local filing 문제는 curated benchmark auto-fetch로 정리됐다
 - official targeted follow-up
   - `MIX_T1_064`는 composed-ratio aggregate trace 보강과 evaluator operand supplementation 이후
@@ -276,10 +276,11 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 즉 최신 판단은 다음과 같다.
 
 - `structural_selective_v2`는 현재 routine curated validation의 operating default다
-- broader curated blocker와 targeted official follow-up blocker도 모두 닫혔다
+- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, targeted official follow-up blocker는 닫혔다
 - fresh-store 회귀는 retrieval coverage보다 task/dependency ledger와 multi-report inventory가 더 중요한 병목임이 확인됐다
 - mixed numeric+narrative query는 숫자 correctness만으로 닫지 않고, aggregate synthesis가 question-level context evidence까지 최종 문장에 반영해야 한다
-- 다음 실험 초점은 `structural_parent_hybrid_v2` 같은 next ingest candidate 설계다
+- `structural_parent_hybrid_v2` probe 결과, parent digest는 현재 3문항 probe에서 default 승격 근거를 만들지 못했다
+- 다음 실험 초점은 ingest candidate 확대보다 concept planner shadow 확대와 broader curated gate maintenance다
 
 즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
 
@@ -919,3 +920,48 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
 - Operationally, this closes the remaining `SAM_T2_002` blocker. The benchmark
   result bundle is treated as a local experiment artifact and is not part of
   the committed source tree.
+
+## 2026-05-26 Structural parent hybrid v2 probe
+
+- The first `structural_parent_hybrid_v2` probe compared:
+  - baseline: `structural_selective_v2_prefix_2500_320`
+  - proposed: `structural_parent_hybrid_v2_prefix_2500_320`
+- Probe rows:
+  - `NAV_T1_071`
+  - `MIX_T1_046`
+  - `SAM_T2_002`
+- Result:
+  - both candidates passed screening for both companies
+  - both candidates produced `numeric_pass = 1.0`
+  - both candidates had one full-eval failure from `MIX_T1_046`
+  - average completeness stayed tied at `0.750`
+  - average faithfulness stayed tied at `1.000`
+  - parent hybrid was about `2.6%` slower on ingest
+- Interpretation:
+  - `SAM_T2_002` and `NAV_T1_071` no longer need parent digest help
+  - `MIX_T1_046` is a denominator-binding problem, not an ingest lineage
+    problem based on this probe
+  - keep `structural_selective_v2_prefix_2500_320` as the routine default
+  - do not promote `structural_parent_hybrid_v2` without a broader signal
+
+## 2026-05-26 MIX_T1_046 Denominator Binding Fix
+
+- Follow-up run:
+  - source store: `tmp_mix_t1_046_fix_check_2026-05-26_fix7`
+  - eval-only output: `tmp_mix_t1_046_fix_check_2026-05-26_fix8_eval_only`
+- Result:
+  - actual answer: `20.8%`
+  - numerator: `종업원급여 1,701,418,940천원`
+  - denominator: `연결기준 영업비용 8,181,823,306,977원`
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `numeric_pass = 1.0`
+- Runtime changes validated by this row:
+  - synthesized lookup producer tasks preserve downstream binding concepts
+  - LLM lookup subtasks whose metric label and operand concept disagree are rejected and resynthesized
+  - ratio tasks with one missing dependency binding may fall back to retrieved docs instead of stopping at `dependency_binding_guard`
+  - fallback docs and extracted operands honor requested consolidation scope, preventing separate-statement `영업비용` from binding to a consolidated query
+  - direct structured rows are filtered against required operands before the “enough rows” shortcut
+- Interpretation:
+  - This closes the `MIX_T1_046` denominator-binding blocker exposed by the parent-hybrid probe.
+  - The result bundle is an experiment artifact and should not be committed.

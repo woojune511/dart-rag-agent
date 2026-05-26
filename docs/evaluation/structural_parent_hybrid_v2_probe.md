@@ -69,3 +69,42 @@ justify a broader curated rerun.
   - does not regress `MIX_T1_046` or `NAV_T1_071`
 - If it only matches the current structural default with no meaningful quality
   gain, keep `structural_selective_v2` as the mainline default and stop there.
+
+## 2026-05-26 Probe Result
+
+Run:
+
+- `benchmarks/results/structural_parent_hybrid_v2_probe_2026-05-26`
+
+Outcome:
+
+| Candidate | Companies | Full eval fails | Numeric | Completeness | Faithfulness | Recall | Ingest time delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `structural_selective_v2_prefix_2500_320` | 2 | 1 | 1.000 | 0.750 | 1.000 | 0.900 | baseline |
+| `structural_parent_hybrid_v2_prefix_2500_320` | 2 | 1 | 1.000 | 0.750 | 1.000 | 0.900 | -2.6% |
+
+Question-level notes:
+
+- `SAM_T2_002` closes on both candidates.
+  - Baseline answer includes the memory downturn context and CAPEX result.
+  - Parent-hybrid answer also includes the memory/downturn context and CAPEX result.
+- `NAV_T1_071` closes on both candidates with the same 2023 pretax income and
+  prior-year difference.
+- `MIX_T1_046` fails on both candidates because the runtime finds employee
+  benefits but does not bind the total operating-expense denominator, so the
+  final answer refuses the requested ratio.
+
+Decision:
+
+- Do not promote `structural_parent_hybrid_v2` from this probe.
+- Keep `structural_selective_v2_prefix_2500_320` as the routine default.
+- The next useful work is not parent digest promotion; it is denominator
+  binding for share-of-total ratio questions such as `MIX_T1_046`.
+
+Follow-up:
+
+- The `MIX_T1_046` failure was fixed in the calculation/runtime path, not by
+  changing the ingest candidate.
+- Store-fixed eval-only follow-up on the same NAVER 2023 store now answers
+  `20.8%` with `faithfulness = 1.0`, `completeness = 1.0`, and
+  `numeric_pass = 1.0`.
