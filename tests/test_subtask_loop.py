@@ -2081,6 +2081,109 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(feedback, "")
 
+    def test_aggregate_subtasks_ignores_failed_lookup_when_growth_slots_cover_value(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원이며, 이는 전년(2022년)의 53조 1,153억원 대비 0.0026% 감소한 수치입니다.",
+                    "planner_feedback": "2023년 시설투자(CAPEX) 총액 direct value가 누락되었습니다.",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 메모리 반도체 업황 악화에도 불구하고 집행된 시설투자(CAPEX) 총액을 찾고, 전년(2022년) 대비 증감률을 계산해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_4"},
+                {"task_id": "task_2"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 시설투자(CAPEX) 총액",
+                    "answer": "2023년 시설투자(CAPEX) 총액 계산에 필요한 값(시설투자(CAPEX))을 문서 근거에서 충분히 확인하지 못해 계산할 수 없습니다.",
+                    "status": "insufficient_operands",
+                    "calculation_result": {},
+                },
+                {
+                    "task_id": "task_4",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022년 시설투자(CAPEX)",
+                    "answer": "2022년 시설투자(CAPEX)은 53조 1,153억원입니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "시설투자(CAPEX)",
+                                "concept": "capital_expenditure_total",
+                                "period": "2022",
+                                "rendered_value": "53조 1,153억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "시설투자(CAPEX) 총액 증감률",
+                    "answer": "2023년 연결기준 시설투자(CAPEX) 총액 증감률은 2023 시설투자(CAPEX) 53조 1,139억원이 시설투자(CAPEX) 53조 1,153억원 대비 0.0026% 감소한 결과입니다.",
+                    "status": "ok",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_003",
+                            "support_level": "context",
+                            "source_anchor": "[삼성전자 | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                            "claim": "2023년 세계 경제의 불확실성 지속 및 경기 둔화로 경영 여건이 악화되었으며, 특히 메모리 등 부품 사업이 약세를 보였습니다.",
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "-0.0026%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "시설투자(CAPEX) 총액 증감률",
+                                "period": "2023",
+                                "rendered_value": "-0.0026%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "role": "current_value",
+                                "label": "2023 시설투자(CAPEX)",
+                                "concept": "capital_expenditure_total",
+                                "period": "2023",
+                                "rendered_value": "53조 1,139억원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "role": "prior_value",
+                                "label": "시설투자(CAPEX)",
+                                "concept": "capital_expenditure_total",
+                                "period": "2022",
+                                "rendered_value": "53조 1,153억원",
+                            },
+                        },
+                    },
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_feedback"], "")
+        self.assertNotIn("완전히 확정할 수는 없습니다", updated["answer"])
+        self.assertIn("메모리", updated["answer"])
+        self.assertEqual(updated["calculation_result"]["status"], "ok")
+
 
 if __name__ == "__main__":
     unittest.main()

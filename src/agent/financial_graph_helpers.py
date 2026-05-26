@@ -1653,6 +1653,9 @@ _NARRATIVE_CONTEXT_HINTS = (
     "관리",
     "대응",
     "기여",
+    "업황",
+    "악화",
+    "불구",
 )
 
 
@@ -5145,6 +5148,20 @@ def _candidate_contextual_aggregate_context(candidate: Dict[str, Any]) -> str:
     )
 
 
+def _candidate_local_aggregate_context(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    return " ".join(
+        part
+        for part in (
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("table_header_context") or "").strip(),
+            str(metadata.get("table_summary_text") or "").strip(),
+        )
+        if part
+    )
+
+
 def _candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
     explicit = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
     if explicit and explicit != "unknown":
@@ -5314,7 +5331,7 @@ def _candidate_source_priority_bonus(
                 score -= 0.5
 
     if _operand_prefers_contextual_aggregate_match(operand):
-        context_text = _candidate_contextual_aggregate_context(candidate)
+        context_text = _candidate_local_aggregate_context(candidate)
         if (
             value_role == "aggregate"
             and aggregation_stage in {"final", "subtotal", "direct"}
@@ -5713,7 +5730,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
             ):
                 return True
     if _operand_prefers_contextual_aggregate_match(operand):
-        section_context = _candidate_contextual_aggregate_context(candidate)
+        section_context = _candidate_local_aggregate_context(candidate)
         aggregate_surface = _normalise_spaces(
             " ".join(
                 part
@@ -5832,14 +5849,32 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
                 _text_has_positive_surface(context_text, operand)
                 and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
-                best = max(best, 1.75)
+                best = max(best, 2.25)
     if _operand_prefers_contextual_aggregate_match(operand):
-        context_text = _candidate_contextual_aggregate_context(candidate)
+        context_text = _candidate_local_aggregate_context(candidate)
         if (
             _text_has_positive_surface(context_text, operand)
             and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
         ):
             best = max(best, 2.0)
+    aggregate_signal = _normalise_spaces(
+        " ".join(
+            part
+            for part in (
+                str(metadata.get("aggregate_label") or "").strip(),
+                str(metadata.get("semantic_label") or "").strip(),
+                str(metadata.get("row_label") or "").strip(),
+            )
+            if part
+        )
+    )
+    if (
+        aggregate_signal
+        and _operand_text_match(aggregate_signal, operand)
+        and _candidate_value_role(candidate) == "aggregate"
+        and _candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
+    ):
+        best = max(best, 2.25)
     if _candidate_supports_segment_metric_combo(candidate, operand):
         best = max(best, 2.25)
     return best

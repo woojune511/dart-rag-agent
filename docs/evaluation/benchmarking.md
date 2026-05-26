@@ -252,7 +252,12 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 - `curated_multi_report_smoke`
   - `SAM_T2_002`는 CAPEX current/prior binding과 unit/trace propagation 보강 이후 PASS로 닫혔다
   - fresh structural store 기준으로도 multi-source receipt scope, exact filing inventory, dependency binding guard 보강 이후 `numeric_final_judgement = PASS`가 재확인됐다
-  - 다만 mixed wording (`메모리 반도체 업황 악화에도 불구하고`)을 answer에 충분히 반영하지 못해 latest fresh rerun의 `completeness`는 `0.7`로 남아 있다
+  - aggregate 단계가 failed lookup sibling gap을 growth-rate `answer_slots`로 해소하고, 경영진단 narrative context를 final answer에 반영하면서 mixed wording (`메모리 반도체 업황 악화에도 불구하고`) gap도 닫혔다
+  - latest fresh structural rerun:
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
+    - `numeric_pass = 1.0`
+    - `structured_result.status = ok`
 - `curated_single_doc_core`
   - `MIX_T1_046`는 generic share-of-total ratio 분해, unit inheritance, evaluator period normalization 보강 이후 PASS로 닫혔다
   - missing local filing 문제는 curated benchmark auto-fetch로 정리됐다
@@ -273,6 +278,7 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 - `structural_selective_v2`는 현재 routine curated validation의 operating default다
 - broader curated blocker와 targeted official follow-up blocker도 모두 닫혔다
 - fresh-store 회귀는 retrieval coverage보다 task/dependency ledger와 multi-report inventory가 더 중요한 병목임이 확인됐다
+- mixed numeric+narrative query는 숫자 correctness만으로 닫지 않고, aggregate synthesis가 question-level context evidence까지 최종 문장에 반영해야 한다
 - 다음 실험 초점은 `structural_parent_hybrid_v2` 같은 next ingest candidate 설계다
 
 즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
@@ -892,3 +898,24 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
     - `Poshmark 체질 개선`
     - `연결 편입효과`
     - `스마트스토어/브랜드스토어 성장`
+
+## 2026-05-26 Multi-report CAPEX official closure
+
+- `curated_multi_report_smoke` was rerun on a fresh structural bundle after the
+  CAPEX direct-grounding and aggregate-synthesis fixes.
+- The numeric path was already correct, but the previous official run still
+  left two user-facing gaps:
+  - a stale failed lookup subtask made the aggregate result look `partial`
+  - the final answer omitted the question's `메모리 반도체 업황 악화` context
+- The aggregate path now treats a failed lookup as satisfied when a sibling
+  derived task already carries the same concept/period value in `answer_slots`.
+- The final synthesizer receives relevant narrative context evidence and the
+  deterministic fallback can prepend that context when the LLM answer omits it.
+- Latest official interpretation:
+  - `structured_result.status = ok`
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `numeric_pass = 1.0`
+- Operationally, this closes the remaining `SAM_T2_002` blocker. The benchmark
+  result bundle is treated as a local experiment artifact and is not part of
+  the committed source tree.

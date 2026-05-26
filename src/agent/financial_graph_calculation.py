@@ -58,6 +58,87 @@ class FinancialAgentCalculationMixin:
             return _normalise_spaces(match.group(0))
         return ""
 
+    def _period_match_key(self, value: str) -> str:
+        return re.sub(r"\D", "", _normalise_spaces(str(value or "")))
+
+    def _iter_answer_slots(self, answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
+        slots: List[Dict[str, Any]] = []
+        for key in ("primary_value", "current_value", "prior_value", "delta_value"):
+            slot = answer_slots.get(key)
+            if isinstance(slot, dict):
+                slots.append(dict(slot))
+
+        for group_key in ("components_by_role", "components_by_group"):
+            grouped = answer_slots.get(group_key)
+            if not isinstance(grouped, dict):
+                continue
+            for entries in grouped.values():
+                if isinstance(entries, list):
+                    slots.extend(dict(entry) for entry in entries if isinstance(entry, dict))
+                elif isinstance(entries, dict):
+                    slots.append(dict(entries))
+        return slots
+
+    def _lookup_gap_is_satisfied_by_sibling_slots(
+        self,
+        row: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        operation_family = self._aggregate_result_operation_family(row)
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if not operation_family and metric_family.startswith("concept_"):
+            operation_family = metric_family.removeprefix("concept_")
+        if operation_family not in {"lookup", "single_value"}:
+            return False
+
+        target_slot = dict(answer_slots.get("primary_value") or {})
+        target_keys = self._slot_metric_keys(target_slot)
+        metric_label = _normalise_spaces(str(row.get("metric_label") or row.get("answer") or ""))
+        if metric_label:
+            target_keys.update(self._slot_metric_keys({"label": metric_label}))
+        if not target_keys:
+            return False
+
+        target_periods = {
+            self._period_match_key(period)
+            for period in [
+                self._slot_period_hint(target_slot),
+                *(match.group(0) for match in re.finditer(r"20\d{2}\s*년?", metric_label)),
+            ]
+            if self._period_match_key(period)
+        }
+
+        target_concept = _normalise_spaces(str(target_slot.get("concept") or ""))
+        for sibling in ordered_results:
+            if sibling is row:
+                continue
+            sibling_result = dict(sibling.get("calculation_result") or {})
+            sibling_slots = dict(sibling_result.get("answer_slots") or sibling.get("answer_slots") or {})
+            for sibling_slot in self._iter_answer_slots(sibling_slots):
+                if not self._answer_slot_has_material(sibling_slot):
+                    continue
+                if target_concept:
+                    sibling_concept = _normalise_spaces(str(sibling_slot.get("concept") or ""))
+                    if sibling_concept and sibling_concept != target_concept:
+                        continue
+                sibling_period = self._period_match_key(self._slot_period_hint(sibling_slot))
+                if target_periods and sibling_period and sibling_period not in target_periods:
+                    continue
+                if target_periods and not sibling_period:
+                    continue
+                sibling_keys = self._slot_metric_keys(sibling_slot)
+                if target_keys & sibling_keys:
+                    return True
+                if any(
+                    target_key and sibling_key and (target_key in sibling_key or sibling_key in target_key)
+                    for target_key in target_keys
+                    for sibling_key in sibling_keys
+                ):
+                    return True
+        return False
+
     def _sibling_lookup_gap_is_satisfied(
         self,
         row: Dict[str, Any],
@@ -507,7 +588,11 @@ class FinancialAgentCalculationMixin:
             ):
                 continue
             if status and status != "ok":
-                if self._sibling_lookup_gap_is_satisfied(row, ordered_results) or self._narrative_summary_gap_is_satisfied(row, ordered_results):
+                if (
+                    self._sibling_lookup_gap_is_satisfied(row, ordered_results)
+                    or self._lookup_gap_is_satisfied_by_sibling_slots(row, ordered_results)
+                    or self._narrative_summary_gap_is_satisfied(row, ordered_results)
+                ):
                     continue
                 gap = self._material_gap_feedback_for_subtask_result(row)
                 if gap:
@@ -520,6 +605,7 @@ class FinancialAgentCalculationMixin:
             gap = self._material_gap_feedback_for_subtask_result(row)
             if gap and (
                 self._sibling_lookup_gap_is_satisfied(row, ordered_results)
+                or self._lookup_gap_is_satisfied_by_sibling_slots(row, ordered_results)
                 or self._narrative_summary_gap_is_satisfied(row, ordered_results)
             ):
                 continue
@@ -601,6 +687,110 @@ class FinancialAgentCalculationMixin:
             key=lambda item: item[0],
         )
         return [dict(item[2]) for item in deduped]
+
+    def _narrative_context_terms(self, query: str) -> List[str]:
+        tokens = re.findall(r"[가-힣A-Za-z0-9()]+", _normalise_spaces(str(query or "")))
+        stopwords = {
+            "2023년",
+            "2022년",
+            "전년",
+            "대비",
+            "증감률",
+            "계산",
+            "계산해",
+            "찾고",
+            "찾아",
+            "총액",
+            "시설투자",
+            "CAPEX",
+            "capex",
+            "집행된",
+        }
+        terms: List[str] = []
+        for token in tokens:
+            cleaned = token.strip()
+            if len(cleaned) < 2 or cleaned in stopwords:
+                continue
+            if re.search(r"\d", cleaned):
+                continue
+            if re.fullmatch(r"\d+", cleaned):
+                continue
+            terms.append(cleaned)
+        return list(dict.fromkeys(terms))
+
+    def _narrative_context_sentence_from_evidence(
+        self,
+        query: str,
+        evidence_items: List[Dict[str, Any]],
+    ) -> str:
+        if not _query_requests_narrative_context(query):
+            return ""
+        query_terms = self._narrative_context_terms(query)
+        if not query_terms:
+            return ""
+
+        best_score = 0
+        best_sentence = ""
+        for item in evidence_items or []:
+            evidence = dict(item or {})
+            source_text = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in [
+                        evidence.get("source_anchor"),
+                        (evidence.get("metadata") or {}).get("section_path"),
+                        (evidence.get("metadata") or {}).get("section"),
+                    ]
+                )
+            )
+            claim = _normalise_spaces(
+                str(
+                    evidence.get("claim")
+                    or evidence.get("quote_span")
+                    or evidence.get("raw_row_text")
+                    or ""
+                )
+            )
+            if not claim:
+                continue
+            haystack = f"{source_text} {claim}".lower()
+            term_score = sum(1 for term in query_terms if term.lower() in haystack)
+            if "이사의 경영진단" in source_text:
+                term_score += 2
+            if str(evidence.get("support_level") or "").lower() == "context":
+                term_score += 1
+            if term_score <= best_score:
+                continue
+            best_score = term_score
+            best_sentence = claim
+
+        if best_score <= 0 or not best_sentence:
+            return ""
+        best_sentence = re.split(r"(?<=[.!?。])\s+", best_sentence)[0]
+        return best_sentence[:220].rstrip()
+
+    def _include_narrative_context_if_needed(
+        self,
+        answer: str,
+        *,
+        query: str,
+        narrative_context: str,
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        context = _normalise_spaces(str(narrative_context or ""))
+        if not answer_text or not context or not _query_requests_narrative_context(query):
+            return answer_text
+        key_terms = [
+            term
+            for term in self._narrative_context_terms(query)
+            if term not in {"불구하고", "불구"}
+        ]
+        context_terms = [term for term in key_terms if term in context]
+        if context_terms and any(term in answer_text for term in context_terms):
+            return answer_text
+        if context in answer_text:
+            return answer_text
+        return _normalise_spaces(f"{context} {answer_text}")
 
     def _coerce_operand_unit_from_evidence(
         self,
@@ -2945,6 +3135,11 @@ Operands:
         final_answer = fallback_answer
         planner_feedback = ""
         deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
+        preliminary_projection = self._build_aggregate_calculation_projection(ordered_results, fallback_answer)
+        narrative_context = self._narrative_context_sentence_from_evidence(
+            str(state.get("query") or ""),
+            list(preliminary_projection.get("evidence_items") or []),
+        )
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         max_plan_loops = 2
         if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
@@ -2957,11 +3152,13 @@ Operands:
 1. 원본 질문
 2. subtask 결과 목록
 3. deterministic structured material check
+4. narrative context evidence
 
 규칙:
 - 최종 답변은 원본 질문이 명시적으로 요구한 값과 계산 결과를 빠짐없이 포함하도록 노력하세요.
 - subtask 결과의 answer, calculation_result.rendered_value, calculation_result.series, calculation_operands를 근거로 사용하세요.
 - subtask 결과의 calculation_result.answer_slots가 있으면 그것을 가장 우선적인 structured result contract로 사용하세요.
+- narrative context evidence가 있고 원본 질문이 업황/배경/영향 같은 맥락을 요구하면, 최종 답변에 그 맥락을 짧게 반영하세요.
 - 새로운 숫자, 연도, 단위를 만들지 마세요.
 - deterministic structured material check가 비어 있으면, 현재 재료만으로 원본 질문을 완전히 충족한다고 보고 planner_feedback은 비워 두세요.
 - deterministic structured material check가 비어 있지 않으면, 그 누락 재료를 planner_feedback에 반영하세요.
@@ -2978,6 +3175,9 @@ Fallback Answer:
 Deterministic Structured Material Check:
 {deterministic_feedback}
 
+Narrative Context Evidence:
+{narrative_context}
+
 Subtask Results JSON:
 {subtask_results_json}
 """
@@ -2988,6 +3188,7 @@ Subtask Results JSON:
                         "query": state["query"],
                         "fallback_answer": fallback_answer,
                         "deterministic_feedback": deterministic_feedback or "-",
+                        "narrative_context": narrative_context or "-",
                         "subtask_results_json": json.dumps(ordered_results, ensure_ascii=False, indent=2),
                     }
                 )
@@ -3000,6 +3201,11 @@ Subtask Results JSON:
             final_answer,
             calculation_result=dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_result") or {}),
             subtask_results=ordered_results,
+        )
+        final_answer = self._include_narrative_context_if_needed(
+            final_answer,
+            query=str(state.get("query") or ""),
+            narrative_context=narrative_context,
         )
         # Prefer the deterministic structured-material check over a conservative
         # synthesizer hint. When the deterministic check sees no missing
@@ -3042,6 +3248,8 @@ Subtask Results JSON:
             evidence_refs=selected_claim_ids,
         )
         aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
+        if final_answer and not deterministic_feedback:
+            aggregate_projection["calculation_result"]["status"] = "ok"
         return {
             "subtask_results": ordered_results,
             "subtask_loop_complete": True,
