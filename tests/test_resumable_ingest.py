@@ -18,6 +18,7 @@ from src.ops.benchmark_runner import (
     _build_store_signature,
     _cache_meta_is_completed,
     _ensure_benchmark_report_path,
+    _inventory_eval_examples,
     _run_ingest,
     _store_signature_matches,
 )
@@ -266,6 +267,50 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(report_inventory[0]["metadata"]["rcept_no"], "20240312000736")
         self.assertEqual(report_inventory[1]["metadata"]["rcept_no"], "20230307000542")
         self.assertIn("2022_사업보고서_20230307000542.html", report_inventory[1]["report_path"])
+
+    def test_inventory_eval_examples_include_full_eval_question_ids(self) -> None:
+        config = {
+            "eval_dataset_path": "ignored.json",
+            "eval_mode": "question_ids",
+            "question_ids": ["SAM_T2_078"],
+        }
+        metadata = {
+            "company": "삼성전자",
+            "year": 2023,
+        }
+        examples = [
+            EvalExample(
+                id="SAM_T2_002",
+                question="시설투자 증감률",
+                ground_truth="g1",
+                company="삼성전자",
+                year=2023,
+                section="s",
+            ),
+            EvalExample(
+                id="SAM_T2_078",
+                question="다른 질문",
+                ground_truth="g2",
+                company="삼성전자",
+                year=2023,
+                section="s",
+            ),
+        ]
+
+        from src.ops import benchmark_runner as runner_module
+
+        original_loader = runner_module._load_eval_dataset
+        runner_module._load_eval_dataset = lambda path: list(examples)
+        try:
+            selected = _inventory_eval_examples(
+                config,
+                metadata,
+                {"enabled": True, "eval_mode": "question_ids", "question_ids": ["SAM_T2_002"]},
+            )
+        finally:
+            runner_module._load_eval_dataset = original_loader
+
+        self.assertEqual([example.id for example in selected], ["SAM_T2_078", "SAM_T2_002"])
 
     def test_store_signature_mismatch_detects_embedding_dimension_change(self) -> None:
         expected = {

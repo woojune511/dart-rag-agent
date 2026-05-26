@@ -387,15 +387,17 @@ def _project_task_trace_from_state(
         if not active_trace:
             active_trace = _resolve_runtime_calculation_trace(state)
         active_trace_result = dict(active_trace.get("calculation_result") or {})
-        active_trace_slots = dict(active_trace_result.get("answer_slots") or {})
-        active_trace_operation = _normalise_spaces(
-            str(active_trace_slots.get("operation_family") or "")
-        ).lower()
+        active_trace_plan = dict(active_trace.get("calculation_plan") or {})
+        active_trace_operation = _trace_operation_family(
+            calculation_plan=active_trace_plan,
+            calculation_result=active_trace_result,
+        )
         live_state_result = dict(state.get("calculation_result") or {})
-        live_state_slots = dict(live_state_result.get("answer_slots") or {})
-        live_state_operation = _normalise_spaces(
-            str(live_state_slots.get("operation_family") or "")
-        ).lower()
+        live_state_plan = dict(state.get("calculation_plan") or {})
+        live_state_operation = _trace_operation_family(
+            calculation_plan=live_state_plan,
+            calculation_result=live_state_result,
+        )
         prefer_live_state = (
             active_trace_operation == "aggregate_subtasks"
             and live_state_operation
@@ -404,6 +406,11 @@ def _project_task_trace_from_state(
             str(active_trace_result.get("status") or "").strip().lower() == "partial"
             and str(live_state_result.get("status") or "").strip().lower() == "ok"
         )
+        if active_trace_operation == "aggregate_subtasks" and not prefer_live_state:
+            if calculation_operands or calculation_plan or calculation_result:
+                active_trace = {}
+            elif state.get("calculation_operands") or state.get("calculation_plan") or state.get("calculation_result"):
+                prefer_live_state = True
         if prefer_live_state and state.get("calculation_operands"):
             calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
         elif active_trace.get("calculation_operands"):
@@ -549,6 +556,31 @@ def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, A
     return {}
 
 
+def _trace_operation_family(
+    *,
+    calculation_plan: Optional[Dict[str, Any]] = None,
+    calculation_result: Optional[Dict[str, Any]] = None,
+) -> str:
+    plan = dict(calculation_plan or {})
+    calc_result = dict(calculation_result or {})
+    answer_slots = dict(calc_result.get("answer_slots") or {})
+    operation_family = _normalise_spaces(
+        str(
+            answer_slots.get("operation_family")
+            or calc_result.get("operation_family")
+            or plan.get("operation_family")
+            or ""
+        )
+    ).lower()
+    if operation_family:
+        return operation_family
+    if str(plan.get("mode") or "").strip().lower() == "aggregate_subtasks":
+        return "aggregate_subtasks"
+    if calc_result.get("subtask_results"):
+        return "aggregate_subtasks"
+    return ""
+
+
 def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
     normalised = _normalise_resolved_calculation_trace(result)
     top_level = {
@@ -560,16 +592,6 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
     if structured_result and not top_level["calculation_result"]:
         top_level["calculation_result"] = structured_result
     subtask_results = [dict(item) for item in (result.get("subtask_results") or [])]
-    if normalised:
-        plan = dict(normalised.get("calculation_plan") or {})
-        calc_result = dict(normalised.get("calculation_result") or {})
-        answer_slots = dict(calc_result.get("answer_slots") or {})
-        if (
-            str(plan.get("mode") or "") == "aggregate_subtasks"
-            or bool(calc_result.get("subtask_results"))
-            or str(answer_slots.get("operation_family") or "").strip().lower() == "aggregate_subtasks"
-        ):
-            return normalised
 
     active_task_id = str((result.get("active_subtask") or {}).get("task_id") or "").strip()
     if not active_task_id:
@@ -581,6 +603,35 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
         ]
         if len(calc_task_ids) == 1:
             active_task_id = calc_task_ids[0]
+
+    if normalised:
+        plan = dict(normalised.get("calculation_plan") or {})
+        calc_result = dict(normalised.get("calculation_result") or {})
+        if _trace_operation_family(
+            calculation_plan=plan,
+            calculation_result=calc_result,
+        ) == "aggregate_subtasks":
+            if active_task_id:
+                projected_active = _project_task_trace_from_runtime(result, active_task_id)
+                if _trace_operation_family(
+                    calculation_plan=dict(projected_active.get("calculation_plan") or {}),
+                    calculation_result=dict(projected_active.get("calculation_result") or {}),
+                ) != "aggregate_subtasks" and (
+                    projected_active.get("calculation_operands")
+                    or projected_active.get("calculation_plan")
+                    or projected_active.get("calculation_result")
+                ):
+                    return projected_active
+                if _trace_operation_family(
+                    calculation_plan=top_level["calculation_plan"],
+                    calculation_result=top_level["calculation_result"],
+                ) != "aggregate_subtasks" and (
+                    top_level["calculation_operands"]
+                    or top_level["calculation_plan"]
+                    or top_level["calculation_result"]
+                ):
+                    return top_level
+            return normalised
 
     if active_task_id:
         projected = _project_task_trace_from_runtime(result, active_task_id)
@@ -5087,6 +5138,7 @@ def _candidate_contextual_aggregate_context(candidate: Dict[str, Any]) -> str:
             str(metadata.get("table_context") or "").strip(),
             str(metadata.get("table_header_context") or "").strip(),
             str(metadata.get("table_summary_text") or "").strip(),
+            str(metadata.get("row_context_text") or "").strip(),
             str(metadata.get("section_path") or "").strip(),
         )
         if part

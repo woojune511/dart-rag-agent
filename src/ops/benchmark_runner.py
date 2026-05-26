@@ -337,6 +337,34 @@ def _collect_report_inventory(
     return inventory
 
 
+def _inventory_eval_examples(
+    config: Dict[str, Any],
+    metadata: Dict[str, Any],
+    full_eval_config: Dict[str, Any],
+) -> List[EvalExample]:
+    merged_examples: List[EvalExample] = []
+    seen_ids: set[str] = set()
+
+    def add_examples(examples: List[EvalExample]) -> None:
+        for example in examples:
+            example_id = str(getattr(example, "id", "") or "").strip()
+            dedupe_key = example_id or f"{getattr(example, 'company', '')}:{getattr(example, 'year', '')}:{getattr(example, 'question', '')}"
+            if dedupe_key in seen_ids:
+                continue
+            seen_ids.add(dedupe_key)
+            merged_examples.append(example)
+
+    add_examples(_select_eval_examples(config, metadata))
+
+    inventory_full_config = dict(config)
+    inventory_full_config["eval_mode"] = full_eval_config.get("eval_mode", config.get("eval_mode"))
+    inventory_full_config["eval_limit"] = full_eval_config.get("eval_limit", config.get("eval_limit"))
+    if "question_ids" in full_eval_config:
+        inventory_full_config["question_ids"] = list(full_eval_config.get("question_ids") or [])
+    add_examples(_select_eval_examples(inventory_full_config, metadata))
+    return merged_examples
+
+
 def _is_path_like_key(key: str) -> bool:
     lowered = key.lower()
     return lowered.endswith("_path") or "directory" in lowered
@@ -3206,7 +3234,8 @@ def run_screening_experiment(
 
     metadata = dict(config["metadata"])
     screening_examples = _select_eval_examples(config, metadata)
-    report_inventory = _collect_report_inventory(config, metadata, screening_examples)
+    inventory_examples = _inventory_eval_examples(config, metadata, full_eval_config)
+    report_inventory = _collect_report_inventory(config, metadata, inventory_examples)
     config_with_inventory = dict(config)
     config_with_inventory["report_inventory"] = report_inventory
     persist_dir = output_root / "stores" / _slugify(experiment_id)

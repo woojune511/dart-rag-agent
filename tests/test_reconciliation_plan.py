@@ -2560,6 +2560,74 @@ class ReconciliationPlanTests(unittest.TestCase):
         matched = result["matched_operands"][0]
         self.assertEqual(matched["candidate_ids"][0], "row_capex")
 
+    def test_deterministic_reconcile_accepts_capex_row_when_surface_lives_in_row_context(self) -> None:
+        active_subtask = {
+            "task_id": "task_capex",
+            "metric_family": "concept_lookup",
+            "metric_label": "2023년 시설투자(CAPEX) 총액",
+            "operation_family": "lookup",
+            "required_operands": [
+                {
+                    "label": "시설투자(CAPEX)",
+                    "aliases": ["시설투자", "CAPEX", "CapEx"],
+                    "concept": "capital_expenditure_total",
+                    "role": "current_period",
+                    "required": True,
+                    "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate", "detail"],
+                        "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                        "prefer_period_focus": "current",
+                        "prefer_consolidation_scope": "consolidated",
+                    },
+                    "surface_contract": {
+                        "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                        "negative": ["유형자산의 취득", "유형자산 취득"],
+                    },
+                }
+            ],
+            "preferred_statement_types": [],
+            "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+        }
+        candidates = [
+            {
+                "candidate_id": "row_capex_fresh",
+                "candidate_kind": "table_row",
+                "text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                "metadata": {
+                    "row_text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                    "row_label": "합 계",
+                    "structured_cells": [
+                        {
+                            "column_headers": ["1,680,454"],
+                            "value_text": "531,139",
+                            "unit_hint": "억원",
+                            "_report_year": 2023,
+                        }
+                    ],
+                    "aggregate_label": "합 계",
+                    "aggregate_role": "final_total",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                    "table_context": "당사의 시설 및 설비는 토지, 건물 및 구축물, 기계장치 등이 있으며 장부금액이 증가하였습니다.",
+                    "row_context_text": "(시설투자 현황) 53.1조원의 시설투자가 이루어졌습니다.",
+                    "consolidation_scope": "consolidated",
+                },
+            }
+        ]
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=candidates,
+            years=[2023],
+            reconciliation_retry_count=0,
+        )
+        matched = result["matched_operands"][0]
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(matched["candidate_ids"][0], "row_capex_fresh")
+        self.assertTrue(matched["matched"])
+
     def test_ratio_operand_extraction_recovers_same_table_aggregate_denominator(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         shared_row_context = "\n".join(
@@ -2701,6 +2769,228 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertEqual(by_role["denominator_1"]["table_source_id"], "table_25")
         self.assertEqual(by_role["denominator_1"]["raw_unit"], "천원")
         self.assertEqual(by_role["denominator_1"]["normalized_value"], 8181823307000.0)
+
+    def test_ratio_operand_extraction_uses_raw_row_sibling_before_same_table_denominator_recovery(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        shared_row_context = "\n".join(
+            [
+                "| 공시금액",
+                "법정적립금(*) | 8,240,670",
+                "합계 | 24,544,359,051",
+                "| 공시금액",
+                "종업원급여(*) | 1,701,418,940",
+                "합계 | 8,181,823,307",
+            ]
+        )
+        candidates = [
+            {
+                "candidate_id": "num_evidence",
+                "candidate_kind": "chunk",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "text": "종업원급여 1,701,418,940",
+                "metadata": {
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "table_source_id": "table_25",
+                    "year": 2023,
+                    "table_context": "25. 영업비용 (연결)",
+                    "row_text": "종업원급여(*) | 1,701,418,940",
+                    "row_context_text": shared_row_context,
+                },
+            },
+            {
+                "candidate_id": "num_evidence::raw_row",
+                "candidate_kind": "evidence_row",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "text": "종업원급여(*) | 1,701,418,940",
+                "metadata": {
+                    "row_label": "종업원급여",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "table_source_id": "table_25",
+                    "year": 2023,
+                    "local_heading": "25. 영업비용 (연결)",
+                    "table_context": "25. 영업비용 (연결)",
+                    "table_summary_text": "당기 및 전기 중 영업비용의 내역은 다음과 같습니다.",
+                    "row_text": "종업원급여(*) | 1,701,418,940",
+                    "row_context_text": shared_row_context,
+                    "value_role": "detail",
+                    "aggregation_stage": "none",
+                    "row_index": 4,
+                    "structured_cells": [
+                        {"column_headers": ["2023"], "value_text": "1,701,418,940", "unit_hint": "천원"}
+                    ],
+                },
+            },
+            {
+                "candidate_id": "den_candidate",
+                "candidate_kind": "table_row",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "text": "합계 8,181,823,307",
+                "metadata": {
+                    "row_label": "합계",
+                    "aggregate_label": "합계",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "table_source_id": "table_25",
+                    "year": 2023,
+                    "local_heading": "25. 영업비용 (연결)",
+                    "table_context": "25. 영업비용 (연결)",
+                    "row_text": "합계 | 8,181,823,307",
+                    "row_context_text": shared_row_context,
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "row_index": 5,
+                    "structured_cells": [
+                        {"column_headers": ["2023"], "value_text": "8,181,823,307", "unit_hint": "천원"}
+                    ],
+                },
+            },
+        ]
+        agent._build_reconciliation_candidates = lambda _state: candidates
+        state = {
+            "query": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+            "years": [2023],
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "영업비용 대비 인건비(종업원급여) 비중",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "영업비용",
+                        "concept": "operating_expense_total",
+                        "aliases": ["영업비용 합계"],
+                        "role": "denominator_1",
+                        "required": True,
+                        "binding_policy": {
+                            "prefer_value_roles": ["aggregate"],
+                            "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                        },
+                        "surface_contract": {"positive": ["영업비용"], "negative": []},
+                    },
+                    {
+                        "label": "종업원급여",
+                        "concept": "employee_benefits_expense",
+                        "aliases": ["인건비", "인건비(종업원급여)"],
+                        "role": "numerator_1",
+                        "required": True,
+                    },
+                ],
+                "preferred_statement_types": ["notes"],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "matched_operands": [
+                    {"label": "영업비용", "role": "denominator_1", "candidate_ids": []},
+                    {"label": "종업원급여", "role": "numerator_1", "candidate_ids": ["num_evidence"]},
+                ],
+            },
+        }
+
+        rows = agent._extract_structured_operands_from_reconciliation(state)
+        self.assertEqual(len(rows), 2)
+        by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(by_role["numerator_1"]["raw_value"], "1,701,418,940")
+        self.assertEqual(by_role["numerator_1"]["evidence_id"], "num_evidence::raw_row")
+        self.assertEqual(by_role["denominator_1"]["raw_value"], "8,181,823,307")
+        self.assertEqual(by_role["denominator_1"]["table_source_id"], "table_25")
+
+    def test_lookup_operand_extraction_uses_raw_row_sibling_for_capex_total(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        candidates = [
+            {
+                "candidate_id": "recon_capex",
+                "candidate_kind": "chunk",
+                "source_anchor": "[삼성전자 | 2023 | II. 사업의 내용 > 3. 원재료 및 생산설비]",
+                "text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                "metadata": {
+                    "statement_type": "unknown",
+                    "consolidation_scope": "consolidated",
+                    "table_source_id": "capex_table",
+                    "year": 2023,
+                    "table_context": "(시설투자 현황) 53.1조원의 시설투자가 이루어졌습니다.",
+                    "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                    "row_text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                },
+            },
+            {
+                "candidate_id": "recon_capex::raw_row",
+                "candidate_kind": "evidence_row",
+                "source_anchor": "[삼성전자 | 2023 | II. 사업의 내용 > 3. 원재료 및 생산설비]",
+                "text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                "metadata": {
+                    "row_label": "합 계",
+                    "aggregate_label": "합 계",
+                    "statement_type": "unknown",
+                    "consolidation_scope": "consolidated",
+                    "table_source_id": "capex_table",
+                    "year": 2023,
+                    "local_heading": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                    "table_context": "(시설투자 현황) 53.1조원의 시설투자가 이루어졌습니다.",
+                    "section_path": "II. 사업의 내용 > 3. 원재료 및 생산설비",
+                    "row_text": "합 계 | 합 계 | 합 계 | 합 계 | 531,139",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "structured_cells": [
+                        {"column_headers": ["투자액"], "value_text": "531,139", "unit_hint": "억원"}
+                    ],
+                },
+            },
+        ]
+        agent._build_reconciliation_candidates = lambda _state: candidates
+        state = {
+            "query": "2023년 시설투자(CAPEX) 총액을 찾아 줘.",
+            "years": [2023],
+            "report_scope": {"company": "삼성전자", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240312000736"},
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 시설투자(CAPEX) 총액",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {
+                        "label": "시설투자(CAPEX)",
+                        "aliases": ["시설투자", "CAPEX", "CapEx"],
+                        "concept": "capital_expenditure_total",
+                        "role": "current_period",
+                        "required": True,
+                        "preferred_sections": ["원재료 및 생산설비", "시설투자", "사업의 내용"],
+                        "binding_policy": {
+                            "prefer_value_roles": ["aggregate", "detail"],
+                            "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                            "prefer_period_focus": "current",
+                            "prefer_consolidation_scope": "consolidated",
+                        },
+                        "surface_contract": {
+                            "positive": ["시설투자", "CAPEX", "CapEx", "자본적 지출"],
+                            "negative": ["유형자산의 취득", "유형자산 취득"],
+                        },
+                    }
+                ],
+                "preferred_statement_types": [],
+                "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "matched_operands": [
+                    {"label": "시설투자(CAPEX)", "role": "current_period", "candidate_ids": ["recon_capex"]}
+                ],
+            },
+        }
+
+        rows = agent._extract_structured_operands_from_reconciliation(state)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["evidence_id"], "recon_capex::raw_row")
+        self.assertEqual(row["raw_value"], "531,139")
+        self.assertEqual(row["raw_unit"], "억원")
 
     def test_company_total_lookup_scores_canonical_income_statement_above_related_party_note(self) -> None:
         operand = {

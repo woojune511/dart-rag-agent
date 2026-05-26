@@ -1,5 +1,7 @@
 import unittest
 
+from langchain_core.documents import Document
+
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import _should_apply_strict_company_scope
 
@@ -16,6 +18,16 @@ class _QueryCaptureVSM:
     def search(self, query, k=0, where_filter=None):
         self.queries.append({"query": query, "k": k, "where_filter": where_filter})
         return []
+
+
+class _StaticVSM:
+    def __init__(self, docs) -> None:
+        self.docs = docs
+        self.queries = []
+
+    def search(self, query, k=0, where_filter=None):
+        self.queries.append({"query": query, "k": k, "where_filter": where_filter})
+        return list(self.docs)
 
 
 class RetrievalScopeTests(unittest.TestCase):
@@ -104,6 +116,109 @@ class RetrievalScopeTests(unittest.TestCase):
         first_query = agent.vsm.queries[0]["query"]
         self.assertIn("2023년 법인세비용차감전순이익 연결 손익계산서", first_query)
         self.assertNotIn("전역 쿼리", first_query)
+
+    def test_multi_source_receipts_override_primary_receipt_filter(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        state = {
+            "query": "시설투자(CAPEX) 전년 대비 증감률",
+            "active_subtask": {"query": "2022년 시설투자(CAPEX)"},
+            "report_scope": {
+                "company": "삼성전자",
+                "year": 2023,
+                "rcept_no": "20240312000736",
+                "source_reports": [
+                    {"corp_name": "삼성전자", "year": 2023, "rcept_no": "20240312000736"},
+                    {"corp_name": "삼성전자", "year": 2022, "rcept_no": "20230307000542"},
+                ],
+            },
+            "companies": ["삼성전자"],
+            "years": [2023],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "",
+            "format_preference": "table",
+        }
+
+        agent._retrieve(state)
+
+        self.assertTrue(agent.vsm.queries)
+        first_where = agent.vsm.queries[0]["where_filter"]
+        self.assertEqual(
+            first_where,
+            {"rcept_no": {"$in": ["20240312000736", "20230307000542"]}},
+        )
+
+    def test_multi_source_scope_does_not_drop_prior_year_docs_on_year_filter(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="2023 시설투자 합계 531,139",
+                        metadata={
+                            "company": "삼성전자",
+                            "year": 2023,
+                            "rcept_no": "20240312000736",
+                            "block_type": "table",
+                        },
+                    ),
+                    1.0,
+                ),
+                (
+                    Document(
+                        page_content="2022 시설투자 합계 531,153",
+                        metadata={
+                            "company": "삼성전자",
+                            "year": 2022,
+                            "rcept_no": "20230307000542",
+                            "block_type": "table",
+                        },
+                    ),
+                    0.9,
+                ),
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        state = {
+            "query": "시설투자(CAPEX) 전년 대비 증감률",
+            "active_subtask": {"query": "2022년 시설투자(CAPEX)"},
+            "report_scope": {
+                "company": "삼성전자",
+                "year": 2023,
+                "rcept_no": "20240312000736",
+                "source_reports": [
+                    {"corp_name": "삼성전자", "year": 2023, "rcept_no": "20240312000736"},
+                    {"corp_name": "삼성전자", "year": 2022, "rcept_no": "20230307000542"},
+                ],
+            },
+            "companies": ["삼성전자"],
+            "years": [2023],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "",
+            "format_preference": "table",
+        }
+
+        result = agent._retrieve(state)
+        retrieved_years = {int(doc.metadata.get("year", 0)) for doc, _ in result["retrieved_docs"]}
+
+        self.assertEqual(retrieved_years, {2022, 2023})
 
 
 if __name__ == "__main__":

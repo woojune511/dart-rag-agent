@@ -22,6 +22,8 @@
   - `structural_selective_v2_prefix_2500_320`: 대표 gate PASS, multi-entity gate PASS, broader curated blocker close까지 확인된 current operating default
 - 지금 가장 가까운 구현 초점은 **next ingest experiment design + concept-only planner 확대 검증** 이다.
   - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
+  - fresh structural store 기준 `SAM_T2_002`도 multi-source receipt inventory + dependency binding guard 보강 이후 `numeric_final_judgement = PASS`로 재확인됐다
+  - 다만 `SAM_T2_002`는 mixed benchmark wording(`메모리 반도체 업황 악화에도 불구하고`)을 충분히 반영하지 못해 `completeness = 0.7`이 남아 있다
   - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
   - `MIX_T1_064`는 targeted official rerun까지 닫혔다
     - `numeric_equivalence = 1.0`
@@ -43,8 +45,8 @@
 | --- | --- |
 | 목표 | `plain / structural / contextual` 3자 비교를 정리한 뒤, structural default 위에서 다음 ingest 후보를 설계 |
 | 현재 자산 | `curated_runtime_contract_gate`, `curated_multi_entity_grounding_gate`, `structural_selective_v2`, broader curated blocker close, winner ranking policy |
-| 현재 문제 | `structural_selective_v2`는 이제 default로 굳었지만, 다음 ingest 실험 후보(`structural_parent_hybrid_v2`)를 어떤 평가 축으로 볼지 아직 설계가 덜 됐다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크다 |
-| 다음 할 일 | structural default는 고정하고, `structural_parent_hybrid_v2` 실험 설계와 concept-only planner 확대 검증으로 넘어간다 |
+| 현재 문제 | `structural_selective_v2`는 이제 default로 굳었지만, 다음 ingest 실험 후보(`structural_parent_hybrid_v2`)를 어떤 평가 축으로 볼지 아직 설계가 덜 됐다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크고, `SAM_T2_002`에는 narrative completeness calibration이 조금 남아 있다 |
+| 다음 할 일 | structural default는 고정하고, `structural_parent_hybrid_v2` 실험 설계와 concept-only planner 확대 검증으로 넘어간다. 병행해서 `SAM_T2_002` mixed-query wording calibration은 benchmark maintenance로 처리한다 |
 | 종료 조건 | `structural_selective_v2` default가 운영 문서와 curated profile에 고정되고, next ingest experiment 비교 축이 정의됨 |
 
 ### 1. Planner and synthesizer contract

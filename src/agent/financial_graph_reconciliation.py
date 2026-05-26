@@ -324,6 +324,38 @@ class FinancialAgentReconciliationMixin:
 
         return rows
 
+    def _expand_structured_candidate_ids(
+        self,
+        candidate_ids: List[str],
+        candidate_map: Dict[str, Dict[str, Any]],
+    ) -> List[str]:
+        expanded: List[str] = []
+        seen: set[str] = set()
+        for raw_candidate_id in candidate_ids:
+            cleaned = str(raw_candidate_id).strip()
+            if not cleaned:
+                continue
+            for current_id in (cleaned, f"{cleaned}::raw_row"):
+                if current_id in seen or current_id not in candidate_map:
+                    continue
+                seen.add(current_id)
+                expanded.append(current_id)
+        return expanded
+
+    def _structured_candidate_from_id(
+        self,
+        candidate_id: str,
+        candidate_map: Dict[str, Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        candidate = dict(candidate_map.get(str(candidate_id).strip()) or {})
+        if not candidate:
+            return None
+        metadata = dict(candidate.get("metadata") or {})
+        candidate_kind = str(candidate.get("candidate_kind") or "").strip()
+        if candidate_kind == "evidence_row" and str(metadata.get("row_text") or "").strip():
+            candidate["candidate_kind"] = "table_row"
+        return candidate
+
     def _extract_structured_period_pair_rows(
         self,
         *,
@@ -365,18 +397,21 @@ class FinancialAgentReconciliationMixin:
                     cleaned = str(candidate_id).strip()
                     if cleaned and cleaned not in candidate_ids:
                         candidate_ids.append(cleaned)
-            structured_candidates = [
-                candidate_map[candidate_id]
-                for candidate_id in candidate_ids
-                if candidate_id in candidate_map
-                and str(candidate_map[candidate_id].get("candidate_kind") or "") in {
+            candidate_ids = self._expand_structured_candidate_ids(candidate_ids, candidate_map)
+            structured_candidates: List[Dict[str, Any]] = []
+            for candidate_id in candidate_ids:
+                current_candidate = self._structured_candidate_from_id(candidate_id, candidate_map)
+                if not current_candidate:
+                    continue
+                if str(current_candidate.get("candidate_kind") or "") not in {
                     "structured_value",
                     "structured_row",
                     "structured_column_value",
                     "table_row",
                     "evidence_row",
-                }
-            ]
+                }:
+                    continue
+                structured_candidates.append(current_candidate)
             best_pair: Optional[tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]] = None
             best_cross_pair: Optional[tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]] = None
             best_score = float("-inf")
@@ -996,9 +1031,10 @@ candidate options:
                 for value in (match_entry.get("candidate_ids") or [])
                 if str(value).strip()
             ]
+            candidate_ids = self._expand_structured_candidate_ids(candidate_ids, candidate_map)
             structured_candidates: List[Dict[str, Any]] = []
             for candidate_id in candidate_ids:
-                current = candidate_map.get(candidate_id)
+                current = self._structured_candidate_from_id(candidate_id, candidate_map)
                 if not current:
                     continue
                 if str(current.get("candidate_kind") or "") in {

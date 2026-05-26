@@ -373,13 +373,13 @@ class FinancialAgentEvidenceMixin:
                 conditions.append({"year": {"$in": int_years}})
         if scope_report_type:
             conditions.append({"report_type": scope_report_type})
-        if scope_rcept_no:
-            conditions.append({"rcept_no": scope_rcept_no})
-        elif scope_source_receipts:
+        if scope_source_receipts:
             if len(scope_source_receipts) == 1:
                 conditions.append({"rcept_no": scope_source_receipts[0]})
             else:
                 conditions.append({"rcept_no": {"$in": scope_source_receipts}})
+        elif scope_rcept_no:
+            conditions.append({"rcept_no": scope_rcept_no})
 
         if not conditions:
             where_filter = None
@@ -452,7 +452,7 @@ class FinancialAgentEvidenceMixin:
                 ),
             )
 
-        if years:
+        if years and not has_multi_source_scope:
             valid_years = {int(year) for year in years}
             docs = self._apply_strict_filter(
                 docs,

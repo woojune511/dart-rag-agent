@@ -109,6 +109,8 @@
 - broader curated validation blocker는 현재 닫혔다.
   - `curated_multi_report_smoke`의 `SAM_T2_002`는 CAPEX total direct grounding과 current/prior binding까지 PASS
   - `curated_single_doc_core`의 `MIX_T1_046`는 note-sibling unit inheritance와 evaluator period normalization 이후 PASS
+  - fresh structural store 기준으로도 `SAM_T2_002`는 multi-source receipt scope, auto-fetch inventory, dependency binding guard 보강 이후 `numeric_final_judgement = PASS`로 다시 닫혔다
+  - 다만 `SAM_T2_002`는 답변에 `메모리 반도체 업황 악화에도 불구하고`라는 맥락을 충분히 반영하지 않아 `completeness = 0.7`이 남아 있다
 
 ## 바로 다음에 할 일
 
@@ -117,6 +119,7 @@
 | 1 | `structural_parent_hybrid_v2` 실험 설계 | structural default 위에 parent/section/table lineage를 더 보강할 수 있는지 확인 |
 | 2 | `curated_concept_planner_shadow` 확대 검증 | concept-only planner drift를 runtime gate와 분리해서 확인 |
 | 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
+| 4 | `SAM_T2_002` narrative completeness calibration | fresh-store numeric PASS 이후 남은 mixed benchmark wording gap 정리 |
 
 ## 현재 우선순위 요약
 

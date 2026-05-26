@@ -633,6 +633,129 @@ class SubtaskLoopTests(unittest.TestCase):
             "denominator_1",
         )
 
+    def test_growth_rate_direct_rows_can_fill_missing_task_output_binding(self) -> None:
+        state = {
+            "query": "2023년 시설투자(CAPEX) 총액의 전년 대비 증감률을 계산해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "report_scope": {"company": "삼성전자", "year": 2023},
+            "topic": "시설투자(CAPEX) 총액 증감률",
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "시설투자(CAPEX) 총액 증감률",
+                "query": "2023년 시설투자(CAPEX) 총액의 전년 대비 증감률을 계산해 줘.",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {"label": "시설투자(CAPEX)", "concept": "capital_expenditure_total", "role": "current_period", "period": "2023"},
+                    {"label": "시설투자(CAPEX)", "concept": "capital_expenditure_total", "role": "prior_period", "period": "2022"},
+                ],
+                "depends_on": ["task_1", "task_3"],
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "capital_expenditure_total",
+                        "period": "2023",
+                        "label": "시설투자(CAPEX)",
+                        "preferred_task_id": "task_1",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "capital_expenditure_total",
+                        "period": "2022",
+                        "label": "시설투자(CAPEX)",
+                        "preferred_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 시설투자(CAPEX) 총액",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 53113900000000.0,
+                        "result_unit": "억원",
+                        "rendered_value": "53조 1,139억원",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "metric_label": "2023년 시설투자(CAPEX) 총액",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "2023 시설투자(CAPEX)",
+                                "concept": "capital_expenditure_total",
+                                "period": "2023",
+                                "raw_value": "531,139",
+                                "raw_unit": "억원",
+                                "normalized_value": 53113900000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "53조 1,139억원",
+                            },
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_001",
+                "evidence_id": "value:capex:2023",
+                "label": "2023 시설투자(CAPEX)",
+                "raw_value": "531,139",
+                "raw_unit": "억원",
+                "normalized_value": 53113900000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "시설투자(CAPEX)",
+                "matched_operand_concept": "capital_expenditure_total",
+                "matched_operand_role": "current_period",
+            },
+            {
+                "operand_id": "op_002",
+                "evidence_id": "value:capex:2022",
+                "label": "2022 시설투자(CAPEX)",
+                "raw_value": "531,153",
+                "raw_unit": "억원",
+                "normalized_value": 53115300000000.0,
+                "normalized_unit": "KRW",
+                "period": "2022",
+                "matched_operand_label": "시설투자(CAPEX)",
+                "matched_operand_concept": "capital_expenditure_total",
+                "matched_operand_role": "prior_period",
+            },
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+
+        extracted = self.agent._extract_calculation_operands(state)
+
+        self.assertNotEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(len(extracted["calculation_operands"]), 2)
+        self.assertEqual(
+            {row["matched_operand_role"] for row in extracted["calculation_operands"]},
+            {"current_period", "prior_period"},
+        )
+
     def test_sum_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
             "query": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",
@@ -1280,6 +1403,110 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(len(projected["calculation_operands"]), 2)
         self.assertEqual(projected["calculation_plan"]["operation"], "divide")
         self.assertEqual(projected["calculation_result"]["rendered_value"], "25.4%")
+
+    def test_capture_current_subtask_result_ignores_stale_aggregate_resolved_trace(self) -> None:
+        state = {
+            "query": "2023년 시설투자(CAPEX) 총액을 찾아 줘.",
+            "answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
+            "compressed_answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 시설투자(CAPEX) 총액",
+                "query": "2023년 시설투자(CAPEX) 총액을 찾아 줘.",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [],
+                "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks", "subtask_count": 2},
+                "calculation_result": {
+                    "status": "partial",
+                    "rendered_value": "stale aggregate",
+                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
+                },
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "capex_2023",
+                    "label": "2023 시설투자(CAPEX)",
+                    "raw_value": "531,139",
+                    "raw_unit": "억원",
+                    "normalized_value": 53113900000000.0,
+                    "normalized_unit": "KRW",
+                    "matched_operand_role": "current_period",
+                    "matched_operand_concept": "capital_expenditure_total",
+                }
+            ],
+            "calculation_plan": {"status": "ok", "operation": "lookup", "mode": "single_value"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "53조 1,139억원",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "2023 시설투자(CAPEX)",
+                        "concept": "capital_expenditure_total",
+                        "period": "2023년",
+                        "raw_value": "531,139",
+                        "raw_unit": "억원",
+                        "normalized_value": 53113900000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "53조 1,139억원",
+                    }
+                },
+            },
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        self.assertEqual(current["calculation_plan"]["operation"], "lookup")
+        self.assertEqual(current["calculation_result"]["rendered_value"], "53조 1,139억원")
+        self.assertEqual(current["calculation_operands"][0]["operand_id"], "capex_2023")
+
+    def test_project_legacy_calculation_fields_prefers_live_lookup_over_stale_aggregate_trace(self) -> None:
+        state = {
+            "answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
+            "compressed_answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
+            "active_subtask": {"task_id": "task_1"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [],
+                "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks", "subtask_count": 2},
+                "calculation_result": {
+                    "status": "partial",
+                    "rendered_value": "stale aggregate",
+                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
+                },
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "capex_2023",
+                    "label": "2023 시설투자(CAPEX)",
+                    "raw_value": "531,139",
+                    "raw_unit": "억원",
+                    "normalized_value": 53113900000000.0,
+                    "normalized_unit": "KRW",
+                }
+            ],
+            "calculation_plan": {"status": "ok", "operation": "lookup", "mode": "single_value"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "53조 1,139억원",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {"status": "ok", "rendered_value": "53조 1,139억원"},
+                },
+            },
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        projected = self.agent._project_legacy_calculation_fields(state)
+
+        self.assertEqual(projected["calculation_plan"]["operation"], "lookup")
+        self.assertEqual(projected["calculation_result"]["rendered_value"], "53조 1,139억원")
+        self.assertEqual(projected["calculation_operands"][0]["operand_id"], "capex_2023")
 
     def test_route_after_aggregate_subtasks_reuses_pre_calc_planner_when_feedback_exists(self) -> None:
         route = self.agent._route_after_aggregate_subtasks(

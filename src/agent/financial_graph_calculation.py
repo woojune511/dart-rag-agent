@@ -403,6 +403,20 @@ class FinancialAgentCalculationMixin:
             "all_resolved": bool(dependency_bindings) and not missing_dependency_bindings and bool(dependency_rows),
         }
 
+    def _direct_rows_resolved_dependency_keys(
+        self,
+        bindings: List[Dict[str, Any]],
+        operand_rows: List[Dict[str, Any]],
+    ) -> set[tuple[str, str]]:
+        resolved_keys: set[tuple[str, str]] = set()
+        for binding in bindings:
+            binding_key = self._dependency_binding_identity(binding)
+            if not any(binding_key):
+                continue
+            if any(_operand_row_matches_requirement(row, binding) for row in (operand_rows or [])):
+                resolved_keys.add(binding_key)
+        return resolved_keys
+
     def _dependency_binding_identity(self, binding: Dict[str, Any]) -> tuple[str, str]:
         return (
             _normalise_spaces(str(binding.get("label") or "")),
@@ -1035,6 +1049,7 @@ class FinancialAgentCalculationMixin:
         dependency_state = self._dependency_binding_resolution_state(state)
         dependency_rows = list(dependency_state.get("rows") or [])
         dependency_bindings = list(dependency_state.get("bindings") or [])
+        dependency_resolved_keys = set(dependency_state.get("resolved_keys") or set())
         retry_strategy = self._active_retry_strategy(state)
         synthesis_only_retry = (
             retry_strategy == "synthesize_from_task_outputs"
@@ -1048,7 +1063,11 @@ class FinancialAgentCalculationMixin:
             )
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
         dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
+        direct_dependency_fill_allowed = operation_family in {"difference", "growth_rate"}
         if dependency_binding_keys and direct_structured_rows:
+            duplicate_guard_keys = dependency_resolved_keys
+            if not direct_dependency_fill_allowed:
+                duplicate_guard_keys = dependency_binding_keys
             filtered_rows: List[Dict[str, Any]] = []
             for row in direct_structured_rows:
                 if bool(row.get("dependency_resolved")):
@@ -1058,11 +1077,22 @@ class FinancialAgentCalculationMixin:
                     _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
                     _normalise_spaces(str(row.get("matched_operand_role") or "")),
                 )
-                if row_key in dependency_binding_keys:
+                if row_key in duplicate_guard_keys:
                     continue
                 filtered_rows.append(row)
             direct_structured_rows = filtered_rows
         missing_dependency_bindings = list(dependency_state.get("missing_bindings") or [])
+        if direct_dependency_fill_allowed and missing_dependency_bindings and direct_structured_rows:
+            direct_resolved_keys = self._direct_rows_resolved_dependency_keys(
+                missing_dependency_bindings,
+                direct_structured_rows,
+            )
+            if direct_resolved_keys:
+                missing_dependency_bindings = [
+                    dict(binding)
+                    for binding in missing_dependency_bindings
+                    if self._dependency_binding_identity(binding) not in direct_resolved_keys
+                ]
         dependency_guard_active = bool(dependency_bindings) and bool(missing_dependency_bindings)
         if dependency_guard_active:
             coverage = "partial" if direct_structured_rows else "missing"
