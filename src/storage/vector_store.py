@@ -2,8 +2,10 @@ import json
 import logging
 import os
 import re
+import time
+from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Hashable, List, Optional, Tuple
 
 from dotenv import load_dotenv
 from langchain_community.vectorstores import Chroma
@@ -186,6 +188,16 @@ def _is_vector_store_read_error(exc: Exception) -> bool:
     return any(marker in message for marker in markers)
 
 
+def _freeze_filter(where_filter: Optional[dict]) -> Hashable:
+    if where_filter is None:
+        return ()
+    if isinstance(where_filter, dict):
+        return tuple(sorted((str(key), _freeze_filter(value)) for key, value in where_filter.items()))
+    if isinstance(where_filter, list):
+        return tuple(_freeze_filter(item) for item in where_filter)
+    return where_filter
+
+
 class VectorStoreManager:
     def __init__(
         self,
@@ -201,6 +213,10 @@ class VectorStoreManager:
         self.embedding_provider = embedding_provider
         self.embedding_model_name = embedding_model_name
         self.allow_query_embedding_fallback = bool(allow_query_embedding_fallback)
+        self.vector_capacity_cooldown_sec = max(0.0, float(os.getenv("DART_VECTOR_CAPACITY_COOLDOWN_SEC", "90") or 90))
+        self.search_cache_size = max(0, int(os.getenv("DART_RETRIEVAL_SEARCH_CACHE_SIZE", "256") or 256))
+        self._vector_capacity_cooldown_until = 0.0
+        self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
         self.embedding_spec = get_embedding_runtime_spec(
             provider=self.embedding_provider,
             model_name=self.embedding_model_name,
@@ -233,6 +249,52 @@ class VectorStoreManager:
         self.bm25_docs: List[str] = []
         self.bm25_metadatas: List[dict] = []
         self._init_bm25()
+
+    def in_capacity_cooldown(self) -> bool:
+        return time.time() < float(getattr(self, "_vector_capacity_cooldown_until", 0.0) or 0.0)
+
+    def _open_capacity_cooldown(self, exc: Exception) -> None:
+        if self.vector_capacity_cooldown_sec <= 0:
+            return
+        self._vector_capacity_cooldown_until = time.time() + self.vector_capacity_cooldown_sec
+        logger.warning(
+            "Vector embedding capacity error detected; disabling vector search for %.1fs: %s",
+            self.vector_capacity_cooldown_sec,
+            exc,
+        )
+
+    def _search_cache_key(
+        self,
+        query: str,
+        *,
+        k: int,
+        k_rrf: int,
+        where_filter: Optional[dict],
+    ) -> Tuple[str, int, int, Hashable]:
+        normalized_query = " ".join(str(query or "").split())
+        return (normalized_query, int(k), int(k_rrf), _freeze_filter(where_filter))
+
+    def _get_cached_search(self, key: Tuple[str, int, int, Hashable]) -> Optional[List[Tuple[Document, float]]]:
+        cache = getattr(self, "_search_cache", None)
+        if not cache:
+            return None
+        cached = cache.get(key)
+        if cached is None:
+            return None
+        cache.move_to_end(key)
+        return list(cached)
+
+    def _store_cached_search(self, key: Tuple[str, int, int, Hashable], results: List[Tuple[Document, float]]) -> None:
+        if self.search_cache_size <= 0:
+            return
+        cache = getattr(self, "_search_cache", None)
+        if cache is None:
+            self._search_cache = OrderedDict()
+            cache = self._search_cache
+        cache[key] = list(results)
+        cache.move_to_end(key)
+        while len(cache) > self.search_cache_size:
+            cache.popitem(last=False)
 
     def _init_bm25(self):
         docs: List[str] = []
@@ -683,27 +745,43 @@ class VectorStoreManager:
         """Perform Hybrid Search (Vector + BM25) with Reciprocal Rank Fusion."""
         logger.info("Hybrid Searching for: %r | filter=%s", query, where_filter)
 
+        cache_key = self._search_cache_key(query, k=k, k_rrf=k_rrf, where_filter=where_filter)
+        cached = self._get_cached_search(cache_key)
+        if cached is not None:
+            logger.info("Search cache hit for %r | filter=%s", query, where_filter)
+            return cached
+
         vector_results = []
-        try:
-            vector_results = self.vector_store.similarity_search_with_score(
+        if self.allow_query_embedding_fallback and self.in_capacity_cooldown():
+            logger.info(
+                "Skipping vector search for %r because capacity cooldown is active for %.1fs more.",
                 query,
-                k=k * 2,
-                filter=where_filter,
+                max(0.0, float(self._vector_capacity_cooldown_until) - time.time()),
             )
-        except Exception as exc:
-            if self.allow_query_embedding_fallback and (
-                _is_embedding_capacity_error(exc) or _is_vector_store_read_error(exc)
-            ):
-                logger.warning(
-                    "Vector search unavailable for %r; falling back to BM25-only search: %s",
+        else:
+            try:
+                vector_results = self.vector_store.similarity_search_with_score(
                     query,
-                    exc,
+                    k=k * 2,
+                    filter=where_filter,
                 )
-                vector_results = []
-            elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
-                vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
-            else:
-                raise
+            except Exception as exc:
+                if self.allow_query_embedding_fallback and (
+                    _is_embedding_capacity_error(exc) or _is_vector_store_read_error(exc)
+                ):
+                    if _is_embedding_capacity_error(exc):
+                        self._open_capacity_cooldown(exc)
+                    else:
+                        logger.warning(
+                            "Vector search unavailable for %r; falling back to BM25-only search: %s",
+                            query,
+                            exc,
+                        )
+                    vector_results = []
+                elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
+                    vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
+                else:
+                    raise
 
         bm25_results = []
         if self.bm25:
@@ -734,7 +812,9 @@ class VectorStoreManager:
             rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (k_rrf + rank)
 
         sorted_rrf = sorted(rrf_scores.items(), key=lambda item: item[1], reverse=True)
-        return [(doc_map[doc_id], rrf_score) for doc_id, rrf_score in sorted_rrf[:k]]
+        results = [(doc_map[doc_id], rrf_score) for doc_id, rrf_score in sorted_rrf[:k]]
+        self._store_cached_search(cache_key, results)
+        return results
 
 
 if __name__ == "__main__":

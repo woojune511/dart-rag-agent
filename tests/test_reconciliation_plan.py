@@ -229,7 +229,7 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertEqual(result["missing_operands"], ["영업비용"])
         matched = result["matched_operands"][0]
         self.assertFalse(matched["matched"])
-        self.assertEqual(matched["reason"], "ambiguous_direct_grounding_candidates")
+        self.assertEqual(matched["reason"], "no_direct_grounding_candidate")
 
     def test_lookup_dedupes_equivalent_direct_candidates_from_same_row(self) -> None:
         active_subtask = {
@@ -1647,6 +1647,30 @@ class ReconciliationPlanTests(unittest.TestCase):
         )
 
         self.assertTrue(any("장기차입금 합계" in query for query in queries))
+
+    def test_retry_queries_preserve_canonical_sections_for_statement_lookup(self) -> None:
+        active_subtask = {
+            "metric_label": "2023년 매출원가",
+            "preferred_sections": ["연결재무제표 주석", "연결 손익계산서"],
+            "constraints": {"consolidation_scope": "consolidated"},
+            "required_operands": [
+                {
+                    "label": "매출원가",
+                    "concept": "cost_of_sales",
+                    "aliases": ["매출 원가"],
+                    "preferred_sections": ["연결 손익계산서", "손익계산서", "요약재무정보"],
+                }
+            ],
+        }
+        queries = _build_reconciliation_retry_queries(
+            active_subtask=active_subtask,
+            missing_operands=["매출원가"],
+            years=[2023],
+        )
+
+        self.assertTrue(any("연결 손익계산서" in query for query in queries))
+        self.assertTrue(any("손익계산서" in query for query in queries))
+        self.assertFalse(any("연결재무제표 주석" in query for query in queries if "매출원가" in query))
 
     def test_lookup_producer_inherits_ontology_aggregate_query_surfaces(self) -> None:
         consumer_task = {

@@ -75,6 +75,9 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertTrue(
             any("연결 편입 효과" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
         )
+        self.assertTrue(
+            any("영업수익 증가" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
+        )
 
     def test_dependency_annotation_reorders_lookup_tasks_before_growth_rate(self) -> None:
         tasks = _annotate_task_dependencies(
@@ -772,6 +775,20 @@ class SemanticNumericPlanTests(unittest.TestCase):
             [(item["role"], item["preferred_task_id"]) for item in ratio_task["inputs"]],
             [("numerator_1", "task_2"), ("numerator_2", "task_3"), ("denominator_1", "task_4")],
         )
+        lookup_tasks = tasks[:-1]
+        canonical_lookup_by_label = {
+            str(task["metric_label"]).split(" ", 1)[-1]: task for task in lookup_tasks
+        }
+        self.assertEqual(
+            canonical_lookup_by_label["매출원가"]["preferred_sections"],
+            ["연결 손익계산서", "손익계산서", "요약재무정보"],
+        )
+        self.assertEqual(
+            canonical_lookup_by_label["판매비와관리비"]["preferred_sections"],
+            ["연결 손익계산서", "손익계산서", "요약재무정보"],
+        )
+        self.assertNotIn("연결재무제표 주석", canonical_lookup_by_label["매출원가"]["preferred_sections"])
+        self.assertNotIn("연결재무제표 주석", canonical_lookup_by_label["판매비와관리비"]["preferred_sections"])
 
     def test_implicit_ratio_query_is_decomposed_by_llm_concept_planner(self) -> None:
         import src.config.ontology as ontology_module

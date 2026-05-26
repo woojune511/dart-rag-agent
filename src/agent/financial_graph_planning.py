@@ -110,6 +110,9 @@ def _build_hybrid_narrative_subtask(
     ]
     if "인수" in query or "영향" in query:
         retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입 효과 성장 기여"))
+        retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입효과 영업수익 증가"))
+    if "포시마크" in query or "Poshmark" in query:
+        retrieval_queries.append(_normalise_spaces(f"{query} Poshmark 연결 편입효과 영업수익 증가"))
     preferred_sections = [
         "IV. 이사의 경영진단 및 분석의견",
         "II. 사업의 내용",

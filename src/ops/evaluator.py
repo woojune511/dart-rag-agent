@@ -1704,7 +1704,7 @@ def _should_override_numeric_grounding(
         return False
     if numeric_result_correctness is not None and numeric_result_correctness != 1.0:
         return False
-    if grounded_rendering_correctness != 1.0:
+    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
         return False
     if operand_selection_correctness is not None and operand_selection_correctness < 1.0:
         return False
@@ -2059,6 +2059,99 @@ def _slot_to_operand_like(slot: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+def _normalise_operand_label_for_evidence_match(text: Any) -> str:
+    return _label_core_term(_normalise_label_text(text))
+
+
+def _build_expected_operand_runtime_evidence_match(
+    expected_operand: Dict[str, Any],
+    runtime_evidence: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    label = str(expected_operand.get("label") or "").strip()
+    period = str(expected_operand.get("period") or "").strip()
+    raw_value = str(expected_operand.get("raw_value") or "").strip()
+    raw_unit = str(expected_operand.get("raw_unit") or "").strip()
+    normalized_value, normalized_unit = _normalise_math_operand_value(raw_value, raw_unit)
+    if normalized_value is None or not label:
+        return None
+
+    kind = "percent" if normalized_unit == "PERCENT" else "currency" if normalized_unit == "KRW" else "generic"
+    expected_candidate = {
+        "kind": kind,
+        "value_text": raw_value or str(normalized_value),
+        "unit_text": raw_unit or normalized_unit,
+        "normalized_value": normalized_value,
+    }
+    label_key = _normalise_operand_label_for_evidence_match(label)
+    if not label_key:
+        return None
+
+    for row in list(runtime_evidence or []):
+        evidence_text = " ".join(
+            part
+            for part in [
+                str(row.get("claim") or "").strip(),
+                str(row.get("quote_span") or "").strip(),
+                str(row.get("raw_row_text") or "").strip(),
+                str(row.get("source_context") or "").strip(),
+            ]
+            if part
+        )
+        normalized_text = _normalise_operand_label_for_evidence_match(evidence_text)
+        if label_key not in normalized_text:
+            continue
+        candidates = list(_extract_numeric_candidates(evidence_text))
+        candidates.extend(_extract_unitless_number_candidates(evidence_text, kind))
+        if not any(_numeric_values_equivalent(expected_candidate, candidate) for candidate in candidates):
+            continue
+        source_row_id = str(
+            row.get("evidence_id")
+            or (row.get("metadata") or {}).get("chunk_uid")
+            or row.get("source_anchor")
+            or ""
+        ).strip()
+        source_anchor = str(row.get("source_anchor") or "").strip()
+        return {
+            "operand_id": source_row_id or f"runtime_evidence:{label}:{period or 'unknown'}",
+            "matched_operand_role": "",
+            "label": label,
+            "concept": str(expected_operand.get("concept") or "").strip(),
+            "period": period,
+            "raw_value": raw_value,
+            "raw_unit": raw_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "rendered_value": f"{raw_value}{raw_unit}" if raw_value else "",
+            "source_anchor": source_anchor,
+            "source_row_id": source_row_id,
+            "source_row_ids": [source_row_id] if source_row_id else [],
+            "row_id": source_row_id,
+        }
+    return None
+
+
+def _supplement_resolved_operands_from_runtime_evidence(
+    *,
+    example: EvalExample,
+    runtime_evidence: List[Dict[str, Any]],
+    calculation_operands: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    expected_operands = list(example.expected_operands or [])
+    if not expected_operands or not runtime_evidence:
+        return list(calculation_operands or [])
+
+    supplemented = [dict(operand) for operand in (calculation_operands or [])]
+    for expected_operand in expected_operands:
+        if any(_operand_matches(expected_operand, actual) for actual in supplemented):
+            continue
+        matched = _build_expected_operand_runtime_evidence_match(expected_operand, runtime_evidence)
+        if matched:
+            supplemented.append(matched)
+    return _dedupe_semantic_operands(
+        _promote_direct_sources_across_semantic_equivalents(supplemented)
+    )
+
+
 def _flatten_answer_slot_components(answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
@@ -2140,6 +2233,67 @@ def _dedupe_semantic_operands(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return deduped
 
 
+def _semantic_operand_identity_ignoring_role(operand_like: Dict[str, Any]) -> tuple[Any, ...]:
+    concept = str(operand_like.get("concept") or "").strip().lower()
+    label = re.sub(r"\s+", " ", str(operand_like.get("label") or "")).strip().lower()
+    return (
+        concept or label,
+        _normalise_period_text(operand_like.get("period")),
+        _safe_float(operand_like.get("normalized_value")),
+        str(operand_like.get("normalized_unit") or "").strip().upper(),
+    )
+
+
+def _promote_direct_sources_across_semantic_equivalents(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    direct_by_identity: Dict[tuple[Any, ...], Dict[str, Any]] = {}
+    for row in rows:
+        source_row_id = str(row.get("source_row_id") or row.get("row_id") or "").strip()
+        source_anchor = str(row.get("source_anchor") or "").strip()
+        if not source_row_id or source_row_id.startswith("task_output:") or not source_anchor:
+            continue
+        identity = _semantic_operand_identity_ignoring_role(row)
+        incumbent = direct_by_identity.get(identity)
+        if incumbent is None or _operand_prefers_over(incumbent, row):
+            direct_by_identity[identity] = row
+
+    promoted: List[Dict[str, Any]] = []
+    identities_with_specific_promoted_roles: set[tuple[Any, ...]] = set()
+    for row in rows:
+        updated = dict(row)
+        source_row_id = str(updated.get("source_row_id") or updated.get("row_id") or "").strip()
+        if source_row_id.startswith("task_output:"):
+            identity = _semantic_operand_identity_ignoring_role(updated)
+            direct_row = direct_by_identity.get(identity)
+            if direct_row:
+                direct_source_row_id = str(direct_row.get("source_row_id") or direct_row.get("row_id") or "").strip()
+                direct_source_anchor = str(direct_row.get("source_anchor") or "").strip()
+                direct_source_row_ids = [
+                    str(value).strip()
+                    for value in (direct_row.get("source_row_ids") or [])
+                    if str(value).strip()
+                ]
+                if direct_source_row_id:
+                    updated["source_row_id"] = direct_source_row_id
+                    updated["row_id"] = direct_source_row_id
+                if direct_source_row_ids:
+                    updated["source_row_ids"] = direct_source_row_ids
+                if direct_source_anchor:
+                    updated["source_anchor"] = direct_source_anchor
+                role = str(updated.get("matched_operand_role") or "").strip().lower()
+                if role and role not in {"operand", "primary_value"}:
+                    identities_with_specific_promoted_roles.add(identity)
+        promoted.append(updated)
+
+    filtered: List[Dict[str, Any]] = []
+    for row in promoted:
+        identity = _semantic_operand_identity_ignoring_role(row)
+        role = str(row.get("matched_operand_role") or "").strip().lower()
+        if identity in identities_with_specific_promoted_roles and role == "primary_value":
+            continue
+        filtered.append(row)
+    return filtered
+
+
 def _derive_operands_from_answer_slot_payload(answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
     operation_family = str(answer_slots.get("operation_family") or "").strip().lower()
     if not answer_slots or not operation_family:
@@ -2178,8 +2332,10 @@ def _resolve_evaluator_operands(
 ) -> List[Dict[str, Any]]:
     slot_rows = _derive_operands_from_answer_slots(calculation_result)
     if slot_rows:
-        return slot_rows
-    return _dedupe_semantic_operands(list(calculation_operands or []))
+        return _dedupe_semantic_operands(_promote_direct_sources_across_semantic_equivalents(slot_rows))
+    return _dedupe_semantic_operands(
+        _promote_direct_sources_across_semantic_equivalents(list(calculation_operands or []))
+    )
 
 
 def _compute_operand_selection_correctness(
@@ -2375,6 +2531,11 @@ class RAGEvaluator:
             calculation_operands = _resolve_evaluator_operands(
                 calculation_operands=calculation_operands,
                 calculation_result=calculation_result,
+            )
+            calculation_operands = _supplement_resolved_operands_from_runtime_evidence(
+                example=example,
+                runtime_evidence=runtime_evidence,
+                calculation_operands=calculation_operands,
             )
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item

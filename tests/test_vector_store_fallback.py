@@ -1,4 +1,5 @@
 import unittest
+from collections import OrderedDict
 
 from langchain_core.documents import Document
 
@@ -19,6 +20,16 @@ class _FailIfRetriedVectorStore:
         if self.calls == 1:
             raise RuntimeError("429 RESOURCE_EXHAUSTED: Error embedding content")
         raise AssertionError("search retried after capacity error")
+
+
+class _CountVectorStore:
+    def __init__(self, results):
+        self.calls = 0
+        self._results = results
+
+    def similarity_search_with_score(self, query, k=4, filter=None):
+        self.calls += 1
+        return list(self._results)
 
 
 class _SimpleBM25:
@@ -47,6 +58,10 @@ class VectorStoreFallbackTests(unittest.TestCase):
         manager.bm25_docs = docs
         manager.bm25_metadatas = metadatas
         manager.allow_query_embedding_fallback = True
+        manager.vector_capacity_cooldown_sec = 90.0
+        manager._vector_capacity_cooldown_until = 0.0
+        manager.search_cache_size = 256
+        manager._search_cache = OrderedDict()
         return manager
 
     def test_search_falls_back_to_bm25_when_embedding_capacity_is_exhausted(self) -> None:
@@ -82,6 +97,23 @@ class VectorStoreFallbackTests(unittest.TestCase):
 
         self.assertEqual(vector_store.calls, 1)
         self.assertEqual(len(results), 1)
+
+    def test_capacity_error_opens_cooldown_and_skips_next_vector_search(self) -> None:
+        vector_store = _FailIfRetriedVectorStore()
+        manager = self._build_manager(
+            vector_store,
+            docs=["법인세비용차감전순이익 1,481,396,317,551"],
+            metadatas=[{"company": "NAVER", "year": 2023, "chunk_uid": "a"}],
+            scores=[2.0],
+        )
+
+        first_results = manager.search("법인세비용차감전순이익", k=1, where_filter={"company": "NAVER"})
+        second_results = manager.search("시설투자 총액", k=1, where_filter={"company": "NAVER"})
+
+        self.assertEqual(vector_store.calls, 1)
+        self.assertTrue(manager.in_capacity_cooldown())
+        self.assertEqual(len(first_results), 1)
+        self.assertEqual(len(second_results), 1)
 
     def test_search_falls_back_to_bm25_when_hnsw_reader_is_unavailable(self) -> None:
         manager = self._build_manager(
@@ -119,6 +151,27 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertIsNotNone(manager.bm25)
         self.assertEqual(manager.bm25_docs, ["시설투자 총액 531,139억원"])
         self.assertEqual(manager.bm25_metadatas[0]["chunk_uid"], "chunk-a")
+
+    def test_search_cache_reuses_previous_results_for_same_query(self) -> None:
+        vector_doc = Document(
+            page_content="시설투자 총액 531,139억원",
+            metadata={"company": "삼성전자", "year": 2023, "chunk_uid": "capex"},
+        )
+        vector_store = _CountVectorStore([(vector_doc, 0.25)])
+        manager = self._build_manager(
+            vector_store,
+            docs=["시설투자 총액 531,139억원"],
+            metadatas=[{"company": "삼성전자", "year": 2023, "chunk_uid": "capex"}],
+            scores=[1.0],
+        )
+
+        first_results = manager.search("시설투자 총액", k=1, where_filter={"company": "삼성전자"})
+        second_results = manager.search("시설투자 총액", k=1, where_filter={"company": "삼성전자"})
+
+        self.assertEqual(vector_store.calls, 1)
+        self.assertEqual(len(first_results), 1)
+        self.assertEqual(len(second_results), 1)
+        self.assertEqual(first_results[0][0].page_content, second_results[0][0].page_content)
 
 
 if __name__ == "__main__":

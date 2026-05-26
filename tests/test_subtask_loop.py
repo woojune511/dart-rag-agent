@@ -968,6 +968,94 @@ class SubtaskLoopTests(unittest.TestCase):
             2,
         )
 
+    def test_aggregate_subtasks_prefers_narrative_summary_fallback_over_partial_failures(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "2023년 총 영업비용과 영업비용률을 계산해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_3", "metric_family": "concept_lookup", "metric_label": "2023년 매출원가"},
+                {"task_id": "task_4", "metric_family": "concept_lookup", "metric_label": "2023년 판매비와관리비"},
+                {"task_id": "task_1", "metric_family": "concept_ratio", "metric_label": "영업비용률"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "metric_label": "질문 관련 배경/영향 설명"},
+            ],
+            "active_subtask_index": 3,
+            "active_subtask": {"task_id": "task_2", "metric_family": "narrative_summary", "metric_label": "질문 관련 배경/영향 설명"},
+            "subtask_results": [
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 매출원가",
+                    "answer": "2023년 매출원가 계산에 필요한 값(2023년 매출원가)을 문서 근거에서 충분히 확인하지 못해 계산할 수 없습니다.",
+                    "status": "partial",
+                    "calculation_result": {"status": "partial", "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []}},
+                },
+                {
+                    "task_id": "task_4",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 판매비와관리비",
+                    "answer": "2023년 판매비와관리비 계산에 필요한 값(2023년 판매비와관리비)을 문서 근거에서 충분히 확인하지 못해 계산할 수 없습니다.",
+                    "status": "partial",
+                    "calculation_result": {"status": "partial", "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []}},
+                },
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "영업비용률",
+                    "answer": "",
+                    "status": "insufficient_operands",
+                    "calculation_result": {
+                        "status": "insufficient_operands",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "영업비용률",
+                            "primary_value": {"status": "missing", "role": "primary_value", "label": "영업비용률"},
+                        },
+                    },
+                },
+            ],
+            "answer": "매출원가는 129,179,183 백만원입니다. 판매비와관리비는 18,357,495 백만원입니다. 총 영업비용은 147,536,678 백만원입니다. 매출액 대비 영업비용률은 약 90.70%입니다.",
+            "compressed_answer": "매출원가는 129,179,183 백만원입니다. 판매비와관리비는 18,357,495 백만원입니다. 총 영업비용은 147,536,678 백만원입니다. 매출액 대비 영업비용률은 약 90.70%입니다.",
+            "plan_loop_count": 2,
+            "selected_claim_ids": ["ev_001"],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        self.assertEqual(
+            updated["answer"],
+            "매출원가는 129,179,183 백만원입니다. 판매비와관리비는 18,357,495 백만원입니다. 총 영업비용은 147,536,678 백만원입니다. 매출액 대비 영업비용률은 약 90.70%입니다.",
+        )
+        self.assertEqual(updated["planner_feedback"], "")
+
+    def test_narrative_summary_gap_check_handles_wrapped_lookup_rows(self) -> None:
+        rows = [
+            {
+                "task_id": "task_3",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 매출원가",
+                "status": "partial",
+                "answer": "2023년 매출원가 계산에 필요한 값(2023년 매출원가)을 문서 근거에서 충분히 확인하지 못해 계산할 수 없습니다.",
+                "calculation_result": {
+                    "status": "partial",
+                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
+                },
+            },
+            {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "status": "ok",
+                "answer": "매출원가는 129,179,183 백만원입니다. 판매비와관리비는 18,357,495 백만원입니다. 총 영업비용은 147,536,678 백만원입니다. 매출액 대비 영업비용률은 약 90.70%입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
+                },
+            },
+        ]
+
+        self.assertTrue(self.agent._narrative_summary_gap_is_satisfied(rows[0], rows))
+
     def test_capture_current_subtask_result_prefers_live_active_trace_over_stale_artifact(self) -> None:
         state = {
             "query": "2023년 연결기준 영업비용률을 계산해 줘.",

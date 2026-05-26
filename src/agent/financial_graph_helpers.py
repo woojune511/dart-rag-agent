@@ -3264,8 +3264,13 @@ def _build_lookup_producer_task_from_binding(
     )
     if _lookup_prefers_canonical_statement_rows(operand):
         canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
-        preferred_statement_types = list(dict.fromkeys([*canonical_types, *preferred_statement_types]))
-        preferred_sections = list(dict.fromkeys([*canonical_sections, *preferred_sections]))
+        # For producer lookup tasks that explicitly prefer canonical statement
+        # rows, keep retrieval focused on those statement types/sections instead
+        # of widening back out to note sections from downstream consumers.
+        if canonical_types:
+            preferred_statement_types = list(dict.fromkeys(canonical_types))
+        if canonical_sections:
+            preferred_sections = list(dict.fromkeys(canonical_sections))
         operand["preferred_statement_types"] = list(preferred_statement_types)
         operand["preferred_sections"] = list(preferred_sections)
     retrieval_queries = _build_generic_retrieval_queries(
@@ -5551,6 +5556,21 @@ def _candidate_satisfies_direct_acceptance_contract(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+    if operation_family in {"lookup", "single_value"} and _lookup_prefers_canonical_statement_rows(operand):
+        canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+        note_context = "주석" in local_heading or "주석" in section_path
+        allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+        canonical_section_hit = bool(canonical_sections) and any(
+            _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
+            for section_term in canonical_sections
+            if _normalise_spaces(section_term)
+        )
+        if canonical_types and statement_type not in canonical_types:
+            return False
+        if note_context and not allows_note_canonical and not canonical_section_hit:
+            return False
+        if canonical_sections and (local_heading or section_path) and not canonical_section_hit:
+            return False
     if _is_balance_sheet_aggregate_operand(operand):
         if statement_type == "notes" and value_role == "detail":
             return False
@@ -6045,7 +6065,6 @@ def _build_reconciliation_retry_queries(
 ) -> List[str]:
     metric_label = str(active_subtask.get("metric_label") or "").strip()
     constraints = dict(active_subtask.get("constraints") or {})
-    preferred_sections = [str(item).strip() for item in (active_subtask.get("preferred_sections") or []) if str(item).strip()]
     required_operands = list(active_subtask.get("required_operands") or [])
     operand_map = {str(item.get("label") or "").strip(): item for item in required_operands if str(item.get("label") or "").strip()}
 
@@ -6063,6 +6082,18 @@ def _build_reconciliation_retry_queries(
         spec = dict(operand_map.get(operand_label) or {})
         aliases = [str(item).strip() for item in (spec.get("aliases") or []) if str(item).strip()]
         query_surfaces: List[str] = [operand_label, *aliases]
+        preferred_sections = [
+            str(item).strip()
+            for item in (
+                *list(spec.get("preferred_sections") or []),
+                *list(active_subtask.get("preferred_sections") or []),
+            )
+            if str(item).strip()
+        ]
+        if _lookup_prefers_canonical_statement_rows(spec):
+            canonical_types, canonical_sections = _lookup_canonical_statement_preferences(spec)
+            del canonical_types  # section-only use here
+            preferred_sections = list(dict.fromkeys([*canonical_sections, *preferred_sections]))
         binding_policy = dict(spec.get("binding_policy") or {})
         preferred_value_roles = {
             _normalise_spaces(str(item))
@@ -6086,9 +6117,11 @@ def _build_reconciliation_retry_queries(
         deduped_surfaces = list(dict.fromkeys(_normalise_spaces(surface) for surface in query_surfaces if _normalise_spaces(surface)))
         for surface in deduped_surfaces[:4]:
             base_bits = prefixes + [surface, metric_label]
-            if preferred_sections:
-                base_bits.append(preferred_sections[0])
-            queries.append(_normalise_spaces(" ".join(base_bits)))
+            base_query = _normalise_spaces(" ".join(base_bits))
+            if base_query:
+                queries.append(base_query)
+            for section in preferred_sections[:2]:
+                queries.append(_normalise_spaces(f"{base_query} {section}"))
     return list(dict.fromkeys(item for item in queries if item))
 
 

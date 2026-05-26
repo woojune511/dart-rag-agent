@@ -2227,6 +2227,49 @@ class OperationContractTests(unittest.TestCase):
         self.assertNotEqual(docs[0][0].metadata.get("chunk_id"), "contract-1")
         self.assertNotEqual(docs[0][0].metadata.get("chunk_id"), "generic-iv")
 
+    def test_narrative_summary_doc_selection_adds_missing_driver_from_table_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content=(
+                        "네이버의 커머스 사업은 스마트스토어와 브랜드스토어의 지속적인 성장, "
+                        "그리고 2023년 초 글로벌 C2C 경쟁력 강화를 위해 인수한 Poshmark의 성공적인 체질 개선 등으로 "
+                        "전년 대비 41.4% 성장하였습니다."
+                    ),
+                    metadata={
+                        "chunk_id": "para-turnaround",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적",
+                    },
+                ),
+                0.92,
+            ),
+            (
+                Document(
+                    page_content="요약 테이블",
+                    metadata={
+                        "chunk_id": "table-effect",
+                        "block_type": "table",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                        "table_context": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+                    },
+                ),
+                0.71,
+            ),
+        ]
+        state = {
+            "query": "커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("table-effect", chunk_ids)
+
     def test_direct_numeric_operand_extraction_preserves_narrative_supplement_for_mixed_query(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {
@@ -2318,6 +2361,155 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(len(result["evidence_items"]), 2)
         self.assertTrue(any("Poshmark" in str(item.get("claim") or "") for item in result["evidence_items"]))
+
+    def test_narrative_summary_supplements_missing_consolidation_effect_driver(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        metadata = {
+            "company": "NAVER",
+            "year": 2023,
+            "report_type": "사업보고서",
+            "section_path": "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적",
+            "section": "경영진단",
+            "block_type": "paragraph",
+            "chunk_id": "mda-001",
+        }
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "커머스는 Poshmark의 성공적인 체질 개선 등으로 전년 대비 41.4% 성장했습니다. "
+                        "또한 Poshmark 연결 편입효과에 따른 영업수익 증가가 이어졌습니다."
+                    ),
+                    metadata=metadata,
+                ),
+                0.92,
+            )
+        ]
+        anchor = agent._build_source_anchor(metadata)
+        anchor_lookup = {anchor: metadata}
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "source_anchor": anchor,
+                "claim": "Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                "quote_span": "Poshmark의 성공적인 체질 개선",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": ["Poshmark", "커머스"],
+                "metadata": metadata,
+            }
+        ]
+
+        supplemented = agent._supplement_narrative_driver_evidence(
+            evidence_items,
+            docs,
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            anchor_lookup=anchor_lookup,
+        )
+
+        self.assertEqual(len(supplemented), 2)
+        self.assertTrue(
+            any("연결 편입" in str(item.get("claim") or "") for item in supplemented),
+            supplemented,
+        )
+
+    def test_narrative_summary_supplements_missing_consolidation_effect_from_table_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        metadata = {
+            "company": "NAVER",
+            "year": 2023,
+            "report_type": "사업보고서",
+            "section_path": "IV. 이사의 경영진단 및 분석의견",
+            "section": "경영진단",
+            "block_type": "table",
+            "chunk_id": "mda-table-001",
+            "table_context": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+        }
+        docs = [
+            (
+                Document(
+                    page_content="수익성 표",
+                    metadata=metadata,
+                ),
+                0.88,
+            )
+        ]
+        anchor = agent._build_source_anchor(metadata)
+        anchor_lookup = {anchor: metadata}
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "source_anchor": anchor,
+                "claim": "Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                "quote_span": "Poshmark의 성공적인 체질 개선",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "allowed_terms": ["Poshmark", "커머스"],
+                "metadata": metadata,
+            }
+        ]
+
+        supplemented = agent._supplement_narrative_driver_evidence(
+            evidence_items,
+            docs,
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            anchor_lookup=anchor_lookup,
+        )
+
+        self.assertEqual(len(supplemented), 2)
+        self.assertTrue(
+            any("연결 편입" in str(item.get("claim") or "") for item in supplemented),
+            supplemented,
+        )
+
+    def test_compressed_narrative_answer_preserves_supported_consolidation_effect(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = "네이버 커머스 부문은 2023년에 전년 대비 41.4% 성장했습니다. 이러한 성장은 포시마크의 체질 개선에 기인합니다."
+        selected_evidence = [
+            {
+                "claim": "Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                "quote_span": "Poshmark의 성공적인 체질 개선",
+            },
+            {
+                "claim": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+                "quote_span": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+            },
+        ]
+
+        augmented = agent._augment_narrative_answer_with_supported_drivers(
+            answer,
+            selected_evidence,
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+        )
+
+        self.assertIn("연결 편입 효과", augmented)
+
+    def test_selected_narrative_claim_ids_expand_to_include_missing_driver_marker(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "claim": "Poshmark의 성공적인 체질 개선이 커머스 성장에 기여했다.",
+                "quote_span": "Poshmark의 성공적인 체질 개선",
+                "question_relevance": "high",
+                "support_level": "direct",
+            },
+            {
+                "evidence_id": "ev_003",
+                "claim": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+                "quote_span": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+                "question_relevance": "medium",
+                "support_level": "partial",
+            },
+        ]
+
+        expanded = agent._expand_selected_claim_ids_for_narrative_drivers(
+            ["ev_001"],
+            evidence_items,
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+        )
+
+        self.assertEqual(expanded, ["ev_001", "ev_003"])
 
     def test_generic_required_operands_map_capex_query_to_capital_expenditure_total(self) -> None:
         original_singleton = ontology_module._ONTOLOGY_SINGLETON

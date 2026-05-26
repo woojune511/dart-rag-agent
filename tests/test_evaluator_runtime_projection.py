@@ -21,6 +21,7 @@ from src.ops.evaluator import (
     EvalExample,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
+    _supplement_resolved_operands_from_runtime_evidence,
     _should_override_hybrid_faithfulness,
     _should_override_numeric_grounding,
 )
@@ -150,6 +151,30 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 operand_selection_correctness=1.0,
                 numeric_result_correctness=None,
                 grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_should_override_numeric_grounding_when_grounded_rendering_is_unavailable(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "매출액",
+                "source_row_id": "row_revenue",
+                "source_anchor": "연결 손익계산서",
+            }
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=None,
             )
         )
 
@@ -667,6 +692,122 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
 
         self.assertEqual(len(resolved), 1)
         self.assertEqual(resolved[0]["source_row_id"], "row_cost")
+
+    def test_resolve_evaluator_operands_promotes_direct_source_across_role_mismatch(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": "task_lookup_cost",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "매출원가",
+                                "concept": "cost_of_sales",
+                                "period": "2023",
+                                "raw_value": "129,179,183",
+                                "raw_unit": "백만원",
+                                "normalized_value": 129179183000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "129조 1,792억원",
+                                "source_row_id": "row_cost",
+                                "source_row_ids": ["row_cost"],
+                                "source_anchor": "연결 손익계산서",
+                            },
+                        },
+                    },
+                    {
+                        "task_id": "task_ratio",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "components_by_role": {
+                                "numerator_1": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator_1",
+                                        "label": "매출원가",
+                                        "concept": "cost_of_sales",
+                                        "period": "2023",
+                                        "raw_value": "129,179,183",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 129179183000000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "129조 1,792억원",
+                                        "source_row_id": "task_output:task_lookup_cost",
+                                        "source_row_ids": ["task_output:task_lookup_cost"],
+                                        "source_anchor": "연결 손익계산서",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                ],
+            },
+        }
+
+        resolved = _resolve_evaluator_operands([], calculation_result)
+
+        self.assertEqual(len(resolved), 1)
+        self.assertEqual(resolved[0]["matched_operand_role"], "numerator_1")
+        self.assertEqual(resolved[0]["source_row_id"], "row_cost")
+        self.assertEqual(resolved[0]["source_anchor"], "연결 손익계산서")
+
+    def test_supplement_resolved_operands_from_runtime_evidence_for_composed_ratio(self) -> None:
+        example = EvalExample(
+            id="MIX_T1_064",
+            question="총 영업비용과 영업비용률은?",
+            ground_truth="90.70%",
+            company="현대자동차",
+            year=2023,
+            section="재무제표",
+            expected_operands=[
+                {"label": "매출액", "period": "2023", "raw_value": "162663579", "raw_unit": "백만원"},
+                {"label": "매출원가", "period": "2023", "raw_value": "129179183", "raw_unit": "백만원"},
+                {"label": "판매비와관리비", "period": "2023", "raw_value": "18357495", "raw_unit": "백만원"},
+            ],
+        )
+        runtime_evidence = [
+            {
+                "evidence_id": "ev_001",
+                "source_anchor": "현대자동차 | 2023 | 연결 손익계산서",
+                "claim": "2023년 현대자동차의 매출원가는 129,179,183 백만원입니다.",
+            },
+            {
+                "evidence_id": "ev_002",
+                "source_anchor": "현대자동차 | 2023 | 연결 손익계산서",
+                "claim": "2023년 현대자동차의 판매비와관리비는 18,357,495 백만원입니다.",
+            },
+        ]
+        calculation_operands = [
+            {
+                "operand_id": "denominator_1",
+                "matched_operand_role": "denominator_1",
+                "label": "매출액",
+                "period": "2023",
+                "raw_value": "162,663,579",
+                "raw_unit": "백만원",
+                "normalized_value": 162663579000000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "row_revenue",
+                "source_anchor": "현대자동차 | 2023 | 연결 손익계산서",
+            }
+        ]
+
+        supplemented = _supplement_resolved_operands_from_runtime_evidence(
+            example=example,
+            runtime_evidence=runtime_evidence,
+            calculation_operands=calculation_operands,
+        )
+
+        self.assertEqual(len(supplemented), 3)
+        labels = {row["label"] for row in supplemented}
+        self.assertEqual(labels, {"매출액", "매출원가", "판매비와관리비"})
+        self.assertTrue(any(row["source_row_id"] == "ev_001" for row in supplemented))
+        self.assertTrue(any(row["source_row_id"] == "ev_002" for row in supplemented))
 
     def test_numeric_result_correctness_can_use_answer_slots_primary_value(self) -> None:
         example = EvalExample(
