@@ -250,21 +250,27 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 현재 follow-up 해석:
 
 - `curated_multi_report_smoke`
-  - `SAM_T2_002`가 CAPEX current/prior binding 문제로 한 번 실패했다
-  - 이후 local fix에서는 same-concept growth path의 unit/trace propagation을 보강해 single-question rerun을 PASS로 좁혔다
+  - `SAM_T2_002`는 CAPEX current/prior binding과 unit/trace propagation 보강 이후 PASS로 닫혔다
 - `curated_single_doc_core`
-  - `MIX_T1_046`는 generic share-of-total ratio(`A 중 B가 차지하는 비중`) 분해와 direct aggregate denominator binding이 약해서 실패했다
-  - 현재는
-    - numerator/denominator explicit role extraction
-    - parenthesized alias expansion
-    - liability-row rejection
-    - aggregate total row를 `table_context`로 직접 분모에 매칭하는 fallback
-    까지 들어간 상태다
+  - `MIX_T1_046`는 generic share-of-total ratio 분해, unit inheritance, evaluator period normalization 보강 이후 PASS로 닫혔다
+  - missing local filing 문제는 curated benchmark auto-fetch로 정리됐다
+- official targeted follow-up
+  - `MIX_T1_064`는 composed-ratio aggregate trace 보강과 evaluator operand supplementation 이후
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+    - `numeric_final_judgement = PASS`
+    로 닫혔다
+  - `NAV_T2_006`는 hybrid mixed-query narrative evidence selection과 evaluator calibration 이후
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
+    로 닫혔다
 
 즉 최신 판단은 다음과 같다.
 
 - `structural_selective_v2`는 현재 routine curated validation의 operating default다
-- 다만 wider curated set에서 남아 있는 blocker rerun이 끝나기 전까지는 final default 승격을 확정하지 않는다
+- broader curated blocker와 targeted official follow-up blocker도 모두 닫혔다
+- 다음 실험 초점은 `structural_parent_hybrid_v2` 같은 next ingest candidate 설계다
 
 즉 현재 chunking/ingest 실험의 핵심 질문은 단순히 “더 작은 chunk가 좋은가”가 아니다.
 
@@ -828,12 +834,13 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - evaluator now recognizes composed-ratio grounding from resolved operands and
     aggregate subtask traces
   - warm structural runtime/evaluator replay closes at `90.7%`
-- Caveat:
-  - refreshed current-store replay now returns the correct answer
-    (`매출원가 129조 1,792억원`, `판매비와관리비 18조 3,575억원`, `영업비용률 90.70%`)
-  - the remaining blocker is formal benchmark/evaluator promotion:
-    `numeric_equivalence = 1.0` is already true, but `numeric_grounding` /
-    `numeric_final_judgement` in the official row are still conservative
+- Closure:
+  - targeted official rerun now also closes the composed-ratio row
+  - current official interpretation is:
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+    - `numeric_final_judgement = PASS`
 
 ## 2026-05-26 Hybrid mixed query runtime
 
@@ -874,10 +881,11 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - `retrieval_hit_at_k = 1.0`
   - `context_recall = 1.0`
   - `completeness = 1.0`
-- targeted official benchmark bundle:
-  - `benchmarks/results/nav_t2_006_formal_structural_2026-05-26`
-- important caveat:
-  - the official targeted row is still more conservative than the warm
-    single-question replay
-  - current official row holds `completeness = 0.7`, `section_match_rate = 0.25`
-    even though the hybrid runtime path and evaluator calibration are both in place
+- targeted official rerun now also closes the hybrid mixed-query row
+  - official interpretation now aligns with the warm replay on the key user-facing metrics:
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
+  - final answer preserves:
+    - `Poshmark 체질 개선`
+    - `연결 편입효과`
+    - `스마트스토어/브랜드스토어 성장`
