@@ -154,6 +154,17 @@
 - immediate blocker였던 `SAM_T2_002` follow-up rerun과 `MIX_T1_046` denominator binding은 now closed다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
 
+## 2026-05-27 Update
+
+- Documentation has been refreshed after the `MIX_T1_046` denominator-binding
+  fix and the parent-hybrid probe follow-up.
+- Local benchmark output bundles remain as experiment artifacts and are not
+  part of source commits:
+  - `benchmarks/results/curated_multi_report_smoke_2026-05-26_fix1/`
+  - `benchmarks/results/structural_parent_hybrid_v2_probe_2026-05-26/`
+- The next source-level work remains concept-planner shadow validation and
+  broader curated gate maintenance, not parent-hybrid promotion.
+
 ## 2026-05-17 Update
 
 - Indexing now supports partial-store resume in the benchmark path.

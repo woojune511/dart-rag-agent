@@ -108,3 +108,10 @@ Follow-up:
 - Store-fixed eval-only follow-up on the same NAVER 2023 store now answers
   `20.8%` with `faithfulness = 1.0`, `completeness = 1.0`, and
   `numeric_pass = 1.0`.
+
+## 2026-05-27 Artifact Policy
+
+- Keep the probe result bundle as a local experiment artifact.
+- Do not include `benchmarks/results/structural_parent_hybrid_v2_probe_2026-05-26/`
+  in source commits.
+- The committed source record is this document plus the benchmarking guide.

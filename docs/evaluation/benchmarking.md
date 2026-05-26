@@ -965,3 +965,15 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
 - Interpretation:
   - This closes the `MIX_T1_046` denominator-binding blocker exposed by the parent-hybrid probe.
   - The result bundle is an experiment artifact and should not be committed.
+
+## 2026-05-27 Source Commit Scope
+
+- The latest source commit scope is documentation-only.
+- Benchmark result bundles remain local experiment artifacts and are excluded
+  from the committed source tree:
+  - `benchmarks/results/curated_multi_report_smoke_2026-05-26_fix1/`
+  - `benchmarks/results/structural_parent_hybrid_v2_probe_2026-05-26/`
+- Keep `structural_selective_v2_prefix_2500_320` as the routine default.
+- Next validation focus:
+  - concept-planner shadow expansion
+  - broader curated gate maintenance for `SAM_T2_002` and `MIX_T1_046`
