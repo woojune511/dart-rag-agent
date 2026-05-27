@@ -200,6 +200,25 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(self.agent._route_after_numeric_extractor(state), "advance_subtask")
 
+    def test_numeric_extractor_missing_lookup_falls_back_to_reconciliation(self) -> None:
+        state = {
+            "query": "2023년 재고자산평가손실 규모를 찾아줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "operation_family": "lookup"},
+                {"task_id": "task_2", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "lookup",
+                "metric_label": "재고자산평가손실",
+            },
+            "retrieved_docs": [(object(), 1.0)],
+            "evidence_status": "missing",
+        }
+
+        self.assertEqual(self.agent._route_after_numeric_extractor(state), "reconcile_plan")
+
     def test_lookup_subtask_routes_to_numeric_extractor_even_when_top_level_intent_is_qa(self) -> None:
         state = {
             "query": "2023년 재무제표 주석에서 재고자산평가손실 규모와 매출원가 영향을 분석해 줘.",

@@ -152,6 +152,31 @@ Verification:
 - Expanded shadow rerun passed planner-structure validation:
   `concept_fallback = 24 / 24`.
 
+Runtime follow-up:
+
+- The expanded probe showed where concept coverage was missing or weak, but it
+  did not by itself prove retrieval, structured row binding, or final numeric
+  grounding.
+- The 2026-05-28 runtime gap gate rerun covered the seven closed gap cases:
+  `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`, `POS_T1_057`,
+  `KAB_T1_066`, and `SAM_T3_028`.
+- Result:
+  - 7 / 7 `numeric_final_judgement = PASS`
+  - all seven had `numeric_equivalence = 1.0`
+  - all seven had `numeric_grounding = 1.0`
+- The reusable gate profile is now
+  `benchmarks/profiles/curated_concept_runtime_gap_gate.json`.
+
+Implementation boundary:
+
+- The ontology additions remain concept-level aliases, surface contracts,
+  section priors, and aggregate query surfaces.
+- Runtime row selection uses structured candidate evidence and sibling-surface
+  scoring. It should not grow question-specific deterministic fallback recipes
+  for these benchmark rows.
+- Direct lookup answers preserve source table units for grounded table values,
+  which avoids evaluator failures caused by rounded compact display units.
+
 ## How To Interpret It
 
 Good signs:

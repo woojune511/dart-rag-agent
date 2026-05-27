@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _extract_segment_labels_from_query
+from src.agent.financial_graph_helpers import _extract_segment_labels_from_query, _infer_concept_ratio_result_unit
 from src.agent.financial_graph_models import (
     ConceptPlannerOutput,
     EntityExtraction,
@@ -739,6 +739,7 @@ Also return:
                     "metric_label": metric_label,
                     "query": task_query,
                     "operation_family": operation_family,
+                    "result_unit": _infer_concept_ratio_result_unit(query, metric_label, operation_family),
                     "required_operands": normalized_operands,
                     "preferred_statement_types": preferred_statement_types,
                     "preferred_sections": preferred_sections,

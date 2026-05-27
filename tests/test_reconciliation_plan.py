@@ -312,6 +312,79 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertEqual(matched["reason"], "matched_direct_candidate")
         self.assertEqual(matched["candidate_ids"], ["dup_value_candidate", "dup_row_candidate"])
 
+    def test_lookup_prefers_table_family_with_requested_sibling_surfaces(self) -> None:
+        loss = "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4"
+        reversal = "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4\ud658\uc785"
+        disposal = "\uc7ac\uace0\uc790\uc0b0\ud3d0\uae30\uc190\uc2e4"
+        active_subtask = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "metric_label": f"2023\ub144 {loss}",
+            "operation_family": "lookup",
+            "sibling_lookup_surfaces": [reversal, disposal],
+            "required_operands": [
+                {
+                    "label": loss,
+                    "concept": "inventory_valuation_loss",
+                    "role": "operand",
+                    "required": True,
+                    "unit_family": "KRW",
+                    "surface_contract": {"positive": [loss], "negative": [reversal]},
+                }
+            ],
+            "preferred_statement_types": ["notes", "cash_flow"],
+            "constraints": {"period_focus": "current", "consolidation_scope": "consolidated"},
+        }
+        candidates = [
+            {
+                "candidate_id": "tax_note_loss",
+                "candidate_kind": "structured_value",
+                "text": f"{loss} 27,270,605",
+                "metadata": {
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                    "year": 2023,
+                    "unit_hint": "\ucc9c\uc6d0",
+                    "row_label": loss,
+                    "semantic_label": loss,
+                    "table_row_labels_text": f"\uae30\ub9d0 {loss} \uacf5\uc815\uac00\uce58\ud3c9\uac00",
+                    "structured_cells": [
+                        {"column_headers": ["\uacf5\uc2dc\uae08\uc561"], "value_text": "27,270,605", "unit_hint": "\ucc9c\uc6d0"}
+                    ],
+                },
+            },
+            {
+                "candidate_id": "cash_flow_loss",
+                "candidate_kind": "structured_value",
+                "text": f"{loss} 2,526,280 {reversal} (48,885,812) {disposal} 25,163,510",
+                "metadata": {
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                    "year": 2023,
+                    "unit_hint": "\ucc9c\uc6d0",
+                    "row_label": loss,
+                    "semantic_label": loss,
+                    "table_row_labels_text": f"\uc870\uc815\ud56d\ubaa9 {loss} {reversal} {disposal}",
+                    "structured_cells": [
+                        {"column_headers": ["\uacf5\uc2dc\uae08\uc561"], "value_text": "2,526,280", "unit_hint": "\ucc9c\uc6d0"}
+                    ],
+                },
+            },
+        ]
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=candidates,
+            years=[2023],
+            reconciliation_retry_count=1,
+            report_scope={"year": 2023},
+        )
+
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["matched_operands"][0]["candidate_ids"][0], "cash_flow_loss")
+
     def test_lookup_collapses_same_family_direct_candidates_to_single_winner(self) -> None:
         active_subtask = {
             "task_id": "task_lookup",

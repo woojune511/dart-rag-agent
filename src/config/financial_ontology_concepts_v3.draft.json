@@ -1032,7 +1032,24 @@
         "금융손익",
         "금융수익",
         "외화환산"
-      ]
+      ],
+      "surface_contract": {
+        "positive": [
+          "외화환산이익",
+          "외화환산 이익"
+        ],
+        "negative": [
+          "외화환산손실",
+          "외화환산 손실"
+        ]
+      },
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "외화환산이익",
+          "외화환산 이익"
+        ]
+      }
     },
     "foreign_currency_translation_loss": {
       "display_name": "외화환산손실",
@@ -1059,7 +1076,24 @@
         "금융손익",
         "금융비용",
         "외화환산"
-      ]
+      ],
+      "surface_contract": {
+        "positive": [
+          "외화환산손실",
+          "외화환산 손실"
+        ],
+        "negative": [
+          "외화환산이익",
+          "외화환산 이익"
+        ]
+      },
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "외화환산손실",
+          "외화환산 손실"
+        ]
+      }
     },
     "capitalized_development_cost": {
       "display_name": "자본화된 개발비",
@@ -1094,14 +1128,11 @@
     "inventory_valuation_loss": {
       "display_name": "재고자산평가손실",
       "aliases": [
-        "재고자산 평가손실",
-        "재고자산평가손실(환입)",
-        "재고자산평가손실(또는 환입)"
+        "재고자산 평가손실"
       ],
       "keywords": [
         "재고자산평가손실",
         "재고자산 평가손실",
-        "재고자산평가손실(환입)",
         "매출원가"
       ],
       "unit_family": "KRW",
@@ -1111,12 +1142,37 @@
         "cash_flow"
       ],
       "preferred_sections": [
+        "영업으로부터 창출된 현금",
+        "현금흐름표",
         "재고자산",
         "비용의 성격별 분류",
         "연결재무제표 주석",
-        "재무제표 주석",
-        "현금흐름표"
-      ]
+        "재무제표 주석"
+      ],
+      "surface_contract": {
+        "positive": [
+          "재고자산평가손실",
+          "재고자산 평가손실"
+        ],
+        "negative": [
+          "재고자산평가손실환입",
+          "재고자산 평가손실 환입",
+          "재고자산평가손실 환입",
+          "재고자산평가손실 등"
+        ]
+      },
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "재고자산평가손실",
+          "재고자산 평가손실"
+        ],
+        "aggregate_query_surfaces": [
+          "재고자산평가손실 조정항목",
+          "재고자산평가손실 영업으로부터 창출된 현금",
+          "재고자산평가손실 재고자산평가손실환입 재고자산폐기손실"
+        ]
+      }
     },
     "inventory_valuation_loss_reversal": {
       "display_name": "재고자산평가손실환입",
@@ -1138,12 +1194,36 @@
         "cash_flow"
       ],
       "preferred_sections": [
+        "영업으로부터 창출된 현금",
+        "현금흐름표",
         "재고자산",
         "비용의 성격별 분류",
         "연결재무제표 주석",
-        "재무제표 주석",
-        "현금흐름표"
-      ]
+        "재무제표 주석"
+      ],
+      "surface_contract": {
+        "positive": [
+          "재고자산평가손실환입",
+          "재고자산 평가손실 환입",
+          "재고자산평가손실 환입"
+        ],
+        "negative": [
+          "재고자산평가손실 등"
+        ]
+      },
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "재고자산평가손실환입",
+          "재고자산 평가손실 환입",
+          "재고자산평가손실 환입"
+        ],
+        "aggregate_query_surfaces": [
+          "재고자산평가손실환입 조정항목",
+          "재고자산평가손실환입 영업으로부터 창출된 현금",
+          "재고자산평가손실 재고자산평가손실환입 재고자산폐기손실"
+        ]
+      }
     },
     "inventory_disposal_loss": {
       "display_name": "재고자산폐기손실",
@@ -1162,14 +1242,30 @@
       "unit_family": "KRW",
       "preferred_statement_types": [
         "notes",
-        "income_statement"
+        "income_statement",
+        "cash_flow"
       ],
       "preferred_sections": [
+        "영업으로부터 창출된 현금",
+        "현금흐름표",
         "재고자산",
         "비용의 성격별 분류",
         "연결재무제표 주석",
         "재무제표 주석"
-      ]
+      ],
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "재고자산폐기손실",
+          "재고자산 폐기손실",
+          "폐기손실"
+        ],
+        "aggregate_query_surfaces": [
+          "재고자산폐기손실 조정항목",
+          "재고자산폐기손실 영업으로부터 창출된 현금",
+          "재고자산평가손실 재고자산평가손실환입 재고자산폐기손실"
+        ]
+      }
     },
     "interest_expense": {
       "display_name": "이자비용",

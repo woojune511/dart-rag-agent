@@ -165,7 +165,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         graph.add_conditional_edges(
             "numeric_extractor",
             self._route_after_numeric_extractor,
-            {"advance_subtask": "advance_subtask", "cite": "cite"},
+            {"reconcile_plan": "reconcile_plan", "advance_subtask": "advance_subtask", "cite": "cite"},
         )
         graph.add_conditional_edges(
             "evidence",

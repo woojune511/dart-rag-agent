@@ -23,6 +23,46 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 class FinancialAgentReconciliationMixin:
+    def _active_subtask_with_sibling_lookup_surfaces(
+        self,
+        active_subtask: Dict[str, Any],
+        state: FinancialAgentState,
+    ) -> Dict[str, Any]:
+        enriched = dict(active_subtask or {})
+        active_task_id = str(enriched.get("task_id") or "").strip()
+        surfaces = [
+            str(item).strip()
+            for item in (enriched.get("sibling_lookup_surfaces") or [])
+            if str(item).strip()
+        ]
+        for task in list(state.get("calc_subtasks") or []):
+            current = dict(task or {})
+            task_id = str(current.get("task_id") or "").strip()
+            if active_task_id and task_id == active_task_id:
+                continue
+            operation_family = str(current.get("operation_family") or "").strip().lower()
+            metric_family = str(current.get("metric_family") or "").strip().lower()
+            if operation_family not in {"lookup", "single_value"} and metric_family not in {
+                "concept_lookup",
+                "concept_single_value",
+            }:
+                continue
+            metric_label = re.sub(r"^(?:20\d{2}\s*년?)\s+", "", str(current.get("metric_label") or "").strip())
+            if metric_label:
+                surfaces.append(metric_label)
+            for operand in list(current.get("required_operands") or []):
+                operand_data = dict(operand or {})
+                label = re.sub(r"^(?:20\d{2}\s*년?)\s+", "", str(operand_data.get("label") or "").strip())
+                if label:
+                    surfaces.append(label)
+                surfaces.extend(
+                    str(alias).strip()
+                    for alias in list(operand_data.get("aliases") or [])
+                    if str(alias).strip()
+                )
+        enriched["sibling_lookup_surfaces"] = list(dict.fromkeys(surface for surface in surfaces if surface))
+        return enriched
+
     def _dependency_resolved_reconciliation_result(
         self,
         *,
@@ -646,18 +686,17 @@ class FinancialAgentReconciliationMixin:
                     metadata=metadata,
                 )
             )
-            if metadata.get("table_source_id"):
-                for row_candidate in _build_table_row_reconciliation_candidates(
-                    candidate_id_prefix=candidate_id,
-                    anchor=anchor,
-                    table_text=str(doc.page_content or ""),
-                    metadata=metadata,
-                ):
-                    row_candidate_id = str(row_candidate.get("candidate_id") or "").strip()
-                    if not row_candidate_id or row_candidate_id in seen:
-                        continue
-                    seen.add(row_candidate_id)
-                    candidates.append(row_candidate)
+            for row_candidate in _build_table_row_reconciliation_candidates(
+                candidate_id_prefix=candidate_id,
+                anchor=anchor,
+                table_text=str(doc.page_content or ""),
+                metadata=metadata,
+            ):
+                row_candidate_id = str(row_candidate.get("candidate_id") or "").strip()
+                if not row_candidate_id or row_candidate_id in seen:
+                    continue
+                seen.add(row_candidate_id)
+                candidates.append(row_candidate)
         return candidates
 
     def _should_llm_rerank_candidates(
@@ -788,7 +827,10 @@ candidate options:
         candidates: List[Dict[str, Any]],
         years: List[int],
     ) -> Dict[str, Any]:
-        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+            dict(state.get("active_subtask") or {}),
+            state,
+        )
         query = str(active_subtask.get("query") or state.get("query") or "")
         operand_specs = [
             dict(item)
@@ -876,7 +918,10 @@ candidate options:
         if str(reconciliation_result.get("status") or "") not in {"ready", "retry_retrieval", "insufficient_operands"}:
             return []
 
-        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+            dict(state.get("active_subtask") or {}),
+            state,
+        )
         required_operands = [
             dict(item)
             for item in (active_subtask.get("required_operands") or [])
@@ -956,7 +1001,10 @@ candidate options:
         if str(reconciliation_result.get("status") or "") != "ready":
             return []
 
-        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+            dict(state.get("active_subtask") or {}),
+            state,
+        )
         required_operands = [
             dict(item)
             for item in (active_subtask.get("required_operands") or [])
@@ -1209,7 +1257,10 @@ candidate options:
 
     def _reconcile_retrieved_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Match required operands to the best available evidence candidates."""
-        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+            dict(state.get("active_subtask") or {}),
+            state,
+        )
         dependency_state = self._dependency_binding_resolution_state(state)
         if dependency_state.get("all_resolved") and self._task_prefers_sibling_output_synthesis(state):
             result = self._dependency_resolved_reconciliation_result(

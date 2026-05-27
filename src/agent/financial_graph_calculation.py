@@ -1015,11 +1015,17 @@ class FinancialAgentCalculationMixin:
                 return None
             numerator_expr = " + ".join(numerator_vars)
             denominator_expr = " + ".join(denominator_vars)
-            result_unit = str(metric_info.get("result_unit") or "").strip()
+            result_unit = str(active_subtask.get("result_unit") or metric_info.get("result_unit") or "").strip()
             if not result_unit:
                 result_unit = "%"
             if result_unit.upper() == "PERCENT":
                 result_unit = "%"
+            percent_result = result_unit in {"%", "퍼센트"} or result_unit.upper() == "PERCENT"
+            formula = f"(({numerator_expr}) / ({denominator_expr}))"
+            operation_suffix = ""
+            if percent_result:
+                formula = f"{formula} * 100"
+                operation_suffix = " * 100"
 
             numerator_labels = [str(operand.get("label") or "").strip() for operand, _row in numerator_pairs]
             denominator_labels = [str(operand.get("label") or "").strip() for operand, _row in denominator_pairs]
@@ -1030,10 +1036,10 @@ class FinancialAgentCalculationMixin:
                 "operation": "ratio",
                 "ordered_operand_ids": ordered_operand_ids,
                 "variable_bindings": variable_bindings,
-                "formula": f"(({numerator_expr}) / ({denominator_expr})) * 100",
+                "formula": formula,
                 "pairwise_formula": "",
                 "result_unit": result_unit,
-                "operation_text": f"({' + '.join(numerator_labels)}) / ({' + '.join(denominator_labels)}) * 100",
+                "operation_text": f"({' + '.join(numerator_labels)}) / ({' + '.join(denominator_labels)}){operation_suffix}",
                 "explanation": f"{metric_display}의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.",
                 "missing_info": [],
             }
@@ -2124,6 +2130,18 @@ Ontology Context:
             return f"{rendered}{display_unit}"
         return rendered
 
+    def _render_grounded_operand_display(self, row: Dict[str, Any]) -> str:
+        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
+        normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+        if normalized_unit != "KRW" or not raw_value or not raw_unit:
+            return ""
+        if raw_unit not in {"원", "천원", "백만원", "억원", "조원"}:
+            return ""
+        if any(token in raw_value for token in ("원", "억", "조", "%")):
+            return raw_value
+        return f"{raw_value}{raw_unit}"
+
     def _absolute_display_value(self, value: str) -> str:
         text = str(value or "").strip()
         if text.startswith("-"):
@@ -2243,14 +2261,16 @@ Ontology Context:
         row: Dict[str, Any],
         *,
         default_role: str = "operand",
+        preserve_source_display: bool = False,
     ) -> Dict[str, Any]:
         raw_unit = str(row.get("raw_unit") or row.get("result_unit") or "")
         normalized_unit = str(row.get("normalized_unit") or "")
         normalized_value = row.get("normalized_value")
-        rendered_value = ""
+        rendered_value = self._render_grounded_operand_display(row) if preserve_source_display else ""
         if normalized_value is not None:
             try:
-                rendered_value = self._render_value_with_unit(float(normalized_value), raw_unit, normalized_unit)
+                if not rendered_value:
+                    rendered_value = self._render_value_with_unit(float(normalized_value), raw_unit, normalized_unit)
             except (TypeError, ValueError):
                 rendered_value = str(row.get("raw_value") or "")
         source_row_id = str(row.get("evidence_id") or row.get("row_id") or "")
@@ -2355,7 +2375,10 @@ Ontology Context:
         components_by_role: Dict[str, List[Dict[str, Any]]] = {}
         components_by_group: Dict[str, List[Dict[str, Any]]] = {}
         for row in ordered_operands:
-            slot = self._build_operand_value_slot(row)
+            slot = self._build_operand_value_slot(
+                row,
+                preserve_source_display=family in {"lookup", "single_value"},
+            )
             role = str(slot.get("role") or "operand")
             components_by_role.setdefault(role, []).append(slot)
             role_group = role.split("_", 1)[0] if "_" in role else role
@@ -2374,6 +2397,7 @@ Ontology Context:
                 primary_slot = self._build_operand_value_slot(
                     ordered_operands[0],
                     default_role="primary_value",
+                    preserve_source_display=True,
                 )
                 primary_slot["role"] = "primary_value"
                 answer_slots["primary_value"] = primary_slot
@@ -2720,6 +2744,8 @@ Ontology Context:
             result_value = _safe_eval_formula(formula, env)
             if result_unit == "%":
                 normalized_unit = "PERCENT"
+            elif operation == "ratio":
+                normalized_unit = "COUNT"
         except Exception as exc:
             if isinstance(exc, ZeroDivisionError):
                 return _fail("zero_division", str(exc))
@@ -2732,15 +2758,22 @@ Ontology Context:
             rendered_with_unit = f"{rendered_value}{result_unit}"
         else:
             rendered_with_unit = rendered_value
+        if operation_family in {"lookup", "single_value"} and ordered_operands:
+            grounded_display = self._render_grounded_operand_display(ordered_operands[0])
+            if grounded_display:
+                rendered_value = grounded_display
+                rendered_with_unit = grounded_display
         labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
         result_series = []
         for row in ordered_operands:
             point_value = float(row.get("normalized_value"))
-            point_rendered = self._format_calculation_value(
-                point_value,
-                str(row.get("raw_unit") or row.get("result_unit") or ""),
-                source_normalized_unit,
-            )
+            point_rendered = self._render_grounded_operand_display(row)
+            if not point_rendered:
+                point_rendered = self._format_calculation_value(
+                    point_value,
+                    str(row.get("raw_unit") or row.get("result_unit") or ""),
+                    source_normalized_unit,
+                )
             result_series.append(
                 {
                     "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
@@ -3425,6 +3458,12 @@ Subtask Results JSON:
 
     def _route_after_numeric_extractor(self, state: FinancialAgentState) -> str:
         if list(state.get("calc_subtasks") or []):
+            active_subtask = dict(state.get("active_subtask") or {})
+            active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+            evidence_status = str(state.get("evidence_status") or "").strip().lower()
+            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
+            if active_operation in {"lookup", "single_value"} and evidence_status == "missing" and has_retrieved_docs:
+                return "reconcile_plan"
             return "advance_subtask"
         return "cite"
 

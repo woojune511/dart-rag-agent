@@ -19,9 +19,11 @@ from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
     _candidate_explicit_years,
     _build_concept_task_constraints,
+    _infer_concept_ratio_result_unit,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
+    _build_table_row_reconciliation_candidates,
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
@@ -334,6 +336,139 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(normalized_unit, "KRW")
         self.assertEqual(coerced, -1_234_000.0)
+
+    def test_concept_ratio_result_unit_infers_times_for_coverage_ratio(self) -> None:
+        query = "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728(\uc601\uc5c5\uc774\uc775 / \uc774\uc790\ube44\uc6a9)\uc744 \uacc4\uc0b0\ud574\uc918"
+        self.assertEqual(_infer_concept_ratio_result_unit(query, "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728", "ratio"), "\ubc30")
+
+    def test_foreign_currency_gain_lookup_coerces_parenthesized_amount_to_magnitude(self) -> None:
+        normalized_value, normalized_unit = _normalise_operand_value("(573,884)", "\ubc31\ub9cc\uc6d0")
+        coerced = _coerce_lookup_magnitude_value(
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            raw_value="(573,884)",
+            concept="foreign_currency_translation_gain",
+            statement_type="notes",
+            row_label="\uc678\ud654\ud658\uc0b0\uc774\uc775",
+            semantic_label="\uc678\ud654\ud658\uc0b0\uc774\uc775",
+        )
+        self.assertEqual(normalized_unit, "KRW")
+        self.assertEqual(coerced, 573_884_000_000.0)
+
+    def test_inventory_loss_surface_contract_rejects_summary_etc_row(self) -> None:
+        operand = {
+            "label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
+            "concept": "inventory_valuation_loss",
+            "surface_contract": {
+                "positive": ["\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4"],
+                "negative": ["\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4 \ub4f1"],
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "semantic_label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4 \ub4f1",
+                "row_label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4 \ub4f1",
+                "unit_hint": "\ubc31\ub9cc\uc6d0",
+            },
+        }
+        self.assertFalse(_candidate_matches_operand(candidate, operand))
+
+    def test_table_object_rows_expand_to_reconciliation_candidates(self) -> None:
+        metadata = {
+            "unit_hint": "\ucc9c\uc6d0",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "period_focus": "current",
+            "table_object_json": json.dumps(
+                {
+                    "rows": [
+                        {
+                            "row_label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
+                            "row_headers": ["\uc870\uc815\ud56d\ubaa9\uc5d0 \uc758\ud55c \ud569\uacc4", "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4"],
+                            "cells": [
+                                {
+                                    "column_headers": ["\uacf5\uc2dc\uae08\uc561"],
+                                    "value_text": "2,526,280",
+                                    "unit_hint": "\ucc9c\uc6d0",
+                                }
+                            ],
+                        }
+                    ]
+                },
+                ensure_ascii=False,
+            ),
+        }
+
+        candidates = _build_table_row_reconciliation_candidates(
+            candidate_id_prefix="report:chunk",
+            anchor="[셀트리온 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+            table_text="",
+            metadata=metadata,
+        )
+
+        candidate = next(
+            item
+            for item in candidates
+            if item["candidate_kind"] == "structured_row"
+            and item["metadata"]["row_label"] == "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4"
+        )
+        self.assertEqual(candidate["candidate_kind"], "structured_row")
+        self.assertEqual(candidate["metadata"]["row_label"], "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4")
+        self.assertEqual(candidate["metadata"]["semantic_label"], "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4")
+        self.assertEqual(candidate["metadata"]["structured_cells"][0]["value_text"], "2,526,280")
+        self.assertTrue(
+            _candidate_matches_operand(
+                candidate,
+                {
+                    "label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
+                    "concept": "inventory_valuation_loss",
+                    "surface_contract": {
+                        "positive": ["\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4"],
+                        "negative": ["\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4\ud658\uc785"],
+                    },
+                },
+            )
+        )
+
+    def test_inventory_loss_ontology_removes_ambiguous_reversal_aliases(self) -> None:
+        concept = self.ontology.concept("inventory_valuation_loss") or {}
+        aliases = list(concept.get("aliases") or [])
+        keywords = list(concept.get("keywords") or [])
+
+        self.assertNotIn("\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4(\ud658\uc785)", aliases)
+        self.assertNotIn("\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4(\ub610\ub294 \ud658\uc785)", aliases)
+        self.assertNotIn("\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4(\ud658\uc785)", keywords)
+
+    def test_lookup_retrieval_queries_include_ontology_query_surfaces(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            queries = _build_generic_retrieval_queries(
+                query="2023\ub144 \uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4\uc744 \ucc3e\uc544\uc918.",
+                metric_label="\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
+                operand_specs=[
+                    {
+                        "label": "2023\ub144 \uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
+                        "concept": "inventory_valuation_loss",
+                        "aliases": ["\uc7ac\uace0\uc790\uc0b0 \ud3c9\uac00\uc190\uc2e4"],
+                    }
+                ],
+                preferred_sections=["\uc601\uc5c5\uc73c\ub85c\ubd80\ud130 \ucc3d\ucd9c\ub41c \ud604\uae08"],
+                report_scope={"year": 2023},
+                constraints={"period_focus": "current"},
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        joined_queries = "\n".join(queries)
+        self.assertIn(
+            "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4 \uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4\ud658\uc785 \uc7ac\uace0\uc790\uc0b0\ud3d0\uae30\uc190\uc2e4",
+            joined_queries,
+        )
+        self.assertIn("\uc601\uc5c5\uc73c\ub85c\ubd80\ud130 \ucc3d\ucd9c\ub41c \ud604\uae08", joined_queries)
 
     def test_resolved_period_text_prefers_report_year_when_it_matches_target_year(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -2179,6 +2314,62 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan_result["calculation_plan"]["operation"], "lookup")
         self.assertEqual(plan_result["calculation_plan"]["formula"], "A")
         self.assertFalse(plan_result["planner_debug_trace"]["llm_invoked"])
+
+    def test_lookup_calculation_preserves_source_table_unit_in_rendered_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 재고자산평가손실을 찾아줘.",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 재고자산평가손실",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "2023년 재고자산평가손실",
+                            "concept": "inventory_valuation_loss",
+                            "role": "current_period",
+                            "required": True,
+                        }
+                    ],
+                },
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "lookup",
+                    "ordered_operand_ids": ["op_001"],
+                    "variable_bindings": [{"variable": "A", "operand_id": "op_001"}],
+                    "formula": "A",
+                    "result_unit": "천원",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "row_001",
+                        "label": "2023년 재고자산평가손실",
+                        "matched_operand_label": "2023년 재고자산평가손실",
+                        "matched_operand_concept": "inventory_valuation_loss",
+                        "matched_operand_role": "current_period",
+                        "raw_value": "2,526,280",
+                        "raw_unit": "천원",
+                        "normalized_value": 2526280000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                    }
+                ],
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        calculation_result = result["calculation_result"]
+        self.assertEqual(calculation_result["rendered_value"], "2,526,280천원")
+        self.assertEqual(calculation_result["series"][0]["rendered_value"], "2,526,280천원")
+        primary_value = calculation_result["answer_slots"]["primary_value"]
+        self.assertEqual(primary_value["raw_value"], "2,526,280")
+        self.assertEqual(primary_value["raw_unit"], "천원")
+        self.assertEqual(primary_value["rendered_value"], "2,526,280천원")
 
     def test_operand_requirement_rejects_surrogate_metric_label(self) -> None:
         operand = {

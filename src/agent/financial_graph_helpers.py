@@ -1525,6 +1525,38 @@ def _direct_candidate_semantic_priority(
     )
 
 
+def _candidate_sibling_surface_hit_count(candidate: Dict[str, Any], sibling_surfaces: List[str]) -> int:
+    if not sibling_surfaces:
+        return 0
+    metadata = dict(candidate.get("metadata") or {})
+    haystack = _normalise_spaces(
+        " ".join(
+            part
+            for part in (
+                str(metadata.get("table_row_labels_text") or ""),
+                str(metadata.get("table_value_labels_text") or ""),
+                str(metadata.get("table_summary_text") or ""),
+                str(metadata.get("row_context_text") or ""),
+                str(metadata.get("row_text") or ""),
+                str(candidate.get("text") or ""),
+            )
+            if part
+        )
+    )
+    if not haystack:
+        return 0
+    compact_haystack = re.sub(r"\s+", "", haystack)
+    hits = 0
+    for surface in list(dict.fromkeys(sibling_surfaces)):
+        normalized = _strip_leading_period_qualifiers(_normalise_spaces(str(surface or "")))
+        if not normalized:
+            continue
+        compact_surface = re.sub(r"\s+", "", normalized)
+        if normalized in haystack or (compact_surface and compact_surface in compact_haystack):
+            hits += 1
+    return hits
+
+
 def _query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
     combined = _normalise_spaces(query)
     aliases = [str(metric.get("display_name") or "").strip()]
@@ -2116,6 +2148,19 @@ def _build_generic_retrieval_queries(
     def _strip_leading_period_prefix(text: str) -> str:
         return _normalise_spaces(re.sub(r"^(20\d{2}년|당기|전기|전년)\s+", "", _normalise_spaces(text or "")))
 
+    def _query_surfaces_for_operand(operand: Dict[str, Any]) -> List[str]:
+        label = str(operand.get("label") or "").strip()
+        surfaces = [
+            _strip_leading_period_prefix(label),
+            *[
+                _strip_leading_period_prefix(str(alias).strip())
+                for alias in list(operand.get("aliases") or [])[:3]
+                if str(alias).strip()
+            ],
+            *[_normalise_spaces(surface) for surface in _lookup_query_surface_preferences(operand)],
+        ]
+        return list(dict.fromkeys(surface for surface in surfaces if surface))
+
     queries = [query]
     year = str(report_scope.get("year") or "").strip()
     year_prefix = f"{year}년 " if year else ""
@@ -2211,14 +2256,13 @@ def _build_generic_retrieval_queries(
         segment_label = _operand_segment_label(operand)
         normalized_label = _strip_leading_period_prefix(label)
         queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_label or label}"))
-        for alias in list(operand.get("aliases") or [])[:3]:
-            if str(alias).strip():
-                normalized_alias = _strip_leading_period_prefix(str(alias).strip())
-                if segment_label and normalized_alias and segment_label not in normalized_alias:
-                    normalized_alias = _normalise_spaces(f"{segment_label} {normalized_alias}")
-                queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_alias or alias}"))
-                for section in preferred_sections[:2]:
-                    queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_alias or alias} {section}"))
+        for surface in _query_surfaces_for_operand(operand):
+            normalized_surface = surface
+            if segment_label and normalized_surface and segment_label not in normalized_surface:
+                normalized_surface = _normalise_spaces(f"{segment_label} {normalized_surface}")
+            queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_surface}"))
+            for section in preferred_sections[:2]:
+                queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_surface} {section}"))
         for section in preferred_sections[:2]:
             queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_label or label} {section}"))
     return list(dict.fromkeys(item for item in queries if item))
@@ -3320,18 +3364,29 @@ def _compose_concept_numeric_task(
         operand_specs=operand_specs,
         report_scope=report_scope,
     )
+    result_unit = _infer_concept_ratio_result_unit(query, metric_label, operation_family)
     return {
         "task_id": "task_1",
         "metric_family": f"concept_{operation_family}",
         "metric_label": metric_label,
         "query": task_query,
         "operation_family": operation_family,
+        "result_unit": result_unit,
         "required_operands": operand_specs,
         "preferred_statement_types": preferred_statement_types,
         "preferred_sections": preferred_sections,
         "retrieval_queries": retrieval_queries,
         "constraints": constraints,
     }
+
+
+def _infer_concept_ratio_result_unit(query: str, metric_label: str, operation_family: str) -> str:
+    if _normalise_spaces(operation_family) != "ratio":
+        return ""
+    text = _normalise_spaces(f"{query} {metric_label}")
+    if "배율" in text and not any(token in text for token in ("비율", "%", "퍼센트", "percentage")):
+        return "배"
+    return "%"
 
 
 def _build_lookup_producer_task_from_binding(
@@ -4788,6 +4843,16 @@ def _build_table_row_reconciliation_candidates(
         candidates.extend(value_candidates)
 
     row_records_json = str(metadata.get("table_row_records_json") or "").strip()
+    if not row_records_json:
+        table_object_json = str(metadata.get("table_object_json") or "").strip()
+        if table_object_json:
+            try:
+                table_object = json.loads(table_object_json)
+            except json.JSONDecodeError:
+                table_object = {}
+            table_rows = table_object.get("rows") if isinstance(table_object, dict) else None
+            if isinstance(table_rows, list):
+                row_records_json = json.dumps(table_rows, ensure_ascii=False)
 
     if row_records_json:
         try:
@@ -4838,6 +4903,10 @@ def _build_table_row_reconciliation_candidates(
                 row_index=idx,
             )
             candidate["metadata"]["row_headers"] = row_headers
+            candidate["metadata"]["semantic_label"] = row_label
+            candidate["metadata"]["semantic_aliases"] = [
+                item for item in row_headers if _normalise_spaces(item) and _normalise_spaces(item) != _normalise_spaces(row_label)
+            ]
             candidate["metadata"]["structured_cells"] = cells
             row_text = _normalise_spaces(str(candidate["metadata"].get("row_text") or ""))
             if row_text:
@@ -6255,7 +6324,15 @@ def _build_reconciliation_retry_queries(
     for operand_label in missing_operands:
         spec = dict(operand_map.get(operand_label) or {})
         aliases = [str(item).strip() for item in (spec.get("aliases") or []) if str(item).strip()]
-        query_surfaces: List[str] = [operand_label, *aliases]
+        query_surfaces: List[str] = [
+            operand_label,
+            *aliases,
+            *[
+                str(item).strip()
+                for item in _lookup_query_surface_preferences(spec)
+                if str(item).strip()
+            ],
+        ]
         preferred_sections = [
             str(item).strip()
             for item in (
@@ -6443,9 +6520,40 @@ def _deterministic_reconcile_task(
                             ) > (
                                 bool(existing.get("canonical_winner")),
                                 float(existing.get("score") or 0.0),
-                            ):
-                                best_by_signature[signature] = entry
+                                ):
+                                    best_by_signature[signature] = entry
                         collapsed_entries = list(best_by_signature.values())
+                        sibling_surfaces = [
+                            str(item).strip()
+                            for item in (active_subtask.get("sibling_lookup_surfaces") or [])
+                            if str(item).strip()
+                        ]
+                        if len(collapsed_entries) > 1 and sibling_surfaces:
+                            sibling_ranked_entries = sorted(
+                                collapsed_entries,
+                                key=lambda entry: (
+                                    _candidate_sibling_surface_hit_count(
+                                        dict(entry.get("candidate") or {}),
+                                        sibling_surfaces,
+                                    ),
+                                    float(entry.get("score") or 0.0),
+                                ),
+                                reverse=True,
+                            )
+                            top_sibling_hits = _candidate_sibling_surface_hit_count(
+                                dict(sibling_ranked_entries[0].get("candidate") or {}),
+                                sibling_surfaces,
+                            )
+                            if top_sibling_hits > 0:
+                                collapsed_entries = [
+                                    entry
+                                    for entry in sibling_ranked_entries
+                                    if _candidate_sibling_surface_hit_count(
+                                        dict(entry.get("candidate") or {}),
+                                        sibling_surfaces,
+                                    )
+                                    == top_sibling_hits
+                                ]
                         canonical_entries = [
                             entry for entry in collapsed_entries if bool(entry.get("canonical_winner"))
                         ]

@@ -109,3 +109,60 @@ Current gate interpretation is now stable:
   - `comparison_001`
   - `comparison_002`
   - `comparison_003`
+
+## Concept Runtime Gap Gate
+
+Concept-planner gap closures now have a dedicated focused runtime gate:
+
+- Profile:
+  - `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
+- Candidate:
+  - `structural_selective_v2_prefix_2500_320`
+- Covered questions:
+  - `KBF_T2_018`
+  - `SKH_T3_080`
+  - `CEL_T1_013`
+  - `CEL_T3_040`
+  - `POS_T1_057`
+  - `KAB_T1_066`
+  - `SAM_T3_028`
+
+The gate exists because the expanded concept-planner shadow probe identified
+real runtime gaps that planner-structure validation alone could not prove:
+
+- missing or underspecified ontology concepts
+- concept aliases and section priors that were too weak for retrieval
+- row-family selection failures when the right structured table was retrieved
+  but the wrong sibling row was selected
+- direct lookup rendering that rounded source table units and weakened numeric
+  grounding
+
+Promotion decision:
+
+- Keep the original five-question `curated_runtime_contract_gate.json` as the
+  default short runtime smoke gate.
+- Promote these seven cases as a separate official focused gate rather than
+  merging them into the default smoke gate.
+- Run this gate when changing concept ontology, concept planning, structured
+  row binding, lookup rendering, reconciliation retry queries, or numeric
+  evaluator projection.
+
+Latest verification:
+
+- Date: 2026-05-28
+- Temporary validation profile:
+  - `benchmarks/profiles/tmp_concept_runtime_gap_gate_2026-05-28.json`
+- Output directory:
+  - `benchmarks/results/tmp_concept_runtime_gap_gate_2026-05-28/`
+- Result:
+  - 7 / 7 questions finished with `numeric_final_judgement = PASS`
+  - `numeric_equivalence = 1.0` and `numeric_grounding = 1.0` for all seven
+    questions
+
+Recommended invocation:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_concept_runtime_gap_gate.json `
+  --output-dir benchmarks/results/concept_runtime_gap_gate_manual
+```
