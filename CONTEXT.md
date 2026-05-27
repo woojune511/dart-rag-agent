@@ -156,7 +156,7 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `curated_concept_planner_shadow` 확대 검증 | concept-only planner drift를 runtime gate와 분리해서 확인 |
+| 1 | concept ontology gap closure | expanded shadow에서 남은 `신용손실충당금전입액`, `외화환산손익`, inventory valuation loss, interest expense/CIR 계열을 generic fallback에서 concept task로 올릴지 결정 |
 | 2 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
 | 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
 | 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
@@ -188,6 +188,42 @@
 - 따라서 다음 구현은 **concept planner shadow 확대 + benchmark maintenance** 쪽으로 돌아가는 흐름이 맞다.
 - immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding, `SAM_T3_028` fresh structural blocker는 now closed다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
+
+## 2026-05-28 Update
+
+- Concept ontology gap closure is now verified at planner level:
+  - added concepts for credit-loss provision expense, foreign-currency
+    translation gain/loss, capitalized development cost, inventory valuation
+    loss/reversal/disposal loss, interest income/expense, pre-expense operating
+    profit, bad debt expense, depreciation/amortization, impairment, and
+    goodwill impairment
+  - expanded concept-planner shadow rerun:
+    `benchmarks/results/tmp_curated_concept_planner_shadow_expanded_2026-05-28_concepts.json`
+  - result: `concept_fallback = 24 / 24`, `heuristic_fallback = 0 / 24`
+  - targeted gap cases now plan as concept tasks:
+    `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`,
+    `SAM_T3_028`, `POS_T1_057`, `KAB_T1_066`
+  - local DART report scan under `data/reports` supplied additional recurring
+    note concepts around interest, allowance/bad debt, impairment,
+    depreciation, and amortization
+  - verification passed:
+    `python -m unittest tests.test_ontology tests.test_semantic_numeric_plan -v`
+    and `python -m unittest discover -s tests -v`
+
+- Earlier expanded concept-planner shadow probe, now superseded by the
+  gap-closure rerun above:
+  - result: `benchmarks/results/tmp_curated_concept_planner_shadow_expanded_2026-05-28_fix3.json`
+  - scope: 24 cases, official canary + recent blocker/mixed numeric cases
+  - concept planner status: `concept_fallback = 20 / 24`, `heuristic_fallback = 4 / 24`
+- Generic planner fixes from the probe:
+  - repeated same-concept ratio operands are preserved when roles/segment/scope differ, e.g. segment operating income divided by company operating income
+  - `FCF` is represented as a generic concept group (`operating_cash_flow - property_plant_equipment_acquisition`) instead of falling back to `generic_numeric`
+- Remaining concept ontology gaps:
+  - `KBF_T2_018`: credit-loss provision growth
+  - `SKH_T3_080`: foreign-currency translation gain/loss net effect
+  - `CEL_T1_013`: capitalized development cost
+  - `CEL_T3_040` / `SAM_T3_028`: inventory valuation loss/reversal/disposal concepts
+  - `POS_T1_057` / `KAB_T1_066`: interest expense and bank profitability-table denominator concepts
 
 ## 2026-05-27 Update
 

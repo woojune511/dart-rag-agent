@@ -321,6 +321,15 @@ def _apply_segment_labels_to_llm_resolved_specs(
                     specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[index])
             return specs
 
+    if operation_family == "ratio" and repeated_same_concept and len(specs) >= 2 and segment_labels:
+        for index, spec in enumerate(specs):
+            role = str(spec.get("role") or "").strip()
+            if not role.startswith("numerator"):
+                continue
+            specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[0])
+            break
+        return specs
+
     if operation_family in {"lookup", "single_value"} and len(specs) == 1:
         matched_segment = next(
             (

@@ -77,6 +77,81 @@ Representative examples:
   - legacy: `concept_single_value`
   - concept: `concept_sum`
 
+## 2026-05-28 Expanded Probe
+
+An expanded 24-case shadow probe was run with the official curated canary plus
+recent blocker and mixed numeric cases.
+
+- output:
+  - `benchmarks/results/tmp_curated_concept_planner_shadow_expanded_2026-05-28_concepts.json`
+- profile:
+  - `benchmarks/profiles/tmp_curated_concept_planner_shadow_expanded_2026-05-28.json`
+  - temporary profile/result artifacts are not source commit targets
+
+Observed pattern:
+
+- concept planner status:
+  - `concept_fallback`: 24 / 24
+  - `heuristic_fallback`: 0 / 24
+- legacy planner status:
+  - `ok`: 9 / 24
+  - `concept_fallback`: 9 / 24
+  - `heuristic_fallback`: 6 / 24
+- `implicit_fcf_naver_2023` is back to `concept_difference` after adding the
+  generic `free_cash_flow_components` concept group:
+  - `operating_cash_flow` as `minuend`
+  - `property_plant_equipment_acquisition` as `subtrahend`
+- repeated same-concept ratio operands are now preserved when the operands
+  differ by role/segment/scope, e.g. segment operating income divided by
+  company operating income.
+
+## 2026-05-28 Gap Closure Rerun
+
+After adding the ontology concepts identified by the expanded probe and local
+DART report scans, the same 24-case shadow profile was rerun.
+
+- output:
+  - `benchmarks/results/tmp_curated_concept_planner_shadow_expanded_2026-05-28_concepts.json`
+- concept planner status:
+  - `concept_fallback`: 24 / 24
+  - `heuristic_fallback`: 0 / 24
+
+Closed gap cases:
+
+- `KBF_T2_018`: `credit_loss_provision_expense` now plans as
+  `concept_growth_rate` with current/prior operands.
+- `SKH_T3_080`: `foreign_currency_translation_gain` and
+  `foreign_currency_translation_loss` now plan as lookup tasks plus a
+  `concept_difference` net-effect task.
+- `CEL_T1_013`: `capitalized_development_cost` over
+  `research_and_development_expense` now plans as `concept_ratio`.
+- `CEL_T3_040`: inventory valuation loss, reversal, and disposal loss now plan
+  as separate concept lookup tasks plus narrative summary.
+- `SAM_T3_028`: inventory valuation loss is represented explicitly and can be
+  compared against `cost_of_sales` without query-specific runtime row injection.
+- `POS_T1_057`: interest coverage now plans as
+  `operating_income / interest_expense`.
+- `KAB_T1_066`: CIR now plans as
+  `selling_general_administrative_expense / pre_expense_operating_profit`.
+
+Additional DART-derived ontology additions:
+
+- Local DART report scans under `data/reports` showed recurring note/statement
+  surfaces for interest income/expense, allowance and bad debt terms,
+  impairment, depreciation, and amortization.
+- The concept ontology now includes generic DART note concepts for
+  `interest_income`, `interest_expense`, `bad_debt_expense`,
+  `depreciation_expense`, `amortization_expense`, `impairment_loss`, and
+  `goodwill_impairment_loss`.
+
+Verification:
+
+- `python -m unittest tests.test_ontology tests.test_semantic_numeric_plan -v`
+  passed: 69 tests.
+- `python -m unittest discover -s tests -v` passed: 386 tests.
+- Expanded shadow rerun passed planner-structure validation:
+  `concept_fallback = 24 / 24`.
+
 ## How To Interpret It
 
 Good signs:

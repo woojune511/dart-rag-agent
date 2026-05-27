@@ -2570,6 +2570,10 @@ def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any])
     labels: List[str] = []
 
     if any(marker in text for marker in ("부문", "세그먼트", "segment")):
+        for match in re.finditer(r"(?:부문|세그먼트|segment)\s*\(([^)]{1,30})\)", text, flags=re.IGNORECASE):
+            normalized = _valid_label(match.group(1))
+            if normalized:
+                labels.append(normalized)
         segment_anchor = ""
         for marker in ("부문의", "부문", "세그먼트의", "세그먼트", "segment"):
             if marker in text:
@@ -2704,12 +2708,24 @@ def _build_concept_required_operands(
         for spec, role in zip(ordered_specs, explicit_roles):
             concept_key = str(spec.get("concept") or "").strip()
             dedupe_key: Any = concept_key
-            if operation_family == "sum":
-                # Sum tasks can legitimately use the same concept more than once when the
-                # planner is adding segment- or scope-specific values (for example, SDC
-                # revenue + Harman revenue). Preserve distinct addend roles while still
-                # collapsing exact duplicates.
-                dedupe_key = (concept_key, str(role or "").strip())
+            if operation_family in {"ratio", "sum"}:
+                # Sum and ratio tasks can legitimately use the same concept more than
+                # once when operands differ by role family, segment, or scope (for
+                # example, segment operating income / company operating income).
+                # Collapse group/member duplicate matches that land in the same role
+                # family, but preserve numerator-vs-denominator distinctions.
+                binding_policy = dict(spec.get("binding_policy") or {})
+                normalized_role = str(role or "").strip()
+                if operation_family == "ratio":
+                    if normalized_role.startswith("numerator"):
+                        normalized_role = "numerator"
+                    elif normalized_role.startswith("denominator"):
+                        normalized_role = "denominator"
+                dedupe_key = (
+                    concept_key,
+                    normalized_role,
+                    _normalise_spaces(str(binding_policy.get("segment_label") or "")),
+                )
             if concept_key and dedupe_key in seen_keys:
                 continue
             if concept_key:
@@ -3202,8 +3218,16 @@ def _build_group_decomposition_task(
 
         operation_family = str(hints.get("preferred_operation") or "").strip() or _infer_operation_family_from_query(query, ontology)
         member_role_prefix = str(hints.get("member_role_prefix") or "numerator").strip() or "numerator"
+        member_roles = [
+            str(item).strip()
+            for item in (hints.get("member_roles") or [])
+            if str(item).strip()
+        ]
         numerator_specs = [
-            {**dict(spec), "role": f"{member_role_prefix}_{index}"}
+            {
+                **dict(spec),
+                "role": member_roles[index - 1] if index <= len(member_roles) else f"{member_role_prefix}_{index}",
+            }
             for index, spec in enumerate((group_spec.get("member_specs") or []), start=1)
             if dict(spec)
         ]
@@ -3214,7 +3238,14 @@ def _build_group_decomposition_task(
                 continue
             denominator_specs.append({**concept_spec, "role": f"denominator_{index}"})
 
-        if not numerator_specs or not denominator_specs:
+        denominator_concept_keys = [
+            str(item).strip()
+            for item in (hints.get("denominator_concepts") or [])
+            if str(item).strip()
+        ]
+        if not numerator_specs:
+            continue
+        if denominator_concept_keys and not denominator_specs:
             continue
 
         ordered_specs = [*numerator_specs, *denominator_specs]

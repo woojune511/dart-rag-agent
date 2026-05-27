@@ -13,6 +13,18 @@
 
 ## Immediate Focus
 
+- Concept ontology gap closure has been completed at planner-validation level.
+  - Added generic ontology concepts for the 2026-05-28 shadow gaps:
+    credit-loss provision, foreign-currency translation gain/loss,
+    capitalized development cost, inventory valuation loss/reversal/disposal,
+    interest expense, and CIR denominator support.
+  - Added DART-scan-derived recurring note concepts: interest income, bad debt
+    expense, depreciation, amortization, impairment, and goodwill impairment.
+  - Verified with targeted planner/ontology tests, full unit discovery, and the
+    expanded 24-case concept-planner shadow rerun.
+  - Current shadow status: `concept_fallback = 24 / 24`,
+    `heuristic_fallback = 0 / 24`.
+
 - 검증 순서는 **검증 가능한 최소 단위 우선**으로 고정한다.
   - 1) unit test / targeted regression
   - 2) 단일 문항 targeted replay
@@ -88,8 +100,8 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목표 | concept-only ontology + LLM planner가 implicit / shorthand / multi-metric query를 runtime default로 감당할 수 있는지 검증 |
-| 현재 관측 | concept planner canary에서 `SKH_T1_060`, `MIX_T1_021`, implicit `부채비율` / `유동비율` / `FCF`는 잘 분해된다. `NAV_T1_071`와 `KBF_T1_017`도 `lookup + difference` + direct-first/evaluator close까지 확인됐다 |
-| 다음 할 일 | concept planner canary와 ontology shadow compare를 계속 돌리며 default 승격 기준 정리 |
+| 현재 관측 | expanded shadow 24케이스에서 `concept_fallback = 24 / 24`, `heuristic_fallback = 0 / 24`를 확인했다. `FCF`는 generic concept group으로 복구했고, same-concept ratio도 role/segment/scope별 operand를 보존한다 |
+| 다음 할 일 | concept-only planner는 gap closure가 끝났으므로 runtime gate에서 retrieval/grounding 영향만 별도 검증한다 |
 | 종료 조건 | planner가 benchmark-shaped `metric_family` 없이도 주요 numeric family를 안정적으로 재료 수집 task로 분해 |
 
 ### 4. DART multi-document reasoning

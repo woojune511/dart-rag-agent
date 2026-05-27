@@ -974,6 +974,91 @@ class SemanticNumericPlanTests(unittest.TestCase):
             )
         )
 
+    def test_llm_ratio_preserves_same_concept_segment_and_company_operands(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "tasks": [
+                        {
+                            "metric_label": "SK온 영업손실의 전체 연결 영업이익 대비 비중",
+                            "operation_family": "ratio",
+                            "operands": [
+                                {"concept": "operating_income", "role": "numerator_1"},
+                                {"concept": "operating_income", "role": "denominator_1"},
+                            ],
+                        }
+                    ],
+                    "rationale": "segment operating loss divided by company operating income",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "2023년 배터리 사업 부문(SK온)의 영업손실이 전체 연결 영업이익의 몇 % 수준인지 계산해 줘.",
+                    "intent": "comparison",
+                    "query_type": "comparison",
+                    "topic": "SK온 영업손실 비중",
+                    "report_scope": {"company": "SK이노베이션", "year": 2023, "report_type": "사업보고서"},
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        ratio_task = next(
+            task for task in result["calc_subtasks"] if task.get("metric_family") == "concept_ratio"
+        )
+        operands = ratio_task["required_operands"]
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in operands],
+            [("operating_income", "numerator_1"), ("operating_income", "denominator_1")],
+        )
+        self.assertEqual(dict(operands[0].get("binding_policy") or {}).get("segment_label"), "SK온")
+        self.assertNotIn("segment_label", dict(operands[1].get("binding_policy") or {}))
+
+    def test_concept_only_ontology_builds_fcf_difference_from_component_group(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="2023년 FCF를 계산해 줘.",
+                topic="FCF",
+                intent="comparison",
+                report_scope={"company": "NAVER", "year": 2023, "report_type": "사업보고서", "consolidation": "연결"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_difference")
+        self.assertEqual(task["operation_family"], "difference")
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in task["required_operands"]],
+            [
+                ("operating_cash_flow", "minuend"),
+                ("property_plant_equipment_acquisition", "subtrahend"),
+            ],
+        )
+
     def test_implicit_multi_metric_query_is_split_by_llm_concept_planner(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager
@@ -1599,8 +1684,16 @@ class SemanticNumericPlanTests(unittest.TestCase):
             target_metric_family="",
         )
 
-        self.assertEqual(plan["status"], "heuristic_fallback")
+        self.assertEqual(plan["status"], "concept_fallback")
         task = plan["tasks"][0]
+        self.assertEqual(task["operation_family"], "difference")
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in task["required_operands"]],
+            [
+                ("foreign_currency_translation_gain", "minuend"),
+                ("foreign_currency_translation_loss", "subtrahend"),
+            ],
+        )
         operand_labels = [row["label"] for row in task["required_operands"]]
         self.assertEqual(operand_labels, ["외화환산이익", "외화환산손실"])
         self.assertIn("notes", task["preferred_statement_types"])
@@ -1950,6 +2043,98 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
         self.assertIn("원재료 및 생산설비", task["preferred_sections"])
         self.assertNotIn("cash_flow", task["preferred_statement_types"])
+
+    def _build_v3_concept_plan(self, query: str) -> dict:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            return _build_semantic_numeric_plan(
+                query=query,
+                topic="",
+                intent="comparison",
+                report_scope={"company": "테스트", "year": 2023, "report_type": "사업보고서", "consolidation": "연결"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+    def test_concept_only_ontology_builds_shadow_gap_concept_tasks(self) -> None:
+        cases = [
+            (
+                "2023년 신용손실충당금전입액과 전년 대비 증감률을 계산해줘",
+                "growth_rate",
+                [
+                    ("credit_loss_provision_expense", "current_period"),
+                    ("credit_loss_provision_expense", "prior_period"),
+                ],
+            ),
+            (
+                "2023년 외화환산이익과 외화환산손실의 순효과를 계산해줘",
+                "difference",
+                [
+                    ("foreign_currency_translation_gain", "minuend"),
+                    ("foreign_currency_translation_loss", "subtrahend"),
+                ],
+            ),
+            (
+                "2023년 자본화된 개발비가 연구개발비에서 차지하는 비율을 계산해줘",
+                "ratio",
+                [
+                    ("capitalized_development_cost", "numerator_1"),
+                    ("research_and_development_expense", "denominator_1"),
+                ],
+            ),
+            (
+                "2023년 이자보상배율(영업이익 / 이자비용)을 계산해줘",
+                "ratio",
+                [
+                    ("operating_income", "numerator_1"),
+                    ("interest_expense", "denominator_1"),
+                ],
+            ),
+            (
+                "2023년 경비차감전영업이익 대비 판매비와관리비 비율을 계산해줘",
+                "ratio",
+                [
+                    ("pre_expense_operating_profit", "denominator_1"),
+                    ("selling_general_administrative_expense", "numerator_1"),
+                ],
+            ),
+        ]
+
+        for query, operation_family, expected_operands in cases:
+            with self.subTest(query=query):
+                plan = self._build_v3_concept_plan(query)
+                self.assertEqual(plan["status"], "concept_fallback")
+                task = plan["tasks"][0]
+                self.assertEqual(task["operation_family"], operation_family)
+                self.assertEqual(
+                    [(row["concept"], row["role"]) for row in task["required_operands"]],
+                    expected_operands,
+                )
+
+    def test_concept_only_ontology_matches_inventory_loss_lookup_variants(self) -> None:
+        plan = self._build_v3_concept_plan(
+            "2023년 재고자산평가손실, 환입, 폐기손실 금액을 찾아줘"
+        )
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["operation_family"], "single_value")
+        self.assertEqual(
+            [row["concept"] for row in task["required_operands"]],
+            [
+                "inventory_valuation_loss",
+                "inventory_valuation_loss_reversal",
+                "inventory_disposal_loss",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

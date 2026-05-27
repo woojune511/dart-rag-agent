@@ -32,6 +32,7 @@
         "비율",
         "비중",
         "마진",
+        "배율",
         "margin",
         "ratio"
       ],
@@ -40,6 +41,8 @@
         "증감",
         "증가",
         "감소",
+        "순효과",
+        "순영향",
         "difference"
       ],
       "growth_rate": [
@@ -176,6 +179,47 @@
           "영업비용 비중",
           "원가율",
           "총 영업비용"
+        ]
+      }
+    },
+    "free_cash_flow_components": {
+      "display_name": "잉여현금흐름",
+      "aliases": [
+        "FCF",
+        "free cash flow",
+        "잉여현금흐름"
+      ],
+      "keywords": [
+        "FCF",
+        "free cash flow",
+        "잉여현금흐름",
+        "영업활동현금흐름",
+        "유형자산 취득"
+      ],
+      "member_concepts": [
+        "operating_cash_flow",
+        "property_plant_equipment_acquisition"
+      ],
+      "preferred_statement_types": [
+        "cash_flow",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "연결 현금흐름표",
+        "현금흐름표",
+        "현금흐름표 (연결)"
+      ],
+      "decomposition_hints": {
+        "preferred_operation": "difference",
+        "metric_label": "잉여현금흐름",
+        "member_roles": [
+          "minuend",
+          "subtrahend"
+        ],
+        "query_any_of": [
+          "FCF",
+          "free cash flow",
+          "잉여현금흐름"
         ]
       }
     }
@@ -931,6 +975,410 @@
       "preferred_sections": [
         "연결 현금흐름표",
         "현금흐름표"
+      ]
+    },
+    "credit_loss_provision_expense": {
+      "display_name": "신용손실충당금전입액",
+      "aliases": [
+        "신용손실충당금 전입액",
+        "신용손실충당금",
+        "손실충당금 전입액",
+        "당기손익으로 인식된 손실충당금의 증가",
+        "대손상각비"
+      ],
+      "keywords": [
+        "신용손실충당금전입액",
+        "신용손실충당금",
+        "손실충당금",
+        "대손상각비",
+        "기대신용손실"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "income_statement",
+        "notes",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "연결 포괄손익계산서",
+        "포괄손익계산서",
+        "손실충당금",
+        "신용위험",
+        "금융상품"
+      ]
+    },
+    "foreign_currency_translation_gain": {
+      "display_name": "외화환산이익",
+      "aliases": [
+        "외화환산 이익",
+        "foreign currency translation gain"
+      ],
+      "keywords": [
+        "외화환산이익",
+        "외화환산 이익",
+        "환율 변동",
+        "금융수익",
+        "영업외수익"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "금융손익",
+        "금융수익",
+        "외화환산"
+      ]
+    },
+    "foreign_currency_translation_loss": {
+      "display_name": "외화환산손실",
+      "aliases": [
+        "외화환산 손실",
+        "foreign currency translation loss"
+      ],
+      "keywords": [
+        "외화환산손실",
+        "외화환산 손실",
+        "환율 변동",
+        "금융비용",
+        "영업외비용"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "금융손익",
+        "금융비용",
+        "외화환산"
+      ]
+    },
+    "capitalized_development_cost": {
+      "display_name": "자본화된 개발비",
+      "aliases": [
+        "개발비",
+        "무형자산(개발비)",
+        "무형자산 개발비",
+        "자본화 개발비",
+        "자본화된 연구개발비"
+      ],
+      "keywords": [
+        "자본화된 개발비",
+        "자본화 개발비",
+        "무형자산(개발비)",
+        "개발비",
+        "자본화"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "balance_sheet",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "무형자산",
+        "연구개발활동",
+        "주요계약 및 연구개발활동",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "inventory_valuation_loss": {
+      "display_name": "재고자산평가손실",
+      "aliases": [
+        "재고자산 평가손실",
+        "재고자산평가손실(환입)",
+        "재고자산평가손실(또는 환입)"
+      ],
+      "keywords": [
+        "재고자산평가손실",
+        "재고자산 평가손실",
+        "재고자산평가손실(환입)",
+        "매출원가"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "재고자산",
+        "비용의 성격별 분류",
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "현금흐름표"
+      ]
+    },
+    "inventory_valuation_loss_reversal": {
+      "display_name": "재고자산평가손실환입",
+      "aliases": [
+        "재고자산 평가손실 환입",
+        "재고자산평가손실 환입",
+        "재고자산평가환입"
+      ],
+      "keywords": [
+        "재고자산평가손실환입",
+        "재고자산평가손실 환입",
+        "재고자산 평가손실 환입",
+        "환입"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "재고자산",
+        "비용의 성격별 분류",
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "현금흐름표"
+      ]
+    },
+    "inventory_disposal_loss": {
+      "display_name": "재고자산폐기손실",
+      "aliases": [
+        "재고자산 폐기손실",
+        "재고자산폐기 손실",
+        "폐기손실"
+      ],
+      "keywords": [
+        "재고자산폐기손실",
+        "재고자산 폐기손실",
+        "재고자산폐기",
+        "폐기손실",
+        "매출원가"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "재고자산",
+        "비용의 성격별 분류",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "interest_expense": {
+      "display_name": "이자비용",
+      "aliases": [
+        "이자 비용",
+        "금융비용",
+        "interest expense"
+      ],
+      "keywords": [
+        "이자비용",
+        "이자 비용",
+        "금융비용",
+        "이자율위험"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "income_statement",
+        "notes",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "금융비용",
+        "금융손익",
+        "이자율위험",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "interest_income": {
+      "display_name": "이자수익",
+      "aliases": [
+        "이자 수익",
+        "금융수익",
+        "interest income"
+      ],
+      "keywords": [
+        "이자수익",
+        "이자 수익",
+        "금융수익",
+        "이자율위험"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "income_statement",
+        "notes",
+        "summary_financials"
+      ],
+      "preferred_sections": [
+        "금융수익",
+        "금융손익",
+        "이자율위험",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "pre_expense_operating_profit": {
+      "display_name": "경비차감전영업이익",
+      "aliases": [
+        "경비차감전 영업이익",
+        "경비차감전영업이익(A)",
+        "수익성 표 경비차감전영업이익"
+      ],
+      "keywords": [
+        "경비차감전영업이익",
+        "경비차감전 영업이익",
+        "수익성",
+        "CIR"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "mda",
+        "notes"
+      ],
+      "preferred_sections": [
+        "수익성",
+        "영업실적",
+        "영업의 개황",
+        "요약재무정보"
+      ]
+    },
+    "bad_debt_expense": {
+      "display_name": "대손상각비",
+      "aliases": [
+        "대손 상각비",
+        "금융자산 손상 관련 대손상각비",
+        "손상 관련 대손상각비"
+      ],
+      "keywords": [
+        "대손상각비",
+        "대손 상각비",
+        "손실충당금",
+        "금융자산 손상"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "대손상각비",
+        "손실충당금",
+        "신용위험",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "depreciation_expense": {
+      "display_name": "감가상각비",
+      "aliases": [
+        "감가 상각비",
+        "depreciation expense"
+      ],
+      "keywords": [
+        "감가상각비",
+        "감가 상각비",
+        "상각"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "cash_flow",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "유형자산",
+        "비용의 성격별 분류",
+        "현금흐름표",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "amortization_expense": {
+      "display_name": "무형자산상각비",
+      "aliases": [
+        "무형자산 상각비",
+        "상각비",
+        "amortization expense"
+      ],
+      "keywords": [
+        "무형자산상각비",
+        "무형자산 상각비",
+        "상각비",
+        "상각"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "cash_flow",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "무형자산",
+        "비용의 성격별 분류",
+        "현금흐름표",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "impairment_loss": {
+      "display_name": "손상차손",
+      "aliases": [
+        "손상 차손",
+        "impairment loss"
+      ],
+      "keywords": [
+        "손상차손",
+        "손상 차손",
+        "손상",
+        "impairment"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "손상차손",
+        "무형자산",
+        "영업권",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "goodwill_impairment_loss": {
+      "display_name": "영업권손상차손",
+      "aliases": [
+        "영업권 손상차손",
+        "영업권손상",
+        "goodwill impairment"
+      ],
+      "keywords": [
+        "영업권손상차손",
+        "영업권 손상차손",
+        "영업권손상",
+        "영업권",
+        "손상차손"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement"
+      ],
+      "preferred_sections": [
+        "영업권",
+        "손상차손",
+        "무형자산",
+        "연결재무제표 주석",
+        "재무제표 주석"
       ]
     }
   }

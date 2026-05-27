@@ -170,5 +170,20 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("income_before_income_taxes", concept_keys)
 
 
+    def test_v3_matches_dart_derived_note_concepts(self) -> None:
+        cases = [
+            ("2023년 이자비용과 이자수익을 찾아줘", {"interest_expense", "interest_income"}),
+            ("2023년 대손상각비와 손실충당금 전입액을 찾아줘", {"bad_debt_expense", "credit_loss_provision_expense"}),
+            ("2023년 감가상각비와 무형자산상각비를 찾아줘", {"depreciation_expense", "amortization_expense"}),
+            ("2023년 손상차손과 영업권손상차손을 찾아줘", {"impairment_loss", "goodwill_impairment_loss"}),
+        ]
+
+        for query, expected_concepts in cases:
+            with self.subTest(query=query):
+                specs = self.ontology_v3.concept_specs(query, intent="comparison")
+                concept_keys = {spec["concept"] for spec in specs}
+                self.assertTrue(expected_concepts.issubset(concept_keys))
+
+
 if __name__ == "__main__":
     unittest.main()
