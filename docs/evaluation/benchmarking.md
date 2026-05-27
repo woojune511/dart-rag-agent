@@ -280,15 +280,19 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
     - `structured_result.status = ok`
 - `curated_single_doc_core`
   - `MIX_T1_046`는 generic share-of-total ratio 분해, unit inheritance, evaluator period normalization 보강 이후 한 차례 PASS했고, parent-hybrid probe의 fresh NAVER 2023 bundle에서 다시 노출된 `영업비용` denominator binding failure도 calculation fallback 보강 후 store-fixed eval-only에서 다시 PASS했다
-  - `SAM_T3_028`는 parser/store가 inventory note row와 inclusion sentence를 보존하지 못하는 문제가 있었고, raw filing deterministic fallback 추가 후 targeted rerun에서 다시 PASS했다
+  - `SAM_T3_028`는 parser/store가 inventory note row와 inclusion sentence를 보존하지 못하는 문제가 있었다. raw filing deterministic fallback 추가 후 targeted rerun에서는 다시 PASS했지만, 해당 query-specific runtime rule은 product runtime path에서 제거했다
     - `numeric_final_judgement = PASS`
     - `numeric_equivalence = 1.0`
     - `numeric_grounding = 1.0`
     - `numeric_retrieval_support = 1.0`
     - `faithfulness = 1.0`
     - `completeness = 1.0`
+    - retrieval 후보 안에서 inventory row/evidence를 hard-coded rule로 승격하거나 deterministic answer로 조립하는 경로도 제거했다
+    - parser row-axis preservation fix를 적용해 grouped table row에서 `재고자산평가손실(환입) 등`이 `semantic_label`로 살아남고, `5,037,579` value record에 묶이는 것을 실제 삼성전자 2023 filing smoke로 확인했다
+    - fresh structural rerun `benchmarks/results/sam_t3_028_parser_store_check_2026-05-27_fix7`에서 `faithfulness = 1.0`, `completeness = 1.0`, `numeric_pass = 1.0`, `retrieval_hit_at_k = 1.0`, `section_match = 1.0`, `avg_score = 0.966`으로 PASS했다
+    - 이 fresh rerun은 retrieval로 들어온 structured row/value/evidence만 사용한 generic label/value assembly 결과이며, 실험 산출물은 commit 대상에서 제외한다
   - missing local filing 문제는 curated benchmark auto-fetch로 정리됐다
-  - 이 수정이 반영된 broader `curated_single_doc_core` rerun은 현재 진행 중이며, final blocker set은 run 완료 후 다시 확정해야 한다
+  - broader `curated_single_doc_core`에서 `SAM_T3_028` source-level blocker는 닫혔고, 남은 work는 concept planner shadow와 gate maintenance로 이동한다
 - official targeted follow-up
   - `MIX_T1_064`는 composed-ratio aggregate trace 보강과 evaluator operand supplementation 이후
     - `numeric_equivalence = 1.0`
@@ -304,7 +308,7 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 즉 최신 판단은 다음과 같다.
 
 - `structural_selective_v2`는 현재 routine curated validation의 operating default다
-- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, `SAM_T3_028` targeted single-doc blocker, targeted official follow-up blocker는 닫혔다
+- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, `SAM_T3_028` fresh structural blocker, targeted official follow-up blocker는 닫혔다
 - fresh-store 회귀는 retrieval coverage보다 task/dependency ledger와 multi-report inventory가 더 중요한 병목임이 확인됐다
 - mixed numeric+narrative query는 숫자 correctness만으로 닫지 않고, aggregate synthesis가 question-level context evidence까지 최종 문장에 반영해야 한다
 - `structural_parent_hybrid_v2` probe 결과, parent digest는 현재 3문항 probe에서 default 승격 근거를 만들지 못했다

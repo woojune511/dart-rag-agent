@@ -17,152 +17,13 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import (
-    _cached_report_text,
-    _report_scope_source_receipts,
-    _report_scope_source_reports,
-    _resolve_report_path_from_receipt,
-)
+from src.agent.financial_graph_helpers import _report_scope_source_receipts
 from src.agent.financial_graph_models import CompressionOutput, EvidenceExtraction, EvidenceItem, FinancialAgentState, NumericExtraction, ValidationOutput
 from src.config import get_financial_ontology
 
 logger = logging.getLogger(__name__)
 
-_HTML_TITLE_PATTERN = re.compile(r"<TITLE[^>]*>([^<]+)</TITLE>", re.IGNORECASE)
-_HTML_INVENTORY_WRITE_DOWN_ROW_PATTERN = re.compile(
-    r"재고자산평가손실\(환입\)\s*등</P>\s*</TE>\s*<TE[^>]*>\s*<P[^>]*>(\(?\d{1,3}(?:,\d{3})+\)?)</P>",
-    re.IGNORECASE | re.DOTALL,
-)
-_HTML_INVENTORY_INCLUSION_PATTERN = re.compile(
-    r"동 비용에는\s*재고자산평가손실\s*금액이\s*포함되어\s*있습니다\.",
-    re.IGNORECASE,
-)
-
 class FinancialAgentEvidenceMixin:
-    def _inventory_write_down_raw_report_facts(
-        self,
-        state: FinancialAgentState,
-        docs,
-    ) -> Dict[str, Dict[str, Any]]:
-        report_scope = dict(state.get("report_scope") or {})
-        source_reports = _report_scope_source_reports(report_scope)
-        receipt_no = ""
-        base_metadata: Dict[str, Any] = {}
-
-        if source_reports:
-            source = dict(source_reports[0] or {})
-            receipt_no = str(source.get("rcept_no") or "").strip()
-            base_metadata.update(
-                {
-                    "company": str(source.get("corp_name") or source.get("company") or "").strip(),
-                    "year": source.get("year"),
-                    "report_type": str(source.get("report_type") or source.get("report_nm") or "").strip(),
-                }
-            )
-
-        for item in docs[: min(8, len(docs))]:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            metadata = dict(getattr(doc, "metadata", {}) or {})
-            if not receipt_no:
-                receipt_no = str(metadata.get("rcept_no") or "").strip()
-                if not receipt_no:
-                    chunk_uid = str(metadata.get("chunk_uid") or "").strip()
-                    if ":" in chunk_uid:
-                        receipt_no = chunk_uid.split(":", 1)[0].strip()
-            for key in ("company", "year", "report_type"):
-                if not base_metadata.get(key) and metadata.get(key):
-                    base_metadata[key] = metadata.get(key)
-
-        report_year = str(base_metadata.get("year") or "").strip()
-        if not receipt_no:
-            return {}
-
-        report_path = _resolve_report_path_from_receipt(receipt_no, report_year)
-        if not report_path:
-            return {}
-
-        report_text = _cached_report_text(report_path)
-        if not report_text:
-            return {}
-
-        def _section_path_for_position(position: int, default_title: str) -> str:
-            window = report_text[max(0, position - 12000) : position]
-            title_matches = list(_HTML_TITLE_PATTERN.finditer(window))
-            title = _normalise_spaces(title_matches[-1].group(1)) if title_matches else default_title
-            if not title:
-                title = default_title
-            if "연결손익계산서" in title:
-                return f"III. 재무에 관한 사항 > 2. 연결재무제표 > {title}"
-            if "주석" not in title:
-                return f"III. 재무에 관한 사항 > 연결재무제표 주석 {title}"
-            return f"III. 재무에 관한 사항 > {title}"
-
-        def _metadata_with_section(section_path: str) -> Dict[str, Any]:
-            metadata = dict(base_metadata)
-            metadata.update(
-                {
-                    "rcept_no": receipt_no,
-                    "section_path": section_path,
-                    "section": section_path,
-                    "statement_type": "notes",
-                    "consolidation_scope": "consolidated",
-                    "unit_hint": "백만원",
-                }
-            )
-            return metadata
-
-        raw_facts: Dict[str, Dict[str, Any]] = {}
-
-        best_inventory: Optional[Dict[str, Any]] = None
-        best_inventory_key = (False, False, 0.0)
-        for match in _HTML_INVENTORY_WRITE_DOWN_ROW_PATTERN.finditer(report_text):
-            value_text = _normalise_spaces(match.group(1))
-            normalized_value, _ = _normalise_operand_value(value_text, "백만원")
-            if normalized_value is None:
-                continue
-            section_path = _section_path_for_position(match.start(), "27. 현금흐름표 (연결)")
-            score_key = ("현금흐름표" in section_path, "연결" in section_path, abs(float(normalized_value)))
-            if score_key <= best_inventory_key:
-                continue
-            metadata = _metadata_with_section(section_path)
-            quote = f"재고자산평가손실(환입) 등 | {report_year or str(base_metadata.get('year') or '')} | {value_text} | 백만원"
-            best_inventory_key = score_key
-            best_inventory = {
-                "anchor": self._build_source_anchor(metadata),
-                "source_anchor": self._build_source_anchor(metadata),
-                "quote": quote,
-                "claim": quote,
-                "quote_span": quote,
-                "metadata": metadata,
-                "amount_text": value_text,
-                "unit_hint": "백만원",
-            }
-        if best_inventory:
-            raw_facts["inventory"] = best_inventory
-
-        best_inclusion: Optional[Dict[str, Any]] = None
-        best_inclusion_key = (False, False)
-        for match in _HTML_INVENTORY_INCLUSION_PATTERN.finditer(report_text):
-            section_path = _section_path_for_position(match.start(), "21. 비용의 성격별 분류 (연결)")
-            score_key = ("비용의 성격별 분류" in section_path, "연결" in section_path)
-            if score_key <= best_inclusion_key:
-                continue
-            metadata = _metadata_with_section(section_path)
-            quote = "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다."
-            best_inclusion_key = score_key
-            best_inclusion = {
-                "anchor": self._build_source_anchor(metadata),
-                "source_anchor": self._build_source_anchor(metadata),
-                "quote": quote,
-                "claim": quote,
-                "quote_span": quote,
-                "metadata": metadata,
-            }
-        if best_inclusion:
-            raw_facts["inclusion"] = best_inclusion
-
-        return raw_facts
-
     def _merge_retry_candidates(self, docs, previous_docs) -> List[tuple[Document, float]]:
         merged: List[tuple[Document, float]] = list(docs)
         seen_chunk_uids = {
@@ -342,6 +203,9 @@ class FinancialAgentEvidenceMixin:
                     for part in (
                         str(doc.page_content or ""),
                         str(metadata.get("table_context") or ""),
+                        str(metadata.get("table_value_labels_text") or ""),
+                        str(metadata.get("table_row_labels_text") or ""),
+                        str(metadata.get("table_summary_text") or ""),
                     )
                     if part
                 )
@@ -459,6 +323,31 @@ class FinancialAgentEvidenceMixin:
                     seen_chunk_ids.add(chunk_id)
                 break
 
+        quantitative_impact_query = any(marker in query for marker in ("영향", "분석", "비중", "대비", "차지"))
+        if quantitative_impact_query:
+            focus_terms = [
+                term
+                for term in re.findall(r"[가-힣A-Za-z0-9]+", query)
+                if len(term) >= 3 and term not in {"2023년", "규모를", "찾고", "이것이", "미친", "분석해"}
+            ]
+            for focus_term in list(dict.fromkeys(focus_terms))[:6]:
+                if any(focus_term in _doc_surface(item[0] if isinstance(item, (tuple, list)) else item) for item in selected):
+                    continue
+                for item in reranked:
+                    doc = item[0] if isinstance(item, (tuple, list)) else item
+                    metadata = getattr(doc, "metadata", {}) or {}
+                    chunk_id = str(metadata.get("chunk_id") or "")
+                    if chunk_id and chunk_id in seen_chunk_ids:
+                        continue
+                    if str(metadata.get("block_type") or "").strip().lower() != "table":
+                        continue
+                    if focus_term not in _doc_surface(doc):
+                        continue
+                    selected.append(item)
+                    if chunk_id:
+                        seen_chunk_ids.add(chunk_id)
+                    break
+
         if dividend_policy_query:
             def _append_dividend_specific_doc(predicate) -> None:
                 for item in reranked:
@@ -517,118 +406,6 @@ class FinancialAgentEvidenceMixin:
                 break
 
         return selected[:effective_k]
-
-    def _select_inventory_write_down_docs(self, docs, reranked, state: FinancialAgentState, effective_k: int):
-        query = str(state.get("query") or "")
-        if not self._is_inventory_write_down_mixed_query(query):
-            return docs[:effective_k]
-
-        def _doc_surface(doc: Document) -> str:
-            metadata = getattr(doc, "metadata", {}) or {}
-            return _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(doc.page_content or ""),
-                        str(metadata.get("table_context") or ""),
-                        str(metadata.get("table_header_context") or ""),
-                        str(metadata.get("table_summary_text") or ""),
-                        str(metadata.get("table_row_labels_text") or ""),
-                        str(metadata.get("table_row_records_json") or ""),
-                        str(metadata.get("local_heading") or ""),
-                        str(metadata.get("section_path") or metadata.get("section") or ""),
-                    )
-                    if part
-                )
-            )
-
-        selected = list(docs or [])
-        seen_chunk_ids = {
-            str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-            for doc, _score in selected
-            if str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-        }
-        prioritized: List[tuple[Document, float]] = []
-        prioritized_chunk_ids: set[str] = set()
-
-        def _append_matching_doc(predicate) -> None:
-            nonlocal prioritized
-            for item in reranked:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                score = item[1] if isinstance(item, (tuple, list)) and len(item) > 1 else 0.0
-                metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
-                if chunk_id and (chunk_id in seen_chunk_ids or chunk_id in prioritized_chunk_ids):
-                    continue
-                if not predicate(doc):
-                    continue
-                prioritized.append((doc, score))
-                if chunk_id:
-                    prioritized_chunk_ids.add(chunk_id)
-                break
-
-        def _is_inventory_amount_doc(doc: Document) -> bool:
-            text = _doc_surface(doc)
-            metadata = getattr(doc, "metadata", {}) or {}
-            section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or ""))
-            return (
-                "재고자산평가손실" in text
-                and ("현금흐름표" in text or "현금흐름표" in section_path)
-                and bool(re.search(r"\d{1,3}(?:,\d{3})+", text))
-            )
-
-        def _is_inventory_inclusion_doc(doc: Document) -> bool:
-            text = _doc_surface(doc)
-            metadata = getattr(doc, "metadata", {}) or {}
-            section_hint = _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(metadata.get("section_path") or metadata.get("section") or ""),
-                        str(metadata.get("table_context") or ""),
-                        str(metadata.get("local_heading") or ""),
-                    )
-                    if part
-                )
-            )
-            return "재고자산평가손실" in text and "포함" in text and "비용의 성격별 분류" in section_hint
-
-        def _is_cost_of_sales_doc(doc: Document) -> bool:
-            text = _doc_surface(doc)
-            metadata = getattr(doc, "metadata", {}) or {}
-            section_hint = _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(metadata.get("section_path") or metadata.get("section") or ""),
-                        str(metadata.get("table_context") or ""),
-                        str(metadata.get("local_heading") or ""),
-                    )
-                    if part
-                )
-            )
-            statement_type = _normalise_spaces(str(metadata.get("statement_type") or "")).lower()
-            return "매출원가" in text and (
-                "연결손익계산서" in section_hint
-                or statement_type in {"income_statement", "summary_financials"}
-            )
-
-        _append_matching_doc(_is_inventory_amount_doc)
-        _append_matching_doc(_is_inventory_inclusion_doc)
-        _append_matching_doc(_is_cost_of_sales_doc)
-
-        merged: List[tuple[Document, float]] = []
-        merged_chunk_ids: set[str] = set()
-        for item in prioritized + selected:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-            if chunk_id and chunk_id in merged_chunk_ids:
-                continue
-            if chunk_id:
-                merged_chunk_ids.add(chunk_id)
-            merged.append(item)
-
-        return merged[:effective_k]
 
     def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Retrieve top candidate chunks and rerank them for the active task."""
@@ -808,8 +585,6 @@ class FinancialAgentEvidenceMixin:
                 docs.sort(key=lambda x: x[1], reverse=True)
             else:
                 docs = reranked
-
-        docs = self._select_inventory_write_down_docs(docs, reranked, state, effective_k)
 
         seed_docs = reranked[: min(len(reranked), effective_k * 4)]
         docs = docs[: effective_k]
@@ -1025,6 +800,7 @@ class FinancialAgentEvidenceMixin:
                         "table_source_id": metadata.get("table_source_id"),
                         "table_header_context": metadata.get("table_header_context"),
                         "table_summary_text": metadata.get("table_summary_text"),
+                        "table_value_labels_text": metadata.get("table_value_labels_text"),
                         "table_context": metadata.get("table_context"),
                         "unit_hint": metadata.get("unit_hint"),
                         "statement_type": metadata.get("statement_type"),
@@ -2107,257 +1883,6 @@ class FinancialAgentEvidenceMixin:
 
         return supplemented
 
-    def _supplement_inventory_write_down_evidence(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        docs,
-        *,
-        query: str,
-        anchor_lookup: Dict[str, Any],
-        state: Optional[FinancialAgentState] = None,
-    ) -> List[Dict[str, Any]]:
-        if not self._is_inventory_write_down_mixed_query(query) or not docs:
-            return evidence_items
-
-        supplemented = [dict(item) for item in evidence_items]
-        seen_keys = {
-            _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(item.get("source_anchor") or ""),
-                        str(item.get("quote_span") or item.get("claim") or ""),
-                    )
-                    if part
-                )
-            )
-            for item in supplemented
-        }
-
-        inventory_candidate: Optional[Dict[str, Any]] = None
-        inventory_score = float("-inf")
-        inclusion_candidate: Optional[Dict[str, Any]] = None
-        inclusion_score = float("-inf")
-        cost_candidate: Optional[Dict[str, Any]] = None
-        cost_score = float("-inf")
-
-        target_year_match = re.search(r"(20\d{2})년", _normalise_spaces(query))
-        target_year = target_year_match.group(1) if target_year_match else ""
-
-        def _quote_for_row(row_label: str, cell: Dict[str, Any], unit_hint: str) -> str:
-            header_text = " / ".join(
-                _normalise_spaces(str(item))
-                for item in (cell.get("column_headers") or [])
-                if _normalise_spaces(str(item))
-            )
-            value_text = _normalise_spaces(str(cell.get("value_text") or ""))
-            parts = [row_label, header_text, value_text]
-            if unit_hint and unit_hint not in value_text:
-                parts.append(unit_hint)
-            return " | ".join(part for part in parts if part)
-
-        def _cell_score(cell: Dict[str, Any], report_year: str) -> float:
-            headers = " ".join(
-                _normalise_spaces(str(item))
-                for item in (cell.get("column_headers") or [])
-                if _normalise_spaces(str(item))
-            )
-            lowered = headers.lower()
-            score = 0.0
-            if target_year and target_year in headers:
-                score += 4.0
-            if report_year and report_year in headers:
-                score += 2.0
-            if any(marker in lowered for marker in ("당기", "current", "제55기")):
-                score += 2.5
-            if any(marker in lowered for marker in ("전기", "prior", "제54기", "전년")):
-                score -= 2.5
-            return score
-
-        def _best_row_cell(record: Dict[str, Any], report_year: str) -> Optional[Dict[str, Any]]:
-            best_cell: Optional[Dict[str, Any]] = None
-            best_score = float("-inf")
-            for raw_cell in record.get("cells") or []:
-                if not isinstance(raw_cell, dict):
-                    continue
-                value_text = _normalise_spaces(str(raw_cell.get("value_text") or ""))
-                if not re.search(r"\d", value_text):
-                    continue
-                score = _cell_score(raw_cell, report_year)
-                if score > best_score:
-                    best_score = score
-                    best_cell = dict(raw_cell)
-            return best_cell
-
-        for item in docs:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            metadata = getattr(doc, "metadata", {}) or {}
-            report_year = str(metadata.get("year") or "")
-            section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or ""))
-            anchor = self._build_source_anchor(metadata)
-            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or "")) or "백만원"
-            page_text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-            table_context = _normalise_spaces(str(metadata.get("table_context") or ""))
-            combined_text = _normalise_spaces(" ".join(part for part in (page_text, table_context) if part))
-            lowered_combined = combined_text.lower()
-
-            row_records_json = str(metadata.get("table_row_records_json") or "").strip()
-            row_records: List[Dict[str, Any]] = []
-            if row_records_json:
-                try:
-                    parsed = json.loads(row_records_json)
-                    if isinstance(parsed, list):
-                        row_records = [record for record in parsed if isinstance(record, dict)]
-                except json.JSONDecodeError:
-                    row_records = []
-
-            for record in row_records:
-                row_label = _normalise_spaces(str(record.get("row_label") or ""))
-                if not row_label:
-                    continue
-                if "재고자산평가손실" in row_label:
-                    cell = _best_row_cell(record, report_year)
-                    if cell:
-                        quote = _quote_for_row(row_label, cell, unit_hint)
-                        score = _cell_score(cell, report_year) + 3.0
-                        if "현금흐름표" in section_path:
-                            score += 2.0
-                        if score > inventory_score:
-                            inventory_score = score
-                            inventory_candidate = {
-                                "evidence_id": f"ev_{len(supplemented) + 1:03d}",
-                                "source_anchor": anchor,
-                                "claim": quote,
-                                "quote_span": quote,
-                                "support_level": "direct",
-                                "question_relevance": "high",
-                                "allowed_terms": sorted(_tokenize_terms(quote))[:8],
-                                "metadata": self._resolve_anchor_metadata(
-                                    anchor_lookup,
-                                    anchor,
-                                    quote_surface=quote,
-                                    claim_surface=quote,
-                                ),
-                            }
-                if "매출원가" in row_label:
-                    cell = _best_row_cell(record, report_year)
-                    if cell:
-                        quote = _quote_for_row(row_label, cell, unit_hint)
-                        score = _cell_score(cell, report_year) + 2.0
-                        statement_type = str(metadata.get("statement_type") or "").strip().lower()
-                        if statement_type in {"income_statement", "summary_financials"}:
-                            score += 3.0
-                        if "손익계산서" in section_path:
-                            score += 1.5
-                        if score > cost_score:
-                            cost_score = score
-                            cost_candidate = {
-                                "evidence_id": f"ev_{len(supplemented) + 2:03d}",
-                                "source_anchor": anchor,
-                                "claim": quote,
-                                "quote_span": quote,
-                                "support_level": "direct",
-                                "question_relevance": "high",
-                                "allowed_terms": sorted(_tokenize_terms(quote))[:8],
-                                "metadata": self._resolve_anchor_metadata(
-                                    anchor_lookup,
-                                    anchor,
-                                    quote_surface=quote,
-                                    claim_surface=quote,
-                                ),
-                            }
-
-            if "재고자산평가손실" in lowered_combined and "포함" in lowered_combined:
-                snippet = self._extract_driver_snippet(combined_text, ["재고자산평가손실", "포함"])
-                if snippet:
-                    score = 0.0
-                    if "비용의 성격별 분류" in section_path:
-                        score += 4.0
-                    if "매출원가" in combined_text or "비용" in combined_text:
-                        score += 1.0
-                    if score > inclusion_score:
-                        inclusion_score = score
-                        inclusion_candidate = {
-                            "evidence_id": f"ev_{len(supplemented) + 3:03d}",
-                            "source_anchor": anchor,
-                            "claim": snippet,
-                            "quote_span": snippet,
-                            "support_level": "direct",
-                            "question_relevance": "high",
-                            "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
-                            "metadata": self._resolve_anchor_metadata(
-                                anchor_lookup,
-                                anchor,
-                                quote_surface=snippet,
-                                claim_surface=snippet,
-                            ),
-                        }
-
-        if state is not None:
-            raw_facts = self._inventory_write_down_raw_report_facts(state, docs)
-            inventory_raw = raw_facts.get("inventory")
-            if inventory_raw:
-                inventory_quote = str(inventory_raw.get("quote_span") or inventory_raw.get("claim") or "")
-                inventory_candidate = {
-                    "evidence_id": f"ev_{len(supplemented) + 1:03d}",
-                    "source_anchor": str(inventory_raw.get("source_anchor") or ""),
-                    "claim": inventory_quote,
-                    "quote_span": inventory_quote,
-                    "support_level": "direct",
-                    "question_relevance": "high",
-                    "allowed_terms": sorted(_tokenize_terms(inventory_quote))[:8],
-                    "metadata": self._resolve_anchor_metadata(
-                        anchor_lookup,
-                        str(inventory_raw.get("source_anchor") or ""),
-                        quote_surface=inventory_quote,
-                        claim_surface=inventory_quote,
-                    )
-                    or dict(inventory_raw.get("metadata") or {}),
-                }
-                inventory_score = max(inventory_score, 10_000.0)
-            inclusion_raw = raw_facts.get("inclusion")
-            if inclusion_raw:
-                inclusion_quote = str(inclusion_raw.get("quote_span") or inclusion_raw.get("claim") or "")
-                inclusion_candidate = {
-                    "evidence_id": f"ev_{len(supplemented) + 2:03d}",
-                    "source_anchor": str(inclusion_raw.get("source_anchor") or ""),
-                    "claim": inclusion_quote,
-                    "quote_span": inclusion_quote,
-                    "support_level": "direct",
-                    "question_relevance": "high",
-                    "allowed_terms": sorted(_tokenize_terms(inclusion_quote))[:8],
-                    "metadata": self._resolve_anchor_metadata(
-                        anchor_lookup,
-                        str(inclusion_raw.get("source_anchor") or ""),
-                        quote_surface=inclusion_quote,
-                        claim_surface=inclusion_quote,
-                    )
-                    or dict(inclusion_raw.get("metadata") or {}),
-                }
-                inclusion_score = max(inclusion_score, 10_000.0)
-
-        for candidate in (inventory_candidate, inclusion_candidate, cost_candidate):
-            if not candidate:
-                continue
-            dedupe_key = _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(candidate.get("source_anchor") or ""),
-                        str(candidate.get("quote_span") or candidate.get("claim") or ""),
-                    )
-                    if part
-                )
-            )
-            if dedupe_key and dedupe_key in seen_keys:
-                continue
-            if dedupe_key:
-                seen_keys.add(dedupe_key)
-            candidate["evidence_id"] = f"ev_{len(supplemented) + 1:03d}"
-            supplemented.append(candidate)
-
-        return supplemented
-
     def _augment_narrative_answer_with_supported_drivers(
         self,
         answer: str,
@@ -2422,48 +1947,6 @@ class FinancialAgentEvidenceMixin:
                 "잉여현금흐름",
             )
         )
-
-    def _is_inventory_write_down_mixed_query(self, query: str) -> bool:
-        surface = _normalise_spaces(str(query or ""))
-        if not surface:
-            return False
-        return "재고자산평가손실" in surface and "매출원가" in surface
-
-    def _extract_inventory_write_down_amount_surface(self, text: str) -> str:
-        surface = _normalise_spaces(str(text or ""))
-        if not surface:
-            return ""
-        patterns = (
-            r"재고자산평가손실(?:\([^)]*\))?\s*등?[^0-9]{0,24}(\d{1,3}(?:,\d{3})+\s*백만원)",
-            r"재고자산평가손실(?:\([^)]*\))?\s*등?[^0-9]{0,24}(\d{1,3}(?:,\d{3})+)",
-        )
-        for pattern in patterns:
-            match = re.search(pattern, surface)
-            if match:
-                return _normalise_spaces(match.group(1))
-        generic = re.search(r"(\d{1,3}(?:,\d{3})+\s*백만원)", surface)
-        if generic:
-            return _normalise_spaces(generic.group(1))
-        generic_bare = re.search(r"(\d{1,3}(?:,\d{3})+)", surface)
-        return _normalise_spaces(generic_bare.group(1)) if generic_bare else ""
-
-    def _extract_cost_of_sales_amount_surface(self, text: str) -> str:
-        surface = _normalise_spaces(str(text or ""))
-        if not surface:
-            return ""
-        patterns = (
-            r"매출원가[^0-9]{0,24}(\d{1,3}(?:,\d{3})+\s*백만원)",
-            r"매출원가[^0-9]{0,24}(\d{1,3}(?:,\d{3})+)",
-        )
-        for pattern in patterns:
-            match = re.search(pattern, surface)
-            if match:
-                return _normalise_spaces(match.group(1))
-        generic = re.search(r"(\d{1,3}(?:,\d{3})+\s*백만원)", surface)
-        if generic:
-            return _normalise_spaces(generic.group(1))
-        generic_bare = re.search(r"(\d{1,3}(?:,\d{3})+)", surface)
-        return _normalise_spaces(generic_bare.group(1)) if generic_bare else ""
 
     def _extract_dividend_amount_surface(self, text: str) -> str:
         surface = _normalise_spaces(str(text or ""))
@@ -2642,125 +2125,6 @@ class FinancialAgentEvidenceMixin:
         supporting_ids = [
             evidence_id
             for evidence_id in (payout_evidence_id, policy_evidence_id)
-            if evidence_id
-        ]
-        return {
-            "answer": final_answer,
-            "supporting_claim_ids": list(dict.fromkeys(supporting_ids)),
-        }
-
-    def _compose_inventory_write_down_hybrid_answer(
-        self,
-        *,
-        query: str,
-        evidence_items: List[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        if not self._is_inventory_write_down_mixed_query(query):
-            return None
-        if not evidence_items:
-            return None
-
-        inventory_amount = ""
-        inventory_evidence_id = ""
-        cost_amount = ""
-        cost_evidence_id = ""
-        inclusion_clause = ""
-        inclusion_evidence_id = ""
-
-        inventory_best = float("-inf")
-        cost_best = float("-inf")
-        inclusion_best = float("-inf")
-
-        for item in self._sort_evidence_items(evidence_items):
-            metadata = item.get("metadata") or {}
-            section_hint = _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(metadata.get("section_path") or metadata.get("section") or ""),
-                        str(item.get("source_anchor") or ""),
-                    )
-                    if part
-                )
-            ).lower()
-            combined_text = _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(item.get("claim") or ""),
-                        str(item.get("quote_span") or ""),
-                        str(item.get("source_context") or ""),
-                        str((item.get("metadata") or {}).get("table_context") or ""),
-                    )
-                    if part
-                )
-            )
-            lowered = combined_text.lower()
-
-            if "재고자산평가손실" in combined_text:
-                amount_surface = self._extract_inventory_write_down_amount_surface(combined_text)
-                if amount_surface:
-                    score = 0.0
-                    if "현금흐름표" in section_hint:
-                        score += 4.0
-                    if "환입" in combined_text:
-                        score += 1.0
-                    if score > inventory_best:
-                        inventory_best = score
-                        inventory_amount = amount_surface
-                        inventory_evidence_id = str(item.get("evidence_id") or "").strip()
-
-            if "매출원가" in combined_text:
-                amount_surface = self._extract_cost_of_sales_amount_surface(combined_text)
-                if amount_surface:
-                    score = 0.0
-                    if "손익계산서" in section_hint:
-                        score += 4.0
-                    if "income_statement" in lowered or "summary_financials" in lowered:
-                        score += 1.0
-                    if score > cost_best:
-                        cost_best = score
-                        cost_amount = amount_surface
-                        cost_evidence_id = str(item.get("evidence_id") or "").strip()
-
-            if "재고자산평가손실" in combined_text and "포함" in combined_text:
-                score = 0.0
-                if "비용의 성격별 분류" in section_hint:
-                    score += 4.0
-                if "비용" in combined_text:
-                    score += 1.0
-                if score > inclusion_best:
-                    inclusion_best = score
-                    inclusion_clause = "주석은 기간 중 비용으로 인식한 재고자산 원가에 재고자산평가손실 금액이 포함된다고 명시하므로, 이 금액은 매출원가를 증가시켜 매출총이익을 압박한 요인으로 볼 수 있습니다."
-                    inclusion_evidence_id = str(item.get("evidence_id") or "").strip()
-
-        if not inventory_amount or not cost_amount or not inclusion_clause:
-            return None
-
-        inventory_normalized, _ = _normalise_operand_value(inventory_amount, "백만원")
-        cost_normalized, _ = _normalise_operand_value(cost_amount, "백만원")
-        ratio_text = ""
-        if inventory_normalized is not None and cost_normalized:
-            ratio_value = (inventory_normalized / cost_normalized) * 100.0
-            ratio_text = f"{ratio_value:.2f}%"
-
-        year_match = re.search(r"(20\d{2})년", _normalise_spaces(query))
-        year = year_match.group(1) if year_match else ""
-        intro = (
-            f"{year}년 연결 주석상 재고자산평가손실(환입) 등은 {inventory_amount if '백만원' in inventory_amount else inventory_amount + '백만원'}입니다."
-            if year
-            else f"연결 주석상 재고자산평가손실(환입) 등은 {inventory_amount if '백만원' in inventory_amount else inventory_amount + '백만원'}입니다."
-        )
-        impact = (
-            f" 연결 손익계산서상 매출원가 {cost_amount if '백만원' in cost_amount else cost_amount + '백만원'}의 약 {ratio_text} 규모입니다."
-            if ratio_text
-            else ""
-        )
-        caveat = " 다만 항목명이 '(환입) 등'이므로 순손실과 환입의 세부 구성은 별도 분해되어 있지 않습니다."
-        final_answer = _normalise_spaces(f"{intro} {inclusion_clause}{impact}{caveat}")
-        supporting_ids = [
-            evidence_id
-            for evidence_id in (inventory_evidence_id, inclusion_evidence_id, cost_evidence_id)
             if evidence_id
         ]
         return {
@@ -3117,13 +2481,44 @@ class FinancialAgentEvidenceMixin:
 """
         )
 
+        fallback_terms = sorted(
+            (term for term in _tokenize_terms(f"{state.get('query', '')} {state.get('topic') or ''}") if len(term) >= 2),
+            key=len,
+            reverse=True,
+        )
+
+        def _fallback_snippet(doc: Document) -> str:
+            metadata = doc.metadata or {}
+            surfaces = [
+                _strip_rerank_metadata(str(doc.page_content or "")),
+                str(metadata.get("table_value_labels_text") or ""),
+                str(metadata.get("table_row_labels_text") or ""),
+                str(metadata.get("table_summary_text") or ""),
+            ]
+            surface = re.sub(r"\s+", " ", "\n".join(part for part in surfaces if part).strip())
+            if not surface:
+                return ""
+            best_pos: Optional[int] = None
+            for term in fallback_terms:
+                pos = surface.find(term)
+                if pos >= 0:
+                    best_pos = pos
+                    break
+            if best_pos is None:
+                return surface[:220]
+            start = max(0, best_pos - 120)
+            end = min(len(surface), best_pos + 320)
+            return surface[start:end].strip()
+
         def _deterministic_fallback(doc_list) -> tuple[List[str], List[Dict[str, Any]]]:
             bullets = []
             items = []
             for doc, _score in doc_list[: min(6, len(doc_list))]:
                 metadata = doc.metadata or {}
                 anchor = self._build_source_anchor(metadata)
-                snippet = re.sub(r"\s+", " ", doc.page_content).strip()[:220]
+                snippet = _fallback_snippet(doc)
+                if not snippet:
+                    continue
                 bullets.append(f"- {anchor} {snippet}")
                 items.append(
                     {
@@ -3172,21 +2567,6 @@ class FinancialAgentEvidenceMixin:
                     query=str(state.get("query") or ""),
                     anchor_lookup=anchor_lookup,
                 )
-                evidence_items = self._supplement_inventory_write_down_evidence(
-                    evidence_items,
-                    docs,
-                    query=str(state.get("query") or ""),
-                    anchor_lookup=anchor_lookup,
-                    state=state,
-                )
-            else:
-                evidence_items = self._supplement_inventory_write_down_evidence(
-                    evidence_items,
-                    docs,
-                    query=str(state.get("query") or ""),
-                    anchor_lookup=anchor_lookup,
-                    state=state,
-                )
             if direct_numeric_grounding:
                 evidence_items = self._restrict_direct_numeric_evidence_items(
                     evidence_items,
@@ -3217,23 +2597,6 @@ class FinancialAgentEvidenceMixin:
                         "evidence_items": [],
                         "evidence_status": "missing",
                     }
-                supplemented_items = self._supplement_inventory_write_down_evidence(
-                    [],
-                    docs,
-                    query=str(state.get("query") or ""),
-                    anchor_lookup=anchor_lookup,
-                    state=state,
-                )
-                if supplemented_items:
-                    supplemented_bullets = [
-                        f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
-                        for item in supplemented_items
-                    ]
-                    return {
-                        "evidence_bullets": supplemented_bullets,
-                        "evidence_items": supplemented_items,
-                        "evidence_status": "sufficient",
-                    }
                 logger.info("[evidence] structured output returned missing with docs present — using deterministic fallback")
                 fallback, fallback_items = _deterministic_fallback(docs)
                 return {
@@ -3254,23 +2617,6 @@ class FinancialAgentEvidenceMixin:
                     "evidence_bullets": [],
                     "evidence_items": [],
                     "evidence_status": "missing",
-                }
-            supplemented_items = self._supplement_inventory_write_down_evidence(
-                [],
-                docs,
-                query=str(state.get("query") or ""),
-                anchor_lookup=anchor_lookup,
-                state=state,
-            )
-            if supplemented_items:
-                supplemented_bullets = [
-                    f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
-                    for item in supplemented_items
-                ]
-                return {
-                    "evidence_bullets": supplemented_bullets,
-                    "evidence_items": supplemented_items,
-                    "evidence_status": "sufficient",
                 }
             logger.warning("Evidence extraction failed, using deterministic fallback: %s", exc)
             fallback, fallback_items = _deterministic_fallback(docs)
@@ -3392,6 +2738,158 @@ Structured Evidence:
                 "draft_points": [item.get("claim", "") for item in selected_evidence if item.get("claim")][:4],
                 "compressed_answer": compressed_answer,
             }
+
+    @staticmethod
+    def _parse_labeled_numeric_lines(item: Dict[str, Any]) -> List[Dict[str, Any]]:
+        metadata = dict(item.get("metadata") or {})
+        text = str(metadata.get("table_value_labels_text") or "")
+        rows: List[Dict[str, Any]] = []
+        for line_index, line in enumerate(text.splitlines()):
+            cleaned = _normalise_spaces(line)
+            match = re.match(r"^(.+?)\s+(\(?-?\d[\d,]*(?:\.\d+)?\)?%?)$", cleaned)
+            if not match:
+                continue
+            label = _normalise_spaces(match.group(1))
+            raw_value = match.group(2).strip()
+            numeric_text = raw_value.replace(",", "").replace("%", "")
+            negative = numeric_text.startswith("(") and numeric_text.endswith(")")
+            numeric_text = numeric_text.strip("()")
+            try:
+                numeric_value = float(numeric_text)
+            except ValueError:
+                continue
+            if negative:
+                numeric_value *= -1
+            rows.append(
+                {
+                    "label": label,
+                    "raw_value": raw_value,
+                    "value": numeric_value,
+                    "unit": str(metadata.get("unit_hint") or "").strip(),
+                    "evidence_id": str(item.get("evidence_id") or "").strip(),
+                    "metadata": metadata,
+                    "claim": str(item.get("claim") or ""),
+                    "line_index": line_index,
+                }
+            )
+        return rows
+
+    def _compose_supported_quantitative_impact_answer(
+        self,
+        *,
+        query: str,
+        evidence_items: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        query_text = _normalise_spaces(query)
+        if not any(marker in query_text for marker in ("영향", "분석", "비중", "대비", "차지")):
+            return None
+
+        rows: List[Dict[str, Any]] = []
+        for item in evidence_items:
+            rows.extend(self._parse_labeled_numeric_lines(item))
+        if len(rows) < 2:
+            return None
+
+        query_compact = re.sub(r"\s+", "", query_text)
+        quoted_terms = [
+            re.sub(r"\s+", "", term)
+            for term in re.findall(r"[\"'“”‘’](.+?)[\"'“”‘’]", query_text)
+            if str(term).strip()
+        ]
+        primary_denominator_markers = ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계")
+        denominator_markers = primary_denominator_markers + ("자산", "부채", "자본")
+
+        def label_matches_query(label: str) -> bool:
+            compact = re.sub(r"\s+", "", label)
+            base_compact = re.sub(r"\([^)]*\)", "", compact)
+            base_compact = base_compact.replace("등", "")
+            if base_compact and base_compact in query_compact:
+                return True
+            if any(term and (term in compact or compact in term) for term in quoted_terms):
+                return True
+            label_terms = [term for term in _tokenize_terms(label) if len(term) >= 3]
+            return any(term in query_text for term in label_terms)
+
+        current_rows = [
+            row
+            for row in rows
+            if label_matches_query(str(row.get("label") or ""))
+            and str(row.get("metadata", {}).get("period_focus") or "") != "prior"
+        ]
+        if len(current_rows) < 2:
+            return None
+
+        numerator_candidates = [
+            row
+            for row in current_rows
+            if not any(marker in str(row.get("label") or "") for marker in primary_denominator_markers)
+        ]
+        if not numerator_candidates:
+            return None
+        numerator_candidates.sort(
+            key=lambda row: (
+                str(row.get("metadata", {}).get("consolidation_scope") or "") == "consolidated",
+                str(row.get("metadata", {}).get("statement_type") or "") == "notes",
+                -int(row.get("line_index") or 0),
+            ),
+            reverse=True,
+        )
+        numerator = numerator_candidates[0]
+
+        denominator_candidates = [
+            row
+            for row in current_rows
+            if row is not numerator
+            and any(marker in str(row.get("label") or "") for marker in denominator_markers)
+            and float(row.get("value") or 0.0) != 0.0
+        ]
+        if not denominator_candidates:
+            return None
+        denominator_candidates.sort(
+            key=lambda row: (
+                str(row.get("metadata", {}).get("consolidation_scope") or "") == "consolidated",
+                str(row.get("metadata", {}).get("statement_type") or "") in {"income_statement", "summary_financials"},
+                -int(row.get("line_index") or 0),
+            ),
+            reverse=True,
+        )
+        denominator = denominator_candidates[0]
+
+        numerator_value = abs(float(numerator.get("value") or 0.0))
+        denominator_value = abs(float(denominator.get("value") or 0.0))
+        if denominator_value <= 0:
+            return None
+        ratio = numerator_value / denominator_value * 100.0
+        unit = str(numerator.get("unit") or denominator.get("unit") or "").strip()
+        unit_suffix = unit if unit else ""
+        scope_prefix = "연결 기준 " if str(numerator.get("metadata", {}).get("consolidation_scope") or "") == "consolidated" else ""
+        numerator_label = str(numerator.get("label") or "").strip()
+        denominator_label = str(denominator.get("label") or "").strip()
+        numerator_raw = str(numerator.get("raw_value") or "").strip()
+        denominator_raw = str(denominator.get("raw_value") or "").strip()
+
+        impact_sentence = "해당 기준 금액에 반영된 항목으로 해석할 수 있습니다."
+        if any(marker in denominator_label for marker in ("원가", "비용")) and "손실" in numerator_label and numerator_value > 0:
+            impact_sentence = f"{denominator_label}에 포함되어 비용을 증가시키고 매출총이익을 압박하는 요인입니다."
+        elif any(marker in denominator_label for marker in ("원가", "비용")):
+            impact_sentence = f"{denominator_label}에 포함되어 해당 비용에 영향을 주는 항목입니다."
+
+        caveat = ""
+        if ("등" in numerator_label or "환입" in numerator_label) and "세부" not in query_text:
+            caveat = " 항목명상 손실, 환입 등의 세부 구성은 이 근거만으로는 분해하지 않습니다."
+
+        answer = (
+            f"{scope_prefix}{numerator_label}은 {numerator_raw}{unit_suffix}입니다. "
+            f"{impact_sentence} {denominator_label} {denominator_raw}{unit_suffix} 대비 약 {ratio:.2f}% 규모입니다.{caveat}"
+        )
+        supporting_claim_ids = sorted(
+            {
+                str(numerator.get("evidence_id") or ""),
+                str(denominator.get("evidence_id") or ""),
+            }
+            - {""}
+        )
+        return {"answer": answer, "supporting_claim_ids": supporting_claim_ids}
 
     def _validate_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Check whether the drafted narrative answer is supported by evidence."""
@@ -3517,12 +3015,12 @@ Structured Evidence:
                     ],
                     "answer": str(deterministic_dividend_answer.get("answer") or ""),
                 }
-            deterministic_inventory_answer = self._compose_inventory_write_down_hybrid_answer(
+            quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
                 query=str(state.get("query") or ""),
                 evidence_items=combined_evidence,
             )
-            if deterministic_inventory_answer:
-                supporting_claim_ids = list(deterministic_inventory_answer.get("supporting_claim_ids") or [])
+            if quantitative_impact_answer:
+                supporting_claim_ids = list(quantitative_impact_answer.get("supporting_claim_ids") or [])
                 return {
                     "kept_claim_ids": sorted(set(normalized_result.get("kept_claim_ids", [])) | set(supporting_claim_ids)),
                     "dropped_claim_ids": [
@@ -3533,13 +3031,13 @@ Structured Evidence:
                     "unsupported_sentences": [],
                     "sentence_checks": [
                         {
-                            "sentence": str(deterministic_inventory_answer.get("answer") or ""),
+                            "sentence": str(quantitative_impact_answer.get("answer") or ""),
                             "verdict": "keep",
-                            "reason": "deterministic_inventory_write_down_hybrid_assembly",
+                            "reason": "supported_quantitative_impact_assembly",
                             "supporting_claim_ids": supporting_claim_ids,
                         }
                     ],
-                    "answer": str(deterministic_inventory_answer.get("answer") or ""),
+                    "answer": str(quantitative_impact_answer.get("answer") or ""),
                 }
             return normalized_result
         except Exception as exc:
@@ -3593,12 +3091,12 @@ Structured Evidence:
                     ],
                     "answer": str(deterministic_dividend_answer.get("answer") or ""),
                 }
-            deterministic_inventory_answer = self._compose_inventory_write_down_hybrid_answer(
+            quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
                 query=str(state.get("query") or ""),
                 evidence_items=list(selected_evidence) or list(evidence_items),
             )
-            if deterministic_inventory_answer:
-                supporting_claim_ids = list(deterministic_inventory_answer.get("supporting_claim_ids") or [])
+            if quantitative_impact_answer:
+                supporting_claim_ids = list(quantitative_impact_answer.get("supporting_claim_ids") or [])
                 return {
                     "kept_claim_ids": sorted(set(normalized_result.get("kept_claim_ids", [])) | set(supporting_claim_ids)),
                     "dropped_claim_ids": [
@@ -3609,13 +3107,13 @@ Structured Evidence:
                     "unsupported_sentences": [],
                     "sentence_checks": [
                         {
-                            "sentence": str(deterministic_inventory_answer.get("answer") or ""),
+                            "sentence": str(quantitative_impact_answer.get("answer") or ""),
                             "verdict": "keep",
-                            "reason": "deterministic_inventory_write_down_hybrid_assembly",
+                            "reason": "supported_quantitative_impact_assembly",
                             "supporting_claim_ids": supporting_claim_ids,
                         }
                     ],
-                    "answer": str(deterministic_inventory_answer.get("answer") or ""),
+                    "answer": str(quantitative_impact_answer.get("answer") or ""),
                 }
             return normalized_result
 
@@ -3760,153 +3258,6 @@ Structured Evidence:
             },
         }
 
-    def _supplement_numeric_inventory_write_down_lookup(self, state: FinancialAgentState, docs) -> Optional[Dict[str, Any]]:
-        active_subtask = dict(state.get("active_subtask") or {})
-        query_surface = _normalise_spaces(
-            " ".join(
-                part
-                for part in (
-                    str(active_subtask.get("metric_label") or ""),
-                    str(active_subtask.get("query") or ""),
-                    str(state.get("query") or ""),
-                )
-                if str(part or "").strip()
-            )
-        )
-        if "재고자산평가손실" not in query_surface:
-            return None
-
-        target_years = _extract_year_tokens(query_surface, dict(state.get("report_scope") or {}))
-        target_year = target_years[0] if target_years else None
-        best_hit: Optional[Dict[str, Any]] = None
-        best_score = float("-inf")
-
-        for doc, score in docs[: min(8, len(docs))]:
-            metadata = dict(doc.metadata or {})
-            section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or ""))
-            row_records_json = str(metadata.get("table_row_records_json") or "").strip()
-            if row_records_json:
-                try:
-                    row_records = json.loads(row_records_json)
-                except json.JSONDecodeError:
-                    row_records = []
-            else:
-                row_records = []
-
-            local_hit: Optional[Dict[str, Any]] = None
-            local_score = float("-inf")
-            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or "")) or "백만원"
-
-            for record in row_records if isinstance(row_records, list) else []:
-                row_label = _normalise_spaces(str(dict(record).get("row_label") or ""))
-                if "재고자산평가손실" not in row_label:
-                    continue
-                for cell in list(dict(record).get("cells") or []):
-                    cell_dict = dict(cell)
-                    value_text = _normalise_spaces(str(cell_dict.get("value_text") or ""))
-                    headers = [
-                        _normalise_spaces(str(item))
-                        for item in (cell_dict.get("column_headers") or [])
-                        if _normalise_spaces(str(item))
-                    ]
-                    header_text = " / ".join(headers)
-                    if not value_text:
-                        continue
-                    candidate_score = float(score)
-                    if target_year is not None and any(str(target_year) in header for header in headers):
-                        candidate_score += 1.2
-                    if "현금흐름표" in section_path:
-                        candidate_score += 0.8
-                    if "비용의 성격별 분류" in section_path:
-                        candidate_score += 0.5
-                    if row_label == "재고자산평가손실(환입) 등":
-                        candidate_score += 0.4
-                    if candidate_score > local_score:
-                        local_score = candidate_score
-                        quote_parts = [row_label, header_text, value_text]
-                        if unit_hint and unit_hint not in value_text:
-                            quote_parts.append(unit_hint)
-                        local_hit = {
-                            "amount_text": value_text,
-                            "quote": " | ".join(part for part in quote_parts if part),
-                            "anchor": self._build_source_anchor(metadata),
-                            "metadata": metadata,
-                            "unit_hint": unit_hint,
-                        }
-
-            if local_hit is None:
-                combined_text = _normalise_spaces(
-                    " ".join(
-                        part
-                        for part in (
-                            str(doc.page_content or ""),
-                            str(metadata.get("table_context") or ""),
-                            str(metadata.get("table_row_labels_text") or ""),
-                            str(metadata.get("local_heading") or ""),
-                        )
-                        if str(part or "").strip()
-                    )
-                )
-                if "재고자산평가손실" in combined_text:
-                    amount_surface = self._extract_inventory_write_down_amount_surface(combined_text)
-                    if amount_surface:
-                        local_hit = {
-                            "amount_text": amount_surface,
-                            "quote": combined_text,
-                            "anchor": self._build_source_anchor(metadata),
-                            "metadata": metadata,
-                            "unit_hint": unit_hint,
-                        }
-                        local_score = float(score) + (0.5 if "현금흐름표" in section_path else 0.0)
-
-            if local_hit and local_score > best_score:
-                best_score = local_score
-                best_hit = local_hit
-
-        if not best_hit:
-            raw_facts = self._inventory_write_down_raw_report_facts(state, docs)
-            best_hit = raw_facts.get("inventory")
-            if not best_hit:
-                return None
-        else:
-            raw_facts = self._inventory_write_down_raw_report_facts(state, docs)
-            raw_inventory = raw_facts.get("inventory")
-            if raw_inventory:
-                best_hit = raw_inventory
-
-        amount_text = _normalise_spaces(str(best_hit.get("amount_text") or ""))
-        if not amount_text:
-            return None
-        unit_hint = _normalise_spaces(str(best_hit.get("unit_hint") or ""))
-        answer_amount = amount_text if not unit_hint or unit_hint in amount_text else f"{amount_text}{unit_hint}"
-        answer = (
-            f"{target_year}년 연결 주석상 재고자산평가손실(환입) 등은 {answer_amount}입니다."
-            if target_year is not None
-            else f"연결 주석상 재고자산평가손실(환입) 등은 {answer_amount}입니다."
-        )
-        evidence_items = [
-            {
-                "evidence_id": "ev_001",
-                "source_anchor": str(best_hit.get("anchor") or ""),
-                "claim": str(best_hit.get("quote") or ""),
-                "quote_span": str(best_hit.get("quote") or ""),
-                "support_level": "direct",
-                "question_relevance": "high",
-                "allowed_terms": sorted(_tokenize_terms(str(best_hit.get("quote") or "")))[:8],
-                "metadata": dict(best_hit.get("metadata") or {}),
-            }
-        ]
-        return {
-            "answer": answer,
-            "evidence_items": evidence_items,
-            "evidence_bullets": [f"- {evidence_items[0]['source_anchor']} {evidence_items[0]['claim']} (direct)"],
-            "numeric_debug_trace": {
-                "path": "deterministic_inventory_write_down_lookup",
-                "raw_value": amount_text,
-                "unit": unit_hint,
-            },
-        }
-
     def _extract_numeric_fact(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Fast path for direct numeric lookups that do not need full planning."""
         docs = state.get("retrieved_docs", [])
@@ -3966,25 +3317,6 @@ Structured Evidence:
             answer = empty_result["answer"]
 
         if not debug_trace.get("raw_value"):
-            deterministic_inventory = self._supplement_numeric_inventory_write_down_lookup(state, docs)
-            if deterministic_inventory:
-                answer = str(deterministic_inventory.get("answer") or empty_result["answer"])
-                evidence_items = list(deterministic_inventory.get("evidence_items") or [])
-                evidence_bullets = list(deterministic_inventory.get("evidence_bullets") or [])
-                return {
-                    "answer": answer,
-                    "compressed_answer": answer,
-                    "selected_claim_ids": [str(item.get("evidence_id") or "") for item in evidence_items if str(item.get("evidence_id") or "")],
-                    "draft_points": [answer] if answer else [],
-                    "kept_claim_ids": [str(item.get("evidence_id") or "") for item in evidence_items if str(item.get("evidence_id") or "")],
-                    "dropped_claim_ids": [],
-                    "unsupported_sentences": [],
-                    "sentence_checks": [],
-                    "evidence_items": evidence_items,
-                    "evidence_bullets": evidence_bullets,
-                    "evidence_status": "sufficient" if evidence_items else "missing",
-                    "numeric_debug_trace": dict(deterministic_inventory.get("numeric_debug_trace") or {}),
-                }
             deterministic = self._supplement_numeric_impairment_lookup(state, docs)
             if deterministic:
                 answer = str(deterministic.get("answer") or empty_result["answer"])

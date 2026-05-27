@@ -18,6 +18,7 @@ from src.processing.financial_parser import (
     SectionParseTimeout,
     _classify_bracket_heading,
     _extract_standalone_table_context_hint,
+    _infer_consolidation_scope,
     _is_structured_section,
     _looks_like_local_heading,
     _prepare_stack_for_heading,
@@ -45,6 +46,20 @@ class FinancialParserUtilityTests(unittest.TestCase):
         self.assertTrue(_is_structured_section("II. 사업의 내용 > 7. 기타 참고사항"))
         self.assertFalse(_is_structured_section("I. 회사의 개요 > 2. 회사의 연혁"))
         self.assertFalse(_is_structured_section("VI. 이사회 등 회사의 기관에 관한 사항 > 1. 이사회에 관한 사항"))
+
+    def test_standalone_financial_statement_sections_are_separate_scope(self) -> None:
+        self.assertEqual(
+            _infer_consolidation_scope("III. 재무에 관한 사항 > 4. 재무제표", None),
+            "separate",
+        )
+        self.assertEqual(
+            _infer_consolidation_scope("III. 재무에 관한 사항 > 5. 재무제표 주석", None),
+            "separate",
+        )
+        self.assertEqual(
+            _infer_consolidation_scope("III. 재무에 관한 사항 > 3. 연결재무제표 주석", None),
+            "consolidated",
+        )
 
     def test_soft_heading_path_keeps_at_most_two_levels(self) -> None:
         self.assertIsNone(_soft_heading_path([]))
@@ -521,6 +536,90 @@ class FinancialParserUtilityTests(unittest.TestCase):
         table_payload = json.loads(bundle["table_object_json"])
         self.assertEqual(table_payload["table_id"], "section::table:merged")
         self.assertEqual(table_payload["rows"][0]["row_label"], sales_row["row_label"])
+
+    def test_grouped_table_rows_use_detail_axis_as_row_label(self) -> None:
+        parser = FinancialParser()
+        table = etree.fromstring(
+            """
+            <TABLE>
+              <TR>
+                <TH></TH>
+                <TH></TH>
+                <TH>공시금액</TH>
+              </TR>
+              <TR>
+                <TD>조정내역 계</TD>
+                <TD>평가손실(환입) 등</TD>
+                <TD>5,037,579</TD>
+              </TR>
+            </TABLE>
+            """
+        )
+
+        table_object = parser._build_table_object(table)
+        bundle = parser._build_table_context_bundle(
+            table_object["table_text"],
+            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "section::table:grouped",
+            table_object=table_object,
+        )
+
+        row_records = json.loads(bundle["table_row_records_json"])
+        self.assertIn("평가손실(환입) 등", bundle["table_row_labels_text"])
+        self.assertIn("평가손실(환입) 등 5,037,579", bundle["table_value_labels_text"])
+        self.assertEqual(row_records[0]["row_label"], "평가손실(환입) 등")
+        self.assertEqual(row_records[0]["row_headers"], ["조정내역 계", "평가손실(환입) 등"])
+        self.assertEqual(row_records[0]["cells"][0]["column_index"], 2)
+        self.assertEqual(row_records[0]["cells"][0]["value_text"], "5,037,579")
+
+        value_records = json.loads(bundle["table_value_records_json"])
+        self.assertEqual(value_records[0]["semantic_label"], "평가손실(환입) 등")
+        self.assertIn("조정내역 계", value_records[0]["semantic_aliases"])
+        self.assertEqual(value_records[0]["value_text"], "5,037,579")
+
+    def test_adjacent_small_tables_do_not_share_first_table_metadata(self) -> None:
+        parser = FinancialParser(chunk_size=2500, chunk_overlap=320)
+        first_table = {
+            "text": "이월결손금이월액 | 597,176",
+            "type": "table",
+            "local_heading": None,
+            "table_source_id": "section::table:1",
+            "table_header_context": "이월결손금이월액 | 597,176",
+            "period_labels": [],
+            "period_focus": "unknown",
+            "unit_hint": "백만원",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "header_propagated": False,
+            "table_summary_text": "이월결손금이월액 | 597,176",
+            "table_row_labels_text": "이월결손금이월액",
+            "table_value_labels_text": "이월결손금이월액 597,176",
+            "table_row_records_json": "[]",
+            "table_value_records_json": "[]",
+            "table_object_json": "{}",
+            "table_row_count": 1,
+            "table_column_count": 2,
+            "table_has_spans": False,
+        }
+        second_table = {
+            **first_table,
+            "text": "조정내역 계 | 재고자산평가손실(환입) 등 | 5,037,579",
+            "table_source_id": "section::table:2",
+            "table_header_context": "| | 공시금액",
+            "table_summary_text": "재고자산평가손실(환입) 등 | 5,037,579",
+            "table_row_labels_text": "재고자산평가손실(환입) 등",
+            "table_value_labels_text": "재고자산평가손실(환입) 등 5,037,579",
+        }
+
+        chunks = parser._chunk_blocks(
+            [first_table, second_table],
+            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        )
+
+        self.assertEqual(len(chunks), 2)
+        self.assertEqual(chunks[0]["table_source_id"], "section::table:1")
+        self.assertEqual(chunks[1]["table_source_id"], "section::table:2")
+        self.assertIn("재고자산평가손실(환입) 등 5,037,579", chunks[1]["table_value_labels_text"])
 
     def test_extract_sections_falls_back_to_plain_mode_after_timeout(self) -> None:
         root = etree.fromstring(

@@ -118,40 +118,6 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
         self.assertIn("III. 재무에 관한 사항 > 6. 배당에 관한 사항", narrative_task["preferred_sections"])
 
-    def test_inventory_write_down_query_splits_numeric_lookup_and_narrative_tasks(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
-        state = {
-            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            "query_type": "qa",
-            "intent": "qa",
-            "topic": "재고자산평가손실과 매출원가 영향",
-            "report_scope": {
-                "company": "삼성전자",
-                "year": 2023,
-            },
-            "planner_mode": "initial",
-            "planner_feedback": "",
-            "plan_loop_count": 0,
-            "target_metric_family": "",
-            "target_metric_family_hint": "",
-            "companies": ["삼성전자"],
-            "years": [2023],
-            "section_filter": None,
-            "tasks": [],
-            "artifacts": [],
-        }
-
-        result = agent._plan_semantic_numeric_tasks(state)
-
-        self.assertEqual([task["operation_family"] for task in result["calc_subtasks"]], ["lookup", "lookup", "narrative_summary"])
-        self.assertIn("재고자산평가손실", result["calc_subtasks"][0]["metric_label"])
-        self.assertEqual(result["calc_subtasks"][1]["metric_label"], "매출원가")
-        self.assertTrue(
-            any("재고자산평가손실 매출원가 포함" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
-        )
-        self.assertIn("III. 재무에 관한 사항 > 3. 연결재무제표 주석", result["calc_subtasks"][-1]["preferred_sections"])
-
     def test_dependency_annotation_reorders_lookup_tasks_before_growth_rate(self) -> None:
         tasks = _annotate_task_dependencies(
             [

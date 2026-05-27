@@ -32,14 +32,13 @@
   - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
   - fresh structural store 기준 `SAM_T2_002`도 multi-source receipt inventory + dependency binding guard 보강 이후 `numeric_final_judgement = PASS`로 재확인됐다
   - 다만 `SAM_T2_002`는 mixed benchmark wording(`메모리 반도체 업황 악화에도 불구하고`)을 충분히 반영하지 못해 `completeness = 0.7`이 남아 있다
-  - `SAM_T3_028`도 raw filing deterministic fallback 이후 targeted rerun에서 다시 PASS로 닫혔다
-    - `numeric_final_judgement = PASS`
-    - `numeric_equivalence = 1.0`
-    - `numeric_grounding = 1.0`
-    - `numeric_retrieval_support = 1.0`
-    - `faithfulness = 1.0`
-    - `completeness = 1.0`
-  - 다만 이 수정이 반영된 `curated_single_doc_core` broader rerun은 아직 진행 중이므로, broader curated status는 완료 후 다시 확정해야 한다
+  - `SAM_T3_028`의 query-specific runtime rule은 product runtime path에서 제거했다
+    - 해당 targeted rerun은 `numeric_final_judgement = PASS`, `faithfulness = 1.0`, `completeness = 1.0`까지 확인했지만 특정 raw HTML row/sentence 주입에 의존했다
+    - 이후 retrieval 후보 안에서 inventory row/evidence를 hard-coded rule로 승격하거나 deterministic answer로 조립하는 경로도 제거했다
+    - parser row-axis preservation fix를 적용해 grouped table row에서 `재고자산평가손실(환입) 등`이 `semantic_label`로 살아남고, `5,037,579` value record에 묶이는 것을 실제 삼성전자 2023 filing smoke로 확인했다
+    - fresh structural rerun `sam_t3_028_parser_store_check_2026-05-27_fix7`에서 `faithfulness = 1.0`, `completeness = 1.0`, `numeric_pass = 1.0`, `retrieval_hit_at_k = 1.0`, `section_match = 1.0`, `avg_score = 0.966`으로 PASS했다
+    - 이 결과는 retrieval로 들어온 structured row/value/evidence만 사용한 generic label/value assembly 결과이며, 실험 산출물은 commit 대상에서 제외한다
+  - 따라서 `SAM_T3_028` source-level blocker는 닫혔고, 남은 broader work는 concept planner shadow와 benchmark maintenance로 이동한다
   - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
   - `MIX_T1_064`는 targeted official rerun까지 닫혔다
     - `numeric_equivalence = 1.0`
@@ -61,8 +60,8 @@
 | --- | --- |
 | 목표 | `plain / structural / contextual` 3자 비교를 정리한 뒤, structural default 위에서 다음 ingest 후보를 설계 |
 | 현재 자산 | `curated_runtime_contract_gate`, `curated_multi_entity_grounding_gate`, `structural_selective_v2`, broader curated blocker close, winner ranking policy |
-| 현재 문제 | `structural_selective_v2`는 routine default로 굳었지만, `curated_single_doc_core` broader rerun의 최종 blocker 목록이 아직 닫히지 않았다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크고, `SAM_T2_002`에는 narrative completeness calibration이 조금 남아 있다 |
-| 다음 할 일 | 먼저 `curated_single_doc_core` rerun 결과를 닫아 broader curated blocker를 재분류한다. 그 다음 structural default는 유지한 채 `structural_parent_hybrid_v2` 실험 설계와 concept-only planner 확대 검증으로 넘어간다 |
+| 현재 문제 | `structural_selective_v2`는 routine default로 굳었고, `SAM_T3_028` fresh structural blocker도 generic parser/store/evidence fix로 닫혔다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크고, `SAM_T2_002`에는 narrative completeness calibration이 조금 남아 있다 |
+| 다음 할 일 | structural default는 유지한 채 `curated_concept_planner_shadow` 확대 검증과 broader curated gate maintenance로 넘어간다 |
 | 종료 조건 | `structural_selective_v2` default가 운영 문서와 curated profile에 고정되고, next ingest experiment 비교 축이 정의됨 |
 
 ### 1. Planner and synthesizer contract

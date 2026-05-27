@@ -92,8 +92,6 @@ def _is_narrative_summary_task(task: Dict[str, Any]) -> bool:
 
 
 def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
-    if _is_inventory_write_down_mixed_query_text(query):
-        return True
     return intent in {"comparison", "trend", "numeric_fact"} and _query_requests_narrative_context(query)
 
 
@@ -120,10 +118,6 @@ def _build_hybrid_narrative_subtask(
         retrieval_queries.append(_normalise_spaces(f"{query} 배당에 관한 사항 주주환원 정책"))
         retrieval_queries.append(_normalise_spaces(f"{query} 잉여현금흐름 정규배당 추가 환원"))
         retrieval_queries.append(_normalise_spaces(f"{query} 유동성 및 자금조달 배당금 지급"))
-    if _is_inventory_write_down_mixed_query_text(query):
-        retrieval_queries.append(_normalise_spaces(f"{query} 재고자산평가손실 비용의 성격별 분류"))
-        retrieval_queries.append(_normalise_spaces(f"{query} 재고자산평가손실 매출원가 포함"))
-        retrieval_queries.append(_normalise_spaces(f"{query} 연결손익계산서 매출원가"))
     preferred_sections = [
         "IV. 이사의 경영진단 및 분석의견",
         "II. 사업의 내용",
@@ -134,13 +128,6 @@ def _build_hybrid_narrative_subtask(
         preferred_sections = [
             "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
             "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
-            *preferred_sections,
-        ]
-    if _is_inventory_write_down_mixed_query_text(query):
-        preferred_sections = [
-            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
-            "III. 재무에 관한 사항 > 2. 연결재무제표",
-            "IV. 이사의 경영진단 및 분석의견",
             *preferred_sections,
         ]
     return {
@@ -918,8 +905,7 @@ Also return:
             or ""
         )
 
-        force_numeric_planning = _is_inventory_write_down_mixed_query_text(query)
-        if intent not in {"comparison", "trend", "numeric_fact"} and not force_numeric_planning:
+        if intent not in {"comparison", "trend", "numeric_fact"}:
             return {
                 "semantic_plan": {
                     "status": "fallback_general_search",
@@ -1304,13 +1290,6 @@ Also return:
             if deterministic_dividend_answer:
                 answer = _normalise_spaces(str(deterministic_dividend_answer.get("answer") or "")) or answer
                 selected_claim_ids = list(deterministic_dividend_answer.get("supporting_claim_ids") or []) or selected_claim_ids
-            deterministic_inventory_answer = self._compose_inventory_write_down_hybrid_answer(
-                query=str(active_subtask.get("query") or state["query"]),
-                evidence_items=runtime_evidence,
-            )
-            if deterministic_inventory_answer:
-                answer = _normalise_spaces(str(deterministic_inventory_answer.get("answer") or "")) or answer
-                selected_claim_ids = list(deterministic_inventory_answer.get("supporting_claim_ids") or []) or selected_claim_ids
         status = str(
             calculation_result.get("status")
             or reconciliation_result.get("status")

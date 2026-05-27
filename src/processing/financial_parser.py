@@ -390,6 +390,9 @@ def _infer_consolidation_scope(section_path: str, header_context: Optional[str])
         return "consolidated"
     if "별도" in combined:
         return "separate"
+    path_parts = [part.strip() for part in _normalize(section_path).split(">") if part.strip()]
+    if any(re.search(r"(?:^|\s)\d+[.)]?\s*재무제표(?:\s+주석)?$", part) for part in path_parts):
+        return "separate"
     return "unknown"
 
 
@@ -1022,10 +1025,31 @@ class FinancialParser:
 
     @staticmethod
     def _extract_table_row_labels_from_grid(grid: List[List[str]], max_labels: int = 20) -> List[str]:
+        def cell_looks_numeric(text: str) -> bool:
+            value = _normalize(text)
+            if not value:
+                return False
+            if re.search(r"[A-Za-z가-힣]", value):
+                return False
+            return bool(re.match(r"^(?:-?\d[\d,]*(?:\.\d+)?|\(\d[\d,]*(?:\.\d+)?\))%?$", value))
+
+        def row_axis_label(row: List[str]) -> str:
+            first_numeric_idx = next((idx for idx, cell in enumerate(row) if cell_looks_numeric(cell)), None)
+            axis_scan = row[:first_numeric_idx] if first_numeric_idx is not None else row
+            axis_labels = [
+                _normalize(cell)
+                for cell in axis_scan
+                if _normalize(cell) and not cell_looks_numeric(cell)
+            ]
+            if axis_labels:
+                meaningful_axis = [label for label in axis_labels if not _is_generic_value_label(label)]
+                return meaningful_axis[-1] if meaningful_axis else axis_labels[-1]
+            return next((_normalize(cell) for cell in row if _normalize(cell)), "")
+
         labels: List[str] = []
         seen: set[str] = set()
         for row in grid:
-            label = next((cell.strip() for cell in row if cell.strip()), "")
+            label = row_axis_label(row)
             if label and label not in seen:
                 seen.add(label)
                 labels.append(label)
@@ -1060,7 +1084,37 @@ class FinancialParser:
             return False
         if re.search(r"[A-Za-z가-힣]", value):
             return False
-        return bool(re.match(r"^-?\d[\d,]*(?:\.\d+)?%?$", value))
+        return bool(re.match(r"^(?:-?\d[\d,]*(?:\.\d+)?|\(\d[\d,]*(?:\.\d+)?\))%?$", value))
+
+    def _infer_table_row_axis(self, row: List[str]) -> Tuple[str, List[str], set[int]]:
+        first_numeric_idx = next(
+            (idx for idx, cell in enumerate(row) if self._cell_looks_numeric(cell)),
+            None,
+        )
+        axis_scan = row[:first_numeric_idx] if first_numeric_idx is not None else row
+        axis_labels: List[str] = []
+        axis_indices: List[int] = []
+        for col_idx, cell in enumerate(axis_scan):
+            text = _normalize(cell)
+            if not text or self._cell_looks_numeric(text):
+                continue
+            axis_labels.append(text)
+            axis_indices.append(col_idx)
+
+        if not axis_labels:
+            for col_idx, cell in enumerate(row):
+                text = _normalize(cell)
+                if text and not self._cell_looks_numeric(text):
+                    axis_labels.append(text)
+                    axis_indices.append(col_idx)
+                    break
+
+        if not axis_labels:
+            return "", [], set()
+
+        meaningful_axis = [label for label in axis_labels if not _is_generic_value_label(label)]
+        row_label = meaningful_axis[-1] if meaningful_axis else axis_labels[-1]
+        return row_label, _dedupe_preserve_order(axis_labels), set(axis_indices)
 
     def _infer_table_header_row_count(self, grid: List[List[str]]) -> int:
         if not grid:
@@ -1118,11 +1172,13 @@ class FinancialParser:
 
         row_records: List[Dict[str, Any]] = []
         for row_idx, row in enumerate(body_rows):
-            row_label = next((cell.strip() for cell in row if cell.strip()), "")
+            row_label, row_headers, row_axis_cols = self._infer_table_row_axis(row)
             if not row_label:
                 continue
             cells: List[Dict[str, Any]] = []
-            for col_idx in range(1, len(row)):
+            for col_idx in range(len(row)):
+                if col_idx in row_axis_cols:
+                    continue
                 value_text = _normalize(row[col_idx])
                 if not value_text:
                     continue
@@ -1141,7 +1197,7 @@ class FinancialParser:
                 RowRecord(
                     row_id=f"{table_object.get('row_count', 0)}:{row_idx}",
                     row_label=row_label,
-                    row_headers=[row_label],
+                    row_headers=row_headers,
                     cells=[CellRecord(**cell) for cell in cells],
                 ).model_dump()
             )
@@ -1258,6 +1314,7 @@ class FinancialParser:
         table_has_spans = False
         table_row_records_json = ""
         table_value_records_json = ""
+        table_value_labels_text = ""
         table_object_json = ""
         if table_object:
             row_labels = list(table_object.get("row_labels") or [])
@@ -1302,6 +1359,21 @@ class FinancialParser:
             )
             if table_value_records:
                 table_value_records_json = json.dumps(table_value_records, ensure_ascii=False)
+                value_label_lines: List[str] = []
+                seen_value_labels: set[str] = set()
+                for record in table_value_records[:40]:
+                    label = _normalize(
+                        str(record.get("semantic_label") or record.get("row_label") or "")
+                    )
+                    value = _normalize(str(record.get("value_text") or ""))
+                    if not label or not value:
+                        continue
+                    line = _normalize(f"{label} {value}")
+                    if line in seen_value_labels:
+                        continue
+                    seen_value_labels.add(line)
+                    value_label_lines.append(line)
+                table_value_labels_text = "\n".join(value_label_lines)
             header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
             table_model = TableObject(
                 table_id=table_source_id,
@@ -1336,6 +1408,7 @@ class FinancialParser:
             "table_row_labels_text": row_labels_text,
             "table_row_records_json": table_row_records_json,
             "table_value_records_json": table_value_records_json,
+            "table_value_labels_text": table_value_labels_text,
             "table_object_json": table_object_json,
             "table_row_count": table_row_count,
             "table_column_count": table_column_count,
@@ -1821,6 +1894,7 @@ class FinancialParser:
                 "table_row_labels_text": block.get("table_row_labels_text"),
                 "table_row_records_json": block.get("table_row_records_json"),
                 "table_value_records_json": block.get("table_value_records_json"),
+                "table_value_labels_text": block.get("table_value_labels_text"),
                 "table_object_json": block.get("table_object_json"),
                 "table_row_count": block.get("table_row_count"),
                 "table_column_count": block.get("table_column_count"),
@@ -1900,6 +1974,8 @@ class FinancialParser:
                     **block,
                     "table_context": last_paragraph_context or section_path,
                 }
+                if any(item.get("type") == "table" for item in pending_blocks):
+                    flush_pending()
 
             if block_type == "table" and len(text) >= standalone_threshold:
                 flush_pending()
@@ -2140,6 +2216,7 @@ class FinancialParser:
                     "table_row_labels_text": chunk_block.get("table_row_labels_text"),
                     "table_row_records_json": chunk_block.get("table_row_records_json"),
                     "table_value_records_json": chunk_block.get("table_value_records_json"),
+                    "table_value_labels_text": chunk_block.get("table_value_labels_text"),
                     "table_object_json": chunk_block.get("table_object_json"),
                     "table_row_count": chunk_block.get("table_row_count"),
                     "table_column_count": chunk_block.get("table_column_count"),

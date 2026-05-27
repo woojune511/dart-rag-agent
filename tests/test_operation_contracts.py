@@ -30,6 +30,7 @@ from src.agent.financial_graph_helpers import (
     _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
     _coerce_lookup_magnitude_value,
+    _desired_consolidation_scope,
     _desired_statement_types,
     _extract_generic_operand_labels,
     _label_implies_percent_metric,
@@ -81,6 +82,58 @@ class _FailingLLM:
 
 
 class OperationContractTests(unittest.TestCase):
+    def test_financial_statement_queries_default_to_consolidated_scope(self) -> None:
+        self.assertEqual(
+            _desired_consolidation_scope(
+                "2023년 재무제표 주석에서 재고자산평가손실 규모를 찾아줘.",
+                {"company": "삼성전자", "year": 2023},
+            ),
+            "consolidated",
+        )
+        self.assertEqual(
+            _desired_consolidation_scope(
+                "2023년 별도 재무제표 주석에서 재고자산평가손실 규모를 찾아줘.",
+                {"company": "삼성전자", "year": 2023},
+            ),
+            "separate",
+        )
+
+    def test_quantitative_impact_answer_uses_retrieved_labeled_values(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._compose_supported_quantitative_impact_answer(
+            query="2023년 주석에서 손상차손 규모를 찾고 이것이 영업비용에 미친 영향을 분석해 줘.",
+            evidence_items=[
+                {
+                    "evidence_id": "ev_001",
+                    "claim": "손상차손 2,000",
+                    "metadata": {
+                        "table_value_labels_text": "손상차손 2,000",
+                        "unit_hint": "백만원",
+                        "statement_type": "notes",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
+                {
+                    "evidence_id": "ev_002",
+                    "claim": "영업비용 100,000",
+                    "metadata": {
+                        "table_value_labels_text": "영업비용 100,000",
+                        "unit_hint": "백만원",
+                        "statement_type": "income_statement",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
+            ],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIn("손상차손은 2,000백만원", result["answer"])
+        self.assertIn("영업비용 100,000백만원 대비 약 2.00%", result["answer"])
+        self.assertEqual(result["supporting_claim_ids"], ["ev_001", "ev_002"])
+
     def setUp(self) -> None:
         self.ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
 
@@ -267,519 +320,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("2,578,089,956천원", result["answer"])
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(result["selected_claim_ids"], ["ev_001", "ev_002"])
-
-    def test_numeric_inventory_write_down_lookup_supplements_direct_note_row(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)",
-            "statement_type": "notes",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "재고자산평가손실(환입) 등",
-                        "cells": [
-                            {"column_headers": ["2023"], "value_text": "5,037,579"},
-                        ],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        supplemented = agent._supplement_numeric_inventory_write_down_lookup(
-            {
-                "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾아 줘.",
-                "report_scope": {"year": 2023},
-                "active_subtask": {"metric_label": "재고자산평가손실(환입) 등"},
-            },
-            [
-                (
-                    Document(
-                        page_content="재고자산평가손실(환입) 등 5,037,579",
-                        metadata=metadata,
-                    ),
-                    1.0,
-                )
-            ],
-        )
-        self.assertIsNotNone(supplemented)
-        self.assertIn("5,037,579백만원", supplemented["answer"])
-        self.assertEqual(len(supplemented["evidence_items"]), 1)
-
-    def test_extract_numeric_fact_uses_deterministic_inventory_lookup_after_llm_failure(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent.llm = _FailingLLM()
-        metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)",
-            "statement_type": "notes",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "재고자산평가손실(환입) 등",
-                        "cells": [
-                            {"column_headers": ["2023"], "value_text": "5,037,579"},
-                        ],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        result = agent._extract_numeric_fact(
-            {
-                "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾아 줘.",
-                "report_scope": {"year": 2023},
-                "active_subtask": {"metric_label": "재고자산평가손실(환입) 등"},
-                "retrieved_docs": [
-                    (
-                        Document(
-                            page_content="재고자산평가손실(환입) 등 5,037,579",
-                            metadata=metadata,
-                        ),
-                        1.0,
-                    )
-                ],
-            }
-        )
-        self.assertIn("5,037,579백만원", result["answer"])
-        self.assertEqual(result["evidence_status"], "sufficient")
-        self.assertEqual(result["selected_claim_ids"], ["ev_001"])
-
-    def test_inventory_write_down_evidence_supplement_adds_amount_link_and_cost_rows(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        note_metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
-            "statement_type": "notes",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "재고자산평가손실(환입) 등",
-                        "cells": [
-                            {"column_headers": ["2023"], "value_text": "5,037,579"},
-                            {"column_headers": ["2022"], "value_text": "3,111,111"},
-                        ],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        cost_metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 4. 재무제표",
-            "statement_type": "income_statement",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "매출원가",
-                        "cells": [
-                            {"column_headers": ["2023"], "value_text": "180,388,580"},
-                        ],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        docs = [
-            (
-                Document(
-                    page_content="동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                    metadata=note_metadata,
-                ),
-                1.0,
-            ),
-            (
-                Document(
-                    page_content="매출원가 180,388,580",
-                    metadata=cost_metadata,
-                ),
-                0.9,
-            ),
-        ]
-        supplemented = agent._supplement_inventory_write_down_evidence(
-            [],
-            docs,
-            query="2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            anchor_lookup={},
-        )
-        self.assertEqual(len(supplemented), 3)
-        claims = " ".join(str(item.get("claim") or "") for item in supplemented)
-        self.assertIn("재고자산평가손실(환입) 등", claims)
-        self.assertIn("매출원가", claims)
-        self.assertIn("포함되어 있습니다", claims)
-
-    def test_inventory_write_down_hybrid_answer_composes_ratio_and_impact(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        answer = agent._compose_inventory_write_down_hybrid_answer(
-            query="2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            evidence_items=[
-                {
-                    "evidence_id": "ev_001",
-                    "claim": "재고자산평가손실(환입) 등 | 2023 | 5,037,579 | 백만원",
-                    "quote_span": "재고자산평가손실(환입) 등 | 2023 | 5,037,579 | 백만원",
-                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 5. 재무제표 주석]",
-                    "metadata": {"section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)"},
-                },
-                {
-                    "evidence_id": "ev_002",
-                    "claim": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                    "quote_span": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 5. 재무제표 주석]",
-                    "metadata": {"section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)"},
-                },
-                {
-                    "evidence_id": "ev_003",
-                    "claim": "매출원가 | 2023 | 180,388,580 | 백만원",
-                    "quote_span": "매출원가 | 2023 | 180,388,580 | 백만원",
-                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 4. 재무제표]",
-                    "metadata": {"section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서"},
-                },
-            ],
-        )
-        self.assertIsNotNone(answer)
-        self.assertIn("5,037,579백만원", answer["answer"])
-        self.assertIn("180,388,580백만원", answer["answer"])
-        self.assertIn("2.79%", answer["answer"])
-        self.assertIn("매출총이익을 압박", answer["answer"])
-
-    def test_inventory_write_down_evidence_prefers_best_scoring_later_sections(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        weak_metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
-            "statement_type": "notes",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "재고자산평가손실(환입) 등",
-                        "cells": [
-                            {"column_headers": ["2022"], "value_text": "3,111,111"},
-                        ],
-                    },
-                    {
-                        "row_label": "매출원가",
-                        "cells": [
-                            {"column_headers": ["2022"], "value_text": "170,000,000"},
-                        ],
-                    },
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        strong_inventory_metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)",
-            "statement_type": "notes",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "재고자산평가손실(환입) 등",
-                        "cells": [
-                            {"column_headers": ["2023"], "value_text": "5,037,579"},
-                        ],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        strong_cost_metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서",
-            "statement_type": "income_statement",
-            "consolidation_scope": "consolidated",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "매출원가",
-                        "cells": [
-                            {"column_headers": ["2023"], "value_text": "180,388,580"},
-                        ],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        docs = [
-            (Document(page_content="약한 prior row", metadata=weak_metadata), 1.0),
-            (
-                Document(
-                    page_content="동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                    metadata={
-                        **strong_inventory_metadata,
-                        "section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)",
-                    },
-                ),
-                0.95,
-            ),
-            (Document(page_content="재고자산평가손실(환입) 등 5,037,579", metadata=strong_inventory_metadata), 0.94),
-            (Document(page_content="매출원가 180,388,580", metadata=strong_cost_metadata), 0.93),
-        ]
-        supplemented = agent._supplement_inventory_write_down_evidence(
-            [],
-            docs,
-            query="2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            anchor_lookup={},
-        )
-        claims = " ".join(str(item.get("claim") or "") for item in supplemented)
-        self.assertIn("5,037,579", claims)
-        self.assertIn("180,388,580", claims)
-        self.assertNotIn("3,111,111", claims)
-
-    def test_inventory_write_down_evidence_supplements_from_raw_report_when_store_rows_are_missing(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        docs = [
-            (
-                Document(
-                    page_content="관련 문구가 비어 있습니다.",
-                    metadata={
-                        "company": "삼성전자",
-                        "year": 2023,
-                        "report_type": "사업보고서",
-                        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
-                    },
-                ),
-                1.0,
-            ),
-            (
-                Document(
-                    page_content="매출원가 180,388,580",
-                    metadata={
-                        "company": "삼성전자",
-                        "year": 2023,
-                        "report_type": "사업보고서",
-                        "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서",
-                        "statement_type": "income_statement",
-                        "consolidation_scope": "consolidated",
-                        "unit_hint": "백만원",
-                        "table_row_records_json": json.dumps(
-                            [
-                                {
-                                    "row_label": "매출원가",
-                                    "cells": [{"column_headers": ["2023"], "value_text": "180,388,580"}],
-                                }
-                            ],
-                            ensure_ascii=False,
-                        ),
-                    },
-                ),
-                0.9,
-            ),
-        ]
-        report_html = """
-        <TITLE>21. 비용의 성격별 분류 (연결)</TITLE>
-        <P>동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.</P>
-        <TITLE>27. 현금흐름표 (연결)</TITLE>
-        <P USERMARK="F-GL11">재고자산평가손실(환입) 등</P>
-        </TE><TE><P USERMARK="F-GL11">5,037,579</P>
-        """
-        state = {
-            "report_scope": {
-                "source_reports": [
-                    {"corp_name": "삼성전자", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240312000736"}
-                ]
-            }
-        }
-        with patch("src.agent.financial_graph_evidence._resolve_report_path_from_receipt", return_value="dummy.html"), patch(
-            "src.agent.financial_graph_evidence._cached_report_text",
-            return_value=report_html,
-        ):
-            supplemented = agent._supplement_inventory_write_down_evidence(
-                [],
-                docs,
-                query="2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-                anchor_lookup={},
-                state=state,
-            )
-        claims = " ".join(str(item.get("claim") or "") for item in supplemented)
-        self.assertIn("5,037,579", claims)
-        self.assertIn("포함되어 있습니다", claims)
-        self.assertIn("180,388,580", claims)
-
-    def test_numeric_inventory_write_down_lookup_prefers_raw_report_fallback_over_wrong_store_row(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        wrong_metadata = {
-            "company": "삼성전자",
-            "year": 2023,
-            "report_type": "사업보고서",
-            "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
-            "statement_type": "notes",
-            "consolidation_scope": "unknown",
-            "unit_hint": "백만원",
-            "table_row_records_json": json.dumps(
-                [
-                    {
-                        "row_label": "재고자산평가손실(환입) 등",
-                        "cells": [{"column_headers": ["2022"], "value_text": "2,529,351"}],
-                    }
-                ],
-                ensure_ascii=False,
-            ),
-        }
-        docs = [(Document(page_content="재고자산평가손실(환입) 등 2,529,351", metadata=wrong_metadata), 1.0)]
-        report_html = """
-        <TITLE>27. 현금흐름표 (연결)</TITLE>
-        <P USERMARK="F-GL11">재고자산평가손실(환입) 등</P>
-        </TE><TE><P USERMARK="F-GL11">5,037,579</P>
-        """
-        state = {
-            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾아 줘.",
-            "topic": "2023년 재고자산평가손실 규모",
-            "active_subtask": {"metric_label": "재고자산평가손실(환입) 등"},
-            "report_scope": {
-                "source_reports": [
-                    {"corp_name": "삼성전자", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240312000736"}
-                ]
-            },
-        }
-        with patch("src.agent.financial_graph_evidence._resolve_report_path_from_receipt", return_value="dummy.html"), patch(
-            "src.agent.financial_graph_evidence._cached_report_text",
-            return_value=report_html,
-        ):
-            supplemented = agent._supplement_numeric_inventory_write_down_lookup(state, docs)
-        self.assertIsNotNone(supplemented)
-        self.assertIn("5,037,579백만원", supplemented["answer"])
-        self.assertIn("현금흐름표", supplemented["evidence_items"][0]["source_anchor"])
-
-    def test_inventory_write_down_query_adds_targeted_supplement_sections_for_qa(self) -> None:
-        sections = _supplement_section_terms_for_query(
-            "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            "2023년 재고자산평가손실과 매출원가 영향",
-            "qa",
-        )
-        self.assertIn("연결재무제표 주석 21. 비용의 성격별 분류 (연결)", sections)
-        self.assertIn("연결재무제표 주석 27. 현금흐름표 (연결)", sections)
-        self.assertIn("2-2. 연결손익계산서", sections)
-
-    def test_inventory_write_down_query_adds_targeted_retrieval_hints_for_qa(self) -> None:
-        hint = _retrieval_hint_from_topic(
-            "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            "2023년 재고자산평가손실과 매출원가 영향",
-            "qa",
-        )
-        self.assertIn("재고자산평가손실(환입) 등", hint)
-        self.assertIn("비용의 성격별 분류", hint)
-        self.assertIn("연결손익계산서", hint)
-
-    def test_inventory_write_down_doc_selection_appends_target_sections(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        state = {
-            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-        }
-        generic = (
-            Document(
-                page_content="일반 주석 문맥",
-                metadata={"chunk_id": "g1", "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석", "block_type": "table"},
-            ),
-            1.0,
-        )
-        amount = (
-            Document(
-                page_content="재고자산평가손실(환입) 등 5,037,579",
-                metadata={"chunk_id": "a1", "section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)", "block_type": "table"},
-            ),
-            0.5,
-        )
-        inclusion = (
-            Document(
-                page_content="동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                metadata={"chunk_id": "i1", "section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)", "block_type": "paragraph"},
-            ),
-            0.4,
-        )
-        cost = (
-            Document(
-                page_content="매출원가 180,388,580",
-                metadata={"chunk_id": "c1", "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서", "statement_type": "income_statement", "block_type": "table"},
-            ),
-            0.3,
-        )
-        filler = [
-            (
-                Document(
-                    page_content=f"filler {index}",
-                    metadata={"chunk_id": f"f{index}", "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석", "block_type": "table"},
-                ),
-                0.2 - (index * 0.01),
-            )
-            for index in range(1, 9)
-        ]
-        current_docs = [generic, *filler[:7]]
-        reranked = [*current_docs, amount, inclusion, cost]
-        selected = agent._select_inventory_write_down_docs(current_docs, reranked, state, 8)
-        selected_chunk_ids = [str((doc.metadata or {}).get("chunk_id") or "") for doc, _score in selected]
-        self.assertIn("a1", selected_chunk_ids)
-        self.assertIn("i1", selected_chunk_ids)
-        self.assertIn("c1", selected_chunk_ids)
-
-    def test_inventory_write_down_doc_selection_uses_table_context_when_section_path_is_generic(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        state = {
-            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-        }
-        generic = (
-            Document(
-                page_content="일반 주석 문맥",
-                metadata={"chunk_id": "g1", "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석", "block_type": "table"},
-            ),
-            1.0,
-        )
-        amount = (
-            Document(
-                page_content="재고자산평가손실 5,037,579",
-                metadata={
-                    "chunk_id": "a2",
-                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
-                    "table_context": "연결재무제표 주석 27. 현금흐름표 (연결)",
-                    "block_type": "table",
-                },
-            ),
-            0.4,
-        )
-        inclusion = (
-            Document(
-                page_content="동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                metadata={
-                    "chunk_id": "i2",
-                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
-                    "table_context": "연결재무제표 주석 21. 비용의 성격별 분류 (연결)",
-                    "block_type": "table",
-                },
-            ),
-            0.3,
-        )
-        current_docs = [generic]
-        reranked = [generic, amount, inclusion]
-        selected = agent._select_inventory_write_down_docs(current_docs, reranked, state, 4)
-        selected_chunk_ids = [str((doc.metadata or {}).get("chunk_id") or "") for doc, _score in selected]
-        self.assertIn("a2", selected_chunk_ids)
-        self.assertIn("i2", selected_chunk_ids)
 
     def test_non_expense_lookup_preserves_negative_parenthesized_value(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(1,234)", "천원")

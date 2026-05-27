@@ -1276,8 +1276,10 @@ def _build_structural_selective_prefixed_text(
         ("local_heading", "local_heading"),
         ("table_context", "table_context"),
         ("table_row_labels", "table_row_labels_text"),
+        ("table_value_labels", "table_value_labels_text"),
     ):
-        value = _compact_structural_value(metadata.get(key))
+        value_limit = 420 if key in {"table_row_labels_text", "table_value_labels_text"} else 220
+        value = _compact_structural_value(metadata.get(key), limit=value_limit)
         if value:
             structural_lines.append(f"[{label}: {value}]")
     return "\n".join(structural_lines) + "\n" + base

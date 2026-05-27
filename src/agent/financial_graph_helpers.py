@@ -65,7 +65,6 @@ __all__ = [
     '_label_implies_percent_metric',
     '_is_single_metric_period_comparison',
     '_query_requests_narrative_context',
-    '_is_inventory_write_down_mixed_query_text',
     '_requires_direct_numeric_grounding',
     '_extract_year_tokens',
     '_build_generic_metric_aliases',
@@ -1017,11 +1016,35 @@ def _desired_consolidation_scope(query: str, report_scope: Dict[str, Any]) -> st
         return "consolidated"
     if "별도" in text:
         return "separate"
-    scope_value = str((report_scope or {}).get("consolidation") or "").strip()
-    if scope_value == "연결":
+    scope_value = _normalise_spaces(str((report_scope or {}).get("consolidation") or "")).lower()
+    if scope_value in {"연결", "consolidated", "consolidation"}:
         return "consolidated"
-    if scope_value == "별도":
+    if scope_value in {"별도", "separate", "standalone", "non-consolidated", "nonconsolidated"}:
         return "separate"
+    if any(
+        marker in text
+        for marker in (
+            "재무제표",
+            "주석",
+            "손익계산서",
+            "포괄손익계산서",
+            "재무상태표",
+            "현금흐름표",
+            "자본변동표",
+            "매출",
+            "매출원가",
+            "영업이익",
+            "당기순이익",
+            "자산",
+            "부채",
+            "자본",
+            "비용",
+            "원가",
+            "수익",
+            "이익",
+        )
+    ):
+        return "consolidated"
     return "unknown"
 
 
@@ -1670,11 +1693,6 @@ def _query_requests_narrative_context(query: str) -> bool:
     if not normalized:
         return False
     return any(token in normalized for token in _NARRATIVE_CONTEXT_HINTS)
-
-
-def _is_inventory_write_down_mixed_query_text(query: str) -> bool:
-    surface = _normalise_spaces(str(query or ""))
-    return "재고자산평가손실" in surface and "매출원가" in surface
 
 
 def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
@@ -2910,146 +2928,6 @@ def _build_heuristic_numeric_task(
     }
 
 
-def _build_inventory_write_down_mixed_tasks(
-    *,
-    query: str,
-    topic: str,
-    report_scope: Dict[str, Any],
-    ontology: Any,
-) -> List[Dict[str, Any]]:
-    if not _is_inventory_write_down_mixed_query_text(query):
-        return []
-
-    preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
-    preferred_sections.extend(
-        [
-            "연결재무제표 주석 21. 비용의 성격별 분류 (연결)",
-            "연결재무제표 주석 27. 현금흐름표 (연결)",
-            "2-2. 연결손익계산서",
-        ]
-    )
-    preferred_statement_types = list(
-        dict.fromkeys(
-            [
-                *preferred_statement_types,
-                "notes",
-                "cash_flow",
-                "income_statement",
-            ]
-        )
-    )
-    preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
-
-    base_constraints = {
-        "consolidation_scope": _desired_consolidation_scope(query, report_scope),
-        "period_focus": _infer_period_focus(query, "unknown"),
-        "entity_scope": "company",
-        "segment_scope": "none",
-    }
-
-    inventory_operand = {
-        "label": "재고자산평가손실(환입) 등",
-        "aliases": [
-            "재고자산평가손실(환입) 등",
-            "재고자산평가손실",
-            "재고자산평가손실(또는 환입)",
-        ],
-        "keywords": [
-            "재고자산평가손실",
-            "환입",
-            "비용의 성격별 분류",
-            "현금흐름표",
-        ],
-        "role": "primary_value",
-        "required": True,
-        "preferred_sections": list(preferred_sections),
-        "preferred_statement_types": list(preferred_statement_types),
-        "binding_policy": {},
-    }
-    inventory_retrieval_queries = _build_generic_retrieval_queries(
-        query=query,
-        metric_label="재고자산평가손실(환입) 등",
-        operand_specs=[inventory_operand],
-        preferred_sections=preferred_sections,
-        report_scope=report_scope,
-        constraints=base_constraints,
-    )
-    inventory_query = _build_metric_task_query(
-        original_query=query,
-        metric_label="재고자산평가손실(환입) 등",
-        constraints=base_constraints,
-        operand_specs=[inventory_operand],
-        report_scope=report_scope,
-    )
-
-    cost_spec = _concept_spec_for_key(ontology, "cost_of_sales") or _infer_generic_concept_spec("매출원가", ontology)
-    cost_operand = _augment_generic_operand_with_concept(
-        {
-            "label": "매출원가",
-            "aliases": ["매출원가"],
-            "keywords": ["매출원가", "연결손익계산서", "비용의 성격별 분류"],
-            "role": "primary_value",
-            "required": True,
-            "preferred_sections": list(preferred_sections),
-            "preferred_statement_types": list(preferred_statement_types),
-            "binding_policy": {},
-        },
-        concept_spec=cost_spec,
-    )
-    cost_constraints = dict(base_constraints)
-    cost_constraints["period_focus"] = _task_period_focus_from_operands(
-        "lookup",
-        [cost_operand],
-        str(cost_constraints.get("period_focus") or "unknown"),
-    )
-    cost_retrieval_queries = _build_generic_retrieval_queries(
-        query=query,
-        metric_label="매출원가",
-        operand_specs=[cost_operand],
-        preferred_sections=list(dict.fromkeys([*preferred_sections, *list(cost_operand.get("preferred_sections") or [])])),
-        report_scope=report_scope,
-        constraints=cost_constraints,
-    )
-    cost_query = _build_metric_task_query(
-        original_query=query,
-        metric_label="매출원가",
-        constraints=cost_constraints,
-        operand_specs=[cost_operand],
-        report_scope=report_scope,
-    )
-
-    return [
-        {
-            "task_id": "task_1",
-            "metric_family": "generic_lookup",
-            "metric_label": "재고자산평가손실(환입) 등",
-            "query": inventory_query,
-            "operation_family": "lookup",
-            "required_operands": [inventory_operand],
-            "preferred_statement_types": list(preferred_statement_types),
-            "preferred_sections": list(preferred_sections),
-            "retrieval_queries": inventory_retrieval_queries,
-            "constraints": dict(base_constraints),
-        },
-        {
-            "task_id": "task_2",
-            "metric_family": "concept_lookup",
-            "metric_label": "매출원가",
-            "query": cost_query,
-            "operation_family": "lookup",
-            "required_operands": [cost_operand],
-            "preferred_statement_types": list(
-                dict.fromkeys([*preferred_statement_types, *list(cost_operand.get("preferred_statement_types") or [])])
-            ),
-            "preferred_sections": list(
-                dict.fromkeys([*preferred_sections, *list(cost_operand.get("preferred_sections") or [])])
-            ),
-            "retrieval_queries": cost_retrieval_queries,
-            "constraints": cost_constraints,
-        },
-    ]
-
-
 def _task_dependency_query_years(task: Dict[str, Any], report_scope: Dict[str, Any]) -> List[int]:
     query_text = " ".join(
         part
@@ -3805,24 +3683,6 @@ def _build_semantic_numeric_plan(
     match is available.
     """
     ontology = get_financial_ontology()
-    inventory_write_down_tasks = _build_inventory_write_down_mixed_tasks(
-        query=query,
-        topic=topic,
-        report_scope=report_scope,
-        ontology=ontology,
-    )
-    if inventory_write_down_tasks:
-        return {
-            "status": "inventory_write_down_mixed",
-            "fallback_to_general_search": False,
-            "planned_metric_families": [
-                str(task.get("metric_family") or "").strip()
-                for task in inventory_write_down_tasks
-                if str(task.get("metric_family") or "").strip()
-            ],
-            "tasks": inventory_write_down_tasks,
-            "planner_notes": ["inventory_write_down_mixed_split"],
-        }
     matches = ontology.match_metric_families(query, topic, intent)
     matched_metric_keys = {
         str(item.get("key") or "").strip()
@@ -6810,15 +6670,6 @@ def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional
 
 def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> List[str]:
     sections: List[str] = []
-    surface = _normalise_spaces(f"{query} {topic}")
-    if "재고자산평가손실" in surface and "매출원가" in surface:
-        sections.extend(
-            [
-                "연결재무제표 주석 21. 비용의 성격별 분류 (연결)",
-                "연결재무제표 주석 27. 현금흐름표 (연결)",
-                "2-2. 연결손익계산서",
-            ]
-        )
     if intent not in {"comparison", "trend"}:
         return list(dict.fromkeys(sections))
     sections.extend(get_financial_ontology().supplement_sections(query, topic, intent))
@@ -6853,17 +6704,6 @@ def _active_preferred_statement_types(state: Dict[str, Any], query: str, topic: 
 def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
     text = _normalise_spaces(topic)
     hints: List[str] = []
-    surface = _normalise_spaces(f"{query} {topic}")
-    if "재고자산평가손실" in surface and "매출원가" in surface:
-        hints.extend(
-            [
-                "재고자산평가손실(환입) 등",
-                "비용의 성격별 분류",
-                "현금흐름표",
-                "매출원가",
-                "연결손익계산서",
-            ]
-        )
     if intent not in {"comparison", "trend"}:
         return " ".join(dict.fromkeys(hints))
     hints.extend(get_financial_ontology().query_hints(query, topic, intent))

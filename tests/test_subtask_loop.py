@@ -1508,57 +1508,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("2024년부터 2026년까지", current["answer"])
         self.assertEqual(current["selected_claim_ids"], ["ev_003", "ev_002"])
 
-    def test_capture_current_subtask_result_prefers_deterministic_inventory_hybrid_answer(self) -> None:
-        state = {
-            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다.",
-            "compressed_answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다.",
-            "active_subtask": {
-                "task_id": "task_2",
-                "metric_family": "narrative_summary",
-                "metric_label": "질문 관련 배경/영향 설명",
-                "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
-                "operation_family": "narrative_summary",
-            },
-            "evidence_items": [
-                {
-                    "evidence_id": "ev_001",
-                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)]",
-                    "claim": "재고자산평가손실(환입) 등 | 2023 | 5,037,579 | 백만원",
-                    "quote_span": "재고자산평가손실(환입) 등 | 2023 | 5,037,579 | 백만원",
-                    "metadata": {"section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)"},
-                },
-                {
-                    "evidence_id": "ev_002",
-                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)]",
-                    "claim": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                    "quote_span": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
-                    "metadata": {"section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)"},
-                },
-                {
-                    "evidence_id": "ev_003",
-                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서]",
-                    "claim": "매출원가 | 2023 | 180,388,580 | 백만원",
-                    "quote_span": "매출원가 | 2023 | 180,388,580 | 백만원",
-                    "metadata": {"section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서"},
-                },
-            ],
-            "selected_claim_ids": ["ev_001", "ev_002", "ev_003"],
-            "tasks": [],
-            "artifacts": [],
-            "calculation_operands": [],
-            "calculation_plan": {},
-            "calculation_result": {},
-            "reconciliation_result": {},
-        }
-
-        current = self.agent._capture_current_subtask_result(state)
-
-        self.assertIn("5,037,579백만원", current["answer"])
-        self.assertIn("180,388,580백만원", current["answer"])
-        self.assertIn("2.79%", current["answer"])
-        self.assertEqual(current["selected_claim_ids"], ["ev_001", "ev_002", "ev_003"])
-
     def test_project_legacy_calculation_fields_prefers_ledger_trace_over_stale_top_level(self) -> None:
         state = {
             "answer": "2023년 연결기준 부채비율은 25.4%입니다.",
