@@ -184,6 +184,62 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(self.agent._route_after_validate(state), "advance_subtask")
         self.assertEqual(self.agent._route_after_advance_subtask(state), "retrieve")
 
+    def test_numeric_extractor_advances_when_subtask_loop_exists(self) -> None:
+        state = {
+            "query": "2023년 연결 현금흐름표에서 배당금 지급 규모를 찾고 주주환원 정책을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "operation_family": "single_value"},
+                {"task_id": "task_2", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "single_value",
+            },
+        }
+
+        self.assertEqual(self.agent._route_after_numeric_extractor(state), "advance_subtask")
+
+    def test_lookup_subtask_routes_to_numeric_extractor_even_when_top_level_intent_is_qa(self) -> None:
+        state = {
+            "query": "2023년 재무제표 주석에서 재고자산평가손실 규모와 매출원가 영향을 분석해 줘.",
+            "query_type": "qa",
+            "intent": "qa",
+            "calc_subtasks": [
+                {"task_id": "task_1", "operation_family": "lookup"},
+                {"task_id": "task_2", "operation_family": "lookup"},
+                {"task_id": "task_3", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "lookup",
+                "metric_label": "재고자산평가손실(환입) 등",
+            },
+        }
+
+        self.assertEqual(self.agent._route_after_expand(state), "numeric_extractor")
+
+    def test_non_narrative_subtask_routes_to_reconcile_plan_even_when_top_level_intent_is_qa(self) -> None:
+        state = {
+            "query": "2023년 재무제표 주석에서 재고자산평가손실 규모와 매출원가 영향을 분석해 줘.",
+            "query_type": "qa",
+            "intent": "qa",
+            "calc_subtasks": [
+                {"task_id": "task_1", "operation_family": "lookup"},
+                {"task_id": "task_2", "operation_family": "lookup"},
+                {"task_id": "task_3", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "operation_family": "lookup",
+                "metric_label": "매출원가",
+            },
+        }
+
+        self.assertEqual(self.agent._route_after_evidence(state), "reconcile_plan")
+
     def test_reconcile_short_circuits_when_dependency_outputs_are_fully_resolved(self) -> None:
         state = {
             "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
@@ -1395,6 +1451,113 @@ class SubtaskLoopTests(unittest.TestCase):
             "90.7%",
         )
         self.assertEqual(current["calculation_operands"][0]["operand_id"], "rev")
+
+    def test_capture_current_subtask_result_prefers_deterministic_dividend_hybrid_answer(self) -> None:
+        state = {
+            "query": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+            "answer": "2023년 연결 현금흐름표상 배당금 지급으로 유출된 현금은 9조 8,094억원입니다.",
+            "compressed_answer": "2023년 연결 현금흐름표상 배당금 지급으로 유출된 현금은 9조 8,094억원입니다.",
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "query": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+                "operation_family": "narrative_summary",
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 6. 배당에 관한 사항]",
+                    "claim": "2023년(제55기) 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모는 9조 8,094억원입니다.",
+                    "quote_span": "현금배당금총액(백만원) | 9,809,438",
+                    "metadata": {
+                        "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+                    },
+                },
+                {
+                    "evidence_id": "ev_002",
+                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 6. 배당에 관한 사항]",
+                    "claim": "삼성전자는 2024년부터 2026년까지 3년간 잉여현금흐름의 50%를 재원으로 연간 9.8조원 수준의 정규배당을 유지하고, 정규배당 이후 잔여 재원이 발생하면 추가로 환원할 계획입니다.",
+                    "quote_span": "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 연간 9.8조원 수준의 정규배당을 유지하되, 정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획입니다.",
+                    "metadata": {
+                        "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+                    },
+                },
+                {
+                    "evidence_id": "ev_003",
+                    "source_anchor": "[삼성전자 | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                    "claim": "당기말 현재 당사 차입금은 12조 6,859억원이며, 당사의 유동성은 당기 영업활동 현금흐름으로 44조 1,374억원이 유입되었고, 배당금 지급 9조 8,645억원 등이 유출되었습니다.",
+                    "quote_span": "당기말 현재 당사 차입금은 12조 6,859억원이며, 배당금 지급 9조 8,645억원 등이 유출되었습니다.",
+                    "metadata": {
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
+                    },
+                },
+            ],
+            "selected_claim_ids": ["ev_001", "ev_002"],
+            "tasks": [],
+            "artifacts": [],
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "reconciliation_result": {},
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        self.assertIn("9조 8,645억원", current["answer"])
+        self.assertIn("2024년부터 2026년까지", current["answer"])
+        self.assertEqual(current["selected_claim_ids"], ["ev_003", "ev_002"])
+
+    def test_capture_current_subtask_result_prefers_deterministic_inventory_hybrid_answer(self) -> None:
+        state = {
+            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+            "answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다.",
+            "compressed_answer": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다.",
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+                "operation_family": "narrative_summary",
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)]",
+                    "claim": "재고자산평가손실(환입) 등 | 2023 | 5,037,579 | 백만원",
+                    "quote_span": "재고자산평가손실(환입) 등 | 2023 | 5,037,579 | 백만원",
+                    "metadata": {"section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)"},
+                },
+                {
+                    "evidence_id": "ev_002",
+                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)]",
+                    "claim": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
+                    "quote_span": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
+                    "metadata": {"section_path": "III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)"},
+                },
+                {
+                    "evidence_id": "ev_003",
+                    "source_anchor": "[삼성전자 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서]",
+                    "claim": "매출원가 | 2023 | 180,388,580 | 백만원",
+                    "quote_span": "매출원가 | 2023 | 180,388,580 | 백만원",
+                    "metadata": {"section_path": "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서"},
+                },
+            ],
+            "selected_claim_ids": ["ev_001", "ev_002", "ev_003"],
+            "tasks": [],
+            "artifacts": [],
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "reconciliation_result": {},
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        self.assertIn("5,037,579백만원", current["answer"])
+        self.assertIn("180,388,580백만원", current["answer"])
+        self.assertIn("2.79%", current["answer"])
+        self.assertEqual(current["selected_claim_ids"], ["ev_001", "ev_002", "ev_003"])
 
     def test_project_legacy_calculation_fields_prefers_ledger_trace_over_stale_top_level(self) -> None:
         state = {

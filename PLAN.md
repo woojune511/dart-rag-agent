@@ -7,11 +7,19 @@
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| 현재 1순위 | **`structural_parent_hybrid_v2` 실험을 설계하고, structural routine default 위에 다음 ingest 후보를 정의** |
+| 현재 1순위 | **`curated_single_doc_core` broader rerun 결과를 닫고 남는 blocker를 재분류** |
 | 지금 하지 않을 것 | 범용 agent 확장, broad web workflow, cosmetic retrieval tuning |
 | 다음 큰 순서 | `ingest candidate selection -> next chunking experiment -> concept-only planner canary -> DART multi-document reasoning` |
 
 ## Immediate Focus
+
+- 검증 순서는 **검증 가능한 최소 단위 우선**으로 고정한다.
+  - 1) unit test / targeted regression
+  - 2) 단일 문항 targeted replay
+  - 3) store-fixed eval-only
+  - 4) smoke / gate
+  - 5) broader curated full evaluation
+  - 비용/시간 제약이 있으면 더 큰 bundle보다 이 순서를 우선한다.
 
 - curated dataset 연결과 parser baseline regression은 1차 기준선까지는 지나갔다.
 - active benchmark track은 이제 `curated_single_doc_core`, `curated_runtime_contract_gate`, `multi_metric_numeric_smoke`, `curated_multi_report_smoke`를 기본으로 본다.
@@ -20,10 +28,18 @@
   - `plain_prefix_8000_400`: speed / cost baseline, 그러나 `SKH_T1_060` FAIL
   - `contextual_selective_v2_prefix_2500_320`: quality baseline, 대표 gate PASS
   - `structural_selective_v2_prefix_2500_320`: 대표 gate PASS, multi-entity gate PASS, broader curated blocker close까지 확인된 current operating default
-- 지금 가장 가까운 구현 초점은 **next ingest experiment design + concept-only planner 확대 검증** 이다.
+- 지금 가장 가까운 구현 초점은 **broader curated blocker maintenance + concept-only planner 확대 검증** 이다.
   - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
   - fresh structural store 기준 `SAM_T2_002`도 multi-source receipt inventory + dependency binding guard 보강 이후 `numeric_final_judgement = PASS`로 재확인됐다
   - 다만 `SAM_T2_002`는 mixed benchmark wording(`메모리 반도체 업황 악화에도 불구하고`)을 충분히 반영하지 못해 `completeness = 0.7`이 남아 있다
+  - `SAM_T3_028`도 raw filing deterministic fallback 이후 targeted rerun에서 다시 PASS로 닫혔다
+    - `numeric_final_judgement = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
+  - 다만 이 수정이 반영된 `curated_single_doc_core` broader rerun은 아직 진행 중이므로, broader curated status는 완료 후 다시 확정해야 한다
   - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
   - `MIX_T1_064`는 targeted official rerun까지 닫혔다
     - `numeric_equivalence = 1.0`
@@ -45,8 +61,8 @@
 | --- | --- |
 | 목표 | `plain / structural / contextual` 3자 비교를 정리한 뒤, structural default 위에서 다음 ingest 후보를 설계 |
 | 현재 자산 | `curated_runtime_contract_gate`, `curated_multi_entity_grounding_gate`, `structural_selective_v2`, broader curated blocker close, winner ranking policy |
-| 현재 문제 | `structural_selective_v2`는 이제 default로 굳었지만, 다음 ingest 실험 후보(`structural_parent_hybrid_v2`)를 어떤 평가 축으로 볼지 아직 설계가 덜 됐다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크고, `SAM_T2_002`에는 narrative completeness calibration이 조금 남아 있다 |
-| 다음 할 일 | structural default는 고정하고, `structural_parent_hybrid_v2` 실험 설계와 concept-only planner 확대 검증으로 넘어간다. 병행해서 `SAM_T2_002` mixed-query wording calibration은 benchmark maintenance로 처리한다 |
+| 현재 문제 | `structural_selective_v2`는 routine default로 굳었지만, `curated_single_doc_core` broader rerun의 최종 blocker 목록이 아직 닫히지 않았다. `contextual_selective_v2`는 품질은 좋지만 ingest 비용이 너무 크고, `SAM_T2_002`에는 narrative completeness calibration이 조금 남아 있다 |
+| 다음 할 일 | 먼저 `curated_single_doc_core` rerun 결과를 닫아 broader curated blocker를 재분류한다. 그 다음 structural default는 유지한 채 `structural_parent_hybrid_v2` 실험 설계와 concept-only planner 확대 검증으로 넘어간다 |
 | 종료 조건 | `structural_selective_v2` default가 운영 문서와 curated profile에 고정되고, next ingest experiment 비교 축이 정의됨 |
 
 ### 1. Planner and synthesizer contract

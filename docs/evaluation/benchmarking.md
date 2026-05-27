@@ -89,6 +89,26 @@
 | 3. store-fixed eval-only | 기존 store 재사용 end-to-end 회귀 | [src/ops/run_eval_only.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/run_eval_only.py) | 같은 store에서 current agent/evaluator 회귀 |
 | 4. full evaluation | shortlist 후보에 대한 전체 품질 확인 | benchmark runner full eval | release-grade 확인 |
 
+### 검증 가능한 최소 단위 우선
+
+가능하면 **가장 작은 검증 단위부터** 확인한 뒤에만 더 큰 benchmark로 올라간다.
+
+권장 순서:
+
+1. unit test / targeted regression test
+2. 단일 문항 targeted replay
+3. store-fixed eval-only
+4. smoke / gate profile
+5. broader curated full evaluation
+
+운영 원칙:
+
+- broad rerun으로 바로 들어가기 전에, 먼저 **원인이 분리된 최소 단위 재현**을 만든다.
+- runtime patch가 특정 질문 하나를 겨냥했다면, 우선 **단일 question replay**로 닫고 그 다음 smoke/gate로 올린다.
+- evaluator / rendering / projection 변경은 가능하면 **같은 store를 재사용하는 eval-only**로 먼저 본다.
+- `curated_single_doc_core` 같은 broader curated full run은 **마지막 승격 단계**로 사용한다.
+- quota / 비용 제약이 있으면 broad rerun보다 **검증 가능한 최소 단위**를 우선한다.
+
 ### Screening vs Full Evaluation
 
 | 단계 | 주요 지표 | 어떻게 해석하나 |
@@ -260,7 +280,15 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
     - `structured_result.status = ok`
 - `curated_single_doc_core`
   - `MIX_T1_046`는 generic share-of-total ratio 분해, unit inheritance, evaluator period normalization 보강 이후 한 차례 PASS했고, parent-hybrid probe의 fresh NAVER 2023 bundle에서 다시 노출된 `영업비용` denominator binding failure도 calculation fallback 보강 후 store-fixed eval-only에서 다시 PASS했다
+  - `SAM_T3_028`는 parser/store가 inventory note row와 inclusion sentence를 보존하지 못하는 문제가 있었고, raw filing deterministic fallback 추가 후 targeted rerun에서 다시 PASS했다
+    - `numeric_final_judgement = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
   - missing local filing 문제는 curated benchmark auto-fetch로 정리됐다
+  - 이 수정이 반영된 broader `curated_single_doc_core` rerun은 현재 진행 중이며, final blocker set은 run 완료 후 다시 확정해야 한다
 - official targeted follow-up
   - `MIX_T1_064`는 composed-ratio aggregate trace 보강과 evaluator operand supplementation 이후
     - `numeric_equivalence = 1.0`
@@ -276,7 +304,7 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 즉 최신 판단은 다음과 같다.
 
 - `structural_selective_v2`는 현재 routine curated validation의 operating default다
-- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, targeted official follow-up blocker는 닫혔다
+- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, `SAM_T3_028` targeted single-doc blocker, targeted official follow-up blocker는 닫혔다
 - fresh-store 회귀는 retrieval coverage보다 task/dependency ledger와 multi-report inventory가 더 중요한 병목임이 확인됐다
 - mixed numeric+narrative query는 숫자 correctness만으로 닫지 않고, aggregate synthesis가 question-level context evidence까지 최종 문장에 반영해야 한다
 - `structural_parent_hybrid_v2` probe 결과, parent digest는 현재 3문항 probe에서 default 승격 근거를 만들지 못했다

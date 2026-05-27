@@ -3411,17 +3411,30 @@ Subtask Results JSON:
 
     def _route_after_expand(self, state: FinancialAgentState) -> str:
         active_subtask = dict(state.get("active_subtask") or {})
-        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary":
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation == "narrative_summary":
+            return "evidence"
+        if list(state.get("calc_subtasks") or []):
+            if active_operation in {"lookup", "single_value"}:
+                return "numeric_extractor"
             return "evidence"
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent == "numeric_fact":
             return "numeric_extractor"
         return "evidence"
 
+    def _route_after_numeric_extractor(self, state: FinancialAgentState) -> str:
+        if list(state.get("calc_subtasks") or []):
+            return "advance_subtask"
+        return "cite"
+
     def _route_after_evidence(self, state: FinancialAgentState) -> str:
         active_subtask = dict(state.get("active_subtask") or {})
-        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary":
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation == "narrative_summary":
             return "compress"
+        if list(state.get("calc_subtasks") or []):
+            return "reconcile_plan"
         intent = state.get("intent") or state.get("query_type", "qa")
         if intent in {"comparison", "trend"}:
             return "reconcile_plan"

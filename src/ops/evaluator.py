@@ -1624,13 +1624,62 @@ def _looks_like_hybrid_mixed_query(question: str) -> bool:
         return False
     has_numeric_intent = any(
         marker in text
-        for marker in ("계산", "증가", "감소", "성장률", "비율", "증감", "매출", "영업수익", "금액")
+        for marker in (
+            "계산",
+            "증가",
+            "감소",
+            "성장률",
+            "비율",
+            "증감",
+            "매출",
+            "영업수익",
+            "금액",
+            "규모",
+            "총액",
+            "지급액",
+            "현금흐름",
+        )
     )
     has_narrative_intent = any(
         marker in text
         for marker in ("영향", "원인", "배경", "요약", "설명", "기여")
     )
     return has_numeric_intent and has_narrative_intent
+
+
+def _answer_numeric_material_grounded_in_runtime_evidence(
+    answer: str,
+    runtime_evidence: List[Dict[str, Any]],
+) -> bool:
+    answer_candidates = list(_extract_numeric_candidates(answer or ""))
+    if not answer_candidates or not runtime_evidence:
+        return False
+
+    for answer_candidate in answer_candidates:
+        kind = str(answer_candidate.get("kind") or "")
+        matched = False
+        for row in list(runtime_evidence or []):
+            evidence_text = " ".join(
+                part
+                for part in [
+                    str(row.get("claim") or "").strip(),
+                    str(row.get("quote_span") or "").strip(),
+                    str(row.get("raw_row_text") or "").strip(),
+                    str(row.get("source_context") or "").strip(),
+                ]
+                if part
+            )
+            if not evidence_text:
+                continue
+            evidence_candidates = list(_extract_numeric_candidates(evidence_text))
+            if kind in {"currency", "percent"}:
+                evidence_candidates.extend(_extract_unitless_number_candidates(evidence_text, kind))
+            if any(_numeric_values_equivalent(answer_candidate, candidate) for candidate in evidence_candidates):
+                matched = True
+                break
+        if not matched:
+            return False
+    return True
 
 
 def _should_override_hybrid_faithfulness(
@@ -1660,11 +1709,20 @@ def _should_override_hybrid_faithfulness(
         return False
     if not str(answer or "").strip() or _looks_like_full_abstention_answer(answer):
         return False
+    numeric_material_grounded = _answer_numeric_material_grounded_in_runtime_evidence(answer, runtime_evidence)
     if completeness != 1.0:
         return False
-    if calculation_correctness is not None and calculation_correctness != 1.0:
+    if (
+        calculation_correctness is not None
+        and calculation_correctness != 1.0
+        and not numeric_material_grounded
+    ):
         return False
-    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
+    if (
+        grounded_rendering_correctness is not None
+        and grounded_rendering_correctness != 1.0
+        and not numeric_material_grounded
+    ):
         return False
     if context_recall < 1.0 or retrieval_hit_at_k < 1.0:
         return False

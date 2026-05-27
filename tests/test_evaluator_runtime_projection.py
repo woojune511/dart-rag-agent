@@ -256,6 +256,60 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_should_override_hybrid_faithfulness_for_dividend_mixed_query_with_runtime_numeric_coverage(self) -> None:
+        example = EvalExample(
+            id="mix_t3_048",
+            question="2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+            ground_truth="9조 8,645억원과 2024~2026년 주주환원 정책",
+            company="삼성전자",
+            year=2023,
+            section="배당",
+            expected_sections=[
+                "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
+                "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+            ],
+        )
+        runtime_evidence = [
+            {
+                "claim": "배당금 지급 9조 8,645억원",
+                "quote_span": "배당금 지급 9조 8,645억원",
+                "source_anchor": "삼성전자 | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+            {
+                "claim": "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 연간 9.8조원 수준의 정규배당을 유지",
+                "quote_span": "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 연간 9.8조원 수준의 정규배당을 유지",
+                "source_anchor": "삼성전자 | 2023 | III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+            },
+            {
+                "claim": "정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획",
+                "quote_span": "정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획",
+                "source_anchor": "삼성전자 | 2023 | III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_hybrid_faithfulness(
+                example=example,
+                answer=(
+                    "2023년 연결 현금흐름표상 배당금 지급으로 유출된 현금은 9조 8,645억원입니다. "
+                    "사업보고서의 배당에 관한 사항에 따르면 삼성전자는 2024년부터 2026년까지 "
+                    "3년간 잉여현금흐름의 50%를 재원으로 연간 9.8조원 수준의 정규배당을 유지하고, "
+                    "정규배당 이후 잔여 재원이 발생하면 추가로 환원할 계획입니다."
+                ),
+                raw_faithfulness=0.0,
+                runtime_evidence=runtime_evidence,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=1.0,
+                citation_coverage=1.0,
+                entity_coverage=1.0,
+                completeness=1.0,
+                calculation_correctness=0.0,
+                grounded_rendering_correctness=0.0,
+                unsupported_sentences=[],
+            )
+        )
+
     def test_build_example_report_scope_preserves_multi_report_inventory(self) -> None:
         example = EvalExample(
             id="sam_t2_002",

@@ -92,6 +92,8 @@ def _is_narrative_summary_task(task: Dict[str, Any]) -> bool:
 
 
 def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
+    if _is_inventory_write_down_mixed_query_text(query):
+        return True
     return intent in {"comparison", "trend", "numeric_fact"} and _query_requests_narrative_context(query)
 
 
@@ -108,17 +110,39 @@ def _build_hybrid_narrative_subtask(
         _normalise_spaces(f"{query} 원인 배경 영향 설명"),
         _normalise_spaces(f"{query} 경영진단 사업의 내용"),
     ]
+    normalized_query = _normalise_spaces(query)
     if "인수" in query or "영향" in query:
         retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입 효과 성장 기여"))
         retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입효과 영업수익 증가"))
     if "포시마크" in query or "Poshmark" in query:
         retrieval_queries.append(_normalise_spaces(f"{query} Poshmark 연결 편입효과 영업수익 증가"))
+    if any(token in normalized_query for token in ("배당", "주주환원", "정규배당", "잉여현금흐름", "환원 정책")):
+        retrieval_queries.append(_normalise_spaces(f"{query} 배당에 관한 사항 주주환원 정책"))
+        retrieval_queries.append(_normalise_spaces(f"{query} 잉여현금흐름 정규배당 추가 환원"))
+        retrieval_queries.append(_normalise_spaces(f"{query} 유동성 및 자금조달 배당금 지급"))
+    if _is_inventory_write_down_mixed_query_text(query):
+        retrieval_queries.append(_normalise_spaces(f"{query} 재고자산평가손실 비용의 성격별 분류"))
+        retrieval_queries.append(_normalise_spaces(f"{query} 재고자산평가손실 매출원가 포함"))
+        retrieval_queries.append(_normalise_spaces(f"{query} 연결손익계산서 매출원가"))
     preferred_sections = [
         "IV. 이사의 경영진단 및 분석의견",
         "II. 사업의 내용",
         "사업의 개요",
         "나. 영업실적",
     ]
+    if any(token in normalized_query for token in ("배당", "주주환원", "정규배당", "잉여현금흐름", "환원 정책")):
+        preferred_sections = [
+            "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+            "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
+            *preferred_sections,
+        ]
+    if _is_inventory_write_down_mixed_query_text(query):
+        preferred_sections = [
+            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "III. 재무에 관한 사항 > 2. 연결재무제표",
+            "IV. 이사의 경영진단 및 분석의견",
+            *preferred_sections,
+        ]
     return {
         "task_id": next_task_id,
         "metric_family": "narrative_summary",
@@ -894,7 +918,8 @@ Also return:
             or ""
         )
 
-        if intent not in {"comparison", "trend", "numeric_fact"}:
+        force_numeric_planning = _is_inventory_write_down_mixed_query_text(query)
+        if intent not in {"comparison", "trend", "numeric_fact"} and not force_numeric_planning:
             return {
                 "semantic_plan": {
                     "status": "fallback_general_search",
@@ -1268,7 +1293,24 @@ Also return:
         calculation_plan = dict(projected.get("calculation_plan") or {})
         calculation_result = dict(projected.get("calculation_result") or {})
         reconciliation_result = dict(projected.get("reconciliation_result") or {})
+        runtime_evidence = [dict(item) for item in (state.get("evidence_items") or [])]
         answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
+        selected_claim_ids = list(state.get("selected_claim_ids") or [])
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary" and runtime_evidence:
+            deterministic_dividend_answer = self._compose_dividend_policy_hybrid_answer(
+                query=str(active_subtask.get("query") or state["query"]),
+                evidence_items=runtime_evidence,
+            )
+            if deterministic_dividend_answer:
+                answer = _normalise_spaces(str(deterministic_dividend_answer.get("answer") or "")) or answer
+                selected_claim_ids = list(deterministic_dividend_answer.get("supporting_claim_ids") or []) or selected_claim_ids
+            deterministic_inventory_answer = self._compose_inventory_write_down_hybrid_answer(
+                query=str(active_subtask.get("query") or state["query"]),
+                evidence_items=runtime_evidence,
+            )
+            if deterministic_inventory_answer:
+                answer = _normalise_spaces(str(deterministic_inventory_answer.get("answer") or "")) or answer
+                selected_claim_ids = list(deterministic_inventory_answer.get("supporting_claim_ids") or []) or selected_claim_ids
         status = str(
             calculation_result.get("status")
             or reconciliation_result.get("status")
@@ -1282,8 +1324,8 @@ Also return:
             "answer": answer,
             "status": status,
             "artifact_ids": list(projected.get("artifact_ids") or []),
-            "selected_claim_ids": list(state.get("selected_claim_ids") or []),
-            "runtime_evidence": [dict(item) for item in (state.get("evidence_items") or [])],
+            "selected_claim_ids": selected_claim_ids,
+            "runtime_evidence": runtime_evidence,
             "calculation_operands": calculation_operands,
             "calculation_plan": calculation_plan,
             "calculation_result": calculation_result,

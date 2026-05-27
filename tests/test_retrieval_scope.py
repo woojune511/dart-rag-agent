@@ -220,6 +220,42 @@ class RetrievalScopeTests(unittest.TestCase):
 
         self.assertEqual(retrieved_years, {2022, 2023})
 
+    def test_supplement_section_seed_docs_matches_inventory_query_on_local_heading(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = type(
+            "_SeedVSM",
+            (),
+            {
+                "bm25_docs": ["재고자산평가손실(환입) 등 5,037,579"],
+                "bm25_metadatas": [
+                    {
+                        "company": "삼성전자",
+                        "year": 2023,
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "local_heading": "27. 현금흐름표 (연결)",
+                        "table_context": "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)",
+                        "table_row_labels_text": "재고자산평가손실(환입) 등",
+                        "chunk_uid": "seed-1",
+                    }
+                ],
+            },
+        )()
+
+        state = {
+            "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+            "topic": "2023년 재고자산평가손실과 매출원가 영향",
+            "intent": "qa",
+            "query_type": "qa",
+            "companies": ["삼성전자"],
+            "years": [2023],
+            "active_subtask": {},
+        }
+
+        supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(len(supplemented), 1)
+        self.assertIn("재고자산평가손실(환입) 등", supplemented[0][0].page_content)
+
 
 if __name__ == "__main__":
     unittest.main()

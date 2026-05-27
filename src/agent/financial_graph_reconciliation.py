@@ -1422,9 +1422,11 @@ candidate options:
         for body, metadata in zip(self.vsm.bm25_docs, self.vsm.bm25_metadatas):
             metadata = dict(metadata or {})
             section_path = str(metadata.get("section_path") or metadata.get("section") or "")
+            local_heading = _normalise_spaces(str(metadata.get("local_heading") or ""))
+            row_labels = _normalise_spaces(str(metadata.get("table_row_labels_text") or ""))
             body_text = _normalise_spaces(str(body or ""))
             table_context = _normalise_spaces(str(metadata.get("table_context") or ""))
-            section_surface = " ".join(part for part in (section_path, table_context, body_text[:400]) if part)
+            section_surface = " ".join(part for part in (section_path, local_heading, table_context, row_labels, body_text[:800]) if part)
             if not any(term in section_surface for term in section_terms):
                 continue
             company = str(metadata.get("company", "")).lower()
@@ -1440,7 +1442,7 @@ candidate options:
                 continue
             seen_chunk_uids.add(chunk_uid)
 
-            text = _normalise_spaces(f"{table_context}\n{body_text}")
+            text = _normalise_spaces("\n".join(part for part in (local_heading, table_context, row_labels, body_text) if part))
             score = 0.02
             if "연구개발 활동" in section_path or "연구개발활동" in section_path:
                 score += 0.03

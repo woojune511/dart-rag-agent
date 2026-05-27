@@ -11,6 +11,15 @@
 
 ## 최신 상태
 
+- 검증 원칙은 이제 명시적으로 **검증 가능한 최소 단위 우선**이다.
+  - unit test / targeted regression
+  - 단일 문항 targeted replay
+  - store-fixed eval-only
+  - smoke / gate
+  - broader curated full evaluation
+  순서로 올린다.
+  - broad rerun은 기본 디버깅 도구가 아니라 최종 승격 단계로 본다.
+
 - curated benchmark 경로를 실제 profile과 evaluator에 연결했다.
 - active benchmark/profile track도 curated 중심으로 재정렬하기 시작했다.
   - mainline: `curated_single_doc_core`, `curated_runtime_contract_gate`, `multi_metric_numeric_smoke`, `curated_multi_report_smoke`
@@ -116,21 +125,37 @@
     - `faithfulness = 1.0`
     - `completeness = 1.0`
     - `numeric_pass = 1.0`
+- fresh structural single-doc blocker였던 `SAM_T3_028` targeted replay도 현재 닫혔다.
+  - root cause는 planner가 아니라 parser/store가 `재고자산평가손실(환입) 등` row와 inclusion sentence를 fresh structural store에 보존하지 못한 점이었다.
+  - 대응은 raw filing deterministic fallback 추가였다.
+    - `rcept_no`로 local HTML filing을 직접 읽고
+    - `현금흐름표 (연결)`의 `재고자산평가손실(환입) 등`
+    - `비용의 성격별 분류 (연결)`의 `동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.`
+    - `연결손익계산서`의 `매출원가`
+    를 evidence/hybrid answer path에 직접 보강한다.
+  - latest targeted rerun 결과:
+    - `numeric_final_judgement = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
+  - broader `curated_single_doc_core` rerun은 이 수정 반영 후 다시 실행 중이며, 아직 완료 기준 결론으로 승격하지 않았다.
 
 ## 바로 다음에 할 일
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `curated_concept_planner_shadow` 확대 검증 | concept-only planner drift를 runtime gate와 분리해서 확인 |
-| 2 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
-| 3 | `curated_multi_report_smoke`와 `MIX_T1_046`를 broader curated gate에 유지 | multi-report CAPEX / share-of-total ratio 회귀 방지 |
+| 1 | `curated_single_doc_core` rerun4 완료 후 남는 blocker 재분류 | `SAM_T3_028` raw filing fallback 반영 이후 broader curated 상태 확정 |
+| 2 | `curated_concept_planner_shadow` 확대 검증 | concept-only planner drift를 runtime gate와 분리해서 확인 |
+| 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
 | 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
 
 ## 현재 우선순위 요약
 
-1. concept-only planner default 승격 검토
-2. contextual arbitration / benchmark maintenance 정리
-3. broader curated gate maintenance
+1. `curated_single_doc_core` blocker maintenance
+2. concept-only planner default 승격 검토
+3. contextual arbitration / benchmark maintenance 정리
 4. internal compatibility mirror cleanup scope 결정
 
 ## 현재 해석
@@ -151,7 +176,7 @@
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
 - 따라서 다음 구현은 당분간 retrieval/parser local patch보다 **concept planner shadow 확대 + benchmark maintenance** 쪽이 맞다.
-- immediate blocker였던 `SAM_T2_002` follow-up rerun과 `MIX_T1_046` denominator binding은 now closed다.
+- immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding, `SAM_T3_028` targeted replay는 now closed다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
 
 ## 2026-05-27 Update
