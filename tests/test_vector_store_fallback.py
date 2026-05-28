@@ -152,6 +152,37 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertEqual(manager.bm25_docs, ["시설투자 총액 531,139억원"])
         self.assertEqual(manager.bm25_metadatas[0]["chunk_uid"], "chunk-a")
 
+    def test_validate_vector_index_reports_hnsw_reader_failure_without_bm25_fallback(self) -> None:
+        manager = self._build_manager(
+            _BrokenHnswVectorStore(),
+            docs=["시설투자 총액 531,139억원"],
+            metadatas=[{"company": "삼성전자", "year": 2023, "chunk_uid": "capex"}],
+            scores=[4.0],
+        )
+
+        health = manager.validate_vector_index()
+
+        self.assertFalse(health["ok"])
+        self.assertTrue(health["vector_store_read_error"])
+        self.assertIn("hnsw", health["error"].lower())
+
+    def test_validate_vector_index_succeeds_when_vector_search_returns_results(self) -> None:
+        vector_doc = Document(
+            page_content="시설투자 총액 531,139억원",
+            metadata={"company": "삼성전자", "year": 2023, "chunk_uid": "capex"},
+        )
+        manager = self._build_manager(
+            _CountVectorStore([(vector_doc, 0.25)]),
+            docs=["시설투자 총액 531,139억원"],
+            metadatas=[{"company": "삼성전자", "year": 2023, "chunk_uid": "capex"}],
+            scores=[1.0],
+        )
+
+        health = manager.validate_vector_index()
+
+        self.assertTrue(health["ok"])
+        self.assertEqual(health["result_count"], 1)
+
     def test_search_cache_reuses_previous_results_for_same_query(self) -> None:
         vector_doc = Document(
             page_content="시설투자 총액 531,139억원",

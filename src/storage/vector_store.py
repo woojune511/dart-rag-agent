@@ -321,6 +321,44 @@ class VectorStoreManager:
         self.bm25_docs = []
         self.bm25_metadatas = []
 
+    def validate_vector_index(self, *, query: Optional[str] = None, where_filter: Optional[dict] = None) -> Dict[str, Any]:
+        """Probe whether the persisted vector index can serve vector search.
+
+        This intentionally bypasses BM25 fallback so official eval-only runs can
+        fail before spending time on answer generation when the vector index is
+        unreadable.
+        """
+        probe = (query or "").strip()
+        if not probe:
+            for doc in self.bm25_docs:
+                probe = str(doc or "").strip()
+                if probe:
+                    break
+        if not probe:
+            probe = "vector store health check"
+        probe = " ".join(probe.split())[:500]
+
+        try:
+            results = self.vector_store.similarity_search_with_score(
+                probe,
+                k=1,
+                filter=where_filter,
+            )
+        except Exception as exc:
+            return {
+                "ok": False,
+                "error": str(exc),
+                "embedding_capacity_error": _is_embedding_capacity_error(exc),
+                "vector_store_read_error": _is_vector_store_read_error(exc),
+                "probe_query": probe,
+            }
+
+        return {
+            "ok": bool(results),
+            "result_count": len(results or []),
+            "probe_query": probe,
+        }
+
     def _build_bm25_index(self, docs: List[str], metadatas: List[dict]) -> None:
         from rank_bm25 import BM25Okapi
 

@@ -30,10 +30,11 @@
     correctly failed instead of silently converting an official gate into a
     BM25-only degraded evaluation.
 - Immediate next implementation target:
-  1. Add an explicit store health / repair path for persisted Chroma stores, or
-     a clearly labeled degraded diagnostic eval-only profile.
-  2. Keep official gate runs strict: vector index read errors should fail until
-     the store is rebuilt or repaired.
+  1. Add a repair/rebuild path for persisted Chroma stores after a failed
+     health check.
+  2. Keep official gate runs strict: vector index read errors fail before
+     answer generation, while BM25 fallback is only allowed through an explicit
+     degraded diagnostic eval-only option.
   3. Continue HYU quality work as ranking/evaluator-grounding work, not as a
      retrieval-miss fix; both Hyundai questions already have
      `context_recall = 1.000` and `retrieval_hit_at_k = 1.000`.

@@ -35,6 +35,7 @@ from ops.benchmark_runner import (
     _sanitize_settings,
     _write_benchmark_outputs,
 )
+from storage.vector_store import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROVIDER, VectorStoreManager
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,38 @@ def _load_existing_results(company_output_dir: Path) -> List[Dict[str, Any]]:
     return list(payload.get("results", []) or [])
 
 
+def _validate_store_for_eval_only(store_info: Dict[str, Any], *, allow_degraded_retrieval: bool) -> Dict[str, Any]:
+    vsm = VectorStoreManager(
+        persist_directory=store_info["persist_directory"],
+        collection_name=store_info["collection_name"],
+        embedding_provider=store_info.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
+        embedding_model_name=store_info.get("embedding_model_name", DEFAULT_EMBEDDING_MODEL),
+        allow_query_embedding_fallback=allow_degraded_retrieval,
+    )
+    health = vsm.validate_vector_index()
+    if health.get("ok"):
+        logger.info(
+            "Vector store health check passed for %s (probe results=%s)",
+            store_info["persist_directory"],
+            health.get("result_count"),
+        )
+        return health
+
+    message = (
+        "Vector store health check failed before eval-only execution. "
+        f"persist_directory={store_info['persist_directory']} "
+        f"collection={store_info['collection_name']} "
+        f"error={health.get('error')}"
+    )
+    if allow_degraded_retrieval:
+        logger.warning("%s; continuing because --allow-degraded-retrieval was set.", message)
+        return health
+    raise RuntimeError(
+        message
+        + ". Rebuild/repair the store, or rerun with --allow-degraded-retrieval for a diagnostic BM25 fallback run."
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run store-fixed full evaluation using an existing benchmark store (re-runs current agent/evaluator)."
@@ -102,6 +135,14 @@ def main() -> None:
         action="append",
         default=[],
         help="Optional experiment id(s) to evaluate. Defaults to all results found for the company bundle.",
+    )
+    parser.add_argument(
+        "--allow-degraded-retrieval",
+        action="store_true",
+        help=(
+            "Continue when the persisted vector index health check fails by enabling existing BM25 fallback. "
+            "Use only for diagnostic runs; official gate eval-only remains strict by default."
+        ),
     )
     args = parser.parse_args()
 
@@ -148,6 +189,14 @@ def main() -> None:
             updated["store"] = dict(result.get("store") or {})
             updated["store"]["persist_directory"] = str(local_store_dir)
             logger.info("Re-mapped store to local path: %s", local_store_dir)
+        updated["store"] = dict(updated.get("store") or {})
+        health = _validate_store_for_eval_only(
+            updated["store"],
+            allow_degraded_retrieval=bool(args.allow_degraded_retrieval),
+        )
+        updated["store_health"] = health
+        if args.allow_degraded_retrieval:
+            updated["store"]["allow_retrieval_fallback"] = True
         updated["full_eval"] = _run_full_evaluation(updated, merged_by_id[experiment_id], full_eval_config)
         selected_results.append(updated)
 

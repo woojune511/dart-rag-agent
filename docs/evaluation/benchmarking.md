@@ -1242,6 +1242,10 @@ python -m src.ops.run_eval_only \
   `allow_retrieval_fallback = false`.
 - This is intentional for official gates: a vector-index read failure should not
   be silently converted into a BM25-only result.
+- `run_eval_only` now performs a vector-index health check before answer
+  evaluation. By default, a failed health check stops the run before agent
+  execution. The explicit `--allow-degraded-retrieval` option enables the
+  existing BM25 fallback only for diagnostic runs.
 
 Next action:
 
