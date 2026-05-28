@@ -680,29 +680,6 @@ class FinancialAgentEvidenceMixin:
             for supplemental_query in (query, str(state.get("topic") or "").strip()):
                 if supplemental_query and supplemental_query not in query_bundle:
                     query_bundle.append(supplemental_query)
-        if any(marker in query for marker in ("타법인출자", "지분율", "장부금액", "투자장부금액", "요약 손익", "손익")):
-            entity_markers = []
-            for group in self._query_focus_marker_groups(query):
-                variants = [str(variant).strip() for variant in (group.get("variants") or []) if str(variant).strip()]
-                if len(variants) >= 2 and any(re.search(r"[A-Za-z]", variant) for variant in variants):
-                    entity_markers = variants
-                    break
-            entity_marker = next((variant for variant in entity_markers if re.search(r"[A-Za-z]", variant)), "")
-            if entity_marker:
-                investment_focus_queries = [
-                    (
-                        f"{entity_marker} 소유지분율 지분율 장부금액 투자자산 "
-                        "재무제표 주석 타법인출자 현황"
-                    ),
-                    (
-                        f"{entity_marker} 요약재무정보 계속영업이익 손실 계속영업손익 "
-                        "총포괄손익 영업수익 유동자산 비유동자산"
-                    ),
-                ]
-                for investment_focus_query in investment_focus_queries:
-                    if investment_focus_query not in query_bundle:
-                        query_bundle = list(query_bundle)
-                        query_bundle.append(investment_focus_query)
         executed_queries: List[Dict[str, Any]] = []
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
@@ -2436,15 +2413,15 @@ class FinancialAgentEvidenceMixin:
         primary_anchor = supporting_anchors[0] if supporting_anchors else ""
         summary_anchor = supporting_anchors[-1] if supporting_anchors else primary_anchor
         if prior_percent:
-            calculation_operands.append(_operand_row("Motional 기초 지분율", prior_percent.replace("%", ""), "%", "prior_ownership_ratio", primary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} 기초 지분율", prior_percent.replace("%", ""), "%", "prior_ownership_ratio", primary_anchor))
         if percent:
-            calculation_operands.append(_operand_row("Motional 기말 지분율", percent.replace("%", ""), "%", "ownership_ratio", primary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} 기말 지분율", percent.replace("%", ""), "%", "ownership_ratio", primary_anchor))
         if amount:
-            calculation_operands.append(_operand_row("Motional 투자장부금액", amount, "백만원", "investment_carrying_amount", primary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} 투자장부금액", amount, "백만원", "investment_carrying_amount", primary_anchor))
         if continuing:
-            calculation_operands.append(_operand_row("Motional 계속영업손실", continuing, "백만원", "continuing_loss", summary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} 계속영업손실", continuing, "백만원", "continuing_loss", summary_anchor))
         if total_comprehensive:
-            calculation_operands.append(_operand_row("Motional 총포괄손실", total_comprehensive, "백만원", "total_comprehensive_loss", summary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} 총포괄손실", total_comprehensive, "백만원", "total_comprehensive_loss", summary_anchor))
         return {
             "selected_claim_ids": list(dict.fromkeys(selected_ids)),
             "draft_points": sentences,

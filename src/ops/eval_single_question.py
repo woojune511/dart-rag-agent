@@ -92,6 +92,15 @@ def main() -> None:
         print(f"  numeric_retrieval_sup: {get('numeric_retrieval_support')}")
         print(f"  numeric_final_judgem : {get('numeric_final_judgement')}")
         print(f"  retrieval_hit_at_k   : {get('retrieval_hit_at_k')}")
+        trace = get("retrieval_debug_trace") or {}
+        print(f"  retrieval_trace_keys : {', '.join(sorted(trace.keys())) if trace else '-'}")
+        print(f"  retrieval_selected   : {trace.get('selected_count') if trace else None}")
+        print(f"  retrieval_candidates : {trace.get('candidate_count') if trace else None}")
+        executed = trace.get("executed_queries") or []
+        if executed:
+            first_query = executed[0]
+            print(f"  retrieval_first_query: {(first_query.get('executed_query') or '')[:200]}")
+            print(f"  retrieval_filter     : {first_query.get('where_filter')}")
         print(f"  operand_selection    : {get('operand_selection_correctness')}")
         print(f"  numeric_result       : {get('numeric_result_correctness')}")
         print(f"  completeness         : {get('completeness')}")

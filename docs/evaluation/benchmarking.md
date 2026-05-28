@@ -9,6 +9,7 @@
 - Golden dataset schema: [golden_dataset_schema.md](golden_dataset_schema.md)
 - benchmark dataset design rationale: [benchmark_dataset_design.md](benchmark_dataset_design.md)
 - evaluator design rationale: [evaluator_design_rationale.md](evaluator_design_rationale.md)
+- retrieval trace debugging: [retrieval_trace_debugging.md](retrieval_trace_debugging.md)
 - dataset curation record: [dataset_curation_log.md](dataset_curation_log.md)
 - answer generation 원칙: [../architecture/answer_generation_principles.md](../architecture/answer_generation_principles.md)
 

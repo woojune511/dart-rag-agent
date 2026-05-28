@@ -275,6 +275,11 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             citations=[],
             retrieved_metadata=[],
             retrieved_previews=[],
+            retrieval_debug_trace={
+                "query_bundle": ["질문"],
+                "candidate_count": 3,
+                "selected_count": 1,
+            },
             runtime_evidence=[],
             selected_claim_ids=[],
             draft_points=[],
@@ -314,6 +319,8 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(rows[0]["numeric_final_judgement"], "PASS")
         self.assertEqual(rows[0]["raw_operand_selection_correctness"], 0.5)
         self.assertEqual(rows[0]["operand_selection_correctness"], 1.0)
+        self.assertEqual(rows[0]["retrieval_debug_trace"]["selected_count"], 1)
+        self.assertEqual(rows[0]["retrieval_debug_trace"]["candidate_count"], 3)
         self.assertNotIn("calculation_operands", rows[0])
         self.assertNotIn("calculation_plan", rows[0])
         self.assertNotIn("calculation_result", rows[0])
