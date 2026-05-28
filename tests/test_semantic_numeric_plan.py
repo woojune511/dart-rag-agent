@@ -21,7 +21,7 @@ from src.agent.financial_graph import (
 )
 from src.agent.financial_graph_helpers import _extract_segment_labels_from_query
 from src.agent.financial_graph_helpers import _annotate_task_dependencies
-from src.agent.financial_graph_planning import _llm_plan_preserves_segment_sum_shape
+from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
 
 
@@ -2134,6 +2134,92 @@ class SemanticNumericPlanTests(unittest.TestCase):
                 "inventory_disposal_loss",
             ],
         )
+
+    def test_parenthetical_inventory_adjustment_impact_builds_ratio_task(self) -> None:
+        plan = self._build_v3_concept_plan(
+            "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘."
+        )
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_ratio")
+        self.assertEqual(task["operation_family"], "ratio")
+        self.assertEqual(
+            [(row["concept"], row["role"]) for row in task["required_operands"]],
+            [
+                ("inventory_valuation_adjustment", "numerator_1"),
+                ("cost_of_sales", "denominator_1"),
+            ],
+        )
+        self.assertIn("analysis_hints", task)
+
+    def test_parenthetical_inventory_adjustment_shadows_split_loss_concepts(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            ontology = ontology_module._ONTOLOGY_SINGLETON
+            specs = ontology.concept_specs(
+                "2023년 재고자산평가손실(또는 환입)이 매출원가에 미친 영향을 분석해 줘.",
+                "",
+                "comparison",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        concepts = [spec["concept"] for spec in specs]
+        self.assertIn("inventory_valuation_adjustment", concepts)
+        self.assertIn("cost_of_sales", concepts)
+        self.assertNotIn("inventory_valuation_loss", concepts)
+        self.assertNotIn("inventory_valuation_loss_reversal", concepts)
+
+    def test_llm_analysis_override_must_preserve_ratio_shape(self) -> None:
+        base_plan = {
+            "tasks": [
+                {
+                    "operation_family": "ratio",
+                    "analysis_hints": {"preferred_operation": "ratio"},
+                    "required_operands": [
+                        {"concept": "inventory_valuation_adjustment", "role": "numerator_1"},
+                        {"concept": "cost_of_sales", "role": "denominator_1"},
+                    ],
+                }
+            ]
+        }
+        lookup_only_plan = {
+            "tasks": [
+                {
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {"concept": "inventory_valuation_adjustment", "role": ""},
+                    ],
+                },
+                {
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {"concept": "cost_of_sales", "role": ""},
+                    ],
+                },
+            ]
+        }
+        compatible_plan = {
+            "tasks": [
+                {
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"concept": "inventory_valuation_adjustment", "role": "numerator_1"},
+                        {"concept": "cost_of_sales", "role": "denominator_1"},
+                    ],
+                }
+            ]
+        }
+
+        self.assertFalse(_llm_plan_preserves_analysis_shape(base_plan, lookup_only_plan))
+        self.assertTrue(_llm_plan_preserves_analysis_shape(base_plan, compatible_plan))
 
 
 if __name__ == "__main__":

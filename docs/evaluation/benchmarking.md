@@ -998,6 +998,48 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - This closes the `MIX_T1_046` denominator-binding blocker exposed by the parent-hybrid probe.
   - The result bundle is an experiment artifact and should not be committed.
 
+## 2026-05-28 Single-Doc Blocker Reclassification
+
+- Focused profile:
+  - `benchmarks/profiles/tmp_curated_single_doc_blocker_reclass_2026-05-28.json`
+- Result bundle:
+  - `benchmarks/results/curated_single_doc_blocker_reclass_2026-05-28`
+- Covered cases:
+  - `MIX_T1_046`
+  - `NAV_T3_007`
+  - `SAM_T2_078`
+  - `SAM_T3_028`
+  - `HYU_T2_010`
+  - `HYU_T3_011`
+  - `HYU_T3_072`
+- Current classification:
+  - `MIX_T1_046`: PASS after evaluator trace compatibility fix
+  - `NAV_T3_007`: PASS
+  - `SAM_T3_028`: now PASS in the focused follow-up rerun
+    `benchmarks/results/sam_t3_028_analysis_fix_2026-05-28`
+  - `HYU_T3_011`: PASS
+  - `SAM_T2_078`: R&D total is found, but Harman automotive narrative is missed
+  - `HYU_T2_010`: US sales growth is found, but IRA/protectionism narrative is
+    missed
+  - `HYU_T3_072`: Motional investment table/notes are not retrieved
+- Evaluator fix from the reclassification:
+  - resolved trace operands can use `evidence_id` instead of `source_row_id`
+  - current fiscal-period aliases such as `제 N 기`, `당기`, and `current` are
+    soft-matched when the numeric payload and label match
+  - conflicting explicit years and prior-period aliases such as `전기` remain
+    rejected
+- `SAM_T3_028` follow-up:
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `numeric_grounding = 1.0`
+  - final answer includes `재고자산평가손실(환입) 등 = 5,037,579백만원`,
+    `매출원가 = 180,388,580백만원`, and `매출원가 대비 약 2.79%`
+  - the source fix is ontology/planner-level aggregate handling for
+    parenthetical labels plus an `analysis_hints` impact-ratio contract
+  - the focused full-eval answer routed through QA; structured numeric route
+    shape is covered by targeted planner unit regressions and should be kept as
+    a future forced-route smoke if this case regresses again
+
 ## 2026-05-27 Source Commit Scope
 
 - The latest source commit scope is documentation-only.
@@ -1009,3 +1051,33 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
 - Next validation focus:
   - concept-planner shadow expansion
   - broader curated gate maintenance for `SAM_T2_002` and `MIX_T1_046`
+
+## 2026-05-28 Three-Case Focused Validation
+
+- Temporary focused artifacts remain local experiment outputs:
+  - `benchmarks/profiles/tmp_three_remaining_focus_2026-05-28.json`
+  - `benchmarks/results/three_remaining_focus_2026-05-28/`
+- These artifacts are useful for replaying the focused checks but should not be
+  committed as source-controlled benchmark fixtures unless they are promoted to
+  an official profile.
+- Focused status:
+  - `SAM_T2_078`: closed at focused single-question level; Harman narrative now
+    carries the required automotive/SDV facets with the R&D total.
+  - `HYU_T2_010`: visible answer and structured growth-rate trace are corrected;
+    operand selection, grounded rendering, and calculation correctness are all
+    `1.0` in the latest focused check.
+  - `HYU_T3_072`: visible Motional answer is correct again, but evaluator
+    grounding is still insufficient.
+- Latest `HYU_T3_072` focused signal:
+  - answer includes `25.81%`, `1,294,367백만원`,
+    `계속영업손실 (803,742)백만원`, and `총포괄손실 (791,627)백만원`
+  - `completeness = 1.0`
+  - `absolute_error_rate = 0.0`
+  - `faithfulness = 0.0`
+  - `context_recall = 0.5`
+  - `entity_coverage = 0.4`
+  - `grounded_rendering_correctness = 0.0`
+- Interpretation:
+  - `HYU_T3_072` is no longer primarily an answer-selection problem.
+  - The remaining work is to make Motional table evidence and entity-table
+    projection evaluator-visible enough for grounding / faithfulness checks.

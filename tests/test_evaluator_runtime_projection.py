@@ -162,6 +162,92 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_should_override_numeric_grounding_for_evidence_id_trace_sources(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "종업원급여",
+                "evidence_id": "task_output:task_2",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "dependency_resolved": True,
+                "source_task_id": "task_2",
+                "source_slot": "primary_value",
+            },
+            {
+                "label": "연결기준 영업비용",
+                "evidence_id": "ev_doc_005",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표]",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_operand_match_tolerates_current_fiscal_period_alias_with_same_payload(self) -> None:
+        expected = {
+            "label": "영업비용 합계",
+            "period": "2023년",
+            "raw_value": "8,181,823,307",
+            "raw_unit": "천원",
+        }
+        actual = {
+            "label": "2023년 연결기준 영업비용",
+            "period": "제 25 기",
+            "raw_value": "8,181,823,306,977",
+            "raw_unit": "원",
+            "normalized_value": 8181823306977.0,
+            "normalized_unit": "KRW",
+        }
+
+        self.assertTrue(_operand_matches(expected, actual))
+
+    def test_operand_match_rejects_different_explicit_years(self) -> None:
+        expected = {
+            "label": "영업비용 합계",
+            "period": "2023년",
+            "raw_value": "8,181,823,307",
+            "raw_unit": "천원",
+        }
+        actual = {
+            "label": "2023년 연결기준 영업비용",
+            "period": "2022년",
+            "raw_value": "8,181,823,306,977",
+            "raw_unit": "원",
+            "normalized_value": 8181823306977.0,
+            "normalized_unit": "KRW",
+        }
+
+        self.assertFalse(_operand_matches(expected, actual))
+
+    def test_operand_match_rejects_prior_period_alias(self) -> None:
+        expected = {
+            "label": "영업비용 합계",
+            "period": "2023년",
+            "raw_value": "8,181,823,307",
+            "raw_unit": "천원",
+        }
+        actual = {
+            "label": "2023년 연결기준 영업비용",
+            "period": "전기",
+            "raw_value": "8,181,823,306,977",
+            "raw_unit": "원",
+            "normalized_value": 8181823306977.0,
+            "normalized_unit": "KRW",
+        }
+
+        self.assertFalse(_operand_matches(expected, actual))
+
     def test_should_override_numeric_grounding_when_numeric_result_is_unavailable(self) -> None:
         numeric_eval = {
             "numeric_equivalence": 1.0,

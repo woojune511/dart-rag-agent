@@ -939,7 +939,9 @@ def _find_operand_grounding_match(
 
 
 def _build_operand_self_grounding_match(operand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    source_row_id = str(operand.get("source_row_id") or operand.get("row_id") or "").strip()
+    source_row_id = str(
+        operand.get("source_row_id") or operand.get("row_id") or operand.get("evidence_id") or ""
+    ).strip()
     source_anchor = str(operand.get("source_anchor") or "").strip()
     if not source_row_id or source_row_id.startswith("task_output:") or not source_anchor:
         return None
@@ -1770,7 +1772,9 @@ def _should_override_numeric_grounding(
         return False
 
     def _has_direct_or_resolved_source(operand: Dict[str, Any]) -> bool:
-        source_row_id = str(operand.get("source_row_id") or operand.get("row_id") or "").strip()
+        source_row_id = str(
+            operand.get("source_row_id") or operand.get("row_id") or operand.get("evidence_id") or ""
+        ).strip()
         source_anchor = str(operand.get("source_anchor") or "").strip()
         if not source_row_id or not source_anchor:
             return False
@@ -2013,6 +2017,23 @@ def _normalise_period_text(text: Any) -> str:
     return normalized
 
 
+def _period_mismatch_is_hard(expected_period: str, actual_period: str) -> bool:
+    if not expected_period or not actual_period or expected_period == actual_period:
+        return False
+    expected_has_year = bool(re.fullmatch(r"20\d{2}", expected_period))
+    actual_has_year = bool(re.fullmatch(r"20\d{2}", actual_period))
+    if expected_has_year and actual_has_year:
+        return True
+    def _looks_like_current_fiscal_alias(period: str) -> bool:
+        return bool(re.fullmatch(r"제\d+기", period)) or period in {"당기", "current"}
+
+    if _looks_like_current_fiscal_alias(actual_period):
+        return False
+    if _looks_like_current_fiscal_alias(expected_period):
+        return False
+    return True
+
+
 def _normalise_label_text(text: Any) -> str:
     cleaned = str(text or "").strip().lower()
     cleaned = re.sub(r"\s+", "", cleaned)
@@ -2047,7 +2068,7 @@ def _labels_match(expected_label: str, actual_label: str) -> bool:
 def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
     expected_period = _normalise_period_text(expected.get("period"))
     actual_period = _normalise_period_text(actual.get("period"))
-    if expected_period and actual_period and expected_period != actual_period:
+    if _period_mismatch_is_hard(expected_period, actual_period):
         return False
 
     expected_label = str(expected.get("label") or "")

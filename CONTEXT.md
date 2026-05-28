@@ -126,6 +126,12 @@
     - evaluator는 이제 `dependency_resolved = true`이고 `source_task_id` / `source_slot` / `source_anchor`가 있는 `task_output:*` operand를 grounded operand로 인정한다.
     - unresolved `task_output:*`만 있는 operand는 여전히 grounded로 보지 않는다.
     - `numeric_equivalence = 1.0`, `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`, `numeric_final_judgement = PASS`
+  - 2026-05-28 focused blocker reclassification에서도 `MIX_T1_046`와 `NAV_T3_007`는 PASS다.
+    - result dir: `benchmarks/results/curated_single_doc_blocker_reclass_2026-05-28`
+    - broader trace에서는 operands가 `source_row_id` 대신 `evidence_id`를 쓰고, denominator period가 `2023년` 대신 `제 25 기`로 들어와 evaluator compatibility gap이 다시 드러났다.
+    - evaluator는 이제 source key로 `evidence_id`도 인정하고, explicit year끼리 충돌하지 않는 current fiscal-period alias(`제 N 기`, `당기`, `current`)만 soft match한다.
+    - prior-period alias(`전기`)나 서로 다른 explicit year는 여전히 operand match에서 거부한다.
+    - Naver slice result: `MIX_T1_046 = PASS`, `NAV_T3_007 = PASS`, `Numeric Pass Rate = 1.000`, `Completeness = 1.000`
   - fresh structural store 기준으로도 `SAM_T2_002`는 multi-source receipt scope, auto-fetch inventory, dependency binding guard, aggregate answer-slot gap suppression, narrative context synthesis 보강 이후 다시 닫혔다
     - `structured_result.status = ok`
     - `faithfulness = 1.0`
@@ -192,8 +198,13 @@
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
 - 따라서 다음 구현은 **concept planner shadow 확대 + benchmark maintenance** 쪽으로 돌아가는 흐름이 맞다.
-- immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding, `SAM_T3_028` fresh structural blocker는 now closed다.
+- immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding/evaluator trace compatibility, `NAV_T3_007` numeric gate, `SAM_T3_028` source-level numeric blocker는 now closed다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
+- focused blocker reclassification에서 아직 남은 것은 다음이다.
+  - `SAM_T2_078`: R&D 총액은 찾지만 Harman 전장 사업 방향/기술 초점 narrative를 못 찾아 partial refusal
+  - `HYU_T2_010`: 미국 판매대수 성장률은 맞지만 IRA/보호무역주의 대응 narrative를 못 찾아 partial refusal
+  - `HYU_T3_072`: Motional 지분율/장부금액/요약손익 retrieval miss
+  - `SAM_T3_028`: numeric은 PASS지만 answer synthesis가 불필요한 partial-refusal suffix와 부족한 영향 분석 문장을 남김
 
 ## 2026-05-28 Update
 
@@ -383,3 +394,89 @@
 - 따라서 지금의 실무 우선순위는 새 planner tweak보다 다음 두 가지다.
   1. `structural_parent_hybrid_v2` 같은 next ingest experiment 설계
   2. concept-only planner와 multi-document path를 더 넓게 검증
+
+## 2026-05-28 SAM_T3_028 Aggregate-Impact Closure
+
+- `SAM_T3_028`의 핵심 실패 원인은 재고자산평가손실/환입 parenthetical label을
+  손실-환입 차감식으로 과분해하면서 `매출원가`가 평가손실 operand로 오인될 수
+  있었던 점이다.
+- source fix는 question-specific row injection이 아니라 ontology/planner contract로
+  정리했다.
+  - `inventory_valuation_adjustment` concept를 추가해
+    `재고자산평가손실(또는 환입)` / `재고자산평가손실(환입) 등`을 aggregate label로
+    바인딩한다.
+  - concept matcher는 긴 surface가 짧은 surface를 포함하면 longest match가 짧은
+    concept를 shadow하도록 보강했다.
+  - `analysis_hints`를 추가해 aggregate value가 denominator concept와 함께
+    "영향/대비/비중"으로 묻히면 ratio task를 만들 수 있게 했다.
+  - LLM planner override는 deterministic analysis shape를 lookup-only나 잘못된
+    difference로 지우지 못한다.
+  - segment extractor는 `이것이/그것이/해당 금액` 같은 지시어를 segment label로
+    오인하지 않는다.
+- 검증:
+  - `tests.test_semantic_numeric_plan`: 56 tests OK
+  - focused SAM rerun:
+    `benchmarks/results/sam_t3_028_analysis_fix_2026-05-28`
+  - `SAM_T3_028`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `numeric_grounding = 1.0`, `retrieval_hit_at_k = 1.0`
+- 해석상 주의:
+  - focused full evaluation의 최종 user-facing answer는 라우터가 QA path로 처리해
+    PASS했다.
+  - structured planner의 aggregate/ratio shape는 unit regression으로 보장한다.
+  - 따라서 다음에 broad gate에서 확인할 항목은 "답변 품질 PASS 유지"와
+    "structured numeric route로 들어갈 때도 같은 aggregate-impact shape 유지"를
+    분리해서 본다.
+
+## 2026-05-28 Three-Case Follow-up Status
+
+- Focused follow-up target:
+  - `SAM_T2_078`
+  - `HYU_T2_010`
+  - `HYU_T3_072`
+- `SAM_T2_078` is now closed at the focused single-question level.
+  - Harman automotive answer composition preserves:
+    - `28,352,769백만원` 연결 연구개발비용
+    - 커넥티드카 제품 및 솔루션
+    - 디지털 콕핏 / 카오디오
+    - 무선통신 / 디스플레이 등 IT 기술 접목
+    - SDV 기술 초점
+  - latest focused metrics observed:
+    - `faithfulness = 1.0`
+    - `completeness = 1.0`
+    - `context_recall = 1.0`
+    - `retrieval_hit_at_k = 1.0`
+- `HYU_T2_010` user-facing answer and structured calculation trace are now
+  corrected.
+  - answer includes `87.0만 대`, `78.1만 대`, `11.5%`, and the
+    인플레이션 감축법 / 핵심원자재법 / 보호무역주의 policy context.
+  - deterministic sales-growth policy composition now emits calculation
+    operands, plan, result, and typed `growth_rate` answer slots.
+  - latest focused metrics observed:
+    - `operand_selection_correctness = 1.0`
+    - `grounded_rendering_correctness = 1.0`
+    - `calculation_correctness = 1.0`
+    - `completeness = 1.0`
+    - `faithfulness = 0.5`
+  - residual issue is not the visible answer or calculation trace; it is the
+    remaining entity/evidence coverage threshold used by the hybrid
+    faithfulness override.
+- `HYU_T3_072` is not closed yet.
+  - deterministic entity-table composition now recovers the correct visible
+    answer again:
+    - `25.81%`
+    - `1,294,367백만원`
+    - `계속영업손실 (803,742)백만원`
+    - `총포괄손실 (791,627)백만원`
+  - current focused metrics still show evaluator-side grounding gaps:
+    - `faithfulness = 0.0`
+    - `context_recall = 0.5`
+    - `entity_coverage = 0.4`
+    - `grounded_rendering_correctness = 0.0`
+  - next work should inspect how the retrieved Motional context/evidence and
+    entity-table projection are represented to the evaluator, rather than
+    changing the answer wording alone.
+- Validation commands used during this pass:
+  - `.\.venv\Scripts\python.exe -m py_compile src\agent\financial_graph_evidence.py src\agent\financial_graph_calculation.py tests\test_operation_contracts.py`
+  - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts`
+  - focused single-question evals for `HYU_T2_010` and `HYU_T3_072` against
+    `benchmarks/results/three_remaining_focus_2026-05-28/현대자동차-2023/results.json`

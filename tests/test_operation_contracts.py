@@ -2761,6 +2761,190 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("dividend-policy", chunk_ids[:2])
         self.assertIn("liquidity-payout", chunk_ids)
 
+    def test_query_focus_markers_preserve_parenthetical_entity_pairs(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        marker_groups = agent._query_focus_marker_groups(
+            "모셔널(Motional)의 지분율과 인플레이션 감축법(IRA) 대응을 요약해 줘."
+        )
+        variants = [variant for group in marker_groups for variant in group.get("variants", [])]
+
+        self.assertIn("모셔널", variants)
+        self.assertIn("Motional", variants)
+        self.assertIn("인플레이션 감축법", variants)
+        self.assertIn("IRA", variants)
+        self.assertNotIn("요약해", variants)
+
+    def test_narrative_summary_doc_selection_preserves_harman_sdv_focus(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="2023년 연결 연구개발비용 총액은 28,352,769백만원입니다.",
+                    metadata={
+                        "chunk_id": "rnd-total",
+                        "block_type": "table",
+                        "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+                    },
+                ),
+                0.99,
+            ),
+            (
+                Document(
+                    page_content="메모리 사업은 기술 리더십을 기반으로 시장 수요에 대응하고 있습니다.",
+                    metadata={
+                        "chunk_id": "generic-mda",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.98,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "Harman은 자체적인 혁신과 모바일ㆍITㆍ디스플레이ㆍ반도체 기술과의 융합을 통해 "
+                        "사업역량을 확대하고 있습니다."
+                    ),
+                    metadata={
+                        "chunk_id": "harman-mda",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.97,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "Harman은 커넥티드카 제품 및 솔루션을 디자인하고 개발하며, "
+                        "전장사업에 무선통신과 디스플레이 등 IT 기술을 접목하고 SDV 차별화 기술 개발에 집중하고 있습니다."
+                    ),
+                    metadata={
+                        "chunk_id": "harman-sdv",
+                        "block_type": "paragraph",
+                        "section_path": "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)",
+                    },
+                ),
+                0.52,
+            ),
+        ]
+        state = {
+            "query": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+            "active_subtask": {"operation_family": "narrative_summary"},
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("harman-sdv", chunk_ids[:2])
+        self.assertLess(chunk_ids.index("harman-sdv"), chunk_ids.index("harman-mda"))
+
+    def test_narrative_summary_doc_selection_preserves_ira_policy_focus(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매했습니다.",
+                    metadata={
+                        "chunk_id": "us-sales",
+                        "block_type": "paragraph",
+                        "section_path": "II. 사업의 내용 > 7. 기타 참고사항 > 해외시장",
+                    },
+                ),
+                0.95,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 보호무역주의에 "
+                        "대한 적극적인 대응이 필요한 상황입니다."
+                    ),
+                    metadata={
+                        "chunk_id": "ira-policy",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.43,
+            ),
+        ]
+        state = {
+            "query": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+            "active_subtask": {"operation_family": "narrative_summary"},
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("ira-policy", chunk_ids)
+
+    def test_narrative_summary_doc_selection_preserves_motional_investment_table_focus(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="당사의 연결 매출액은 전년 대비 증가했습니다.",
+                    metadata={
+                        "chunk_id": "generic-mda",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.97,
+            ),
+            (
+                Document(
+                    page_content="공동기업과 관계기업에 대한 투자자산 BHAF WAE BHMC HMG Global LLC Motional AD LLC",
+                    metadata={
+                        "chunk_id": "motional-header-only",
+                        "block_type": "table",
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "table_context": "공동기업과 관계기업 투자자산 표",
+                    },
+                ),
+                0.82,
+            ),
+            (
+                Document(
+                    page_content="Motional AD LLC | 자율주행 소프트웨어 개발 | 미국 | 25.81% | 1,294,367",
+                    metadata={
+                        "chunk_id": "motional-table",
+                        "block_type": "table",
+                        "section_path": "XII. 상세표 > 3. 타법인출자 현황(상세)",
+                        "table_context": "Motional AD LLC 타법인출자 현황",
+                    },
+                ),
+                0.41,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "회사명 | 유동자산 | 비유동자산 | 유동부채 | 비유동부채 | 영업수익 | 계속영업손익 | 기타포괄손익 | 총포괄손익\n"
+                        "Motional AD LLC | 195,840 | 2,954,385 | 132,590 | 290,284 | 1,775 | (803,742) | 12,115 | (791,627)"
+                    ),
+                    metadata={
+                        "chunk_id": "motional-summary-pl",
+                        "block_type": "table",
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "table_context": "Motional AD LLC 요약재무정보",
+                    },
+                ),
+                0.39,
+            ),
+        ]
+        state = {
+            "query": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            "active_subtask": {"operation_family": "narrative_summary"},
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("motional-table", chunk_ids)
+        self.assertIn("motional-summary-pl", chunk_ids)
+        self.assertNotIn("motional-header-only", chunk_ids[:2])
+
     def test_dividend_policy_hybrid_answer_prefers_cashflow_payout_over_policy_dividend_total(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         query = (
@@ -3065,6 +3249,225 @@ class OperationContractTests(unittest.TestCase):
             any("연결 편입" in str(item.get("claim") or "") for item in supplemented),
             supplemented,
         )
+
+    def test_narrative_summary_supplements_query_focus_driver_from_docs(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        metadata = {
+            "company": "삼성전자",
+            "year": 2023,
+            "report_type": "사업보고서",
+            "section_path": "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)",
+            "section": "사업의 내용",
+            "block_type": "paragraph",
+            "chunk_id": "harman-sdv",
+        }
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "Harman은 커넥티드카 제품 및 솔루션을 디자인하고 개발하며, "
+                        "전장사업에 무선통신과 디스플레이 등 IT 기술을 접목하고 SDV 차별화 기술 개발에 집중하고 있습니다."
+                    ),
+                    metadata=metadata,
+                ),
+                0.88,
+            )
+        ]
+        anchor = agent._build_source_anchor(metadata)
+        supplemented = agent._supplement_narrative_driver_evidence(
+            [
+                {
+                    "evidence_id": "ev_001",
+                    "source_anchor": "[삼성전자 | 2023 | II. 사업의 내용 > 6. 주요계약 및 연구개발활동]",
+                    "claim": "2023년 연결 연구개발비용 총액은 28,352,769백만원입니다.",
+                    "quote_span": "28,352,769",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                }
+            ],
+            docs,
+            query="2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+            anchor_lookup={anchor: metadata},
+        )
+
+        merged = " ".join(str(item.get("claim") or "") for item in supplemented)
+        self.assertIn("Harman", merged)
+        self.assertIn("SDV", merged)
+
+    def test_selected_narrative_claim_ids_expand_to_query_focus_driver(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "claim": "2023년 연결 연구개발비용 총액은 28,352,769백만원입니다.",
+                "quote_span": "28,352,769",
+                "question_relevance": "high",
+                "support_level": "direct",
+            },
+            {
+                "evidence_id": "ev_002",
+                "claim": "Harman은 전장사업에 IT 기술을 접목하고 SDV 차별화 기술 개발에 집중하고 있습니다.",
+                "quote_span": "Harman은 전장사업에 IT 기술을 접목하고 SDV 차별화 기술 개발에 집중",
+                "question_relevance": "high",
+                "support_level": "direct",
+            },
+        ]
+
+        expanded = agent._expand_selected_claim_ids_for_narrative_drivers(
+            ["ev_001"],
+            evidence_items,
+            query="2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+        )
+
+        self.assertEqual(expanded, ["ev_001", "ev_002"])
+
+    def test_entity_table_summary_answer_extracts_named_entity_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        query = "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘."
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "회사명 | 주요영업활동 | 소재지 | 소유지분율 | 장부금액\n"
+                        "Motional AD LLC(*1) | 자율주행 소프트웨어 개발 | 미국 | 25.81% | 1,294,367"
+                    ),
+                    metadata={
+                        "company": "현대자동차",
+                        "year": 2023,
+                        "report_type": "사업보고서",
+                        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                        "block_type": "table",
+                        "period_focus": "current",
+                    },
+                ),
+                0.91,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "회사명 | 유동자산 | 비유동자산 | 유동부채 | 비유동부채 | 영업수익 | 계속영업손익 | 기타포괄손익 | 총포괄손익\n"
+                        "Motional AD LLC | 195,840 | 2,954,385 | 132,590 | 290,284 | 1,775 | (803,742) | 12,115 | (791,627)"
+                    ),
+                    metadata={
+                        "company": "현대자동차",
+                        "year": 2023,
+                        "report_type": "사업보고서",
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "block_type": "table",
+                        "period_focus": "current",
+                    },
+                ),
+                0.88,
+            ),
+        ]
+
+        result = agent._compose_entity_table_summary_answer(
+            query=query,
+            docs=docs,
+            evidence_items=[],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        answer = result["compressed_answer"]
+        self.assertIn("25.81%", answer)
+        self.assertIn("1,294,367백만원", answer)
+        self.assertIn("(803,742)백만원", answer)
+        self.assertIn("(791,627)백만원", answer)
+        self.assertNotIn("73.28%", answer)
+
+    def test_business_technology_focus_answer_preserves_harman_required_facets(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        query = "2023년 연결 연구개발비용 총액을 추출하고, Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘."
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "[Harman]Harman은 커넥티드카 제품 및 솔루션 등을 디자인하고 개발하는 전장부품 사업과 "
+                        "소비자 오디오 제품 및 프로페셔널 오디오 솔루션을 제공하는 라이프스타일 오디오 사업으로 구성되어 있습니다."
+                    ),
+                    metadata={"section_path": "I. 회사의 개요 > 1. 회사의 개요"},
+                ),
+                0.9,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "Harman은 전장부품 시장에서 차량내 경험의 중심이 되는 디지털 콕핏, 카 오디오 분야에서 선도적 시장 입지를 유지하고 있습니다. "
+                        "당사는 Harman의 전장사업에 당사의 무선통신, 디스플레이 등 IT 기술을 지속 접목시켜 차량의 IT기기화에 적극 대응해 나갈 계획입니다."
+                        "Harman은 차량의 SDV(Software Defined Vehicle)화 변화에 대응하기 위해 차별화된 기술 개발을 통해 끊임없는 혁신을 추구합니다."
+                    ),
+                    metadata={"section_path": "II. 사업의 내용 > 7. 기타 참고사항"},
+                ),
+                0.88,
+            ),
+            (
+                Document(
+                    page_content="연구개발비용 계 | 28,352,769 | ※ 연결 누계기준입니다.",
+                    metadata={"section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"},
+                ),
+                0.85,
+            ),
+        ]
+
+        result = agent._compose_business_technology_focus_answer(
+            query=query,
+            existing_answer="2023년 삼성전자의 연결 연구개발비용 총액은 28조 3,528억원입니다.",
+            docs=docs,
+            evidence_items=[],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        answer = result["compressed_answer"]
+        self.assertIn("28,352,769백만원", answer)
+        self.assertIn("커넥티드카 제품 및 솔루션", answer)
+        self.assertIn("무선통신, 디스플레이 등 IT 기술", answer)
+        self.assertIn("SDV(Software Defined Vehicle)", answer)
+
+    def test_sales_growth_policy_answer_preserves_prior_value_and_policy_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        query = "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘."
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매해 5.6%의 점유율을 차지했습니다. "
+                        "2022년에는 전년 대비 0.9% 감소한 78.1만 대를 판매해 5.6%의 점유율을 차지했습니다."
+                    ),
+                    metadata={"section_path": "II. 사업의 내용 > 7. 기타 참고사항"},
+                ),
+                0.9,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "특히 EV에 있어 경쟁사의 공격적인 가격인하 정책으로 촉발된 EV 원가경쟁력 확보 경쟁이 심화되고 있습니다. "
+                        "또한, 글로벌 기후변화와 자연재해의 증가 추세에 따라 기업활동의 탄소중립 요구는 증가하고 있으며, "
+                        "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 보호무역주의에 대한 적극적인 대응이 필요한 상황입니다."
+                    ),
+                    metadata={"section_path": "IV. 이사의 경영진단 및 분석의견"},
+                ),
+                0.88,
+            ),
+        ]
+
+        result = agent._compose_sales_growth_policy_answer(
+            query=query,
+            existing_answer="",
+            docs=docs,
+            evidence_items=[],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        answer = result["compressed_answer"]
+        self.assertIn("87.0만 대", answer)
+        self.assertIn("78.1만 대", answer)
+        self.assertIn("11.5%", answer)
+        self.assertIn("인플레이션 감축법", answer)
+        self.assertIn("핵심원자재법", answer)
+        self.assertNotIn("충분히 확보하지 못", answer)
 
     def test_compressed_narrative_answer_preserves_supported_consolidation_effect(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

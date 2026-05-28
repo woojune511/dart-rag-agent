@@ -1125,6 +1125,75 @@
         "재무제표 주석"
       ]
     },
+    "inventory_valuation_adjustment": {
+      "display_name": "재고자산평가손실(환입) 등",
+      "aliases": [
+        "재고자산평가손실(환입)",
+        "재고자산평가손실(또는 환입)",
+        "재고자산평가손실 또는 환입",
+        "재고자산평가손실 환입 등",
+        "재고자산 평가손실 환입"
+      ],
+      "keywords": [
+        "재고자산평가손실(환입)",
+        "재고자산평가손실(또는 환입)",
+        "재고자산평가손실 또는 환입",
+        "재고자산평가손실 환입",
+        "재고자산평가손실 환입 등"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes",
+        "income_statement",
+        "cash_flow"
+      ],
+      "preferred_sections": [
+        "재고자산",
+        "비용의 성격별 분류",
+        "연결재무제표 주석",
+        "재무제표 주석",
+        "영업으로부터 창출된 현금"
+      ],
+      "surface_contract": {
+        "positive": [
+          "재고자산평가손실(환입)",
+          "재고자산평가손실(환입) 등",
+          "재고자산평가손실 환입 등"
+        ],
+        "negative": [
+          "매출원가",
+          "영업수익",
+          "판매비와관리비"
+        ]
+      },
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "재고자산평가손실(환입)",
+          "재고자산평가손실(환입) 등",
+          "재고자산평가손실 환입 등"
+        ],
+        "aggregate_query_surfaces": [
+          "재고자산평가손실(환입) 등",
+          "재고자산평가손실 또는 환입",
+          "재고자산평가손실 환입 등"
+        ]
+      },
+      "analysis_hints": {
+        "preferred_operation": "ratio",
+        "metric_label": "재고자산평가손실(환입) 등 매출원가 영향",
+        "query_any_of": [
+          "영향",
+          "미친 영향",
+          "차지",
+          "대비",
+          "비중"
+        ],
+        "denominator_concepts": [
+          "cost_of_sales"
+        ]
+      }
+    },
     "inventory_valuation_loss": {
       "display_name": "재고자산평가손실",
       "aliases": [

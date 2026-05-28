@@ -219,6 +219,7 @@ class FinancialOntologyManager:
             "unit_family": str(concept.get("unit_family") or "").strip(),
             "surface_contract": dict(concept.get("surface_contract") or {}),
             "lookup_hints": dict(concept.get("lookup_hints") or {}),
+            "analysis_hints": dict(concept.get("analysis_hints") or {}),
         }
 
     def _group_spec_payload(self, key: str, group: Dict[str, Any]) -> Dict[str, Any]:
@@ -268,6 +269,7 @@ class FinancialOntologyManager:
             ),
             "unit_family": str(group.get("unit_family") or "").strip(),
             "surface_contract": dict(group.get("surface_contract") or {}),
+            "analysis_hints": dict(group.get("analysis_hints") or {}),
             "is_group": True,
             "member_concepts": member_keys,
             "member_specs": member_specs,
@@ -317,6 +319,15 @@ class FinancialOntologyManager:
             )
             if shadowed:
                 continue
+            filtered = [
+                kept
+                for kept in filtered
+                if not (
+                    span[0] <= kept[4][0]
+                    and span[1] >= kept[4][1]
+                    and match_length > kept[1]
+                )
+            ]
             filtered.append(candidate)
         rows: List[Dict[str, Any]] = []
         for _score, _length, key, concept_like, _span, is_group in filtered:

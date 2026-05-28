@@ -46,6 +46,9 @@ class FinancialAgentCalculationMixin:
             label = _normalise_spaces(label)
             if label:
                 keys.add(label)
+                compact_label = label.replace(" ", "")
+                if compact_label and compact_label != label:
+                    keys.add(compact_label)
         return keys
 
     def _slot_period_hint(self, slot: Dict[str, Any]) -> str:
@@ -88,7 +91,7 @@ class FinancialAgentCalculationMixin:
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
         operation_family = self._aggregate_result_operation_family(row)
         metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-        if not operation_family and metric_family.startswith("concept_"):
+        if (not operation_family or operation_family == "aggregate_subtasks") and metric_family.startswith("concept_"):
             operation_family = metric_family.removeprefix("concept_")
         if operation_family not in {"lookup", "single_value"}:
             return False
@@ -3233,10 +3236,39 @@ Operands:
         final_answer = fallback_answer
         planner_feedback = ""
         deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
+        aggregate_evidence_items: List[Dict[str, Any]] = []
+        seen_evidence_ids: set[str] = set()
+        for item in list(state.get("evidence_items") or []):
+            evidence = dict(item or {})
+            evidence_id = str(evidence.get("evidence_id") or "").strip()
+            dedupe_key = evidence_id or "|".join(
+                [
+                    str(evidence.get("source_anchor") or ""),
+                    str(evidence.get("claim") or evidence.get("quote_span") or evidence.get("raw_row_text") or ""),
+                ]
+            )
+            if dedupe_key in seen_evidence_ids:
+                continue
+            seen_evidence_ids.add(dedupe_key)
+            aggregate_evidence_items.append(evidence)
+        for row in ordered_results:
+            for item in list(row.get("runtime_evidence") or []):
+                evidence = dict(item or {})
+                evidence_id = str(evidence.get("evidence_id") or "").strip()
+                dedupe_key = evidence_id or "|".join(
+                    [
+                        str(evidence.get("source_anchor") or ""),
+                        str(evidence.get("claim") or evidence.get("quote_span") or evidence.get("raw_row_text") or ""),
+                    ]
+                )
+                if dedupe_key in seen_evidence_ids:
+                    continue
+                seen_evidence_ids.add(dedupe_key)
+                aggregate_evidence_items.append(evidence)
         preliminary_projection = self._build_aggregate_calculation_projection(ordered_results, fallback_answer)
         narrative_context = self._narrative_context_sentence_from_evidence(
             str(state.get("query") or ""),
-            list(preliminary_projection.get("evidence_items") or []),
+            aggregate_evidence_items,
         )
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         max_plan_loops = 2
@@ -3305,6 +3337,58 @@ Subtask Results JSON:
             query=str(state.get("query") or ""),
             narrative_context=narrative_context,
         )
+        entity_table_answer = self._compose_entity_table_summary_answer(
+            query=str(state.get("query") or ""),
+            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
+            evidence_items=aggregate_evidence_items,
+        )
+        composition_selected_claim_ids: List[str] = []
+        calculation_projection_override: Optional[Dict[str, Any]] = None
+        if entity_table_answer:
+            final_answer = _normalise_spaces(str(entity_table_answer.get("compressed_answer") or "")) or final_answer
+            composition_selected_claim_ids.extend(
+                str(claim_id).strip()
+                for claim_id in (entity_table_answer.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+            projection = entity_table_answer.get("calculation_projection")
+            if isinstance(projection, dict):
+                calculation_projection_override = projection
+            planner_feedback = ""
+            deterministic_feedback = ""
+        business_focus_answer = self._compose_business_technology_focus_answer(
+            query=str(state.get("query") or ""),
+            existing_answer=final_answer,
+            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
+            evidence_items=aggregate_evidence_items,
+        )
+        if business_focus_answer:
+            final_answer = _normalise_spaces(str(business_focus_answer.get("compressed_answer") or "")) or final_answer
+            composition_selected_claim_ids.extend(
+                str(claim_id).strip()
+                for claim_id in (business_focus_answer.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+            planner_feedback = ""
+            deterministic_feedback = ""
+        sales_policy_answer = self._compose_sales_growth_policy_answer(
+            query=str(state.get("query") or ""),
+            existing_answer=final_answer,
+            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
+            evidence_items=aggregate_evidence_items,
+        )
+        if sales_policy_answer:
+            final_answer = _normalise_spaces(str(sales_policy_answer.get("compressed_answer") or "")) or final_answer
+            composition_selected_claim_ids.extend(
+                str(claim_id).strip()
+                for claim_id in (sales_policy_answer.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+            projection = sales_policy_answer.get("calculation_projection")
+            if isinstance(projection, dict):
+                calculation_projection_override = projection
+            planner_feedback = ""
+            deterministic_feedback = ""
         # Prefer the deterministic structured-material check over a conservative
         # synthesizer hint. When the deterministic check sees no missing
         # material, do not append a user-facing uncertainty suffix.
@@ -3322,12 +3406,24 @@ Subtask Results JSON:
                 final_answer = "질문에 필요한 수치를 끝내 충분히 확보하지 못했습니다."
         selected_claim_ids = list(
             dict.fromkeys(
-                claim_id
-                for row in ordered_results
-                for claim_id in (row.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
+                [
+                    *[
+                        claim_id
+                        for row in ordered_results
+                        for claim_id in (row.get("selected_claim_ids") or [])
+                        if str(claim_id).strip()
+                    ],
+                    *composition_selected_claim_ids,
+                ]
             )
         )
+        aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
+        if calculation_projection_override:
+            for key in ("calculation_operands", "calculation_plan", "calculation_result"):
+                if calculation_projection_override.get(key):
+                    aggregate_projection[key] = calculation_projection_override[key]
+        if final_answer and not deterministic_feedback:
+            aggregate_projection["calculation_result"]["status"] = "ok"
         artifacts = list(state.get("artifacts") or [])
         artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
         artifacts = _append_artifact(
@@ -3341,13 +3437,10 @@ Subtask Results JSON:
                 "subtask_results": ordered_results,
                 "final_answer": final_answer,
                 "planner_feedback": planner_feedback,
-                **self._build_aggregate_calculation_projection(ordered_results, final_answer),
+                **aggregate_projection,
             },
             evidence_refs=selected_claim_ids,
         )
-        aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
-        if final_answer and not deterministic_feedback:
-            aggregate_projection["calculation_result"]["status"] = "ok"
         return {
             "subtask_results": ordered_results,
             "subtask_loop_complete": True,
@@ -3362,7 +3455,7 @@ Subtask Results JSON:
             "unsupported_sentences": [],
             "sentence_checks": [],
             "artifacts": artifacts,
-            "evidence_items": aggregate_projection.get("evidence_items", []),
+            "evidence_items": aggregate_evidence_items or aggregate_projection.get("evidence_items", []),
             **_runtime_trace_state_update(
                 state,
                 calculation_operands=aggregate_projection["calculation_operands"],

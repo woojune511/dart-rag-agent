@@ -2589,6 +2589,12 @@ def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any])
         "영업수익",
         "매출액",
         "매출",
+        "이것",
+        "이것이",
+        "그것",
+        "그것이",
+        "해당",
+        "해당 금액",
     }
 
     def _valid_label(label: str) -> str:
@@ -2863,6 +2869,14 @@ def _build_concept_numeric_task(
     ontology: Any,
     concept_specs: List[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
+    analysis_task = _build_concept_analysis_task(
+        query=query,
+        report_scope=report_scope,
+        ontology=ontology,
+        concept_specs=concept_specs,
+    )
+    if analysis_task:
+        return analysis_task
     group_decomposition_task = _build_group_decomposition_task(
         query=query,
         report_scope=report_scope,
@@ -3318,6 +3332,70 @@ def _build_group_decomposition_task(
         if task and hints:
             task["decomposition_hints"] = dict(hints)
         return task
+    return None
+
+
+def _build_concept_analysis_task(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+    concept_specs: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    text = _normalise_spaces(query)
+    if not text:
+        return None
+
+    specs_by_concept = {
+        _normalise_spaces(str(spec.get("concept") or "")): dict(spec)
+        for spec in concept_specs
+        if _normalise_spaces(str(spec.get("concept") or ""))
+    }
+    for numerator_spec in _order_concept_specs_by_query(concept_specs, query):
+        hints = dict(numerator_spec.get("analysis_hints") or {})
+        if not hints:
+            continue
+        query_any_of = [
+            _normalise_spaces(str(token))
+            for token in (hints.get("query_any_of") or [])
+            if _normalise_spaces(str(token))
+        ]
+        if query_any_of and not any(token in text for token in query_any_of):
+            continue
+
+        operation_family = str(hints.get("preferred_operation") or "ratio").strip().lower()
+        if operation_family != "ratio":
+            continue
+        for denominator_index, denominator_key in enumerate((hints.get("denominator_concepts") or []), start=1):
+            denominator_spec = specs_by_concept.get(_normalise_spaces(str(denominator_key or "")))
+            if not denominator_spec:
+                continue
+            numerator = {**dict(numerator_spec), "role": "numerator_1"}
+            denominator = {**denominator_spec, "role": f"denominator_{denominator_index}"}
+            operand_specs = _build_concept_required_operands(
+                query,
+                report_scope,
+                [numerator, denominator],
+                operation_family,
+            )
+            if not operand_specs:
+                continue
+            metric_label = str(hints.get("metric_label") or "").strip() or _build_concept_metric_label(
+                query,
+                [numerator, denominator],
+                operation_family,
+            )
+            task = _compose_concept_numeric_task(
+                query=query,
+                report_scope=report_scope,
+                ontology=ontology,
+                metric_label=metric_label,
+                operation_family=operation_family,
+                operand_specs=operand_specs,
+            )
+            if task:
+                task["analysis_hints"] = dict(hints)
+                return task
     return None
 
 

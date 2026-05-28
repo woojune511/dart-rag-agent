@@ -1375,6 +1375,60 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertTrue(self.agent._narrative_summary_gap_is_satisfied(rows[0], rows))
 
+    def test_lookup_gap_check_handles_aggregate_wrapped_lookup_rows(self) -> None:
+        rows = [
+            {
+                "task_id": "task_2",
+                "metric_family": "concept_lookup",
+                "metric_label": "재고자산평가손실환입",
+                "status": "partial",
+                "answer": "재고자산평가손실환입 계산에 필요한 값(재고자산평가손실환입)을 문서 근거에서 충분히 확인하지 못했습니다.",
+                "calculation_result": {
+                    "status": "partial",
+                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
+                },
+            },
+            {
+                "task_id": "task_6",
+                "metric_family": "concept_ratio",
+                "metric_label": "매출원가 대비 재고자산평가손실(환입) 비중",
+                "status": "ok",
+                "answer": "재고자산평가손실(환입) 등은 5,037,579백만원입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "매출원가 대비 재고자산평가손실(환입) 비중",
+                            "normalized_value": 2.79,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "2.79%",
+                        },
+                        "components_by_role": {
+                            "numerator_1": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "재고자산평가손실(환입) 등",
+                                    "period": "2023",
+                                    "raw_value": "5,037,579",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 5037579000000.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "5,037,579백만원",
+                                }
+                            ]
+                        },
+                    },
+                },
+            },
+        ]
+
+        self.assertTrue(self.agent._lookup_gap_is_satisfied_by_sibling_slots(rows[0], rows))
+        self.assertEqual(self.agent._infer_planner_feedback_from_answer_slots(rows), "")
+
     def test_capture_current_subtask_result_prefers_live_active_trace_over_stale_artifact(self) -> None:
         state = {
             "query": "2023년 연결기준 영업비용률을 계산해 줘.",

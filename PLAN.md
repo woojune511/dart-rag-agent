@@ -47,6 +47,10 @@
     - evaluator numeric grounding override now accepts resolved `task_output:*` operands only when dependency provenance is present (`dependency_resolved`, `source_task_id` / `source_slot`, `source_anchor`)
     - unresolved `task_output:*` operands remain blocked from deterministic grounding override
     - `numeric_equivalence = 1.0`, `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`, `numeric_final_judgement = PASS`
+  - focused blocker reclassification `benchmarks/results/curated_single_doc_blocker_reclass_2026-05-28`:
+    - `MIX_T1_046` and `NAV_T3_007` now pass in the Naver slice
+    - the remaining `MIX_T1_046` gap was evaluator trace compatibility: operands may carry `evidence_id` instead of `source_row_id`, and current-year financial statements may render the period as `제 N 기`
+    - evaluator now accepts `evidence_id` as a source key and only soft-matches current fiscal-period aliases (`제 N 기`, `당기`, `current`), while still rejecting `전기` and conflicting explicit years
   - fresh structural store 기준 `SAM_T2_002`도 multi-source receipt inventory + dependency binding guard 보강 이후 `numeric_final_judgement = PASS`로 재확인됐다
   - 다만 `SAM_T2_002`는 mixed benchmark wording(`메모리 반도체 업황 악화에도 불구하고`)을 충분히 반영하지 못해 `completeness = 0.7`이 남아 있다
   - `SAM_T3_028`의 query-specific runtime rule은 product runtime path에서 제거했다
@@ -56,6 +60,19 @@
     - fresh structural rerun `sam_t3_028_parser_store_check_2026-05-27_fix7`에서 `faithfulness = 1.0`, `completeness = 1.0`, `numeric_pass = 1.0`, `retrieval_hit_at_k = 1.0`, `section_match = 1.0`, `avg_score = 0.966`으로 PASS했다
     - 이 결과는 retrieval로 들어온 structured row/value/evidence만 사용한 generic label/value assembly 결과이며, 실험 산출물은 commit 대상에서 제외한다
   - 따라서 `SAM_T3_028` source-level blocker는 닫혔고, 남은 broader work는 concept planner shadow와 benchmark maintenance로 이동한다
+  - Current focused blocker split:
+    - closed: `MIX_T1_046`, `NAV_T3_007`, `SAM_T3_028`
+    - `SAM_T3_028` is now closed at user-facing focused rerun level:
+      `benchmarks/results/sam_t3_028_analysis_fix_2026-05-28`
+      reports `faithfulness = 1.0`, `completeness = 1.0`,
+      `numeric_grounding = 1.0`, and `retrieval_hit_at_k = 1.0`
+    - the source-level fix is generic ontology/planner handling for
+      parenthetical aggregate labels and impact ratios, not a Samsung-specific
+      row rule
+    - note: the latest focused full eval routed through QA for the final answer;
+      structured numeric route shape is covered by unit regressions
+    - narrative retrieval/synthesis: `SAM_T2_078`, `HYU_T2_010`
+    - retrieval miss: `HYU_T3_072`
   - `SKH_T1_060`는 structural note-aggregate query-surface / acceptance hardening 이후 다시 PASS로 닫혔다
   - `MIX_T1_064`는 targeted official rerun까지 닫혔다
     - `numeric_equivalence = 1.0`
@@ -87,8 +104,8 @@
 | --- | --- |
 | 목표 | planner는 재료 수집만 하고, final synthesizer가 질문 충족 여부와 최종 refusal을 책임지는 구조 정착 |
 | 현재 자산 | concept-only ontology v3 draft, LLM concept planner, lightweight validator, `planner_feedback`, `plan_loop_count`, aggregate synthesizer |
-| 현재 문제 | direct false positive를 hard acceptance contract로 막는 규칙을 더 넓혀야 하고, planner/synthesizer contract를 다른 numeric family에도 일관되게 적용해야 함 |
-| 다음 할 일 | direct-first acceptance + evidence propagation을 shared scoring/acceptance policy로 더 굳히고, 부족 재료는 aggregate replan/refusal loop로 닫히게 일반화 |
+| 현재 문제 | direct false positive를 hard acceptance contract로 막는 규칙을 더 넓혀야 하고, planner/synthesizer contract를 다른 numeric family에도 일관되게 적용해야 함. Parenthetical aggregate/impact-ratio shape는 `SAM_T3_028` unit + focused rerun으로 닫힘 |
+| 다음 할 일 | 남은 broader blockers는 `SAM_T2_078` / `HYU_T2_010` narrative retrieval-synthesis와 `HYU_T3_072` retrieval miss로 분리해서 처리. 이후 structured numeric route 강제 smoke로 `SAM_T3_028` aggregate-impact shape를 한 번 더 확인 |
 | 종료 조건 | planner와 synthesizer의 책임 경계가 안정되고, direct success는 score-only가 아닌 grounded contract로 일관되게 승인됨 |
 
 ### 2. Result schema settling
@@ -404,3 +421,22 @@
   - concept ontology
   - planner prompt / conversion logic
   - generic numeric fallback behavior
+
+## 2026-05-28 Active Three-Case Queue
+
+- Current focused queue:
+  - `SAM_T2_078`: closed in focused validation
+  - `HYU_T2_010`: calculation trace closed; faithfulness override still limited
+    by entity/evidence coverage
+  - `HYU_T3_072`: still active
+- Immediate next task:
+  - debug `HYU_T3_072` evaluator grounding path
+  - inspect retrieved Motional contexts, runtime evidence, selected claim ids,
+    and deterministic entity-table `calculation_projection`
+  - avoid answer-only tweaks unless they also improve evaluator-visible
+    provenance / trace
+- Current non-goals:
+  - do not promote the temporary focused benchmark result bundles as source
+    artifacts
+  - do not claim the three-case queue fully closed until `HYU_T3_072` has
+    stronger current evidence than a correct visible answer alone

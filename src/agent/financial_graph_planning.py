@@ -250,6 +250,46 @@ def _llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: D
     return False
 
 
+def _task_concept_role_families(task: Dict[str, Any]) -> set[tuple[str, str]]:
+    rows: set[tuple[str, str]] = set()
+    for operand in list(task.get("required_operands") or []):
+        concept = _normalise_spaces(str(operand.get("concept") or ""))
+        role = _normalise_spaces(str(operand.get("role") or ""))
+        if role.startswith("numerator"):
+            role = "numerator"
+        elif role.startswith("denominator"):
+            role = "denominator"
+        if concept:
+            rows.add((concept, role))
+    return rows
+
+
+def _llm_plan_preserves_analysis_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
+    """Reject LLM overrides that erase deterministic ontology analysis hints."""
+    base_tasks = [
+        dict(task)
+        for task in (base_plan.get("tasks") or [])
+        if dict(task).get("analysis_hints")
+    ]
+    if not base_tasks:
+        return True
+
+    llm_tasks = [dict(task) for task in (llm_plan.get("tasks") or [])]
+    for base_task in base_tasks:
+        base_operation = _normalise_spaces(str(base_task.get("operation_family") or ""))
+        base_concepts = _task_concept_role_families(base_task)
+        if not base_operation or not base_concepts:
+            continue
+        if any(
+            _normalise_spaces(str(task.get("operation_family") or "")) == base_operation
+            and base_concepts.issubset(_task_concept_role_families(task))
+            for task in llm_tasks
+        ):
+            continue
+        return False
+    return True
+
+
 def _attach_segment_label_to_resolved_spec(spec: Dict[str, Any], segment_label: str) -> Dict[str, Any]:
     updated = dict(spec)
     base_name = str(updated.get("name") or "").strip() or "매출액"
@@ -450,6 +490,17 @@ class FinancialAgentPlanningMixin:
             concept_specs = ontology.all_concept_specs()
         if not concept_specs:
             return None
+        allowed_concept_keys = {
+            str(spec.get("concept") or "").strip()
+            for spec in concept_specs
+            if str(spec.get("concept") or "").strip()
+        }
+        for spec in concept_specs:
+            allowed_concept_keys.update(
+                str(item).strip()
+                for item in (spec.get("member_concepts") or [])
+                if str(item).strip()
+            )
         existing_tasks = [dict(task) for task in (existing_tasks or [])]
 
         concept_lines: List[str] = []
@@ -635,7 +686,11 @@ Also return:
         validated_raw_tasks: List[Any] = []
         validation_notes: List[str] = []
         for index, raw_task in enumerate(raw_tasks, start=1):
-            is_valid, note = self._validate_concept_planner_task(raw_task, ontology)
+            is_valid, note = self._validate_concept_planner_task(
+                raw_task,
+                ontology,
+                allowed_concept_keys=allowed_concept_keys,
+            )
             if not is_valid:
                 validation_notes.append(f"invalid_task_{index}:{note}")
                 continue
@@ -789,7 +844,12 @@ Also return:
             ],
         }
 
-    def _validate_concept_planner_task(self, raw_task: Any, ontology: Any) -> tuple[bool, str]:
+    def _validate_concept_planner_task(
+        self,
+        raw_task: Any,
+        ontology: Any,
+        allowed_concept_keys: Optional[set[str]] = None,
+    ) -> tuple[bool, str]:
         """Perform a tiny contract check on planner output before runtime uses it.
 
         This is intentionally narrow: it validates shape and ontology membership,
@@ -809,6 +869,8 @@ Also return:
             concept_key = str(getattr(item, "concept", "") or "").strip()
             if not concept_key or not ontology.has_concept_key(concept_key):
                 return False, f"unknown_concept:{concept_key or '-'}"
+            if allowed_concept_keys and concept_key not in allowed_concept_keys:
+                return False, f"concept_not_available:{concept_key}"
 
         if operation_family == "ratio":
             if not any(role.startswith("numerator") for role in roles):
@@ -1130,11 +1192,11 @@ Also return:
                 report_scope=report_scope,
             )
             if llm_plan:
-                if _llm_plan_preserves_segment_sum_shape(plan, llm_plan):
+                if _llm_plan_preserves_segment_sum_shape(plan, llm_plan) and _llm_plan_preserves_analysis_shape(plan, llm_plan):
                     plan = llm_plan
                 else:
                     planner_notes = list(plan.get("planner_notes") or [])
-                    planner_notes.append("concept_llm_plan_rejected_segment_sum_shape")
+                    planner_notes.append("concept_llm_plan_rejected_shape")
                     plan["planner_notes"] = list(dict.fromkeys(planner_notes))
         logical_tasks = [dict(task) for task in (plan.get("tasks") or [])]
         logical_tasks = _append_hybrid_narrative_task(
