@@ -1246,11 +1246,24 @@ python -m src.ops.run_eval_only \
   evaluation. By default, a failed health check stops the run before agent
   execution. The explicit `--allow-degraded-retrieval` option enables the
   existing BM25 fallback only for diagnostic runs.
+- Failed stores can be rebuilt from the persisted structure graph:
+
+```bash
+python -m src.ops.rebuild_vector_store \
+  --source-store benchmarks/results/.../stores/structural-selective-v2-prefix-2500-320 \
+  --output-store benchmarks/results/.../stores/structural-selective-v2-prefix-2500-320.rebuilt \
+  --collection-name dart_reports_v2_structural-selective-v2-prefix-2500-320 \
+  --embedding-provider google \
+  --embedding-model-name models/gemini-embedding-2
+```
+
+- To preserve the existing benchmark bundle path after inspecting the source
+  graph, use `--in-place --force`. This deletes and recreates only the selected
+  store directory.
 
 Next action:
 
-- Add a store health / repair step for persisted Chroma stores, or introduce a
-  separately named degraded diagnostic eval-only profile.
+- Rebuild the Hyundai store and rerun strict `run_eval_only`.
 - Keep official policy gate validation strict: repair or rebuild the vector
   store before accepting eval-only results.
 

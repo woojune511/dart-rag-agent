@@ -102,7 +102,8 @@ def _validate_store_for_eval_only(store_info: Dict[str, Any], *, allow_degraded_
         return health
     raise RuntimeError(
         message
-        + ". Rebuild/repair the store, or rerun with --allow-degraded-retrieval for a diagnostic BM25 fallback run."
+        + ". Rebuild/repair the store with `python -m src.ops.rebuild_vector_store`, "
+        "or rerun with --allow-degraded-retrieval for a diagnostic BM25 fallback run."
     )
 
 

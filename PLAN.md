@@ -30,8 +30,8 @@
     correctly failed instead of silently converting an official gate into a
     BM25-only degraded evaluation.
 - Immediate next implementation target:
-  1. Add a repair/rebuild path for persisted Chroma stores after a failed
-     health check.
+  1. Use `python -m src.ops.rebuild_vector_store` to rebuild persisted Chroma
+     stores from `document_structure_graph.json` after a failed health check.
   2. Keep official gate runs strict: vector index read errors fail before
      answer generation, while BM25 fallback is only allowed through an explicit
      degraded diagnostic eval-only option.
