@@ -1174,3 +1174,84 @@ Artifact policy:
 
 - Raw result directories from these checks remain local experiment artifacts and
   are excluded from source control.
+
+## 2026-05-29 Hyundai Policy Gate Replay
+
+Purpose:
+
+- Separate the previous Hyundai timeout from answer-quality failures.
+- Check whether a completed Hyundai store can be reused through the
+  store-fixed eval-only path.
+
+Replay command:
+
+```bash
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --company-run-id hyundai_2023_policy_driven_runtime_gate \
+  --output-dir benchmarks/results/policy_driven_runtime_gate_hyundai_replay_2026-05-29
+```
+
+Result:
+
+- The replay completed in `927.6s`; the earlier failure was an execution-time
+  budget issue, not a runtime exception.
+- The run indexed the Hyundai 2023 report plus the auto-fetched Hyundai 2022
+  report.
+- Parsed/indexed chunks: `1,764`.
+- Stored parent chunks: `96`.
+- Ingest elapsed time: `693.4s`.
+- Full-eval aggregate:
+  - `faithfulness = 0.500`
+  - `answer_relevancy = 0.858`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `section_match_rate = 0.5625`
+  - `citation_coverage = 1.000`
+  - `entity_coverage = 0.500`
+  - `completeness = 1.000`
+  - `avg_score = 0.820`
+  - `error_rate = 0.0%`
+
+Per-question interpretation:
+
+- `HYU_T2_010`: answer includes 2023/2022 US sales and IRA/protectionism
+  narrative. Retrieval is present (`context_recall = 1.000`,
+  `retrieval_hit_at_k = 1.000`), but faithfulness/entity coverage remain partial.
+- `HYU_T3_072`: answer includes Motional ownership ratio, carrying amount, and
+  summarized losses. Retrieval is present and cites both the investment table and
+  notes, but faithfulness/entity coverage remain partial.
+- Treat the remaining Hyundai work as ranking/evaluator-grounding quality work,
+  not as a pure retrieval-miss fix.
+
+Store-fixed eval-only check:
+
+```bash
+python -m src.ops.run_eval_only \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --source-output-dir benchmarks/results/policy_driven_runtime_gate_hyundai_replay_2026-05-29 \
+  --output-dir benchmarks/results/policy_driven_runtime_gate_hyundai_evalonly_2026-05-29 \
+  --company-run-id hyundai_2023_policy_driven_runtime_gate \
+  --experiment-id structural_selective_v2_prefix_2500_320
+```
+
+- The eval-only run failed before answer scoring because the persisted Chroma
+  HNSW index could not be reopened (`Error loading hnsw index`).
+- BM25 recovery from `document_structure_graph.json` initialized with all
+  `1,764` documents, but the official policy profile has
+  `allow_retrieval_fallback = false`.
+- This is intentional for official gates: a vector-index read failure should not
+  be silently converted into a BM25-only result.
+
+Next action:
+
+- Add a store health / repair step for persisted Chroma stores, or introduce a
+  separately named degraded diagnostic eval-only profile.
+- Keep official policy gate validation strict: repair or rebuild the vector
+  store before accepting eval-only results.
+
+Artifact policy:
+
+- `benchmarks/results/policy_driven_runtime_gate_hyundai_replay_2026-05-29/`
+  and `benchmarks/results/policy_driven_runtime_gate_hyundai_evalonly_2026-05-29/`
+  are experiment artifacts and should not be committed.

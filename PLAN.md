@@ -5,6 +5,39 @@
 
 ## Active Snapshot
 
+## 2026-05-29 Hyundai Gate Replay Update
+
+- `hyundai_2023_policy_driven_runtime_gate` now completes when given a longer
+  execution budget.
+  - Completed runtime: `927.6s`.
+  - Indexed scope: Hyundai 2023 report plus auto-fetched Hyundai 2022 report.
+  - Parsed/indexed chunks: `1,764`.
+  - Stored parent chunks: `96`.
+  - Ingest elapsed time: `693.4s`.
+- Full-eval signal:
+  - `HYU_T2_010`: answer is visible and cites both sales growth and
+    IRA/protectionism evidence, but faithfulness/entity scoring remains partial.
+  - `HYU_T3_072`: Motional answer is visible and cites the investment table and
+    notes, but faithfulness/entity scoring remains partial.
+  - Aggregate: `faithfulness = 0.500`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `citation_coverage = 1.000`,
+    `section_match_rate = 0.5625`, `avg_score = 0.820`.
+- Store-fixed eval-only was attempted against the completed Hyundai store and
+  failed before answer evaluation because the persisted Chroma HNSW index could
+  not be reopened (`Error loading hnsw index`).
+  - BM25 recovery from `document_structure_graph.json` initialized correctly.
+  - The official profile keeps `allow_retrieval_fallback = false`, so the run
+    correctly failed instead of silently converting an official gate into a
+    BM25-only degraded evaluation.
+- Immediate next implementation target:
+  1. Add an explicit store health / repair path for persisted Chroma stores, or
+     a clearly labeled degraded diagnostic eval-only profile.
+  2. Keep official gate runs strict: vector index read errors should fail until
+     the store is rebuilt or repaired.
+  3. Continue HYU quality work as ranking/evaluator-grounding work, not as a
+     retrieval-miss fix; both Hyundai questions already have
+     `context_recall = 1.000` and `retrieval_hit_at_k = 1.000`.
+
 ## 2026-05-29 Immediate Update
 
 - Current AMPC policy-driven runtime gap is closed at focused gate level.
