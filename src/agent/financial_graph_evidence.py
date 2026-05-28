@@ -31,15 +31,10 @@ from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_STOPWORDS,
-    TECHNOLOGY_CAR_AUDIO_TERMS,
-    TECHNOLOGY_CONNECTED_SOLUTION_TERMS,
-    TECHNOLOGY_DIGITAL_COCKPIT_TERMS,
-    TECHNOLOGY_IT_COMPONENT_TERMS,
-    TECHNOLOGY_IT_LABEL_TERMS,
-    TECHNOLOGY_SDV_TERMS,
     active_narrative_policies,
     narrative_policy_active,
     narrative_policy_driver_groups,
+    narrative_policy_facets,
     narrative_policy_paragraph_priority_sections,
     narrative_policy_preferred_sections,
     narrative_policy_slot_groups,
@@ -2551,14 +2546,17 @@ class FinancialAgentEvidenceMixin:
         query_text = _normalise_spaces(query)
         if not query_text:
             return None
-        if not any(marker in query_text for marker in ("전장", "자동차", "커넥티드카", "connected car")):
+        active_policies = active_narrative_policies(query_text)
+        if not narrative_policy_active(active_policies, "technology_focus"):
             return None
-        if not any(marker in query_text for marker in ("사업 방향", "기술 초점", "기술", "초점", "요약")):
-            return None
+        technology_facets = narrative_policy_facets(active_policies, "technology_facets")
 
         entity = ""
-        if re.search(r"\bHarman\b", query_text, flags=re.IGNORECASE) or "하만" in query_text:
-            entity = "Harman"
+        for group in self._query_focus_marker_groups(query_text):
+            variants = [str(variant).strip() for variant in (group.get("variants") or []) if str(variant).strip()]
+            entity = next((variant for variant in variants if re.search(r"[A-Za-z]", variant)), "")
+            if entity:
+                break
         if not entity:
             return None
 
@@ -2602,14 +2600,19 @@ class FinancialAgentEvidenceMixin:
         if rnd_candidates:
             rnd_amount = max(rnd_candidates, key=lambda item: item[0])[1]
 
-        has_connected_solution = any(marker in haystack for marker in TECHNOLOGY_CONNECTED_SOLUTION_TERMS)
-        has_digital_cockpit = any(marker in haystack for marker in TECHNOLOGY_DIGITAL_COCKPIT_TERMS)
-        has_car_audio = any(marker in haystack for marker in TECHNOLOGY_CAR_AUDIO_TERMS)
-        has_it_tech = all(marker in haystack for marker in TECHNOLOGY_IT_COMPONENT_TERMS) and any(
-            marker in haystack for marker in TECHNOLOGY_IT_LABEL_TERMS
-        )
-        has_sdv = any(marker in haystack for marker in TECHNOLOGY_SDV_TERMS)
-        if not (has_connected_solution or has_digital_cockpit or has_it_tech or has_sdv):
+        haystack_lower = haystack.lower()
+
+        def _facet_matches(facet: Dict[str, Any]) -> bool:
+            required_terms = [str(term).lower() for term in (facet.get("required_terms") or [])]
+            match_terms = [str(term).lower() for term in (facet.get("match_terms") or [])]
+            if required_terms and not all(term in haystack_lower for term in required_terms):
+                return False
+            if match_terms and not any(term in haystack_lower for term in match_terms):
+                return False
+            return bool(required_terms or match_terms)
+
+        matched_facets = [facet for facet in technology_facets if _facet_matches(facet)]
+        if not matched_facets:
             return None
 
         sentences: List[str] = []
@@ -2621,23 +2624,26 @@ class FinancialAgentEvidenceMixin:
                 sentences.append(existing_first)
 
         business_parts: List[str] = []
-        if has_connected_solution:
-            business_parts.append("커넥티드카 제품 및 솔루션을 디자인하고 개발하는 전장부품 사업")
-        if has_digital_cockpit or has_car_audio:
-            products = []
-            if has_digital_cockpit:
-                products.append("디지털 콕핏")
-            if has_car_audio:
-                products.append("카오디오")
+        business_parts.extend(
+            str(facet.get("business_phrase") or "")
+            for facet in matched_facets
+            if str(facet.get("business_phrase") or "").strip()
+        )
+        products = [
+            str(facet.get("product_phrase") or "")
+            for facet in matched_facets
+            if str(facet.get("product_phrase") or "").strip()
+        ]
+        if products:
             business_parts.append(", ".join(products) + " 등 전장제품")
         if business_parts:
             sentences.append(f"{entity} 부문의 전장 사업 방향은 " + "과 ".join(business_parts) + "을 중심으로 합니다.")
 
-        focus_parts: List[str] = []
-        if has_it_tech:
-            focus_parts.append("삼성의 무선통신, 디스플레이 등 IT 기술을 전장사업에 지속 접목해 차량의 IT기기화에 대응")
-        if has_sdv:
-            focus_parts.append("SDV(Software Defined Vehicle) 전환에 맞춘 차별화된 기술 개발")
+        focus_parts = [
+            str(facet.get("focus_phrase") or "")
+            for facet in matched_facets
+            if str(facet.get("focus_phrase") or "").strip()
+        ]
         if focus_parts:
             sentences.append("주요 기술 초점은 " + "하고, ".join(focus_parts) + "하는 데 있습니다.")
 

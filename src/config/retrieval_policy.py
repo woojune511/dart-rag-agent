@@ -320,6 +320,34 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
             "it 기술",
             "차별화된 기술",
         ),
+        "technology_facets": (
+            {
+                "name": "connected_solution",
+                "match_terms": ("커넥티드카 제품 및 솔루션", "커넥티드카", "connected car"),
+                "business_phrase": "커넥티드카 제품 및 솔루션을 디자인하고 개발하는 전장부품 사업",
+            },
+            {
+                "name": "digital_cockpit",
+                "match_terms": ("디지털 콕핏", "Digital Cockpit"),
+                "product_phrase": "디지털 콕핏",
+            },
+            {
+                "name": "car_audio",
+                "match_terms": ("카 오디오", "카오디오"),
+                "product_phrase": "카오디오",
+            },
+            {
+                "name": "it_technology",
+                "required_terms": ("무선통신", "디스플레이"),
+                "match_terms": ("IT 기술",),
+                "focus_phrase": "무선통신, 디스플레이 등 IT 기술을 전장사업에 지속 접목해 차량의 IT기기화에 대응",
+            },
+            {
+                "name": "sdv",
+                "match_terms": ("SDV", "Software Defined Vehicle"),
+                "focus_phrase": "SDV(Software Defined Vehicle) 전환에 맞춘 차별화된 기술 개발",
+            },
+        ),
         "driver_groups": (
             {
                 "label": "automotive_sdv_focus",
@@ -344,19 +372,6 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "role_terms": ("인플레이션 감축법", "보호무역주의"),
     },
 )
-
-
-TECHNOLOGY_CONNECTED_SOLUTION_TERMS = (
-    "커넥티드카 제품 및 솔루션",
-    "커넥티드카",
-    "connected car",
-    "Connected Car",
-)
-TECHNOLOGY_DIGITAL_COCKPIT_TERMS = ("디지털 콕핏", "Digital Cockpit")
-TECHNOLOGY_CAR_AUDIO_TERMS = ("카 오디오", "카오디오")
-TECHNOLOGY_IT_COMPONENT_TERMS = ("무선통신", "디스플레이")
-TECHNOLOGY_IT_LABEL_TERMS = ("IT 기술",)
-TECHNOLOGY_SDV_TERMS = ("SDV", "Software Defined Vehicle")
 
 
 def _normalise_policy_text(value: Any) -> str:
@@ -467,3 +482,33 @@ def narrative_policy_slot_groups(
                 }
             )
     return groups
+
+
+def narrative_policy_facets(
+    policies: Sequence[Dict[str, Any]],
+    key: str,
+) -> List[Dict[str, Any]]:
+    facets: List[Dict[str, Any]] = []
+    for policy in policies:
+        for facet in tuple(policy.get(key, ()) or ()):
+            if not isinstance(facet, dict):
+                continue
+            facets.append(
+                {
+                    "name": str(facet.get("name") or ""),
+                    "match_terms": [
+                        str(item)
+                        for item in tuple(facet.get("match_terms", ()) or ())
+                        if str(item).strip()
+                    ],
+                    "required_terms": [
+                        str(item)
+                        for item in tuple(facet.get("required_terms", ()) or ())
+                        if str(item).strip()
+                    ],
+                    "business_phrase": str(facet.get("business_phrase") or ""),
+                    "product_phrase": str(facet.get("product_phrase") or ""),
+                    "focus_phrase": str(facet.get("focus_phrase") or ""),
+                }
+            )
+    return facets
