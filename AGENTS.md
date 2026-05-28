@@ -6,6 +6,16 @@
 
 ## Core Principles
 
+### Domain Knowledge Boundary
+
+- DART/financial-domain vocabulary must live in ontology, retrieval policy, config, or documented data artifacts, not in runtime control-flow code.
+- Runtime code may implement generic mechanisms only: slot coverage, entity/marker extraction, evidence diversity, provenance checks, structured row/header matching, dependency binding, dedupe, ordering, and validation.
+- Do not add Korean/English financial terms, company names, benchmark IDs, report-specific phrases, or metric-specific keyword bundles directly inside agent routing, retrieval, evidence selection, calculation, or answer composition code unless they are parser-structure terms required to recover the DART document shape.
+- When a benchmark exposes a missing concept, first classify the gap as ontology, retrieval policy, parser structure, planner contract, evidence schema, or evaluator definition. Add domain vocabulary to the appropriate declarative layer, then make runtime code consume that layer generically.
+- If a temporary keyword is needed to unblock diagnosis, mark it as diagnostic-only, keep it out of committed runtime paths, and replace it with policy/ontology-driven behavior before commit.
+- LLMs may propose candidate concepts, sections, and slots, but final runtime behavior must be grounded against retrieved evidence or structured store artifacts. The fallback for LLM uncertainty is not hard-coded vocabulary in code; it is better policy/schema plus traceable validation.
+- Any PR/change that adds domain terms to runtime code must explain why the same behavior cannot be represented in ontology/policy/config. If that explanation is weak, stop and refactor the design.
+
 1. **Benchmark를 답안지로 쓰지 않는다.**
    - 특정 회사, 특정 질문, 특정 평가 row를 맞추기 위한 runtime branch를 추가하지 않는다.
    - benchmark에서 발견한 문제는 `ontology`, `retrieval_policy`, `parser`, `planner contract`, `evidence schema` 중 어느 층의 일반 문제인지 먼저 분류한다.

@@ -56,6 +56,7 @@ from src.config.retrieval_policy import (
     narrative_policy_active,
     narrative_policy_driver_groups,
     narrative_policy_preferred_sections,
+    narrative_policy_slot_groups,
     narrative_policy_terms,
 )
 
@@ -401,6 +402,46 @@ class FinancialAgentEvidenceMixin:
                     return True
             return False
 
+        def _has_any_term(surface: str, terms: tuple[str, ...]) -> bool:
+            lowered = surface.lower()
+            return any(term.lower() in lowered for term in terms)
+
+        def _active_policy_slot_groups() -> List[Dict[str, Any]]:
+            slot_groups = narrative_policy_slot_groups(active_policies)
+            return [
+                group
+                for group in slot_groups
+                if _has_any_term(query, tuple(group["query_terms"]))
+            ]
+
+        def _slot_group_preferences_satisfied(doc: Document, slot_group: Dict[str, Any]) -> bool:
+            metadata = getattr(doc, "metadata", {}) or {}
+            section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
+            scope = str(metadata.get("consolidation_scope") or "").strip().lower()
+            preferred_scopes = tuple(str(item).lower() for item in (slot_group.get("preferred_consolidation_scopes") or ()))
+            preferred_sections = tuple(str(item).lower() for item in (slot_group.get("preferred_section_markers") or ()))
+            if preferred_scopes and scope not in preferred_scopes:
+                return False
+            if preferred_sections and not any(marker in section_path for marker in preferred_sections):
+                return False
+            return True
+
+        def _doc_matches_entity_slot(doc: Document, variants: List[str], slot_group: Dict[str, Any]) -> bool:
+            evidence_terms = tuple(slot_group["evidence_terms"])
+            surface = _doc_surface(doc)
+            surface_lower = surface.lower()
+            if not any(variant.lower() in surface_lower for variant in variants):
+                return False
+            return _has_any_term(surface, evidence_terms)
+
+        def _entity_slot_group_covered(doc_items, variants: List[str], slot_group: Dict[str, Any]) -> bool:
+            for candidate_item in doc_items:
+                candidate_doc = candidate_item[0] if isinstance(candidate_item, (tuple, list)) else candidate_item
+                if _doc_matches_entity_slot(candidate_doc, variants, slot_group):
+                    if _slot_group_preferences_satisfied(candidate_doc, slot_group):
+                        return True
+            return False
+
         def _focus_candidate_priority(item, variants: List[str]) -> tuple[int, float]:
             doc, score = item
             metadata = getattr(doc, "metadata", {}) or {}
@@ -417,21 +458,13 @@ class FinancialAgentEvidenceMixin:
                 priority += 2
             if period_focus == "current":
                 priority += 2
-            if "연결" not in query:
-                if "재무제표 주석" in section_path and "연결재무제표 주석" not in section_path:
-                    priority += 3
-                elif "연결재무제표 주석" in section_path:
-                    priority -= 1
-            if any(marker in query for marker in ("지분율", "장부금액", "투자장부금액", "투자자산")) and any(
-                marker in surface for marker in ("지분율", "소유지분율", "장부금액", "투자자산")
-            ):
-                priority += 3
-            if any(marker in query for marker in ("손익", "요약 손익", "요약재무")) and any(
-                marker in surface for marker in ("계속영업", "총포괄손익", "손익")
-            ):
-                priority += 3
-                if "계속영업" in surface and "총포괄손익" in surface:
-                    priority += 5
+            for slot_group in _active_policy_slot_groups():
+                evidence_terms = tuple(slot_group.get("evidence_terms") or [])
+                term_hits = sum(1 for term in evidence_terms if term.lower() in surface_lower)
+                if term_hits:
+                    priority += min(2 + term_hits, 5)
+                    if _slot_group_preferences_satisfied(doc, slot_group):
+                        priority += 4
             if technology_focus_query and any(marker.lower() in surface_lower for marker in focus_policy_terms):
                 priority += 3
             if policy_context_query and any(marker.lower() in surface_lower for marker in focus_policy_terms):
@@ -447,10 +480,11 @@ class FinancialAgentEvidenceMixin:
                     if re.search(r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?", line):
                         priority += 3
                     break
-            if any(marker in section_path for marker in ("타법인출자", "재무제표 주석", "기타 참고사항", "경영진단")):
+            if preferred_section_markers and any(marker in section_path.lower() for marker in preferred_section_markers):
                 priority += 1
             return priority, float(score)
 
+        entity_slot_groups = _active_policy_slot_groups()
         paragraph_candidates = []
         remainder = []
         for item in reranked:
@@ -461,6 +495,9 @@ class FinancialAgentEvidenceMixin:
             else:
                 remainder.append(item)
 
+        paragraph_limit = min(max(effective_k // 2, 3), effective_k)
+        if entity_slot_groups:
+            paragraph_limit = min(1, effective_k)
         paragraph_candidates.sort(key=_paragraph_priority, reverse=True)
         selected = []
         seen_chunk_ids = set()
@@ -472,7 +509,7 @@ class FinancialAgentEvidenceMixin:
             selected.append(item)
             if chunk_id:
                 seen_chunk_ids.add(chunk_id)
-            if len(selected) >= min(max(effective_k // 2, 3), effective_k):
+            if len(selected) >= paragraph_limit:
                 break
 
         for group in driver_groups:
@@ -505,6 +542,61 @@ class FinancialAgentEvidenceMixin:
             best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
             if best_chunk_id:
                 seen_chunk_ids.add(best_chunk_id)
+
+        if entity_slot_groups:
+            focus_groups = [
+                group
+                for group in driver_groups
+                if bool(group.get("query_focus")) and list(group.get("variants") or [])
+            ]
+            for group in focus_groups:
+                variants = list(group.get("variants") or [])
+                for slot_group in entity_slot_groups:
+                    evidence_terms = tuple(slot_group["evidence_terms"])
+                    if _entity_slot_group_covered(selected, variants, slot_group):
+                        continue
+                    group_candidates = []
+                    for item in reranked:
+                        doc = item[0] if isinstance(item, (tuple, list)) else item
+                        metadata = getattr(doc, "metadata", {}) or {}
+                        chunk_id = str(metadata.get("chunk_id") or "")
+                        if chunk_id and chunk_id in seen_chunk_ids:
+                            continue
+                        surface = _doc_surface(doc)
+                        surface_lower = surface.lower()
+                        if not any(variant.lower() in surface_lower for variant in variants):
+                            continue
+                        if not _has_any_term(surface, evidence_terms):
+                            continue
+                        group_candidates.append(item)
+                    if not group_candidates:
+                        continue
+                    best_item = sorted(
+                        group_candidates,
+                        key=lambda candidate: _focus_candidate_priority(candidate, variants),
+                        reverse=True,
+                    )[0]
+                    best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
+                    replacement_index = None
+                    for index, selected_item in enumerate(selected):
+                        selected_doc = selected_item[0] if isinstance(selected_item, (tuple, list)) else selected_item
+                        if not _doc_matches_entity_slot(selected_doc, variants, slot_group):
+                            continue
+                        if _slot_group_preferences_satisfied(selected_doc, slot_group):
+                            continue
+                        replacement_index = index
+                        break
+                    if replacement_index is None:
+                        selected.append(best_item)
+                    else:
+                        old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
+                        old_chunk_id = str((getattr(old_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                        if old_chunk_id:
+                            seen_chunk_ids.discard(old_chunk_id)
+                        selected[replacement_index] = best_item
+                    best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                    if best_chunk_id:
+                        seen_chunk_ids.add(best_chunk_id)
 
         quantitative_impact_query = any(marker in query for marker in ("영향", "분석", "비중", "대비", "차지"))
         if quantitative_impact_query:

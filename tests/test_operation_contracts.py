@@ -2692,6 +2692,69 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertIn("table-effect", chunk_ids)
 
+    def test_narrative_summary_doc_selection_preserves_entity_metric_tables(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="일반 경영진단 문단",
+                    metadata={
+                        "chunk_id": f"para-{idx}",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.95 - (idx * 0.01),
+            )
+            for idx in range(4)
+        ]
+        reranked.extend(
+            [
+                (
+                    Document(
+                        page_content=(
+                            "Motional AD LLC | 자율주행 소프트웨어 개발 | 미국 | "
+                            "소유지분율 25.81% | 투자자산 1,294,367"
+                        ),
+                        metadata={
+                            "chunk_id": "investment-table",
+                            "block_type": "table",
+                            "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                            "period_focus": "current",
+                        },
+                    ),
+                    0.62,
+                ),
+                (
+                    Document(
+                        page_content=(
+                            "Motional AD LLC | 영업수익 132,772 | 계속영업손실 (803,742) | "
+                            "총포괄손실 (791,627)"
+                        ),
+                        metadata={
+                            "chunk_id": "summary-profit-loss-table",
+                            "block_type": "table",
+                            "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                            "period_focus": "current",
+                        },
+                    ),
+                    0.55,
+                ),
+            ]
+        )
+        state = {
+            "query": "모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 6)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("investment-table", chunk_ids)
+        self.assertIn("summary-profit-loss-table", chunk_ids)
+
     def test_narrative_summary_doc_selection_prefers_dividend_policy_sections(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         reranked = [
@@ -2907,12 +2970,34 @@ class OperationContractTests(unittest.TestCase):
             ),
             (
                 Document(
-                    page_content="Motional AD LLC | 자율주행 소프트웨어 개발 | 미국 | 25.81% | 1,294,367",
+                    page_content=(
+                        "기업명 | 주요영업활동 | 소재지 | 소유지분율 | 투자자산\n"
+                        "Motional AD LLC | 자율주행 소프트웨어 개발 | 미국 | 26% | 700,691"
+                    ),
+                    metadata={
+                        "chunk_id": "motional-consolidated-investment-table",
+                        "block_type": "table",
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                        "table_context": "Motional AD LLC 연결 공동기업 투자자산",
+                    },
+                ),
+                0.55,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "기업명 | 주요영업활동 | 소재지 | 소유지분율 | 투자자산\n"
+                        "Motional AD LLC | 자율주행 소프트웨어 개발 | 미국 | 25.81% | 1,294,367"
+                    ),
                     metadata={
                         "chunk_id": "motional-table",
                         "block_type": "table",
-                        "section_path": "XII. 상세표 > 3. 타법인출자 현황(상세)",
-                        "table_context": "Motional AD LLC 타법인출자 현황",
+                        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                        "consolidation_scope": "separate",
+                        "period_focus": "current",
+                        "table_context": "Motional AD LLC 별도 공동기업 투자자산",
                     },
                 ),
                 0.41,
@@ -2927,6 +3012,8 @@ class OperationContractTests(unittest.TestCase):
                         "chunk_id": "motional-summary-pl",
                         "block_type": "table",
                         "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
                         "table_context": "Motional AD LLC 요약재무정보",
                     },
                 ),
@@ -2943,6 +3030,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertIn("motional-table", chunk_ids)
         self.assertIn("motional-summary-pl", chunk_ids)
+        self.assertNotIn("motional-consolidated-investment-table", chunk_ids)
         self.assertNotIn("motional-header-only", chunk_ids[:2])
 
     def test_dividend_policy_hybrid_answer_prefers_cashflow_payout_over_policy_dividend_total(self) -> None:

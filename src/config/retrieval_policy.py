@@ -168,6 +168,68 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         ),
     },
     {
+        "name": "investment_entity_summary",
+        "trigger_terms": (
+            "타법인출자",
+            "지분율",
+            "소유지분율",
+            "투자장부금액",
+            "장부금액",
+            "투자자산",
+            "공동기업",
+            "관계기업",
+            "요약 손익",
+            "총포괄손익",
+        ),
+        "retrieval_query_suffixes": (
+            "타법인출자 현황 상세",
+            "공동기업 관계기업 투자자산 지분율 장부금액",
+            "공동기업 관계기업 요약 손익 계속영업손익 총포괄손익",
+            "연결재무제표 주석 재무제표 주석",
+        ),
+        "preferred_sections": (
+            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "III. 재무에 관한 사항 > 5. 재무제표 주석",
+            "XII. 상세표 > 3. 타법인출자 현황(상세)",
+            "연결재무제표 주석",
+            "재무제표 주석",
+            "타법인출자 현황",
+        ),
+        "focus_terms": (
+            "타법인출자",
+            "지분율",
+            "투자장부금액",
+            "투자자산",
+            "계속영업손익",
+            "총포괄손익",
+        ),
+        "entity_metric_slot_groups": (
+            {
+                "name": "ownership_investment_balance",
+                "query_terms": ("지분율", "소유지분율", "투자장부금액", "장부금액", "투자자산"),
+                "evidence_terms": ("지분율", "소유지분율", "투자장부금액", "장부금액", "투자자산"),
+                "preferred_consolidation_scopes": ("separate",),
+                "preferred_section_markers": ("III. 재무에 관한 사항 > 5. 재무제표 주석",),
+            },
+            {
+                "name": "summary_profit_loss",
+                "query_terms": ("요약 손익", "요약손익", "손익", "계속영업", "총포괄손익", "총포괄손실"),
+                "evidence_terms": (
+                    "계속영업",
+                    "계속영업이익",
+                    "계속영업손실",
+                    "영업수익",
+                    "총포괄손익",
+                    "총포괄손실",
+                ),
+                "preferred_consolidation_scopes": ("consolidated",),
+                "preferred_section_markers": ("III. 재무에 관한 사항 > 3. 연결재무제표 주석",),
+            },
+        ),
+        "causal_terms": (),
+        "realized_terms": (),
+    },
+    {
         "name": "commerce_growth",
         "trigger_terms": ("커머스", "쇼핑"),
         "focus_terms": ("커머스", "쇼핑", "스마트스토어", "브랜드스토어"),
@@ -354,6 +416,43 @@ def narrative_policy_driver_groups(policies: Sequence[Dict[str, Any]]) -> List[D
                     "label": str(group.get("label") or ""),
                     "variants": [str(item) for item in tuple(group.get("variants", ()) or ()) if str(item).strip()],
                     "phrase": str(group.get("phrase") or ""),
+                }
+            )
+    return groups
+
+
+def narrative_policy_slot_groups(
+    policies: Sequence[Dict[str, Any]],
+    key: str = "entity_metric_slot_groups",
+) -> List[Dict[str, Any]]:
+    groups: List[Dict[str, Any]] = []
+    for policy in policies:
+        for group in tuple(policy.get(key, ()) or ()):
+            if not isinstance(group, dict):
+                continue
+            groups.append(
+                {
+                    "name": str(group.get("name") or ""),
+                    "query_terms": [
+                        str(item)
+                        for item in tuple(group.get("query_terms", ()) or ())
+                        if str(item).strip()
+                    ],
+                    "evidence_terms": [
+                        str(item)
+                        for item in tuple(group.get("evidence_terms", ()) or ())
+                        if str(item).strip()
+                    ],
+                    "preferred_consolidation_scopes": [
+                        str(item)
+                        for item in tuple(group.get("preferred_consolidation_scopes", ()) or ())
+                        if str(item).strip()
+                    ],
+                    "preferred_section_markers": [
+                        str(item)
+                        for item in tuple(group.get("preferred_section_markers", ()) or ())
+                        if str(item).strip()
+                    ],
                 }
             )
     return groups
