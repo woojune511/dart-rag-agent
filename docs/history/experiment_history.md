@@ -747,3 +747,40 @@
 - grounding judge는 numeric_extractor가 생성한 synthetic evidence_item 기준으로 판정
 - `plain_prefix`의 numeric_fact 실패는 ingest-side 문제로 별도 추적
 
+## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
+
+참조:
+
+- `benchmarks/results/naver_mix_t1_046_2026-05-28-grounding-fix`
+
+### 코드 / 설정 변화
+
+- `src/ops/evaluator.py`
+  - deterministic numeric grounding override가 resolved `task_output:*`
+    operand provenance를 인정하도록 일반화
+  - 조건은 `dependency_resolved = true`, `source_anchor`, 그리고
+    `source_task_id` 또는 `source_slot`이 있는 경우로 제한
+  - unresolved `task_output:*` operand는 기존처럼 grounded로 보지 않음
+- `tests/test_evaluator_runtime_projection.py`
+  - resolved task-output dependency는 override 가능하고, unresolved
+    task-output-only operand는 override 불가한 회귀 테스트 추가/유지
+
+### 핵심 결과
+
+- `MIX_T1_046` targeted replay:
+  - `numeric_final_judgement = PASS`
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  - `completeness = 1.0`
+- 최종 답변은 `종업원급여 1,701,418,940천원 / 영업비용 8,181,823,307천원 = 20.8%`로 계산됨
+
+### 해석
+
+- 남은 문제는 ratio 계산 하드코딩이 아니라 evaluator runtime projection의
+  provenance contract였다.
+- composed calculation에서 subtask 결과가 `task_output:*`로 전달되더라도,
+  원천 subtask provenance가 보존되어 있으면 grounded operand로 인정하는 것이
+  맞다.
+- 특정 문항/회사/계정명을 직접 처리하는 rule은 추가하지 않았다.
+

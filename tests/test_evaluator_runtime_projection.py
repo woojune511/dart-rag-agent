@@ -130,6 +130,38 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_should_override_numeric_grounding_for_resolved_task_output_dependency(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "종업원급여",
+                "source_row_id": "task_output:task_2",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "dependency_resolved": True,
+                "source_task_id": "task_2",
+                "source_slot": "primary_value",
+            },
+            {
+                "label": "연결기준 영업비용",
+                "source_row_id": "ev_doc_005",
+                "source_anchor": "[네이버 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표]",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
     def test_should_override_numeric_grounding_when_numeric_result_is_unavailable(self) -> None:
         numeric_eval = {
             "numeric_equivalence": 1.0,

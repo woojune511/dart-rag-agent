@@ -120,6 +120,12 @@
   - `curated_single_doc_core`의 `MIX_T1_046`는 parent-hybrid probe의 fresh NAVER 2023 bundle에서 `영업비용` denominator binding failure가 다시 노출됐지만, calculation fallback/document scope/operand filtering 보강 후 store-fixed eval-only에서 다시 PASS했다
     - latest answer: `20.8%`
     - `faithfulness = 1.0`, `completeness = 1.0`, `numeric_pass = 1.0`
+  - 2026-05-28 targeted replay에서도 `MIX_T1_046`는 다시 PASS로 확인됐다.
+    - result dir: `benchmarks/results/naver_mix_t1_046_2026-05-28-grounding-fix`
+    - root cause는 계산값 자체가 아니라 composed ratio의 numerator가 `task_output:task_2`로 전달될 때 evaluator grounding override가 resolved dependency provenance를 직접 근거로 인정하지 못한 점이었다.
+    - evaluator는 이제 `dependency_resolved = true`이고 `source_task_id` / `source_slot` / `source_anchor`가 있는 `task_output:*` operand를 grounded operand로 인정한다.
+    - unresolved `task_output:*`만 있는 operand는 여전히 grounded로 보지 않는다.
+    - `numeric_equivalence = 1.0`, `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`, `numeric_final_judgement = PASS`
   - fresh structural store 기준으로도 `SAM_T2_002`는 multi-source receipt scope, auto-fetch inventory, dependency binding guard, aggregate answer-slot gap suppression, narrative context synthesis 보강 이후 다시 닫혔다
     - `structured_result.status = ok`
     - `faithfulness = 1.0`
@@ -156,15 +162,15 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | concept ontology gap closure | expanded shadow에서 남은 `신용손실충당금전입액`, `외화환산손익`, inventory valuation loss, interest expense/CIR 계열을 generic fallback에서 concept task로 올릴지 결정 |
-| 2 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
+| 1 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
+| 2 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
 | 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
 | 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
 
 ## 현재 우선순위 요약
 
-1. `curated_single_doc_core` blocker maintenance
-2. concept-only planner default 승격 검토
+1. `curated_single_doc_core` / broader gate maintenance
+2. concept-only planner runtime promotion check
 3. contextual arbitration / benchmark maintenance 정리
 4. internal compatibility mirror cleanup scope 결정
 

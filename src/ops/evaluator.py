@@ -1769,11 +1769,21 @@ def _should_override_numeric_grounding(
     if not calculation_operands:
         return False
 
-    direct_grounded_operands = 0
-    for operand in calculation_operands:
+    def _has_direct_or_resolved_source(operand: Dict[str, Any]) -> bool:
         source_row_id = str(operand.get("source_row_id") or operand.get("row_id") or "").strip()
         source_anchor = str(operand.get("source_anchor") or "").strip()
-        if source_row_id and source_anchor and not source_row_id.startswith("task_output:"):
+        if not source_row_id or not source_anchor:
+            return False
+        if not source_row_id.startswith("task_output:"):
+            return True
+        return bool(
+            operand.get("dependency_resolved")
+            and (operand.get("source_task_id") or operand.get("source_slot"))
+        )
+
+    direct_grounded_operands = 0
+    for operand in calculation_operands:
+        if _has_direct_or_resolved_source(operand):
             direct_grounded_operands += 1
 
     return direct_grounded_operands == len(calculation_operands)

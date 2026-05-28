@@ -42,6 +42,11 @@
   - `structural_selective_v2_prefix_2500_320`: 대표 gate PASS, multi-entity gate PASS, broader curated blocker close까지 확인된 current operating default
 - 지금 가장 가까운 구현 초점은 **broader curated blocker maintenance + concept-only planner 확대 검증** 이다.
   - `SAM_T2_002`, `MIX_T1_046` wider curated blocker는 현재 PASS로 닫혔다
+  - `MIX_T1_046`는 2026-05-28 targeted replay에서도 다시 PASS로 확인됐다
+    - result dir: `benchmarks/results/naver_mix_t1_046_2026-05-28-grounding-fix`
+    - evaluator numeric grounding override now accepts resolved `task_output:*` operands only when dependency provenance is present (`dependency_resolved`, `source_task_id` / `source_slot`, `source_anchor`)
+    - unresolved `task_output:*` operands remain blocked from deterministic grounding override
+    - `numeric_equivalence = 1.0`, `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`, `numeric_final_judgement = PASS`
   - fresh structural store 기준 `SAM_T2_002`도 multi-source receipt inventory + dependency binding guard 보강 이후 `numeric_final_judgement = PASS`로 재확인됐다
   - 다만 `SAM_T2_002`는 mixed benchmark wording(`메모리 반도체 업황 악화에도 불구하고`)을 충분히 반영하지 못해 `completeness = 0.7`이 남아 있다
   - `SAM_T3_028`의 query-specific runtime rule은 product runtime path에서 제거했다
