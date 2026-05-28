@@ -169,3 +169,33 @@ Recommended invocation:
   --config benchmarks/profiles/curated_concept_runtime_gap_gate.json `
   --output-dir benchmarks/results/concept_runtime_gap_gate_manual
 ```
+
+## Policy-Driven Runtime Gate
+
+Retrieval-policy changes have a separate focused gate:
+
+- Profile:
+  - `benchmarks/profiles/curated_policy_driven_runtime_gate.json`
+- Candidate:
+  - `structural_selective_v2_prefix_2500_320`
+- Covered full-evaluation questions:
+  - `NAV_T2_006`
+  - `HYU_T2_010`
+  - `HYU_T3_072`
+  - `LGE_T1_051`
+  - `SAM_T2_078`
+- Additional smoke coverage:
+  - Samsung dividend cash outflow + shareholder-return policy mixed query
+
+Run this gate when changing `src/config/retrieval_policy.py`, narrative summary
+selection, policy-driven deterministic composers, or planner fallback tracing.
+The purpose is to prove that vocabulary has moved into policy/config without
+losing behavior on the previously hard-coded retrieval/composition cases.
+
+Recommended invocation:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks/results/policy_driven_runtime_gate_manual
+```

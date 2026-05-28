@@ -46,6 +46,16 @@ logger = logging.getLogger(__name__)
 class FinancialAgentEvidenceMixin:
     _QUERY_FOCUS_STOPWORDS = QUERY_FOCUS_STOPWORDS
 
+    def _active_narrative_policies_for_query(self, query: str) -> List[Dict[str, Any]]:
+        return list(active_narrative_policies(str(query or "")))
+
+    def _narrative_policy_terms_for_query(self, query: str, *keys: str) -> Dict[str, List[str]]:
+        active_policies = self._active_narrative_policies_for_query(query)
+        return {key: narrative_policy_terms(active_policies, key) for key in keys}
+
+    def _narrative_policy_facets_for_query(self, query: str, key: str) -> List[Dict[str, Any]]:
+        return narrative_policy_facets(self._active_narrative_policies_for_query(query), key)
+
     def _query_focus_marker_groups(self, query: str, *, limit: int = 8) -> List[Dict[str, Any]]:
         """Extract query-specific entity/policy/concept markers without case IDs."""
         surface = _normalise_spaces(str(query or ""))
@@ -300,7 +310,7 @@ class FinancialAgentEvidenceMixin:
 
     def _select_narrative_summary_docs(self, reranked, state: FinancialAgentState, effective_k: int):
         query = str(state.get("query") or "")
-        active_policies = active_narrative_policies(query)
+        active_policies = self._active_narrative_policies_for_query(query)
         impact_query = narrative_policy_active(active_policies, "impact_context")
         dividend_policy_query = narrative_policy_active(active_policies, "dividend_policy")
         technology_focus_query = narrative_policy_active(active_policies, "technology_focus")
@@ -310,16 +320,29 @@ class FinancialAgentEvidenceMixin:
             item.lower()
             for item in narrative_policy_paragraph_priority_sections(active_policies)
         ]
-        causal_markers = narrative_policy_terms(active_policies, "causal_terms")
-        realized_markers = narrative_policy_terms(active_policies, "realized_terms")
-        penalty_terms = narrative_policy_terms(active_policies, "penalty_terms")
-        focus_policy_terms = narrative_policy_terms(active_policies, "focus_terms")
-        technology_terms = narrative_policy_terms(active_policies, "technology_terms")
-        dividend_payout_terms = narrative_policy_terms(active_policies, "payout_terms")
-        dividend_policy_terms = narrative_policy_terms(active_policies, "policy_terms")
-        dividend_liquidity_context_terms = narrative_policy_terms(active_policies, "liquidity_context_terms")
-        dividend_outflow_terms = narrative_policy_terms(active_policies, "outflow_terms")
-        dividend_policy_section_terms = narrative_policy_terms(active_policies, "policy_section_terms")
+        policy_terms_by_key = self._narrative_policy_terms_for_query(
+            query,
+            "causal_terms",
+            "realized_terms",
+            "penalty_terms",
+            "focus_terms",
+            "technology_terms",
+            "payout_terms",
+            "policy_terms",
+            "liquidity_context_terms",
+            "outflow_terms",
+            "policy_section_terms",
+        )
+        causal_markers = policy_terms_by_key["causal_terms"]
+        realized_markers = policy_terms_by_key["realized_terms"]
+        penalty_terms = policy_terms_by_key["penalty_terms"]
+        focus_policy_terms = policy_terms_by_key["focus_terms"]
+        technology_terms = policy_terms_by_key["technology_terms"]
+        dividend_payout_terms = policy_terms_by_key["payout_terms"]
+        dividend_policy_terms = policy_terms_by_key["policy_terms"]
+        dividend_liquidity_context_terms = policy_terms_by_key["liquidity_context_terms"]
+        dividend_outflow_terms = policy_terms_by_key["outflow_terms"]
+        dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
         driver_groups = self._narrative_driver_groups(query)
         query_focus_markers = self._query_focus_markers(query)
 
@@ -1934,7 +1957,9 @@ class FinancialAgentEvidenceMixin:
         return selected[:limit]
 
     def _narrative_driver_groups(self, query: str) -> List[Dict[str, Any]]:
-        groups: List[Dict[str, Any]] = narrative_policy_driver_groups(active_narrative_policies(query))
+        groups: List[Dict[str, Any]] = narrative_policy_driver_groups(
+            self._active_narrative_policies_for_query(query)
+        )
 
         seen_variants = {
             str(variant).lower()
@@ -2083,16 +2108,27 @@ class FinancialAgentEvidenceMixin:
         if not self._is_dividend_policy_mixed_query(query) or not docs:
             return evidence_items
 
-        active_policies = active_narrative_policies(query)
-        payout_terms = narrative_policy_terms(active_policies, "payout_terms")
-        payout_deemphasis_terms = narrative_policy_terms(active_policies, "payout_deemphasis_terms")
-        policy_terms = narrative_policy_terms(active_policies, "policy_terms")
-        policy_preferred_terms = narrative_policy_terms(active_policies, "policy_preferred_terms")
-        liquidity_context_terms = narrative_policy_terms(active_policies, "liquidity_context_terms")
-        outflow_terms = narrative_policy_terms(active_policies, "outflow_terms")
-        policy_section_terms = narrative_policy_terms(active_policies, "policy_section_terms")
-        regular_terms = narrative_policy_terms(active_policies, "regular_terms")
-        additional_return_terms = narrative_policy_terms(active_policies, "additional_return_terms")
+        policy_terms_by_key = self._narrative_policy_terms_for_query(
+            query,
+            "payout_terms",
+            "payout_deemphasis_terms",
+            "policy_terms",
+            "policy_preferred_terms",
+            "liquidity_context_terms",
+            "outflow_terms",
+            "policy_section_terms",
+            "regular_terms",
+            "additional_return_terms",
+        )
+        payout_terms = policy_terms_by_key["payout_terms"]
+        payout_deemphasis_terms = policy_terms_by_key["payout_deemphasis_terms"]
+        policy_terms = policy_terms_by_key["policy_terms"]
+        policy_preferred_terms = policy_terms_by_key["policy_preferred_terms"]
+        liquidity_context_terms = policy_terms_by_key["liquidity_context_terms"]
+        outflow_terms = policy_terms_by_key["outflow_terms"]
+        policy_section_terms = policy_terms_by_key["policy_section_terms"]
+        regular_terms = policy_terms_by_key["regular_terms"]
+        additional_return_terms = policy_terms_by_key["additional_return_terms"]
         supplemented = [dict(item) for item in evidence_items]
         seen_keys = {
             _normalise_spaces(
@@ -2276,7 +2312,7 @@ class FinancialAgentEvidenceMixin:
         query_text = _normalise_spaces(query)
         active_slot_groups = [
             group
-            for group in narrative_policy_slot_groups(active_narrative_policies(query_text))
+            for group in narrative_policy_slot_groups(self._active_narrative_policies_for_query(query_text))
             if any(str(term) in query_text for term in (group.get("query_terms") or ()))
         ]
         if not active_slot_groups:
@@ -2546,10 +2582,10 @@ class FinancialAgentEvidenceMixin:
         query_text = _normalise_spaces(query)
         if not query_text:
             return None
-        active_policies = active_narrative_policies(query_text)
+        active_policies = self._active_narrative_policies_for_query(query_text)
         if not narrative_policy_active(active_policies, "technology_focus"):
             return None
-        technology_facets = narrative_policy_facets(active_policies, "technology_facets")
+        technology_facets = self._narrative_policy_facets_for_query(query_text, "technology_facets")
 
         entity = ""
         for group in self._query_focus_marker_groups(query_text):
@@ -2673,12 +2709,19 @@ class FinancialAgentEvidenceMixin:
         query_text = _normalise_spaces(query)
         if not query_text:
             return None
-        active_policies = active_narrative_policies(query_text)
-        policy_query_terms = narrative_policy_terms(active_policies, "query_terms")
-        policy_sentence_terms = narrative_policy_terms(active_policies, "sentence_terms")
-        policy_primary_terms = narrative_policy_terms(active_policies, "primary_terms")
-        policy_response_terms = narrative_policy_terms(active_policies, "response_terms")
-        policy_role_terms = narrative_policy_terms(active_policies, "role_terms")
+        policy_terms_by_key = self._narrative_policy_terms_for_query(
+            query_text,
+            "query_terms",
+            "sentence_terms",
+            "primary_terms",
+            "response_terms",
+            "role_terms",
+        )
+        policy_query_terms = policy_terms_by_key["query_terms"]
+        policy_sentence_terms = policy_terms_by_key["sentence_terms"]
+        policy_primary_terms = policy_terms_by_key["primary_terms"]
+        policy_response_terms = policy_terms_by_key["response_terms"]
+        policy_role_terms = policy_terms_by_key["role_terms"]
         if not all(marker in query_text for marker in ("판매대수", "전년 대비")):
             return None
         if not any(marker in query_text for marker in policy_query_terms):
@@ -2911,9 +2954,13 @@ class FinancialAgentEvidenceMixin:
         surface = _normalise_spaces(str(query or ""))
         if not surface:
             return False
-        active_policies = active_narrative_policies(surface)
-        payout_terms = narrative_policy_terms(active_policies, "payout_terms")
-        policy_query_terms = narrative_policy_terms(active_policies, "policy_query_terms")
+        policy_terms_by_key = self._narrative_policy_terms_for_query(
+            surface,
+            "payout_terms",
+            "policy_query_terms",
+        )
+        payout_terms = policy_terms_by_key["payout_terms"]
+        policy_query_terms = policy_terms_by_key["policy_query_terms"]
         return any(marker in surface for marker in payout_terms) and any(
             marker in surface for marker in policy_query_terms
         )
@@ -2994,17 +3041,29 @@ class FinancialAgentEvidenceMixin:
         if not evidence_items:
             return None
 
-        active_policies = active_narrative_policies(query)
-        payout_terms = narrative_policy_terms(active_policies, "payout_terms")
-        payout_deemphasis_terms = narrative_policy_terms(active_policies, "payout_deemphasis_terms")
-        policy_terms = narrative_policy_terms(active_policies, "policy_terms")
-        policy_preferred_terms = narrative_policy_terms(active_policies, "policy_preferred_terms")
-        liquidity_context_terms = narrative_policy_terms(active_policies, "liquidity_context_terms")
-        outflow_terms = narrative_policy_terms(active_policies, "outflow_terms")
-        table_policy_terms = narrative_policy_terms(active_policies, "table_policy_terms")
-        policy_section_terms = narrative_policy_terms(active_policies, "policy_section_terms")
-        regular_terms = narrative_policy_terms(active_policies, "regular_terms")
-        additional_return_terms = narrative_policy_terms(active_policies, "additional_return_terms")
+        policy_terms_by_key = self._narrative_policy_terms_for_query(
+            query,
+            "payout_terms",
+            "payout_deemphasis_terms",
+            "policy_terms",
+            "policy_preferred_terms",
+            "liquidity_context_terms",
+            "outflow_terms",
+            "table_policy_terms",
+            "policy_section_terms",
+            "regular_terms",
+            "additional_return_terms",
+        )
+        payout_terms = policy_terms_by_key["payout_terms"]
+        payout_deemphasis_terms = policy_terms_by_key["payout_deemphasis_terms"]
+        policy_terms = policy_terms_by_key["policy_terms"]
+        policy_preferred_terms = policy_terms_by_key["policy_preferred_terms"]
+        liquidity_context_terms = policy_terms_by_key["liquidity_context_terms"]
+        outflow_terms = policy_terms_by_key["outflow_terms"]
+        table_policy_terms = policy_terms_by_key["table_policy_terms"]
+        policy_section_terms = policy_terms_by_key["policy_section_terms"]
+        regular_terms = policy_terms_by_key["regular_terms"]
+        additional_return_terms = policy_terms_by_key["additional_return_terms"]
         payout_amount = ""
         payout_evidence_id = ""
         policy_clause = ""

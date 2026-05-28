@@ -3848,21 +3848,27 @@ def _build_semantic_numeric_plan(
     """
     ontology = get_financial_ontology()
     matches = ontology.match_metric_families(query, topic, intent)
+    operation_family = _infer_operation_family_from_query(query, ontology)
+    concept_specs = ontology.concept_specs(query, topic, intent)
+    planner_notes: List[str] = [
+        f"planner_input_intent:{str(intent or 'unknown').strip() or 'unknown'}",
+        f"planner_inferred_operation:{operation_family or 'unknown'}",
+        f"planner_ontology_matches:{len(matches)}",
+        f"planner_concept_specs:{len(concept_specs)}",
+    ]
     matched_metric_keys = {
         str(item.get("key") or "").strip()
         for item in matches
         if str(item.get("key") or "").strip()
     }
     metric_keys: List[str] = []
-    planner_notes: List[str] = []
-    concept_specs = ontology.concept_specs(query, topic, intent)
-    operation_family = _infer_operation_family_from_query(query, ontology)
     entity_scoped_specs = _build_entity_scoped_concept_specs(
         query=query,
         report_scope=report_scope,
         ontology=ontology,
         operation_family=operation_family,
     )
+    planner_notes.append(f"planner_entity_scoped_specs:{len(entity_scoped_specs)}")
     concept_specs_have_segment_binding = any(
         _normalise_spaces(str(dict(spec.get("binding_policy") or {}).get("segment_label") or ""))
         for spec in concept_specs
@@ -3895,9 +3901,10 @@ def _build_semantic_numeric_plan(
                 "fallback_to_general_search": False,
                 "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
                 "tasks": [concept_task],
-                "planner_notes": planner_notes + ["concept_first_preferred"],
+                "planner_notes": planner_notes + ["concept_first_preferred", "planner_fallback:concept_first_preferred"],
             }
     if target_metric_family:
+        planner_notes.append(f"planner_target_metric:{target_metric_family}")
         target_metric = ontology.metric_family(target_metric_family) or {}
         target_operand_specs = ontology.build_operand_spec(target_metric_family) if target_metric else []
         component_match_count = _query_component_match_count(query, target_operand_specs)
@@ -3920,6 +3927,7 @@ def _build_semantic_numeric_plan(
 
     tasks: List[Dict[str, Any]] = []
     if not metric_keys:
+        planner_notes.append("planner_no_metric_keys")
         concept_task = _build_concept_numeric_task(
             query=query,
             topic=topic,
@@ -3933,7 +3941,7 @@ def _build_semantic_numeric_plan(
                 "fallback_to_general_search": False,
                 "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
                 "tasks": [concept_task],
-                "planner_notes": planner_notes + ["concept_numeric_task"],
+                "planner_notes": planner_notes + ["concept_numeric_task", "planner_fallback:concept_numeric_task"],
             }
         heuristic_task = _build_heuristic_numeric_task(
             query=query,
@@ -3947,14 +3955,14 @@ def _build_semantic_numeric_plan(
                 "fallback_to_general_search": False,
                 "planned_metric_families": [str(heuristic_task.get("metric_family") or "").strip()],
                 "tasks": [heuristic_task],
-                "planner_notes": planner_notes + ["heuristic_numeric_task"],
+                "planner_notes": planner_notes + ["heuristic_numeric_task", "planner_fallback:heuristic_numeric_task"],
             }
         return {
             "status": "fallback_general_search",
             "fallback_to_general_search": True,
             "planned_metric_families": [],
             "tasks": [],
-            "planner_notes": planner_notes + ["ontology_match_missing"],
+            "planner_notes": planner_notes + ["ontology_match_missing", "planner_fallback:general_search"],
         }
 
     for index, metric_key in enumerate(metric_keys, start=1):

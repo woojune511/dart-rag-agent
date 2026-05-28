@@ -12,6 +12,7 @@
 - retrieval trace debugging: [retrieval_trace_debugging.md](retrieval_trace_debugging.md)
 - dataset curation record: [dataset_curation_log.md](dataset_curation_log.md)
 - answer generation 원칙: [../architecture/answer_generation_principles.md](../architecture/answer_generation_principles.md)
+- retrieval policy schema: [../architecture/retrieval_policy_schema.md](../architecture/retrieval_policy_schema.md)
 
 ## At a Glance
 
@@ -23,6 +24,7 @@
 | current operating default | `structural_selective_v2_prefix_2500_320` |
 | 빠른 회귀 경로 | `debug-first -> store-fixed eval-only -> full benchmark` |
 | 대표 numeric gate | `curated_runtime_contract_gate` |
+| policy-driven retrieval gate | `curated_policy_driven_runtime_gate` |
 | focused entity gate | `curated_multi_entity_grounding_gate` |
 | scorecard 결과 위치 | 이 문서의 `Retrospective Results` |
 | 오래된 실험 로그 위치 | [../history/experiment_history.md](../history/experiment_history.md) |
@@ -143,6 +145,7 @@ Runtime default와 trace 계약은 [../architecture/agent_runtime_contract.md](.
 | --- | --- | --- | --- | --- |
 | `curated_single_doc_core` | `mainline_curated` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | single-doc canonical 기준선 회귀 |
 | `curated_runtime_contract_gate` | `mainline_curated` | 대표 numeric canary 5개 gate | `NAV_T1_030`, `NAV_T1_071`, `SKH_T1_060`, `MIX_T1_021`, `KBF_T1_017` | runtime contract / evaluator / internal-state 회귀 확인 |
+| `curated_policy_driven_runtime_gate` | `mainline_curated` | retrieval policy vocabulary / deterministic composer 회귀 | `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`, `SAM_T2_078` | `retrieval_policy.py`, narrative selection, policy composer, planner fallback trace 변경 확인 |
 | `multi_metric_numeric_smoke` | `mainline_curated` | multi-subtask numeric trace 회귀 | curated multi-metric numeric subset | runtime/evaluator projection 검증 |
 | `curated_multi_report_smoke` | `mainline_curated` | multi-report 분리셋 점검 | multi-report curated subset | multi-report path smoke |
 | `curated_single_doc_smoke_only` | `mainline_curated` | 가장 빠른 single-doc smoke | single company / single curated source | ingest + smoke 기본 sanity check |

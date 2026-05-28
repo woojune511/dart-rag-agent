@@ -13,13 +13,14 @@
 | 3 | [overview/portfolio_readme_blueprint.md](overview/portfolio_readme_blueprint.md) | 제출용 README 재구성 가이드 |
 | 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
 | 5 | [architecture/architecture_direction.md](architecture/architecture_direction.md) | MAS 방향성과 topology / communication / memory 설계 |
-| 6 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
-| 7 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | benchmark를 왜 직접 만들었는지와 dataset track rationale |
-| 8 | [evaluation/evaluator_design_rationale.md](evaluation/evaluator_design_rationale.md) | evaluator를 왜 분리했는지와 numeric contract rationale |
-| 9 | [evaluation/dataset_curation_log.md](evaluation/dataset_curation_log.md) | active curated asset과 gate question 선정 기록 |
-| 10 | [../CONTEXT.md](../CONTEXT.md) | 현재 기준 상태 snapshot |
-| 11 | [../PLAN.md](../PLAN.md) | 현재 active work |
-| 12 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
+| 6 | [architecture/retrieval_policy_schema.md](architecture/retrieval_policy_schema.md) | retrieval policy / ontology / runtime keyword boundary |
+| 7 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
+| 8 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | benchmark를 왜 직접 만들었는지와 dataset track rationale |
+| 9 | [evaluation/evaluator_design_rationale.md](evaluation/evaluator_design_rationale.md) | evaluator를 왜 분리했는지와 numeric contract rationale |
+| 10 | [evaluation/dataset_curation_log.md](evaluation/dataset_curation_log.md) | active curated asset과 gate question 선정 기록 |
+| 11 | [../CONTEXT.md](../CONTEXT.md) | 현재 기준 상태 snapshot |
+| 12 | [../PLAN.md](../PLAN.md) | 현재 active work |
+| 13 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
 
 ## 폴더 역할
 

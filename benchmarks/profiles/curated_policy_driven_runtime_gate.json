@@ -1,0 +1,135 @@
+{
+  "defaults": {
+    "k": 8,
+    "max_workers": 2,
+    "eval_max_workers": 1,
+    "batch_size": 8,
+    "eval_mode": "question_ids",
+    "eval_limit": 0,
+    "reuse_store": true,
+    "reuse_context_cache": true,
+    "force_reindex": false,
+    "auto_fetch_missing_report": true,
+    "resume_partial_store": true,
+    "resume_batch_size": 64,
+    "use_zero_cost_prefix": true,
+    "allow_retrieval_fallback": false,
+    "selective_v2_short_text_threshold": 700,
+    "selective_v2_short_table_threshold": 1600,
+    "selective_v2_sections": [
+      "사업개요",
+      "매출 및 수주상황",
+      "연구개발",
+      "이사의 경영진단 및 분석의견",
+      "배당에 관한 사항",
+      "연결재무제표 주석",
+      "재무제표 주석",
+      "타법인출자 현황"
+    ],
+    "pricing": {
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
+    },
+    "mlflow_experiment_name": "dart_rag_curated_policy_driven_runtime_gate"
+  },
+  "candidate_ids": [
+    "structural_selective_v2_prefix_2500_320"
+  ],
+  "screening": {
+    "baseline_experiment_id": "structural_selective_v2_prefix_2500_320",
+    "parallel_experiments": 1,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 0,
+    "always_include_full_eval_ids": [
+      "structural_selective_v2_prefix_2500_320"
+    ]
+  },
+  "full_evaluation": {
+    "enabled": true,
+    "eval_mode": "question_ids",
+    "question_ids": [
+      "NAV_T2_006",
+      "HYU_T2_010",
+      "HYU_T3_072",
+      "LGE_T1_051",
+      "SAM_T2_078"
+    ],
+    "eval_limit": 0
+  },
+  "company_runs": [
+    {
+      "id": "naver_2023_policy_driven_runtime_gate",
+      "defaults": {
+        "report_path": "data/reports/NAVER/2023_사업보고서_20240318000844.html",
+        "metadata": {
+          "company": "NAVER",
+          "stock_code": "035420",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240318000844"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "hyundai_2023_policy_driven_runtime_gate",
+      "defaults": {
+        "report_path": "data/reports/현대자동차/2023_사업보고서_20240313001451.html",
+        "metadata": {
+          "company": "현대자동차",
+          "stock_code": "005380",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240313001451"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "lge_2023_policy_driven_runtime_gate",
+      "defaults": {
+        "report_path": "data/reports/LG에너지솔루션/2023_사업보고서_20240314001110.html",
+        "metadata": {
+          "company": "LG에너지솔루션",
+          "stock_code": "373220",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240314001110"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "samsung_2023_policy_driven_runtime_gate",
+      "defaults": {
+        "report_path": "data/reports/삼성전자/2023_사업보고서_20240312000736.html",
+        "metadata": {
+          "company": "삼성전자",
+          "stock_code": "005930",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240312000736"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json",
+        "smoke_queries": [
+          {
+            "query": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+            "category": "numeric_fact",
+            "expected_company": "삼성전자",
+            "expected_year": 2023
+          }
+        ]
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "id": "structural_selective_v2_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "structural_selective_v2",
+      "use_zero_cost_prefix": true
+    }
+  ]
+}

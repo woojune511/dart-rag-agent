@@ -441,6 +441,9 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
         self.assertEqual(plan["status"], "heuristic_fallback")
+        self.assertIn("planner_no_metric_keys", plan["planner_notes"])
+        self.assertIn("planner_fallback:heuristic_numeric_task", plan["planner_notes"])
+        self.assertTrue(any(str(note).startswith("planner_ontology_matches:") for note in plan["planner_notes"]))
         self.assertEqual(len(plan["tasks"]), 1)
         task = plan["tasks"][0]
         self.assertEqual(task["metric_family"], "generic_numeric")
