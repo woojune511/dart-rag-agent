@@ -26,6 +26,8 @@
 | scorecard 결과 위치 | 이 문서의 `Retrospective Results` |
 | 오래된 실험 로그 위치 | [../history/experiment_history.md](../history/experiment_history.md) |
 
+Runtime default와 trace 계약은 [../architecture/agent_runtime_contract.md](../architecture/agent_runtime_contract.md)를 따른다. Benchmark profile은 이 계약을 검증하거나 비교하기 위한 입력이지, runtime branch를 추가하기 위한 답안지가 아니다.
+
 ## 목적
 
 이 프로젝트의 benchmark는 단순히 “점수가 높다”를 보는 용도가 아니다. 현재 목표는 아래 세 가지를 동시에 만족하는 것이다.

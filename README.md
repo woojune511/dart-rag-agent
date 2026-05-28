@@ -9,6 +9,12 @@ DART 전자공시 문서를 테스트베드로 삼아, **금융 문서용 multi-
 - **memory / cache / state update**는 어떤 계층으로 나눠야 하는가
 - retrieval, calculation, critique를 어떻게 분리해야 **설명 가능성**과 **정확성**을 함께 가져갈 수 있는가
 
+## Agent 운영 원칙
+
+자동화 에이전트가 이 저장소에서 코드를 수정하거나 실험을 돌릴 때는 [AGENTS.md](AGENTS.md)를 먼저 따른다. 특히 benchmark-specific patch 금지, evidence-first, focused verification 우선, 실험 산출물과 소스 변경 분리를 기본 규칙으로 둔다.
+
+구현 단위의 runtime 계약은 [docs/architecture/agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md)에 둔다. canonical ingest, retrieval trace, task ledger/artifact store, parser/retrieval/numeric 경계는 이 문서를 기준으로 판단한다.
+
 ## 포트폴리오 관점에서 먼저 볼 문서
 
 취업용 포트폴리오나 발표 자료를 준비하려면 아래 세 문서부터 보는 게 맞습니다.

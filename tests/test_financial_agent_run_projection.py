@@ -34,6 +34,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "citations": ["[1]"],
             "seed_retrieved_docs": [],
             "retrieved_docs": [],
+            "retrieval_debug_trace": {"selected_count": 1},
             "evidence_items": [],
             "selected_claim_ids": [],
             "draft_points": [],
@@ -88,6 +89,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             result["resolved_calculation_trace"]["calculation_operands"],
             [{"label": "fresh", "value": "123"}],
         )
+        self.assertEqual(result["retrieval_debug_trace"], {"selected_count": 1})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)

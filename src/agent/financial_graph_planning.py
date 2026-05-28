@@ -23,6 +23,12 @@ from src.agent.financial_graph_models import (
     validate_answer_slots_payload,
 )
 from src.config import get_financial_ontology
+from src.config.retrieval_policy import (
+    NARRATIVE_BASE_RETRIEVAL_SUFFIXES,
+    active_narrative_policies,
+    narrative_policy_preferred_sections,
+    narrative_policy_query_suffixes,
+)
 from src.routing import default_format_preference
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
@@ -103,33 +109,13 @@ def _build_hybrid_narrative_subtask(
 ) -> Dict[str, Any]:
     consolidation_scope = _desired_consolidation_scope(query, report_scope)
     period_focus = _infer_period_focus(query, "unknown")
-    retrieval_queries = [
-        _normalise_spaces(query),
-        _normalise_spaces(f"{query} 원인 배경 영향 설명"),
-        _normalise_spaces(f"{query} 경영진단 사업의 내용"),
-    ]
-    normalized_query = _normalise_spaces(query)
-    if "인수" in query or "영향" in query:
-        retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입 효과 성장 기여"))
-        retrieval_queries.append(_normalise_spaces(f"{query} 연결 편입효과 영업수익 증가"))
-    if "포시마크" in query or "Poshmark" in query:
-        retrieval_queries.append(_normalise_spaces(f"{query} Poshmark 연결 편입효과 영업수익 증가"))
-    if any(token in normalized_query for token in ("배당", "주주환원", "정규배당", "잉여현금흐름", "환원 정책")):
-        retrieval_queries.append(_normalise_spaces(f"{query} 배당에 관한 사항 주주환원 정책"))
-        retrieval_queries.append(_normalise_spaces(f"{query} 잉여현금흐름 정규배당 추가 환원"))
-        retrieval_queries.append(_normalise_spaces(f"{query} 유동성 및 자금조달 배당금 지급"))
-    preferred_sections = [
-        "IV. 이사의 경영진단 및 분석의견",
-        "II. 사업의 내용",
-        "사업의 개요",
-        "나. 영업실적",
-    ]
-    if any(token in normalized_query for token in ("배당", "주주환원", "정규배당", "잉여현금흐름", "환원 정책")):
-        preferred_sections = [
-            "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
-            "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
-            *preferred_sections,
-        ]
+    active_policies = active_narrative_policies(query)
+    retrieval_queries = [_normalise_spaces(query)]
+    retrieval_queries.extend(
+        _normalise_spaces(f"{query} {suffix}")
+        for suffix in (*NARRATIVE_BASE_RETRIEVAL_SUFFIXES, *narrative_policy_query_suffixes(active_policies))
+    )
+    preferred_sections = narrative_policy_preferred_sections(active_policies)
     return {
         "task_id": next_task_id,
         "metric_family": "narrative_summary",

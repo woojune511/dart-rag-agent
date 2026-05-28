@@ -25,6 +25,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from agent.financial_graph import DEFAULT_CONTEXT_BATCH_SIZE, DEFAULT_CONTEXT_MAX_WORKERS, FinancialAgent
 from agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
+from config.runtime_contract import CANONICAL_INGEST_MODE
 from ingestion.dart_fetcher import DARTFetcher, ReportMetadata
 from ops.evaluator import (
     EvalExample,
@@ -869,6 +870,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "citations": result.citations,
                 "retrieved_metadata": result.retrieved_metadata,
                 "retrieved_previews": result.retrieved_previews,
+                "retrieval_debug_trace": getattr(result, "retrieval_debug_trace", {}) or {},
                 "runtime_evidence": result.runtime_evidence,
                 "selected_claim_ids": result.selected_claim_ids,
                 "draft_points": result.draft_points,
@@ -893,12 +895,14 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
         started_at = time.perf_counter()
         error = None
         retrieved_docs = []
+        retrieval_debug_trace = {}
         citations = []
         answer = ""
         query_type = "unknown"
         try:
             result = agent.run(query)
             retrieved_docs = result.get("retrieved_docs", [])
+            retrieval_debug_trace = result.get("retrieval_debug_trace", {}) or {}
             citations = result.get("citations", [])
             answer = result.get("answer", "") or ""
             query_type = result.get("query_type")
@@ -931,6 +935,7 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
                 "resolved_calculation_trace": resolved_trace,
                 "retrieved_metadata": _extract_retrieved_metadata(retrieved_docs),
                 "retrieved_previews": _extract_retrieved_previews(retrieved_docs),
+                "retrieval_debug_trace": retrieval_debug_trace,
                 "error": error,
             }
         )
@@ -964,6 +969,7 @@ def _run_screening_eval(
         answer = ""
         query_type = "unknown"
         retrieved_docs: List[Any] = []
+        retrieval_debug_trace: Dict[str, Any] = {}
         citations: List[str] = []
         try:
             result = agent.run(
@@ -973,6 +979,7 @@ def _run_screening_eval(
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
             retrieved_docs = result.get("retrieved_docs", [])
+            retrieval_debug_trace = result.get("retrieval_debug_trace", {}) or {}
             citations = result.get("citations", [])
         except Exception as exc:
             error = str(exc)
@@ -1011,6 +1018,7 @@ def _run_screening_eval(
                 "retrieved_count": len(retrieved_docs),
                 "retrieved_metadata": retrieved_metadata,
                 "retrieved_previews": _extract_retrieved_previews(retrieved_docs),
+                "retrieval_debug_trace": retrieval_debug_trace,
                 "top_retrieved": _summarise_metadata_rows(retrieved_metadata),
                 "failure_flags": failure_flags,
                 "query_type": query_type,
@@ -3104,7 +3112,7 @@ def _run_ingest(
     *,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
-    ingest_mode = str(config.get("ingest_mode", "contextual_all"))
+    ingest_mode = str(config.get("ingest_mode", CANONICAL_INGEST_MODE))
     max_workers = int(config.get("max_workers", DEFAULT_CONTEXT_MAX_WORKERS))
     batch_size = int(config.get("batch_size", DEFAULT_CONTEXT_BATCH_SIZE))
     resume_partial_store = bool(config.get("resume_partial_store", True))

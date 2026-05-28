@@ -23,6 +23,7 @@ from src.agent.financial_graph_contextual import (
     FinancialAgentContextualMixin,
 )
 from src.agent.financial_graph_models import FinancialAgentState
+from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 from src.routing import QueryRouter
 
 load_dotenv()
@@ -44,47 +45,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
     3. input/output normalization for external callers
     """
 
-    _SECTION_BIAS_BY_QUERY_TYPE = {
-        "numeric_fact": (
-            ("손익계산서", 0.08),
-            ("매출 및 수주상황", 0.08),
-            ("요약재무정보", 0.06),
-            ("연결재무제표", 0.06),
-        ),
-        "comparison": (
-            ("매출 및 수주상황", 0.10),
-            ("연구개발 활동", 0.10),
-            ("연구개발", 0.08),
-            ("손익계산서", 0.08),
-            ("요약재무정보", 0.10),
-            ("연결재무제표", 0.06),
-        ),
-        "business_overview": (
-            ("II. 사업의 내용 > 1. 사업의 개요", 0.14),
-            ("II. 사업의 내용 > 2. 주요 제품 및 서비스", 0.10),
-            ("IV. 이사의 경영진단 및 분석의견", 0.10),
-            ("경영진단", 0.08),
-            ("사업의 개요", 0.06),
-        ),
-        "risk": (
-            ("IV. 이사의 경영진단 및 분석의견", 0.18),
-            ("경영진단", 0.12),
-            ("위험관리 및 파생거래", 0.18),
-            ("리스크", 0.10),
-        ),
-        "risk_analysis": (
-            ("IV. 이사의 경영진단 및 분석의견", 0.18),
-            ("경영진단", 0.12),
-            ("위험관리 및 파생거래", 0.18),
-            ("리스크", 0.10),
-        ),
-        "trend": (
-            ("손익계산서", 0.12),
-            ("요약재무정보", 0.12),
-            ("연결재무제표", 0.08),
-            ("재무제표", 0.06),
-        ),
-    }
+    _SECTION_BIAS_BY_QUERY_TYPE = SECTION_BIAS_BY_QUERY_TYPE
 
     def __init__(self, vector_store_manager, k: int = 8, graph_expansion_config: Optional[Dict[str, Any]] = None):
         self.vsm = vector_store_manager
@@ -244,6 +205,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "section_filter": None,
             "seed_retrieved_docs": [],
             "retrieved_docs": [],
+            "retrieval_debug_trace": {},
             "evidence_bullets": [],
             "evidence_items": [],
             "evidence_status": "missing",
@@ -316,6 +278,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "citations": final["citations"],
             "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
             "retrieved_docs": final["retrieved_docs"],
+            "retrieval_debug_trace": final.get("retrieval_debug_trace", {}),
             "evidence_items": final.get("evidence_items", []),
             "selected_claim_ids": final.get("selected_claim_ids", []),
             "draft_points": final.get("draft_points", []),

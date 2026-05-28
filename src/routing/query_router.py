@@ -9,6 +9,12 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 
+from src.config.retrieval_policy import (
+    ROUTING_CALC_GUARDRAIL_ENABLED,
+    ROUTING_CALC_GUARDRAIL_KEYWORDS,
+    ROUTING_CALC_GUARDRAIL_OPERATION_TERMS,
+)
+
 from .types import FormatPreference, QueryIntent, QueryRouteResult, QueryRoutingDecision
 
 
@@ -114,6 +120,17 @@ class QueryRouter:
         logger.info("[routing] semantic router loaded %s canonical queries", len(enriched))
         return {"enabled": True, "examples": enriched}
 
+    def _blocks_numeric_fast_path(self, query: str, semantic_result: Dict[str, Any]) -> bool:
+        if not (
+            ROUTING_CALC_GUARDRAIL_ENABLED
+            and semantic_result.get("fast_path")
+            and semantic_result.get("intent") == "numeric_fact"
+        ):
+            return False
+        if not any(keyword in query for keyword in ROUTING_CALC_GUARDRAIL_KEYWORDS):
+            return False
+        return any(term in query for term in ROUTING_CALC_GUARDRAIL_OPERATION_TERMS)
+
     def semantic_route(self, query: str) -> Dict[str, Any]:
         router = self._semantic_router or {}
         examples = router.get("examples") or []
@@ -201,14 +218,7 @@ class QueryRouter:
             semantic_result.get("scores", {}),
         )
 
-        # 계산이 필요한 질문은 numeric_fact fast-path를 차단해 LLM slow-path에서 comparison으로 분류
-        # 임베딩 공간 분리가 메인 방어선이나, margin이 threshold를 넘는 경우의 최후 안전장치
-        _CALC_GUARDRAIL_KEYWORDS = frozenset({"이익률", "비중", "합계", "합산", "비율"})
-        _numeric_fast_path_blocked = (
-            semantic_result.get("fast_path")
-            and semantic_result.get("intent") == "numeric_fact"
-            and any(kw in query for kw in _CALC_GUARDRAIL_KEYWORDS)
-        )
+        _numeric_fast_path_blocked = self._blocks_numeric_fast_path(query, semantic_result)
         if _numeric_fast_path_blocked:
             logger.info("[routing] fast-path blocked by calc guardrail; forcing slow-path LLM")
 

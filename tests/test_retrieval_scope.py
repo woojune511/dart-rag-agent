@@ -219,6 +219,17 @@ class RetrievalScopeTests(unittest.TestCase):
         retrieved_years = {int(doc.metadata.get("year", 0)) for doc, _ in result["retrieved_docs"]}
 
         self.assertEqual(retrieved_years, {2022, 2023})
+        trace = result["retrieval_debug_trace"]
+        self.assertEqual(trace["selected_count"], 2)
+        self.assertEqual(trace["candidate_count"], 2)
+        self.assertEqual(
+            trace["executed_queries"][0]["where_filter"],
+            {"rcept_no": {"$in": ["20240312000736", "20230307000542"]}},
+        )
+        self.assertEqual(
+            [chunk["year"] for chunk in trace["selected_chunks"]],
+            [2023, 2022],
+        )
 
 if __name__ == "__main__":
     unittest.main()

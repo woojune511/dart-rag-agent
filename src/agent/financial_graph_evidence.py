@@ -28,69 +28,41 @@ from src.agent.financial_graph_models import (
     validate_answer_slots_payload,
 )
 from src.config import get_financial_ontology
+from src.config.retrieval_policy import (
+    DIVIDEND_LIQUIDITY_CONTEXT_TERMS,
+    DIVIDEND_OUTFLOW_TERMS,
+    DIVIDEND_ADDITIONAL_RETURN_TERMS,
+    DIVIDEND_PAYOUT_DEEMPHASIS_TERMS,
+    DIVIDEND_PAYOUT_TERMS,
+    DIVIDEND_POLICY_PREFERRED_TERMS,
+    DIVIDEND_POLICY_QUERY_TERMS,
+    DIVIDEND_POLICY_SECTION_TERMS,
+    DIVIDEND_POLICY_TERMS,
+    DIVIDEND_REGULAR_TERMS,
+    DIVIDEND_TABLE_POLICY_TERMS,
+    POLICY_CONTEXT_QUERY_TERMS,
+    POLICY_CONTEXT_PRIMARY_TERMS,
+    POLICY_CONTEXT_RESPONSE_TERMS,
+    POLICY_CONTEXT_ROLE_TERMS,
+    POLICY_CONTEXT_SENTENCE_TERMS,
+    QUERY_FOCUS_STOPWORDS,
+    TECHNOLOGY_CAR_AUDIO_TERMS,
+    TECHNOLOGY_CONNECTED_SOLUTION_TERMS,
+    TECHNOLOGY_DIGITAL_COCKPIT_TERMS,
+    TECHNOLOGY_IT_COMPONENT_TERMS,
+    TECHNOLOGY_IT_LABEL_TERMS,
+    TECHNOLOGY_SDV_TERMS,
+    active_narrative_policies,
+    narrative_policy_active,
+    narrative_policy_driver_groups,
+    narrative_policy_preferred_sections,
+    narrative_policy_terms,
+)
 
 logger = logging.getLogger(__name__)
 
 class FinancialAgentEvidenceMixin:
-    _QUERY_FOCUS_STOPWORDS = frozenset(
-        {
-            "2021년",
-            "2022년",
-            "2023년",
-            "2024년",
-            "2025년",
-            "2026년",
-            "사업보고서",
-            "재무제표",
-            "연결",
-            "별도",
-            "바탕",
-            "기준",
-            "또는",
-            "등",
-            "주석",
-            "현황",
-            "상세",
-            "부문",
-            "사업",
-            "기술",
-            "관련",
-            "질문",
-            "배경",
-            "영향",
-            "원인",
-            "요약",
-            "요약해",
-            "요약해줘",
-            "정리",
-            "정리해",
-            "정리해줘",
-            "추출",
-            "추출하고",
-            "찾고",
-            "계산",
-            "계산하고",
-            "분석",
-            "분석해",
-            "총액",
-            "규모",
-            "전년",
-            "대비",
-            "성장률",
-            "판매대수",
-            "시장",
-            "필요성",
-            "대한",
-            "정책",
-            "정책에",
-            "주요",
-            "초점",
-            "방향",
-            "비용",
-            "수치",
-            "정보",
-        }
-    )
+    _QUERY_FOCUS_STOPWORDS = QUERY_FOCUS_STOPWORDS
 
     def _query_focus_marker_groups(self, query: str, *, limit: int = 8) -> List[Dict[str, Any]]:
         """Extract query-specific entity/policy/concept markers without case IDs."""
@@ -346,38 +318,19 @@ class FinancialAgentEvidenceMixin:
 
     def _select_narrative_summary_docs(self, reranked, state: FinancialAgentState, effective_k: int):
         query = str(state.get("query") or "")
-        query_lower = query.lower()
-        impact_query = any(marker in query for marker in ("영향", "기여", "원인", "요약"))
-        dividend_policy_query = any(
-            marker in query
-            for marker in ("배당", "주주환원", "정규배당", "잉여현금흐름", "추가 환원")
-        )
-        preferred_section_markers = [
-            "iv. 이사의 경영진단 및 분석의견",
-            "재무상태 및 영업실적",
-            "나. 영업실적",
-        ]
-        if dividend_policy_query:
-            preferred_section_markers.extend(
-                [
-                    "iii. 재무에 관한 사항 > 6. 배당에 관한 사항",
-                    "배당에 관한 사항",
-                    "유동성 및 자금조달",
-                ]
-            )
-        causal_markers = [
-            "영향",
-            "기여",
-            "편입효과",
-            "체질 개선",
-            "성장",
-            "인수",
-            "브랜드스토어",
-            "스마트스토어",
-            "연결 편입",
-        ]
-        if dividend_policy_query:
-            causal_markers.extend(["주주환원", "정규배당", "잉여현금흐름", "추가 환원", "배당금 지급"])
+        active_policies = active_narrative_policies(query)
+        impact_query = narrative_policy_active(active_policies, "impact_context")
+        dividend_policy_query = narrative_policy_active(active_policies, "dividend_policy")
+        technology_focus_query = narrative_policy_active(active_policies, "technology_focus")
+        policy_context_query = narrative_policy_active(active_policies, "policy_context")
+        preferred_section_markers = [item.lower() for item in narrative_policy_preferred_sections(active_policies)]
+        causal_markers = narrative_policy_terms(active_policies, "causal_terms")
+        realized_markers = narrative_policy_terms(active_policies, "realized_terms")
+        penalty_terms = narrative_policy_terms(active_policies, "penalty_terms")
+        focus_policy_terms = narrative_policy_terms(active_policies, "focus_terms")
+        technology_terms = narrative_policy_terms(active_policies, "technology_terms")
+        dividend_payout_terms = narrative_policy_terms(active_policies, "payout_terms")
+        dividend_policy_terms = narrative_policy_terms(active_policies, "policy_terms")
         driver_groups = self._narrative_driver_groups(query)
         query_focus_markers = self._query_focus_markers(query)
 
@@ -403,13 +356,7 @@ class FinancialAgentEvidenceMixin:
             block_type = str(metadata.get("block_type") or "").strip().lower()
             section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
             text = _doc_surface(doc).lower()
-            focus_markers = list(query_focus_markers)
-            if "커머스" in query:
-                focus_markers.extend(["커머스", "쇼핑", "스마트스토어", "브랜드스토어"])
-            if "포시마크" in query or "poshmark" in query_lower:
-                focus_markers.extend(["poshmark", "체질 개선", "연결 편입", "편입효과"])
-            if dividend_policy_query:
-                focus_markers.extend(["배당금 지급", "주주환원", "정규배당", "잉여현금흐름", "추가 환원"])
+            focus_markers = list(dict.fromkeys([*query_focus_markers, *focus_policy_terms]))
             priority = 0
             if block_type == "paragraph":
                 priority += 3
@@ -417,48 +364,27 @@ class FinancialAgentEvidenceMixin:
                 priority += 2
             if "나. 영업실적".lower() in section_path or "기타 참고사항".lower() in section_path:
                 priority += 1
-            technology_focus_query = any(marker in query for marker in ("사업 방향", "기술 초점", "전장", "SDV"))
             if technology_focus_query:
                 if "기타 참고사항".lower() in section_path or "사업부문별 현황".lower() in section_path:
                     priority += 3
-                if any(
-                    marker in text
-                    for marker in ("sdv", "software defined vehicle", "전장사업", "무선통신", "it 기술", "차별화된 기술")
-                ):
+                if any(marker.lower() in text for marker in technology_terms):
                     priority += 4
                 if "iv. 이사의 경영진단 및 분석의견" in section_path and "sdv" not in text:
                     priority -= 1
             if any(marker.lower() in text for marker in causal_markers):
                 priority += 2
             if impact_query:
-                realised_markers = (
-                    "전년 대비",
-                    "스마트스토어",
-                    "브랜드스토어",
-                    "연결 편입",
-                    "편입효과",
-                    "체질 개선",
-                )
-                if any(marker.lower() in text for marker in realised_markers):
+                if any(marker.lower() in text for marker in realized_markers):
                     priority += 3
-                if (
-                    "주요계약 및 연구개발활동".lower() in section_path
-                    or "경영상의 주요 계약".lower() in text
-                    or "계약의 목적 및 내용".lower() in text
-                    or "예상효과".lower() in text
-                ):
+                if any(marker.lower() in section_path or marker.lower() in text for marker in penalty_terms):
                     priority -= 2
             if dividend_policy_query:
-                if "배당에 관한 사항".lower() in section_path:
+                if any(term.lower() in section_path for term in DIVIDEND_POLICY_SECTION_TERMS):
                     priority += 3
                 if "유동성 및 자금조달".lower() in section_path:
                     priority += 2
-                if any(marker.lower() in text for marker in ("주주환원", "정규배당", "잉여현금흐름", "추가 환원", "배당금 지급")):
+                if any(marker.lower() in text for marker in (*dividend_payout_terms, *dividend_policy_terms)):
                     priority += 3
-            if "poshmark" in query_lower and "poshmark" in text:
-                priority += 2
-            if "커머스" in query and "커머스" in text:
-                priority += 1
             if focus_markers:
                 focus_hits = sum(1 for marker in focus_markers if marker.lower() in text)
                 if focus_hits:
@@ -506,15 +432,9 @@ class FinancialAgentEvidenceMixin:
                 priority += 3
                 if "계속영업" in surface and "총포괄손익" in surface:
                     priority += 5
-            if any(marker in query for marker in ("사업 방향", "기술 초점", "전장", "SDV")) and any(
-                marker.lower() in surface_lower
-                for marker in ("전장", "sdv", "software defined vehicle", "커넥티드카", "connected car")
-            ):
+            if technology_focus_query and any(marker.lower() in surface_lower for marker in focus_policy_terms):
                 priority += 3
-            if any(marker in query for marker in ("보호무역주의", "대응", "IRA", "인플레이션 감축법")) and any(
-                marker.lower() in surface_lower
-                for marker in ("보호무역주의", "대응", "ira", "인플레이션 감축법", "핵심원자재법")
-            ):
+            if policy_context_query and any(marker.lower() in surface_lower for marker in focus_policy_terms):
                 priority += 3
             for variant in variants:
                 variant_lower = variant.lower()
@@ -632,13 +552,11 @@ class FinancialAgentEvidenceMixin:
                 section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or "")).lower()
                 local_heading = _normalise_spaces(str(metadata.get("local_heading") or "")).lower()
                 return (
-                    "배당금 지급" in text
+                    any(term in text for term in dividend_payout_terms)
                     and bool(self._extract_dividend_amount_surface(text))
                     and (
-                        "유동성" in section_path
-                        or "유동성" in local_heading
-                        or "현금흐름" in section_path
-                        or "유출" in text
+                        any(term in section_path or term in local_heading for term in DIVIDEND_LIQUIDITY_CONTEXT_TERMS)
+                        or any(term in text for term in DIVIDEND_OUTFLOW_TERMS)
                     )
                 )
 
@@ -647,9 +565,9 @@ class FinancialAgentEvidenceMixin:
                 text = _doc_surface(doc)
                 section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or "")).lower()
                 return (
-                    any(marker in text for marker in ("정규배당", "추가 환원", "잉여현금흐름"))
+                    any(marker in text for marker in dividend_policy_terms)
                     and (
-                        "배당에 관한 사항" in section_path
+                        any(term in section_path for term in DIVIDEND_POLICY_SECTION_TERMS)
                         or ("2024" in text and "2026" in text)
                     )
                 )
@@ -785,6 +703,7 @@ class FinancialAgentEvidenceMixin:
                     if investment_focus_query not in query_bundle:
                         query_bundle = list(query_bundle)
                         query_bundle.append(investment_focus_query)
+        executed_queries: List[Dict[str, Any]] = []
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
             enriched_query = f"{' '.join(companies)} {base_query}" if companies else base_query
@@ -796,12 +715,32 @@ class FinancialAgentEvidenceMixin:
                 enriched_query = f"{enriched_query} {retrieval_hint}".strip()
             if preferred_sections:
                 enriched_query = f"{enriched_query} {' '.join(preferred_sections)}".strip()
-            batch_docs = self.vsm.search(enriched_query, k=effective_k * 4, where_filter=where_filter)
+            search_k = effective_k * 4
+            executed_queries.append(
+                {
+                    "source": "primary",
+                    "base_query": base_query,
+                    "executed_query": enriched_query,
+                    "k": search_k,
+                    "where_filter": where_filter,
+                }
+            )
+            batch_docs = self.vsm.search(enriched_query, k=search_k, where_filter=where_filter)
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries[:3]:
-                retry_docs.extend(self.vsm.search(retry_query, k=max(effective_k * 2, 8), where_filter=where_filter))
+                search_k = max(effective_k * 2, 8)
+                executed_queries.append(
+                    {
+                        "source": "retry",
+                        "base_query": retry_query,
+                        "executed_query": retry_query,
+                        "k": search_k,
+                        "where_filter": where_filter,
+                    }
+                )
+                retry_docs.extend(self.vsm.search(retry_query, k=search_k, where_filter=where_filter))
             if retry_docs:
                 docs = self._merge_retry_candidates(docs, retry_docs)
         supplemental_docs = self._supplement_section_seed_docs(state)
@@ -879,13 +818,60 @@ class FinancialAgentEvidenceMixin:
 
         seed_docs = reranked[: min(len(reranked), effective_k * 4)]
         docs = docs[: effective_k]
+        selected_chunks: List[Dict[str, Any]] = []
+        for rank, item in enumerate(docs, start=1):
+            doc, score = item
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            try:
+                serialised_score: Optional[float] = float(score)
+            except (TypeError, ValueError):
+                serialised_score = None
+            selected_chunks.append(
+                {
+                    "rank": rank,
+                    "score": serialised_score,
+                    "chunk_uid": metadata.get("chunk_uid") or metadata.get("chunk_id") or metadata.get("id"),
+                    "section_path": metadata.get("section_path"),
+                    "block_type": metadata.get("block_type"),
+                    "company": metadata.get("company"),
+                    "year": metadata.get("year"),
+                    "rcept_no": metadata.get("rcept_no"),
+                }
+            )
+        retrieval_debug_trace = {
+            "query_bundle": list(query_bundle),
+            "executed_queries": executed_queries,
+            "where_filter": where_filter,
+            "effective_k": effective_k,
+            "reflection_count": reflection_count,
+            "retry_queries": retry_queries[:3],
+            "candidate_count": len(reranked),
+            "seed_count": len(seed_docs),
+            "selected_count": len(docs),
+            "selected_chunks": selected_chunks,
+            "policy_trace": {
+                "intent": intent,
+                "operation_family": operation_family,
+                "format_preference": format_preference,
+                "retrieval_hint": retrieval_hint,
+                "preferred_sections": list(preferred_sections or []),
+                "strict_company_scope": strict_company_scope,
+                "multi_source_scope": has_multi_source_scope,
+                "scope_report_type": scope_report_type,
+                "scope_consolidation": scope_consolidation,
+            },
+        }
         logger.info(
             "[retrieve] intent=%s format=%s final %s chunks returned",
             intent,
             format_preference,
             len(docs),
         )
-        return {"seed_retrieved_docs": seed_docs, "retrieved_docs": docs}
+        return {
+            "seed_retrieved_docs": seed_docs,
+            "retrieved_docs": docs,
+            "retrieval_debug_trace": retrieval_debug_trace,
+        }
 
     def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Attach nearby structural context to seed retrieval hits.
@@ -1895,42 +1881,8 @@ class FinancialAgentEvidenceMixin:
         return selected[:limit]
 
     def _narrative_driver_groups(self, query: str) -> List[Dict[str, Any]]:
-        text = _normalise_spaces(str(query or "")).lower()
-        groups: List[Dict[str, Any]] = []
+        groups: List[Dict[str, Any]] = narrative_policy_driver_groups(active_narrative_policies(query))
 
-        def _append_group(label: str, variants: List[str], phrase: str) -> None:
-            groups.append(
-                {
-                    "label": label,
-                    "variants": [variant for variant in variants if variant],
-                    "phrase": phrase,
-                }
-            )
-
-        if "포시마크" in text or "poshmark" in text:
-            _append_group("poshmark_turnaround", ["체질 개선"], "체질 개선")
-            _append_group(
-                "consolidation_effect",
-                ["연결 편입효과", "연결 편입 효과", "연결 편입", "편입효과"],
-                "연결 편입 효과",
-            )
-        if "커머스" in text or "쇼핑" in text:
-            _append_group(
-                "store_growth",
-                ["스마트스토어", "브랜드스토어"],
-                "스마트스토어와 브랜드스토어의 성장",
-            )
-        if ("harman" in text or "전장" in text) and any(marker in text for marker in ("기술", "초점", "방향", "전장")):
-            _append_group(
-                "automotive_sdv_focus",
-                ["SDV", "Software Defined Vehicle"],
-                "",
-            )
-            _append_group(
-                "automotive_it_technology",
-                ["무선통신", "디스플레이", "IT 기술", "차별화된 기술"],
-                "",
-            )
         seen_variants = {
             str(variant).lower()
             for group in groups
@@ -2120,17 +2072,17 @@ class FinancialAgentEvidenceMixin:
             local_heading = _normalise_spaces(str(metadata.get("local_heading") or ""))
             anchor = self._build_source_anchor(metadata)
 
-            if "배당금 지급" in text:
-                snippet = self._extract_driver_snippet(text, ["배당금 지급"])
+            if any(marker in text for marker in DIVIDEND_PAYOUT_TERMS):
+                snippet = self._extract_driver_snippet(text, list(DIVIDEND_PAYOUT_TERMS))
                 amount_surface = self._extract_dividend_payout_amount_surface(snippet or text) or self._extract_dividend_amount_surface(snippet or text)
                 if amount_surface:
                     score = 0.0
                     lowered_context = f"{section_path} {local_heading} {text}".lower()
-                    if "유동성" in lowered_context or "현금흐름" in lowered_context:
+                    if any(term in lowered_context for term in DIVIDEND_LIQUIDITY_CONTEXT_TERMS):
                         score += 4.0
-                    if "유출" in text:
+                    if any(term in text for term in DIVIDEND_OUTFLOW_TERMS):
                         score += 2.0
-                    if "배당금의 지급" in text:
+                    if any(term in text for term in DIVIDEND_PAYOUT_DEEMPHASIS_TERMS):
                         score -= 1.5
                     if score > payout_score:
                         payout_score = score
@@ -2150,16 +2102,16 @@ class FinancialAgentEvidenceMixin:
                             ),
                         }
 
-            if any(marker in text for marker in ("주주환원", "정규배당", "추가 환원", "잉여현금흐름")):
+            if any(marker in text for marker in DIVIDEND_POLICY_TERMS):
                 snippet = self._extract_dividend_policy_clause(text)
                 if snippet:
                     score = 0.0
                     lowered_context = f"{section_path} {local_heading}".lower()
-                    if "배당에 관한 사항" in lowered_context:
+                    if any(term in lowered_context for term in DIVIDEND_POLICY_SECTION_TERMS):
                         score += 4.0
-                    if "정규배당" in snippet:
+                    if any(marker in snippet for marker in DIVIDEND_REGULAR_TERMS):
                         score += 2.0
-                    if "추가 환원" in snippet or "추가로 환원" in snippet:
+                    if any(marker in snippet for marker in DIVIDEND_ADDITIONAL_RETURN_TERMS):
                         score += 2.0
                     if score > policy_score:
                         policy_score = score
@@ -2577,14 +2529,13 @@ class FinancialAgentEvidenceMixin:
         if rnd_candidates:
             rnd_amount = max(rnd_candidates, key=lambda item: item[0])[1]
 
-        has_connected_solution = any(
-            marker in haystack
-            for marker in ("커넥티드카 제품 및 솔루션", "커넥티드카", "connected car", "Connected Car")
+        has_connected_solution = any(marker in haystack for marker in TECHNOLOGY_CONNECTED_SOLUTION_TERMS)
+        has_digital_cockpit = any(marker in haystack for marker in TECHNOLOGY_DIGITAL_COCKPIT_TERMS)
+        has_car_audio = any(marker in haystack for marker in TECHNOLOGY_CAR_AUDIO_TERMS)
+        has_it_tech = all(marker in haystack for marker in TECHNOLOGY_IT_COMPONENT_TERMS) and any(
+            marker in haystack for marker in TECHNOLOGY_IT_LABEL_TERMS
         )
-        has_digital_cockpit = "디지털 콕핏" in haystack or "Digital Cockpit" in haystack
-        has_car_audio = "카 오디오" in haystack or "카오디오" in haystack
-        has_it_tech = all(marker in haystack for marker in ("무선통신", "디스플레이")) and "IT 기술" in haystack
-        has_sdv = "SDV" in haystack or "Software Defined Vehicle" in haystack
+        has_sdv = any(marker in haystack for marker in TECHNOLOGY_SDV_TERMS)
         if not (has_connected_solution or has_digital_cockpit or has_it_tech or has_sdv):
             return None
 
@@ -2645,7 +2596,7 @@ class FinancialAgentEvidenceMixin:
             return None
         if not all(marker in query_text for marker in ("판매대수", "전년 대비")):
             return None
-        if not any(marker in query_text for marker in ("정책", "IRA", "인플레이션 감축법", "보호무역")):
+        if not any(marker in query_text for marker in POLICY_CONTEXT_QUERY_TERMS):
             return None
 
         text_parts: List[str] = [str(existing_answer or "")]
@@ -2693,15 +2644,15 @@ class FinancialAgentEvidenceMixin:
             sentence_text = _normalise_spaces(sentence)
             if not sentence_text:
                 continue
-            if any(marker in sentence_text for marker in ("인플레이션 감축법", "IRA", "핵심원자재법", "보호무역주의")):
+            if any(marker in sentence_text for marker in POLICY_CONTEXT_SENTENCE_TERMS):
                 score = 0
-                if "인플레이션 감축법" in sentence_text or "IRA" in sentence_text:
+                if any(term in sentence_text for term in POLICY_CONTEXT_PRIMARY_TERMS):
                     score += 2
                 if "핵심원자재법" in sentence_text:
                     score += 2
                 if "보호무역주의" in sentence_text:
                     score += 2
-                if "적극적인 대응" in sentence_text or "대응이 필요한" in sentence_text:
+                if any(term in sentence_text for term in POLICY_CONTEXT_RESPONSE_TERMS):
                     score += 1
                 policy_candidates.append((score, sentence_text))
         policy_sentence = max(policy_candidates, key=lambda item: item[0])[1] if policy_candidates else ""
@@ -2719,7 +2670,7 @@ class FinancialAgentEvidenceMixin:
             "current_value": ("2023", current_units),
             "prior_value": ("2022", prior_units),
             "primary_value": (growth_rate, "%"),
-            "policy": ("인플레이션 감축법", "보호무역주의"),
+            "policy": POLICY_CONTEXT_ROLE_TERMS,
         }
         for role, markers in role_markers.items():
             if any(not marker for marker in markers):
@@ -2873,15 +2824,8 @@ class FinancialAgentEvidenceMixin:
         surface = _normalise_spaces(str(query or ""))
         if not surface:
             return False
-        return "배당금 지급" in surface and any(
-            marker in surface
-            for marker in (
-                "주주환원 정책",
-                "배당에 관한 사항",
-                "정규배당",
-                "추가 환원",
-                "잉여현금흐름",
-            )
+        return any(marker in surface for marker in DIVIDEND_PAYOUT_TERMS) and any(
+            marker in surface for marker in DIVIDEND_POLICY_QUERY_TERMS
         )
 
     def _extract_dividend_amount_surface(self, text: str) -> str:
@@ -2940,13 +2884,7 @@ class FinancialAgentEvidenceMixin:
             for fragment in re.split(r"(?<=[.!?])\s+|\n+", surface)
             if _normalise_spaces(fragment)
         ]
-        preferred_markers = (
-            "정규배당",
-            "추가 환원",
-            "추가로 환원",
-            "잉여현금흐름",
-            "주주환원 정책",
-        )
+        preferred_markers = DIVIDEND_POLICY_PREFERRED_TERMS
         for fragment in fragments:
             if any(marker in fragment for marker in preferred_markers):
                 return fragment[:240]
@@ -2999,20 +2937,20 @@ class FinancialAgentEvidenceMixin:
                     if part
                 )
             ).lower()
-            if "배당금 지급" in combined_text:
-                payout_snippet = self._extract_driver_snippet(combined_text, ["배당금 지급"])
+            if any(marker in combined_text for marker in DIVIDEND_PAYOUT_TERMS):
+                payout_snippet = self._extract_driver_snippet(combined_text, list(DIVIDEND_PAYOUT_TERMS))
                 amount_surface = self._extract_dividend_payout_amount_surface(payout_snippet or combined_text) or self._extract_dividend_amount_surface(payout_snippet or combined_text)
                 if amount_surface:
                     payout_score = 0.0
-                    if "유동성" in lowered_text or "현금흐름" in lowered_text:
+                    if any(term in lowered_text for term in DIVIDEND_LIQUIDITY_CONTEXT_TERMS):
                         payout_score += 4.0
-                    if "유출" in combined_text:
+                    if any(term in combined_text for term in DIVIDEND_OUTFLOW_TERMS):
                         payout_score += 2.0
                     if "이사의 경영진단" in section_hint:
                         payout_score += 1.0
-                    if "현금배당금총액" in combined_text or "배당성향" in combined_text:
+                    if any(term in combined_text for term in DIVIDEND_TABLE_POLICY_TERMS):
                         payout_score -= 4.0
-                    if "배당금의 지급" in combined_text:
+                    if any(term in combined_text for term in DIVIDEND_PAYOUT_DEEMPHASIS_TERMS):
                         payout_score -= 1.5
                     payout_key = (payout_score, self._dividend_amount_rank(amount_surface))
                     if payout_key > payout_best_key:
@@ -3021,7 +2959,7 @@ class FinancialAgentEvidenceMixin:
                         payout_evidence_id = str(item.get("evidence_id") or "").strip()
             if any(
                 marker in combined_text
-                for marker in ("주주환원", "정규배당", "추가 환원", "잉여현금흐름")
+                for marker in DIVIDEND_POLICY_TERMS
             ):
                 clause = self._extract_dividend_policy_clause(combined_text)
                 if clause:
@@ -3030,13 +2968,13 @@ class FinancialAgentEvidenceMixin:
                         policy_score += 5.0
                     if "2021" in clause and "2023" in clause and not ("2024" in clause and "2026" in clause):
                         policy_score -= 2.0
-                    if "정규배당" in clause:
+                    if any(marker in clause for marker in DIVIDEND_REGULAR_TERMS):
                         policy_score += 2.0
-                    if "추가 환원" in clause or "추가로 환원" in clause:
+                    if any(marker in clause for marker in DIVIDEND_ADDITIONAL_RETURN_TERMS):
                         policy_score += 2.0
                     if "잉여현금흐름" in clause or "free cash flow" in clause.lower():
                         policy_score += 1.0
-                    if "배당에 관한 사항" in section_hint:
+                    if any(term in section_hint for term in DIVIDEND_POLICY_SECTION_TERMS):
                         policy_score += 2.0
                     policy_key = (policy_score,)
                     if policy_key > policy_best_key:
@@ -3298,7 +3236,7 @@ class FinancialAgentEvidenceMixin:
         if _query_requests_narrative_context(query):
             trend_instruction = (
                 "시계열 변화와 함께 실적에 직접 기여한 운영 요인을 1~2개까지 정리하세요. "
-                "계약 목적이나 기대효과보다 실제 성과 원인(예: 연결 편입효과, 스마트스토어/브랜드스토어 성장, 체질 개선)을 우선하세요."
+                "계약 목적이나 기대효과보다 근거 문서에 실제 성과 원인으로 명시된 요인을 우선하세요."
             )
             trend_output_style = "2~5문장."
         instructions = {
@@ -3388,7 +3326,7 @@ class FinancialAgentEvidenceMixin:
                 "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
                 "\n- 가능하면 서로 다른 관점의 근거를 2개 이상 추출하세요. "
                 "예: (1) 실적 변화나 성장률을 직접 설명하는 문단, "
-                "(2) 그 배경 driver(연결 편입효과, 스마트스토어/브랜드스토어 성장, 체질 개선 등)를 설명하는 문단."
+                "(2) 그 변화의 배경 driver를 문서 표현 그대로 설명하는 문단."
                 "\n- '주요 계약' 문단은 실제 성과 영향 문단이 부족할 때만 보조 근거로 사용하세요."
             )
         else:

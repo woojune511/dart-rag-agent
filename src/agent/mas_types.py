@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import operator
 from enum import Enum
-from typing import Annotated, Any, Dict, List, Optional, TypedDict
+from typing import Annotated, Any, Dict, List, NotRequired, Optional, TypedDict
 
 
 class TaskStatus(str, Enum):
@@ -24,6 +24,9 @@ class AgentTask(TypedDict):
     status: TaskStatus
     context_keys: List[str]
     retry_count: int
+    depends_on: NotRequired[List[str]]
+    artifact_ids: NotRequired[List[str]]
+    blocked_reason: NotRequired[str]
 
 
 class Artifact(TypedDict):
@@ -31,6 +34,10 @@ class Artifact(TypedDict):
     creator: str
     content: Any
     evidence_links: List[str]
+    artifact_id: NotRequired[str]
+    kind: NotRequired[str]
+    producer_task_id: NotRequired[str]
+    metadata: NotRequired[Dict[str, Any]]
 
 
 class CriticReport(TypedDict):

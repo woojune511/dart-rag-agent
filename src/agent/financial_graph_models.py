@@ -28,6 +28,7 @@ class FinancialAgentState(TypedDict):
     section_filter: Optional[str]
     seed_retrieved_docs: List
     retrieved_docs: List
+    retrieval_debug_trace: Dict[str, Any]
     evidence_bullets: List[str]
     evidence_items: List[Dict[str, Any]]
     evidence_status: str

@@ -196,6 +196,7 @@ class EvalResult:
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
     retrieved_previews: List[Dict[str, Any]] = field(default_factory=list)
+    retrieval_debug_trace: Dict[str, Any] = field(default_factory=dict)
     runtime_evidence: List[Dict[str, Any]] = field(default_factory=list)
     selected_claim_ids: List[str] = field(default_factory=list)
     draft_points: List[str] = field(default_factory=list)
@@ -2576,6 +2577,7 @@ class RAGEvaluator:
         routing_confidence: Optional[float] = None
         routing_scores: Dict[str, float] = {}
         retrieved_docs: List[Any] = []
+        retrieval_debug_trace: Dict[str, Any] = {}
         citations: List[str] = []
         runtime_evidence: List[Dict[str, Any]] = []
         selected_claim_ids: List[str] = []
@@ -2603,6 +2605,7 @@ class RAGEvaluator:
             routing_confidence = _safe_float(result.get("routing_confidence"))
             routing_scores = dict(result.get("routing_scores", {}) or {})
             retrieved_docs = result.get("retrieved_docs", [])
+            retrieval_debug_trace = dict(result.get("retrieval_debug_trace", {}) or {})
             citations = result.get("citations", [])
             runtime_evidence = result.get("evidence_items", []) or []
             selected_claim_ids = result.get("selected_claim_ids", []) or []
@@ -2851,6 +2854,7 @@ class RAGEvaluator:
             citations=citations,
             retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),
             retrieved_previews=_extract_retrieved_previews(retrieved_docs),
+            retrieval_debug_trace=retrieval_debug_trace,
             runtime_evidence=runtime_evidence,
             selected_claim_ids=selected_claim_ids,
             draft_points=draft_points,

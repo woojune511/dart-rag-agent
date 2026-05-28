@@ -3238,21 +3238,9 @@ Operands:
         deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
         aggregate_evidence_items: List[Dict[str, Any]] = []
         seen_evidence_ids: set[str] = set()
-        for item in list(state.get("evidence_items") or []):
-            evidence = dict(item or {})
-            evidence_id = str(evidence.get("evidence_id") or "").strip()
-            dedupe_key = evidence_id or "|".join(
-                [
-                    str(evidence.get("source_anchor") or ""),
-                    str(evidence.get("claim") or evidence.get("quote_span") or evidence.get("raw_row_text") or ""),
-                ]
-            )
-            if dedupe_key in seen_evidence_ids:
-                continue
-            seen_evidence_ids.add(dedupe_key)
-            aggregate_evidence_items.append(evidence)
-        for row in ordered_results:
-            for item in list(row.get("runtime_evidence") or []):
+
+        def _append_aggregate_evidence(items: List[Dict[str, Any]]) -> None:
+            for item in list(items or []):
                 evidence = dict(item or {})
                 evidence_id = str(evidence.get("evidence_id") or "").strip()
                 dedupe_key = evidence_id or "|".join(
@@ -3265,6 +3253,10 @@ Operands:
                     continue
                 seen_evidence_ids.add(dedupe_key)
                 aggregate_evidence_items.append(evidence)
+
+        for row in ordered_results:
+            _append_aggregate_evidence(list(row.get("runtime_evidence") or []))
+        _append_aggregate_evidence(list(state.get("evidence_items") or []))
         preliminary_projection = self._build_aggregate_calculation_projection(ordered_results, fallback_answer)
         narrative_context = self._narrative_context_sentence_from_evidence(
             str(state.get("query") or ""),
