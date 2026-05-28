@@ -137,6 +137,18 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("유동자산", hints)
         self.assertIn("유동부채", hints)
 
+    def test_v3_matches_ampc_production_tax_credit_concept(self) -> None:
+        specs = self.ontology_v3.concept_specs(
+            "미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외해 줘.",
+            intent="comparison",
+        )
+        concept_keys = [spec["concept"] for spec in specs]
+
+        self.assertIn("advanced_manufacturing_production_credit", concept_keys)
+        ampc = next(spec for spec in specs if spec["concept"] == "advanced_manufacturing_production_credit")
+        self.assertIn("IRA Tax Credit", ampc["aliases"])
+        self.assertIn("이사의 경영진단 및 분석의견", ampc["preferred_sections"])
+
     def test_v3_group_concepts_are_matched_for_common_shorthand(self) -> None:
         specs = self.ontology_v3.concept_specs(
             "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금 비중을 계산해 줘.",

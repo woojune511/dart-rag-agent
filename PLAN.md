@@ -5,6 +5,23 @@
 
 ## Active Snapshot
 
+## 2026-05-29 Immediate Update
+
+- Current AMPC policy-driven runtime gap is closed at focused gate level.
+  - AMPC is represented as an ontology concept, not as a runtime keyword branch.
+  - Prose-derived lookup values now become structured `answer_slots` with
+    supporting retrieved evidence.
+  - Aggregate difference answers now preserve slot `rendered_value` fields to
+    avoid LLM display-unit drift.
+- Verification completed:
+  - `tests.test_operation_contracts` + `tests.test_ontology`: `118` tests pass.
+  - `lge_2023_policy_driven_runtime_gate`: `numeric_pass_rate = 1.000`,
+    `faithfulness = 1.000`, `avg_score = 0.988`.
+  - Samsung focused policy gate completed without runtime errors.
+- Full all-company policy gate and Hyundai-only rerun hit local time limits
+  before complete result files were written. Next validation work should use
+  store reuse or a narrower Hyundai replay profile before another full rerun.
+
 | 항목 | 현재 상태 |
 | --- | --- |
 | 현재 1순위 | **`curated_single_doc_core` broader rerun 결과를 닫고 남는 blocker를 재분류** |

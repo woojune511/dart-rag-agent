@@ -1599,8 +1599,6 @@ _GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
         r"순이자마진",
         r"\bNIM\b",
         r"무형자산상각비",
-        r"세액공제",
-        r"\bAMPC\b",
         r"(?:차량|금융)\s*부문\s*영업이익",
         r"전체\s*(?:연결\s*)?영업이익",
         r"연결\s*영업이익",

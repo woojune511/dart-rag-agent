@@ -14,6 +14,7 @@
 - When a benchmark exposes a missing concept, first classify the gap as ontology, retrieval policy, parser structure, planner contract, evidence schema, or evaluator definition. Add domain vocabulary to the appropriate declarative layer, then make runtime code consume that layer generically.
 - If a temporary keyword is needed to unblock diagnosis, mark it as diagnostic-only, keep it out of committed runtime paths, and replace it with policy/ontology-driven behavior before commit.
 - LLMs may propose candidate concepts, sections, and slots, but final runtime behavior must be grounded against retrieved evidence or structured store artifacts. The fallback for LLM uncertainty is not hard-coded vocabulary in code; it is better policy/schema plus traceable validation.
+- If a concept lookup value is recovered from prose, the runtime must preserve it as a structured answer slot and attach the retrieved source text that contains the value. Do not let aggregate synthesis reformat evidence-visible values into a different display unit when the source display is available.
 - Any PR/change that adds domain terms to runtime code must explain why the same behavior cannot be represented in ontology/policy/config. If that explanation is weak, stop and refactor the design.
 
 1. **Benchmark를 답안지로 쓰지 않는다.**

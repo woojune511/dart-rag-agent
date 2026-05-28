@@ -36,15 +36,17 @@
         "margin",
         "ratio"
       ],
-      "difference": [
-        "차이",
-        "증감",
-        "증가",
-        "감소",
-        "순효과",
-        "순영향",
-        "difference"
-      ],
+    "difference": [
+      "차이",
+      "증감",
+      "증가",
+      "감소",
+      "순효과",
+      "순영향",
+      "제외",
+      "차감",
+      "difference"
+    ],
       "growth_rate": [
         "증가율",
         "감소율",
@@ -272,6 +274,66 @@
       "lookup_hints": {
         "prefer_canonical_statement_rows": true
       }
+    },
+    "advanced_manufacturing_production_credit": {
+      "display_name": "첨단제조 생산세액공제",
+      "aliases": [
+        "AMPC",
+        "IRA Tax Credit",
+        "IRA 세액공제",
+        "미국 인플레이션 감축법 세액공제",
+        "인플레이션 감축법 세액공제",
+        "생산세액공제",
+        "세액공제"
+      ],
+      "keywords": [
+        "AMPC",
+        "IRA Tax Credit",
+        "IRA",
+        "첨단제조 생산세액공제",
+        "미국 인플레이션 감축법",
+        "인플레이션감축법",
+        "세액공제",
+        "수익 인식"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "mda",
+        "notes"
+      ],
+      "preferred_sections": [
+        "IV. 이사의 경영진단 및 분석의견 > 2. 개요",
+        "이사의 경영진단 및 분석의견",
+        "개요",
+        "영업이익",
+        "연결재무제표 주석"
+      ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "none"
+        ],
+        "prefer_period_focus": "current"
+      },
+      "surface_contract": {
+        "positive": [
+        "AMPC",
+        "IRA Tax Credit",
+        "첨단제조 생산세액공제",
+        "수익 인식"
+      ],
+      "negative": [
+        "조정사항",
+        "법인세",
+        "이월공제세액",
+        "미사용 세액공제",
+        "외국납부세액",
+        "적용세율"
+      ]
+    }
     },
     "net_income": {
       "display_name": "당기순이익",

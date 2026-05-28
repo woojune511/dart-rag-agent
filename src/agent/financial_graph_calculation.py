@@ -2211,6 +2211,69 @@ Ontology Context:
                 rewritten = rewritten.replace(source, target)
         return _normalise_spaces(rewritten)
 
+    def _first_material_slot_for_role(self, answer_slots: Dict[str, Any], role: str) -> Dict[str, Any]:
+        components_by_role = dict(answer_slots.get("components_by_role") or {})
+        for slot in list(components_by_role.get(role) or []):
+            slot_row = dict(slot or {})
+            if self._answer_slot_has_material(slot_row):
+                return slot_row
+        fallback_key = {
+            "minuend": "current_value",
+            "subtrahend": "prior_value",
+        }.get(role, "")
+        if fallback_key:
+            fallback = dict(answer_slots.get(fallback_key) or {})
+            if self._answer_slot_has_material(fallback):
+                return fallback
+        return {}
+
+    def _compose_slot_based_difference_answer(
+        self,
+        *,
+        query: str,
+        report_scope: Dict[str, Any],
+        calculation_result: Dict[str, Any],
+    ) -> str:
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        operation_family = _normalise_spaces(
+            str(answer_slots.get("operation_family") or calculation_result.get("operation_family") or "")
+        ).lower()
+        if operation_family != "difference":
+            return ""
+
+        minuend = self._first_material_slot_for_role(answer_slots, "minuend")
+        subtrahend = self._first_material_slot_for_role(answer_slots, "subtrahend")
+        result_slot = dict(answer_slots.get("primary_value") or answer_slots.get("delta_value") or {})
+        if not all(self._answer_slot_has_material(slot) for slot in (minuend, subtrahend, result_slot)):
+            return ""
+
+        minuend_value = _normalise_spaces(str(minuend.get("rendered_value") or ""))
+        subtrahend_value = _normalise_spaces(str(subtrahend.get("rendered_value") or ""))
+        result_value = _normalise_spaces(str(result_slot.get("rendered_value") or calculation_result.get("rendered_value") or ""))
+        if not (minuend_value and subtrahend_value and result_value):
+            return ""
+
+        company = _normalise_spaces(str((report_scope or {}).get("company") or ""))
+        period = _normalise_spaces(
+            str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
+        )
+        scope = _desired_consolidation_scope(query, report_scope or {})
+        scope_text = {"consolidated": "연결기준", "separate": "별도기준"}.get(scope, "")
+        prefix_parts = [part for part in (company, f"{period}년" if period and not period.endswith("년") else period, scope_text) if part]
+        prefix = " ".join(dict.fromkeys(prefix_parts))
+
+        minuend_label = _normalise_spaces(str(minuend.get("label") or "기준값"))
+        subtrahend_label = _normalise_spaces(str(subtrahend.get("label") or "차감값"))
+        result_label = _normalise_spaces(str(result_slot.get("label") or calculation_result.get("metric_label") or "계산 결과"))
+
+        if prefix:
+            first_sentence = f"{prefix} {minuend_label}은 {minuend_value}입니다."
+        else:
+            first_sentence = f"{minuend_label}은 {minuend_value}입니다."
+        return _normalise_spaces(
+            f"{first_sentence} {subtrahend_label} 금액은 {subtrahend_value}이며, 이를 제외한 {result_label}은 {result_value}입니다."
+        )
+
     def _slot_status(
         self,
         *,
@@ -3321,9 +3384,18 @@ Subtask Results JSON:
                 logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
         final_answer = self._coerce_sign_aware_subtraction_answer(
             final_answer,
-            calculation_result=dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_result") or {}),
+            calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
             subtask_results=ordered_results,
         )
+        slot_based_difference_answer = self._compose_slot_based_difference_answer(
+            query=str(state.get("query") or ""),
+            report_scope=dict(state.get("report_scope") or {}),
+            calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
+        )
+        if slot_based_difference_answer:
+            final_answer = slot_based_difference_answer
+            planner_feedback = ""
+            deterministic_feedback = ""
         final_answer = self._include_narrative_context_if_needed(
             final_answer,
             query=str(state.get("query") or ""),
@@ -3381,6 +3453,22 @@ Subtask Results JSON:
                 calculation_projection_override = projection
             planner_feedback = ""
             deterministic_feedback = ""
+        dividend_policy_answer = self._compose_dividend_policy_hybrid_answer(
+            query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        if dividend_policy_answer:
+            dividend_answer = _normalise_spaces(str(dividend_policy_answer.get("answer") or ""))
+            if dividend_answer:
+                final_answer = dividend_answer
+                composition_selected_claim_ids.extend(
+                    str(claim_id).strip()
+                    for claim_id in (dividend_policy_answer.get("supporting_claim_ids") or [])
+                    if str(claim_id).strip()
+                )
+                calculation_projection_override = None
+                planner_feedback = ""
+                deterministic_feedback = ""
         # Prefer the deterministic structured-material check over a conservative
         # synthesizer hint. When the deterministic check sees no missing
         # material, do not append a user-facing uncertainty suffix.
@@ -3414,6 +3502,14 @@ Subtask Results JSON:
             for key in ("calculation_operands", "calculation_plan", "calculation_result"):
                 if calculation_projection_override.get(key):
                     aggregate_projection[key] = calculation_projection_override[key]
+        slot_based_difference_answer = self._compose_slot_based_difference_answer(
+            query=str(state.get("query") or ""),
+            report_scope=dict(state.get("report_scope") or {}),
+            calculation_result=dict(aggregate_projection.get("calculation_result") or {}),
+        )
+        if slot_based_difference_answer:
+            final_answer = slot_based_difference_answer
+            aggregate_projection["calculation_result"]["formatted_result"] = final_answer
         if final_answer and not deterministic_feedback:
             aggregate_projection["calculation_result"]["status"] = "ok"
         artifacts = list(state.get("artifacts") or [])

@@ -1135,3 +1135,42 @@ Artifact policy:
   from these checks were not committed.
 - After recording the summaries above, local untracked benchmark artifacts were
   cleaned to reduce accidental staging risk.
+
+## 2026-05-29 Policy-Driven Runtime Gate Follow-Up
+
+Source changes:
+
+- Added ontology concept coverage for AMPC / advanced manufacturing production
+  credit.
+- Added generic prose lookup slot synthesis: if a concept lookup finds a value
+  in retrieved prose, the runtime builds `answer_slots.primary_value` from
+  ontology surfaces and promotes the supporting retrieved document into
+  `runtime_evidence`.
+- Added slot-based aggregate difference answer composition so final answers
+  preserve source-visible `rendered_value` fields such as `6,769억원` instead of
+  allowing LLM synthesis to reformat them into a harder-to-ground display unit.
+
+Validation summary:
+
+- `python -m unittest tests.test_operation_contracts tests.test_ontology`
+  passed: `118` tests.
+- `lge_2023_policy_driven_runtime_gate` final focused rerun:
+  - question: `LGE_T1_051`
+  - `faithfulness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `section_match_rate = 1.000`
+  - `numeric_pass_rate = 1.000`
+  - `avg_score = 0.988`
+  - final answer includes `2,163,234백만원`, `6,769억원`, and `1조 4,863억원`
+- `samsung_2023_policy_driven_runtime_gate` focused rerun completed with
+  `faithfulness = 1.000`, `context_recall = 1.000`, and `error_rate = 0.0`.
+- Full all-company rerun and a Hyundai-only rerun were attempted, but both hit
+  local time limits during ingest/context-cache work before writing complete
+  result files. Treat this as an execution-time limitation, not a code-level
+  correctness signal.
+
+Artifact policy:
+
+- Raw result directories from these checks remain local experiment artifacts and
+  are excluded from source control.

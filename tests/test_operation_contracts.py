@@ -19,6 +19,7 @@ from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
     _candidate_explicit_years,
     _build_concept_task_constraints,
+    _build_semantic_numeric_plan,
     _infer_concept_ratio_result_unit,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
@@ -658,6 +659,207 @@ class OperationContractTests(unittest.TestCase):
             operands[1]["binding_policy"]["prefer_aggregation_stages"][:3],
             ["final", "subtotal", "direct"],
         )
+
+    def test_ampc_adjusted_operating_income_uses_ontology_difference_task(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query=(
+                    "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 "
+                    "세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘."
+                ),
+                topic="",
+                intent="comparison",
+                report_scope={"company": "LG에너지솔루션", "year": 2023},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["operation_family"], "difference")
+        operands = task["required_operands"]
+        self.assertEqual(
+            [(operand["concept"], operand["role"]) for operand in operands],
+            [
+                ("operating_income", "minuend"),
+                ("advanced_manufacturing_production_credit", "subtrahend"),
+            ],
+        )
+        self.assertTrue(
+            any("IRA Tax Credit" in query or "AMPC" in query for query in task["retrieval_queries"])
+        )
+
+    def test_ampc_concept_rejects_generic_income_tax_credit_adjustment_row(self) -> None:
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
+        operand = ontology.concept_specs(
+            "미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액",
+            intent="comparison",
+        )[0]
+        operand = {**operand, "role": "subtrahend", "period_hint": "2023"}
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "세액공제 | (4,556)",
+            "metadata": {
+                "semantic_label": "세액공제",
+                "row_label": "세액공제",
+                "row_headers": ["조정사항(개요)", "세액공제"],
+                "semantic_aliases": ["세액공제", "조정사항(개요)", "공시금액"],
+                "statement_type": "notes",
+                "value_role": "detail",
+                "aggregation_stage": "direct",
+                "period_focus": "current",
+                "year": 2023,
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "table_context": "법인세비용 조정사항",
+                "structured_cells": [
+                    {
+                        "value_text": "(4,556)",
+                        "unit_hint": "백만원",
+                        "column_headers": ["공시금액"],
+                        "period_labels": ["2023"],
+                    }
+                ],
+            },
+        }
+        paragraph_candidate = {
+            "candidate_kind": "chunk",
+            "text": (
+                "영업이익은 원가개선 노력과 약 6,769억원의 IRA Tax Credit의 수익 인식으로 "
+                "전년 대비 개선된 약 2조 1,632억원을 기록했습니다."
+            ),
+            "metadata": {
+                "block_type": "paragraph",
+                "section_path": "IV. 이사의 경영진단 및 분석의견 > 2. 개요",
+            },
+        }
+
+        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"period_focus": "current", "consolidation_scope": "consolidated"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell=candidate["metadata"]["structured_cells"][0],
+                report_scope={"year": 2023},
+            )
+        )
+        self.assertTrue(_candidate_matches_operand(paragraph_candidate, operand))
+
+    def test_concept_lookup_synthesizes_answer_slot_from_ontology_surface_prose(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "Compute adjusted operating income excluding AMPC.",
+            "active_subtask": {
+                "task_id": "task_2",
+                "operation_family": "lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023 AMPC amount",
+                "query": "Find 2023 AMPC amount.",
+                "required_operands": [
+                    {
+                        "label": "AMPC amount",
+                        "concept": "advanced_manufacturing_production_credit",
+                        "role": "subtrahend",
+                        "period_hint": "2023",
+                        "aliases": ["AMPC", "IRA Tax Credit"],
+                        "surface_contract": {
+                            "positive": ["AMPC", "IRA Tax Credit"],
+                            "negative": ["income tax", "deferred tax"],
+                        },
+                    }
+                ],
+            },
+            "answer": (
+                "2023 operating income was 2,163,234백만원. "
+                "AMPC amount was 6,769억원, and adjusted operating income was 1,486,334백만원."
+            ),
+            "compressed_answer": "",
+            "selected_claim_ids": ["ev_001"],
+            "evidence_items": [],
+            "retrieved_docs": [
+                Document(
+                    page_content=(
+                        "영업이익은 원가개선 노력과 약 6,769억원의 IRA Tax Credit의 수익 인식으로 "
+                        "전년 대비 개선되었습니다."
+                    ),
+                    metadata={
+                        "company": "LG에너지솔루션",
+                        "year": 2023,
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 2. 개요",
+                    },
+                )
+            ],
+            "tasks": [],
+            "artifacts": [],
+            "calculation_operands": [],
+            "calculation_plan": {"operation": "lookup"},
+            "calculation_result": {"status": "partial", "answer_slots": {"operation_family": "lookup"}},
+            "reconciliation_result": {},
+        }
+
+        result = agent._capture_current_subtask_result(state)
+
+        self.assertEqual(result["status"], "ok")
+        slot = result["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertEqual(slot["concept"], "advanced_manufacturing_production_credit")
+        self.assertEqual(slot["rendered_value"], "6,769억원")
+        self.assertEqual(slot["role"], "subtrahend")
+        self.assertIn("ev_001", result["selected_claim_ids"])
+        self.assertTrue(
+            any("6,769억원" in str(item.get("claim") or "") for item in result["runtime_evidence"])
+        )
+
+    def test_difference_answer_composer_preserves_slot_rendered_values(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = agent._compose_slot_based_difference_answer(
+            query="2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
+            report_scope={"company": "LG에너지솔루션", "year": 2023},
+            calculation_result={
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "label": "영업이익",
+                                "period": "2023",
+                                "rendered_value": "2조 1,632억원",
+                                "normalized_value": 2163200000000.0,
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "label": "첨단제조 생산세액공제",
+                                "period": "2023",
+                                "rendered_value": "6,769억원",
+                                "normalized_value": 676900000000.0,
+                            }
+                        ],
+                    },
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "실질 영업이익",
+                        "period": "2023",
+                        "rendered_value": "1조 4,863억원",
+                        "normalized_value": 1486300000000.0,
+                    },
+                }
+            },
+        )
+
+        self.assertIn("LG에너지솔루션", answer)
+        self.assertIn("2023년 연결기준 영업이익은 2조 1,632억원", answer)
+        self.assertIn("첨단제조 생산세액공제 금액은 6,769억원", answer)
+        self.assertIn("실질 영업이익은 1조 4,863억원", answer)
+        self.assertNotIn("676,900백만원", answer)
 
     def test_lookup_producer_task_preserves_binding_concept_for_generic_consumer_operand(self) -> None:
         original_singleton = ontology_module._ONTOLOGY_SINGLETON
@@ -3098,6 +3300,103 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("추가로 환원", result["answer"])
         self.assertNotIn("9조 8,094억원", result["answer"])
         self.assertNotIn("2021~2023년", result["answer"])
+
+    def test_dividend_policy_aggregate_does_not_append_partial_suffix_when_policy_answer_is_complete(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        query = (
+            "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, "
+            "사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘."
+        )
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "source_anchor": "20240312000736::IV. 이사의 경영진단 및 분석의견",
+                "claim": "당사의 유동성은 배당금 지급 9조 8,645억원 등이 유출되었으며",
+                "quote_span": "배당금 지급 9조 8,645억원 등이 유출되었으며",
+                "metadata": {
+                    "section_path": "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
+                },
+            },
+            {
+                "evidence_id": "ev_002",
+                "source_anchor": "20240312000736::III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+                "claim": (
+                    "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 "
+                    "연간 9.8조원 수준의 정규배당을 유지하되, 정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획입니다."
+                ),
+                "quote_span": (
+                    "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 "
+                    "연간 9.8조원 수준의 정규배당을 유지하되, 정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획입니다."
+                ),
+                "metadata": {
+                    "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+                },
+            },
+        ]
+        state = {
+            "query": query,
+            "calc_subtasks": [
+                {
+                    "task_id": "task_1",
+                    "operation_family": "generic_numeric",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "배당금 지급",
+                    "query": "배당금 지급 금액을 찾아줘.",
+                },
+                {
+                    "task_id": "task_2",
+                    "operation_family": "narrative_summary",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "주주환원 정책",
+                    "query": query,
+                },
+            ],
+            "active_subtask": {
+                "task_id": "task_2",
+                "operation_family": "narrative_summary",
+                "metric_family": "narrative_summary",
+                "metric_label": "주주환원 정책",
+                "query": query,
+            },
+            "active_subtask_index": 1,
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "배당금 지급",
+                    "status": "insufficient_operands",
+                    "answer": "배당금 지급 계산에 필요한 값을 충분히 확인하지 못해 계산할 수 없습니다.",
+                    "calculation_plan": {"operation": "generic_numeric"},
+                    "calculation_result": {
+                        "status": "insufficient_operands",
+                        "answer_slots": {
+                            "operation_family": "generic_numeric",
+                            "primary_value": {"label": "배당금 지급"},
+                        },
+                    },
+                    "runtime_evidence": [],
+                }
+            ],
+            "answer": "",
+            "compressed_answer": "",
+            "selected_claim_ids": [],
+            "evidence_items": evidence_items,
+            "artifacts": [],
+            "tasks": [],
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {"status": "partial"},
+            "plan_loop_count": 2,
+        }
+
+        result = agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("9조 8,645억원", result["answer"])
+        self.assertIn("잉여현금흐름의 50%", result["answer"])
+        self.assertNotIn("완전히 확정", result["answer"])
+        self.assertEqual(result["planner_feedback"], "")
+        self.assertEqual(result["calculation_result"]["status"], "ok")
+        self.assertEqual(result["structured_result"]["status"], "ok")
 
     def test_dividend_policy_evidence_supplement_adds_cashflow_and_policy_snippets(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

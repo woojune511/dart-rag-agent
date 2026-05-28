@@ -74,3 +74,20 @@ Retrieval/routing policy는 `src/config/retrieval_policy.py`처럼 명명된 con
 Numeric path는 deterministic contract를 따른다. 산술, 단위 변환, operand ordering, dependency binding, dedupe, validation은 코드가 담당한다. LLM은 intent, concept, evidence interpretation처럼 의미 판단에만 쓴다.
 
 Evaluator는 평가 정의를 담을 수 있지만, runtime agent가 evaluator trick을 따라가면 안 된다.
+## 6. Ontology-Driven Prose Lookup Slots
+
+When a concept lookup obtains the required numeric value from prose rather than
+from a structured table row, the runtime contract is:
+
+- use ontology aliases and `surface_contract.positive` terms to locate the
+  value in the answer/evidence text
+- synthesize a normal `answer_slots.primary_value` record with concept, role,
+  period, rendered value, normalized value, and provenance
+- promote the retrieved source document containing that value into
+  `runtime_evidence`
+- compose aggregate difference answers from slot `rendered_value` fields when
+  all operands are available
+
+This keeps domain vocabulary in ontology/config while allowing deterministic
+dependency binding and evaluator-visible grounding. Runtime code should not add
+company-specific or benchmark-specific branches for these cases.
