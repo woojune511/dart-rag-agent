@@ -108,7 +108,6 @@ SECTION_BIAS_BY_QUERY_TYPE = {
 
 
 ROUTING_CALC_GUARDRAIL_ENABLED = True
-ROUTING_CALC_GUARDRAIL_KEYWORDS = frozenset({"이익률", "비중", "합계", "합산", "비율"})
 ROUTING_CALC_GUARDRAIL_OPERATION_TERMS = frozenset(
     {
         "계산",

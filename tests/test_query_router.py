@@ -26,6 +26,17 @@ class QueryRouterGuardrailTests(unittest.TestCase):
             )
         )
 
+    def test_numeric_guardrail_blocks_explicit_calculation_without_metric_keyword(self) -> None:
+        router = QueryRouter.__new__(QueryRouter)
+        semantic_result = {"fast_path": True, "intent": "numeric_fact"}
+
+        self.assertTrue(
+            router._blocks_numeric_fast_path(
+                "2023년 인건비와 광고비를 더해 줘.",
+                semantic_result,
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

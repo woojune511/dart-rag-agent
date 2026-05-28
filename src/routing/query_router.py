@@ -11,7 +11,6 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from src.config.retrieval_policy import (
     ROUTING_CALC_GUARDRAIL_ENABLED,
-    ROUTING_CALC_GUARDRAIL_KEYWORDS,
     ROUTING_CALC_GUARDRAIL_OPERATION_TERMS,
 )
 
@@ -126,8 +125,6 @@ class QueryRouter:
             and semantic_result.get("fast_path")
             and semantic_result.get("intent") == "numeric_fact"
         ):
-            return False
-        if not any(keyword in query for keyword in ROUTING_CALC_GUARDRAIL_KEYWORDS):
             return False
         return any(term in query for term in ROUTING_CALC_GUARDRAIL_OPERATION_TERMS)
 
