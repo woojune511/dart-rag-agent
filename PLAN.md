@@ -30,8 +30,9 @@
     correctly failed instead of silently converting an official gate into a
     BM25-only degraded evaluation.
 - Immediate next implementation target:
-  1. Use `python -m src.ops.rebuild_vector_store` to rebuild persisted Chroma
-     stores from `document_structure_graph.json` after a failed health check.
+  1. Investigate Hyundai-specific Chroma/HNSW persistence failure. Full replay
+     and rebuild both complete, but the store still fails official strict
+     eval-only when reopened in a separate process.
   2. Keep official gate runs strict: vector index read errors fail before
      answer generation, while BM25 fallback is only allowed through an explicit
      degraded diagnostic eval-only option.

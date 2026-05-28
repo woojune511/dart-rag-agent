@@ -188,6 +188,22 @@ def _is_vector_store_read_error(exc: Exception) -> bool:
     return any(marker in message for marker in markers)
 
 
+def _is_transient_vector_add_error(exc: Exception) -> bool:
+    message = str(exc or "").lower()
+    markers = (
+        "503",
+        "unavailable",
+        "service is currently unavailable",
+        "servererror",
+        "resource_exhausted",
+        "429",
+        "rate limit",
+        "quota",
+        "error embedding content",
+    )
+    return any(marker in message for marker in markers)
+
+
 def _freeze_filter(where_filter: Optional[dict]) -> Hashable:
     if where_filter is None:
         return ()
@@ -215,6 +231,8 @@ class VectorStoreManager:
         self.allow_query_embedding_fallback = bool(allow_query_embedding_fallback)
         self.vector_capacity_cooldown_sec = max(0.0, float(os.getenv("DART_VECTOR_CAPACITY_COOLDOWN_SEC", "90") or 90))
         self.search_cache_size = max(0, int(os.getenv("DART_RETRIEVAL_SEARCH_CACHE_SIZE", "256") or 256))
+        self.vector_add_max_retries = max(1, int(os.getenv("DART_VECTOR_ADD_MAX_RETRIES", "4") or 4))
+        self.vector_add_retry_sleep_sec = max(0.0, float(os.getenv("DART_VECTOR_ADD_RETRY_SLEEP_SEC", "3") or 3))
         self._vector_capacity_cooldown_until = 0.0
         self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
         self.embedding_spec = get_embedding_runtime_spec(
@@ -295,6 +313,15 @@ class VectorStoreManager:
         cache.move_to_end(key)
         while len(cache) > self.search_cache_size:
             cache.popitem(last=False)
+
+    def persist(self) -> None:
+        persist = getattr(self.vector_store, "persist", None)
+        if not callable(persist):
+            return
+        try:
+            persist()
+        except Exception as exc:
+            logger.warning("Failed to explicitly persist vector store: %s", exc)
 
     def _init_bm25(self):
         docs: List[str] = []
@@ -657,9 +684,29 @@ class VectorStoreManager:
             batch = pending[start : start + effective_batch_size]
             batch_texts = [text for text, _, _ in batch]
             batch_metadatas = [metadata for _, metadata, _ in batch]
-            self.vector_store.add_texts(texts=batch_texts, metadatas=batch_metadatas)
+            max_attempts = max(1, int(getattr(self, "vector_add_max_retries", 1) or 1))
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    self.vector_store.add_texts(texts=batch_texts, metadatas=batch_metadatas)
+                    break
+                except Exception as exc:
+                    if attempt >= max_attempts or not _is_transient_vector_add_error(exc):
+                        raise
+                    sleep_sec = float(getattr(self, "vector_add_retry_sleep_sec", 0.0) or 0.0) * attempt
+                    logger.warning(
+                        "Transient vector add failure on batch %s/%s; retrying in %.1fs (attempt %s/%s): %s",
+                        (start // effective_batch_size) + 1,
+                        (len(pending) + effective_batch_size - 1) // effective_batch_size,
+                        sleep_sec,
+                        attempt,
+                        max_attempts,
+                        exc,
+                    )
+                    if sleep_sec > 0:
+                        time.sleep(sleep_sec)
             self._update_structure_graph(batch_texts, batch_metadatas)
             batch_count += 1
+        self.persist()
         self._init_bm25()
         logger.info("Successfully added documents and updated BM25 index.")
         return {

@@ -1257,13 +1257,24 @@ python -m src.ops.rebuild_vector_store \
   --embedding-model-name models/gemini-embedding-2
 ```
 
+- If embedding service availability interrupts a rebuild, rerun the same command
+  with `--resume` and without `--force` to skip already indexed `chunk_uid`s.
 - To preserve the existing benchmark bundle path after inspecting the source
-  graph, use `--in-place --force`. This deletes and recreates only the selected
-  store directory.
+  graph, use `--in-place --force`. The command rebuilds at the final path
+  because persisted Chroma/HNSW stores may not survive directory moves. It keeps
+  a sibling `*.rebuild-source-backup` copy of `document_structure_graph.json`
+  and `parents.json` while the rebuild is in progress.
+- Vector add calls retry transient embedding failures such as `503 UNAVAILABLE`
+  by default. Tune with `DART_VECTOR_ADD_MAX_RETRIES` and
+  `DART_VECTOR_ADD_RETRY_SLEEP_SEC` if service availability is unstable.
+- Rebuild health is checked from a separate Python process. This is required
+  because same-process Chroma clients can report success while a later
+  eval-only process still fails to open the persisted HNSW index.
 
 Next action:
 
-- Rebuild the Hyundai store and rerun strict `run_eval_only`.
+- Investigate the Hyundai-specific Chroma/HNSW persistence failure. Full replay
+  and rebuild complete, but strict eval-only still fails on external reopen.
 - Keep official policy gate validation strict: repair or rebuild the vector
   store before accepting eval-only results.
 
@@ -1272,3 +1283,25 @@ Artifact policy:
 - `benchmarks/results/policy_driven_runtime_gate_hyundai_replay_2026-05-29/`
   and `benchmarks/results/policy_driven_runtime_gate_hyundai_evalonly_2026-05-29/`
   are experiment artifacts and should not be committed.
+
+Follow-up execution notes:
+
+- Fresh Hyundai replay completed after vector-add retry absorbed a transient
+  `429 RESOURCE_EXHAUSTED`.
+  - indexed documents: `1,764`
+  - parent chunks: `96`
+  - ingest elapsed time: `752.5s`
+  - full-eval aggregate: `faithfulness = 0.500`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`,
+    `section_match_rate = 0.750`, `citation_coverage = 1.000`,
+    `entity_coverage = 0.500`, `avg_score = 0.849`, `error_rate = 0.0%`
+- Strict `run_eval_only` still failed at vector-index health check with
+  `Error loading hnsw index`.
+- Degraded diagnostic eval-only with `--allow-degraded-retrieval` completed via
+  BM25 fallback from `document_structure_graph.json`.
+  - degraded aggregate: `faithfulness = 0.500`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`,
+    `section_match_rate = 0.833`, `citation_coverage = 1.000`,
+    `entity_coverage = 0.600`, `avg_score = 0.867`, `error_rate = 0.0%`
+- The degraded result is diagnostic only and must not be used as an official
+  policy gate score.

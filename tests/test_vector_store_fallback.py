@@ -32,6 +32,16 @@ class _CountVectorStore:
         return list(self._results)
 
 
+class _FlakyAddVectorStore:
+    def __init__(self):
+        self.calls = 0
+
+    def add_texts(self, texts, metadatas):
+        self.calls += 1
+        if self.calls == 1:
+            raise RuntimeError("503 UNAVAILABLE: service is currently unavailable")
+
+
 class _SimpleBM25:
     def __init__(self, scores):
         self._scores = scores
@@ -182,6 +192,25 @@ class VectorStoreFallbackTests(unittest.TestCase):
 
         self.assertTrue(health["ok"])
         self.assertEqual(health["result_count"], 1)
+
+    def test_add_documents_retries_transient_embedding_failure(self) -> None:
+        manager = object.__new__(VectorStoreManager)
+        vector_store = _FlakyAddVectorStore()
+        manager.vector_store = vector_store
+        manager.vector_add_max_retries = 2
+        manager.vector_add_retry_sleep_sec = 0.0
+        manager._structure_graph = {"nodes": {}, "parents": {}, "sections": {}}
+        manager._update_structure_graph = lambda chunks, metadatas: None
+        manager._init_bm25 = lambda: None
+
+        result = manager.add_documents(
+            ["시설투자 총액 531,139억원"],
+            [{"company": "삼성전자", "year": 2023, "chunk_uid": "capex"}],
+            batch_size=1,
+        )
+
+        self.assertEqual(vector_store.calls, 2)
+        self.assertEqual(result["added_chunks"], 1)
 
     def test_search_cache_reuses_previous_results_for_same_query(self) -> None:
         vector_doc = Document(
