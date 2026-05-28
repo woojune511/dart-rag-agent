@@ -45,6 +45,7 @@ from src.config.retrieval_policy import (
     POLICY_CONTEXT_RESPONSE_TERMS,
     POLICY_CONTEXT_ROLE_TERMS,
     POLICY_CONTEXT_SENTENCE_TERMS,
+    QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_STOPWORDS,
     TECHNOLOGY_CAR_AUDIO_TERMS,
     TECHNOLOGY_CONNECTED_SOLUTION_TERMS,
@@ -55,6 +56,7 @@ from src.config.retrieval_policy import (
     active_narrative_policies,
     narrative_policy_active,
     narrative_policy_driver_groups,
+    narrative_policy_paragraph_priority_sections,
     narrative_policy_preferred_sections,
     narrative_policy_slot_groups,
     narrative_policy_terms,
@@ -325,6 +327,10 @@ class FinancialAgentEvidenceMixin:
         technology_focus_query = narrative_policy_active(active_policies, "technology_focus")
         policy_context_query = narrative_policy_active(active_policies, "policy_context")
         preferred_section_markers = [item.lower() for item in narrative_policy_preferred_sections(active_policies)]
+        paragraph_priority_sections = [
+            item.lower()
+            for item in narrative_policy_paragraph_priority_sections(active_policies)
+        ]
         causal_markers = narrative_policy_terms(active_policies, "causal_terms")
         realized_markers = narrative_policy_terms(active_policies, "realized_terms")
         penalty_terms = narrative_policy_terms(active_policies, "penalty_terms")
@@ -332,6 +338,9 @@ class FinancialAgentEvidenceMixin:
         technology_terms = narrative_policy_terms(active_policies, "technology_terms")
         dividend_payout_terms = narrative_policy_terms(active_policies, "payout_terms")
         dividend_policy_terms = narrative_policy_terms(active_policies, "policy_terms")
+        dividend_liquidity_context_terms = narrative_policy_terms(active_policies, "liquidity_context_terms")
+        dividend_outflow_terms = narrative_policy_terms(active_policies, "outflow_terms")
+        dividend_policy_section_terms = narrative_policy_terms(active_policies, "policy_section_terms")
         driver_groups = self._narrative_driver_groups(query)
         query_focus_markers = self._query_focus_markers(query)
 
@@ -363,15 +372,11 @@ class FinancialAgentEvidenceMixin:
                 priority += 3
             if any(marker in section_path for marker in preferred_section_markers):
                 priority += 2
-            if "나. 영업실적".lower() in section_path or "기타 참고사항".lower() in section_path:
+            if any(marker in section_path for marker in paragraph_priority_sections):
                 priority += 1
             if technology_focus_query:
-                if "기타 참고사항".lower() in section_path or "사업부문별 현황".lower() in section_path:
-                    priority += 3
                 if any(marker.lower() in text for marker in technology_terms):
                     priority += 4
-                if "iv. 이사의 경영진단 및 분석의견" in section_path and "sdv" not in text:
-                    priority -= 1
             if any(marker.lower() in text for marker in causal_markers):
                 priority += 2
             if impact_query:
@@ -380,9 +385,9 @@ class FinancialAgentEvidenceMixin:
                 if any(marker.lower() in section_path or marker.lower() in text for marker in penalty_terms):
                     priority -= 2
             if dividend_policy_query:
-                if any(term.lower() in section_path for term in DIVIDEND_POLICY_SECTION_TERMS):
+                if any(term.lower() in section_path for term in dividend_policy_section_terms):
                     priority += 3
-                if "유동성 및 자금조달".lower() in section_path:
+                if any(term in section_path for term in paragraph_priority_sections):
                     priority += 2
                 if any(marker.lower() in text for marker in (*dividend_payout_terms, *dividend_policy_terms)):
                     priority += 3
@@ -598,7 +603,7 @@ class FinancialAgentEvidenceMixin:
                     if best_chunk_id:
                         seen_chunk_ids.add(best_chunk_id)
 
-        quantitative_impact_query = any(marker in query for marker in ("영향", "분석", "비중", "대비", "차지"))
+        quantitative_impact_query = any(marker in query for marker in QUANTITATIVE_IMPACT_QUERY_TERMS)
         if quantitative_impact_query:
             focus_terms = [
                 term
@@ -647,8 +652,8 @@ class FinancialAgentEvidenceMixin:
                     any(term in text for term in dividend_payout_terms)
                     and bool(self._extract_dividend_amount_surface(text))
                     and (
-                        any(term in section_path or term in local_heading for term in DIVIDEND_LIQUIDITY_CONTEXT_TERMS)
-                        or any(term in text for term in DIVIDEND_OUTFLOW_TERMS)
+                        any(term in section_path or term in local_heading for term in dividend_liquidity_context_terms)
+                        or any(term in text for term in dividend_outflow_terms)
                     )
                 )
 
@@ -659,7 +664,7 @@ class FinancialAgentEvidenceMixin:
                 return (
                     any(marker in text for marker in dividend_policy_terms)
                     and (
-                        any(term in section_path for term in DIVIDEND_POLICY_SECTION_TERMS)
+                        any(term in section_path for term in dividend_policy_section_terms)
                         or ("2024" in text and "2026" in text)
                     )
                 )
@@ -2280,7 +2285,12 @@ class FinancialAgentEvidenceMixin:
         evidence_items: List[Dict[str, Any]],
     ) -> Optional[Dict[str, Any]]:
         query_text = _normalise_spaces(query)
-        if not any(marker in query_text for marker in ("지분율", "장부금액", "투자장부금액", "요약 손익", "손익")):
+        active_slot_groups = [
+            group
+            for group in narrative_policy_slot_groups(active_narrative_policies(query_text))
+            if any(str(term) in query_text for term in (group.get("query_terms") or ()))
+        ]
+        if not active_slot_groups:
             return None
 
         entity_variants: List[str] = []

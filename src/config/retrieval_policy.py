@@ -143,6 +143,12 @@ NARRATIVE_BASE_PREFERRED_SECTIONS = (
     "나. 영업실적",
 )
 
+NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
+    "나. 영업실적",
+)
+
+QUANTITATIVE_IMPACT_QUERY_TERMS = ("영향", "분석", "비중", "대비", "차지")
+
 
 NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
@@ -273,15 +279,20 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
             "배당에 관한 사항",
             "유동성 및 자금조달",
         ),
+        "paragraph_priority_sections": ("유동성 및 자금조달",),
         "focus_terms": ("배당금 지급", "주주환원", "정규배당", "잉여현금흐름", "추가 환원"),
         "causal_terms": ("주주환원", "정규배당", "잉여현금흐름", "추가 환원", "배당금 지급"),
         "payout_terms": ("배당금 지급",),
         "policy_terms": ("주주환원", "정규배당", "잉여현금흐름", "추가 환원"),
+        "liquidity_context_terms": ("유동성", "현금흐름"),
+        "outflow_terms": ("유출",),
+        "policy_section_terms": ("배당에 관한 사항",),
     },
     {
         "name": "technology_focus",
         "trigger_terms": ("사업 방향", "기술 초점", "전장", "SDV"),
         "preferred_sections": ("기타 참고사항", "사업부문별 현황"),
+        "paragraph_priority_sections": ("기타 참고사항", "사업부문별 현황"),
         "focus_terms": ("전장", "sdv", "software defined vehicle", "커넥티드카", "connected car"),
         "technology_terms": (
             "sdv",
@@ -405,6 +416,15 @@ def narrative_policy_query_suffixes(policies: Sequence[Dict[str, Any]]) -> List[
 
 def narrative_policy_preferred_sections(policies: Sequence[Dict[str, Any]]) -> List[str]:
     return _dedupe([*NARRATIVE_BASE_PREFERRED_SECTIONS, *narrative_policy_terms(policies, "preferred_sections")])
+
+
+def narrative_policy_paragraph_priority_sections(policies: Sequence[Dict[str, Any]]) -> List[str]:
+    return _dedupe(
+        [
+            *NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS,
+            *narrative_policy_terms(policies, "paragraph_priority_sections"),
+        ]
+    )
 
 
 def narrative_policy_driver_groups(policies: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
