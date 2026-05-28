@@ -1084,3 +1084,51 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - `HYU_T3_072` is no longer primarily an answer-selection problem.
   - The remaining work is to make Motional table evidence and entity-table
     projection evaluator-visible enough for grounding / faithfulness checks.
+
+## 2026-05-28 Policy Refactor Validation
+
+Source changes:
+
+- `8d10605 Harden agent runtime policies and traces`
+- `9b2c8e9 Add retrieval trace debugging workflow`
+
+Validation results kept as summary only:
+
+- Evidence policy audit:
+  - row count: `77`
+  - strategy counts: `hybrid = 22`, `narrative = 17`, `numeric = 19`,
+    `refusal = 19`
+  - notable flags:
+    - `needs_numeric_but_no_numeric_evidence = 16`
+    - `multiple_narrative_sections = 16`
+    - `multiple_numeric_sections = 12`
+    - `numeric_without_structured_quote = 10`
+    - `needs_narrative_but_no_narrative_evidence = 4`
+- Routing confusion before guardrail fix:
+  - total cases: `15`
+  - intent accuracy: `0.933`
+  - format accuracy: `0.933`
+  - routing source accuracy: `0.643`
+  - semantic top-1 accuracy: `1.000`
+  - fast path / fallback: `11 / 4`
+- Routing confusion after guardrail fix:
+  - total cases: `15`
+  - intent accuracy: `0.933`
+  - format accuracy: `0.933`
+  - routing source accuracy: `0.714`
+  - semantic top-1 accuracy: `1.000`
+  - fast path / fallback: `12 / 3`
+- Unit verification:
+  - `python -m unittest discover -s tests` passed: `415` tests.
+- Single-question trace verification:
+  - source store: `curated_multi_report_smoke_2026-05-26_fix1`
+  - question: `SAM_T2_002`
+  - `retrieval_debug_trace` was emitted with `selected_count = 8`,
+    `candidate_count = 43`, executed query text, and metadata filter.
+
+Artifact policy:
+
+- Raw result bundles, temporary datasets, temporary profiles, and local stores
+  from these checks were not committed.
+- After recording the summaries above, local untracked benchmark artifacts were
+  cleaned to reduce accidental staging risk.

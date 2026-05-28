@@ -87,6 +87,7 @@ recent blocker and mixed numeric cases.
 - profile:
   - `benchmarks/profiles/tmp_curated_concept_planner_shadow_expanded_2026-05-28.json`
   - temporary profile/result artifacts are not source commit targets
+  - temporary local artifacts were summarized here and later cleaned
 
 Observed pattern:
 
@@ -112,6 +113,8 @@ DART report scans, the same 24-case shadow profile was rerun.
 
 - output:
   - `benchmarks/results/tmp_curated_concept_planner_shadow_expanded_2026-05-28_concepts.json`
+- artifact status:
+  - temporary local output was summarized here and later cleaned
 - concept planner status:
   - `concept_fallback`: 24 / 24
   - `heuristic_fallback`: 0 / 24

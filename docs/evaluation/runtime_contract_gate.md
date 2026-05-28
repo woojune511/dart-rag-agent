@@ -154,6 +154,9 @@ Latest verification:
   - `benchmarks/profiles/tmp_concept_runtime_gap_gate_2026-05-28.json`
 - Output directory:
   - `benchmarks/results/tmp_concept_runtime_gap_gate_2026-05-28/`
+- Artifact status:
+  - temporary local output was summarized here and later cleaned; use the
+    reusable profile below for reruns.
 - Result:
   - 7 / 7 questions finished with `numeric_final_judgement = PASS`
   - `numeric_equivalence = 1.0` and `numeric_grounding = 1.0` for all seven
