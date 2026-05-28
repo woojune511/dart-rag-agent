@@ -42,6 +42,14 @@ class _FlakyAddVectorStore:
             raise RuntimeError("503 UNAVAILABLE: service is currently unavailable")
 
 
+class _CaptureAddVectorStore:
+    def __init__(self):
+        self.calls = []
+
+    def add_texts(self, texts, metadatas):
+        self.calls.append((list(texts), [dict(metadata) for metadata in metadatas]))
+
+
 class _SimpleBM25:
     def __init__(self, scores):
         self._scores = scores
@@ -72,6 +80,7 @@ class VectorStoreFallbackTests(unittest.TestCase):
         manager._vector_capacity_cooldown_until = 0.0
         manager.search_cache_size = 256
         manager._search_cache = OrderedDict()
+        manager._structure_graph = {"nodes": {}, "parents": {}, "sections": {}}
         return manager
 
     def test_search_falls_back_to_bm25_when_embedding_capacity_is_exhausted(self) -> None:
@@ -211,6 +220,66 @@ class VectorStoreFallbackTests(unittest.TestCase):
 
         self.assertEqual(vector_store.calls, 2)
         self.assertEqual(result["added_chunks"], 1)
+
+    def test_add_documents_strips_large_table_payloads_from_chroma_metadata(self) -> None:
+        manager = object.__new__(VectorStoreManager)
+        vector_store = _CaptureAddVectorStore()
+        manager.vector_store = vector_store
+        manager.vector_add_max_retries = 1
+        manager.vector_add_retry_sleep_sec = 0.0
+        manager._structure_graph = {"nodes": {}, "parents": {}, "sections": {}}
+        manager._save_structure_graph = lambda: None
+        manager.persist = lambda: None
+        manager._init_bm25 = lambda: None
+
+        metadata = {
+            "company": "ACME",
+            "year": 2023,
+            "chunk_uid": "chunk-1",
+            "table_summary_text": "summary",
+            "table_row_records_json": "[large rows]",
+            "table_value_records_json": "[large values]",
+            "table_object_json": "{large object}",
+        }
+
+        manager.add_documents(["table text"], [metadata], batch_size=1)
+
+        chroma_metadata = vector_store.calls[0][1][0]
+        self.assertEqual(chroma_metadata["chunk_uid"], "chunk-1")
+        self.assertEqual(chroma_metadata["table_summary_text"], "summary")
+        self.assertNotIn("table_row_records_json", chroma_metadata)
+        self.assertNotIn("table_value_records_json", chroma_metadata)
+        self.assertNotIn("table_object_json", chroma_metadata)
+        graph_metadata = manager._structure_graph["nodes"]["chunk-1"]["metadata"]
+        self.assertEqual(graph_metadata["table_row_records_json"], "[large rows]")
+
+    def test_search_hydrates_vector_metadata_from_structure_graph(self) -> None:
+        vector_doc = Document(page_content="sanitized text", metadata={"chunk_uid": "chunk-1", "company": "ACME"})
+        manager = self._build_manager(
+            _CountVectorStore([(vector_doc, 0.25)]),
+            docs=[],
+            metadatas=[],
+            scores=[],
+        )
+        manager._structure_graph = {
+            "nodes": {
+                "chunk-1": {
+                    "text": "full table text",
+                    "metadata": {
+                        "chunk_uid": "chunk-1",
+                        "company": "ACME",
+                        "table_row_records_json": "[large rows]",
+                    },
+                }
+            },
+            "parents": {},
+            "sections": {},
+        }
+
+        results = manager.search("table", k=1)
+
+        self.assertEqual(results[0][0].page_content, "full table text")
+        self.assertEqual(results[0][0].metadata["table_row_records_json"], "[large rows]")
 
     def test_search_cache_reuses_previous_results_for_same_query(self) -> None:
         vector_doc = Document(

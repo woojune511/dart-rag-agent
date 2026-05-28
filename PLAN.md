@@ -22,20 +22,23 @@
   - Aggregate: `faithfulness = 0.500`, `context_recall = 1.000`,
     `retrieval_hit_at_k = 1.000`, `citation_coverage = 1.000`,
     `section_match_rate = 0.5625`, `avg_score = 0.820`.
-- Store-fixed eval-only was attempted against the completed Hyundai store and
-  failed before answer evaluation because the persisted Chroma HNSW index could
-  not be reopened (`Error loading hnsw index`).
-  - BM25 recovery from `document_structure_graph.json` initialized correctly.
-  - The official profile keeps `allow_retrieval_fallback = false`, so the run
-    correctly failed instead of silently converting an official gate into a
-    BM25-only degraded evaluation.
+- Hyundai Chroma reopen root cause has been isolated and mitigated.
+  - `100` and `500` chunk stores reopened in a separate process.
+  - `1000` and `1764` chunk stores failed when Chroma tried to materialize the
+    persisted HNSW index at the default `hnsw:sync_threshold = 1000`.
+  - `2023`-only `939` chunks reopened successfully, so this was not a
+    Hyundai-2023 chunk-content issue.
+  - Vector metadata sanitization reduced Chroma sqlite size, and setting
+    `DART_CHROMA_HNSW_SYNC_THRESHOLD` default to `100000` keeps these benchmark
+    stores on the reopen-safe queue path.
+  - Verification probe: Hyundai `1764` chunks reopened successfully from a
+    separate Python process with strict vector health check.
 - Immediate next implementation target:
-  1. Investigate Hyundai-specific Chroma/HNSW persistence failure. Full replay
-     and rebuild both complete, but the store still fails official strict
-     eval-only when reopened in a separate process.
-  2. Keep official gate runs strict: vector index read errors fail before
-     answer generation, while BM25 fallback is only allowed through an explicit
-     degraded diagnostic eval-only option.
+  1. Reduce `document_structure_graph.json` bloat from repeated large table
+     payload fields; the successful Hyundai probe still produced a `1.8GB`
+     structure graph.
+  2. Rerun strict Hyundai store-fixed eval-only against a rebuilt store created
+     with the new Chroma settings.
   3. Continue HYU quality work as ranking/evaluator-grounding work, not as a
      retrieval-miss fix; both Hyundai questions already have
      `context_recall = 1.000` and `retrieval_hit_at_k = 1.000`.

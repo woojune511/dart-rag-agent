@@ -1305,3 +1305,57 @@ Follow-up execution notes:
     `entity_coverage = 0.600`, `avg_score = 0.867`, `error_rate = 0.0%`
 - The degraded result is diagnostic only and must not be used as an official
   policy gate score.
+
+## 2026-05-29 Hyundai Chroma Reopen Probe
+
+Purpose:
+
+- Isolate why completed Hyundai stores failed strict eval-only vector health
+  checks with `Error loading hnsw index`.
+
+Findings:
+
+- Hyundai parser output was stable: `1,764` chunks and `96` parent chunks from
+  Hyundai 2022 + 2023 reports.
+- Minimal reopen probes:
+  - `100` chunks: pass with ASCII path, long collection name, and Korean path.
+  - `500` chunks: pass in production-like Korean path + collection setup.
+  - `1000` chunks: fail with `Error loading hnsw index`.
+  - `1764` chunks: fail with the same HNSW reader error.
+  - Hyundai 2023-only `939` chunks: pass.
+- The failure aligned with Chroma's default `hnsw:sync_threshold = 1000`.
+  Failed stores contained only `index_metadata.pickle` in the HNSW directory,
+  without the expected binary HNSW files.
+- Large table metadata amplified store size:
+  - pre-fix `1000` chunk Chroma sqlite: about `2.1GB`
+  - post metadata-sanitization `1000` chunk Chroma sqlite: about `32MB`
+
+Code changes:
+
+- Chroma metadata now excludes large structured table payloads:
+  `table_object_json`, `table_row_records_json`, and
+  `table_value_records_json`.
+- Search results are hydrated from `document_structure_graph.json` by
+  `chunk_uid`, so answer/evidence logic can still access structured table
+  payloads outside Chroma metadata.
+- BM25 initializes from the structure graph first when available.
+- Default Chroma HNSW settings now keep benchmark-sized stores below the HNSW
+  materialization threshold:
+  - `DART_CHROMA_HNSW_BATCH_SIZE = 100`
+  - `DART_CHROMA_HNSW_SYNC_THRESHOLD = 100000`
+
+Verification:
+
+- Hyundai `1764` chunk store rebuilt with the new settings passed strict vector
+  health check from a separate Python process.
+- Resulting Chroma sqlite was about `57MB`; no broken HNSW directory was
+  produced.
+- Unit coverage:
+  `python -m unittest tests.test_vector_store_fallback`
+
+Residual risk:
+
+- `document_structure_graph.json` is still too large for Hyundai full replay
+  (`~1.8GB`) because large structured table payloads are repeated across
+  sub-chunks. The next storage task should deduplicate table payloads into a
+  sidecar artifact keyed by `table_source_id` or `chunk_uid`.

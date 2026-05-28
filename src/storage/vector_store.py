@@ -32,6 +32,8 @@ DEFAULT_EMBEDDING_MODEL = (
     else DEFAULT_HUGGINGFACE_EMBEDDING_MODEL
 )
 DEFAULT_COLLECTION_NAME = "dart_reports_v2"
+DEFAULT_CHROMA_HNSW_BATCH_SIZE = int(os.getenv("DART_CHROMA_HNSW_BATCH_SIZE", "100") or 100)
+DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD = int(os.getenv("DART_CHROMA_HNSW_SYNC_THRESHOLD", "100000") or 100000)
 
 _KNOWN_EMBEDDING_DIMENSIONS = {
     ("google", "models/gemini-embedding-2"): 3072,
@@ -41,6 +43,15 @@ _KNOWN_EMBEDDING_DIMENSIONS = {
     ("openai", "text-embedding-ada-002"): 1536,
     ("huggingface", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"): 384,
 }
+
+_CHROMA_METADATA_MAX_STRING_LEN = int(os.getenv("DART_CHROMA_METADATA_MAX_STRING_LEN", "8192") or 8192)
+_CHROMA_METADATA_DROP_KEYS = frozenset(
+    {
+        "table_object_json",
+        "table_row_records_json",
+        "table_value_records_json",
+    }
+)
 
 
 def infer_embedding_dimension(
@@ -141,6 +152,27 @@ def _chunk_uid_from_metadata(metadata: Dict[str, Any]) -> str:
     )
 
 
+def _metadata_for_chroma(metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """Return bounded metadata for Chroma's sqlite metadata table."""
+    sanitized: Dict[str, Any] = {}
+    for key, value in dict(metadata or {}).items():
+        if key in _CHROMA_METADATA_DROP_KEYS or value is None:
+            continue
+        if isinstance(value, (str, int, float, bool)):
+            sanitized[key] = value[:_CHROMA_METADATA_MAX_STRING_LEN] if isinstance(value, str) else value
+            continue
+        if isinstance(value, (list, tuple, set)):
+            joined = " | ".join(str(item).strip() for item in value if str(item).strip())
+            if joined:
+                sanitized[key] = joined[:_CHROMA_METADATA_MAX_STRING_LEN]
+            continue
+        if isinstance(value, dict):
+            compact_json = json.dumps(value, ensure_ascii=False)
+            if len(compact_json) <= _CHROMA_METADATA_MAX_STRING_LEN:
+                sanitized[key] = compact_json
+    return sanitized
+
+
 def _metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[dict]) -> bool:
     if not where_filter:
         return True
@@ -233,6 +265,8 @@ class VectorStoreManager:
         self.search_cache_size = max(0, int(os.getenv("DART_RETRIEVAL_SEARCH_CACHE_SIZE", "256") or 256))
         self.vector_add_max_retries = max(1, int(os.getenv("DART_VECTOR_ADD_MAX_RETRIES", "4") or 4))
         self.vector_add_retry_sleep_sec = max(0.0, float(os.getenv("DART_VECTOR_ADD_RETRY_SLEEP_SEC", "3") or 3))
+        self.chroma_hnsw_batch_size = max(1, DEFAULT_CHROMA_HNSW_BATCH_SIZE)
+        self.chroma_hnsw_sync_threshold = max(self.chroma_hnsw_batch_size, DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD)
         self._vector_capacity_cooldown_until = 0.0
         self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
         self.embedding_spec = get_embedding_runtime_spec(
@@ -254,6 +288,10 @@ class VectorStoreManager:
             collection_name=self.collection_name,
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory,
+            collection_metadata={
+                "hnsw:batch_size": self.chroma_hnsw_batch_size,
+                "hnsw:sync_threshold": self.chroma_hnsw_sync_threshold,
+            },
         )
         logger.info("Initialized ChromaDB at %s (collection=%s)", self.persist_directory, self.collection_name)
 
@@ -326,6 +364,12 @@ class VectorStoreManager:
     def _init_bm25(self):
         docs: List[str] = []
         metadatas: List[dict] = []
+        docs, metadatas = self._structure_graph_bm25_payload()
+        if docs:
+            self._build_bm25_index(docs, metadatas)
+            logger.info("Initialized BM25 index from structure graph with %s documents.", len(self.bm25_docs))
+            return
+
         try:
             payload = self.vector_store.get()
             docs = list(payload.get("documents") or []) if payload else []
@@ -336,12 +380,6 @@ class VectorStoreManager:
         if docs:
             self._build_bm25_index(docs, metadatas)
             logger.info("Initialized BM25 index with %s documents.", len(self.bm25_docs))
-            return
-
-        docs, metadatas = self._structure_graph_bm25_payload()
-        if docs:
-            self._build_bm25_index(docs, metadatas)
-            logger.info("Initialized BM25 index from structure graph with %s documents.", len(self.bm25_docs))
             return
 
         self.bm25 = None
@@ -418,6 +456,19 @@ class VectorStoreManager:
             docs.append(text)
             metadatas.append(metadata)
         return docs, metadatas
+
+    def _hydrate_document_from_structure_graph(self, doc: Document) -> Document:
+        metadata = dict(getattr(doc, "metadata", {}) or {})
+        chunk_uid = _chunk_uid_from_metadata(metadata)
+        if not chunk_uid:
+            return doc
+        node = ((self._structure_graph or {}).get("nodes", {}) or {}).get(chunk_uid)
+        if not node:
+            return doc
+        hydrated_metadata = dict(metadata)
+        hydrated_metadata.update(dict((node.get("metadata") or {})))
+        text = str(node.get("text") or doc.page_content or "")
+        return Document(page_content=text, metadata=hydrated_metadata)
 
     # ------------------------------------------------------------------
     # Parent chunk storage
@@ -684,10 +735,11 @@ class VectorStoreManager:
             batch = pending[start : start + effective_batch_size]
             batch_texts = [text for text, _, _ in batch]
             batch_metadatas = [metadata for _, metadata, _ in batch]
+            chroma_metadatas = [_metadata_for_chroma(metadata) for metadata in batch_metadatas]
             max_attempts = max(1, int(getattr(self, "vector_add_max_retries", 1) or 1))
             for attempt in range(1, max_attempts + 1):
                 try:
-                    self.vector_store.add_texts(texts=batch_texts, metadatas=batch_metadatas)
+                    self.vector_store.add_texts(texts=batch_texts, metadatas=chroma_metadatas)
                     break
                 except Exception as exc:
                     if attempt >= max_attempts or not _is_transient_vector_add_error(exc):
@@ -850,6 +902,10 @@ class VectorStoreManager:
                     k=k * 2,
                     filter=where_filter,
                 )
+                vector_results = [
+                    (self._hydrate_document_from_structure_graph(doc), score)
+                    for doc, score in vector_results
+                ]
             except Exception as exc:
                 if self.allow_query_embedding_fallback and (
                     _is_embedding_capacity_error(exc) or _is_vector_store_read_error(exc)
@@ -865,6 +921,10 @@ class VectorStoreManager:
                     vector_results = []
                 elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
                     vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
+                    vector_results = [
+                        (self._hydrate_document_from_structure_graph(doc), score)
+                        for doc, score in vector_results
+                    ]
                 else:
                     raise
 
