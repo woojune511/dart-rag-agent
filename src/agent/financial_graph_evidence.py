@@ -29,22 +29,6 @@ from src.agent.financial_graph_models import (
 )
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
-    DIVIDEND_LIQUIDITY_CONTEXT_TERMS,
-    DIVIDEND_OUTFLOW_TERMS,
-    DIVIDEND_ADDITIONAL_RETURN_TERMS,
-    DIVIDEND_PAYOUT_DEEMPHASIS_TERMS,
-    DIVIDEND_PAYOUT_TERMS,
-    DIVIDEND_POLICY_PREFERRED_TERMS,
-    DIVIDEND_POLICY_QUERY_TERMS,
-    DIVIDEND_POLICY_SECTION_TERMS,
-    DIVIDEND_POLICY_TERMS,
-    DIVIDEND_REGULAR_TERMS,
-    DIVIDEND_TABLE_POLICY_TERMS,
-    POLICY_CONTEXT_QUERY_TERMS,
-    POLICY_CONTEXT_PRIMARY_TERMS,
-    POLICY_CONTEXT_RESPONSE_TERMS,
-    POLICY_CONTEXT_ROLE_TERMS,
-    POLICY_CONTEXT_SENTENCE_TERMS,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_STOPWORDS,
     TECHNOLOGY_CAR_AUDIO_TERMS,
@@ -2104,6 +2088,16 @@ class FinancialAgentEvidenceMixin:
         if not self._is_dividend_policy_mixed_query(query) or not docs:
             return evidence_items
 
+        active_policies = active_narrative_policies(query)
+        payout_terms = narrative_policy_terms(active_policies, "payout_terms")
+        payout_deemphasis_terms = narrative_policy_terms(active_policies, "payout_deemphasis_terms")
+        policy_terms = narrative_policy_terms(active_policies, "policy_terms")
+        policy_preferred_terms = narrative_policy_terms(active_policies, "policy_preferred_terms")
+        liquidity_context_terms = narrative_policy_terms(active_policies, "liquidity_context_terms")
+        outflow_terms = narrative_policy_terms(active_policies, "outflow_terms")
+        policy_section_terms = narrative_policy_terms(active_policies, "policy_section_terms")
+        regular_terms = narrative_policy_terms(active_policies, "regular_terms")
+        additional_return_terms = narrative_policy_terms(active_policies, "additional_return_terms")
         supplemented = [dict(item) for item in evidence_items]
         seen_keys = {
             _normalise_spaces(
@@ -2146,17 +2140,17 @@ class FinancialAgentEvidenceMixin:
             local_heading = _normalise_spaces(str(metadata.get("local_heading") or ""))
             anchor = self._build_source_anchor(metadata)
 
-            if any(marker in text for marker in DIVIDEND_PAYOUT_TERMS):
-                snippet = self._extract_driver_snippet(text, list(DIVIDEND_PAYOUT_TERMS))
+            if any(marker in text for marker in payout_terms):
+                snippet = self._extract_driver_snippet(text, list(payout_terms))
                 amount_surface = self._extract_dividend_payout_amount_surface(snippet or text) or self._extract_dividend_amount_surface(snippet or text)
                 if amount_surface:
                     score = 0.0
                     lowered_context = f"{section_path} {local_heading} {text}".lower()
-                    if any(term in lowered_context for term in DIVIDEND_LIQUIDITY_CONTEXT_TERMS):
+                    if any(term in lowered_context for term in liquidity_context_terms):
                         score += 4.0
-                    if any(term in text for term in DIVIDEND_OUTFLOW_TERMS):
+                    if any(term in text for term in outflow_terms):
                         score += 2.0
-                    if any(term in text for term in DIVIDEND_PAYOUT_DEEMPHASIS_TERMS):
+                    if any(term in text for term in payout_deemphasis_terms):
                         score -= 1.5
                     if score > payout_score:
                         payout_score = score
@@ -2176,16 +2170,16 @@ class FinancialAgentEvidenceMixin:
                             ),
                         }
 
-            if any(marker in text for marker in DIVIDEND_POLICY_TERMS):
-                snippet = self._extract_dividend_policy_clause(text)
+            if any(marker in text for marker in policy_terms):
+                snippet = self._extract_dividend_policy_clause(text, preferred_markers=policy_preferred_terms)
                 if snippet:
                     score = 0.0
                     lowered_context = f"{section_path} {local_heading}".lower()
-                    if any(term in lowered_context for term in DIVIDEND_POLICY_SECTION_TERMS):
+                    if any(term in lowered_context for term in policy_section_terms):
                         score += 4.0
-                    if any(marker in snippet for marker in DIVIDEND_REGULAR_TERMS):
+                    if any(marker in snippet for marker in regular_terms):
                         score += 2.0
-                    if any(marker in snippet for marker in DIVIDEND_ADDITIONAL_RETURN_TERMS):
+                    if any(marker in snippet for marker in additional_return_terms):
                         score += 2.0
                     if score > policy_score:
                         policy_score = score
@@ -2673,9 +2667,15 @@ class FinancialAgentEvidenceMixin:
         query_text = _normalise_spaces(query)
         if not query_text:
             return None
+        active_policies = active_narrative_policies(query_text)
+        policy_query_terms = narrative_policy_terms(active_policies, "query_terms")
+        policy_sentence_terms = narrative_policy_terms(active_policies, "sentence_terms")
+        policy_primary_terms = narrative_policy_terms(active_policies, "primary_terms")
+        policy_response_terms = narrative_policy_terms(active_policies, "response_terms")
+        policy_role_terms = narrative_policy_terms(active_policies, "role_terms")
         if not all(marker in query_text for marker in ("판매대수", "전년 대비")):
             return None
-        if not any(marker in query_text for marker in POLICY_CONTEXT_QUERY_TERMS):
+        if not any(marker in query_text for marker in policy_query_terms):
             return None
 
         text_parts: List[str] = [str(existing_answer or "")]
@@ -2723,15 +2723,17 @@ class FinancialAgentEvidenceMixin:
             sentence_text = _normalise_spaces(sentence)
             if not sentence_text:
                 continue
-            if any(marker in sentence_text for marker in POLICY_CONTEXT_SENTENCE_TERMS):
+            if any(marker in sentence_text for marker in policy_sentence_terms):
                 score = 0
-                if any(term in sentence_text for term in POLICY_CONTEXT_PRIMARY_TERMS):
+                if any(term in sentence_text for term in policy_primary_terms):
                     score += 2
-                if "핵심원자재법" in sentence_text:
-                    score += 2
-                if "보호무역주의" in sentence_text:
-                    score += 2
-                if any(term in sentence_text for term in POLICY_CONTEXT_RESPONSE_TERMS):
+                secondary_hits = sum(
+                    1
+                    for term in policy_sentence_terms
+                    if term not in policy_primary_terms and term in sentence_text
+                )
+                score += min(secondary_hits, 2)
+                if any(term in sentence_text for term in policy_response_terms):
                     score += 1
                 policy_candidates.append((score, sentence_text))
         policy_sentence = max(policy_candidates, key=lambda item: item[0])[1] if policy_candidates else ""
@@ -2749,7 +2751,7 @@ class FinancialAgentEvidenceMixin:
             "current_value": ("2023", current_units),
             "prior_value": ("2022", prior_units),
             "primary_value": (growth_rate, "%"),
-            "policy": POLICY_CONTEXT_ROLE_TERMS,
+            "policy": tuple(policy_role_terms),
         }
         for role, markers in role_markers.items():
             if any(not marker for marker in markers):
@@ -2903,8 +2905,11 @@ class FinancialAgentEvidenceMixin:
         surface = _normalise_spaces(str(query or ""))
         if not surface:
             return False
-        return any(marker in surface for marker in DIVIDEND_PAYOUT_TERMS) and any(
-            marker in surface for marker in DIVIDEND_POLICY_QUERY_TERMS
+        active_policies = active_narrative_policies(surface)
+        payout_terms = narrative_policy_terms(active_policies, "payout_terms")
+        policy_query_terms = narrative_policy_terms(active_policies, "policy_query_terms")
+        return any(marker in surface for marker in payout_terms) and any(
+            marker in surface for marker in policy_query_terms
         )
 
     def _extract_dividend_amount_surface(self, text: str) -> str:
@@ -2954,7 +2959,7 @@ class FinancialAgentEvidenceMixin:
             return float(int(million_match.group(1).replace(",", "")) / 100.0)
         return float("-inf")
 
-    def _extract_dividend_policy_clause(self, text: str) -> str:
+    def _extract_dividend_policy_clause(self, text: str, *, preferred_markers: Optional[List[str]] = None) -> str:
         surface = _normalise_spaces(str(text or ""))
         if not surface:
             return ""
@@ -2963,10 +2968,10 @@ class FinancialAgentEvidenceMixin:
             for fragment in re.split(r"(?<=[.!?])\s+|\n+", surface)
             if _normalise_spaces(fragment)
         ]
-        preferred_markers = DIVIDEND_POLICY_PREFERRED_TERMS
-        for fragment in fragments:
-            if any(marker in fragment for marker in preferred_markers):
-                return fragment[:240]
+        if preferred_markers:
+            for fragment in fragments:
+                if any(marker in fragment for marker in preferred_markers):
+                    return fragment[:240]
         for fragment in fragments:
             if "2024" in fragment and "2026" in fragment:
                 return fragment[:240]
@@ -2983,6 +2988,17 @@ class FinancialAgentEvidenceMixin:
         if not evidence_items:
             return None
 
+        active_policies = active_narrative_policies(query)
+        payout_terms = narrative_policy_terms(active_policies, "payout_terms")
+        payout_deemphasis_terms = narrative_policy_terms(active_policies, "payout_deemphasis_terms")
+        policy_terms = narrative_policy_terms(active_policies, "policy_terms")
+        policy_preferred_terms = narrative_policy_terms(active_policies, "policy_preferred_terms")
+        liquidity_context_terms = narrative_policy_terms(active_policies, "liquidity_context_terms")
+        outflow_terms = narrative_policy_terms(active_policies, "outflow_terms")
+        table_policy_terms = narrative_policy_terms(active_policies, "table_policy_terms")
+        policy_section_terms = narrative_policy_terms(active_policies, "policy_section_terms")
+        regular_terms = narrative_policy_terms(active_policies, "regular_terms")
+        additional_return_terms = narrative_policy_terms(active_policies, "additional_return_terms")
         payout_amount = ""
         payout_evidence_id = ""
         policy_clause = ""
@@ -3016,20 +3032,20 @@ class FinancialAgentEvidenceMixin:
                     if part
                 )
             ).lower()
-            if any(marker in combined_text for marker in DIVIDEND_PAYOUT_TERMS):
-                payout_snippet = self._extract_driver_snippet(combined_text, list(DIVIDEND_PAYOUT_TERMS))
+            if any(marker in combined_text for marker in payout_terms):
+                payout_snippet = self._extract_driver_snippet(combined_text, list(payout_terms))
                 amount_surface = self._extract_dividend_payout_amount_surface(payout_snippet or combined_text) or self._extract_dividend_amount_surface(payout_snippet or combined_text)
                 if amount_surface:
                     payout_score = 0.0
-                    if any(term in lowered_text for term in DIVIDEND_LIQUIDITY_CONTEXT_TERMS):
+                    if any(term in lowered_text for term in liquidity_context_terms):
                         payout_score += 4.0
-                    if any(term in combined_text for term in DIVIDEND_OUTFLOW_TERMS):
+                    if any(term in combined_text for term in outflow_terms):
                         payout_score += 2.0
                     if "이사의 경영진단" in section_hint:
                         payout_score += 1.0
-                    if any(term in combined_text for term in DIVIDEND_TABLE_POLICY_TERMS):
+                    if any(term in combined_text for term in table_policy_terms):
                         payout_score -= 4.0
-                    if any(term in combined_text for term in DIVIDEND_PAYOUT_DEEMPHASIS_TERMS):
+                    if any(term in combined_text for term in payout_deemphasis_terms):
                         payout_score -= 1.5
                     payout_key = (payout_score, self._dividend_amount_rank(amount_surface))
                     if payout_key > payout_best_key:
@@ -3038,22 +3054,22 @@ class FinancialAgentEvidenceMixin:
                         payout_evidence_id = str(item.get("evidence_id") or "").strip()
             if any(
                 marker in combined_text
-                for marker in DIVIDEND_POLICY_TERMS
+                for marker in policy_terms
             ):
-                clause = self._extract_dividend_policy_clause(combined_text)
+                clause = self._extract_dividend_policy_clause(combined_text, preferred_markers=policy_preferred_terms)
                 if clause:
                     policy_score = 0.0
                     if "2024" in clause and "2026" in clause:
                         policy_score += 5.0
                     if "2021" in clause and "2023" in clause and not ("2024" in clause and "2026" in clause):
                         policy_score -= 2.0
-                    if any(marker in clause for marker in DIVIDEND_REGULAR_TERMS):
+                    if any(marker in clause for marker in regular_terms):
                         policy_score += 2.0
-                    if any(marker in clause for marker in DIVIDEND_ADDITIONAL_RETURN_TERMS):
+                    if any(marker in clause for marker in additional_return_terms):
                         policy_score += 2.0
                     if "잉여현금흐름" in clause or "free cash flow" in clause.lower():
                         policy_score += 1.0
-                    if any(term in section_hint for term in DIVIDEND_POLICY_SECTION_TERMS):
+                    if any(term in section_hint for term in policy_section_terms):
                         policy_score += 2.0
                     policy_key = (policy_score,)
                     if policy_key > policy_best_key:

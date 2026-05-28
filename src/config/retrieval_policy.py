@@ -283,9 +283,27 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "focus_terms": ("배당금 지급", "주주환원", "정규배당", "잉여현금흐름", "추가 환원"),
         "causal_terms": ("주주환원", "정규배당", "잉여현금흐름", "추가 환원", "배당금 지급"),
         "payout_terms": ("배당금 지급",),
+        "payout_deemphasis_terms": ("배당금의 지급",),
         "policy_terms": ("주주환원", "정규배당", "잉여현금흐름", "추가 환원"),
+        "regular_terms": ("정규배당",),
+        "additional_return_terms": ("추가 환원", "추가로 환원"),
+        "policy_query_terms": (
+            "주주환원 정책",
+            "배당에 관한 사항",
+            "정규배당",
+            "추가 환원",
+            "잉여현금흐름",
+        ),
+        "policy_preferred_terms": (
+            "정규배당",
+            "추가 환원",
+            "추가로 환원",
+            "잉여현금흐름",
+            "주주환원 정책",
+        ),
         "liquidity_context_terms": ("유동성", "현금흐름"),
         "outflow_terms": ("유출",),
+        "table_policy_terms": ("현금배당금총액", "배당성향"),
         "policy_section_terms": ("배당에 관한 사항",),
     },
     {
@@ -319,33 +337,13 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "name": "policy_context",
         "trigger_terms": ("보호무역주의", "대응", "IRA", "인플레이션 감축법"),
         "focus_terms": ("보호무역주의", "대응", "ira", "인플레이션 감축법", "핵심원자재법"),
+        "query_terms": ("정책", "IRA", "인플레이션 감축법", "보호무역"),
+        "sentence_terms": ("인플레이션 감축법", "IRA", "핵심원자재법", "보호무역주의"),
+        "primary_terms": ("인플레이션 감축법", "IRA"),
+        "response_terms": ("적극적인 대응", "대응이 필요한"),
+        "role_terms": ("인플레이션 감축법", "보호무역주의"),
     },
 )
-
-
-DIVIDEND_PAYOUT_TERMS = ("배당금 지급",)
-DIVIDEND_PAYOUT_DEEMPHASIS_TERMS = ("배당금의 지급",)
-DIVIDEND_POLICY_TERMS = ("주주환원", "정규배당", "추가 환원", "잉여현금흐름")
-DIVIDEND_REGULAR_TERMS = ("정규배당",)
-DIVIDEND_ADDITIONAL_RETURN_TERMS = ("추가 환원", "추가로 환원")
-DIVIDEND_POLICY_QUERY_TERMS = (
-    "주주환원 정책",
-    "배당에 관한 사항",
-    "정규배당",
-    "추가 환원",
-    "잉여현금흐름",
-)
-DIVIDEND_POLICY_PREFERRED_TERMS = (
-    "정규배당",
-    "추가 환원",
-    "추가로 환원",
-    "잉여현금흐름",
-    "주주환원 정책",
-)
-DIVIDEND_POLICY_SECTION_TERMS = ("배당에 관한 사항",)
-DIVIDEND_LIQUIDITY_CONTEXT_TERMS = ("유동성", "현금흐름")
-DIVIDEND_OUTFLOW_TERMS = ("유출",)
-DIVIDEND_TABLE_POLICY_TERMS = ("현금배당금총액", "배당성향")
 
 
 TECHNOLOGY_CONNECTED_SOLUTION_TERMS = (
@@ -359,13 +357,6 @@ TECHNOLOGY_CAR_AUDIO_TERMS = ("카 오디오", "카오디오")
 TECHNOLOGY_IT_COMPONENT_TERMS = ("무선통신", "디스플레이")
 TECHNOLOGY_IT_LABEL_TERMS = ("IT 기술",)
 TECHNOLOGY_SDV_TERMS = ("SDV", "Software Defined Vehicle")
-
-
-POLICY_CONTEXT_QUERY_TERMS = ("정책", "IRA", "인플레이션 감축법", "보호무역")
-POLICY_CONTEXT_PRIMARY_TERMS = ("인플레이션 감축법", "IRA")
-POLICY_CONTEXT_SENTENCE_TERMS = ("인플레이션 감축법", "IRA", "핵심원자재법", "보호무역주의")
-POLICY_CONTEXT_ROLE_TERMS = ("인플레이션 감축법", "보호무역주의")
-POLICY_CONTEXT_RESPONSE_TERMS = ("적극적인 대응", "대응이 필요한")
 
 
 def _normalise_policy_text(value: Any) -> str:
