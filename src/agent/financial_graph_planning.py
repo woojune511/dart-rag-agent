@@ -29,6 +29,7 @@ from src.config.retrieval_policy import (
     narrative_policy_preferred_sections,
     narrative_policy_query_suffixes,
     narrative_policy_slot_groups,
+    narrative_policy_terms,
 )
 from src.routing import default_format_preference
 from src.schema import ArtifactKind, TaskKind, TaskStatus
@@ -361,12 +362,26 @@ def _build_hybrid_narrative_subtask(
         for group in narrative_policy_slot_groups(active_policies)
         if any(str(term).strip() and str(term).strip() in query for term in (group.get("query_terms") or []))
     ]
+    format_preference_override = (
+        "table"
+        if active_slot_groups or default_format_preference(intent) == "table"
+        else "paragraph"
+    )
     retrieval_queries = [_normalise_spaces(query)]
+    base_suffixes = (
+        ()
+        if format_preference_override == "table"
+        else NARRATIVE_BASE_RETRIEVAL_SUFFIXES
+    )
     retrieval_queries.extend(
         _normalise_spaces(f"{query} {suffix}")
-        for suffix in (*NARRATIVE_BASE_RETRIEVAL_SUFFIXES, *narrative_policy_query_suffixes(active_policies))
+        for suffix in (*base_suffixes, *narrative_policy_query_suffixes(active_policies))
     )
-    preferred_sections = narrative_policy_preferred_sections(active_policies)
+    preferred_sections = (
+        narrative_policy_terms(active_policies, "preferred_sections")
+        if format_preference_override == "table"
+        else narrative_policy_preferred_sections(active_policies)
+    )
     return {
         "task_id": next_task_id,
         "metric_family": "narrative_summary",
@@ -385,11 +400,7 @@ def _build_hybrid_narrative_subtask(
             "context_scope": "narrative",
         },
         "intent_override": "qa",
-        "format_preference_override": (
-            "table"
-            if active_slot_groups or default_format_preference(intent) == "table"
-            else "paragraph"
-        ),
+        "format_preference_override": format_preference_override,
     }
 
 

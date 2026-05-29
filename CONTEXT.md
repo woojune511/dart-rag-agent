@@ -522,13 +522,15 @@
   - table-preferred retrieval now keeps at least one table in small visible
     windows and places table hits before supplemental paragraph context.
   - subsequent store-fixed eval-only with the narrative table-focus guard
-    improves the Motional ranking path: `ndcg_at_5 = 0.931`,
-    `context_precision_at_5 = 0.600`, `entity_coverage = 1.0`,
-    `grounded_rendering_correctness = 1.0`, `avg_score = 0.889`.
+    improves the Motional ranking path: `ndcg_at_5 = 1.195`,
+    `context_precision_at_5 = 0.800`, `section_match_rate = 0.800`,
+    `entity_coverage = 1.0`, `grounded_rendering_correctness = 1.0`,
+    `avg_score = 0.939`.
   - the implementation remains policy/slot driven: hybrid narrative subtasks
     inherit table format from table/numeric intents, slot/focus table coverage
-    is capped by declared slot groups, and runtime code does not add new
-    company/question-specific keyword branches.
+    is capped by declared slot groups, and final fill prefers the selected
+    table sections instead of padding with broad unrelated paragraphs. Runtime
+    code does not add new company/question-specific keyword branches.
 - Validation commands used during this pass:
   - `.\.venv\Scripts\python.exe -m py_compile src\agent\financial_graph_evidence.py src\agent\financial_graph_calculation.py tests\test_operation_contracts.py`
   - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts`

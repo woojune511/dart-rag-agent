@@ -3535,13 +3535,15 @@ class OperationContractTests(unittest.TestCase):
 
     def test_entity_metric_narrative_task_prefers_table_format(self) -> None:
         task = _build_hybrid_narrative_subtask(
-            query="2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            query="Summarize Motional ownership, carrying amount, and profit or loss.",
             intent="numeric_fact",
             report_scope={"company": "현대자동차", "year": 2023},
             next_task_id="task_2",
         )
 
         self.assertEqual(task["format_preference_override"], "table")
+        self.assertEqual(task["preferred_sections"], [])
+        self.assertEqual(task["retrieval_queries"], [task["query"]])
 
     def test_entity_metric_doc_selection_fills_with_slot_tables_before_generic_paragraphs(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3613,6 +3615,55 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("motional-profit-loss", chunk_ids)
         self.assertNotIn("generic-mda", chunk_ids[:2])
         self.assertNotIn("motional-header-only", chunk_ids)
+
+    def test_table_focused_narrative_fill_prefers_selected_table_sections(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="Generic management discussion paragraph with no entity focus.",
+                    metadata={
+                        "chunk_id": "generic-high-score",
+                        "block_type": "paragraph",
+                        "section_path": "IV. Management Discussion",
+                    },
+                ),
+                1.10,
+            ),
+            (
+                Document(
+                    page_content="Motional AD LLC | ownership | carrying amount\nMotional AD LLC | 25.81% | 1,294,367",
+                    metadata={
+                        "chunk_id": "focus-table",
+                        "block_type": "table",
+                        "section_path": "III. Notes > Investments",
+                        "period_focus": "current",
+                    },
+                ),
+                0.80,
+            ),
+            (
+                Document(
+                    page_content="Motional AD LLC supporting note text from the same investment note section.",
+                    metadata={
+                        "chunk_id": "same-section-note",
+                        "block_type": "paragraph",
+                        "section_path": "III. Notes > Investments",
+                    },
+                ),
+                0.30,
+            ),
+        ]
+        state = {
+            "query": "Summarize Motional ownership, carrying amount, and profit or loss.",
+            "active_subtask": {"operation_family": "narrative_summary", "format_preference_override": "table"},
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertEqual(chunk_ids[:2], ["focus-table", "same-section-note"])
+        self.assertEqual(chunk_ids[2], "generic-high-score")
 
     def test_narrative_summary_doc_selection_prefers_dividend_policy_sections(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

@@ -79,13 +79,14 @@
     paragraphs without adding benchmark-specific runtime strings.
   - Focused store-fixed eval-only after this guard:
     `faithfulness = 1.000`, `context_recall = 1.000`,
-    `retrieval_hit_at_k = 1.000`, `ndcg_at_5 = 0.931`,
-    `context_precision_at_5 = 0.600`, `section_match_rate = 0.500`,
+    `retrieval_hit_at_k = 1.000`, `ndcg_at_5 = 1.195`,
+    `context_precision_at_5 = 0.800`, `section_match_rate = 0.800`,
     `citation_coverage = 1.000`, `entity_coverage = 1.000`,
-    `grounded_rendering_correctness = 1.000`, `avg_score = 0.889`.
+    `grounded_rendering_correctness = 1.000`, `avg_score = 0.939`.
   - Compared with the prior focused replay, the remaining issue moved from
-    answer/evidence projection to broader section precision; table ranking is
-    now stable enough for the Motional answer path.
+    answer/evidence projection to broader section precision; the section-local
+    final fill now avoids padding table-focused narrative contexts with broad
+    unrelated paragraphs once enough local evidence is present.
 
 ## 2026-05-29 Immediate Update
 

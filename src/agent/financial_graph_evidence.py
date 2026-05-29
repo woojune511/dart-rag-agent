@@ -806,6 +806,7 @@ class FinancialAgentEvidenceMixin:
             _append_dividend_specific_doc(_is_payout_doc)
             _append_dividend_specific_doc(_is_policy_doc)
 
+        final_candidates = []
         for item in reranked:
             doc = item[0] if isinstance(item, (tuple, list)) else item
             chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
@@ -815,6 +816,63 @@ class FinancialAgentEvidenceMixin:
                 focus_table_fill_limit
                 and _focus_table_priority(item) > 0
                 and _selected_focus_table_count() >= focus_table_fill_limit
+            ):
+                continue
+            final_candidates.append(item)
+
+        final_fill_priority = None
+        local_section_fill_floor = 0
+        if selected and (entity_slot_groups or table_first_focus_query):
+            def _item_metadata(doc_item: Any) -> Dict[str, Any]:
+                item_doc = doc_item[0] if isinstance(doc_item, (tuple, list)) else doc_item
+                return getattr(item_doc, "metadata", {}) or {}
+
+            selected_table_sections = list(
+                dict.fromkeys(
+                    _normalise_spaces(
+                        str(metadata.get("section_path") or metadata.get("section") or "")
+                    ).lower()
+                    for selected_item in selected
+                    for metadata in [_item_metadata(selected_item)]
+                    if str(metadata.get("block_type") or "").strip().lower() == "table"
+                )
+            )
+
+            def _final_fill_priority(candidate: Any) -> tuple[int, float]:
+                doc, score = candidate
+                metadata = getattr(doc, "metadata", {}) or {}
+                section_path = _normalise_spaces(
+                    str(metadata.get("section_path") or metadata.get("section") or "")
+                ).lower()
+                block_type = str(metadata.get("block_type") or "").strip().lower()
+                priority = 0
+                if section_path and section_path in selected_table_sections:
+                    priority += 5
+                elif section_path and any(
+                    selected_section
+                    and (section_path in selected_section or selected_section in section_path)
+                    for selected_section in selected_table_sections
+                ):
+                    priority += 2
+                if block_type == "table" and format_preference == "table":
+                    priority += 1
+                return priority, float(score)
+
+            final_fill_priority = _final_fill_priority
+            local_section_fill_floor = min(
+                effective_k,
+                max(3, len([section for section in selected_table_sections if section])),
+            )
+            final_candidates.sort(key=final_fill_priority, reverse=True)
+
+        for item in final_candidates:
+            doc = item[0] if isinstance(item, (tuple, list)) else item
+            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+            if (
+                final_fill_priority is not None
+                and local_section_fill_floor
+                and len(selected) >= local_section_fill_floor
+                and final_fill_priority(item)[0] <= 0
             ):
                 continue
             selected.append(item)
