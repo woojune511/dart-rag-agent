@@ -2328,6 +2328,7 @@ class FinancialAgentEvidenceMixin:
             "policy_section_terms",
             "regular_terms",
             "additional_return_terms",
+            "payout_amount_patterns",
         )
         payout_terms = policy_terms_by_key["payout_terms"]
         payout_deemphasis_terms = policy_terms_by_key["payout_deemphasis_terms"]
@@ -2338,6 +2339,7 @@ class FinancialAgentEvidenceMixin:
         policy_section_terms = policy_terms_by_key["policy_section_terms"]
         regular_terms = policy_terms_by_key["regular_terms"]
         additional_return_terms = policy_terms_by_key["additional_return_terms"]
+        payout_amount_patterns = policy_terms_by_key["payout_amount_patterns"]
         supplemented = [dict(item) for item in evidence_items]
         seen_keys = {
             _normalise_spaces(
@@ -2382,7 +2384,10 @@ class FinancialAgentEvidenceMixin:
 
             if any(marker in text for marker in payout_terms):
                 snippet = self._extract_driver_snippet(text, list(payout_terms))
-                amount_surface = self._extract_dividend_payout_amount_surface(snippet or text) or self._extract_dividend_amount_surface(snippet or text)
+                amount_surface = self._extract_policy_amount_surface(
+                    snippet or text,
+                    patterns=payout_amount_patterns,
+                ) or self._extract_dividend_amount_surface(snippet or text)
                 if amount_surface:
                     score = 0.0
                     lowered_context = f"{section_path} {local_heading} {text}".lower()
@@ -3040,275 +3045,6 @@ class FinancialAgentEvidenceMixin:
             "compressed_answer": answer,
         }
 
-    def _compose_sales_growth_policy_answer(
-        self,
-        *,
-        query: str,
-        existing_answer: str = "",
-        docs=None,
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> Optional[Dict[str, Any]]:
-        query_text = _normalise_spaces(query)
-        if not query_text:
-            return None
-        policy_terms_by_key = self._narrative_policy_terms_for_query(
-            query_text,
-            "query_terms",
-            "sentence_terms",
-            "primary_terms",
-            "response_terms",
-            "role_terms",
-        )
-        policy_query_terms = policy_terms_by_key["query_terms"]
-        policy_sentence_terms = policy_terms_by_key["sentence_terms"]
-        policy_primary_terms = policy_terms_by_key["primary_terms"]
-        policy_response_terms = policy_terms_by_key["response_terms"]
-        policy_role_terms = policy_terms_by_key["role_terms"]
-        if not all(marker in query_text for marker in ("판매대수", "전년 대비")):
-            return None
-        if not any(marker in query_text for marker in policy_query_terms):
-            return None
-
-        text_parts: List[str] = [str(existing_answer or "")]
-        source_anchors: List[str] = []
-        doc_records: List[Dict[str, str]] = []
-        for item in docs or []:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            metadata = getattr(doc, "metadata", {}) or {}
-            doc_parts = [str(getattr(doc, "page_content", "") or "")]
-            for key in ("table_context", "table_row_labels_text", "table_value_labels_text"):
-                if metadata.get(key):
-                    doc_parts.append(str(metadata.get(key) or ""))
-            doc_text = _normalise_spaces(" ".join(part for part in doc_parts if part))
-            if doc_text:
-                text_parts.append(doc_text)
-            anchor = self._build_source_anchor(metadata)
-            if anchor:
-                source_anchors.append(anchor)
-            if doc_text or anchor:
-                doc_records.append({"text": doc_text, "source_anchor": anchor})
-        for item in evidence_items or []:
-            evidence = dict(item or {})
-            source_anchors.append(str(evidence.get("source_anchor") or ""))
-            text_parts.extend(
-                str(value or "")
-                for value in (evidence.get("claim"), evidence.get("quote_span"), evidence.get("raw_row_text"))
-                if value
-            )
-        haystack = _normalise_spaces("\n".join(part for part in text_parts if part))
-        if "미국" not in haystack:
-            return None
-
-        current_match = re.search(
-            r"2023년\s*미국시장(?:에서)?\s*현대차는\s*전년\s*대비\s*([\d.]+)%\s*증가한\s*([\d.]+)만\s*대",
-            haystack,
-        )
-        prior_match = re.search(
-            r"2022년(?:에는)?\s*전년\s*대비\s*[\d.]+%\s*감소한\s*([\d.]+)만\s*대",
-            haystack,
-        )
-        if not current_match:
-            return None
-        growth_rate = current_match.group(1)
-        current_units = current_match.group(2)
-        prior_units = prior_match.group(1) if prior_match else ""
-        if not prior_units:
-            return None
-
-        policy_candidates: List[tuple[int, str]] = []
-        for sentence in re.split(r"(?<=[.!?。])\s+|(?<=다\.)", haystack):
-            sentence_text = _normalise_spaces(sentence)
-            if not sentence_text:
-                continue
-            if any(marker in sentence_text for marker in policy_sentence_terms):
-                score = 0
-                if any(term in sentence_text for term in policy_primary_terms):
-                    score += 2
-                secondary_hits = sum(
-                    1
-                    for term in policy_sentence_terms
-                    if term not in policy_primary_terms and term in sentence_text
-                )
-                score += min(secondary_hits, 2)
-                if any(term in sentence_text for term in policy_response_terms):
-                    score += 1
-                policy_candidates.append((score, sentence_text))
-        policy_sentence = max(policy_candidates, key=lambda item: item[0])[1] if policy_candidates else ""
-        if not policy_sentence:
-            return None
-
-        sales_parts = [f"2023년 미국 시장 현대차 판매대수는 {current_units}만 대"]
-        if prior_units:
-            sales_parts.append(f"2022년은 {prior_units}만 대")
-        sales_sentence = ", ".join(sales_parts) + f"로 전년 대비 성장률은 {growth_rate}%입니다."
-        policy_sentence = re.sub(r"^(?:또한|특히|그리고|한편)[,，]?\s*", "", policy_sentence.rstrip(".。"))
-        answer = _normalise_spaces(f"{sales_sentence} 정책 대응 측면에서는 {policy_sentence}.")
-        evidence_source_by_role: Dict[str, Dict[str, Any]] = {}
-        role_markers = {
-            "current_value": ("2023", current_units),
-            "prior_value": ("2022", prior_units),
-            "primary_value": (growth_rate, "%"),
-            "policy": tuple(policy_role_terms),
-        }
-        for role, markers in role_markers.items():
-            if any(not marker for marker in markers):
-                continue
-            for item in evidence_items or []:
-                evidence = dict(item or {})
-                evidence_text = _normalise_spaces(
-                    " ".join(
-                        str(value or "")
-                        for value in (
-                            evidence.get("claim"),
-                            evidence.get("quote_span"),
-                            evidence.get("raw_row_text"),
-                            evidence.get("source_context"),
-                        )
-                        if value
-                    )
-                )
-                if not evidence_text or not all(str(marker) in evidence_text for marker in markers):
-                    continue
-                evidence_id = str(evidence.get("evidence_id") or "").strip()
-                source_anchor = str(evidence.get("source_anchor") or "").strip()
-                evidence_source_by_role[role] = {
-                    "source_anchor": source_anchor,
-                    "source_row_id": evidence_id,
-                    "source_row_ids": [evidence_id] if evidence_id else [],
-                }
-                break
-
-        def _anchor_from_docs(markers: tuple[str, ...]) -> str:
-            if any(not marker for marker in markers):
-                return ""
-            for record in doc_records:
-                text = record.get("text") or ""
-                if text and all(str(marker) in text for marker in markers):
-                    return record.get("source_anchor") or ""
-            return ""
-
-        sales_fallback_anchor = _anchor_from_docs(("2023", current_units, "현대차"))
-        policy_fallback_anchor = _anchor_from_docs(tuple(policy_role_terms))
-        fallback_anchor = sales_fallback_anchor or next((anchor for anchor in source_anchors if anchor), "")
-
-        def _value_slot(
-            *,
-            role: str,
-            label: str,
-            period: str,
-            raw_value: str,
-            raw_unit: str,
-            normalized_unit: str,
-            rendered_value: str,
-        ) -> Dict[str, Any]:
-            source = dict(evidence_source_by_role.get(role) or {})
-            return {
-                "status": "ok",
-                "role": role,
-                "label": label,
-                "concept": "us_vehicle_sales" if role in {"current_value", "prior_value"} else "sales_growth_rate",
-                "period": period,
-                "raw_value": raw_value,
-                "raw_unit": raw_unit,
-                "normalized_value": float(raw_value),
-                "normalized_unit": normalized_unit,
-                "rendered_value": rendered_value,
-                "source_anchor": source.get("source_anchor") or fallback_anchor,
-                "source_row_id": source.get("source_row_id") or "",
-                "source_row_ids": source.get("source_row_ids") or [],
-            }
-
-        current_slot = _value_slot(
-            role="current_value",
-            label="2023년 미국 판매대수",
-            period="2023",
-            raw_value=current_units,
-            raw_unit="만대",
-            normalized_unit="UNKNOWN",
-            rendered_value=f"{current_units}만 대",
-        )
-        prior_slot = _value_slot(
-            role="prior_value",
-            label="2022년 미국 판매대수",
-            period="2022",
-            raw_value=prior_units,
-            raw_unit="만대",
-            normalized_unit="UNKNOWN",
-            rendered_value=f"{prior_units}만 대",
-        ) if prior_units else {}
-        primary_slot = _value_slot(
-            role="primary_value",
-            label="미국 판매대수 전년 대비 성장률",
-            period="2023",
-            raw_value=growth_rate,
-            raw_unit="%",
-            normalized_unit="PERCENT",
-            rendered_value=f"{growth_rate}%",
-        )
-        answer_slots = validate_answer_slots_payload(
-            {
-                "operation_family": "growth_rate",
-                "metric_label": "미국 판매대수 전년 대비 성장률",
-                "primary_value": primary_slot,
-                "current_value": current_slot,
-                "prior_value": prior_slot,
-                "direction": "increase",
-                "components_by_role": {
-                    "current_value": [current_slot],
-                    "prior_value": [prior_slot] if prior_slot else [],
-                },
-            }
-        )
-        calculation_operands = [current_slot] + ([prior_slot] if prior_slot else [])
-        calculation_plan = {
-            "status": "ok",
-            "operation": "growth_rate",
-            "operation_family": "growth_rate",
-            "ordered_operand_ids": ["current_value", "prior_value"] if prior_slot else ["current_value"],
-            "formula": "((current_value - prior_value) / prior_value) * 100",
-        }
-        calculation_result = {
-            "status": "ok",
-            "operation_family": "growth_rate",
-            "result_value": float(growth_rate),
-            "result_unit": "PERCENT",
-            "rendered_value": f"{growth_rate}%",
-            "formatted_result": f"{growth_rate}%",
-            "current_value": float(current_units),
-            "prior_value": float(prior_units) if prior_units else None,
-            "current_period": "2023",
-            "prior_period": "2022" if prior_units else "",
-            "source_row_ids": list(
-                dict.fromkeys(
-                    source_id
-                    for slot in (current_slot, prior_slot, primary_slot)
-                    for source_id in list(slot.get("source_row_ids") or [])
-                    if source_id
-                )
-            ),
-            "answer_slots": answer_slots,
-            "derived_metrics": {
-                "operation_family": "growth_rate",
-                "formula": "((current_value - prior_value) / prior_value) * 100",
-            },
-        }
-        selected_ids = [
-            source_id
-            for role in ("current_value", "prior_value", "primary_value", "policy")
-            for source_id in list((evidence_source_by_role.get(role) or {}).get("source_row_ids") or [])
-            if source_id
-        ]
-        return {
-            "selected_claim_ids": list(dict.fromkeys(selected_ids)),
-            "draft_points": [sales_sentence, policy_sentence],
-            "compressed_answer": answer,
-            "calculation_projection": {
-                "calculation_operands": calculation_operands,
-                "calculation_plan": calculation_plan,
-                "calculation_result": calculation_result,
-            },
-        }
-
     def _is_dividend_policy_mixed_query(self, query: str) -> bool:
         surface = _normalise_spaces(str(query or ""))
         if not surface:
@@ -3339,15 +3075,10 @@ class FinancialAgentEvidenceMixin:
                 return _normalise_spaces(match.group(1))
         return ""
 
-    def _extract_dividend_payout_amount_surface(self, text: str) -> str:
+    def _extract_policy_amount_surface(self, text: str, *, patterns: List[str]) -> str:
         surface = _normalise_spaces(str(text or ""))
         if not surface:
             return ""
-        patterns = (
-            r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d+\s*조(?:\s*\d{1,3}(?:,\d{3})?)?\s*억원)",
-            r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d{1,3}(?:,\d{3})+\s*억원)",
-            r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d{1,3}(?:,\d{3})+\s*백만원)",
-        )
         for pattern in patterns:
             match = re.search(pattern, surface)
             if match:
@@ -3412,6 +3143,10 @@ class FinancialAgentEvidenceMixin:
             "policy_section_terms",
             "regular_terms",
             "additional_return_terms",
+            "payout_amount_patterns",
+            "cash_generation_terms",
+            "payout_sentence_template",
+            "policy_sentence_prefix",
         )
         payout_terms = policy_terms_by_key["payout_terms"]
         payout_deemphasis_terms = policy_terms_by_key["payout_deemphasis_terms"]
@@ -3423,6 +3158,10 @@ class FinancialAgentEvidenceMixin:
         policy_section_terms = policy_terms_by_key["policy_section_terms"]
         regular_terms = policy_terms_by_key["regular_terms"]
         additional_return_terms = policy_terms_by_key["additional_return_terms"]
+        payout_amount_patterns = policy_terms_by_key["payout_amount_patterns"]
+        cash_generation_terms = policy_terms_by_key["cash_generation_terms"]
+        payout_sentence_template = next(iter(policy_terms_by_key["payout_sentence_template"]), "")
+        policy_sentence_prefix = next(iter(policy_terms_by_key["policy_sentence_prefix"]), "")
         payout_amount = ""
         payout_evidence_id = ""
         policy_clause = ""
@@ -3458,7 +3197,10 @@ class FinancialAgentEvidenceMixin:
             ).lower()
             if any(marker in combined_text for marker in payout_terms):
                 payout_snippet = self._extract_driver_snippet(combined_text, list(payout_terms))
-                amount_surface = self._extract_dividend_payout_amount_surface(payout_snippet or combined_text) or self._extract_dividend_amount_surface(payout_snippet or combined_text)
+                amount_surface = self._extract_policy_amount_surface(
+                    payout_snippet or combined_text,
+                    patterns=payout_amount_patterns,
+                ) or self._extract_dividend_amount_surface(payout_snippet or combined_text)
                 if amount_surface:
                     payout_score = 0.0
                     if any(term in lowered_text for term in liquidity_context_terms):
@@ -3491,7 +3233,7 @@ class FinancialAgentEvidenceMixin:
                         policy_score += 2.0
                     if any(marker in clause for marker in additional_return_terms):
                         policy_score += 2.0
-                    if "잉여현금흐름" in clause or "free cash flow" in clause.lower():
+                    if any(term.lower() in clause.lower() for term in cash_generation_terms):
                         policy_score += 1.0
                     if any(term in section_hint for term in policy_section_terms):
                         policy_score += 2.0
@@ -3506,14 +3248,16 @@ class FinancialAgentEvidenceMixin:
 
         year_match = re.search(r"(20\d{2})년", _normalise_spaces(query))
         year = year_match.group(1) if year_match else ""
-        payout_sentence = (
-            f"{year}년 연결 현금흐름표상 배당금 지급으로 유출된 현금은 {payout_amount}입니다."
-            if year
-            else f"연결 현금흐름표상 배당금 지급으로 유출된 현금은 {payout_amount}입니다."
+        year_prefix = f"{year}년 " if year else ""
+        payout_sentence = _normalise_spaces(
+            (payout_sentence_template or "{year_prefix}{amount}").format(
+                year_prefix=year_prefix,
+                amount=payout_amount,
+            )
         )
         policy_sentence = policy_clause
-        if "사업보고서의 배당에 관한 사항에 따르면" not in policy_sentence:
-            policy_sentence = f"사업보고서의 배당에 관한 사항에 따르면 {policy_sentence}"
+        if policy_sentence_prefix and policy_sentence_prefix not in policy_sentence:
+            policy_sentence = f"{policy_sentence_prefix} {policy_sentence}"
         final_answer = _normalise_spaces(f"{payout_sentence} {policy_sentence}")
         supporting_ids = [
             evidence_id

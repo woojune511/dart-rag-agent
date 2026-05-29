@@ -1026,7 +1026,6 @@ class FinancialAgentCalculationMixin:
             return False
 
         generic_terms = {
-            "커머스",
             "부문",
             "매출",
             "성장률",
@@ -4028,24 +4027,6 @@ Subtask Results JSON:
                 for claim_id in (business_focus_answer.get("selected_claim_ids") or [])
                 if str(claim_id).strip()
             )
-            planner_feedback = ""
-            deterministic_feedback = ""
-        sales_policy_answer = self._compose_sales_growth_policy_answer(
-            query=str(state.get("query") or ""),
-            existing_answer=final_answer,
-            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
-            evidence_items=aggregate_evidence_items,
-        )
-        if sales_policy_answer:
-            final_answer = _normalise_spaces(str(sales_policy_answer.get("compressed_answer") or "")) or final_answer
-            composition_selected_claim_ids.extend(
-                str(claim_id).strip()
-                for claim_id in (sales_policy_answer.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
-            )
-            projection = sales_policy_answer.get("calculation_projection")
-            if isinstance(projection, dict):
-                calculation_projection_override = projection
             planner_feedback = ""
             deterministic_feedback = ""
         dividend_policy_answer = self._compose_dividend_policy_hybrid_answer(

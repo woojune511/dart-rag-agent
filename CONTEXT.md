@@ -11,6 +11,20 @@
 
 ## 최신 상태
 
+- Runtime domain-vocabulary boundary has been tightened again.
+  - Benchmark-shaped deterministic runtime code for the Hyundai US-sales policy
+    case was removed; policy-growth mixed queries must now rely on generic
+    retrieval, evidence, calculation, and synthesis contracts.
+  - Dividend mixed-query support now keeps domain regexes/templates and
+    statement hints in retrieval policy config instead of agent control-flow
+    code.
+  - Agent runtime search no longer finds the previously targeted
+    commerce/Poshmark/IRA/dividend/shareholder-return keyword bundle in
+    `src/agent` or `src/routing` control-flow code; remaining benchmark/domain
+    vocabulary is in tests, prompts, ontology, policy, or datasets.
+  - Full unit verification passes: `python -m unittest discover -s tests`
+    (`470` tests).
+
 - 검증 원칙은 이제 명시적으로 **검증 가능한 최소 단위 우선**이다.
   - unit test / targeted regression
   - 단일 문항 targeted replay

@@ -19,6 +19,7 @@ from src.ops.benchmark_runner import (
     _cache_meta_is_completed,
     _ensure_benchmark_report_path,
     _inventory_eval_examples,
+    _normalise_path,
     _run_ingest,
     _store_signature_matches,
 )
@@ -46,6 +47,18 @@ class _FakeVectorStore:
 
     def similarity_search_with_score(self, query, k=4, filter=None):
         raise RuntimeError("RESOURCE_EXHAUSTED: synthetic test failure")
+
+
+class BenchmarkPathTests(unittest.TestCase):
+    def test_normalise_path_remaps_stale_data_reports_workspace(self) -> None:
+        stale_path = Path("C:/Users/geonj/Desktop/research agent/data/reports/NAVER/2023_사업보고서_20240318000844.html")
+
+        resolved = _normalise_path(stale_path)
+
+        self.assertEqual(
+            resolved,
+            (PROJECT_ROOT / "data" / "reports" / "NAVER" / "2023_사업보고서_20240318000844.html").resolve(),
+        )
 
 
 class _FakeIngestVectorManager:

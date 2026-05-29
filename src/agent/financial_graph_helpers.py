@@ -22,6 +22,11 @@ import re
 from typing import Any, Dict, List, Optional
 
 from src.config import get_financial_ontology
+from src.config.retrieval_policy import (
+    active_narrative_policies,
+    narrative_policy_preferred_sections,
+    narrative_policy_terms,
+)
 from src.agent.financial_graph_models import validate_answer_slots_payload
 from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
 
@@ -1752,10 +1757,7 @@ _NARRATIVE_CONTEXT_HINTS = (
     "업황",
     "악화",
     "불구",
-    "배당",
-    "주주환원",
     "정책",
-    "환원",
 )
 
 
@@ -2025,19 +2027,11 @@ def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]
         preferred_sections.extend(["영업비용", "연결재무제표 주석", "재무제표 주석", "연결 손익계산서", "손익계산서"])
         if "notes" not in statement_types:
             statement_types.append("notes")
-    if any(keyword in text for keyword in ("배당금 지급", "배당", "주주환원", "정규배당", "잉여현금흐름", "추가 환원")):
-        preferred_sections.extend(
-            [
-                "배당에 관한 사항",
-                "유동성 및 자금조달",
-                "현금흐름표 (연결)",
-                "현금흐름표",
-            ]
-        )
-        if "notes" not in statement_types:
-            statement_types.append("notes")
-        if "cash_flow" not in statement_types:
-            statement_types.append("cash_flow")
+    active_policies = active_narrative_policies(text)
+    preferred_sections.extend(narrative_policy_preferred_sections(active_policies))
+    for statement_type in narrative_policy_terms(active_policies, "statement_types"):
+        if statement_type not in statement_types:
+            statement_types.append(statement_type)
     return list(dict.fromkeys(statement_types)), list(dict.fromkeys(preferred_sections))
 
 

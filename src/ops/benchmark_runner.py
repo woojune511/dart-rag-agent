@@ -145,6 +145,14 @@ def _normalise_path(path_value: str | Path) -> Path:
     path = Path(path_value)
     if not path.is_absolute():
         path = (PROJECT_ROOT / path).resolve()
+    if not path.exists():
+        parts_lower = [part.lower() for part in path.parts]
+        for index in range(len(parts_lower) - 1):
+            if parts_lower[index] == "data" and parts_lower[index + 1] == "reports":
+                remapped = PROJECT_ROOT / "data" / "reports" / Path(*path.parts[index + 2 :])
+                if remapped.exists():
+                    return remapped.resolve()
+                break
     return path
 
 

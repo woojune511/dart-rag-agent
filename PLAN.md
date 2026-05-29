@@ -90,6 +90,24 @@
 
 ## 2026-05-29 Immediate Update
 
+- Runtime domain-vocabulary cleanup is now applied for the policy gate path.
+  - Removed the case-specific sales/policy deterministic composer that matched
+    a fixed `US sales / Hyundai / 2023-2022` sentence shape in runtime code.
+  - Moved dividend mixed-query payout regexes, sentence templates, statement
+    type hints, and cash-generation terms into `src/config/retrieval_policy.py`;
+    runtime code now consumes those policy fields generically.
+  - Removed dividend/shareholder-return tokens from generic narrative intent
+    hints and removed the commerce-specific exclusion from growth+narrative
+    answer satisfaction checks.
+  - Added a benchmark path portability guard so stale absolute
+    `data/reports/...` paths from another workspace resolve to this repo's
+    report directory when the file exists.
+  - Verification: `python -m unittest discover -s tests` passes
+    (`470` tests).
+  - A 5-question local policy-gate rerun was stopped after it exceeded the
+    no-result-file budget while rebuilding NAVER stores from scratch. The run
+    produced only local store/log artifacts and is not a commit artifact.
+
 - Current AMPC policy-driven runtime gap is closed at focused gate level.
   - AMPC is represented as an ontology concept, not as a runtime keyword branch.
   - Prose-derived lookup values now become structured `answer_slots` with

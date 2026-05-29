@@ -194,6 +194,20 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-05-29 cleanup update:
+  - Removed the runtime deterministic composer that hard-coded one
+    policy-growth sales case shape. Future coverage for that class should come
+    from policy-driven retrieval, structured growth operands, and narrative
+    evidence synthesis rather than a case regex.
+  - Moved dividend payout extraction patterns, statement hints, and answer
+    templates into retrieval policy config; the runtime path consumes policy
+    fields generically.
+  - A local five-question replay was attempted with a temporary profile but was
+    stopped after exceeding the no-result-file budget while rebuilding stores.
+    The partial store/log output is local experiment material only.
+  - Unit verification after the cleanup: `python -m unittest discover -s tests`
+    passed (`470` tests).
+
 - The 2026-05-29 policy-driven full gate rerun is closed for the structural
   candidate.
   - output bundle: `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/`

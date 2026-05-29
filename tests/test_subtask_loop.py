@@ -2904,46 +2904,8 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("41.4%", updated["answer"])
         self.assertIn("Poshmark", updated["answer"])
 
-    def test_compose_sales_growth_policy_answer_selects_only_role_matched_evidence_ids(self) -> None:
-        docs = [
-            Document(
-                page_content=(
-                    "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매하였습니다. "
-                    "2022년에는 전년 대비 0.9% 감소한 78.1만 대를 판매하였습니다. "
-                    "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 보호무역주의에 대한 "
-                    "적극적인 대응이 필요한 상황입니다."
-                ),
-                metadata={
-                    "company": "현대자동차",
-                    "year": 2023,
-                    "section_path": "IV. 이사의 경영진단 및 분석의견",
-                },
-            )
-        ]
-        evidence_items = [
-            {
-                "evidence_id": "ev_market_total",
-                "source_anchor": "[현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "2023년 미국 시장 판매대수는 1,560.8만 대로 전년 대비 12.3% 증가했습니다.",
-            },
-            {
-                "evidence_id": "ev_policy",
-                "source_anchor": "[현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견]",
-                "claim": "미국의 인플레이션 감축법과 각국의 보호무역주의에 대한 적극적인 대응이 필요한 상황입니다.",
-            },
-        ]
-
-        result = self.agent._compose_sales_growth_policy_answer(
-            query="2023년 미국 판매대수의 전년 대비 성장률을 계산하고 IRA 등 정책 대응 상황을 요약해 줘.",
-            docs=docs,
-            evidence_items=evidence_items,
-        )
-
-        self.assertIsNotNone(result)
-        assert result is not None
-        self.assertIn("11.5%", result["compressed_answer"])
-        self.assertEqual(result["selected_claim_ids"], ["ev_policy"])
-        self.assertNotIn("ev_market_total", result["selected_claim_ids"])
+    def test_policy_growth_cases_do_not_use_case_specific_composer(self) -> None:
+        self.assertFalse(hasattr(self.agent, "_compose_sales_growth_policy_answer"))
 
 
 if __name__ == "__main__":

@@ -267,6 +267,7 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
         "name": "dividend_policy",
         "trigger_terms": ("배당", "주주환원", "정규배당", "잉여현금흐름", "환원 정책", "추가 환원"),
+        "statement_types": ("cash_flow", "notes"),
         "retrieval_query_suffixes": (
             "배당에 관한 사항 주주환원 정책",
             "잉여현금흐름 정규배당 추가 환원",
@@ -304,6 +305,14 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "outflow_terms": ("유출",),
         "table_policy_terms": ("현금배당금총액", "배당성향"),
         "policy_section_terms": ("배당에 관한 사항",),
+        "cash_generation_terms": ("잉여현금흐름", "free cash flow"),
+        "payout_amount_patterns": (
+            r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d+\s*조(?:\s*\d{1,3}(?:,\d{3})?)?\s*억원)",
+            r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d{1,3}(?:,\d{3})+\s*억원)",
+            r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d{1,3}(?:,\d{3})+\s*백만원)",
+        ),
+        "payout_sentence_template": ("{year_prefix}연결 현금흐름표상 배당금 지급으로 유출된 현금은 {amount}입니다.",),
+        "policy_sentence_prefix": ("사업보고서의 배당에 관한 사항에 따르면",),
     },
     {
         "name": "technology_focus",

@@ -4543,49 +4543,9 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("무선통신, 디스플레이 등 IT 기술", answer)
         self.assertIn("SDV(Software Defined Vehicle)", answer)
 
-    def test_sales_growth_policy_answer_preserves_prior_value_and_policy_context(self) -> None:
+    def test_policy_growth_cases_do_not_use_case_specific_composer(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        query = "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘."
-        docs = [
-            (
-                Document(
-                    page_content=(
-                        "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매해 5.6%의 점유율을 차지했습니다. "
-                        "2022년에는 전년 대비 0.9% 감소한 78.1만 대를 판매해 5.6%의 점유율을 차지했습니다."
-                    ),
-                    metadata={"section_path": "II. 사업의 내용 > 7. 기타 참고사항"},
-                ),
-                0.9,
-            ),
-            (
-                Document(
-                    page_content=(
-                        "특히 EV에 있어 경쟁사의 공격적인 가격인하 정책으로 촉발된 EV 원가경쟁력 확보 경쟁이 심화되고 있습니다. "
-                        "또한, 글로벌 기후변화와 자연재해의 증가 추세에 따라 기업활동의 탄소중립 요구는 증가하고 있으며, "
-                        "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 보호무역주의에 대한 적극적인 대응이 필요한 상황입니다."
-                    ),
-                    metadata={"section_path": "IV. 이사의 경영진단 및 분석의견"},
-                ),
-                0.88,
-            ),
-        ]
-
-        result = agent._compose_sales_growth_policy_answer(
-            query=query,
-            existing_answer="",
-            docs=docs,
-            evidence_items=[],
-        )
-
-        self.assertIsNotNone(result)
-        assert result is not None
-        answer = result["compressed_answer"]
-        self.assertIn("87.0만 대", answer)
-        self.assertIn("78.1만 대", answer)
-        self.assertIn("11.5%", answer)
-        self.assertIn("인플레이션 감축법", answer)
-        self.assertIn("핵심원자재법", answer)
-        self.assertNotIn("충분히 확보하지 못", answer)
+        self.assertFalse(hasattr(agent, "_compose_sales_growth_policy_answer"))
 
     def test_compressed_narrative_answer_preserves_supported_consolidation_effect(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
