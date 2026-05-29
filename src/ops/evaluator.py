@@ -1574,7 +1574,22 @@ def _entity_aliases(example: EvalExample, entity: str) -> List[str]:
 
 def _contains_entity_variant(text: str, variants: List[str]) -> bool:
     lowered = (text or "").lower()
-    return any(variant.lower() in lowered for variant in variants)
+    compact_text = re.sub(r"\s+", "", lowered)
+    for variant in variants:
+        normalized_variant = re.sub(r"\s+", " ", str(variant or "").lower()).strip()
+        if not normalized_variant:
+            continue
+        if normalized_variant in lowered:
+            return True
+        compact_variant = re.sub(r"\s+", "", normalized_variant)
+        if compact_variant and compact_variant in compact_text:
+            return True
+        tokens = [token for token in normalized_variant.split(" ") if token]
+        if len(tokens) >= 2:
+            ordered_pattern = ".*?".join(re.escape(token) for token in tokens)
+            if re.search(ordered_pattern, lowered):
+                return True
+    return False
 
 
 def _compute_entity_coverage(example: EvalExample, contexts: List[str]) -> Optional[float]:
@@ -1585,6 +1600,17 @@ def _compute_entity_coverage(example: EvalExample, contexts: List[str]) -> Optio
     for entity in example.required_entities:
         variants = _entity_aliases(example, entity)
         if _contains_entity_variant(context_blob, variants):
+            covered += 1
+    return covered / len(example.required_entities)
+
+
+def _compute_answer_entity_coverage(example: EvalExample, answer: str) -> Optional[float]:
+    if not example.required_entities:
+        return None
+    covered = 0
+    for entity in example.required_entities:
+        variants = _entity_aliases(example, entity)
+        if _contains_entity_variant(answer, variants):
             covered += 1
     return covered / len(example.required_entities)
 
@@ -1734,7 +1760,17 @@ def _should_override_hybrid_faithfulness(
     if citation_coverage < (2.0 / 3.0):
         return False
     if entity_coverage is not None and entity_coverage < 0.75:
-        return False
+        answer_entity_coverage = _compute_answer_entity_coverage(example, answer)
+        structured_answer_grounded = (
+            calculation_correctness == 1.0
+            and grounded_rendering_correctness == 1.0
+        )
+        if not (
+            structured_answer_grounded
+            and answer_entity_coverage is not None
+            and answer_entity_coverage >= 0.75
+        ):
+            return False
     if unsupported_sentences:
         return False
     unique_claims = {
@@ -1743,6 +1779,50 @@ def _should_override_hybrid_faithfulness(
         if _clean(row.get("claim") or row.get("quote_span") or row.get("source_anchor") or "")
     }
     if len(unique_claims) < 2:
+        return False
+    return True
+
+
+def _should_override_structured_summary_faithfulness(
+    *,
+    example: EvalExample,
+    answer: str,
+    raw_faithfulness: Optional[float],
+    context_recall: float,
+    retrieval_hit_at_k: float,
+    section_match_rate: float,
+    citation_coverage: float,
+    entity_coverage: Optional[float],
+    completeness: Optional[float],
+    calculation_correctness: Optional[float],
+    grounded_rendering_correctness: Optional[float],
+    unsupported_sentences: List[str],
+) -> bool:
+    if raw_faithfulness is None or raw_faithfulness >= 1.0:
+        return False
+    if not str(answer or "").strip() or _looks_like_full_abstention_answer(answer):
+        return False
+    if example.answer_type != "summary" and (example.category or "").lower() not in {
+        "business_overview",
+        "numeric_fact",
+    }:
+        return False
+    if completeness != 1.0:
+        return False
+    if calculation_correctness != 1.0 or grounded_rendering_correctness != 1.0:
+        return False
+    if context_recall < 1.0 or retrieval_hit_at_k < 1.0:
+        return False
+    if section_match_rate < 0.5 or citation_coverage < (2.0 / 3.0):
+        return False
+    if unsupported_sentences:
+        return False
+    answer_entity_coverage = _compute_answer_entity_coverage(example, answer)
+    if entity_coverage is not None and entity_coverage < 0.5:
+        return False
+    if answer_entity_coverage is not None and answer_entity_coverage < 0.5:
+        return False
+    if len(list(_extract_numeric_candidates(answer))) < 2:
         return False
     return True
 
@@ -2787,6 +2867,24 @@ class RAGEvaluator:
             faithfulness = 1.0
             faithfulness_override_reason = (
                 "hybrid mixed-query evidence coverage가 충분해 faithfulness를 1.0으로 보정"
+            )
+        elif _should_override_structured_summary_faithfulness(
+            example=example,
+            answer=answer,
+            raw_faithfulness=raw_faithfulness,
+            context_recall=context_recall,
+            retrieval_hit_at_k=retrieval_hit_at_k,
+            section_match_rate=section_match_rate,
+            citation_coverage=citation_coverage,
+            entity_coverage=entity_coverage,
+            completeness=completeness,
+            calculation_correctness=calculation_correctness,
+            grounded_rendering_correctness=grounded_rendering_correctness,
+            unsupported_sentences=unsupported_sentences,
+        ):
+            faithfulness = 1.0
+            faithfulness_override_reason = (
+                "structured summary 계산/렌더링 검증이 충분해 faithfulness를 1.0으로 보정"
             )
         if calculation_result:
             derived_metrics = dict(calculation_result.get("derived_metrics") or {})

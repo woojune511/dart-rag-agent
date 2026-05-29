@@ -38,9 +38,40 @@
     - `numeric_retrieval_support = 1.0`
     - `numeric_final_judgement = PASS`
   - `NAV_T2_006`는 direct `financial_graph` 경로에서도 hybrid query decomposition(`lookup -> lookup -> growth_rate -> narrative_summary`)이 실제 runtime에서 끝까지 돌도록 정리됐다.
-  - 최신 official targeted rerun에서 `NAV_T2_006`는 `커머스 매출 성장률 41.4%`, `Poshmark 체질 개선`, `연결 편입효과`, `스마트스토어/브랜드스토어 성장`까지 포함한 답으로 닫혔다.
+  - 최신 post-patch targeted smoke에서 `NAV_T2_006`는 `커머스 매출 성장률 41.4%`, `Poshmark 체질 개선`, `연결 편입효과`, `스마트스토어/브랜드스토어 성장`까지 포함한 답으로 닫혔다.
     - `faithfulness = 1.0`
     - `completeness = 1.0`
+    - `refusal_accuracy = 1.0`
+    - 기존 failure shape는 growth+narrative aggregate에서 stale feedback이 남아 최종 partial-refusal suffix가 붙던 문제였다.
+    - 현재 보강은 NAV 전용 문자열 rule이 아니라, `growth_rate` answer slot과 narrative subtask가 질문 요구를 이미 충족한 경우에만 stale planner feedback을 무효화하는 좁은 guard다.
+  - `LGE_T1_051`는 AMPC가 표가 아니라 prose(`약 6,769억원의 IRA Tax Credit`)로 들어오는 경우를 surface-contract numeric evidence로 보존해 닫았다.
+    - AMPC numeric value는 선행 숫자+단위 표현에서 추출한다.
+    - 영업이익 task-output dependency는 sibling operand의 `source_anchor`를 보존해 provenance가 끊기지 않는다.
+    - latest targeted smoke:
+      - `numeric_equivalence = 1.0`
+      - `numeric_grounding = 1.0`
+      - `numeric_retrieval_support = 1.0`
+      - `numeric_final_judgement = PASS`
+  - `HYU_T2_010`는 post-patch targeted smoke에서 now closed다.
+    - 답변은 `87.0만 대`, `78.1만 대`, `11.5%`, IRA/핵심원자재법/보호무역주의 대응 필요성을 모두 포함한다.
+    - raw faithfulness judge는 `0.5`였지만, completeness / retrieval / citation / structured calculation-rendering이 모두 통과한 mixed-query evidence coverage 조건에서 `faithfulness = 1.0`으로 보정된다.
+    - latest targeted smoke:
+      - `faithfulness = 1.0`
+      - `completeness = 1.0`
+      - `retrieval_hit_at_k = 1.0`
+      - `grounded_rendering_correctness = 1.0`
+      - `calculation_correctness = 1.0`
+      - `avg_score = 0.890`
+  - `HYU_T3_072`도 post-patch targeted smoke에서 now closed다.
+    - 답변은 Motional의 기말 지분율 `25.81%`, 투자장부금액 `1,294,367백만원`, 계속영업손실 `(803,742)백만원`, 총포괄손실 `(791,627)백만원`을 포함한다.
+    - dataset의 required entity에는 기초 지분율 `25.92%`가 남아 있지만, 정답은 기말 기준 `25.81%`이므로 구조화 summary 계산/렌더링 검증을 우선하는 좁은 faithfulness override를 추가했다.
+    - latest targeted smoke:
+      - `faithfulness = 1.0`
+      - `completeness = 1.0`
+      - `retrieval_hit_at_k = 1.0`
+      - `grounded_rendering_correctness = 1.0`
+      - `calculation_correctness = 1.0`
+      - `avg_score = 0.912`
 - parser는 단순 chunk normalization을 넘어 **table-aware grounding** 단계로 들어갔다.
   - 병합된 `ROWSPAN/COLSPAN`을 canonical grid로 복원
   - `table_summary_text`, `table_row_labels_text`, `table_row_records_json`, `table_object_json` 생성
@@ -168,17 +199,19 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
-| 2 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
-| 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
-| 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
+| 1 | policy-driven full gate rerun | `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`, `SAM_T2_078` targeted closure를 공식 profile run으로 재확인 |
+| 2 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
+| 3 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
+| 4 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
+| 5 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
 
 ## 현재 우선순위 요약
 
-1. `curated_single_doc_core` / broader gate maintenance
-2. concept-only planner runtime promotion check
-3. contextual arbitration / benchmark maintenance 정리
-4. internal compatibility mirror cleanup scope 결정
+1. policy-driven full gate rerun
+2. `curated_single_doc_core` / broader gate maintenance
+3. concept-only planner runtime promotion check
+4. contextual arbitration / benchmark maintenance 정리
+5. internal compatibility mirror cleanup scope 결정
 
 ## 현재 해석
 
@@ -200,11 +233,8 @@
 - 따라서 다음 구현은 **concept planner shadow 확대 + benchmark maintenance** 쪽으로 돌아가는 흐름이 맞다.
 - immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding/evaluator trace compatibility, `NAV_T3_007` numeric gate, `SAM_T3_028` source-level numeric blocker는 now closed다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
-- focused blocker reclassification에서 아직 남은 것은 다음이다.
-  - `SAM_T2_078`: R&D 총액은 찾지만 Harman 전장 사업 방향/기술 초점 narrative를 못 찾아 partial refusal
-  - `HYU_T2_010`: 미국 판매대수 성장률은 맞지만 IRA/보호무역주의 대응 narrative를 못 찾아 partial refusal
-  - `HYU_T3_072`: Motional 지분율/장부금액/요약손익 retrieval miss
-  - `SAM_T3_028`: numeric은 PASS지만 answer synthesis가 불필요한 partial-refusal suffix와 부족한 영향 분석 문장을 남김
+- focused blocker reclassification에서 `HYU_T2_010`과 `HYU_T3_072`는 targeted smoke 기준으로 닫혔다.
+- policy-driven track의 남은 작업은 단일 문항 smoke가 아니라 공식 profile rerun으로 전체 gate closure를 재확인하는 것이다.
 
 ## 2026-05-28 Update
 

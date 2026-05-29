@@ -39,6 +39,61 @@ class SubtaskLoopTests(unittest.TestCase):
     def setUp(self) -> None:
         self.agent = FinancialAgent.__new__(FinancialAgent)
 
+    def test_dependency_rows_preserve_sibling_operand_source_anchor(self) -> None:
+        state = {
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "minuend",
+                        "concept": "operating_profit",
+                        "period": "2023",
+                        "label": "영업이익",
+                        "preferred_task_id": "task_1",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    }
+                ]
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_label": "2023년 연결기준 영업이익",
+                    "calculation_operands": [
+                        {
+                            "matched_operand_label": "영업이익",
+                            "matched_operand_concept": "operating_profit",
+                            "matched_operand_role": "minuend",
+                            "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "영업이익",
+                                "concept": "operating_profit",
+                                "period": "2023",
+                                "raw_value": "2,163,234",
+                                "raw_unit": "백만원",
+                                "normalized_value": 2163234000000.0,
+                                "normalized_unit": "KRW",
+                            }
+                        },
+                    },
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0]["source_anchor"],
+            "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+        )
+        self.assertTrue(rows[0]["dependency_resolved"])
+
     def test_growth_rate_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
             "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
@@ -2487,6 +2542,63 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(feedback, "")
 
+    def test_aggregate_subtasks_ignores_stale_lookup_gap_when_growth_slots_cover_value(self) -> None:
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 커머스 부문 매출액",
+                "status": "insufficient_operands",
+                "answer": "2023년 커머스 부문 매출액 계산에 필요한 재료가 누락되었습니다.",
+                "calculation_result": {"status": "insufficient_operands"},
+            },
+            {
+                "task_id": "task_4",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "커머스 부문 매출 성장률",
+                "status": "ok",
+                "answer": "커머스 부문은 2023년에 2조 5,466억 원의 매출을 기록하며 전년 대비 41.4% 성장했습니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "41.4%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "metric_label": "커머스 부문 매출 성장률",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "커머스 부문 매출 성장률",
+                            "period": "2023",
+                            "normalized_value": 41.4,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "41.4%",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "커머스 부문 매출액",
+                            "concept": "revenue",
+                            "period": "2023",
+                            "normalized_value": 2546649000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "2조 5,466억원",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "커머스 부문 매출액",
+                            "concept": "revenue",
+                            "period": "2022",
+                            "normalized_value": 1801079000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "1조 8,011억원",
+                        },
+                    },
+                },
+            },
+        ]
+
+        feedback = self.agent._infer_planner_feedback_from_answer_slots(ordered_results)
+
+        self.assertEqual(feedback, "")
+
     def test_aggregate_subtasks_ignores_failed_lookup_when_growth_slots_cover_value(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(
@@ -2589,6 +2701,249 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("완전히 확정할 수는 없습니다", updated["answer"])
         self.assertIn("메모리", updated["answer"])
         self.assertEqual(updated["calculation_result"]["status"], "ok")
+
+    def test_aggregate_subtasks_repairs_truncated_growth_narrative_answer(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 커머스 부문 매출은 2조 5,466억원이고 전년 대비 41.4% 성장했습니다. 또한 Poshmark 인수는 커머스 실",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, Poshmark 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_2"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "커머스 부문 매출 성장률",
+                    "answer": "커머스 부문 매출은 전년 대비 41.4% 성장했습니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출 성장률",
+                                "period": "2023",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2조 5,466억원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "concept": "revenue",
+                                "period": "2022",
+                                "normalized_value": 1801079000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "1조 8,011억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "Poshmark 인수 영향",
+                    "answer": "Poshmark 인수와 연결 편입은 글로벌 C2C 경쟁력 강화와 커머스 실적 성장에 기여했습니다.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_poshmark"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_feedback"], "")
+        self.assertIn("2조 5,466억원", updated["answer"])
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("Poshmark", updated["answer"])
+        self.assertFalse(updated["answer"].endswith("커머스 실"))
+        self.assertIn("ev_poshmark", updated["selected_claim_ids"])
+
+    def test_aggregate_subtasks_does_not_repair_growth_answer_without_narrative_material(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 커머스 부문 매출은 2조 5,466억원이고 전년 대비 41.4% 성장했습니다. 또한 Poshmark 인수는 커머스 실",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, Poshmark 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "calc_subtasks": [{"task_id": "task_1"}],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "커머스 부문 매출 성장률",
+                    "answer": "커머스 부문 매출은 전년 대비 41.4% 성장했습니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {"status": "ok", "period": "2023", "rendered_value": "41.4%"},
+                            "current_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "rendered_value": "2조 5,466억원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "concept": "revenue",
+                                "period": "2022",
+                                "rendered_value": "1조 8,011억원",
+                            },
+                        },
+                    },
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["answer"], "2023년 커머스 부문 매출은 2조 5,466억원이고 전년 대비 41.4% 성장했습니다. 또한 Poshmark 인수는 커머스 실")
+
+    def test_aggregate_subtasks_suppresses_growth_narrative_feedback_when_answer_is_complete(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 커머스 부문의 매출은 전년 대비 41.4% 성장했습니다. 이러한 성장은 Poshmark 인수와 연결 편입 효과가 커머스 실적에 기여한 결과입니다.",
+                    "planner_feedback": "커머스 부문 매출 성장률 계산 결과가 누락되었습니다.",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, Poshmark 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_2"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "커머스 부문 매출 성장률",
+                    "answer": "커머스 부문 매출은 전년 대비 41.4% 성장했습니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "missing",
+                                "label": "커머스 부문 매출 성장률",
+                                "raw_unit": "%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "period": "2023",
+                                "rendered_value": "2조 5,466억원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "period": "2022",
+                                "rendered_value": "1조 8,011억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "answer": "Poshmark 연결 편입 효과가 커머스 성장에 기여했습니다.",
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_feedback"], "")
+        self.assertNotIn("완전히 확정할 수는 없습니다", updated["answer"])
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("Poshmark", updated["answer"])
+
+    def test_compose_sales_growth_policy_answer_selects_only_role_matched_evidence_ids(self) -> None:
+        docs = [
+            Document(
+                page_content=(
+                    "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매하였습니다. "
+                    "2022년에는 전년 대비 0.9% 감소한 78.1만 대를 판매하였습니다. "
+                    "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 보호무역주의에 대한 "
+                    "적극적인 대응이 필요한 상황입니다."
+                ),
+                metadata={
+                    "company": "현대자동차",
+                    "year": 2023,
+                    "section_path": "IV. 이사의 경영진단 및 분석의견",
+                },
+            )
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "ev_market_total",
+                "source_anchor": "[현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                "claim": "2023년 미국 시장 판매대수는 1,560.8만 대로 전년 대비 12.3% 증가했습니다.",
+            },
+            {
+                "evidence_id": "ev_policy",
+                "source_anchor": "[현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                "claim": "미국의 인플레이션 감축법과 각국의 보호무역주의에 대한 적극적인 대응이 필요한 상황입니다.",
+            },
+        ]
+
+        result = self.agent._compose_sales_growth_policy_answer(
+            query="2023년 미국 판매대수의 전년 대비 성장률을 계산하고 IRA 등 정책 대응 상황을 요약해 줘.",
+            docs=docs,
+            evidence_items=evidence_items,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIn("11.5%", result["compressed_answer"])
+        self.assertEqual(result["selected_claim_ids"], ["ev_policy"])
+        self.assertNotIn("ev_market_total", result["selected_claim_ids"])
 
 
 if __name__ == "__main__":

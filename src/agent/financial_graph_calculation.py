@@ -42,6 +42,7 @@ class FinancialAgentCalculationMixin:
             label = re.sub(r"20\d{2}\s*년?", " ", label)
             for needle in ("총액", "증감률", "증감액", "증가율", "비중", "비율"):
                 label = label.replace(needle, " ")
+            label = re.sub(r"(^|\s)부문(?=\s|$)", " ", label)
             label = label.replace("(", " ").replace(")", " ")
             label = _normalise_spaces(label)
             if label:
@@ -265,6 +266,59 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
+    def _feedback_gap_is_satisfied_by_derived_slots(
+        self,
+        feedback: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        feedback_text = _normalise_spaces(str(feedback or ""))
+        if not feedback_text:
+            return False
+
+        target_surface = re.split(
+            r"(?:계산에 필요한|direct value|raw value|값[이가]?|재료)",
+            feedback_text,
+            maxsplit=1,
+        )[0]
+        target_keys = self._slot_metric_keys({"label": target_surface})
+        if not target_keys:
+            return False
+        target_periods = {
+            self._period_match_key(match.group(0))
+            for match in re.finditer(r"20\d{2}\s*년?", feedback_text)
+            if self._period_match_key(match.group(0))
+        }
+
+        for row in ordered_results:
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
+                continue
+            status = _normalise_spaces(
+                str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            for slot in self._iter_answer_slots(answer_slots):
+                if not self._answer_slot_has_material(slot):
+                    continue
+                slot_period = self._period_match_key(self._slot_period_hint(slot))
+                if target_periods and slot_period and slot_period not in target_periods:
+                    continue
+                if target_periods and not slot_period:
+                    continue
+                slot_keys = self._slot_metric_keys(slot)
+                if target_keys & slot_keys:
+                    return True
+                if any(
+                    target_key and slot_key and (target_key in slot_key or slot_key in target_key)
+                    for target_key in target_keys
+                    for slot_key in slot_keys
+                ):
+                    return True
+        return False
+
     def _preferred_aggregate_fallback_answer(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -379,11 +433,20 @@ class FinancialAgentCalculationMixin:
             normalized_value = source_slot.get("normalized_value")
             if normalized_value is None:
                 normalized_value = sibling_result.get("result_value")
+            source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or sibling_result.get("source_anchor") or ""))
+            if not source_anchor:
+                for operand_row in list(sibling_row.get("calculation_operands") or []):
+                    operand_candidate = dict(operand_row or {})
+                    if not _operand_row_matches_requirement(operand_candidate, binding):
+                        continue
+                    source_anchor = _normalise_spaces(str(operand_candidate.get("source_anchor") or ""))
+                    if source_anchor:
+                        break
             dependency_rows.append(
                 {
                     "operand_id": f"dep_{preferred_task_id}_{index:03d}",
                     "evidence_id": f"task_output:{preferred_task_id}",
-                    "source_anchor": _normalise_spaces(str(source_slot.get("source_anchor") or "")),
+                    "source_anchor": source_anchor,
                     "label": _normalise_spaces(
                         str(binding.get("label") or source_slot.get("label") or sibling_row.get("metric_label") or "")
                     ),
@@ -599,17 +662,23 @@ class FinancialAgentCalculationMixin:
                     continue
                 gap = self._material_gap_feedback_for_subtask_result(row)
                 if gap:
+                    if self._feedback_gap_is_satisfied_by_derived_slots(gap, ordered_results):
+                        continue
                     return gap
                 metric_label = _normalise_spaces(
                     str(row.get("metric_label") or row.get("task_id") or "계산 결과")
                 )
-                return f"{metric_label} 계산에 필요한 재료가 누락되었습니다."
+                generic_gap = f"{metric_label} 계산에 필요한 재료가 누락되었습니다."
+                if self._feedback_gap_is_satisfied_by_derived_slots(generic_gap, ordered_results):
+                    continue
+                return generic_gap
 
             gap = self._material_gap_feedback_for_subtask_result(row)
             if gap and (
                 self._sibling_lookup_gap_is_satisfied(row, ordered_results)
                 or self._lookup_gap_is_satisfied_by_sibling_slots(row, ordered_results)
                 or self._narrative_summary_gap_is_satisfied(row, ordered_results)
+                or self._feedback_gap_is_satisfied_by_derived_slots(gap, ordered_results)
             ):
                 continue
             if gap:
@@ -795,6 +864,200 @@ class FinancialAgentCalculationMixin:
             return answer_text
         return _normalise_spaces(f"{context} {answer_text}")
 
+    def _answer_looks_truncated(self, answer: str) -> bool:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text:
+            return True
+        if re.search(r"(?:다|니다|요|음|임)[.!?。]?$", answer_text):
+            return False
+        if re.search(r"[.!?。]$", answer_text):
+            return False
+        return True
+
+    def _growth_narrative_sentence_candidates(
+        self,
+        *,
+        query: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+    ) -> List[tuple[int, str, List[str]]]:
+        query_terms = self._narrative_context_terms(query)
+        narrative_markers = ("영향", "기여", "개선", "성장", "인수", "편입", "확대", "강화", "회복", "둔화")
+        missing_markers = ("확인하지 못", "충분히 확인", "계산할 수 없습니다", "누락", "필요한 값")
+        candidates: List[tuple[int, str, List[str]]] = []
+
+        def _add_candidate(text: str, claim_ids: List[str], base_score: int) -> None:
+            normalized = _normalise_spaces(text)
+            if not normalized or any(marker in normalized for marker in missing_markers):
+                return
+            sentences = re.split(r"(?<=[.!?。])\s+", normalized)
+            for sentence in sentences:
+                cleaned = _normalise_spaces(sentence)
+                if not cleaned or any(marker in cleaned for marker in missing_markers):
+                    continue
+                haystack = cleaned.lower()
+                score = base_score
+                score += sum(3 for term in query_terms if term.lower() in haystack)
+                score += sum(2 for marker in narrative_markers if marker in cleaned)
+                if score <= base_score:
+                    continue
+                candidates.append((score, cleaned, claim_ids))
+
+        for row in ordered_results or []:
+            operation_family = self._aggregate_result_operation_family(row)
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if operation_family != "narrative_summary" and metric_family != "narrative_summary":
+                continue
+            claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
+            _add_candidate(str(row.get("answer") or ""), claim_ids, 8)
+
+        for item in evidence_items or []:
+            evidence = dict(item or {})
+            claim = str(evidence.get("claim") or evidence.get("quote_span") or evidence.get("raw_row_text") or "")
+            claim_id = str(evidence.get("evidence_id") or "").strip()
+            _add_candidate(claim, [claim_id] if claim_id else [], 2)
+
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates
+
+    def _compose_growth_narrative_answer(
+        self,
+        *,
+        query: str,
+        ordered_results: List[Dict[str, Any]],
+        existing_answer: str,
+        evidence_items: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        if not _query_requests_narrative_context(query):
+            return None
+        if not self._answer_looks_truncated(existing_answer):
+            return None
+
+        growth_row: Optional[Dict[str, Any]] = None
+        growth_slots: Dict[str, Any] = {}
+        for row in ordered_results or []:
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            primary_slot = dict(answer_slots.get("primary_value") or {})
+            current_slot = dict(answer_slots.get("current_value") or {})
+            prior_slot = dict(answer_slots.get("prior_value") or {})
+            if not (
+                self._answer_slot_has_material(primary_slot)
+                and self._answer_slot_has_material(current_slot)
+                and self._answer_slot_has_material(prior_slot)
+            ):
+                continue
+            growth_row = dict(row)
+            growth_slots = {
+                "primary_value": primary_slot,
+                "current_value": current_slot,
+                "prior_value": prior_slot,
+            }
+            break
+
+        if not growth_row or not growth_slots:
+            return None
+
+        narrative_candidates = self._growth_narrative_sentence_candidates(
+            query=query,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        )
+        if not narrative_candidates:
+            return None
+
+        primary_slot = growth_slots["primary_value"]
+        current_slot = growth_slots["current_value"]
+        prior_slot = growth_slots["prior_value"]
+        growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
+        current_value = _normalise_spaces(str(current_slot.get("rendered_value") or current_slot.get("raw_value") or ""))
+        prior_period = _normalise_spaces(str(prior_slot.get("period") or "전년"))
+        current_period = _normalise_spaces(str(current_slot.get("period") or primary_slot.get("period") or ""))
+        metric_label = _normalise_spaces(
+            str(current_slot.get("label") or primary_slot.get("label") or growth_row.get("metric_label") or "")
+        )
+        metric_label = re.sub(r"20\d{2}\s*년?", " ", metric_label)
+        metric_label = _normalise_spaces(metric_label)
+        if not growth_value or not current_value or not metric_label:
+            return None
+
+        direction = _normalise_spaces(str(primary_slot.get("direction") or primary_slot.get("direction_hint") or "")).lower()
+        if not direction:
+            normalized_value = primary_slot.get("normalized_value")
+            try:
+                direction = "decrease" if normalized_value is not None and float(normalized_value) < 0 else "increase"
+            except (TypeError, ValueError):
+                direction = "decrease" if growth_value.startswith("-") else "increase"
+        direction_word = "감소" if direction == "decrease" else ("성장" if "매출" in metric_label else "증가")
+        period_prefix = f"{current_period}년 " if current_period and not current_period.endswith("년") else f"{current_period} " if current_period else ""
+        numeric_sentence = _normalise_spaces(
+            f"{period_prefix}{metric_label}은 {current_value}으로, {prior_period} 대비 {growth_value} {direction_word}했습니다."
+        )
+        narrative_sentence, selected_claim_ids = narrative_candidates[0][1], narrative_candidates[0][2]
+        if narrative_sentence and not re.search(r"[.!?。]$", narrative_sentence):
+            narrative_sentence = f"{narrative_sentence}."
+        return {
+            "compressed_answer": _normalise_spaces(f"{numeric_sentence} {narrative_sentence}"),
+            "selected_claim_ids": selected_claim_ids,
+        }
+
+    def _answer_satisfies_growth_narrative_intent(
+        self,
+        *,
+        query: str,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        query_text = _normalise_spaces(str(query or ""))
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not query_text or not answer_text or not _query_requests_narrative_context(query_text):
+            return False
+        if not re.search(r"(성장률|증감률|증가율|전년\s*대비)", query_text):
+            return False
+        missing_markers = ("확인하지 못", "찾을 수 없", "계산할 수 없습니다", "충분히 확보하지 못", "누락")
+        if any(marker in answer_text for marker in missing_markers):
+            return False
+        if not re.search(r"\d+(?:\.\d+)?\s*%", answer_text):
+            return False
+        impact_markers = ("영향", "기여", "기인", "개선", "인수", "편입", "성장", "강화", "증가")
+        if not any(marker in answer_text for marker in impact_markers):
+            return False
+
+        generic_terms = {
+            "커머스",
+            "부문",
+            "매출",
+            "성장률",
+            "계산하고",
+            "요약해",
+            "영향",
+            "실적",
+            "전년",
+            "대비",
+        }
+        focus_terms = [
+            term
+            for term in self._narrative_context_terms(query_text)
+            if term not in generic_terms and len(term) >= 2
+        ]
+        if focus_terms and not any(term.lower() in answer_text.lower() for term in focus_terms):
+            return False
+
+        has_growth_row = any(
+            self._aggregate_result_operation_family(row) == "growth_rate"
+            or "growth" in _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            or "성장률" in _normalise_spaces(str(row.get("metric_label") or ""))
+            for row in ordered_results or []
+        )
+        has_narrative_material = any(
+            self._aggregate_result_operation_family(row) == "narrative_summary"
+            or _normalise_spaces(str(row.get("metric_family") or "")).lower() == "narrative_summary"
+            for row in ordered_results or []
+        )
+        return has_growth_row and has_narrative_material
+
     def _coerce_operand_unit_from_evidence(
         self,
         *,
@@ -817,6 +1080,47 @@ class FinancialAgentCalculationMixin:
         if bare_numeric and normalized_current in {"원", "krw"} and normalized_hint in {"천원", "백만원", "억원", "조원"}:
             return unit_hint
         return current_unit
+
+    def _surface_contract_numeric_evidence_items(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Keep prose evidence that directly names an ontology surface and a nearby number."""
+        if not evidence_items or not required_operands:
+            return []
+
+        preserved: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for item in evidence_items:
+            evidence = dict(item or {})
+            surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        evidence.get("claim"),
+                        evidence.get("quote_span"),
+                        evidence.get("raw_row_text"),
+                    )
+                )
+            )
+            if not surface or not re.search(r"\d", surface):
+                continue
+            for operand in required_operands:
+                operand_dict = dict(operand or {})
+                if not _text_has_positive_surface(surface, operand_dict):
+                    continue
+                if _text_has_negative_surface(surface, operand_dict):
+                    continue
+                if not _extract_numeric_value_after_operand_text(surface, operand_dict):
+                    continue
+                key = str(evidence.get("evidence_id") or evidence.get("source_anchor") or surface[:120])
+                if key in seen:
+                    continue
+                seen.add(key)
+                preserved.append(evidence)
+                break
+        return preserved
 
     def _ratio_components_have_suspicious_scale(
         self,
@@ -1234,7 +1538,16 @@ class FinancialAgentCalculationMixin:
                 logger.info("[calc_operands] appended reconciled evidence items=%s", appended)
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if bool(item.get("required", True))
+        ]
         direct_numeric_grounding = _requires_direct_numeric_grounding(active_subtask)
+        surface_contract_evidence = self._surface_contract_numeric_evidence_items(
+            evidence_items,
+            required_operands,
+        )
         preserve_narrative_context = (
             direct_numeric_grounding
             and _query_requests_narrative_context(str(state.get("query") or ""))
@@ -1256,16 +1569,26 @@ class FinancialAgentCalculationMixin:
                 )
             else:
                 evidence_items = list(reconciliation_evidence)
+                for item in surface_contract_evidence:
+                    evidence_id = str(item.get("evidence_id") or "").strip()
+                    source_anchor = str(item.get("source_anchor") or "").strip()
+                    if any(
+                        evidence_id and evidence_id == str(existing.get("evidence_id") or "").strip()
+                        or source_anchor and source_anchor == str(existing.get("source_anchor") or "").strip()
+                        for existing in evidence_items
+                    ):
+                        continue
+                    evidence_items.append(item)
                 evidence_bullets = [
-                    f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} (reconciled)"
-                    for item in reconciliation_evidence
+                    f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} ({'reconciled' if item in reconciliation_evidence else 'surface-contract'})"
+                    for item in evidence_items
                 ]
-                logger.info("[calc_operands] direct numeric task restricts evidence to reconciled structured candidates=%s", len(evidence_items))
-        required_operands = [
-            dict(item)
-            for item in (active_subtask.get("required_operands") or [])
-            if bool(item.get("required", True))
-        ]
+                logger.info(
+                    "[calc_operands] direct numeric task restricts evidence to reconciled structured candidates=%s surface_contract=%s total=%s",
+                    len(reconciliation_evidence),
+                    len(surface_contract_evidence),
+                    len(evidence_items),
+                )
         if direct_structured_rows and required_operands:
             direct_structured_rows = [
                 row
@@ -1321,7 +1644,7 @@ class FinancialAgentCalculationMixin:
                 ]
         has_retrieved_docs_for_dependency_fallback = bool(retrieved_docs or seed_retrieved_docs)
         allow_dependency_retry_fallback = (
-            operation_family == "ratio"
+            operation_family in {"ratio", "difference"}
             and bool(missing_dependency_bindings)
             and (
                 int(state.get("reconciliation_retry_count") or 0) > 0
@@ -1594,6 +1917,22 @@ Structured Evidence:
                 )
 
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            if missing_required and surface_contract_evidence:
+                surface_fallback_rows = self._build_required_operands_from_candidates(
+                    surface_contract_evidence,
+                    required_operands=missing_required,
+                    query=query,
+                    topic=state.get("topic") or "",
+                    report_scope=dict(state.get("report_scope") or {}),
+                )
+                if surface_fallback_rows:
+                    logger.info("[calc_operands] surface-contract operand fallback rows=%s", len(surface_fallback_rows))
+                    operand_rows = _merge_operand_rows(
+                        operand_rows,
+                        surface_fallback_rows,
+                        required_operands=required_operands,
+                    )
+                    missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding:
                 generic_fallback_rows = self._build_required_operands_from_candidates(
                     evidence_items,
@@ -3401,6 +3740,12 @@ Subtask Results JSON:
             query=str(state.get("query") or ""),
             narrative_context=narrative_context,
         )
+        growth_narrative_answer = self._compose_growth_narrative_answer(
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            existing_answer=final_answer,
+            evidence_items=aggregate_evidence_items,
+        )
         entity_table_answer = self._compose_entity_table_summary_answer(
             query=str(state.get("query") or ""),
             docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
@@ -3408,6 +3753,15 @@ Subtask Results JSON:
         )
         composition_selected_claim_ids: List[str] = []
         calculation_projection_override: Optional[Dict[str, Any]] = None
+        if growth_narrative_answer:
+            final_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or "")) or final_answer
+            composition_selected_claim_ids.extend(
+                str(claim_id).strip()
+                for claim_id in (growth_narrative_answer.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+            planner_feedback = ""
+            deterministic_feedback = ""
         if entity_table_answer:
             final_answer = _normalise_spaces(str(entity_table_answer.get("compressed_answer") or "")) or final_answer
             composition_selected_claim_ids.extend(
@@ -3469,9 +3823,29 @@ Subtask Results JSON:
                 calculation_projection_override = None
                 planner_feedback = ""
                 deterministic_feedback = ""
-        # Prefer the deterministic structured-material check over a conservative
-        # synthesizer hint. When the deterministic check sees no missing
-        # material, do not append a user-facing uncertainty suffix.
+        # Prefer the deterministic structured-material check over a stale
+        # deterministic hint, but preserve independent synthesizer feedback for
+        # replan/budget-exhausted cases.
+        preliminary_status = _normalise_spaces(
+            str((preliminary_projection.get("calculation_result") or {}).get("status") or "")
+        ).lower()
+        if (
+            preliminary_status == "ok"
+            and deterministic_feedback
+            and (not planner_feedback or planner_feedback == deterministic_feedback)
+        ):
+            planner_feedback = ""
+            deterministic_feedback = ""
+        if (
+            (planner_feedback or deterministic_feedback)
+            and self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=final_answer,
+                ordered_results=ordered_results,
+            )
+        ):
+            planner_feedback = ""
+            deterministic_feedback = ""
         if not deterministic_feedback:
             planner_feedback = ""
         elif not planner_feedback:

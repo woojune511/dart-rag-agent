@@ -853,6 +853,19 @@ def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[fl
     if composite_krw is not None:
         return composite_krw, "KRW"
 
+    inline_unit_match = re.fullmatch(
+        r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>조\s*원?|억\s*원?|백만\s*원|천\s*원|원|%)",
+        _normalise_spaces(raw_value),
+    )
+    if inline_unit_match:
+        raw_value = inline_unit_match.group("value")
+        inline_unit = re.sub(r"\s+", "", inline_unit_match.group("unit"))
+        if inline_unit == "억":
+            inline_unit = "억원"
+        elif inline_unit == "조":
+            inline_unit = "조원"
+        unit = inline_unit.lower()
+
     value = _parse_number_text(raw_value)
     if value is None and unit in {"%", "퍼센트"}:
         value = _parse_number_text(str(raw_value or "").replace("%", "").replace("퍼센트", ""))
@@ -4510,7 +4523,12 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return ""
-    value_pattern = re.compile(r"[\d,]+(?:\s*조\s*[\d,]+\s*억(?:원)?)?|[\d,]+")
+    value_pattern = re.compile(
+        r"[\d,]+(?:\.\d+)?\s*조(?:\s*[\d,]+(?:\.\d+)?\s*억(?:원)?)?"
+        r"|[\d,]+(?:\.\d+)?\s*(?:조|억|백만|천)\s*원?"
+        r"|[\d,]+(?:\.\d+)?\s*원"
+        r"|[\d,]+(?:\.\d+)?"
+    )
     for needle in _operand_needles(operand):
         compact = re.sub(r"\s+", "", _normalise_spaces(needle))
         if not compact:
@@ -4519,6 +4537,12 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
         match = re.search(spaced_pattern, normalized)
         if not match:
             continue
+        prefix = normalized[: match.start()]
+        prefix_matches = list(value_pattern.finditer(prefix))
+        if prefix_matches:
+            nearest = prefix_matches[-1]
+            if match.start() - nearest.end() <= 20:
+                return _normalise_spaces(nearest.group(0))
         suffix = normalized[match.end() :]
         value_match = value_pattern.search(suffix)
         if value_match:

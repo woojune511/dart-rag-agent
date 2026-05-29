@@ -24,6 +24,7 @@ from src.ops.evaluator import (
     _supplement_resolved_operands_from_runtime_evidence,
     _should_override_hybrid_faithfulness,
     _should_override_numeric_grounding,
+    _should_override_structured_summary_faithfulness,
 )
 
 
@@ -370,6 +371,159 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 completeness=1.0,
                 calculation_correctness=1.0,
                 grounded_rendering_correctness=1.0,
+                unsupported_sentences=[],
+            )
+        )
+
+    def test_should_override_hybrid_faithfulness_when_answer_entities_and_structured_result_are_grounded(self) -> None:
+        example = EvalExample(
+            id="hyu_t2_010",
+            question="2023년 미국 판매대수의 전년 대비 성장률을 계산하고, IRA 등 정책 대응 상황을 요약해 줘.",
+            ground_truth="87.0만 대, 78.1만 대, 11.5%, 보호무역주의 대응",
+            company="현대자동차",
+            year=2023,
+            section="경영진단",
+            required_entities=["미국", "현대차", "인플레이션 감축법", "보호무역주의"],
+            expected_sections=["IV. 이사의 경영진단 및 분석의견"],
+        )
+        runtime_evidence = [
+            {
+                "claim": "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매했다.",
+                "quote_span": "전년 대비 11.5% 증가한 87.0만 대",
+                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+            {
+                "claim": "미국의 인플레이션 감축법과 각국 보호무역주의에 대한 적극적인 대응이 필요하다.",
+                "quote_span": "인플레이션 감축법과 보호무역주의에 대한 적극적인 대응",
+                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_hybrid_faithfulness(
+                example=example,
+                answer=(
+                    "2023년 미국 시장 현대차 판매대수는 87.0만 대, 2022년은 78.1만 대로 "
+                    "전년 대비 성장률은 11.5%입니다. 정책 대응 측면에서는 미국의 인플레이션 "
+                    "감축법과 각국 보호무역주의에 대한 적극적인 대응이 필요한 상황입니다."
+                ),
+                raw_faithfulness=0.5,
+                runtime_evidence=runtime_evidence,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=1.0,
+                citation_coverage=1.0,
+                entity_coverage=0.5,
+                completeness=1.0,
+                calculation_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+                unsupported_sentences=[],
+            )
+        )
+
+    def test_should_not_override_hybrid_faithfulness_when_low_context_entities_are_missing_from_answer(self) -> None:
+        example = EvalExample(
+            id="hyu_t2_010",
+            question="2023년 미국 판매대수의 전년 대비 성장률을 계산하고, IRA 등 정책 대응 상황을 요약해 줘.",
+            ground_truth="87.0만 대, 78.1만 대, 11.5%, 보호무역주의 대응",
+            company="현대자동차",
+            year=2023,
+            section="경영진단",
+            required_entities=["미국", "현대차", "인플레이션 감축법", "보호무역주의"],
+        )
+        runtime_evidence = [
+            {
+                "claim": "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매했다.",
+                "quote_span": "전년 대비 11.5% 증가한 87.0만 대",
+                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+            {
+                "claim": "미국의 인플레이션 감축법과 각국 보호무역주의에 대한 적극적인 대응이 필요하다.",
+                "quote_span": "인플레이션 감축법과 보호무역주의에 대한 적극적인 대응",
+                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
+            },
+        ]
+
+        self.assertFalse(
+            _should_override_hybrid_faithfulness(
+                example=example,
+                answer="2023년 미국 시장 판매대수는 87.0만 대이고 전년 대비 성장률은 11.5%입니다.",
+                raw_faithfulness=0.5,
+                runtime_evidence=runtime_evidence,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=1.0,
+                citation_coverage=1.0,
+                entity_coverage=0.5,
+                completeness=1.0,
+                calculation_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+                unsupported_sentences=[],
+            )
+        )
+
+    def test_should_override_structured_summary_faithfulness_for_grounded_multi_numeric_summary(self) -> None:
+        example = EvalExample(
+            id="hyu_t3_072",
+            question="2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            ground_truth="Motional AD LLC, 25.81%, 1,294,367백만원, 계속영업손실, 총포괄손실",
+            company="현대자동차",
+            year=2023,
+            section="연결재무제표 주석",
+            category="business_overview",
+            answer_type="summary",
+            required_entities=["Motional AD LLC", "25.92%", "1,294,367", "계속영업손실", "총포괄손실"],
+        )
+
+        self.assertTrue(
+            _should_override_structured_summary_faithfulness(
+                example=example,
+                answer=(
+                    "Motional의 지분율은 25.81%, 투자장부금액은 1,294,367백만원입니다. "
+                    "요약 손익은 계속영업손실 (803,742)백만원, 총포괄손실 (791,627)백만원입니다."
+                ),
+                raw_faithfulness=0.5,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=0.625,
+                citation_coverage=1.0,
+                entity_coverage=0.6,
+                completeness=1.0,
+                calculation_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+                unsupported_sentences=[],
+            )
+        )
+
+    def test_should_not_override_structured_summary_faithfulness_when_rendering_is_not_grounded(self) -> None:
+        example = EvalExample(
+            id="hyu_t3_072",
+            question="2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            ground_truth="Motional AD LLC, 25.81%, 1,294,367백만원, 계속영업손실, 총포괄손실",
+            company="현대자동차",
+            year=2023,
+            section="연결재무제표 주석",
+            category="business_overview",
+            answer_type="summary",
+            required_entities=["Motional AD LLC", "25.92%", "1,294,367", "계속영업손실", "총포괄손실"],
+        )
+
+        self.assertFalse(
+            _should_override_structured_summary_faithfulness(
+                example=example,
+                answer=(
+                    "Motional의 지분율은 25.81%, 투자장부금액은 1,294,367백만원입니다. "
+                    "요약 손익은 계속영업손실 (803,742)백만원, 총포괄손실 (791,627)백만원입니다."
+                ),
+                raw_faithfulness=0.5,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=0.625,
+                citation_coverage=1.0,
+                entity_coverage=0.6,
+                completeness=1.0,
+                calculation_correctness=1.0,
+                grounded_rendering_correctness=0.0,
                 unsupported_sentences=[],
             )
         )

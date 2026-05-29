@@ -1795,7 +1795,7 @@ class FinancialAgentEvidenceMixin:
         year_pattern = re.compile(r"(20\d{2}년)")
 
         for operand in required_operands:
-            label_name = str(operand.get("label") or "").strip()
+            label_name = str(operand.get("label") or operand.get("name") or operand.get("concept") or "").strip()
             if not label_name:
                 continue
             for item in prioritized_items:
@@ -1844,7 +1844,11 @@ class FinancialAgentEvidenceMixin:
                         ("aggregate" in prefer_value_roles or aggregate_stage in prefer_aggregation_stages)
                         and _operand_text_match(context_text, operand)
                     )
-                if not _operand_text_match(raw_row, operand) and not aggregate_context_match:
+                surface_contract_match = (
+                    _text_has_positive_surface(context_text or raw_row, operand)
+                    and not _text_has_negative_surface(context_text or raw_row, operand)
+                )
+                if not _operand_text_match(raw_row, operand) and not aggregate_context_match and not surface_contract_match:
                     continue
 
                 period = ""
@@ -2776,16 +2780,22 @@ class FinancialAgentEvidenceMixin:
 
         text_parts: List[str] = [str(existing_answer or "")]
         source_anchors: List[str] = []
+        doc_records: List[Dict[str, str]] = []
         for item in docs or []:
             doc = item[0] if isinstance(item, (tuple, list)) else item
             metadata = getattr(doc, "metadata", {}) or {}
-            text_parts.append(str(getattr(doc, "page_content", "") or ""))
+            doc_parts = [str(getattr(doc, "page_content", "") or "")]
             for key in ("table_context", "table_row_labels_text", "table_value_labels_text"):
                 if metadata.get(key):
-                    text_parts.append(str(metadata.get(key) or ""))
+                    doc_parts.append(str(metadata.get(key) or ""))
+            doc_text = _normalise_spaces(" ".join(part for part in doc_parts if part))
+            if doc_text:
+                text_parts.append(doc_text)
             anchor = self._build_source_anchor(metadata)
             if anchor:
                 source_anchors.append(anchor)
+            if doc_text or anchor:
+                doc_records.append({"text": doc_text, "source_anchor": anchor})
         for item in evidence_items or []:
             evidence = dict(item or {})
             source_anchors.append(str(evidence.get("source_anchor") or ""))
@@ -2877,7 +2887,18 @@ class FinancialAgentEvidenceMixin:
                 }
                 break
 
-        fallback_anchor = next((anchor for anchor in source_anchors if anchor), "")
+        def _anchor_from_docs(markers: tuple[str, ...]) -> str:
+            if any(not marker for marker in markers):
+                return ""
+            for record in doc_records:
+                text = record.get("text") or ""
+                if text and all(str(marker) in text for marker in markers):
+                    return record.get("source_anchor") or ""
+            return ""
+
+        sales_fallback_anchor = _anchor_from_docs(("2023", current_units, "현대차"))
+        policy_fallback_anchor = _anchor_from_docs(tuple(policy_role_terms))
+        fallback_anchor = sales_fallback_anchor or next((anchor for anchor in source_anchors if anchor), "")
 
         def _value_slot(
             *,
@@ -2981,10 +3002,10 @@ class FinancialAgentEvidenceMixin:
             },
         }
         selected_ids = [
-            str(item.get("evidence_id") or "").strip()
-            for item in evidence_items or []
-            if str(item.get("source_anchor") or "").strip() in set(source_anchors)
-            and str(item.get("evidence_id") or "").strip()
+            source_id
+            for role in ("current_value", "prior_value", "primary_value", "policy")
+            for source_id in list((evidence_source_by_role.get(role) or {}).get("source_row_ids") or [])
+            if source_id
         ]
         return {
             "selected_claim_ids": list(dict.fromkeys(selected_ids)),

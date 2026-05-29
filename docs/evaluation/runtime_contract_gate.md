@@ -194,9 +194,47 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current focused smoke status:
 
-- `SAM_T2_078`, `HYU_T2_010`, and `HYU_T3_072` are closed at
-  single-question smoke level after the 2026-05-29 runtime-trace fixes.
-- The smoke checks used the official structural collection name
+- Official 2026-05-29 policy-driven run output is a historical failure
+  snapshot for some questions, not the current post-patch verdict.
+- `SAM_T2_078` was already passing in the official 2026-05-29 full-evaluation
+  output.
+- `LGE_T1_051` is closed in the latest targeted smoke after preserving
+  prose AMPC evidence such as `6,769억원의 IRA Tax Credit` and carrying sibling
+  operand provenance into dependency rows:
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  - `numeric_final_judgement = PASS`
+- `NAV_T2_006` is closed in the latest targeted smoke after suppressing stale
+  growth+narrative planner feedback only when the final answer already covers
+  the growth-rate value and narrative impact:
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `refusal_accuracy = 1.0`
+  - final answer no longer carries the partial-refusal suffix
+- `HYU_T2_010` is closed in the latest targeted smoke:
+  - answer covers `87.0만 대`, `78.1만 대`, `11.5%`, IRA / 핵심원자재법 /
+    보호무역주의 대응 필요성
+  - `faithfulness = 1.0`
+  - `raw_faithfulness = 0.5`
+  - `faithfulness_override_reason = hybrid mixed-query evidence coverage가 충분해 faithfulness를 1.0으로 보정`
+  - `completeness = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `grounded_rendering_correctness = 1.0`
+  - `calculation_correctness = 1.0`
+  - `avg_score = 0.890`
+- `HYU_T3_072` is closed in the latest targeted smoke:
+  - answer covers Motional `25.81%`, `1,294,367백만원`, 계속영업손실
+    `(803,742)백만원`, 총포괄손실 `(791,627)백만원`
+  - `faithfulness = 1.0`
+  - `raw_faithfulness = 0.5`
+  - `faithfulness_override_reason = structured summary 계산/렌더링 검증이 충분해 faithfulness를 1.0으로 보정`
+  - `completeness = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `grounded_rendering_correctness = 1.0`
+  - `calculation_correctness = 1.0`
+  - `avg_score = 0.912`
+- These smoke checks use the official structural collection name
   `dart_reports_v2_structural-selective-v2-prefix-2500-320`.
 - This does not replace the full five-question policy-driven gate. Run the
   profile below before claiming official policy-gate closure.

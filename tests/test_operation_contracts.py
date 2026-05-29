@@ -752,6 +752,45 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertTrue(_candidate_matches_operand(paragraph_candidate, operand))
 
+    def test_ampc_prose_surface_contract_extracts_preceding_numeric_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
+        operand = ontology.concept_specs(
+            "미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액",
+            intent="comparison",
+        )[0]
+        operand = {**operand, "role": "subtrahend", "period_hint": "2023"}
+
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_ampc",
+                    "source_anchor": "[LG에너지솔루션 | 2023 | IV. 이사의 경영진단 및 분석의견 > 2. 개요]",
+                    "claim": (
+                        "영업이익은 원가개선 노력과 약 6,769억원의 IRA Tax Credit의 수익 인식으로 "
+                        "전년 대비 +78% 개선된 약 2조 1,632억원을 기록했습니다."
+                    ),
+                    "metadata": {
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 2. 개요",
+                        "statement_type": "mda",
+                    },
+                }
+            ],
+            required_operands=[operand],
+            query=(
+                "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 "
+                "세액공제(AMPC) 금액을 제외했을 때의 실질 영업이익을 계산해 줘."
+            ),
+            topic="",
+            report_scope={"company": "LG에너지솔루션", "year": 2023},
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["matched_operand_concept"], "advanced_manufacturing_production_credit")
+        self.assertEqual(rows[0]["matched_operand_role"], "subtrahend")
+        self.assertEqual(rows[0]["raw_value"], "6,769억원")
+        self.assertEqual(rows[0]["normalized_value"], 676900000000.0)
+
     def test_concept_lookup_synthesizes_answer_slot_from_ontology_surface_prose(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {
