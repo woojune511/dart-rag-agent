@@ -4529,6 +4529,36 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
         r"|[\d,]+(?:\.\d+)?\s*원"
         r"|[\d,]+(?:\.\d+)?"
     )
+
+    def _parenthetical_exact_value_after(value_text: str, end: int) -> str:
+        compact_value = re.sub(r"\s+", "", value_text or "")
+        if not any(unit in compact_value for unit in ("조", "억")):
+            return ""
+        tail = normalized[end : end + 40]
+        exact_match = re.match(
+            r"\s*\(\s*(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>백\s*만\s*원|천\s*원|원)\s*\)",
+            tail,
+        )
+        if not exact_match:
+            return ""
+        unit = re.sub(r"\s+", "", exact_match.group("unit"))
+        return f"{exact_match.group('value')}{unit}"
+
+    def _recent_parenthetical_exact_value_before(end: int) -> str:
+        context = normalized[max(0, end - 140) : end]
+        exact_matches = list(
+            re.finditer(
+                r"[\d,]+(?:\.\d+)?\s*(?:조|억)(?:\s*[\d,]+(?:\.\d+)?\s*억)?\s*원?"
+                r"\s*\(\s*(?P<value>[\d,]+(?:\.\d+)?)\s*(?P<unit>백\s*만\s*원|천\s*원|원)\s*\)",
+                context,
+            )
+        )
+        if not exact_matches:
+            return ""
+        exact_match = exact_matches[-1]
+        unit = re.sub(r"\s+", "", exact_match.group("unit"))
+        return f"{exact_match.group('value')}{unit}"
+
     for needle in _operand_needles(operand):
         compact = re.sub(r"\s+", "", _normalise_spaces(needle))
         if not compact:
@@ -4542,10 +4572,20 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
         if prefix_matches:
             nearest = prefix_matches[-1]
             if match.start() - nearest.end() <= 20:
+                exact_parenthetical = _parenthetical_exact_value_after(nearest.group(0), nearest.end())
+                if exact_parenthetical:
+                    return exact_parenthetical
+                recent_exact_parenthetical = _recent_parenthetical_exact_value_before(match.start())
+                if recent_exact_parenthetical:
+                    return recent_exact_parenthetical
                 return _normalise_spaces(nearest.group(0))
         suffix = normalized[match.end() :]
         value_match = value_pattern.search(suffix)
         if value_match:
+            absolute_end = match.end() + value_match.end()
+            exact_parenthetical = _parenthetical_exact_value_after(value_match.group(0), absolute_end)
+            if exact_parenthetical:
+                return exact_parenthetical
             return _normalise_spaces(value_match.group(0))
     return ""
 

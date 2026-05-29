@@ -791,6 +791,46 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["raw_value"], "6,769억원")
         self.assertEqual(rows[0]["normalized_value"], 676900000000.0)
 
+    def test_ampc_prose_surface_contract_prefers_exact_parenthetical_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
+        operand = ontology.concept_specs(
+            "미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액",
+            intent="comparison",
+        )[0]
+        operand = {**operand, "role": "subtrahend", "period_hint": "2023"}
+
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_ampc_exact",
+                    "source_anchor": "[LG에너지솔루션 | 2023 | IV. 이사의 경영진단 및 분석의견 > 2. 개요]",
+                    "claim": (
+                        "2023년 영업이익에는 미국 인플레이션 감축법(IRA)에 따른 세액공제"
+                        "(Tax Credit) 수익 약 6,769억원(676,874백만원)이 포함되어 있습니다. "
+                        "약 6,769억원의 IRA Tax Credit의 수익 인식으로 영업이익이 개선되었습니다."
+                    ),
+                    "metadata": {
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 2. 개요",
+                        "statement_type": "mda",
+                    },
+                }
+            ],
+            required_operands=[operand],
+            query=(
+                "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 "
+                "세액공제(AMPC) 금액을 제외했을 때의 실질 영업이익을 계산해 줘."
+            ),
+            topic="",
+            report_scope={"company": "LG에너지솔루션", "year": 2023},
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["matched_operand_concept"], "advanced_manufacturing_production_credit")
+        self.assertEqual(rows[0]["matched_operand_role"], "subtrahend")
+        self.assertEqual(rows[0]["raw_value"], "676,874백만원")
+        self.assertEqual(rows[0]["normalized_value"], 676874000000.0)
+
     def test_concept_lookup_synthesizes_answer_slot_from_ontology_surface_prose(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {
@@ -899,6 +939,189 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("첨단제조 생산세액공제 금액은 6,769억원", answer)
         self.assertIn("실질 영업이익은 1조 4,863억원", answer)
         self.assertNotIn("676,900백만원", answer)
+
+    def test_adjusted_difference_result_preserves_source_unit_when_excluding_component(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": (
+                    "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 "
+                    "세액공제(AMPC) 금액을 제외했을 때의 실질 영업이익을 계산해 줘."
+                ),
+                "active_subtask": {
+                    "task_id": "task_ampc_adjusted_income",
+                    "metric_family": "concept_difference",
+                    "metric_label": "실질 영업이익",
+                    "query": (
+                        "2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘."
+                    ),
+                    "operation_family": "difference",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "ev_operating_income",
+                        "label": "영업이익",
+                        "normalized_value": 2163234000000.0,
+                        "normalized_unit": "KRW",
+                        "raw_value": "2,163,234",
+                        "raw_unit": "백만원",
+                        "period": "2023",
+                        "matched_operand_role": "minuend",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "ev_ampc",
+                        "label": "첨단제조 생산세액공제",
+                        "normalized_value": 676874000000.0,
+                        "normalized_unit": "KRW",
+                        "raw_value": "676,874",
+                        "raw_unit": "백만원",
+                        "period": "2023",
+                        "matched_operand_role": "subtrahend",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "subtract",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "A - B",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "실질 영업이익",
+                    "explanation": "difference",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        calc = result["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertEqual(calc["rendered_value"], "1,486,360백만원")
+        self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,360백만원")
+        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,360백만원")
+        self.assertEqual(
+            calc["answer_slots"]["components_by_role"]["subtrahend"][0]["rendered_value"],
+            "676,874백만원",
+        )
+
+    def test_adjusted_difference_result_uses_source_unit_with_rounded_component_operand(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_ampc_adjusted_income",
+                    "metric_family": "concept_difference",
+                    "metric_label": "실질 영업이익",
+                    "query": "2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
+                    "operation_family": "difference",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "ev_operating_income",
+                        "label": "영업이익",
+                        "normalized_value": 2163234000000.0,
+                        "normalized_unit": "KRW",
+                        "raw_value": "2,163,234",
+                        "raw_unit": "백만원",
+                        "period": "2023",
+                        "matched_operand_role": "minuend",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "ev_ampc",
+                        "label": "첨단제조 생산세액공제",
+                        "normalized_value": 676900000000.0,
+                        "normalized_unit": "KRW",
+                        "raw_value": "6,769억원",
+                        "raw_unit": "원",
+                        "period": "2023년",
+                        "matched_operand_role": "subtrahend",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "subtract",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "A - B",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "실질 영업이익",
+                    "explanation": "difference",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        calc = result["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertEqual(calc["rendered_value"], "1,486,334백만원")
+        self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,334백만원")
+        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,334백만원")
+
+    def test_operand_precision_refines_rounded_llm_value_from_structured_table_cell(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "첨단제조 생산세액공제 (IRA Tax Credit)",
+            "raw_value": "6,769",
+            "raw_unit": "억원",
+            "normalized_value": 676900000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "metadata": {
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "24:3",
+                            "row_label": "기타영업손익",
+                            "cells": [
+                                {
+                                    "cell_id": "24:3:2",
+                                    "column_headers": ["공시금액"],
+                                    "value_text": "676,874",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                        {
+                            "row_id": "24:5",
+                            "row_label": "판매비와 관리비",
+                            "cells": [
+                                {
+                                    "cell_id": "24:5:2",
+                                    "column_headers": ["공시금액"],
+                                    "value_text": "3,456,673",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                    ],
+                    ensure_ascii=False,
+                )
+            }
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "676,874")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 676874000000.0)
+        self.assertEqual(refined["precision_source"], "structured_table_cell")
 
     def test_lookup_producer_task_preserves_binding_concept_for_generic_consumer_operand(self) -> None:
         original_singleton = ontology_module._ONTOLOGY_SINGLETON

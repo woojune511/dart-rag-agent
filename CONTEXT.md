@@ -47,11 +47,19 @@
   - `LGE_T1_051`는 AMPC가 표가 아니라 prose(`약 6,769억원의 IRA Tax Credit`)로 들어오는 경우를 surface-contract numeric evidence로 보존해 닫았다.
     - AMPC numeric value는 선행 숫자+단위 표현에서 추출한다.
     - 영업이익 task-output dependency는 sibling operand의 `source_anchor`를 보존해 provenance가 끊기지 않는다.
+    - 이후 LGE focused replay에서 rounded AMPC operand와 source-table unit 렌더링의 결합 문제도 닫았다.
+      - `6,769억원(676,874백만원)`처럼 rounded KRW 뒤 괄호 exact 단위가 있으면 exact parenthetical을 우선한다.
+      - LLM이 rounded KRW 값을 냈더라도 동일 evidence table metadata 안에 더 정밀한 `백만원/천원` cell이 있으면 operand precision을 보정한다.
+      - `제외/실질/조정/차감` 계열 difference 결과는 compact `조/억원` 대신 source table unit으로 렌더링해 파생 계산값 grounding을 안정화한다.
     - latest targeted smoke:
+      - answer: `영업이익 2,163,234백만원`, `AMPC 6,769억원`, `실질 영업이익 1,486,334백만원`
       - `numeric_equivalence = 1.0`
       - `numeric_grounding = 1.0`
       - `numeric_retrieval_support = 1.0`
       - `numeric_final_judgement = PASS`
+      - `faithfulness = 1.0`
+      - `completeness = 1.0`
+      - `calculation_correctness = 1.0`
   - `HYU_T2_010`는 post-patch targeted smoke에서 now closed다.
     - 답변은 `87.0만 대`, `78.1만 대`, `11.5%`, IRA/핵심원자재법/보호무역주의 대응 필요성을 모두 포함한다.
     - raw faithfulness judge는 `0.5`였지만, completeness / retrieval / citation / structured calculation-rendering이 모두 통과한 mixed-query evidence coverage 조건에서 `faithfulness = 1.0`으로 보정된다.

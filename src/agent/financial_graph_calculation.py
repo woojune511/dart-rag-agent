@@ -1081,6 +1081,66 @@ class FinancialAgentCalculationMixin:
             return unit_hint
         return current_unit
 
+    def _refine_operand_precision_from_evidence_table(
+        self,
+        row: Dict[str, Any],
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Prefer a finer structured-table cell when an LLM returned a rounded KRW surface."""
+        normalized_value = row.get("normalized_value")
+        normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+        raw_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
+        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+        if normalized_value is None or normalized_unit != "KRW":
+            return row
+        if raw_unit not in {"억원", "조원", "원"} and not any(unit in raw_value for unit in ("억", "조")):
+            return row
+
+        metadata = dict((evidence_item or {}).get("metadata") or {})
+        records: List[Dict[str, Any]] = []
+        for key in ("table_row_records_json", "table_value_records_json"):
+            payload = str(metadata.get(key) or "").strip()
+            if not payload:
+                continue
+            try:
+                parsed = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, list):
+                records.extend(dict(item) for item in parsed if isinstance(item, dict))
+
+        best_cell: Optional[Dict[str, Any]] = None
+        best_normalized: Optional[float] = None
+        best_diff: Optional[float] = None
+        for record in records:
+            for cell in list(record.get("cells") or []):
+                cell_data = dict(cell or {})
+                value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
+                unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
+                if unit_hint not in {"천원", "백만원"} or not re.search(r"\d", value_text):
+                    continue
+                cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                if cell_value is None or cell_unit != "KRW":
+                    continue
+                diff = abs(float(cell_value) - float(normalized_value))
+                tolerance = max(abs(float(normalized_value)) * 0.005, 100_000_000.0)
+                if diff > tolerance:
+                    continue
+                if best_diff is None or diff < best_diff:
+                    best_cell = cell_data
+                    best_normalized = float(cell_value)
+                    best_diff = diff
+
+        if not best_cell or best_normalized is None:
+            return row
+        refined = dict(row)
+        refined["raw_value"] = _normalise_spaces(str(best_cell.get("value_text") or ""))
+        refined["raw_unit"] = _normalise_spaces(str(best_cell.get("unit_hint") or ""))
+        refined["normalized_value"] = best_normalized
+        refined["normalized_unit"] = "KRW"
+        refined["precision_source"] = "structured_table_cell"
+        return refined
+
     def _surface_contract_numeric_evidence_items(
         self,
         evidence_items: List[Dict[str, Any]],
@@ -1902,6 +1962,7 @@ Structured Evidence:
                 row["operand_id"] = f"op_{index:03d}"
                 row["normalized_value"] = normalized_value
                 row["normalized_unit"] = normalized_unit
+                row = self._refine_operand_precision_from_evidence_table(row, evidence_item)
                 operand_rows.append(row)
             if operation_family in {"lookup", "single_value"} and required_operands:
                 operand_rows = [
@@ -2462,6 +2523,56 @@ Ontology Context:
             return f"{value:,.4f}".rstrip("0").rstrip(".")
         return f"{value}"
 
+    def _format_calculation_value_in_display_unit(self, value: float, display_unit: str) -> str:
+        unit = _normalise_spaces(str(display_unit or ""))
+        scale_by_unit = {
+            "원": 1.0,
+            "천원": 1_000.0,
+            "백만원": 1_000_000.0,
+            "억원": 100_000_000.0,
+            "조원": 1_000_000_000_000.0,
+        }
+        scale = scale_by_unit.get(unit)
+        if not scale:
+            return ""
+        scaled = float(value) / scale
+        if abs(scaled - round(scaled)) <= 1e-6:
+            rendered = f"{round(scaled):,}"
+        else:
+            rendered = f"{scaled:,.4f}".rstrip("0").rstrip(".")
+        return f"{rendered}{unit}"
+
+    def _adjusted_difference_source_display_unit(
+        self,
+        *,
+        active_subtask: Dict[str, Any],
+        ordered_operands: List[Dict[str, Any]],
+    ) -> str:
+        query_text = _normalise_spaces(
+            " ".join(
+                str(active_subtask.get(key) or "")
+                for key in ("query", "metric_label", "operation_text", "task_id")
+            )
+        )
+        if not (
+            any(marker in query_text for marker in ("제외", "실질", "조정"))
+            or re.search(r"차감(?!전)", query_text)
+        ):
+            return ""
+        raw_units = [
+            _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
+            for row in ordered_operands
+            if str(row.get("raw_unit") or row.get("result_unit") or "").strip()
+        ]
+        if not raw_units or len(raw_units) != len(ordered_operands):
+            return ""
+        if len(set(raw_units)) == 1 and raw_units[0] in {"천원", "백만원"}:
+            return raw_units[0]
+        source_units = [unit for unit in raw_units if unit in {"천원", "백만원"}]
+        if len(set(source_units)) == 1 and any(unit in {"원", "억원", "조원"} for unit in raw_units):
+            return source_units[0]
+        return ""
+
     def _render_value_with_unit(self, value: float, display_unit: str, normalized_unit: str) -> str:
         rendered = self._format_calculation_value(value, display_unit, normalized_unit)
         if normalized_unit == "KRW":
@@ -2713,7 +2824,10 @@ Ontology Context:
     ) -> Dict[str, Any]:
         rendered_value = ""
         if normalized_value is not None:
-            rendered_value = self._render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
+            if str(normalized_unit or "").upper() == "KRW" and display_unit in {"천원", "백만원"}:
+                rendered_value = self._format_calculation_value_in_display_unit(float(normalized_value), display_unit)
+            else:
+                rendered_value = self._render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
         row_ids = [str(item).strip() for item in (source_row_ids or []) if str(item).strip()]
         return {
             "status": self._slot_status(
@@ -2779,10 +2893,17 @@ Ontology Context:
 
         components_by_role: Dict[str, List[Dict[str, Any]]] = {}
         components_by_group: Dict[str, List[Dict[str, Any]]] = {}
+        preserve_difference_source_display = bool(
+            family == "difference"
+            and self._adjusted_difference_source_display_unit(
+                active_subtask=active_subtask,
+                ordered_operands=ordered_operands,
+            )
+        )
         for row in ordered_operands:
             slot = self._build_operand_value_slot(
                 row,
-                preserve_source_display=family in {"lookup", "single_value"},
+                preserve_source_display=family in {"lookup", "single_value"} or preserve_difference_source_display,
             )
             role = str(slot.get("role") or "operand")
             components_by_role.setdefault(role, []).append(slot)
@@ -3156,7 +3277,16 @@ Ontology Context:
                 return _fail("zero_division", str(exc))
             return _fail("parse_error", str(exc))
 
-        rendered_value = self._format_calculation_value(result_value, result_unit or "", normalized_unit)
+        result_display_unit = ""
+        if operation_family == "difference" and normalized_unit == "KRW":
+            result_display_unit = self._adjusted_difference_source_display_unit(
+                active_subtask=active_subtask,
+                ordered_operands=ordered_operands,
+            )
+        if result_display_unit:
+            rendered_value = self._format_calculation_value_in_display_unit(result_value, result_display_unit)
+        else:
+            rendered_value = self._format_calculation_value(result_value, result_unit or "", normalized_unit)
         if normalized_unit == "KRW":
             rendered_with_unit = rendered_value
         elif result_unit:
@@ -3231,7 +3361,7 @@ Ontology Context:
             operation_family=operation_family,
             ordered_operands=ordered_operands,
             result_value=result_value,
-            result_unit=result_unit,
+            result_unit=result_display_unit or result_unit,
             normalized_unit=normalized_unit,
             source_normalized_unit=source_normalized_unit,
             current_value=current_value,
@@ -3256,7 +3386,7 @@ Ontology Context:
             "calculation_result": {
                 "status": "ok",
                 "result_value": result_value,
-                "result_unit": result_unit,
+                "result_unit": result_display_unit or result_unit,
                 "rendered_value": rendered_with_unit,
                 "formatted_result": "",
                 "series": result_series,

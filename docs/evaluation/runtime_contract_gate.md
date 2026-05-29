@@ -201,10 +201,24 @@ Current focused smoke status:
 - `LGE_T1_051` is closed in the latest targeted smoke after preserving
   prose AMPC evidence such as `6,769억원의 IRA Tax Credit` and carrying sibling
   operand provenance into dependency rows:
+  - latest answer: `영업이익 2,163,234백만원`, `AMPC 6,769억원`, `실질 영업이익 1,486,334백만원`
   - `numeric_equivalence = 1.0`
   - `numeric_grounding = 1.0`
   - `numeric_retrieval_support = 1.0`
   - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `grounded_rendering_correctness = 1.0`
+  - `calculation_correctness = 1.0`
+  - latest focused verification:
+    `benchmarks/results/tmp_lge_t1_051_runtime_check_precise_2026-05-29/`
+  - artifact status: temporary local output summarized here and cleaned; use
+    the reusable policy-driven profile below for reruns.
+  - runtime hardening:
+    exact parenthetical KRW values such as `6,769억원(676,874백만원)` are
+    preferred when present, rounded LLM operands can be refined from structured
+    table cells, and adjusted/exclusion difference results render in the source
+    table unit when that is the stable grounding surface.
 - `NAV_T2_006` is closed in the latest targeted smoke after suppressing stale
   growth+narrative planner feedback only when the final answer already covers
   the growth-rate value and narrative impact:
