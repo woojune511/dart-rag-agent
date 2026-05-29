@@ -76,6 +76,7 @@
   - `HYU_T3_072`도 post-patch targeted smoke에서 now closed다.
     - 답변은 Motional의 기말 지분율 `25.81%`, 투자장부금액 `1,294,367백만원`, 계속영업손실 `(803,742)백만원`, 총포괄손실 `(791,627)백만원`을 포함한다.
     - dataset의 required entity와 ground-truth evidence quote도 기말 기준 `25.81%`로 정렬했다. 기초 지분율 `25.92%`는 notes/selection context에만 남기고, 평가 필수 엔티티로는 요구하지 않는다.
+    - 수정 후 focused one-question replay에서도 answer path는 유지됐다: `faithfulness = 1.0`, `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`, `grounded_rendering_correctness = 1.0`, `avg_score = 0.912`. `entity_coverage = 0.600`은 Motional entity / 손익 라벨의 evaluator-visible evidence projection 쪽 잔여 신호다.
     - latest targeted smoke:
       - `faithfulness = 1.0`
       - `completeness = 1.0`

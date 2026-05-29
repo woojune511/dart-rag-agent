@@ -1531,3 +1531,10 @@ Dataset contract follow-up:
   `required_entities` and `ground_truth_evidence_quotes`, matching the answer
   key and ground truth. The beginning ratio `25.92%` remains in explanatory
   notes/selection context only.
+- A focused `HYU_T3_072` replay after this contract fix still passes the answer
+  path: `faithfulness = 1.000`, `context_recall = 1.000`,
+  `retrieval_hit_at_k = 1.000`, `citation_coverage = 1.000`,
+  `grounded_rendering_correctness = 1.000`, `avg_score = 0.912`.
+- `entity_coverage` remains `0.600` and `section_match_rate` remains `0.625`;
+  this is now an evidence-projection / evaluator-visibility signal rather than
+  the stale beginning-ownership annotation.

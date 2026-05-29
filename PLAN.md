@@ -60,6 +60,14 @@
     the year-end Motional ownership ratio `25.81%`, matching the answer key.
   - Beginning ownership ratio `25.92%` remains only in explanatory notes /
     selection context, not as an evaluator-required entity.
+  - Focused one-question replay after the fix remains answer-correct:
+    `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `section_match_rate = 0.625`,
+    `citation_coverage = 1.000`, `entity_coverage = 0.600`,
+    `grounded_rendering_correctness = 1.000`, `avg_score = 0.912`.
+  - The remaining `entity_coverage` signal is no longer the stale `25.92%`
+    annotation; it points to evaluator-visible evidence projection for the
+    Motional entity / profit-loss labels.
 
 ## 2026-05-29 Immediate Update
 
