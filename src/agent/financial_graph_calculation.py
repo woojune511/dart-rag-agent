@@ -1970,6 +1970,101 @@ class FinancialAgentCalculationMixin:
                     if term
                 )
 
+            def _synthesized_doc_item(
+                doc: Any,
+                *,
+                index: int,
+                evidence_id: str,
+            ) -> Optional[Dict[str, Any]]:
+                metadata = dict(getattr(doc, "metadata", {}) or {})
+                anchor = self._build_source_anchor(metadata)
+                text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
+                if not text:
+                    return None
+                display_text = _strip_rerank_metadata(text) or text
+                provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
+                if evidence_conflicts_requested_scope(provisional_item):
+                    return None
+                claim = display_text[:1200]
+                return {
+                    "evidence_id": evidence_id,
+                    "source_anchor": anchor,
+                    "claim": claim,
+                    "quote_span": claim[:240],
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [],
+                    "metadata": metadata,
+                    "_candidate_index": index,
+                }
+
+            if required_operands:
+                operand_probe_items: List[Dict[str, Any]] = []
+                for candidate_index, (doc, _score) in enumerate(candidate_docs, start=1):
+                    full_text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
+                    full_text = _strip_rerank_metadata(full_text) or full_text
+                    item = _synthesized_doc_item(
+                        doc,
+                        index=candidate_index,
+                        evidence_id=f"ev_operand_doc_{candidate_index:03d}",
+                    )
+                    if item:
+                        probe_item = dict(item)
+                        probe_item["claim"] = full_text
+                        probe_item["raw_row_text"] = full_text
+                        operand_probe_items.append(probe_item)
+                operand_probe_rows = self._build_required_operands_from_candidates(
+                    operand_probe_items,
+                    required_operands=required_operands,
+                    query=query,
+                    topic=topic,
+                    report_scope=report_scope,
+                )
+                operand_evidence_ids = {
+                    str(row.get("evidence_id") or "")
+                    for row in operand_probe_rows
+                    if row.get("evidence_id")
+                }
+                if operand_evidence_ids:
+                    max_operand_docs = max(4, len(required_operands) * 2)
+                    for item in operand_probe_items:
+                        if str(item.get("evidence_id") or "") not in operand_evidence_ids:
+                            continue
+                        anchor = str(item.get("source_anchor") or "")
+                        claim = str(item.get("claim") or "")
+                        missing_terms: List[str] = []
+                        for binding in missing_dependency_bindings:
+                            missing_terms.extend(_operand_needles(dict(binding)))
+                            label = _normalise_spaces(str(binding.get("label") or ""))
+                            if label:
+                                missing_terms.append(label)
+                        missing_terms.extend(_required_operand_context_terms())
+                        missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
+                        duplicate_anchor_has_missing_term = bool(
+                            anchor in seen_anchors
+                            and missing_terms
+                            and _text_has_any_context_term(claim, missing_terms)
+                        )
+                        if anchor in seen_anchors and not duplicate_anchor_has_missing_term:
+                            continue
+                        evidence_item = dict(item)
+                        evidence_item.pop("raw_row_text", None)
+                        evidence_item.pop("_candidate_index", None)
+                        evidence_item["claim"] = claim[:1200]
+                        evidence_item["quote_span"] = claim[:240]
+                        evidence_item["raw_row_text"] = claim
+                        synthesized_items.append(evidence_item)
+                        synthesized_bullets.append(f"- {anchor} {claim[:180]} (direct)")
+                        seen_anchors.add(anchor)
+                        if len(
+                            [
+                                existing
+                                for existing in synthesized_items
+                                if str(existing.get("evidence_id") or "").startswith("ev_operand_doc_")
+                            ]
+                        ) >= max_operand_docs:
+                            break
+
             percent_point_query = _is_percent_point_difference_query(query)
             ratio_row_candidates = self._extract_ratio_row_candidates(candidate_docs, query, topic)
             if ratio_row_candidates:
@@ -1992,12 +2087,12 @@ class FinancialAgentCalculationMixin:
                     seen_anchors.update(str(item.get("source_anchor") or "") for item in component_candidates)
             doc_fallback_limit = 16 if missing_dependency_bindings else 8
             for index, (doc, _score) in enumerate(candidate_docs[: min(doc_fallback_limit, len(candidate_docs))], start=1):
-                metadata = dict(doc.metadata or {})
-                anchor = self._build_source_anchor(metadata)
-                text = _normalise_spaces(doc.page_content)
-                provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
-                if evidence_conflicts_requested_scope(provisional_item):
+                item = _synthesized_doc_item(doc, index=index, evidence_id=f"ev_doc_{index:03d}")
+                if not item:
                     continue
+                metadata = dict(item.get("metadata") or {})
+                anchor = str(item.get("source_anchor") or "")
+                text = str(item.get("claim") or "")
                 missing_terms: List[str] = []
                 for binding in missing_dependency_bindings:
                     missing_terms.extend(_operand_needles(dict(binding)))
@@ -2013,19 +2108,9 @@ class FinancialAgentCalculationMixin:
                 )
                 if anchor in seen_anchors and not duplicate_anchor_has_missing_term:
                     continue
-                claim = text[:1200]
-                item = {
-                    "evidence_id": f"ev_doc_{index:03d}",
-                    "source_anchor": anchor,
-                    "claim": claim,
-                    "quote_span": claim[:240],
-                    "support_level": "direct",
-                    "question_relevance": "high",
-                    "allowed_terms": [],
-                    "metadata": metadata,
-                }
+                item.pop("_candidate_index", None)
                 synthesized_items.append(item)
-                synthesized_bullets.append(f"- {anchor} {claim[:180]} (direct)")
+                synthesized_bullets.append(f"- {anchor} {text[:180]} (direct)")
             if synthesized_items:
                 evidence_items = evidence_items + synthesized_items
                 evidence_bullets = evidence_bullets + synthesized_bullets
@@ -2747,6 +2832,10 @@ Ontology Context:
         raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
         raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
         normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+        if normalized_unit in {"COUNT", "PERCENT", "%", "퍼센트"} and raw_value:
+            if raw_unit and raw_unit in raw_value:
+                return raw_value
+            return f"{raw_value}{raw_unit}" if raw_unit else raw_value
         if normalized_unit != "KRW" or not raw_value or not raw_unit:
             return ""
         if raw_unit not in {"원", "천원", "백만원", "억원", "조원"}:
@@ -3128,7 +3217,12 @@ Ontology Context:
         if family in {"difference", "growth_rate"}:
             current_seed = current_row or _seed_for_roles("current_period")
             if current_row:
-                current_slot = self._build_operand_value_slot(current_row, default_role="current_value")
+                current_preserve_display = str(current_row.get("normalized_unit") or "").strip().upper() != "KRW"
+                current_slot = self._build_operand_value_slot(
+                    current_row,
+                    default_role="current_value",
+                    preserve_source_display=current_preserve_display,
+                )
                 current_slot["role"] = "current_value"
                 answer_slots["current_value"] = current_slot
             elif current_value is not None:
@@ -3155,7 +3249,12 @@ Ontology Context:
 
             prior_seed = prior_row or _seed_for_roles("prior_period")
             if prior_row:
-                prior_slot = self._build_operand_value_slot(prior_row, default_role="prior_value")
+                prior_preserve_display = str(prior_row.get("normalized_unit") or "").strip().upper() != "KRW"
+                prior_slot = self._build_operand_value_slot(
+                    prior_row,
+                    default_role="prior_value",
+                    preserve_source_display=prior_preserve_display,
+                )
                 prior_slot["role"] = "prior_value"
                 answer_slots["prior_value"] = prior_slot
             elif prior_value is not None:
@@ -3437,6 +3536,8 @@ Ontology Context:
                 return _fail("zero_division", str(exc))
             return _fail("parse_error", str(exc))
 
+        formula_result_value = result_value
+        source_stated_result_used = False
         result_display_unit = ""
         if operation_family == "difference" and normalized_unit == "KRW":
             result_display_unit = self._adjusted_difference_source_display_unit(
@@ -3516,6 +3617,20 @@ Ontology Context:
                 prior_period = str(prior_row.get("period") or "")
             if operation_family == "difference":
                 delta_value = float(result_value)
+            elif operation_family == "growth_rate" and current_row:
+                stated_change_raw_value = _normalise_spaces(str(current_row.get("stated_change_raw_value") or ""))
+                stated_change_raw_unit = _normalise_spaces(str(current_row.get("stated_change_raw_unit") or "%"))
+                if stated_change_raw_value:
+                    stated_value, stated_unit = _normalise_operand_value(
+                        stated_change_raw_value,
+                        stated_change_raw_unit or "%",
+                    )
+                    if stated_value is not None and str(stated_unit or "").strip().upper() == "PERCENT":
+                        result_value = stated_value
+                        normalized_unit = "PERCENT"
+                        result_unit = "%"
+                        rendered_with_unit = f"{stated_change_raw_value}%"
+                        source_stated_result_used = True
         answer_slots = self._build_answer_slots(
             active_subtask=active_subtask,
             operation_family=operation_family,
@@ -3561,6 +3676,8 @@ Ontology Context:
                     "operand_labels": labels,
                     "formula": formula,
                     "operation_family": operation_family or operation,
+                    "formula_result_value": formula_result_value,
+                    "source_stated_result_used": source_stated_result_used,
                 },
                 "explanation": explanation or str(plan.get("operation_text") or operation or mode),
             },

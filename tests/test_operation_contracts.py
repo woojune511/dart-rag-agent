@@ -2964,6 +2964,68 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(prior_operand["normalized_unit"], "KRW")
         self.assertEqual(prior_operand["raw_unit"], "억원")
 
+    def test_growth_rate_preserves_stated_source_percent_when_available(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_count_growth",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "지역 시장 판매대수",
+                    "operation_family": "growth_rate",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "sales_2023",
+                        "label": "2023 지역 시장 판매대수",
+                        "raw_value": "87.0",
+                        "raw_unit": "만 대",
+                        "normalized_value": 870000.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2023년",
+                        "matched_operand_role": "current_period",
+                        "stated_change_raw_value": "11.5",
+                        "stated_change_raw_unit": "%",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "sales_2023",
+                        "label": "2022 지역 시장 판매대수",
+                        "raw_value": "78.1",
+                        "raw_unit": "만 대",
+                        "normalized_value": 781000.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2022년",
+                        "matched_operand_role": "prior_period",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "((A - B) / B) * 100",
+                    "result_unit": "%",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        calc = result["calculation_result"]
+        self.assertEqual(calc["rendered_value"], "11.5%")
+        self.assertEqual(calc["result_value"], 11.5)
+        self.assertEqual(calc["answer_slots"]["current_value"]["rendered_value"], "87.0만 대")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "78.1만 대")
+        self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
+        self.assertTrue(calc["derived_metrics"]["source_stated_result_used"])
+
     def test_failed_lookup_emits_explicit_missing_primary_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._execute_calculation(

@@ -137,6 +137,113 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             )
         )
 
+    def test_seed_docs_can_fill_required_operands_after_expansion_window(self) -> None:
+        self.agent.llm = _EmptyOperandLLM()
+        required_text = (
+            "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5\uc5d0\uc11c \ub300\uc0c1\ud68c\uc0ac\ub294 "
+            "\uc804\ub144 \ub300\ube44 11.5% \uc99d\uac00\ud55c 87.0\ub9cc \ub300\ub97c "
+            "\ud310\ub9e4\ud588\uc2b5\ub2c8\ub2e4. "
+            "2022\ub144\uc5d0\ub294 \uc804\ub144 \ub300\ube44 0.9% \uac10\uc18c\ud55c "
+            "78.1\ub9cc \ub300\ub97c \ud310\ub9e4\ud588\uc2b5\ub2c8\ub2e4."
+        )
+        noise_docs = [
+            (
+                Document(
+                    page_content=f"\uc77c\ubc18 \uc124\uba85 {idx}: 2023\ub144 \ub300\uc751 \uacfc\uc81c\ub97c \uc124\uba85\ud569\ub2c8\ub2e4.",
+                    metadata={
+                        "chunk_uid": f"noise_{idx}",
+                        "company": "\ub300\uc0c1\ud68c\uc0ac",
+                        "year": 2023,
+                        "block_type": "paragraph",
+                        "section_path": "IV. \uc774\uc0ac\uc758 \uacbd\uc601\uc9c4\ub2e8",
+                    },
+                ),
+                1.0 - (idx * 0.01),
+            )
+            for idx in range(10)
+        ]
+        required_doc = (
+            Document(
+                page_content=required_text,
+                metadata={
+                    "chunk_uid": "seed_required_operands",
+                    "company": "\ub300\uc0c1\ud68c\uc0ac",
+                    "year": 2023,
+                    "block_type": "paragraph",
+                    "section_path": "II. \uc0ac\uc5c5\uc758 \ub0b4\uc6a9",
+                },
+            ),
+            0.5,
+        )
+        state = {
+            "query": (
+                "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218\uc758 "
+                "\uc804\ub144 \ub300\ube44 \uc131\uc7a5\ub960\uc744 \uacc4\uc0b0\ud574 \uc918"
+            ),
+            "years": [2023, 2022],
+            "report_scope": {"company": "\ub300\uc0c1\ud68c\uc0ac", "year": "2023"},
+            "intent": "comparison",
+            "topic": "\uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218 \uc131\uc7a5\ub960",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": noise_docs,
+            "seed_retrieved_docs": [required_doc],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_period_count_growth",
+                "metric_family": "generic_numeric",
+                "metric_label": "\uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218 \uc131\uc7a5\ub960",
+                "query": (
+                    "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218\uc758 "
+                    "\uc804\ub144 \ub300\ube44 \uc131\uc7a5\ub960\uc744 \uacc4\uc0b0\ud574 \uc918"
+                ),
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218",
+                        "role": "current_period",
+                        "required": True,
+                        "period_hint": "2023",
+                    },
+                    {
+                        "label": "2022\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218",
+                        "role": "prior_period",
+                        "required": True,
+                        "period_hint": "2022",
+                    },
+                ],
+                "constraints": {
+                    "period_focus": "multi_period",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "insufficient_operands",
+                "matched_operands": [],
+                "missing_operands": [
+                    "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218",
+                    "2022\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218",
+                ],
+                "retry_queries": [],
+                "notes": [],
+            },
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = self.agent._extract_calculation_operands(state)
+        rows = list(result.get("calculation_operands") or [])
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
+        self.assertTrue(
+            any(
+                item.get("metadata", {}).get("chunk_uid") == "seed_required_operands"
+                for item in result["evidence_items"]
+            )
+        )
+
     def test_insufficient_reconciliation_routes_to_operand_extractor_when_docs_can_fill_operands(self) -> None:
         state = {
             "query": "compare 2023 metric with 2022 metric",

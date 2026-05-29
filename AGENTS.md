@@ -15,6 +15,8 @@
 - If a temporary keyword is needed to unblock diagnosis, mark it as diagnostic-only, keep it out of committed runtime paths, and replace it with policy/ontology-driven behavior before commit.
 - LLMs may propose candidate concepts, sections, and slots, but final runtime behavior must be grounded against retrieved evidence or structured store artifacts. The fallback for LLM uncertainty is not hard-coded vocabulary in code; it is better policy/schema plus traceable validation.
 - If a concept lookup value is recovered from prose, the runtime must preserve it as a structured answer slot and attach the retrieved source text that contains the value. Do not let aggregate synthesis reformat evidence-visible values into a different display unit when the source display is available.
+- If graph expansion or reranking pushes a relevant raw chunk out of the visible `retrieved_docs` window, the runtime may still use `seed_retrieved_docs` as candidate evidence when the chunk satisfies the active task's generic required-operand contract. This is evidence preservation, not a license to add topic-specific fallback rules.
+- If a source sentence already states a derived numeric display such as a year-over-year percentage, preserve that source-stated display alongside the deterministic formula trace. Keep the calculated value in trace metadata when it differs because of rounding or source display precision.
 - Any PR/change that adds domain terms to runtime code must explain why the same behavior cannot be represented in ontology/policy/config. If that explanation is weak, stop and refactor the design.
 
 1. **Benchmark를 답안지로 쓰지 않는다.**
@@ -31,6 +33,8 @@
    - 답변 품질 개선은 먼저 retrieval/evidence coverage를 확인한 뒤 진행한다.
    - answer composer는 evidence에 없는 claim을 추가하지 않는다.
    - numeric answer는 `structured_result`, `resolved_calculation_trace`, `evidence_items`의 계약을 우선한다.
+   - seed retrieval에 있던 근거가 expansion/rerank 과정에서 최종 window 밖으로 밀린 경우, required operand와 provenance 계약을 만족하는지 먼저 확인하고 evidence로 승격한다.
+   - 원문에 보이는 값/단위/파생 비율 표기는 answer slot의 display로 보존하고, 필요하면 deterministic formula 결과는 trace에 별도로 남긴다.
 
 4. **작게 검증하고 크게 돌린다.**
    - 먼저 unit/contract test로 실패 층을 좁힌다.

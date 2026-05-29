@@ -135,3 +135,19 @@ This rule prevents lossy evidence summaries from hiding values that retrieval
 already found. It does not permit benchmark-specific fallback answers: extracted
 rows still have to satisfy the generic required-operand matcher, unit
 normalization, period checks, and provenance checks.
+
+When graph expansion adds parent, table-context, sibling, or other structural
+documents, the expanded `retrieved_docs` window can crowd out a raw seed chunk
+that contains the required numeric sentence. The calculation path must treat
+`seed_retrieved_docs` as eligible candidate evidence for required-operand
+extraction, as long as the same generic matcher/provenance/unit checks pass.
+Do not recover these chunks by company name, benchmark id, or topic-specific
+keywords in runtime code.
+
+If the source text already states a derived display value, such as a
+year-over-year percentage next to the current and prior values, the runtime
+should preserve that source-stated display in `calculation_result.rendered_value`
+and answer slots when it is attached to the same evidence. The deterministic
+formula result should remain traceable, for example in `derived_metrics`, when
+it differs because the source rounded or displayed the value at a different
+precision.

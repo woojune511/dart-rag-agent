@@ -172,6 +172,19 @@ def _period_comparison_count_value_from_text(
             score += 0.5
 
         selected = value_matches[-1]
+        stated_change_match = re.search(
+            rf"{KOREAN_PERIOD_COMPARISON_RE_FRAGMENT}\s*"
+            r"(?P<value>[\-+]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|퍼센트)",
+            sentence,
+        )
+        stated_change: Dict[str, str] = {}
+        if stated_change_match:
+            stated_change = {
+                "stated_change_raw_value": stated_change_match.group("value"),
+                "stated_change_raw_unit": "%"
+                if stated_change_match.group("unit") == "%"
+                else stated_change_match.group("unit"),
+            }
         candidates.append(
             (
                 score,
@@ -179,6 +192,7 @@ def _period_comparison_count_value_from_text(
                     "raw_value": selected.group("value"),
                     "raw_unit": _normalise_spaces(selected.group("unit")),
                     "period": f"{target_year}년",
+                    **stated_change,
                 },
             )
         )
@@ -2386,6 +2400,8 @@ class FinancialAgentEvidenceMixin:
 
                 raw_value = _normalise_spaces(str(item.get("matched_value") or ""))
                 raw_unit = str(item.get("matched_unit") or "")
+                stated_change_raw_value = ""
+                stated_change_raw_unit = ""
 
                 if not raw_value:
                     parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
@@ -2423,6 +2439,8 @@ class FinancialAgentEvidenceMixin:
                         raw_value = prose_value["raw_value"]
                         raw_unit = prose_value["raw_unit"]
                         period = prose_value["period"]
+                        stated_change_raw_value = str(prose_value.get("stated_change_raw_value") or "")
+                        stated_change_raw_unit = str(prose_value.get("stated_change_raw_unit") or "")
 
                 if not raw_value and not period_count_context_match:
                     raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
@@ -2459,25 +2477,27 @@ class FinancialAgentEvidenceMixin:
                 if key in seen:
                     continue
                 seen.add(key)
-                operand_rows.append(
-                    {
-                        "operand_id": f"op_{len(operand_rows) + 1:03d}",
-                        "evidence_id": item.get("evidence_id"),
-                        "source_anchor": item.get("source_anchor"),
-                        "label": f"{period} {label_name}".strip(),
-                        "matched_operand_label": label_name,
-                        "matched_operand_role": str(operand.get("role") or "").strip(),
-                        "matched_operand_concept": str(operand.get("concept") or "").strip(),
-                        "raw_value": raw_value,
-                        "raw_unit": raw_unit or "원",
-                        "normalized_value": normalized_value,
-                        "normalized_unit": normalized_unit,
-                        "period": period,
-                        "table_source_id": (item.get("metadata") or {}).get("table_source_id"),
-                        "statement_type": (item.get("metadata") or {}).get("statement_type"),
-                        "consolidation_scope": (item.get("metadata") or {}).get("consolidation_scope"),
-                    }
-                )
+                row_payload = {
+                    "operand_id": f"op_{len(operand_rows) + 1:03d}",
+                    "evidence_id": item.get("evidence_id"),
+                    "source_anchor": item.get("source_anchor"),
+                    "label": f"{period} {label_name}".strip(),
+                    "matched_operand_label": label_name,
+                    "matched_operand_role": str(operand.get("role") or "").strip(),
+                    "matched_operand_concept": str(operand.get("concept") or "").strip(),
+                    "raw_value": raw_value,
+                    "raw_unit": raw_unit or "원",
+                    "normalized_value": normalized_value,
+                    "normalized_unit": normalized_unit,
+                    "period": period,
+                    "table_source_id": (item.get("metadata") or {}).get("table_source_id"),
+                    "statement_type": (item.get("metadata") or {}).get("statement_type"),
+                    "consolidation_scope": (item.get("metadata") or {}).get("consolidation_scope"),
+                }
+                if stated_change_raw_value:
+                    row_payload["stated_change_raw_value"] = stated_change_raw_value
+                    row_payload["stated_change_raw_unit"] = stated_change_raw_unit or "%"
+                operand_rows.append(row_payload)
                 break
 
         return operand_rows
