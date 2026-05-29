@@ -90,6 +90,12 @@
   - `comparison_001`
   - `comparison_002`
   - `comparison_003`
+- `policy_driven_runtime_gate`
+  - `NAV_T2_006`
+  - `HYU_T2_010`
+  - `HYU_T3_072`
+  - `LGE_T1_051`
+  - `SAM_T2_078`
 
 ### Current quantitative snapshot
 
@@ -108,6 +114,19 @@
   - 3문항 PASS
 - `structural_selective_v2_prefix_2500_320`
   - 3문항 PASS
+
+#### Policy-driven runtime gate
+
+- `structural_selective_v2_prefix_2500_320`
+  - `pass_count = 4`
+  - corrected `full_eval_fail_count = 0`
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `numeric_pass_rate = 1.0`
+  - `context_recall = 1.0`
+
+이 gate는 mixed narrative retrieval, policy-driven composition, AMPC 조정
+영업이익 계산처럼 단순 lookup을 넘어서는 runtime contract를 검증한다.
 
 ### Cost / latency tradeoff
 
@@ -132,6 +151,8 @@ runtime gate 결과 기준:
 - LLM과 deterministic code의 역할 경계를 설계하는 능력
 - benchmark-first, gate-driven iteration
 - 품질과 비용을 동시에 보는 retrieval / ingest tradeoff engineering
+- verified single-agent runtime contract를 MAS의 task/artifact communication
+  contract로 승격하는 단계적 설계
 
 ## Recommended portfolio framing
 
@@ -139,4 +160,3 @@ runtime gate 결과 기준:
 더 좋은 framing은 아래다.
 
 > 장문 재무 공시에서 evidence-backed numeric QA를 수행하는 multi-agent RAG 시스템을 설계하고, official gate로 품질/비용 tradeoff를 검증했다.
-

@@ -20,8 +20,10 @@
 - single-doc curated core dataset `77`문항과 multi-report 분리셋 `1`문항까지 수동 검수 완료
 
 따라서 다음 backlog의 중심은 “당장 정답률 복구”만도 아니고,  
-곧바로 MAS로 확장하는 것도 아니다. 현재 선행 과제는  
-**single-agent numeric path 안에서 planner / synthesizer / structured result contract를 먼저 안정화**하는 것이다.
+곧바로 MAS를 더 크게 확장하는 것도 아니다. 현재 선행 과제는
+**single-agent numeric path 안에서 planner / synthesizer / structured result
+contract를 먼저 안정화하고, 그 contract를 MAS의 task/artifact communication
+contract로 승격할 준비를 끝내는 것**이다.
 
 ## Active Architecture Bet
 
@@ -84,6 +86,28 @@
 ## Near-Term Structural Backlog
 
 이 항목들은 다음 몇 개 스프린트 안에서 실제로 다룰 가치가 큰 구조 과제다.
+
+### Alignment rule
+
+현재 backlog는 portfolio long-term goal과 아래 순서로 연결한다.
+
+1. **Gate / contract prerequisites**
+   - broader curated gate maintenance
+   - concept-only planner runtime promotion check
+   - contextual arbitration / benchmark maintenance
+   - internal compatibility mirror cleanup
+   - table payload sidecar / store-size cleanup
+2. **MAS migration**
+   - MAS skeleton과 typed artifact schema
+   - Analyst / Researcher / Critic 역할 분리
+   - runtime critic과 offline evaluator 경계 고정
+3. **Cross-document / cross-company expansion**
+   - report-scoped cache
+   - reference-note / multi-hop capability
+   - entity/report namespace 기반 cross-company reasoning
+
+즉 gate maintenance는 단순 score chasing이 아니라, MAS가 안전하게 재사용할
+runtime contract를 고정하는 선행 작업으로 본다.
 
 ### 0. Planner and final synthesizer contract
 
@@ -338,12 +362,16 @@
 
 ## 현재 추천 우선순위
 
-1. MAS skeleton과 artifact schema 고정
-2. Analyst / Critic 분리
-3. Researcher 분리
-4. agentic self-reflection 재설계
-5. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-6. cross-company 확장
+1. broader curated gate maintenance
+2. concept-only planner runtime promotion check
+3. contextual arbitration / benchmark maintenance
+4. internal compatibility mirror cleanup
+5. table payload sidecar / store-size cleanup
+6. MAS skeleton과 artifact schema productization
+7. Analyst / Critic / Researcher 분리
+8. agentic self-reflection 재설계
+9. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+10. cross-company 확장
 
 ## 지금 당장 하지 않을 것
 
@@ -354,5 +382,5 @@
 
 핵심 원칙:
 
-- 지금은 **더 좋은 topology와 communication contract를 만드는 구조 개선**을 우선한다
+- 지금은 **검증 가능한 runtime contract를 MAS communication contract로 승격하는 구조 개선**을 우선한다
 - **이미 맞는 답을 더 점수 잘 받게 만들기 위한 local patch**는 뒤로 미룬다
