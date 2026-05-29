@@ -1042,6 +1042,11 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
     `매출원가 = 180,388,580백만원`, and `매출원가 대비 약 2.79%`
   - the source fix is ontology/planner-level aggregate handling for
     parenthetical labels plus an `analysis_hints` impact-ratio contract
+  - a later store-fixed debug pass caught a generic row-binding regression:
+    contextual precision refinement was taking the previous row value
+    (`영업수익 258,935,494백만원`) for a matched `매출원가` row. The runtime now
+    prefers the same matched row's structured cell first, restoring
+    `매출원가 180,388,580백만원` and the expected `2.79%` ratio.
   - the focused full-eval answer routed through QA; structured numeric route
     shape is covered by targeted planner unit regressions and should be kept as
     a future forced-route smoke if this case regresses again

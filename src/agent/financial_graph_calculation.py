@@ -1150,18 +1150,32 @@ class FinancialAgentCalculationMixin:
                 existing = records_by_label.get(label)
                 if existing is None or (not existing.get("cells") and record.get("cells")):
                     records_by_label[label] = record
+
+            def _is_krw_cell(cell_data: Dict[str, Any]) -> bool:
+                value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
+                unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
+                if not re.search(r"\d", value_text):
+                    return False
+                cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                return cell_value is not None and cell_unit == "KRW"
+
             for index, label_text in enumerate(row_labels):
                 if not _operand_text_match(label_text, operand_spec):
                     continue
+                current_record = records_by_label.get(label_text)
+                if current_record:
+                    for cell in list(current_record.get("cells") or []):
+                        cell_data = dict(cell or {})
+                        if not _is_krw_cell(cell_data):
+                            continue
+                        return cell_data
                 for previous_label in reversed(row_labels[:index]):
                     record = records_by_label.get(previous_label)
                     if not record:
                         continue
                     for cell in list(record.get("cells") or []):
                         cell_data = dict(cell or {})
-                        value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
-                        unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
-                        if unit_hint not in {"천원", "백만원"} or not re.search(r"\d", value_text):
+                        if not _is_krw_cell(cell_data):
                             continue
                         return cell_data
                 break

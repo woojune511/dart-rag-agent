@@ -1365,6 +1365,59 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(refined["normalized_value"], 676874000000.0)
         self.assertEqual(refined["precision_source"], "contextual_note_structured_table_cell")
 
+    def test_operand_precision_prefers_matching_contextual_row_over_previous_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "Cost of sales",
+            "raw_value": "258,935,494",
+            "raw_unit": "백만원",
+            "normalized_value": 258935494000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "Cost of sales impact analysis",
+            "quote_span": "Cost of sales impact analysis",
+            "metadata": {
+                "table_row_labels_text": "\n".join(["Revenue", "Cost of sales", "Gross profit"]),
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "is:1",
+                            "row_label": "Revenue",
+                            "cells": [
+                                {
+                                    "cell_id": "is:1:1",
+                                    "column_headers": ["2023"],
+                                    "value_text": "258,935,494",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                        {
+                            "row_id": "is:2",
+                            "row_label": "Cost of sales",
+                            "cells": [
+                                {
+                                    "cell_id": "is:2:1",
+                                    "column_headers": ["2023"],
+                                    "value_text": "180,388,580",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "180,388,580")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 180388580000000.0)
+        self.assertEqual(refined["precision_source"], "contextual_note_structured_table_cell")
+
     def test_operand_value_extraction_prefers_nearest_suffix_value_with_parenthetical_unit(self) -> None:
         operand = {
             "label": "첨단제조 생산세액공제",

@@ -144,6 +144,13 @@ extraction, as long as the same generic matcher/provenance/unit checks pass.
 Do not recover these chunks by company name, benchmark id, or topic-specific
 keywords in runtime code.
 
+When structured table metadata provides both `table_row_labels_text` and row
+records, operand precision refinement must prefer the structured cell from the
+same matched row label before considering nearby previous rows. Previous-row
+fallback is only for explanatory rows that name an operand but carry no value
+cell themselves. This avoids binding a requested metric such as cost of sales
+to the value from an adjacent revenue row.
+
 If the source text already states a derived display value, such as a
 year-over-year percentage next to the current and prior values, the runtime
 should preserve that source-stated display in `calculation_result.rendered_value`
