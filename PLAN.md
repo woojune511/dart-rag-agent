@@ -34,9 +34,7 @@
   - Verification probe: Hyundai `1764` chunks reopened successfully from a
     separate Python process with strict vector health check.
 - Immediate next implementation target:
-  1. Rerun strict Hyundai store-fixed eval-only against a rebuilt store created
-     with the new Chroma settings.
-  2. Continue HYU quality work as ranking/evaluator-grounding work, not as a
+  1. Continue HYU quality work as ranking/evaluator-grounding work, not as a
      retrieval-miss fix; both Hyundai questions already have
      `context_recall = 1.000` and `retrieval_hit_at_k = 1.000`.
 - Structure graph bloat mitigation is implemented.
@@ -46,6 +44,17 @@
   - Hyundai structure-only probe: graph `~7.9MB`, sidecar `~85.4MB`,
     `1,764` nodes, `1,328` deduplicated payloads, no large table JSON fields
     left in graph metadata.
+- Strict Hyundai store-fixed eval-only now passes with the new Chroma + sidecar
+  store.
+  - Fresh replay output: `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `section_match_rate = 0.833`,
+    `citation_coverage = 1.000`, `entity_coverage = 0.800`,
+    `avg_score = 0.946`, `error_rate = 0.0%`.
+  - Store-fixed eval-only output: vector health `ok = true`,
+    `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `section_match_rate = 0.750`,
+    `citation_coverage = 1.000`, `entity_coverage = 0.700`,
+    `avg_score = 0.933`, `error_rate = 0.0%`.
 
 ## 2026-05-29 Immediate Update
 

@@ -1463,3 +1463,64 @@ Follow-up storage fix:
   - sidecar file size: `~85.4MB`
   - deduplicated payloads: `1,328`
   - graph metadata large table JSON fields: `0`
+
+## 2026-05-29 Hyundai Sidecar Strict Replay
+
+Purpose:
+
+- Verify the new Chroma HNSW settings plus `table_payloads.json` sidecar layout
+  on the actual Hyundai policy-driven runtime gate path.
+- Confirm that strict store-fixed eval-only no longer fails at vector health
+  check.
+
+Commands:
+
+```bash
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --company-run-id hyundai_2023_policy_driven_runtime_gate \
+  --output-dir benchmarks/results/hyundai_sidecar_strict_replay_2026-05-29
+
+python -m src.ops.run_eval_only \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --source-output-dir benchmarks/results/hyundai_sidecar_strict_replay_2026-05-29 \
+  --output-dir benchmarks/results/hyundai_sidecar_strict_evalonly_2026-05-29 \
+  --company-run-id hyundai_2023_policy_driven_runtime_gate \
+  --experiment-id structural_selective_v2_prefix_2500_320
+```
+
+Store size:
+
+- `chroma.sqlite3`: `~69.4MB`
+- `document_structure_graph.json`: `~9.6MB`
+- `table_payloads.json`: `~85.4MB`
+- `parents.json`: `~0.8MB`
+
+Replay result:
+
+- `faithfulness = 1.000`
+- `context_recall = 1.000`
+- `retrieval_hit_at_k = 1.000`
+- `section_match_rate = 0.833`
+- `citation_coverage = 1.000`
+- `entity_coverage = 0.800`
+- `avg_score = 0.946`
+- `error_rate = 0.0%`
+
+Strict eval-only result:
+
+- Vector health check: `ok = true`, `result_count = 1`
+- `faithfulness = 1.000`
+- `context_recall = 1.000`
+- `retrieval_hit_at_k = 1.000`
+- `section_match_rate = 0.750`
+- `citation_coverage = 1.000`
+- `entity_coverage = 0.700`
+- `avg_score = 0.933`
+- `error_rate = 0.0%`
+
+Artifact policy:
+
+- `benchmarks/results/hyundai_sidecar_strict_replay_2026-05-29/` and
+  `benchmarks/results/hyundai_sidecar_strict_evalonly_2026-05-29/` are
+  experiment artifacts and should not be committed.
