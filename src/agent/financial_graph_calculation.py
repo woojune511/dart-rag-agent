@@ -17,6 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
+from src.config.retrieval_policy import KOREAN_PERIOD_PREFIX_RE_FRAGMENT
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -1925,10 +1926,50 @@ class FinancialAgentCalculationMixin:
             and (not evidence_items or evidence_status != "sufficient")
         )
         if should_augment_with_docs:
-            candidate_docs = seed_retrieved_docs or retrieved_docs
+            candidate_docs = list(retrieved_docs)
+            seen_candidate_doc_ids = {
+                str((getattr(doc, "metadata", {}) or {}).get("chunk_uid") or (getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                for doc, _score in candidate_docs
+            }
+            for doc, score in seed_retrieved_docs:
+                metadata = dict(getattr(doc, "metadata", {}) or {})
+                doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
+                if doc_id and doc_id in seen_candidate_doc_ids:
+                    continue
+                if doc_id:
+                    seen_candidate_doc_ids.add(doc_id)
+                candidate_docs.append((doc, score))
             synthesized_items: List[Dict[str, Any]] = []
             synthesized_bullets: List[str] = []
             seen_anchors = {str(item.get("source_anchor") or "") for item in evidence_items}
+
+            def _required_operand_context_terms() -> List[str]:
+                terms: List[str] = []
+                for operand in required_operands:
+                    for needle in _operand_needles(operand):
+                        normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
+                        if not normalized:
+                            continue
+                        terms.append(normalized)
+                        tokens = normalized.split()
+                        if len(tokens) >= 2:
+                            terms.append(" ".join(tokens[:-1]))
+                expanded: List[str] = []
+                for term in terms:
+                    expanded.append(term)
+                    if re.search(r"[가-힣]", term) and " " in term:
+                        expanded.append(re.sub(r"\s+", "", term))
+                return list(dict.fromkeys(item for item in expanded if item))
+
+            def _text_has_any_context_term(text: str, terms: List[str]) -> bool:
+                normalized = _normalise_spaces(text)
+                compact = re.sub(r"\s+", "", normalized)
+                return any(
+                    term in normalized or re.sub(r"\s+", "", term) in compact
+                    for term in terms
+                    if term
+                )
+
             percent_point_query = _is_percent_point_difference_query(query)
             ratio_row_candidates = self._extract_ratio_row_candidates(candidate_docs, query, topic)
             if ratio_row_candidates:
@@ -1963,11 +2004,12 @@ class FinancialAgentCalculationMixin:
                     label = _normalise_spaces(str(binding.get("label") or ""))
                     if label:
                         missing_terms.append(label)
+                missing_terms.extend(_required_operand_context_terms())
                 missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
                 duplicate_anchor_has_missing_term = bool(
                     anchor in seen_anchors
                     and missing_terms
-                    and any(term in text for term in missing_terms)
+                    and _text_has_any_context_term(text, missing_terms)
                 )
                 if anchor in seen_anchors and not duplicate_anchor_has_missing_term:
                     continue
@@ -1996,6 +2038,25 @@ class FinancialAgentCalculationMixin:
             logger.info("[calc_operands] direct numeric task skips generic retrieved-doc augmentation")
         if not evidence_items:
             return empty_result
+
+        if required_operands and not direct_numeric_grounding:
+            deterministic_required_rows = self._build_required_operands_from_candidates(
+                evidence_items,
+                required_operands=required_operands,
+                query=query,
+                topic=topic,
+                report_scope=report_scope,
+            )
+            if deterministic_required_rows:
+                direct_structured_rows = _merge_operand_rows(
+                    direct_structured_rows,
+                    deterministic_required_rows,
+                    required_operands=required_operands,
+                )
+                logger.info(
+                    "[calc_operands] deterministic required-operand rows=%s",
+                    len(deterministic_required_rows),
+                )
 
         structured_llm = self.llm.with_structured_output(OperandExtraction)
         evidence_text = self._format_evidence_for_prompt(evidence_items, evidence_bullets)
@@ -2057,6 +2118,12 @@ Structured Evidence:
                 row["normalized_unit"] = normalized_unit
                 row = self._refine_operand_precision_from_evidence_table(row, evidence_item)
                 operand_rows.append(row)
+            if required_operands:
+                operand_rows = [
+                    row
+                    for row in operand_rows
+                    if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+                ]
             if operation_family in {"lookup", "single_value"} and required_operands:
                 operand_rows = [
                     row
@@ -4266,6 +4333,16 @@ Subtask Results JSON:
             return "operand_extractor"
         if status == "retry_retrieval":
             return "retrieve"
+        if status == "insufficient_operands":
+            active_subtask = dict(state.get("active_subtask") or {})
+            required_operands = [
+                item
+                for item in (active_subtask.get("required_operands") or [])
+                if isinstance(item, dict) and bool(item.get("required", True))
+            ]
+            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
+            if required_operands and has_retrieved_docs and not _requires_direct_numeric_grounding(active_subtask):
+                return "operand_extractor"
         return "advance_subtask"
 
     def _route_after_advance_subtask(self, state: FinancialAgentState) -> str:

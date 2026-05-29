@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from langchain_core.documents import Document
+from langchain_core.runnables import RunnableLambda
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -13,6 +14,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_models import OperandExtraction
 
 
 class _ExplodingLLM:
@@ -20,9 +22,137 @@ class _ExplodingLLM:
         raise AssertionError("structured LLM should not be invoked for direct lookup doc augmentation")
 
 
+class _EmptyOperandLLM:
+    def with_structured_output(self, _schema):
+        return RunnableLambda(lambda _prompt_value: OperandExtraction(coverage="missing", operands=[]))
+
+
 class StructuredOperandExtractionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.agent = FinancialAgent.__new__(FinancialAgent)
+
+    def test_retrieved_docs_are_promoted_to_calculation_evidence_for_required_operands(self) -> None:
+        self.agent.llm = _EmptyOperandLLM()
+        metric_2023 = "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218"
+        metric_2022 = "2022\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218"
+        source_text = (
+            "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5\uc5d0\uc11c\ub294 "
+            "\uc804\ub144 \ub300\ube44 12.3% \uc99d\uac00\ud55c 1,560.8\ub9cc \ub300\uac00 "
+            "\ud310\ub9e4\ub418\uc5c8\uc2b5\ub2c8\ub2e4. "
+            "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5\uc5d0\uc11c \ub300\uc0c1\ud68c\uc0ac\ub294 "
+            "\uc804\ub144 \ub300\ube44 11.5% \uc99d\uac00\ud55c 87.0\ub9cc \ub300\ub97c "
+            "\ud310\ub9e4\ud588\uc2b5\ub2c8\ub2e4. "
+            "2022\ub144\uc5d0\ub294 \uc804\ub144 \ub300\ube44 0.9% \uac10\uc18c\ud55c "
+            "78.1\ub9cc \ub300\ub97c \ud310\ub9e4\ud588\uc2b5\ub2c8\ub2e4."
+        )
+        state = {
+            "query": (
+                "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218\uc758 "
+                "\uc804\ub144 \ub300\ube44 \uc131\uc7a5\ub960\uc744 \uacc4\uc0b0\ud574 \uc918"
+            ),
+            "years": [2023, 2022],
+            "report_scope": {"company": "\ub300\uc0c1\ud68c\uc0ac", "year": "2023"},
+            "intent": "comparison",
+            "topic": "\uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218 \uc131\uc7a5\ub960",
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_summary",
+                    "source_anchor": "[summary]",
+                    "claim": (
+                        "\uc9c0\uc5ed\uc2dc\uc7a5\uc740 \uc804\ub144 \ub300\ube44 "
+                        "12.3% \uc99d\uac00\ud588\uc2b5\ub2c8\ub2e4."
+                    ),
+                    "support_level": "partial",
+                    "metadata": {"block_type": "summary"},
+                }
+            ],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=source_text,
+                        metadata={
+                            "chunk_uid": "chunk_required_operands",
+                            "company": "\ub300\uc0c1\ud68c\uc0ac",
+                            "year": 2023,
+                            "block_type": "paragraph",
+                            "section_path": "II. \uc0ac\uc5c5\uc758 \ub0b4\uc6a9",
+                        },
+                    ),
+                    0.95,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "active_subtask": {
+                "task_id": "task_period_count_growth",
+                "metric_family": "generic_numeric",
+                "metric_label": "\uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218 \uc131\uc7a5\ub960",
+                "query": (
+                    "2023\ub144 \uc9c0\uc5ed\uc2dc\uc7a5 \ud310\ub9e4\ub300\uc218\uc758 "
+                    "\uc804\ub144 \ub300\ube44 \uc131\uc7a5\ub960\uc744 \uacc4\uc0b0\ud574 \uc918"
+                ),
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": metric_2023,
+                        "role": "current_period",
+                        "required": True,
+                        "period_hint": "2023",
+                    },
+                    {
+                        "label": metric_2022,
+                        "role": "prior_period",
+                        "required": True,
+                        "period_hint": "2022",
+                    },
+                ],
+                "constraints": {
+                    "period_focus": "multi_period",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "needs_retry",
+                "matched_operands": [],
+                "missing_operands": [metric_2023, metric_2022],
+                "retry_queries": [],
+                "notes": [],
+            },
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = self.agent._extract_calculation_operands(state)
+        rows = list(result.get("calculation_operands") or [])
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
+        self.assertEqual([row["raw_unit"] for row in rows], ["\ub9cc \ub300", "\ub9cc \ub300"])
+        self.assertTrue(
+            any(
+                item.get("metadata", {}).get("chunk_uid") == "chunk_required_operands"
+                for item in result["evidence_items"]
+            )
+        )
+
+    def test_insufficient_reconciliation_routes_to_operand_extractor_when_docs_can_fill_operands(self) -> None:
+        state = {
+            "query": "compare 2023 metric with 2022 metric",
+            "retrieved_docs": [(Document(page_content="2023 metric 10. 2022 metric 8.", metadata={}), 1.0)],
+            "seed_retrieved_docs": [],
+            "active_subtask": {
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {"label": "2023 metric", "role": "current_period", "period_hint": "2023"},
+                    {"label": "2022 metric", "role": "prior_period", "period_hint": "2022"},
+                ],
+            },
+            "reconciliation_result": {"status": "insufficient_operands", "retry_strategy": "stop_insufficient"},
+        }
+
+        self.assertEqual(self.agent._route_after_reconcile_plan(state), "operand_extractor")
 
     def test_direct_structured_row_operands_are_extracted_from_reconciliation(self) -> None:
         row_records = [

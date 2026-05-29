@@ -149,6 +149,15 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("IRA Tax Credit", ampc["aliases"])
         self.assertIn("이사의 경영진단 및 분석의견", ampc["preferred_sections"])
 
+    def test_v3_ampc_concept_does_not_match_general_ira_policy_context(self) -> None:
+        specs = self.ontology_v3.concept_specs(
+            "인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+            intent="trend",
+        )
+        concept_keys = [spec["concept"] for spec in specs]
+
+        self.assertNotIn("advanced_manufacturing_production_credit", concept_keys)
+
     def test_v3_group_concepts_are_matched_for_common_shorthand(self) -> None:
         specs = self.ontology_v3.concept_specs(
             "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금 비중을 계산해 줘.",

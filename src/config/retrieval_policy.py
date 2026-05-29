@@ -3,6 +3,28 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Sequence
 
 
+KOREAN_PERIOD_PREFIX_RE_FRAGMENT = r"(?:20\d{2}년|당기|전기|전년)"
+KOREAN_PERIOD_COMPARISON_RE_FRAGMENT = r"(?:전년|전기|직전\s*연도)\s*대비"
+KOREAN_PERIOD_RATE_METRIC_SUFFIX_RE_FRAGMENT = r"(?:증감률|증가율|감소율|성장률|변화율)"
+KOREAN_COUNT_UNITS = ("개", "명", "건", "곳", "사", "대")
+KOREAN_COUNT_SCALE_PREFIXES = (("천", 1_000.0), ("만", 10_000.0), ("백만", 1_000_000.0))
+KOREAN_COUNT_UNIT_RE_FRAGMENT = (
+    r"(?:(?:백만|만|천)?\s*(?:개|명|건|곳|사|대))"
+)
+KOREAN_PERCENT_METRIC_HINT_TERMS = (
+    "비율",
+    "비중",
+    "마진",
+    "이익률",
+    "수익률",
+    "성장률",
+    "증가율",
+    "감소율",
+    "증감률",
+    "변동률",
+)
+
+
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
         "2021년",

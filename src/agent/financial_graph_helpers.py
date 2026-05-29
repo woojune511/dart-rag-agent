@@ -23,6 +23,13 @@ from typing import Any, Dict, List, Optional
 
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
+    KOREAN_COUNT_SCALE_PREFIXES,
+    KOREAN_COUNT_UNIT_RE_FRAGMENT,
+    KOREAN_COUNT_UNITS,
+    KOREAN_PERCENT_METRIC_HINT_TERMS,
+    KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
+    KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
+    KOREAN_PERIOD_RATE_METRIC_SUFFIX_RE_FRAGMENT,
     active_narrative_policies,
     narrative_policy_preferred_sections,
     narrative_policy_terms,
@@ -859,7 +866,9 @@ def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[fl
         return composite_krw, "KRW"
 
     inline_unit_match = re.fullmatch(
-        r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>조\s*원?|억\s*원?|백만\s*원|천\s*원|원|%)",
+        r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
+        r"(?P<unit>조\s*원?|억\s*원?|백만\s*원|천\s*원|원|%|"
+        rf"{KOREAN_COUNT_UNIT_RE_FRAGMENT})",
         _normalise_spaces(raw_value),
     )
     if inline_unit_match:
@@ -890,15 +899,19 @@ def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[fl
         "달러": 1.0,
         "백만달러": 1_000_000.0,
     }
-    count_units = {"개", "명", "곳", "사"}
+    compact_unit = re.sub(r"\s+", "", unit)
+    count_scale = {base_unit: 1.0 for base_unit in KOREAN_COUNT_UNITS}
+    for prefix, scale in KOREAN_COUNT_SCALE_PREFIXES:
+        for base_unit in KOREAN_COUNT_UNITS:
+            count_scale[f"{prefix}{base_unit}"] = scale
     percent_units = {"%", "퍼센트"}
 
     if unit in krw_scale:
         return value * krw_scale[unit], "KRW"
     if unit in usd_scale:
         return value * usd_scale[unit], "USD"
-    if unit in count_units:
-        return value, "COUNT"
+    if compact_unit in count_scale:
+        return value * count_scale[compact_unit], "COUNT"
     if unit in percent_units:
         return value, "PERCENT"
     return value, "UNKNOWN"
@@ -1652,10 +1665,20 @@ _GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
     ]
 ]
 
+_GENERIC_PERIOD_COMPARISON_METRIC_RE = re.compile(
+    r"(?:20\d{2}년\s*)?"
+    r"(?P<label>[가-힣A-Za-z0-9·/&\-\s\(\)]{2,80}?)의\s*"
+    rf"{KOREAN_PERIOD_COMPARISON_RE_FRAGMENT}\s*"
+    rf"{KOREAN_PERIOD_RATE_METRIC_SUFFIX_RE_FRAGMENT}"
+)
+
 
 def _clean_metric_label(label: str) -> str:
     text = _normalise_spaces(str(label or ""))
     text = re.sub(r"^[0-9]{4}년\s*", "", text)
+    for boundary in ("에서", "기준", "관련"):
+        if boundary in text:
+            text = text.rsplit(boundary, 1)[-1].strip()
     text = re.sub(r"(?:금액|수치|총액|규모|비중|비율|증감액|증감폭|순효과)\s*$", "", text).strip()
     return text
 
@@ -1682,6 +1705,10 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
         for spec in _matched_ontology_concept_specs(query)
         if not bool(spec.get("is_group")) and str(spec.get("name") or "").strip()
     )
+    for match in _GENERIC_PERIOD_COMPARISON_METRIC_RE.finditer(text):
+        cleaned = _clean_metric_label(match.group("label"))
+        if cleaned:
+            labels.append(cleaned)
 
     for pattern in _GENERIC_NUMERIC_OPERAND_PATTERNS:
         for match in pattern.finditer(text):
@@ -1733,7 +1760,7 @@ def _label_implies_percent_metric(label: str) -> bool:
         return False
     return any(
         token in normalized
-        for token in ("비율", "비중", "마진", "이익률", "수익률", "%", "%p")
+        for token in (*KOREAN_PERCENT_METRIC_HINT_TERMS, "%", "%p")
     )
 
 
@@ -2179,19 +2206,29 @@ def _build_generic_retrieval_queries(
         return " ".join(collapsed).strip()
 
     def _strip_leading_period_prefix(text: str) -> str:
-        return _normalise_spaces(re.sub(r"^(20\d{2}년|당기|전기|전년)\s+", "", _normalise_spaces(text or "")))
+        return _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", _normalise_spaces(text or "")))
+
+    def _surface_query_variants(text: str) -> List[str]:
+        normalized = _strip_leading_period_prefix(text)
+        if not normalized:
+            return []
+        variants = [normalized]
+        tokens = normalized.split()
+        if len(tokens) >= 2:
+            variants.append(" ".join(tokens[:-1]))
+        for candidate in list(variants):
+            if re.search(r"[가-힣]", candidate) and " " in candidate:
+                variants.append(re.sub(r"\s+", "", candidate))
+        return list(dict.fromkeys(item for item in variants if item))
 
     def _query_surfaces_for_operand(operand: Dict[str, Any]) -> List[str]:
         label = str(operand.get("label") or "").strip()
-        surfaces = [
-            _strip_leading_period_prefix(label),
-            *[
-                _strip_leading_period_prefix(str(alias).strip())
-                for alias in list(operand.get("aliases") or [])[:3]
-                if str(alias).strip()
-            ],
-            *[_normalise_spaces(surface) for surface in _lookup_query_surface_preferences(operand)],
-        ]
+        surfaces: List[str] = []
+        surfaces.extend(_surface_query_variants(label))
+        for alias in list(operand.get("aliases") or [])[:3]:
+            surfaces.extend(_surface_query_variants(str(alias).strip()))
+        for surface in _lookup_query_surface_preferences(operand):
+            surfaces.extend(_surface_query_variants(surface))
         return list(dict.fromkeys(surface for surface in surfaces if surface))
 
     queries = [query]
@@ -2238,10 +2275,15 @@ def _build_generic_retrieval_queries(
         right_role = str(right.get("role") or "").strip()
         left_concept = str(left.get("concept") or "").strip()
         right_concept = str(right.get("concept") or "").strip()
+        left_label_base = _strip_leading_period_prefix(str(left.get("label") or ""))
+        right_label_base = _strip_leading_period_prefix(str(right.get("label") or ""))
+        same_metric_pair = bool(
+            (left_concept and left_concept == right_concept)
+            or (left_label_base and left_label_base == right_label_base)
+        )
         if (
             {left_role, right_role} == {"current_period", "prior_period"}
-            and left_concept
-            and left_concept == right_concept
+            and same_metric_pair
         ):
             left_year = _year_for_operand(left)
             right_year = _year_for_operand(right)
@@ -2277,10 +2319,15 @@ def _build_generic_retrieval_queries(
                         for section in preferred_sections[:3]:
                             queries.append(_collapse_duplicate_query_tokens(f"{pair_query} {section}"))
 
-    if metric_label:
-        queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_label}"))
+    metric_query_surfaces = _surface_query_variants(metric_label)
+    if metric_query_surfaces:
+        queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_query_surfaces[0]}"))
         for section in preferred_sections[:4]:
-            queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_label} {section}"))
+            queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{metric_query_surfaces[0]} {section}"))
+        for surface in metric_query_surfaces[1:]:
+            queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{surface}"))
+            for section in preferred_sections[:2]:
+                queries.append(_collapse_duplicate_query_tokens(f"{year_prefix}{surface} {section}"))
     for operand in operand_specs:
         label = str(operand.get("label") or "").strip()
         if not label:
@@ -4436,6 +4483,27 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     if operand_concept and any(row_concept and row_concept != operand_concept for row_concept in row_concepts):
         return True
 
+    operand_period_text = " ".join(
+        str(value or "")
+        for value in (
+            operand.get("period_hint"),
+            operand.get("label"),
+            operand.get("name"),
+        )
+    )
+    row_period_text = " ".join(
+        str(value or "")
+        for value in (
+            row.get("period"),
+            row.get("label"),
+            row.get("matched_operand_label"),
+        )
+    )
+    operand_years = set(re.findall(r"20\d{2}", operand_period_text))
+    row_years = set(re.findall(r"20\d{2}", row_period_text))
+    if operand_years and row_years and operand_years.isdisjoint(row_years):
+        return True
+
     normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
     expects_liability = any("부채" in needle for needle in normalized_needles)
     authoritative_surfaces = [
@@ -4443,6 +4511,23 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
         str(row.get("label") or "").strip(),
     ]
     authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
+    row_unit_family = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+    if not row_unit_family:
+        _value, row_unit_family = _normalise_operand_value(
+            str(row.get("raw_value") or ""),
+            str(row.get("raw_unit") or ""),
+        )
+        row_unit_family = _normalise_spaces(str(row_unit_family or "")).upper()
+    operand_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+    operand_label = _normalise_spaces(str(operand.get("label") or ""))
+    if (
+        row_unit_family == "PERCENT"
+        and operand_unit_family != "PERCENT"
+        and not _label_implies_percent_metric(operand_label)
+        and any(_label_implies_percent_metric(surface) for surface in authoritative_surfaces)
+    ):
+        return True
+
     if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
         return True
 
@@ -6547,6 +6632,28 @@ def _build_reconciliation_retry_queries(
     missing_operands: List[str],
     years: List[int],
 ) -> List[str]:
+    def _strip_leading_period_prefix(text: str) -> str:
+        return _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", _normalise_spaces(text or "")))
+
+    def _strip_prefix_overlap(surface: str, prefix_values: List[str]) -> str:
+        normalized = _normalise_spaces(surface)
+        for prefix in prefix_values:
+            normalized_prefix = _normalise_spaces(prefix)
+            if normalized_prefix and normalized.startswith(f"{normalized_prefix} "):
+                normalized = normalized[len(normalized_prefix) :].strip()
+        return normalized
+
+    def _metric_context_for_surface(surface: str, metric: str) -> str:
+        normalized_surface = _normalise_spaces(surface)
+        normalized_metric = _normalise_spaces(metric)
+        if not normalized_surface or not normalized_metric:
+            return normalized_metric
+        surface_base = _strip_leading_period_prefix(normalized_surface)
+        metric_base = _strip_leading_period_prefix(normalized_metric)
+        if surface_base and metric_base and (surface_base == metric_base or metric_base in surface_base):
+            return ""
+        return normalized_metric
+
     metric_label = str(active_subtask.get("metric_label") or "").strip()
     constraints = dict(active_subtask.get("constraints") or {})
     required_operands = list(active_subtask.get("required_operands") or [])
@@ -6608,7 +6715,11 @@ def _build_reconciliation_retry_queries(
             query_surfaces.extend(aggregate_expansions)
         deduped_surfaces = list(dict.fromkeys(_normalise_spaces(surface) for surface in query_surfaces if _normalise_spaces(surface)))
         for surface in deduped_surfaces[:4]:
-            base_bits = prefixes + [surface, metric_label]
+            normalized_surface = _strip_prefix_overlap(surface, prefixes)
+            metric_context = _metric_context_for_surface(normalized_surface, metric_label)
+            base_bits = prefixes + [normalized_surface]
+            if metric_context:
+                base_bits.append(metric_context)
             base_query = _normalise_spaces(" ".join(base_bits))
             if base_query:
                 queries.append(base_query)

@@ -29,6 +29,9 @@ from src.agent.financial_graph_models import (
 )
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
+    KOREAN_COUNT_UNIT_RE_FRAGMENT,
+    KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
+    KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_STOPWORDS,
     active_narrative_policies,
@@ -42,6 +45,261 @@ from src.config.retrieval_policy import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+_COUNT_VALUE_UNIT_RE = (
+    r"(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*"
+    rf"(?P<unit>{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
+)
+
+
+def _period_target_for_operand(operand: Dict[str, Any], query_years: List[str], report_scope: Dict[str, Any]) -> str:
+    label = _normalise_spaces(str(operand.get("label") or ""))
+    match = re.search(r"(20\d{2})년?", label)
+    if match:
+        return match.group(1)
+    period_hint = _normalise_spaces(str(operand.get("period_hint") or ""))
+    match = re.search(r"(20\d{2})", period_hint)
+    if match:
+        return match.group(1)
+    report_year = str(report_scope.get("year") or "").strip()
+    role = str(operand.get("role") or "").strip()
+    if report_year.isdigit() and role == "prior_period":
+        return str(int(report_year) - 1)
+    if report_year.isdigit() and role == "current_period":
+        return report_year
+    return query_years[0] if query_years else report_year
+
+
+def _operand_context_surface_variants(operand: Dict[str, Any]) -> List[str]:
+    variants: List[str] = []
+    for needle in _operand_needles(operand):
+        normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
+        if not normalized:
+            continue
+        variants.append(normalized)
+        tokens = normalized.split()
+        if len(tokens) >= 2:
+            variants.append(" ".join(tokens[:-1]))
+    expanded: List[str] = []
+    for variant in variants:
+        expanded.append(variant)
+        if re.search(r"[가-힣]", variant) and " " in variant:
+            expanded.append(re.sub(r"\s+", "", variant))
+    return list(dict.fromkeys(item for item in expanded if item))
+
+
+def _sentence_matches_operand_context(sentence: str, operand: Dict[str, Any]) -> bool:
+    normalized = _normalise_spaces(sentence)
+    compact = re.sub(r"\s+", "", normalized)
+    for surface in _operand_context_surface_variants(operand):
+        surface_normalized = _normalise_spaces(surface)
+        surface_compact = re.sub(r"\s+", "", surface_normalized)
+        if surface_normalized in normalized or (surface_compact and surface_compact in compact):
+            return True
+    return False
+
+
+def _sentence_has_subject_after_location_context(sentence: str) -> bool:
+    return bool(
+        re.search(
+            r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
+            re.sub(r"\s+", "", sentence),
+        )
+    )
+
+
+def _period_comparison_count_value_from_text(
+    text: str,
+    operand: Dict[str, Any],
+    *,
+    query_years: List[str],
+    report_scope: Dict[str, Any],
+) -> Optional[Dict[str, str]]:
+    normalized = _normalise_spaces(text)
+    if not normalized or not re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, normalized):
+        return None
+
+    target_year = _period_target_for_operand(operand, query_years, report_scope)
+    if not target_year:
+        return None
+
+    sentences = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?。])\s+|(?<=[가-힣])\.(?=(?:20\d{2}|[가-힣]))", normalized)
+        if part.strip()
+    ] or [normalized]
+    context_indexes = [
+        index
+        for index, sentence in enumerate(sentences)
+        if _sentence_matches_operand_context(sentence, operand)
+    ]
+    if not context_indexes:
+        return None
+    subject_context_indexes = [
+        index
+        for index in context_indexes
+        if _sentence_has_subject_after_location_context(sentences[index])
+    ]
+    if not subject_context_indexes:
+        return None
+
+    candidates: List[tuple[float, Dict[str, str]]] = []
+    for index, sentence in enumerate(sentences):
+        period_match = re.search(r"(20\d{2})년?", sentence)
+        if not period_match or period_match.group(1) != target_year:
+            continue
+        if not re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, sentence):
+            continue
+        value_matches = list(re.finditer(_COUNT_VALUE_UNIT_RE, sentence))
+        if not value_matches:
+            continue
+
+        context_hit = _sentence_matches_operand_context(sentence, operand)
+        subject_context_hit = _sentence_has_subject_after_location_context(sentence)
+        follows_context = any(0 <= index - context_index <= 2 for context_index in subject_context_indexes)
+        if not context_hit and not follows_context:
+            continue
+        if context_hit and not subject_context_hit and not follows_context:
+            continue
+
+        score = 1.0
+        if context_hit:
+            score += 2.0
+        if subject_context_hit:
+            score += 0.75
+        if follows_context and not context_hit:
+            score += 0.5
+
+        selected = value_matches[-1]
+        candidates.append(
+            (
+                score,
+                {
+                    "raw_value": selected.group("value"),
+                    "raw_unit": _normalise_spaces(selected.group("unit")),
+                    "period": f"{target_year}년",
+                },
+            )
+        )
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1]
+
+
+def _doc_identity(doc: Document) -> str:
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    for key in ("chunk_uid", "chunk_id", "id", "source_id"):
+        value = str(metadata.get(key) or "").strip()
+        if value:
+            return value
+    return str(getattr(doc, "page_content", "") or "")[:120]
+
+
+def _doc_operand_context_text(doc: Document) -> str:
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    return _normalise_spaces(
+        " ".join(
+            part
+            for part in (
+                str(getattr(doc, "page_content", "") or ""),
+                str(metadata.get("table_context") or ""),
+                str(metadata.get("table_header_context") or ""),
+                str(metadata.get("table_summary_text") or ""),
+                str(metadata.get("local_heading") or ""),
+                str(metadata.get("section_path") or metadata.get("section") or ""),
+            )
+            if part
+        )
+    )
+
+
+def _doc_period_count_operand_matches(doc: Document, required_operands: List[Dict[str, Any]]) -> List[int]:
+    text = _doc_operand_context_text(doc)
+    if not text:
+        return []
+    if not re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, text):
+        return []
+    if not re.search(_COUNT_VALUE_UNIT_RE, text):
+        return []
+    return [
+        index
+        for index, operand in enumerate(required_operands)
+        if _sentence_matches_operand_context(text, operand)
+    ]
+
+
+def _focused_operand_surface_queries(
+    active_subtask: Dict[str, Any],
+    query: str,
+    report_scope: Dict[str, Any],
+) -> List[str]:
+    required_operands = [
+        dict(item)
+        for item in (active_subtask.get("required_operands") or [])
+        if isinstance(item, dict)
+    ]
+    if not required_operands:
+        return []
+    query_years = re.findall(r"20\d{2}", str(query or ""))
+    queries: List[str] = []
+    for operand in required_operands:
+        target_year = _period_target_for_operand(operand, query_years, report_scope)
+        prefix = f"{target_year}년 " if target_year else ""
+        for surface in _operand_context_surface_variants(operand):
+            surface = _normalise_spaces(surface)
+            if surface:
+                queries.append(_normalise_spaces(f"{prefix}{surface}"))
+    return list(dict.fromkeys(item for item in queries if item))
+
+
+def _ensure_period_count_operand_docs(
+    selected: List[tuple[Document, float]],
+    candidates: List[tuple[Document, float]],
+    required_operands: List[Dict[str, Any]],
+    effective_k: int,
+) -> List[tuple[Document, float]]:
+    if not required_operands or not candidates or effective_k <= 0:
+        return selected[:effective_k]
+
+    covered = set()
+    selected_ids = set()
+    for item in selected:
+        doc = item[0]
+        selected_ids.add(_doc_identity(doc))
+        covered.update(_doc_period_count_operand_matches(doc, required_operands))
+
+    for candidate in candidates:
+        doc = candidate[0]
+        identity = _doc_identity(doc)
+        if identity in selected_ids:
+            continue
+        matches = set(_doc_period_count_operand_matches(doc, required_operands))
+        if not matches or matches.issubset(covered):
+            continue
+
+        if len(selected) < effective_k:
+            selected.append(candidate)
+        else:
+            replace_index = None
+            for index in range(len(selected) - 1, -1, -1):
+                if not _doc_period_count_operand_matches(selected[index][0], required_operands):
+                    replace_index = index
+                    break
+            if replace_index is None:
+                continue
+            replaced_identity = _doc_identity(selected[replace_index][0])
+            selected_ids.discard(replaced_identity)
+            selected[replace_index] = candidate
+        selected_ids.add(identity)
+        covered.update(matches)
+        if len(covered) >= len(required_operands):
+            break
+
+    return selected[:effective_k]
+
 
 class FinancialAgentEvidenceMixin:
     _QUERY_FOCUS_STOPWORDS = QUERY_FOCUS_STOPWORDS
@@ -999,6 +1257,23 @@ class FinancialAgentEvidenceMixin:
             )
             batch_docs = self.vsm.search(enriched_query, k=search_k, where_filter=where_filter)
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
+        focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
+        if focused_operand_queries:
+            focused_docs: List[tuple[Document, float]] = []
+            for focused_query in focused_operand_queries[:8]:
+                search_k = max(effective_k * 2, 8)
+                executed_queries.append(
+                    {
+                        "source": "operand_focus",
+                        "base_query": focused_query,
+                        "executed_query": focused_query,
+                        "k": search_k,
+                        "where_filter": where_filter,
+                    }
+                )
+                focused_docs.extend(self.vsm.search(focused_query, k=search_k, where_filter=where_filter))
+            if focused_docs:
+                docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries[:3]:
@@ -1091,6 +1366,13 @@ class FinancialAgentEvidenceMixin:
 
         seed_docs = reranked[: min(len(reranked), effective_k * 4)]
         docs = docs[: effective_k]
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if isinstance(item, dict)
+        ]
+        if required_operands and operation_family != "narrative_summary":
+            docs = _ensure_period_count_operand_docs(docs, reranked, required_operands, effective_k)
         selected_chunks: List[Dict[str, Any]] = []
         for rank, item in enumerate(docs, start=1):
             doc, score = item
@@ -1859,6 +2141,45 @@ class FinancialAgentEvidenceMixin:
             report_scope=dict(report_scope or {}),
             query_years=[int(year.replace("년", "")) for year in query_years],
         )
+        if required_operands:
+            def _period_count_item_priority(item: Dict[str, Any]) -> tuple[int, int]:
+                metadata = dict(item.get("metadata") or {})
+                text = _normalise_spaces(
+                    " ".join(
+                        part
+                        for part in (
+                            str(item.get("source_context") or ""),
+                            str(metadata.get("table_context") or ""),
+                            str(metadata.get("table_header_context") or ""),
+                            str(metadata.get("table_summary_text") or ""),
+                            str(metadata.get("local_heading") or ""),
+                            str(metadata.get("section_path") or metadata.get("section") or ""),
+                            str(item.get("raw_row_text") or item.get("claim") or ""),
+                        )
+                        if part
+                    )
+                )
+                matched_operands = sum(
+                    1
+                    for operand in required_operands
+                    if _period_comparison_count_value_from_text(
+                        text,
+                        operand,
+                        query_years=query_years,
+                        report_scope=dict(report_scope or {}),
+                    )
+                )
+                subject_after_context = int(
+                    bool(
+                        re.search(
+                            r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
+                            re.sub(r"\s+", "", text),
+                        )
+                    )
+                )
+                return matched_operands, subject_after_context
+
+            prioritized_items = sorted(prioritized_items, key=_period_count_item_priority, reverse=True)
         operand_rows: List[Dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
         percent_pattern = re.compile(r"[\d,.]+%")
@@ -2045,7 +2366,17 @@ class FinancialAgentEvidenceMixin:
                     _text_has_positive_surface(context_text or raw_row, operand)
                     and not _text_has_negative_surface(context_text or raw_row, operand)
                 )
-                if not _operand_text_match(raw_row, operand) and not aggregate_context_match and not surface_contract_match:
+                period_count_context_match = (
+                    bool(re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, context_text or raw_row))
+                    and bool(re.search(_COUNT_VALUE_UNIT_RE, context_text or raw_row))
+                    and _sentence_matches_operand_context(context_text or raw_row, operand)
+                )
+                if (
+                    not _operand_text_match(raw_row, operand)
+                    and not aggregate_context_match
+                    and not surface_contract_match
+                    and not period_count_context_match
+                ):
                     continue
 
                 period = ""
@@ -2082,6 +2413,18 @@ class FinancialAgentEvidenceMixin:
                                 )
 
                 if not raw_value:
+                    prose_value = _period_comparison_count_value_from_text(
+                        context_text or raw_row,
+                        operand,
+                        query_years=query_years,
+                        report_scope=report_scope,
+                    )
+                    if prose_value:
+                        raw_value = prose_value["raw_value"]
+                        raw_unit = prose_value["raw_unit"]
+                        period = prose_value["period"]
+
+                if not raw_value and not period_count_context_match:
                     raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
                     if raw_value and not raw_unit:
                         if "조" in raw_value or "억" in raw_value:

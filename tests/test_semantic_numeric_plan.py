@@ -2,6 +2,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from langchain_core.documents import Document
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 for path in (PROJECT_ROOT, SRC_ROOT):
@@ -19,7 +21,8 @@ from src.agent.financial_graph import (
     _missing_required_operands,
     _parse_unstructured_table_row_cells,
 )
-from src.agent.financial_graph_helpers import _extract_segment_labels_from_query
+from src.agent.financial_graph_evidence import _ensure_period_count_operand_docs, _focused_operand_surface_queries
+from src.agent.financial_graph_helpers import _build_generic_retrieval_queries, _extract_segment_labels_from_query
 from src.agent.financial_graph_helpers import _annotate_task_dependencies
 from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
@@ -77,6 +80,61 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
         self.assertTrue(
             any("영업수익 증가" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
+        )
+
+    def test_general_ira_policy_context_does_not_open_ampc_concept_task(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            ConceptPlannerOutput.model_validate(
+                {
+                    "tasks": [
+                        {
+                            "metric_label": "첨단제조 생산세액공제",
+                            "operation_family": "lookup",
+                            "operands": [
+                                {"concept": "advanced_manufacturing_production_credit", "role": ""},
+                            ],
+                        }
+                    ],
+                    "rationale": "IRA mention alone should not be enough to select AMPC.",
+                }
+            )
+        )
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": (
+                        "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, "
+                        "사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘."
+                    ),
+                    "intent": "trend",
+                    "query_type": "trend",
+                    "topic": "미국 시장 판매대수 성장률 및 보호무역주의 정책 대응",
+                    "report_scope": {"company": "테스트", "year": 2023, "report_type": "사업보고서"},
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        concepts = [
+            str(operand.get("concept") or "")
+            for task in result["calc_subtasks"]
+            for operand in (task.get("required_operands") or [])
+        ]
+        self.assertNotIn("advanced_manufacturing_production_credit", concepts)
+        self.assertFalse(
+            any("첨단제조 생산세액공제" in str(query) for query in result["retrieval_queries"])
         )
 
     def test_dividend_policy_query_appends_dividend_focused_narrative_subtask(self) -> None:
@@ -1738,6 +1796,144 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
         self.assertEqual(value, "13,189,950")
 
+    def test_generic_retrieval_queries_add_korean_compact_context_surface(self) -> None:
+        queries = _build_generic_retrieval_queries(
+            query="2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+            metric_label="지역 시장 판매대수",
+            operand_specs=[
+                {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
+                {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
+            ],
+            preferred_sections=["II. 사업의 내용"],
+            report_scope={"year": 2023},
+        )
+
+        self.assertIn("2023년 지역시장", queries)
+        self.assertIn("2023년 2022년 지역 시장 판매대수", queries)
+
+    def test_period_comparison_count_prose_builds_period_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_period_count",
+                    "source_anchor": "[테스트 | 2023 | II. 사업의 내용]",
+                    "claim": (
+                        "2023년 지역시장에서는 전년 대비 12.3% 증가한 1,560.8만 대가 판매되었습니다. "
+                        "2022년에는 재고 부족 문제로 판매가 하락했습니다."
+                        "2023년 지역시장에서 A사는 전년 대비 11.5% 증가한 87.0만 대를 판매했습니다. "
+                        "2022년에는 전년 대비 0.9% 감소한 78.1만 대를 판매했습니다."
+                    ),
+                    "metadata": {
+                        "section_path": "II. 사업의 내용",
+                        "statement_type": "mda",
+                    },
+                }
+            ],
+            required_operands=[
+                {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
+                {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
+            ],
+            query="2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"company": "테스트", "year": 2023},
+        )
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["raw_value"], "87.0")
+        self.assertEqual(rows[0]["raw_unit"], "만 대")
+        self.assertEqual(rows[0]["normalized_value"], 870000.0)
+        self.assertEqual(rows[1]["raw_value"], "78.1")
+        self.assertEqual(rows[1]["raw_unit"], "만 대")
+        self.assertEqual(rows[1]["normalized_value"], 781000.0)
+
+    def test_period_count_operand_docs_are_kept_in_final_window(self) -> None:
+        required_operands = [
+            {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
+            {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
+        ]
+        selected = [
+            (
+                Document(
+                    page_content="지역 생산실적은 2022년 332,900대에서 2023년 369,000대로 증가했습니다.",
+                    metadata={"chunk_uid": "selected_wrong", "block_type": "table"},
+                ),
+                0.9,
+            )
+        ]
+        candidate = (
+            Document(
+                page_content=(
+                    "2023년 지역시장에서 A사는 전년 대비 11.5% 증가한 87.0만 대를 판매했습니다. "
+                    "2022년에는 전년 대비 0.9% 감소한 78.1만 대를 판매했습니다."
+                ),
+                metadata={"chunk_uid": "candidate_sales", "block_type": "paragraph"},
+            ),
+            0.5,
+        )
+
+        kept = _ensure_period_count_operand_docs(
+            selected,
+            [selected[0], candidate],
+            required_operands,
+            effective_k=1,
+        )
+
+        self.assertEqual(kept[0][0].metadata["chunk_uid"], "candidate_sales")
+
+    def test_focused_operand_surface_queries_use_raw_compact_surfaces(self) -> None:
+        queries = _focused_operand_surface_queries(
+            {
+                "required_operands": [
+                    {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"}
+                ]
+            },
+            query="2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"year": 2023},
+        )
+
+        self.assertIn("2023년 지역 시장", queries)
+        self.assertIn("2023년 지역시장", queries)
+
+    def test_percent_result_row_does_not_satisfy_raw_period_operand(self) -> None:
+        missing = _missing_required_operands(
+            [
+                {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
+                {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
+            ],
+            [
+                {
+                    "label": "2023년 지역 시장 판매대수 전년 대비 성장률",
+                    "raw_value": "12.3",
+                    "raw_unit": "%",
+                    "normalized_value": 12.3,
+                    "normalized_unit": "PERCENT",
+                    "period": "2023년",
+                }
+            ],
+        )
+
+        self.assertEqual(len(missing), 2)
+
+    def test_period_specific_row_does_not_satisfy_other_period_operand(self) -> None:
+        missing = _missing_required_operands(
+            [
+                {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
+                {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
+            ],
+            [
+                {
+                    "label": "2023년 지역 시장 판매대수",
+                    "raw_value": "87.0",
+                    "raw_unit": "만 대",
+                    "normalized_value": 870000.0,
+                    "normalized_unit": "COUNT",
+                    "period": "2023년",
+                }
+            ],
+        )
+
+        self.assertEqual([item["period_hint"] for item in missing], ["2022"])
+
     def test_generic_operand_fallback_builds_rows_from_claim_text(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         rows = agent._build_required_operands_from_candidates(
@@ -1967,6 +2163,31 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
         retrieval_queries = task.get("retrieval_queries") or []
         self.assertTrue(any("커머스" in query for query in retrieval_queries))
+
+    def test_generic_period_growth_query_extracts_metric_phrase_before_growth_marker(self) -> None:
+        plan = _build_semantic_numeric_plan(
+            query=(
+                "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, "
+                "사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘."
+            ),
+            topic="미국 시장 판매대수 성장률 및 보호무역주의 정책 대응",
+            intent="comparison",
+            report_scope={"company": "테스트", "year": 2023, "report_type": "사업보고서"},
+            target_metric_family="",
+        )
+
+        self.assertEqual(plan["status"], "heuristic_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["operation_family"], "growth_rate")
+        self.assertEqual(
+            [(row["label"], row["role"], row.get("period_hint")) for row in task["required_operands"]],
+            [
+                ("2023년 미국 시장 판매대수", "current_period", "2023"),
+                ("2022년 미국 시장 판매대수", "prior_period", "2022"),
+            ],
+        )
+        retrieval_queries = task.get("retrieval_queries") or []
+        self.assertTrue(any("2023년 2022년 미국 시장 판매대수" in query for query in retrieval_queries))
 
     def test_segment_sum_llm_override_is_rejected_when_shape_degrades(self) -> None:
         base_plan = {

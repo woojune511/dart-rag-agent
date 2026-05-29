@@ -739,10 +739,17 @@ class FinancialAgentPlanningMixin:
         planner_feedback = _normalise_spaces(planner_feedback)
         concept_seed_query = query if not planner_feedback else f"{query}\n{planner_feedback}"
         concept_specs = ontology.concept_specs(concept_seed_query, topic, intent)
+        used_full_catalog_fallback = False
         if not concept_specs:
             concept_specs = ontology.all_concept_specs()
+            used_full_catalog_fallback = True
         if not concept_specs:
             return None
+        concept_spec_by_key = {
+            str(spec.get("concept") or "").strip(): dict(spec)
+            for spec in concept_specs
+            if str(spec.get("concept") or "").strip()
+        }
         allowed_concept_keys = {
             str(spec.get("concept") or "").strip()
             for spec in concept_specs
@@ -943,6 +950,9 @@ Also return:
                 raw_task,
                 ontology,
                 allowed_concept_keys=allowed_concept_keys,
+                concept_specs_by_key=concept_spec_by_key,
+                support_text=concept_seed_query,
+                require_surface_contract_match=used_full_catalog_fallback,
             )
             if not is_valid:
                 validation_notes.append(f"invalid_task_{index}:{note}")
@@ -1102,6 +1112,9 @@ Also return:
         raw_task: Any,
         ontology: Any,
         allowed_concept_keys: Optional[set[str]] = None,
+        concept_specs_by_key: Optional[Dict[str, Dict[str, Any]]] = None,
+        support_text: str = "",
+        require_surface_contract_match: bool = False,
     ) -> tuple[bool, str]:
         """Perform a tiny contract check on planner output before runtime uses it.
 
@@ -1124,6 +1137,17 @@ Also return:
                 return False, f"unknown_concept:{concept_key or '-'}"
             if allowed_concept_keys and concept_key not in allowed_concept_keys:
                 return False, f"concept_not_available:{concept_key}"
+            if require_surface_contract_match:
+                spec = dict((concept_specs_by_key or {}).get(concept_key) or {})
+                surface_contract = dict(spec.get("surface_contract") or {})
+                positive_terms = [
+                    _normalise_spaces(str(term or ""))
+                    for term in (surface_contract.get("positive") or [])
+                    if _normalise_spaces(str(term or ""))
+                ]
+                normalized_support = _normalise_spaces(support_text)
+                if positive_terms and not any(term in normalized_support for term in positive_terms):
+                    return False, f"surface_contract_missing:{concept_key}"
 
         if operation_family == "ratio":
             if not any(role.startswith("numerator") for role in roles):

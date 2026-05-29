@@ -74,7 +74,28 @@ Retrieval/routing policy는 `src/config/retrieval_policy.py`처럼 명명된 con
 Numeric path는 deterministic contract를 따른다. 산술, 단위 변환, operand ordering, dependency binding, dedupe, validation은 코드가 담당한다. LLM은 intent, concept, evidence interpretation처럼 의미 판단에만 쓴다.
 
 Evaluator는 평가 정의를 담을 수 있지만, runtime agent가 evaluator trick을 따라가면 안 된다.
-## 6. Ontology-Driven Prose Lookup Slots
+
+## 6. Concept Planner Candidate Validation
+
+LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를
+무근거로 선택해서 runtime task를 열면 안 된다.
+
+- query/topic/planner feedback에서 매칭된 ontology concept가 있으면 planner
+  후보는 그 concept set과 group member로 제한한다.
+- 명시 concept 매칭이 없어 전체 ontology catalog fallback을 쓰는 경우에도,
+  `surface_contract.positive`가 정의된 concept는 해당 positive term이
+  query/topic/planner feedback에 나타날 때만 허용한다.
+- 일반 정책/법령/시장 맥락이 특정 세액공제, 특정 회계처리, 특정 metric
+  concept로 승격되려면 ontology alias나 surface contract가 그 좁은 의미를
+  직접 지지해야 한다.
+- 거부된 LLM planner task는 runtime branch로 보정하지 말고 validator note와
+  retrieval trace를 통해 원인을 확인한다.
+
+이 규칙은 LLM의 semantic flexibility를 유지하면서, benchmark나 특정 문항에서
+그럴듯해 보이는 concept 과매칭이 runtime execution으로 넘어가는 것을 막기
+위한 최소 게이트다.
+
+## 7. Ontology-Driven Prose Lookup Slots
 
 When a concept lookup obtains the required numeric value from prose rather than
 from a structured table row, the runtime contract is:
@@ -91,3 +112,26 @@ from a structured table row, the runtime contract is:
 This keeps domain vocabulary in ontology/config while allowing deterministic
 dependency binding and evaluator-visible grounding. Runtime code should not add
 company-specific or benchmark-specific branches for these cases.
+
+## 8. Retrieved Evidence Preservation For Calculation
+
+Reconciliation is a candidate matcher, not the final authority on whether a
+calculation can proceed. If reconciliation reports insufficient operands but the
+active calculation subtask still has required operands and retrieved documents,
+the graph must route through operand extraction once before advancing or
+abstaining.
+
+The operand extractor may promote retrieved raw chunks into calculation evidence
+when all of these are true:
+
+- the active task is not a direct numeric lookup that requires structured
+  grounding
+- the retrieved chunk carries text that matches the required operand surfaces
+  from the task/ontology contract
+- the extracted value remains attached to the source chunk metadata and evidence
+  id
+
+This rule prevents lossy evidence summaries from hiding values that retrieval
+already found. It does not permit benchmark-specific fallback answers: extracted
+rows still have to satisfy the generic required-operand matcher, unit
+normalization, period checks, and provenance checks.

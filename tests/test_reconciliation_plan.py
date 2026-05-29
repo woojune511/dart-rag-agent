@@ -1721,6 +1721,36 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertTrue(any("장기차입금 합계" in query for query in queries))
 
+    def test_retry_queries_do_not_duplicate_period_or_metric_surface(self) -> None:
+        active_subtask = {
+            "metric_label": "regional sales volume",
+            "preferred_sections": ["Management discussion"],
+            "constraints": {},
+            "required_operands": [
+                {
+                    "label": "2023년 regional sales volume",
+                    "aliases": ["regional sales volume"],
+                    "role": "current_period",
+                },
+                {
+                    "label": "2022년 regional sales volume",
+                    "aliases": ["regional sales volume"],
+                    "role": "prior_period",
+                },
+            ],
+        }
+
+        queries = _build_reconciliation_retry_queries(
+            active_subtask=active_subtask,
+            missing_operands=["2023년 regional sales volume", "2022년 regional sales volume"],
+            years=[2023],
+        )
+
+        self.assertIn("2023년 regional sales volume", queries)
+        self.assertIn("2023년 2022년 regional sales volume", queries)
+        self.assertFalse(any("2023년 2023년" in query for query in queries))
+        self.assertFalse(any("regional sales volume regional sales volume" in query for query in queries))
+
     def test_retry_queries_preserve_canonical_sections_for_statement_lookup(self) -> None:
         active_subtask = {
             "metric_label": "2023년 매출원가",

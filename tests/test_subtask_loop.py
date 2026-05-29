@@ -881,7 +881,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(len(extracted["calculation_operands"]), 2)
         self.assertEqual(
             [row.get("matched_operand_role") for row in extracted["calculation_operands"]],
-            ["numerator_1", None],
+            ["numerator_1", "denominator_1"],
         )
 
     def test_growth_rate_direct_rows_can_fill_missing_task_output_binding(self) -> None:

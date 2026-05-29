@@ -55,6 +55,18 @@ class CompositeKrwParsingTests(unittest.TestCase):
         self.assertEqual(unit, "KRW")
         self.assertEqual(value, 35_021_500_000_000.0)
 
+    def test_agent_normalization_handles_scaled_count_units(self) -> None:
+        cases = [
+            ("87.0", "만 대", 870_000.0),
+            ("78.1만대", "", 781_000.0),
+            ("1.2", "백만 개", 1_200_000.0),
+        ]
+        for raw_value, raw_unit, expected in cases:
+            with self.subTest(raw_value=raw_value, raw_unit=raw_unit):
+                value, unit = _normalise_operand_value(raw_value, raw_unit)
+                self.assertEqual(unit, "COUNT")
+                self.assertEqual(value, expected)
+
     def test_evaluator_normalization_prefers_composite_krw(self) -> None:
         value, unit = _normalise_math_operand_value("35조 215억원", "억원")
         self.assertEqual(unit, "KRW")
