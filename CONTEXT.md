@@ -75,7 +75,7 @@
       - `avg_score = 0.890`
   - `HYU_T3_072`도 post-patch targeted smoke에서 now closed다.
     - 답변은 Motional의 기말 지분율 `25.81%`, 투자장부금액 `1,294,367백만원`, 계속영업손실 `(803,742)백만원`, 총포괄손실 `(791,627)백만원`을 포함한다.
-    - dataset의 required entity에는 기초 지분율 `25.92%`가 남아 있지만, 정답은 기말 기준 `25.81%`이므로 구조화 summary 계산/렌더링 검증을 우선하는 좁은 faithfulness override를 추가했다.
+    - dataset의 required entity와 ground-truth evidence quote도 기말 기준 `25.81%`로 정렬했다. 기초 지분율 `25.92%`는 notes/selection context에만 남기고, 평가 필수 엔티티로는 요구하지 않는다.
     - latest targeted smoke:
       - `faithfulness = 1.0`
       - `completeness = 1.0`

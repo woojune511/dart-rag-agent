@@ -516,7 +516,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             section="연결재무제표 주석",
             category="business_overview",
             answer_type="summary",
-            required_entities=["Motional AD LLC", "25.92%", "1,294,367", "계속영업손실", "총포괄손실"],
+            required_entities=["Motional AD LLC", "25.81%", "1,294,367", "계속영업손실", "총포괄손실"],
         )
 
         self.assertTrue(
@@ -549,7 +549,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             section="연결재무제표 주석",
             category="business_overview",
             answer_type="summary",
-            required_entities=["Motional AD LLC", "25.92%", "1,294,367", "계속영업손실", "총포괄손실"],
+            required_entities=["Motional AD LLC", "25.81%", "1,294,367", "계속영업손실", "총포괄손실"],
         )
 
         self.assertFalse(

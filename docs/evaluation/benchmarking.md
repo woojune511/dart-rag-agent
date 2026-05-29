@@ -1524,3 +1524,10 @@ Artifact policy:
 - `benchmarks/results/hyundai_sidecar_strict_replay_2026-05-29/` and
   `benchmarks/results/hyundai_sidecar_strict_evalonly_2026-05-29/` are
   experiment artifacts and should not be committed.
+
+Dataset contract follow-up:
+
+- `HYU_T3_072` now uses the year-end Motional ownership ratio `25.81%` in
+  `required_entities` and `ground_truth_evidence_quotes`, matching the answer
+  key and ground truth. The beginning ratio `25.92%` remains in explanatory
+  notes/selection context only.

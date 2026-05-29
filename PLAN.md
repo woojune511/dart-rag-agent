@@ -55,6 +55,11 @@
     `retrieval_hit_at_k = 1.000`, `section_match_rate = 0.750`,
     `citation_coverage = 1.000`, `entity_coverage = 0.700`,
     `avg_score = 0.933`, `error_rate = 0.0%`.
+- Follow-up dataset contract fix:
+  - `HYU_T3_072` required entities and ground-truth evidence quotes now require
+    the year-end Motional ownership ratio `25.81%`, matching the answer key.
+  - Beginning ownership ratio `25.92%` remains only in explanatory notes /
+    selection context, not as an evaluator-required entity.
 
 ## 2026-05-29 Immediate Update
 
