@@ -879,9 +879,10 @@ class FinancialAgentEvidenceMixin:
                 # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
                 tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
                 paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
-                min_para = min(2, len(paras))
+                # Paragraphs are supplemental; keep a table in the visible window when available.
+                min_table = 1 if tables else 0
+                min_para = min(2, len(paras), max(effective_k - min_table, 0))
                 docs = (tables[: effective_k - min_para] + paras[:min_para])
-                docs.sort(key=lambda x: x[1], reverse=True)
             elif format_preference == "paragraph":
                 # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
                 tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]

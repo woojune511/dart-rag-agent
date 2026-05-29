@@ -519,6 +519,8 @@
     (`section_match_rate = 0.625`, `avg_score = 0.910`), so next broader work
     should treat this as retrieval/ranking stability rather than answer
     selection or evidence projection.
+  - table-preferred retrieval now keeps at least one table in small visible
+    windows and places table hits before supplemental paragraph context.
 - Validation commands used during this pass:
   - `.\.venv\Scripts\python.exe -m py_compile src\agent\financial_graph_evidence.py src\agent\financial_graph_calculation.py tests\test_operation_contracts.py`
   - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts`

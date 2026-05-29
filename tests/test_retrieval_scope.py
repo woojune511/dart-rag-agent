@@ -231,5 +231,64 @@ class RetrievalScopeTests(unittest.TestCase):
             [2023, 2022],
         )
 
+    def test_table_preferred_retrieval_keeps_table_when_window_is_small(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="general narrative context",
+                        metadata={"chunk_id": "para-high", "block_type": "paragraph"},
+                    ),
+                    0.99,
+                ),
+                (
+                    Document(
+                        page_content="another paragraph",
+                        metadata={"chunk_id": "para-second", "block_type": "paragraph"},
+                    ),
+                    0.98,
+                ),
+                (
+                    Document(
+                        page_content="metric | 2023 | 100",
+                        metadata={"chunk_id": "table-low", "block_type": "table"},
+                    ),
+                    0.50,
+                ),
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "lookup the table metric",
+                "active_subtask": {},
+                "report_scope": {},
+                "companies": [],
+                "years": [],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        selected_ids = [
+            doc.metadata.get("chunk_id")
+            for doc, _score in result["retrieved_docs"]
+        ]
+        self.assertEqual(selected_ids, ["table-low", "para-high"])
+        self.assertEqual(
+            [chunk["chunk_uid"] for chunk in result["retrieval_debug_trace"]["selected_chunks"]],
+            ["table-low", "para-high"],
+        )
+
 if __name__ == "__main__":
     unittest.main()

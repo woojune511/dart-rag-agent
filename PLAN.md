@@ -68,6 +68,10 @@
     `grounded_rendering_correctness = 1.000`, `avg_score = 0.910`.
   - The remaining metric variance is ranking/path noise in the store-fixed
     replay, not missing Motional entity or profit-loss evidence projection.
+  - Follow-up retrieval stability guard: table-preferred retrieval now keeps at
+    least one table in small visible windows and leaves table hits before
+    supplemental paragraphs, reducing path noise where paragraph scores dominate
+    a numeric/table query.
 
 ## 2026-05-29 Immediate Update
 
