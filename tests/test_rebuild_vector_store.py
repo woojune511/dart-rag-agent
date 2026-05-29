@@ -89,6 +89,33 @@ class RebuildVectorStoreTests(unittest.TestCase):
         self.assertEqual([metadata["chunk_uid"] for metadata in metadatas], ["a", "b"])
         self.assertEqual(parents, {"p1": "parent text"})
 
+    def test_load_structure_graph_documents_hydrates_table_payload_sidecar(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = _write_source_store(Path(tmp))
+            graph = json.loads((source / "document_structure_graph.json").read_text(encoding="utf-8"))
+            graph["nodes"]["a"]["metadata"]["table_payload_id"] = "table_payload:abc"
+            (source / "document_structure_graph.json").write_text(json.dumps(graph), encoding="utf-8")
+            (source / "table_payloads.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "payloads": {
+                            "table_payload:abc": {
+                                "table_row_records_json": "[rows]",
+                                "table_value_records_json": "[values]",
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            _chunks, metadatas, _parents = load_structure_graph_documents(source)
+
+        self.assertEqual(metadatas[0]["chunk_uid"], "a")
+        self.assertEqual(metadatas[0]["table_row_records_json"], "[rows]")
+        self.assertEqual(metadatas[0]["table_value_records_json"], "[values]")
+
     def test_rebuild_vector_store_populates_output_from_structure_graph(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

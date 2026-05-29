@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import os
@@ -52,6 +53,8 @@ _CHROMA_METADATA_DROP_KEYS = frozenset(
         "table_value_records_json",
     }
 )
+_TABLE_PAYLOAD_METADATA_KEYS = tuple(sorted(_CHROMA_METADATA_DROP_KEYS))
+_TABLE_PAYLOAD_ID_KEY = "table_payload_id"
 
 
 def infer_embedding_dimension(
@@ -299,6 +302,8 @@ class VectorStoreManager:
         self._parents_path = Path(self.persist_directory) / "parents.json"
         self._parents: Dict[str, str] = self._load_parents()
         self._graph_path = Path(self.persist_directory) / "document_structure_graph.json"
+        self._table_payloads_path = Path(self.persist_directory) / "table_payloads.json"
+        self._table_payloads: Dict[str, Dict[str, str]] = self._load_table_payloads()
         self._structure_graph: Dict[str, Any] = self._load_structure_graph()
 
         self.bm25 = None
@@ -450,7 +455,7 @@ class VectorStoreManager:
         metadatas: List[dict] = []
         for node in ordered_nodes:
             text = str(node.get("text") or "").strip()
-            metadata = dict(node.get("metadata") or {})
+            metadata = self._metadata_with_table_payload(dict(node.get("metadata") or {}))
             if not text:
                 continue
             docs.append(text)
@@ -466,7 +471,7 @@ class VectorStoreManager:
         if not node:
             return doc
         hydrated_metadata = dict(metadata)
-        hydrated_metadata.update(dict((node.get("metadata") or {})))
+        hydrated_metadata.update(self._metadata_with_table_payload(dict((node.get("metadata") or {}))))
         text = str(node.get("text") or doc.page_content or "")
         return Document(page_content=text, metadata=hydrated_metadata)
 
@@ -505,10 +510,80 @@ class VectorStoreManager:
                 logger.warning("Failed to load document_structure_graph.json: %s", e)
         return {"nodes": {}, "parents": {}, "sections": {}}
 
+    def _load_table_payloads(self) -> Dict[str, Dict[str, str]]:
+        path = getattr(self, "_table_payloads_path", None)
+        if path and path.exists():
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                raw_payloads = payload.get("payloads", payload) if isinstance(payload, dict) else {}
+                if isinstance(raw_payloads, dict):
+                    return {
+                        str(payload_id): {
+                            key: str(value)
+                            for key, value in dict(raw_payload or {}).items()
+                            if key in _TABLE_PAYLOAD_METADATA_KEYS and str(value or "").strip()
+                        }
+                        for payload_id, raw_payload in raw_payloads.items()
+                        if isinstance(raw_payload, dict)
+                    }
+            except Exception as e:
+                logger.warning("Failed to load table_payloads.json: %s", e)
+        return {}
+
+    def _table_payload_id(self, payload: Dict[str, str]) -> str:
+        encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return "table_payload:" + hashlib.sha256(encoded).hexdigest()
+
+    def _metadata_with_table_payload(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        hydrated = dict(metadata or {})
+        payload_id = str(hydrated.get(_TABLE_PAYLOAD_ID_KEY) or "").strip()
+        payload = dict(getattr(self, "_table_payloads", {}).get(payload_id, {}) or {}) if payload_id else {}
+        for key, value in payload.items():
+            hydrated.setdefault(key, value)
+        return hydrated
+
+    def _compact_node_for_storage(
+        self,
+        node: Dict[str, Any],
+        payloads: Dict[str, Dict[str, str]],
+    ) -> Dict[str, Any]:
+        compact_node = dict(node or {})
+        metadata = dict(compact_node.get("metadata") or {})
+        table_payload = {
+            key: str(metadata.pop(key))
+            for key in _TABLE_PAYLOAD_METADATA_KEYS
+            if str(metadata.get(key) or "").strip()
+        }
+
+        payload_id = str(metadata.get(_TABLE_PAYLOAD_ID_KEY) or "").strip()
+        if table_payload:
+            payload_id = self._table_payload_id(table_payload)
+            payloads[payload_id] = table_payload
+            metadata[_TABLE_PAYLOAD_ID_KEY] = payload_id
+        elif payload_id and payload_id in getattr(self, "_table_payloads", {}):
+            payloads[payload_id] = dict(self._table_payloads[payload_id])
+            metadata[_TABLE_PAYLOAD_ID_KEY] = payload_id
+        else:
+            metadata.pop(_TABLE_PAYLOAD_ID_KEY, None)
+
+        compact_node["metadata"] = metadata
+        return compact_node
+
     def _save_structure_graph(self) -> None:
         try:
+            payloads: Dict[str, Dict[str, str]] = {}
+            graph = dict(self._structure_graph or {})
+            graph["nodes"] = {
+                str(chunk_uid): self._compact_node_for_storage(dict(node or {}), payloads)
+                for chunk_uid, node in dict(graph.get("nodes", {}) or {}).items()
+            }
             self._graph_path.write_text(
-                json.dumps(self._structure_graph, ensure_ascii=False),
+                json.dumps(graph, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            self._table_payloads = payloads
+            self._table_payloads_path.write_text(
+                json.dumps({"version": 1, "payloads": payloads}, ensure_ascii=False),
                 encoding="utf-8",
             )
         except Exception as e:
@@ -770,7 +845,12 @@ class VectorStoreManager:
         }
 
     def get_structure_node(self, chunk_uid: str) -> Optional[Dict[str, Any]]:
-        return (self._structure_graph.get("nodes", {}) or {}).get(chunk_uid)
+        node = (self._structure_graph.get("nodes", {}) or {}).get(chunk_uid)
+        if not node:
+            return None
+        hydrated = dict(node)
+        hydrated["metadata"] = self._metadata_with_table_payload(dict((node.get("metadata") or {})))
+        return hydrated
 
     def get_section_lead_doc(self, parent_id: str, exclude_chunk_uid: Optional[str] = None) -> Optional[Document]:
         if not parent_id:

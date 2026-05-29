@@ -30,6 +30,7 @@ from storage.vector_store import (  # noqa: E402
 )
 
 logger = logging.getLogger(__name__)
+TABLE_PAYLOAD_ID_KEY = "table_payload_id"
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -51,8 +52,24 @@ def _node_sort_key(node: Dict[str, Any]) -> Tuple[str, int, int, str]:
     )
 
 
+def _load_table_payloads(source_store: Path) -> Dict[str, Dict[str, str]]:
+    path = source_store / "table_payloads.json"
+    if not path.exists():
+        return {}
+    payload = _load_json(path)
+    raw_payloads = payload.get("payloads", payload)
+    if not isinstance(raw_payloads, dict):
+        return {}
+    return {
+        str(payload_id): {str(key): str(value) for key, value in dict(raw_payload or {}).items()}
+        for payload_id, raw_payload in raw_payloads.items()
+        if isinstance(raw_payload, dict)
+    }
+
+
 def load_structure_graph_documents(source_store: Path) -> Tuple[List[str], List[dict], Dict[str, str]]:
     graph = _load_json(source_store / "document_structure_graph.json")
+    table_payloads = _load_table_payloads(source_store)
     nodes = dict(graph.get("nodes", {}) or {})
     chunks: List[str] = []
     metadatas: List[dict] = []
@@ -63,6 +80,10 @@ def load_structure_graph_documents(source_store: Path) -> Tuple[List[str], List[
             continue
         text = str(node.get("text") or "").strip()
         metadata = dict(node.get("metadata") or {})
+        payload_id = str(metadata.get(TABLE_PAYLOAD_ID_KEY) or "").strip()
+        if payload_id and payload_id in table_payloads:
+            for key, value in table_payloads[payload_id].items():
+                metadata.setdefault(key, value)
         chunk_uid = str(node.get("chunk_uid") or metadata.get("chunk_uid") or "").strip()
         if not text:
             continue
@@ -104,7 +125,7 @@ def backup_in_place_source_graph(source_store: Path) -> Path:
     if backup_store.exists():
         shutil.rmtree(backup_store)
     backup_store.mkdir(parents=True, exist_ok=True)
-    for filename in ("document_structure_graph.json", "parents.json"):
+    for filename in ("document_structure_graph.json", "parents.json", "table_payloads.json"):
         source_file = source_store / filename
         if source_file.exists():
             shutil.copy2(source_file, backup_store / filename)

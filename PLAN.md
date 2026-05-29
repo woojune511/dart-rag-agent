@@ -34,14 +34,18 @@
   - Verification probe: Hyundai `1764` chunks reopened successfully from a
     separate Python process with strict vector health check.
 - Immediate next implementation target:
-  1. Reduce `document_structure_graph.json` bloat from repeated large table
-     payload fields; the successful Hyundai probe still produced a `1.8GB`
-     structure graph.
-  2. Rerun strict Hyundai store-fixed eval-only against a rebuilt store created
+  1. Rerun strict Hyundai store-fixed eval-only against a rebuilt store created
      with the new Chroma settings.
-  3. Continue HYU quality work as ranking/evaluator-grounding work, not as a
+  2. Continue HYU quality work as ranking/evaluator-grounding work, not as a
      retrieval-miss fix; both Hyundai questions already have
      `context_recall = 1.000` and `retrieval_hit_at_k = 1.000`.
+- Structure graph bloat mitigation is implemented.
+  - Large structured table payload fields are stored in `table_payloads.json`
+    sidecar records keyed by content hash.
+  - `document_structure_graph.json` keeps only `table_payload_id` references.
+  - Hyundai structure-only probe: graph `~7.9MB`, sidecar `~85.4MB`,
+    `1,764` nodes, `1,328` deduplicated payloads, no large table JSON fields
+    left in graph metadata.
 
 ## 2026-05-29 Immediate Update
 

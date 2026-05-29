@@ -1352,8 +1352,8 @@ python -m src.ops.rebuild_vector_store \
 - To preserve the existing benchmark bundle path after inspecting the source
   graph, use `--in-place --force`. The command rebuilds at the final path
   because persisted Chroma/HNSW stores may not survive directory moves. It keeps
-  a sibling `*.rebuild-source-backup` copy of `document_structure_graph.json`
-  and `parents.json` while the rebuild is in progress.
+  a sibling `*.rebuild-source-backup` copy of `document_structure_graph.json`,
+  `table_payloads.json`, and `parents.json` while the rebuild is in progress.
 - Vector add calls retry transient embedding failures such as `503 UNAVAILABLE`
   by default. Tune with `DART_VECTOR_ADD_MAX_RETRIES` and
   `DART_VECTOR_ADD_RETRY_SLEEP_SEC` if service availability is unstable.
@@ -1443,9 +1443,23 @@ Verification:
 - Unit coverage:
   `python -m unittest tests.test_vector_store_fallback`
 
-Residual risk:
+Follow-up storage fix:
 
-- `document_structure_graph.json` is still too large for Hyundai full replay
-  (`~1.8GB`) because large structured table payloads are repeated across
-  sub-chunks. The next storage task should deduplicate table payloads into a
-  sidecar artifact keyed by `table_source_id` or `chunk_uid`.
+- Large structured table payload fields are now written to a sidecar artifact:
+  `table_payloads.json`.
+- `document_structure_graph.json` stores only `table_payload_id` references for:
+  `table_object_json`, `table_row_records_json`, and
+  `table_value_records_json`.
+- Runtime access remains compatible:
+  - vector search results hydrate metadata by `chunk_uid`
+  - BM25 initialization hydrates metadata from the structure graph sidecar
+  - `get_structure_node()` returns hydrated node metadata
+  - `rebuild_vector_store` reads `table_payloads.json` and restores payload
+    fields before reindexing
+- Hyundai structure-only verification:
+  - parsed chunks: `1,764`
+  - graph nodes: `1,764`
+  - graph file size: `~7.9MB`
+  - sidecar file size: `~85.4MB`
+  - deduplicated payloads: `1,328`
+  - graph metadata large table JSON fields: `0`

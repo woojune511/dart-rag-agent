@@ -1,5 +1,8 @@
 import unittest
+import json
 from collections import OrderedDict
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from langchain_core.documents import Document
 
@@ -280,6 +283,64 @@ class VectorStoreFallbackTests(unittest.TestCase):
 
         self.assertEqual(results[0][0].page_content, "full table text")
         self.assertEqual(results[0][0].metadata["table_row_records_json"], "[large rows]")
+
+    def test_structure_graph_saves_large_table_payloads_in_deduplicated_sidecar(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            store = Path(tmpdir)
+            manager = object.__new__(VectorStoreManager)
+            manager._graph_path = store / "document_structure_graph.json"
+            manager._table_payloads_path = store / "table_payloads.json"
+            manager._table_payloads = {}
+            manager._structure_graph = {
+                "nodes": {
+                    "chunk-1": {
+                        "chunk_uid": "chunk-1",
+                        "text": "table part 1",
+                        "metadata": {
+                            "chunk_uid": "chunk-1",
+                            "company": "ACME",
+                            "table_source_id": "table-a",
+                            "table_row_records_json": "[large rows]",
+                            "table_value_records_json": "[large values]",
+                            "table_object_json": "{large object}",
+                        },
+                    },
+                    "chunk-2": {
+                        "chunk_uid": "chunk-2",
+                        "text": "table part 2",
+                        "metadata": {
+                            "chunk_uid": "chunk-2",
+                            "company": "ACME",
+                            "table_source_id": "table-a",
+                            "table_row_records_json": "[large rows]",
+                            "table_value_records_json": "[large values]",
+                            "table_object_json": "{large object}",
+                        },
+                    },
+                },
+                "parents": {},
+                "sections": {},
+            }
+
+            manager._save_structure_graph()
+
+            graph = json.loads(manager._graph_path.read_text(encoding="utf-8"))
+            sidecar = json.loads(manager._table_payloads_path.read_text(encoding="utf-8"))
+            metadata_1 = graph["nodes"]["chunk-1"]["metadata"]
+            metadata_2 = graph["nodes"]["chunk-2"]["metadata"]
+
+            self.assertNotIn("table_row_records_json", metadata_1)
+            self.assertEqual(metadata_1["table_payload_id"], metadata_2["table_payload_id"])
+            self.assertEqual(len(sidecar["payloads"]), 1)
+
+            reloaded = object.__new__(VectorStoreManager)
+            reloaded._graph_path = manager._graph_path
+            reloaded._table_payloads_path = manager._table_payloads_path
+            reloaded._table_payloads = reloaded._load_table_payloads()
+            reloaded._structure_graph = reloaded._load_structure_graph()
+
+            hydrated = reloaded.get_structure_node("chunk-1")
+            self.assertEqual(hydrated["metadata"]["table_row_records_json"], "[large rows]")
 
     def test_search_cache_reuses_previous_results_for_same_query(self) -> None:
         vector_doc = Document(
