@@ -835,6 +835,62 @@ def _operand_to_numeric_candidates(operand: Dict[str, Any]) -> List[Dict[str, An
     ]
 
 
+def _format_structured_table_values_for_numeric_judge(
+    metadata: Dict[str, Any],
+    *,
+    max_cells: int = 24,
+) -> str:
+    rows: List[str] = []
+    for key in ("table_row_records_json", "table_value_records_json"):
+        payload = str((metadata or {}).get(key) or "").strip()
+        if not payload:
+            continue
+        try:
+            parsed = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(parsed, list):
+            continue
+
+        for record in parsed:
+            if not isinstance(record, dict):
+                continue
+            label_parts = [
+                str(record.get("row_label") or "").strip(),
+                " > ".join(
+                    str(item).strip()
+                    for item in (record.get("row_headers") or [])
+                    if str(item).strip()
+                ),
+            ]
+            label = " / ".join(dict.fromkeys(part for part in label_parts if part))
+
+            for cell in list(record.get("cells") or []):
+                if not isinstance(cell, dict):
+                    continue
+                value_text = str(cell.get("value_text") or "").strip()
+                if not value_text or not re.search(r"\d", value_text):
+                    continue
+                unit_hint = str(cell.get("unit_hint") or "").strip()
+                column_text = " ".join(
+                    str(item).strip()
+                    for item in (cell.get("column_headers") or [])
+                    if str(item).strip()
+                )
+                value_with_unit = (
+                    f"{value_text}{unit_hint}"
+                    if unit_hint and unit_hint not in value_text
+                    else value_text
+                )
+                rows.append(
+                    " ".join(part for part in [label, column_text, value_with_unit] if part)
+                )
+                if len(rows) >= max_cells:
+                    return " ; ".join(rows)
+
+    return " ; ".join(rows)
+
+
 def _build_operand_grounding_corpus(
     runtime_evidence: List[Dict[str, Any]],
     contexts: List[str],
@@ -871,6 +927,20 @@ def _build_operand_grounding_corpus(
             ),
             "runtime_evidence",
         )
+
+        table_values = _format_structured_table_values_for_numeric_judge(dict(row.get("metadata") or {}))
+        if table_values:
+            _push(
+                " ".join(
+                    part
+                    for part in [
+                        str(row.get("source_anchor") or "").strip(),
+                        table_values,
+                    ]
+                    if part
+                ),
+                "runtime_evidence_structured_table",
+            )
 
     for context in contexts:
         _push(context, "retrieved_context")
@@ -1045,6 +1115,7 @@ def _format_runtime_evidence_for_numeric_judge(runtime_evidence: List[Dict[str, 
             or str(row.get("raw_row_text") or "").strip()
             or str(row.get("claim") or "").strip()
         )
+        structured_values = _format_structured_table_values_for_numeric_judge(dict(metadata))
         rows.append(
             " | ".join(
                 part
@@ -1052,6 +1123,7 @@ def _format_runtime_evidence_for_numeric_judge(runtime_evidence: List[Dict[str, 
                     row.get("source_anchor") or "?",
                     f"section={section}",
                     f"quote={surface}",
+                    f"structured_values={structured_values}" if structured_values else "",
                 ]
                 if part
             )

@@ -2700,6 +2700,23 @@ def _mean_or_none(values: List[float | None]) -> float | None:
     return float(mean(filtered)) if filtered else None
 
 
+def _metric_passes_full_eval(value: Any, *, none_is_not_applicable: bool = False) -> bool:
+    if value is None:
+        return none_is_not_applicable
+    try:
+        return float(value) >= 1.0
+    except (TypeError, ValueError):
+        return False
+
+
+def _full_eval_row_failed(row: Dict[str, Any]) -> bool:
+    return not (
+        _metric_passes_full_eval(row.get("full_completeness"))
+        and _metric_passes_full_eval(row.get("full_faithfulness"))
+        and _metric_passes_full_eval(row.get("full_numeric_pass_rate"), none_is_not_applicable=True)
+    )
+
+
 def _critical_category_miss_count(result: Dict[str, Any]) -> int:
     misses = 0
     for row in result.get("screening_eval", {}).get("per_question", []):
@@ -2795,11 +2812,7 @@ def _build_winner_ranking(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         full_numeric_pass_rate = row.get("full_numeric_pass_rate")
         full_completeness = row.get("full_completeness")
         full_faithfulness = row.get("full_faithfulness")
-        full_eval_failed = any(
-            value is None or float(value) < 1.0
-            for value in (full_numeric_pass_rate, full_completeness, full_faithfulness)
-        )
-        if full_eval_failed:
+        if _full_eval_row_failed(row):
             aggregate["full_eval_fail_count"] += 1
             aggregate["full_eval_failures"].append(
                 {
@@ -2911,14 +2924,7 @@ def _render_cross_company_summary_markdown(rows: List[Dict[str, Any]], ranking: 
     ]
 
     for row in rows:
-        full_eval_failed = any(
-            value is None or float(value) < 1.0
-            for value in (
-                row.get("full_numeric_pass_rate"),
-                row.get("full_completeness"),
-                row.get("full_faithfulness"),
-            )
-        )
+        full_eval_failed = _full_eval_row_failed(row)
         lines.append(
             "| {company} | {experiment_id} | {passed} | {full_eval_fail} | {critical} | {hit} | {section} | {citation} | {contam} | {api_calls} | {cost} | {ingest} | {api_delta} | {time_delta} | {cost_delta} | {numeric_pass} | {completeness} | {faith} | {recall} |".format(
                 company=row["company"],

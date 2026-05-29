@@ -1211,6 +1211,60 @@ Artifact policy:
 - Raw result directories from these checks remain local experiment artifacts and
   are excluded from source control.
 
+## 2026-05-29 Policy-Driven Full Gate Closure
+
+Purpose:
+
+- Promote the post-patch targeted closures for `NAV_T2_006`, `HYU_T2_010`,
+  `HYU_T3_072`, `LGE_T1_051`, and `SAM_T2_078` from focused smoke status to the
+  official policy-driven runtime profile.
+- Verify that policy-driven retrieval, mixed narrative answers, and adjusted
+  operating-income calculation still pass together under the structural default.
+
+Command:
+
+```bash
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --output-dir benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29
+```
+
+Result:
+
+- Run status: `completed`.
+- Candidate: `structural_selective_v2_prefix_2500_320`.
+- Company-level `pass_count = 4`.
+- Corrected winner-ranking `full_eval_fail_count = 0`.
+- Average full-eval metrics:
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `numeric_pass_rate = 1.0`
+  - `context_recall = 1.0`
+
+Implementation notes:
+
+- `LGE_T1_051` needed two runtime hardening changes beyond the earlier
+  targeted smoke:
+  - operand precision refinement can recover AMPC from contextual note rows
+    when the next row explains that the prior numeric row is AMPC.
+  - difference answers prefer slot-based deterministic rendering before LLM
+    answer synthesis, so source-grounded units survive to the final answer.
+- Benchmark summary aggregation now treats `numeric_pass_rate = None` as
+  not-applicable for non-numeric rows. Faithfulness and completeness remain
+  required; missing or sub-1.0 values still count as full-eval failures.
+
+Validation:
+
+- `python -m unittest tests.test_evaluator_runtime_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_agent_run_projection tests.test_benchmark_runner_runtime_projection`
+  passed: `191` tests.
+- Existing rerun JSON re-summarized through the patched ranking function gives
+  `full_eval_fail_count = 0`.
+
+Artifact policy:
+
+- `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/` is a local
+  benchmark artifact and should not be committed.
+
 ## 2026-05-29 Hyundai Policy Gate Replay
 
 Purpose:

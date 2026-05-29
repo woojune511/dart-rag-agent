@@ -35,6 +35,7 @@ from src.agent.financial_graph_helpers import (
     _coerce_lookup_magnitude_value,
     _desired_consolidation_scope,
     _desired_statement_types,
+    _extract_numeric_value_after_operand_text,
     _extract_generic_operand_labels,
     _label_implies_percent_metric,
     _normalise_operand_value,
@@ -1122,6 +1123,194 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(refined["raw_unit"], "백만원")
         self.assertEqual(refined["normalized_value"], 676874000000.0)
         self.assertEqual(refined["precision_source"], "structured_table_cell")
+
+    def test_operand_precision_uses_surface_anchor_when_llm_value_is_derived_result(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "첨단제조 생산세액공제 (IRA Tax Credit)",
+            "matched_operand_label": "첨단제조 생산세액공제",
+            "raw_value": "1,486,334",
+            "raw_unit": "백만원",
+            "normalized_value": 1486334000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
+            "quote_span": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
+            "metadata": {
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "24:1",
+                            "row_label": "매출액",
+                            "cells": [
+                                {
+                                    "cell_id": "24:1:2",
+                                    "column_headers": ["공시금액"],
+                                    "value_text": "33,745,470",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                        {
+                            "row_id": "24:3",
+                            "row_label": "기타영업손익",
+                            "cells": [
+                                {
+                                    "cell_id": "24:3:2",
+                                    "column_headers": ["공시금액"],
+                                    "value_text": "676,874",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                    ],
+                    ensure_ascii=False,
+                )
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "676,874")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 676874000000.0)
+        self.assertEqual(refined["precision_source"], "surface_anchored_structured_table_cell")
+
+    def test_operand_precision_uses_contextual_note_row_when_llm_claim_is_wrong(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2023년 첨단제조 생산세액공제 (AMPC)",
+            "raw_value": "1,486,334",
+            "raw_unit": "백만원",
+            "normalized_value": 1486334000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "1,486,334 (백만원)",
+            "quote_span": "1,486,334",
+            "metadata": {
+                "table_row_labels_text": "\n".join(
+                    [
+                        "공시금액",
+                        "매출액",
+                        "매출원가",
+                        "매출총이익",
+                        "기타영업손익",
+                        "2023년 1월 1일부터 시행되는 미국 인플레이션감축법 첨단제조 생산세액공제 제도에 따른 수익금액입니다.",
+                        "판매비와 관리비",
+                    ]
+                ),
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "24:2",
+                            "row_label": "매출총이익",
+                            "cells": [
+                                {
+                                    "cell_id": "24:2:2",
+                                    "column_headers": ["공시금액"],
+                                    "value_text": "4,943,033",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                        {
+                            "row_id": "24:3",
+                            "row_label": "기타영업손익",
+                            "cells": [
+                                {
+                                    "cell_id": "24:3:2",
+                                    "column_headers": ["공시금액"],
+                                    "value_text": "676,874",
+                                    "unit_hint": "백만원",
+                                }
+                            ],
+                        },
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "676,874")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 676874000000.0)
+        self.assertEqual(refined["precision_source"], "contextual_note_structured_table_cell")
+
+    def test_operand_value_extraction_prefers_nearest_suffix_value_with_parenthetical_unit(self) -> None:
+        operand = {
+            "label": "첨단제조 생산세액공제",
+            "aliases": ["IRA Tax Credit"],
+        }
+
+        value = _extract_numeric_value_after_operand_text(
+            "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
+            operand,
+        )
+
+        self.assertEqual(value, "6,769억원")
+
+    def test_difference_renderer_prefers_slot_contract_over_llm_rendering(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        calculation_result = {
+            "status": "ok",
+            "result_value": 1486360000000.0,
+            "result_unit": "백만원",
+            "rendered_value": "1,486,360백만원",
+            "answer_slots": {
+                "operation_family": "difference",
+                "metric_label": "실질 영업이익",
+                "components_by_role": {
+                    "minuend": [
+                        {
+                            "status": "ok",
+                            "role": "minuend",
+                            "label": "영업이익",
+                            "period": "2023",
+                            "rendered_value": "2,163,234백만원",
+                            "normalized_value": 2163234000000.0,
+                        }
+                    ]
+                },
+                "prior_value": {
+                    "status": "ok",
+                    "role": "prior_value",
+                    "label": "첨단제조 생산세액공제 (IRA Tax Credit)",
+                    "period": "2023년",
+                    "rendered_value": "6,769억원",
+                    "normalized_value": 676874000000.0,
+                },
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": "실질 영업이익",
+                    "period": "2023",
+                    "rendered_value": "1,486,360백만원",
+                    "normalized_value": 1486360000000.0,
+                },
+            },
+        }
+
+        rendered = agent._render_calculation_answer(
+            {
+                "query": "2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
+                "report_scope": {"company": "LG에너지솔루션", "year": 2023},
+                "resolved_calculation_trace": {
+                    "calculation_plan": {"operation": "subtract"},
+                    "calculation_operands": [],
+                    "calculation_result": calculation_result,
+                },
+                "calculation_plan": {},
+                "calculation_result": {},
+                "calculation_operands": [],
+            }
+        )
+
+        self.assertIn("1,486,360백만원", rendered["answer"])
+        self.assertNotIn("1,486,334백만원", rendered["answer"])
 
     def test_lookup_producer_task_preserves_binding_concept_for_generic_consumer_operand(self) -> None:
         original_singleton = ontology_module._ONTOLOGY_SINGLETON

@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -10,6 +11,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.ops.evaluator import (
+    _build_operand_grounding_corpus,
     _build_runtime_evidence_contexts,
     _build_example_report_scope,
     _compute_runtime_evidence_retrieval_hit_at_k,
@@ -19,6 +21,7 @@ from src.ops.evaluator import (
     _numeric_values_equivalent,
     _operand_matches,
     EvalExample,
+    _format_runtime_evidence_for_numeric_judge,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
     _supplement_resolved_operands_from_runtime_evidence,
@@ -72,6 +75,47 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
         contexts = _build_runtime_evidence_contexts(runtime_evidence)
         self.assertTrue(any("Poshmark" in context for context in contexts))
+
+    def test_numeric_judge_evidence_includes_structured_table_cell_values(self) -> None:
+        metadata = {
+            "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "기타영업손익",
+                        "row_headers": ["기타영업손익"],
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "676,874",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        runtime_evidence = [
+            {
+                "source_anchor": "LG에너지솔루션 | 2023 | 연결재무제표 주석",
+                "quote_span": "IRA Tax Credit: 6,769 (억원)",
+                "metadata": metadata,
+            }
+        ]
+
+        judge_evidence = _format_runtime_evidence_for_numeric_judge(runtime_evidence)
+        corpus = _build_operand_grounding_corpus(runtime_evidence, [])
+
+        self.assertIn("structured_values=", judge_evidence)
+        self.assertIn("676,874백만원", judge_evidence)
+        self.assertTrue(
+            any(
+                row.get("source") == "runtime_evidence_structured_table"
+                and "676,874백만원" in str(row.get("text"))
+                for row in corpus
+            )
+        )
 
     def test_should_override_numeric_grounding_for_direct_composed_ratio(self) -> None:
         numeric_eval = {

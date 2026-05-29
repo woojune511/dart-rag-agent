@@ -60,6 +60,9 @@
       - `faithfulness = 1.0`
       - `completeness = 1.0`
       - `calculation_correctness = 1.0`
+    - 2026-05-29 policy-driven full gate rerun에서도 now closed다.
+      - contextual note row에서 AMPC exact cell `676,874백만원`을 회수하고, 실질 영업이익은 deterministic slot-based difference answer로 `1,486,360백만원` 렌더링한다.
+      - full gate aggregate 기준 `numeric_pass_rate = 1.0`, `faithfulness = 1.0`, `completeness = 1.0`.
   - `HYU_T2_010`는 post-patch targeted smoke에서 now closed다.
     - 답변은 `87.0만 대`, `78.1만 대`, `11.5%`, IRA/핵심원자재법/보호무역주의 대응 필요성을 모두 포함한다.
     - raw faithfulness judge는 `0.5`였지만, completeness / retrieval / citation / structured calculation-rendering이 모두 통과한 mixed-query evidence coverage 조건에서 `faithfulness = 1.0`으로 보정된다.
@@ -207,19 +210,19 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | policy-driven full gate rerun | `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`, `SAM_T2_078` targeted closure를 공식 profile run으로 재확인 |
-| 2 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
-| 3 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
-| 4 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
-| 5 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
+| 1 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
+| 2 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
+| 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
+| 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
+| 5 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
 
 ## 현재 우선순위 요약
 
-1. policy-driven full gate rerun
-2. `curated_single_doc_core` / broader gate maintenance
-3. concept-only planner runtime promotion check
-4. contextual arbitration / benchmark maintenance 정리
-5. internal compatibility mirror cleanup scope 결정
+1. `curated_single_doc_core` / broader gate maintenance
+2. concept-only planner runtime promotion check
+3. contextual arbitration / benchmark maintenance 정리
+4. internal compatibility mirror cleanup scope 결정
+5. table payload sidecar / store-size cleanup
 
 ## 현재 해석
 
@@ -242,7 +245,10 @@
 - immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding/evaluator trace compatibility, `NAV_T3_007` numeric gate, `SAM_T3_028` source-level numeric blocker는 now closed다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
 - focused blocker reclassification에서 `HYU_T2_010`과 `HYU_T3_072`는 targeted smoke 기준으로 닫혔다.
-- policy-driven track의 남은 작업은 단일 문항 smoke가 아니라 공식 profile rerun으로 전체 gate closure를 재확인하는 것이다.
+- policy-driven track은 2026-05-29 공식 profile rerun과 summary 재계산 기준으로 닫혔다.
+  - `policy_driven_runtime_gate_rerun_2026-05-29`: `pass_count = 4`, `full_eval_fail_count = 0`.
+  - 비수치형 문항의 `numeric_pass_rate = None`은 full-eval 실패가 아니라 not-applicable로 집계한다.
+  - raw benchmark result bundle은 local experiment artifact이며 commit 대상에는 포함하지 않는다.
 
 ## 2026-05-28 Update
 

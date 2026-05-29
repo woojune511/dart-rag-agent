@@ -192,16 +192,24 @@ selection, policy-driven deterministic composers, or planner fallback tracing.
 The purpose is to prove that vocabulary has moved into policy/config without
 losing behavior on the previously hard-coded retrieval/composition cases.
 
-Current focused smoke status:
+Current gate status:
 
-- Official 2026-05-29 policy-driven run output is a historical failure
-  snapshot for some questions, not the current post-patch verdict.
+- The 2026-05-29 policy-driven full gate rerun is closed for the structural
+  candidate.
+  - output bundle: `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/`
+  - `pass_count = 4`
+  - corrected `full_eval_fail_count = 0`
+  - average full-eval metrics: `faithfulness = 1.0`, `completeness = 1.0`,
+    `numeric_pass_rate = 1.0`, `context_recall = 1.0`
+- Summary semantics: `numeric_pass_rate = None` on non-numeric or narrative
+  questions is treated as not-applicable, not as a full-eval failure. Missing
+  faithfulness or completeness still fails the row.
 - `SAM_T2_078` was already passing in the official 2026-05-29 full-evaluation
   output.
-- `LGE_T1_051` is closed in the latest targeted smoke after preserving
-  prose AMPC evidence such as `6,769억원의 IRA Tax Credit` and carrying sibling
-  operand provenance into dependency rows:
-  - latest answer: `영업이익 2,163,234백만원`, `AMPC 6,769억원`, `실질 영업이익 1,486,334백만원`
+- `LGE_T1_051` is closed in the latest full gate after preserving prose AMPC
+  evidence and refining the operand from contextual note structured table
+  cells:
+  - latest full-gate answer: `영업이익 2,163,234백만원`, `AMPC 676,874백만원`, `실질 영업이익 1,486,360백만원`
   - `numeric_equivalence = 1.0`
   - `numeric_grounding = 1.0`
   - `numeric_retrieval_support = 1.0`
@@ -210,15 +218,11 @@ Current focused smoke status:
   - `completeness = 1.0`
   - `grounded_rendering_correctness = 1.0`
   - `calculation_correctness = 1.0`
-  - latest focused verification:
-    `benchmarks/results/tmp_lge_t1_051_runtime_check_precise_2026-05-29/`
-  - artifact status: temporary local output summarized here and cleaned; use
-    the reusable policy-driven profile below for reruns.
   - runtime hardening:
     exact parenthetical KRW values such as `6,769억원(676,874백만원)` are
-    preferred when present, rounded LLM operands can be refined from structured
-    table cells, and adjusted/exclusion difference results render in the source
-    table unit when that is the stable grounding surface.
+    preferred when present, rounded or derived LLM operands can be refined from
+    structured table cells or contextual note rows, and adjusted/exclusion
+    difference results render from slot contracts before LLM synthesis.
 - `NAV_T2_006` is closed in the latest targeted smoke after suppressing stale
   growth+narrative planner feedback only when the final answer already covers
   the growth-rate value and narrative impact:
@@ -250,8 +254,8 @@ Current focused smoke status:
   - `avg_score = 0.912`
 - These smoke checks use the official structural collection name
   `dart_reports_v2_structural-selective-v2-prefix-2500-320`.
-- This does not replace the full five-question policy-driven gate. Run the
-  profile below before claiming official policy-gate closure.
+- The raw rerun directory is a local benchmark artifact and should not be
+  committed. Use the reusable profile below for future reruns.
 
 Recommended invocation:
 

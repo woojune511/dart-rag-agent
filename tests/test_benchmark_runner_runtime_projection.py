@@ -136,6 +136,41 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertIn("full-evaluation fail count", markdown)
         self.assertIn("Full-Eval Failure Notes for `plain_prefix_8000_400`", markdown)
 
+    def test_full_eval_failure_count_treats_missing_numeric_pass_rate_as_not_applicable(self) -> None:
+        rows = [
+            {
+                "company_id": "naver_2023_runtime_contract_gate",
+                "company": "NAVER 2023",
+                "experiment_id": "policy_driven_runtime_contract",
+                "screen_pass": True,
+                "critical_category_miss_count": 0,
+                "retrieval_hit_at_k": 1.0,
+                "section_match_rate": 1.0,
+                "citation_coverage": 1.0,
+                "contamination_rate": 0.0,
+                "api_calls": 0,
+                "estimated_ingest_cost_usd": 0.0,
+                "ingest_elapsed_sec": 1.0,
+                "api_call_reduction_ratio": None,
+                "ingest_time_reduction_ratio": None,
+                "estimated_cost_reduction_ratio": None,
+                "full_faithfulness": 1.0,
+                "full_completeness": 1.0,
+                "full_numeric_pass_rate": None,
+                "full_context_recall": 1.0,
+                "screen_failure_reasons": [],
+                "screen_failure_examples": [],
+            }
+        ]
+
+        ranking = _build_winner_ranking(rows)
+        markdown = _render_cross_company_summary_markdown(rows, ranking)
+
+        self.assertEqual(ranking[0]["full_eval_fail_count"], 0)
+        self.assertEqual(ranking[0]["full_eval_failures"], [])
+        self.assertIn("| NAVER 2023 | policy_driven_runtime_contract | yes | 0 |", markdown)
+        self.assertNotIn("Full-Eval Failure Notes", markdown)
+
     def test_flatten_review_rows_prefers_resolved_runtime_trace(self) -> None:
         results = [
             {

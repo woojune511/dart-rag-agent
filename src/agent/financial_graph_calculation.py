@@ -1093,8 +1093,6 @@ class FinancialAgentCalculationMixin:
         raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
         if normalized_value is None or normalized_unit != "KRW":
             return row
-        if raw_unit not in {"억원", "조원", "원"} and not any(unit in raw_value for unit in ("억", "조")):
-            return row
 
         metadata = dict((evidence_item or {}).get("metadata") or {})
         records: List[Dict[str, Any]] = []
@@ -1109,27 +1107,119 @@ class FinancialAgentCalculationMixin:
             if isinstance(parsed, list):
                 records.extend(dict(item) for item in parsed if isinstance(item, dict))
 
+        if not records:
+            return row
+
+        target_values: List[float] = []
+        if raw_unit in {"억원", "조원", "원"} or any(unit in raw_value for unit in ("억", "조")):
+            target_values.append(float(normalized_value))
+
+        operand_aliases = [
+            str(row.get("label") or "").strip(),
+            str(row.get("matched_operand_label") or "").strip(),
+        ]
+        for label_surface in list(operand_aliases):
+            for match in re.finditer(r"\(([^)]{2,80})\)", label_surface):
+                operand_aliases.append(_normalise_spaces(match.group(1)))
+            without_parenthetical = _normalise_spaces(re.sub(r"\([^)]*\)", " ", label_surface))
+            if without_parenthetical:
+                operand_aliases.append(without_parenthetical)
+                stripped_period = _normalise_spaces(
+                    re.sub(r"^(?:(?:20\d{2}\s*년?)|(?:제\s*\d+\s*기))(?:\s+|$)", " ", without_parenthetical)
+                )
+                if stripped_period:
+                    operand_aliases.append(stripped_period)
+        operand_spec = {
+            "label": str(row.get("matched_operand_label") or row.get("label") or "").strip(),
+            "aliases": [item for item in dict.fromkeys(operand_aliases) if item],
+        }
+
+        def _cell_from_contextual_note_row() -> Optional[Dict[str, Any]]:
+            row_labels = [
+                _normalise_spaces(line)
+                for line in str(metadata.get("table_row_labels_text") or "").splitlines()
+                if _normalise_spaces(line)
+            ]
+            if not row_labels:
+                return None
+            records_by_label: Dict[str, Dict[str, Any]] = {}
+            for record in records:
+                label = _normalise_spaces(str(record.get("row_label") or ""))
+                if not label:
+                    continue
+                existing = records_by_label.get(label)
+                if existing is None or (not existing.get("cells") and record.get("cells")):
+                    records_by_label[label] = record
+            for index, label_text in enumerate(row_labels):
+                if not _operand_text_match(label_text, operand_spec):
+                    continue
+                for previous_label in reversed(row_labels[:index]):
+                    record = records_by_label.get(previous_label)
+                    if not record:
+                        continue
+                    for cell in list(record.get("cells") or []):
+                        cell_data = dict(cell or {})
+                        value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
+                        unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
+                        if unit_hint not in {"천원", "백만원"} or not re.search(r"\d", value_text):
+                            continue
+                        return cell_data
+                break
+            return None
+
+        surface = _normalise_spaces(
+            " ".join(
+                part
+                for part in [
+                    str((evidence_item or {}).get("claim") or ""),
+                    str((evidence_item or {}).get("quote_span") or ""),
+                    str((evidence_item or {}).get("raw_row_text") or ""),
+                    str((evidence_item or {}).get("source_context") or ""),
+                ]
+                if part
+            )
+        )
+        surface_value = _extract_numeric_value_after_operand_text(surface, operand_spec)
+        if surface_value:
+            surface_normalized, surface_unit = _normalise_operand_value(surface_value, "")
+            if surface_normalized is not None and surface_unit == "KRW":
+                target_values.append(float(surface_normalized))
+
         best_cell: Optional[Dict[str, Any]] = None
         best_normalized: Optional[float] = None
         best_diff: Optional[float] = None
-        for record in records:
-            for cell in list(record.get("cells") or []):
-                cell_data = dict(cell or {})
-                value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
-                unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
-                if unit_hint not in {"천원", "백만원"} or not re.search(r"\d", value_text):
-                    continue
-                cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                if cell_value is None or cell_unit != "KRW":
-                    continue
-                diff = abs(float(cell_value) - float(normalized_value))
-                tolerance = max(abs(float(normalized_value)) * 0.005, 100_000_000.0)
-                if diff > tolerance:
-                    continue
-                if best_diff is None or diff < best_diff:
-                    best_cell = cell_data
-                    best_normalized = float(cell_value)
-                    best_diff = diff
+        best_target: Optional[float] = None
+        if target_values:
+            for record in records:
+                for cell in list(record.get("cells") or []):
+                    cell_data = dict(cell or {})
+                    value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
+                    unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
+                    if unit_hint not in {"천원", "백만원"} or not re.search(r"\d", value_text):
+                        continue
+                    cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                    if cell_value is None or cell_unit != "KRW":
+                        continue
+                    for target_value in target_values:
+                        diff = abs(float(cell_value) - target_value)
+                        tolerance = max(abs(target_value) * 0.005, 100_000_000.0)
+                        if diff > tolerance:
+                            continue
+                        if best_diff is None or diff < best_diff:
+                            best_cell = cell_data
+                            best_normalized = float(cell_value)
+                            best_diff = diff
+                            best_target = target_value
+
+        contextual_cell = _cell_from_contextual_note_row() if best_cell is None else None
+        if contextual_cell:
+            contextual_value, contextual_unit = _normalise_operand_value(
+                _normalise_spaces(str(contextual_cell.get("value_text") or "")),
+                _normalise_spaces(str(contextual_cell.get("unit_hint") or "")),
+            )
+            if contextual_value is not None and contextual_unit == "KRW":
+                best_cell = contextual_cell
+                best_normalized = float(contextual_value)
 
         if not best_cell or best_normalized is None:
             return row
@@ -1139,6 +1229,10 @@ class FinancialAgentCalculationMixin:
         refined["normalized_value"] = best_normalized
         refined["normalized_unit"] = "KRW"
         refined["precision_source"] = "structured_table_cell"
+        if best_target is not None and abs(float(normalized_value) - best_target) > 100_000_000.0:
+            refined["precision_source"] = "surface_anchored_structured_table_cell"
+        if contextual_cell:
+            refined["precision_source"] = "contextual_note_structured_table_cell"
         return refined
 
     def _surface_contract_numeric_evidence_items(
@@ -3470,6 +3564,23 @@ Ontology Context:
                 "answer": fallback,
                 "compressed_answer": fallback,
                 "draft_points": [fallback],
+            }
+
+        slot_based_difference_answer = self._compose_slot_based_difference_answer(
+            query=self._calc_query(state),
+            report_scope=dict(state.get("report_scope") or {}),
+            calculation_result=calculation_result,
+        )
+        if slot_based_difference_answer:
+            calculation_result["formatted_result"] = slot_based_difference_answer
+            return {
+                "answer": slot_based_difference_answer,
+                "compressed_answer": slot_based_difference_answer,
+                "draft_points": [slot_based_difference_answer],
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_result=calculation_result,
+                ),
             }
 
         structured_llm = self.llm.with_structured_output(CalculationRenderOutput)

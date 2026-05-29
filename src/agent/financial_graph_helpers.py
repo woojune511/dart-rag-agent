@@ -4544,6 +4544,31 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
         unit = re.sub(r"\s+", "", exact_match.group("unit"))
         return f"{exact_match.group('value')}{unit}"
 
+    def _parenthetical_unit_after(value_text: str, end: int) -> str:
+        if re.search(r"(?:조|억|백만|천)\s*원?|원", value_text or ""):
+            return ""
+        tail = normalized[end : end + 24]
+        unit_match = re.match(
+            r"\s*\(\s*(?P<unit>조\s*원|억\s*원|백\s*만\s*원|천\s*원|원)\s*\)",
+            tail,
+        )
+        if not unit_match:
+            return ""
+        unit = re.sub(r"\s+", "", unit_match.group("unit"))
+        return f"{_normalise_spaces(value_text)}{unit}"
+
+    def _value_from_match(match: re.Match[str], absolute_end: int) -> str:
+        exact_parenthetical = _parenthetical_exact_value_after(match.group(0), absolute_end)
+        if exact_parenthetical:
+            return exact_parenthetical
+        parenthetical_unit = _parenthetical_unit_after(match.group(0), absolute_end)
+        if parenthetical_unit:
+            return parenthetical_unit
+        return _normalise_spaces(match.group(0))
+
+    def _valid_value_matches(surface: str) -> List[re.Match[str]]:
+        return [match for match in value_pattern.finditer(surface) if re.search(r"\d", match.group(0))]
+
     def _recent_parenthetical_exact_value_before(end: int) -> str:
         context = normalized[max(0, end - 140) : end]
         exact_matches = list(
@@ -4568,25 +4593,38 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
         if not match:
             continue
         prefix = normalized[: match.start()]
-        prefix_matches = list(value_pattern.finditer(prefix))
+        candidates: List[tuple[int, str]] = []
+        prefix_matches = _valid_value_matches(prefix)
         if prefix_matches:
             nearest = prefix_matches[-1]
             if match.start() - nearest.end() <= 20:
                 exact_parenthetical = _parenthetical_exact_value_after(nearest.group(0), nearest.end())
                 if exact_parenthetical:
-                    return exact_parenthetical
-                recent_exact_parenthetical = _recent_parenthetical_exact_value_before(match.start())
-                if recent_exact_parenthetical:
-                    return recent_exact_parenthetical
-                return _normalise_spaces(nearest.group(0))
+                    candidates.append((match.start() - nearest.end(), exact_parenthetical))
+                else:
+                    recent_exact_parenthetical = _recent_parenthetical_exact_value_before(match.start())
+                    if recent_exact_parenthetical:
+                        candidates.append((match.start() - nearest.end(), recent_exact_parenthetical))
+                    else:
+                        candidates.append(
+                            (
+                                match.start() - nearest.end(),
+                                _value_from_match(nearest, nearest.end()),
+                            )
+                        )
         suffix = normalized[match.end() :]
-        value_match = value_pattern.search(suffix)
-        if value_match:
+        suffix_matches = _valid_value_matches(suffix)
+        if suffix_matches:
+            value_match = suffix_matches[0]
             absolute_end = match.end() + value_match.end()
-            exact_parenthetical = _parenthetical_exact_value_after(value_match.group(0), absolute_end)
-            if exact_parenthetical:
-                return exact_parenthetical
-            return _normalise_spaces(value_match.group(0))
+            candidates.append(
+                (
+                    value_match.start(),
+                    _value_from_match(value_match, absolute_end),
+                )
+            )
+        if candidates:
+            return sorted(candidates, key=lambda item: item[0])[0][1]
     return ""
 
 
