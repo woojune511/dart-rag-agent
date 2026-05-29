@@ -1088,6 +1088,42 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - The remaining work is to make Motional table evidence and entity-table
     projection evaluator-visible enough for grounding / faithfulness checks.
 
+## 2026-05-29 Three-Case Focused Closure
+
+- The focused queue from the 2026-05-28 blocker reclassification is closed at
+  single-question smoke level.
+- Validation used the official structural collection name
+  `dart_reports_v2_structural-selective-v2-prefix-2500-320`; using the default
+  collection name can read the wrong collection inside the same persisted store.
+- Per-question focused result:
+  - `SAM_T2_078`: answer includes `28,352,769백만원` and Harman automotive /
+    SDV narrative. Runtime trace remains an aggregate answer, but now preserves
+    exactly one R&D operand and aggregate `source_row_ids = ["ev_001"]`.
+  - `HYU_T2_010`: answer includes `87.0만 대`, `78.1만 대`, `11.5%`, and
+    IRA/protectionism response narrative. Runtime trace is `growth_rate / ok`.
+  - `HYU_T3_072`: answer includes `25.81%`, `1,294,367백만원`,
+    `(803,742)백만원`, and `(791,627)백만원`. Runtime trace is `lookup / ok`
+    with four entity-table operands and source-row provenance.
+- Generic runtime fixes:
+  - explicit non-aggregate resolved traces are no longer overwritten by stale
+    active-subtask aggregate projections
+  - deterministic entity-table composers emit evaluator-visible slots and
+    provenance
+  - empty-operand single-value lookup subtasks can promote one prose value into
+    a structured slot/operand, without masking existing replan gaps
+  - aggregate projections dedupe nested operand mirrors and surface aggregate
+    `source_row_ids`
+- Unit verification:
+  - `tests.test_evaluator_runtime_projection`
+  - `tests.test_operation_contracts`
+  - `tests.test_financial_agent_run_projection`
+  - `tests.test_subtask_loop`
+  - total: `167` tests passing
+- Scope note:
+  - This is not yet a full official policy-gate rerun. Before promoting a
+    release-level claim, rerun `curated_policy_driven_runtime_gate` over all
+    five policy questions.
+
 ## 2026-05-28 Policy Refactor Validation
 
 Source changes:

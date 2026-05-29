@@ -3762,6 +3762,11 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("(803,742)백만원", answer)
         self.assertIn("(791,627)백만원", answer)
         self.assertNotIn("73.28%", answer)
+        projection = result["calculation_projection"]
+        self.assertEqual(projection["calculation_plan"]["operation_family"], "lookup")
+        self.assertEqual(projection["calculation_result"]["answer_slots"]["operation_family"], "lookup")
+        self.assertIn("investment_carrying_amount", projection["calculation_result"]["answer_slots"]["components_by_role"])
+        self.assertTrue(projection["calculation_result"]["source_row_ids"])
 
     def test_business_technology_focus_answer_preserves_harman_required_facets(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

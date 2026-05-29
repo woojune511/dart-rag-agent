@@ -459,6 +459,7 @@ def _build_aggregate_calculation_projection(
     final_answer: str,
 ) -> Dict[str, Any]:
     aggregate_operands: List[Dict[str, Any]] = []
+    seen_operand_keys: set[tuple[str, ...]] = set()
     subtask_plans: List[Dict[str, Any]] = []
     subtask_result_views: List[Dict[str, Any]] = []
 
@@ -472,6 +473,18 @@ def _build_aggregate_calculation_projection(
             operand_row.setdefault("task_id", task_id)
             operand_row.setdefault("metric_family", metric_family)
             operand_row.setdefault("metric_label", metric_label)
+            operand_key = (
+                str(operand_row.get("task_id") or ""),
+                str(operand_row.get("operand_id") or operand_row.get("matched_operand_role") or ""),
+                str(operand_row.get("source_row_id") or ""),
+                "|".join(str(item) for item in (operand_row.get("source_row_ids") or [])),
+                str(operand_row.get("raw_value") or operand_row.get("value") or ""),
+                str(operand_row.get("raw_unit") or ""),
+                str(operand_row.get("label") or operand_row.get("label_kr") or ""),
+            )
+            if operand_key in seen_operand_keys:
+                continue
+            seen_operand_keys.add(operand_key)
             aggregate_operands.append(operand_row)
 
         plan = dict(row.get("calculation_plan") or {})
@@ -497,6 +510,17 @@ def _build_aggregate_calculation_projection(
         )
 
     all_ok = all(str(item.get("status") or "") == "ok" for item in subtask_result_views) if subtask_result_views else False
+    source_row_ids = list(
+        dict.fromkeys(
+            str(source_row_id).strip()
+            for operand in aggregate_operands
+            for source_row_id in [
+                operand.get("source_row_id"),
+                *(operand.get("source_row_ids") or []),
+            ]
+            if str(source_row_id).strip()
+        )
+    )
     return {
         "calculation_operands": aggregate_operands,
         "calculation_plan": {
@@ -509,6 +533,7 @@ def _build_aggregate_calculation_projection(
             "status": "ok" if all_ok else "partial",
             "rendered_value": final_answer,
             "formatted_result": final_answer,
+            "source_row_ids": source_row_ids,
             "subtask_results": subtask_result_views,
             "answer_slots": validate_answer_slots_payload(
                 {
@@ -608,10 +633,13 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
     if normalised:
         plan = dict(normalised.get("calculation_plan") or {})
         calc_result = dict(normalised.get("calculation_result") or {})
-        if _trace_operation_family(
+        normalised_operation = _trace_operation_family(
             calculation_plan=plan,
             calculation_result=calc_result,
-        ) == "aggregate_subtasks":
+        )
+        if normalised_operation and normalised_operation != "aggregate_subtasks":
+            return normalised
+        if normalised_operation == "aggregate_subtasks":
             if active_task_id:
                 projected_active = _project_task_trace_from_runtime(result, active_task_id)
                 if _trace_operation_family(

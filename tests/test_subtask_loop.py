@@ -1287,6 +1287,57 @@ class SubtaskLoopTests(unittest.TestCase):
             2,
         )
 
+    def test_aggregate_subtasks_dedupes_nested_operand_mirrors(self) -> None:
+        projection = self.agent._build_aggregate_calculation_projection(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 연구개발비용 총액",
+                    "answer": "2023년 연결 연구개발비용 총액은 28,352,769 백만원입니다.",
+                    "status": "ok",
+                    "calculation_operands": [
+                        {
+                            "operand_id": "primary_value",
+                            "label": "연구개발비용",
+                            "raw_value": "28,352,769",
+                            "raw_unit": "백만원",
+                            "source_row_id": "ev_001",
+                            "source_row_ids": ["ev_001"],
+                        }
+                    ],
+                    "calculation_plan": {"status": "ok", "operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "28,352,769백만원"},
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "answer": "Harman은 SDV 전환에 대응합니다.",
+                    "status": "ok",
+                    "calculation_operands": [
+                        {
+                            "task_id": "task_1",
+                            "metric_family": "concept_lookup",
+                            "metric_label": "2023년 연구개발비용 총액",
+                            "operand_id": "primary_value",
+                            "label": "연구개발비용",
+                            "raw_value": "28,352,769",
+                            "raw_unit": "백만원",
+                            "source_row_id": "ev_001",
+                            "source_row_ids": ["ev_001"],
+                        }
+                    ],
+                    "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+                    "calculation_result": {"status": "ok", "rendered_value": "Harman은 SDV 전환에 대응합니다."},
+                },
+            ],
+            "2023년 연결 연구개발비용 총액은 28,352,769백만원입니다. Harman은 SDV 전환에 대응합니다.",
+        )
+
+        self.assertEqual(len(projection["calculation_operands"]), 1)
+        self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
+
     def test_aggregate_subtasks_prefers_narrative_summary_fallback_over_partial_failures(self) -> None:
         self.agent.llm = None
         state = {
@@ -1524,6 +1575,55 @@ class SubtaskLoopTests(unittest.TestCase):
             "90.7%",
         )
         self.assertEqual(current["calculation_operands"][0]["operand_id"], "rev")
+
+    def test_capture_current_subtask_result_promotes_single_lookup_prose_value(self) -> None:
+        state = {
+            "query": "2023년 연결 연구개발비용 총액을 추출하고, Harman 부문 기술 초점을 요약해 줘.",
+            "answer": "2023년 연결 연구개발비용 총액은 28,352,769 백만원입니다.",
+            "compressed_answer": "2023년 연결 연구개발비용 총액은 28,352,769 백만원입니다.",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 연결 연구개발비용 총액",
+                "query": "2023년 연결 연구개발비용 총액을 찾아 줘.",
+                "operation_family": "lookup",
+            },
+            "selected_claim_ids": ["ev_001"],
+            "evidence_items": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="연구개발비용 계 | 28,352,769 | ※ 연결 누계기준입니다.",
+                        metadata={
+                            "company": "삼성전자",
+                            "year": 2023,
+                            "section_path": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+                        },
+                    ),
+                    0.9,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "reconciliation_result": {},
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        self.assertEqual(current["status"], "ok")
+        self.assertEqual(current["calculation_result"]["answer_slots"]["operation_family"], "lookup")
+        self.assertEqual(
+            current["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "28,352,769백만원",
+        )
+        self.assertEqual(len(current["calculation_operands"]), 1)
+        self.assertEqual(current["calculation_operands"][0]["rendered_value"], "28,352,769백만원")
+        self.assertTrue(current["calculation_operands"][0]["source_row_ids"])
 
     def test_capture_current_subtask_result_prefers_deterministic_dividend_hybrid_answer(self) -> None:
         state = {

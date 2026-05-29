@@ -192,6 +192,15 @@ selection, policy-driven deterministic composers, or planner fallback tracing.
 The purpose is to prove that vocabulary has moved into policy/config without
 losing behavior on the previously hard-coded retrieval/composition cases.
 
+Current focused smoke status:
+
+- `SAM_T2_078`, `HYU_T2_010`, and `HYU_T3_072` are closed at
+  single-question smoke level after the 2026-05-29 runtime-trace fixes.
+- The smoke checks used the official structural collection name
+  `dart_reports_v2_structural-selective-v2-prefix-2500-320`.
+- This does not replace the full five-question policy-driven gate. Run the
+  profile below before claiming official policy-gate closure.
+
 Recommended invocation:
 
 ```powershell

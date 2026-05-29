@@ -477,21 +477,37 @@
   - planner prompt / conversion logic
   - generic numeric fallback behavior
 
-## 2026-05-28 Active Three-Case Queue
+## 2026-05-29 Three-Case Queue Closure
 
-- Current focused queue:
-  - `SAM_T2_078`: closed in focused validation
-  - `HYU_T2_010`: calculation trace closed; faithfulness override still limited
-    by entity/evidence coverage
-  - `HYU_T3_072`: still active
-- Immediate next task:
-  - debug `HYU_T3_072` evaluator grounding path
-  - inspect retrieved Motional contexts, runtime evidence, selected claim ids,
-    and deterministic entity-table `calculation_projection`
-  - avoid answer-only tweaks unless they also improve evaluator-visible
-    provenance / trace
+- The focused three-case queue is closed at single-question smoke level:
+  - `SAM_T2_078`: answer includes the 2023 consolidated R&D total plus Harman
+    automotive / SDV narrative. Runtime trace is `aggregate_subtasks / ok`,
+    with the R&D operand preserved once and `source_row_ids = ["ev_001"]`.
+  - `HYU_T2_010`: answer includes 2023/2022 US sales, `11.5%` growth, and
+    IRA/protectionism response narrative. Runtime trace is `growth_rate / ok`.
+  - `HYU_T3_072`: answer includes Motional ownership ratio `25.81%`,
+    investment carrying amount `1,294,367백만원`, continuing loss
+    `(803,742)백만원`, and total comprehensive loss `(791,627)백만원`.
+    Runtime trace is `lookup / ok` with four entity-table operands and
+    source-row provenance.
+- Runtime changes behind the closure are generic:
+  - explicit non-aggregate `resolved_calculation_trace` now wins over stale
+    active-subtask aggregate projection
+  - deterministic entity-table summaries emit `answer_slots`,
+    `components_by_role`, and `source_row_ids`
+  - single-value lookup prose can be promoted into a structured slot/operand
+    only when no operand artifact already exists, so replan gaps are not hidden
+  - aggregate projection dedupes nested operand mirrors and carries aggregate
+    `source_row_ids`
+- Verification completed:
+  - single-question smoke checks for all three questions against the official
+    `dart_reports_v2_structural-selective-v2-prefix-2500-320` collection
+  - `tests.test_evaluator_runtime_projection`,
+    `tests.test_operation_contracts`, `tests.test_financial_agent_run_projection`,
+    and `tests.test_subtask_loop`: `167` tests pass
+- Remaining validation:
+  - rerun the official `curated_policy_driven_runtime_gate` 5-question profile
+    before claiming full policy-gate closure
 - Current non-goals:
-  - do not promote the temporary focused benchmark result bundles as source
-    artifacts
-  - do not claim the three-case queue fully closed until `HYU_T3_072` has
-    stronger current evidence than a correct visible answer alone
+  - do not promote temporary focused benchmark result bundles as
+    source-controlled artifacts

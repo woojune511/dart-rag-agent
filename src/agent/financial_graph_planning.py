@@ -88,8 +88,30 @@ def _extract_lookup_slot_from_answer_text(
         if _normalise_spaces(str(surface))
     ]
     surfaces = sorted(dict.fromkeys(surfaces), key=len, reverse=True)
+    money_matches = list(_MONEY_SURFACE_RE.finditer(text))
     if not surfaces:
-        return None
+        if len(money_matches) != 1:
+            return None
+        best_match = money_matches[0]
+        values = _money_match_to_slot_values(best_match)
+        if values.get("normalized_value") is None and not values.get("rendered_value"):
+            return None
+        source_claim_ids = [
+            str(claim_id).strip()
+            for claim_id in selected_claim_ids
+            if str(claim_id).strip()
+        ]
+        return {
+            "label": _normalise_spaces(str(operand.get("label") or metric_label)),
+            "concept": _normalise_spaces(str(operand.get("concept") or "")),
+            "role": _normalise_spaces(str(operand.get("role") or "primary_value")) or "primary_value",
+            "period": _normalise_spaces(str(operand.get("period_hint") or "")),
+            "status": "ok",
+            **values,
+            "source_row_id": source_claim_ids[0] if source_claim_ids else "",
+            "source_row_ids": source_claim_ids[:1],
+            "source_claim_ids": source_claim_ids,
+        }
 
     haystack = text.lower()
     best_match: Optional[re.Match[str]] = None
@@ -128,6 +150,7 @@ def _extract_lookup_slot_from_answer_text(
         "status": "ok",
         **values,
         "source_row_id": source_claim_ids[0] if source_claim_ids else "",
+        "source_row_ids": source_claim_ids[:1],
         "source_claim_ids": source_claim_ids,
     }
 
@@ -145,6 +168,14 @@ def _synthesize_lookup_answer_slot_from_prose(
         return calculation_result
 
     operands = [dict(item or {}) for item in list(active_subtask.get("required_operands") or []) if isinstance(item, dict)]
+    if not operands:
+        operands = [
+            {
+                "label": _normalise_spaces(str(active_subtask.get("metric_label") or "")),
+                "concept": _normalise_spaces(str(active_subtask.get("metric_family") or "")),
+                "role": "primary_value",
+            }
+        ]
     if len(operands) != 1:
         return calculation_result
 
@@ -1569,12 +1600,13 @@ Also return:
                         "formatted_result": answer,
                         "operation_family": "narrative_summary",
                     }
-        calculation_result = _synthesize_lookup_answer_slot_from_prose(
-            active_subtask=active_subtask,
-            answer=answer,
-            calculation_result=calculation_result,
-            selected_claim_ids=selected_claim_ids,
-        )
+        if not calculation_operands:
+            calculation_result = _synthesize_lookup_answer_slot_from_prose(
+                active_subtask=active_subtask,
+                answer=answer,
+                calculation_result=calculation_result,
+                selected_claim_ids=selected_claim_ids,
+            )
         primary_slot = dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})
         if primary_slot and _slot_has_material(primary_slot):
             slot_evidence = _lookup_slot_supporting_doc_evidence(
@@ -1589,10 +1621,33 @@ Also return:
                     for item in runtime_evidence
                     if isinstance(item, dict)
                 }
-                if evidence_id and evidence_id not in existing_ids:
-                    runtime_evidence.append(slot_evidence)
+                if evidence_id:
+                    primary_slot.setdefault("source_row_id", evidence_id)
+                    primary_slot.setdefault("source_row_ids", [evidence_id])
+                    if evidence_id not in existing_ids:
+                        runtime_evidence.append(slot_evidence)
                     if evidence_id not in selected_claim_ids:
                         selected_claim_ids.append(evidence_id)
+                calculation_result["answer_slots"]["primary_value"] = primary_slot
+                calculation_result["source_row_ids"] = list(primary_slot.get("source_row_ids") or [])
+        if primary_slot and not calculation_operands:
+            calculation_operands = [
+                {
+                    "operand_id": _normalise_spaces(str(primary_slot.get("role") or "primary_value")) or "primary_value",
+                    "matched_operand_role": _normalise_spaces(str(primary_slot.get("role") or "primary_value")) or "primary_value",
+                    "label": _normalise_spaces(str(primary_slot.get("label") or active_subtask.get("metric_label") or "")),
+                    "concept": _normalise_spaces(str(primary_slot.get("concept") or active_subtask.get("metric_family") or "")),
+                    "period": _normalise_spaces(str(primary_slot.get("period") or "")),
+                    "raw_value": _normalise_spaces(str(primary_slot.get("raw_value") or "")),
+                    "raw_unit": _normalise_spaces(str(primary_slot.get("raw_unit") or "")),
+                    "normalized_value": primary_slot.get("normalized_value"),
+                    "normalized_unit": _normalise_spaces(str(primary_slot.get("normalized_unit") or "UNKNOWN")),
+                    "rendered_value": _normalise_spaces(str(primary_slot.get("rendered_value") or "")),
+                    "source_row_id": _normalise_spaces(str(primary_slot.get("source_row_id") or "")),
+                    "source_row_ids": list(primary_slot.get("source_row_ids") or []),
+                    "source_claim_ids": list(primary_slot.get("source_claim_ids") or []),
+                }
+            ]
         status = str(
             calculation_result.get("status")
             or reconciliation_result.get("status")

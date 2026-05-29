@@ -618,6 +618,53 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
         self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
 
+    def test_resolve_runtime_trace_prefers_explicit_non_aggregate_over_active_subtask(self) -> None:
+        result = {
+            "answer": "Motional summary",
+            "active_subtask": {"task_id": "task_1"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [{"operand_id": "ownership_ratio"}],
+                "calculation_plan": {
+                    "status": "ok",
+                    "operation": "lookup",
+                    "operation_family": "lookup",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "Motional summary",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "ownership_ratio",
+                            "rendered_value": "25.81%",
+                        },
+                    },
+                },
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "status": "partial",
+                    "calculation_operands": [],
+                    "calculation_plan": {"mode": "aggregate_subtasks"},
+                    "calculation_result": {
+                        "status": "partial",
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                }
+            ],
+        }
+
+        trace = _resolve_runtime_calculation_trace(result)
+
+        self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
+        self.assertEqual(trace["calculation_operands"], [{"operand_id": "ownership_ratio"}])
+        self.assertEqual(
+            trace["calculation_result"]["answer_slots"]["operation_family"],
+            "lookup",
+        )
+
     def test_resolve_evaluator_operands_prefers_answer_slots_components(self) -> None:
         operands = [
             {"operand_id": "legacy", "label": "legacy", "raw_value": "999", "raw_unit": "%"},

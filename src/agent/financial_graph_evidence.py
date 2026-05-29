@@ -2520,6 +2520,7 @@ class FinancialAgentEvidenceMixin:
 
         def _operand_row(label: str, raw_value: str, raw_unit: str, role: str, anchor: str) -> Dict[str, Any]:
             normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+            source_row_id = f"{anchor}::{role}" if anchor else ""
             return {
                 "operand_id": role,
                 "matched_operand_role": role,
@@ -2532,8 +2533,8 @@ class FinancialAgentEvidenceMixin:
                 "normalized_unit": normalized_unit,
                 "rendered_value": f"{raw_value}{raw_unit}",
                 "source_anchor": anchor,
-                "source_row_id": "",
-                "source_row_ids": [],
+                "source_row_id": source_row_id,
+                "source_row_ids": [source_row_id] if source_row_id else [],
             }
 
         calculation_operands: List[Dict[str, Any]] = []
@@ -2549,6 +2550,50 @@ class FinancialAgentEvidenceMixin:
             calculation_operands.append(_operand_row(f"{entity_label} 계속영업손실", continuing, "백만원", "continuing_loss", summary_anchor))
         if total_comprehensive:
             calculation_operands.append(_operand_row(f"{entity_label} 총포괄손실", total_comprehensive, "백만원", "total_comprehensive_loss", summary_anchor))
+        components_by_role = {
+            str(row.get("matched_operand_role") or row.get("operand_id") or ""): [
+                {
+                    "status": "ok",
+                    "role": str(row.get("matched_operand_role") or row.get("operand_id") or ""),
+                    "label": str(row.get("label") or ""),
+                    "concept": str(row.get("concept") or ""),
+                    "period": str(row.get("period") or ""),
+                    "raw_value": str(row.get("raw_value") or ""),
+                    "raw_unit": str(row.get("raw_unit") or ""),
+                    "normalized_value": row.get("normalized_value"),
+                    "normalized_unit": str(row.get("normalized_unit") or "UNKNOWN"),
+                    "rendered_value": str(row.get("rendered_value") or ""),
+                    "source_row_id": str(row.get("source_row_id") or ""),
+                    "source_row_ids": list(row.get("source_row_ids") or []),
+                    "source_anchor": str(row.get("source_anchor") or ""),
+                }
+            ]
+            for row in calculation_operands
+            if str(row.get("matched_operand_role") or row.get("operand_id") or "").strip()
+        }
+        primary_operand = next(
+            (
+                row
+                for row in calculation_operands
+                if str(row.get("operand_id") or "") in {"investment_carrying_amount", "ownership_ratio"}
+            ),
+            calculation_operands[0] if calculation_operands else {},
+        )
+        primary_slot = dict(next(iter(components_by_role.get(str(primary_operand.get("operand_id") or ""), [])), {}))
+        answer_slots = validate_answer_slots_payload(
+            {
+                "operation_family": "lookup",
+                "metric_label": entity_label,
+                "primary_value": primary_slot,
+                "components_by_role": components_by_role,
+                "source_row_ids": [
+                    source_row_id
+                    for row in calculation_operands
+                    for source_row_id in (row.get("source_row_ids") or [])
+                    if str(source_row_id).strip()
+                ],
+            }
+        ) if primary_slot else {}
         return {
             "selected_claim_ids": list(dict.fromkeys(selected_ids)),
             "draft_points": sentences,
@@ -2565,7 +2610,9 @@ class FinancialAgentEvidenceMixin:
                     "status": "ok" if calculation_operands else "partial",
                     "rendered_value": answer,
                     "formatted_result": answer,
-                    "source_row_ids": [],
+                    "operation_family": "lookup",
+                    "source_row_ids": list(answer_slots.get("source_row_ids") or []),
+                    "answer_slots": answer_slots,
                     "derived_metrics": {"operation_family": "lookup", "entity": entity_label},
                 },
             },
