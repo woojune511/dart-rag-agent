@@ -4778,6 +4778,32 @@ def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any])
     return cells
 
 
+def _format_structured_candidate_row_text(
+    label: str,
+    headers: List[str],
+    cells: List[Dict[str, Any]],
+) -> str:
+    row_parts: List[str] = []
+    for part in [label, *headers]:
+        cleaned = _normalise_spaces(str(part or ""))
+        if cleaned and cleaned not in row_parts:
+            row_parts.append(cleaned)
+    for cell in cells:
+        cell_parts = [
+            " / ".join(
+                _normalise_spaces(str(item))
+                for item in (cell.get("column_headers") or [])
+                if _normalise_spaces(str(item))
+            ),
+            _normalise_spaces(str(cell.get("value_text") or "")),
+            _normalise_spaces(str(cell.get("unit_hint") or "")),
+        ]
+        cleaned_cell = _normalise_spaces(" ".join(part for part in cell_parts if part))
+        if cleaned_cell:
+            row_parts.append(cleaned_cell)
+    return " | ".join(row_parts)
+
+
 _GENERIC_COLUMN_HEADERS = {
     "구분",
     "항목",
@@ -4908,6 +4934,11 @@ def _build_table_value_reconciliation_candidates(
                 "unit_hint": str(record.get("unit_hint") or metadata.get("unit_hint") or "").strip(),
             }
         ]
+        candidate["metadata"]["row_text"] = _format_structured_candidate_row_text(
+            semantic_label,
+            row_headers,
+            list(candidate["metadata"]["structured_cells"] or []),
+        )
         candidates.append(candidate)
     return candidates
 
@@ -5048,6 +5079,7 @@ def _build_table_row_reconciliation_candidates(
     section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
     candidates: List[Dict[str, Any]] = []
     seen_row_texts: set[str] = set()
+
     value_candidates = _build_table_value_reconciliation_candidates(
         candidate_id_prefix=candidate_id_prefix,
         anchor=anchor,
@@ -5122,6 +5154,7 @@ def _build_table_row_reconciliation_candidates(
                 item for item in row_headers if _normalise_spaces(item) and _normalise_spaces(item) != _normalise_spaces(row_label)
             ]
             candidate["metadata"]["structured_cells"] = cells
+            candidate["metadata"]["row_text"] = _format_structured_candidate_row_text(row_label, row_headers, cells)
             row_text = _normalise_spaces(str(candidate["metadata"].get("row_text") or ""))
             if row_text:
                 seen_row_texts.add(row_text)

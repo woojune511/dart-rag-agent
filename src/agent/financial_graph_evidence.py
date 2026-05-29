@@ -2351,8 +2351,8 @@ class FinancialAgentEvidenceMixin:
             return value.strip()
 
         requested_consolidated = "연결" in query_text
-        investment_candidates: List[tuple[tuple[int, int, float, int], str, str, str, str]] = []
-        summary_candidates: List[tuple[tuple[int, int], str, str, str]] = []
+        investment_candidates: List[tuple[tuple[int, int, float, int], str, str, str, str, str]] = []
+        summary_candidates: List[tuple[tuple[int, int], str, str, str, str]] = []
         supporting_anchors: List[str] = []
 
         def _scan_source_text(
@@ -2361,6 +2361,7 @@ class FinancialAgentEvidenceMixin:
             section_path: str,
             period_focus: str,
             anchor: str,
+            header_context: str = "",
         ) -> None:
             text = _normalise_spaces(source_text)
             if not text:
@@ -2368,12 +2369,34 @@ class FinancialAgentEvidenceMixin:
             lines = [_normalise_spaces(line) for line in str(source_text or "").splitlines()]
             if not lines:
                 lines = [text]
-            entity_lines: List[str] = []
-            for line in lines:
+            header_context_lines: List[str] = []
+            for line in str(header_context or "").splitlines():
+                line_text = _normalise_spaces(line)
+                if not line_text or not re.search(r"[A-Za-z가-힣]", line_text):
+                    continue
+                if any(variant.lower() in line_text.lower() for variant in entity_variants):
+                    continue
+                if "|" in line_text or not re.search(r"\d", line_text):
+                    header_context_lines.append(line_text)
+            header_context_lines = header_context_lines[-3:]
+            entity_lines: List[tuple[str, str]] = []
+            for line_index, line in enumerate(lines):
                 if not any(variant.lower() in line.lower() for variant in entity_variants):
                     continue
+                context_lines: List[str] = list(header_context_lines)
+                if "|" in line:
+                    for previous in lines[max(0, line_index - 3) : line_index]:
+                        previous_text = _normalise_spaces(previous)
+                        if "|" not in previous_text:
+                            continue
+                        if any(variant.lower() in previous_text.lower() for variant in entity_variants):
+                            continue
+                        if not re.search(r"[A-Za-z가-힣]", previous_text):
+                            continue
+                        context_lines.append(previous_text)
+                    context_lines = list(dict.fromkeys(context_lines))[-3:]
                 if "|" not in line:
-                    entity_lines.append(line)
+                    entity_lines.append((line, line))
                     continue
                 cells = [_normalise_spaces(cell) for cell in line.split("|")]
                 cells = [cell for cell in cells if cell]
@@ -2382,9 +2405,12 @@ class FinancialAgentEvidenceMixin:
                     if not any(variant.lower() in cell.lower() for variant in entity_variants):
                         continue
                     matched = True
-                    entity_lines.append(" | ".join(cells[max(0, index - 2) : index + 10]))
+                    row_slice = " | ".join(cells[max(0, index - 2) : index + 10])
+                    display_line = " / ".join([*context_lines, row_slice]) if context_lines else row_slice
+                    entity_lines.append((row_slice, display_line))
                 if not matched:
-                    entity_lines.append(line)
+                    display_line = " / ".join([*context_lines, line]) if context_lines else line
+                    entity_lines.append((line, display_line))
             if not entity_lines:
                 return
             section_score = 0
@@ -2401,7 +2427,7 @@ class FinancialAgentEvidenceMixin:
             if not requested_consolidated and "연결재무제표 주석" in section_path:
                 section_score -= 1
             period_score = 1 if str(period_focus or "").lower() == "current" else 0
-            for line in entity_lines:
+            for line, display_line in entity_lines:
                 line_numbers = _numbers(line)
                 if "%" in line and any(marker in text for marker in ("소유지분율", "지분율", "장부금액", "투자자산")):
                     percent_values = [value for value in line_numbers if value.endswith("%")]
@@ -2417,6 +2443,7 @@ class FinancialAgentEvidenceMixin:
                                 _clean_amount(amount),
                                 anchor,
                                 prior_percent,
+                                display_line,
                             )
                         )
                 if any(marker in text for marker in ("계속영업손익", "계속영업이익", "계속영업손실", "총포괄손익")):
@@ -2424,7 +2451,7 @@ class FinancialAgentEvidenceMixin:
                     if len(non_percent_numbers) >= 3:
                         continuing = _clean_amount(non_percent_numbers[-3])
                         total_comprehensive = _clean_amount(non_percent_numbers[-1])
-                        summary_candidates.append(((section_score, period_score), continuing, total_comprehensive, anchor))
+                        summary_candidates.append(((section_score, period_score), continuing, total_comprehensive, anchor, display_line))
 
         for item in docs or []:
             doc = item[0] if isinstance(item, (tuple, list)) else item
@@ -2439,6 +2466,11 @@ class FinancialAgentEvidenceMixin:
                 section_path=section_path,
                 period_focus=str(metadata.get("period_focus") or ""),
                 anchor=anchor,
+                header_context="\n".join(
+                    str(metadata.get(key) or "")
+                    for key in ("table_header_context", "table_row_labels_text")
+                    if str(metadata.get(key) or "").strip()
+                ),
             )
 
         for item in evidence_items or []:
@@ -2464,6 +2496,11 @@ class FinancialAgentEvidenceMixin:
                 section_path=section_path,
                 period_focus=str(metadata.get("period_focus") or evidence.get("period_focus") or ""),
                 anchor=str(evidence.get("source_anchor") or ""),
+                header_context="\n".join(
+                    str(metadata.get(key) or "")
+                    for key in ("table_header_context", "table_row_labels_text")
+                    if str(metadata.get(key) or "").strip()
+                ),
             )
 
         if not investment_candidates and not summary_candidates:
@@ -2472,20 +2509,21 @@ class FinancialAgentEvidenceMixin:
         investment_candidates.sort(key=lambda item: item[0], reverse=True)
         summary_candidates.sort(key=lambda item: item[0], reverse=True)
         percent = prior_percent = amount = continuing = total_comprehensive = ""
+        investment_line = summary_line = ""
         if investment_candidates:
-            _score, percent, amount, anchor, prior_percent = investment_candidates[0]
+            _score, percent, amount, anchor, prior_percent, investment_line = investment_candidates[0]
             if not prior_percent:
                 prior_percent = next(
                     (
                         candidate_prior_percent
-                        for _candidate_score, _candidate_percent, candidate_amount, _candidate_anchor, candidate_prior_percent in investment_candidates
+                        for _candidate_score, _candidate_percent, candidate_amount, _candidate_anchor, candidate_prior_percent, _candidate_line in investment_candidates
                         if candidate_amount == amount and candidate_prior_percent
                     ),
                     "",
                 )
             supporting_anchors.append(anchor)
         if summary_candidates:
-            _score, continuing, total_comprehensive, anchor = summary_candidates[0]
+            _score, continuing, total_comprehensive, anchor, summary_line = summary_candidates[0]
             supporting_anchors.append(anchor)
         if not (percent or amount or continuing or total_comprehensive):
             return None
@@ -2598,10 +2636,58 @@ class FinancialAgentEvidenceMixin:
                 ],
             }
         ) if primary_slot else {}
+        operand_surfaces_by_anchor: Dict[str, List[str]] = {}
+        for row in calculation_operands:
+            operand_anchor = str(row.get("source_anchor") or "").strip()
+            if not operand_anchor:
+                continue
+            label_text = _normalise_spaces(str(row.get("label") or row.get("concept") or row.get("operand_id") or ""))
+            rendered_value = _normalise_spaces(str(row.get("rendered_value") or row.get("raw_value") or ""))
+            if not label_text and not rendered_value:
+                continue
+            operand_surface = _normalise_spaces(": ".join(part for part in (label_text, rendered_value) if part))
+            if operand_surface:
+                operand_surfaces_by_anchor.setdefault(operand_anchor, []).append(operand_surface)
+        projected_evidence_items: List[Dict[str, Any]] = []
+        for index, (anchor, line, evidence_kind) in enumerate(
+            [
+                (primary_anchor, investment_line, "entity_table_investment"),
+                (summary_anchor, summary_line, "entity_table_summary"),
+            ],
+            start=1,
+        ):
+            line_text = _normalise_spaces(str(line or ""))
+            if not anchor or not line_text:
+                continue
+            line_parts = [*operand_surfaces_by_anchor.get(anchor, []), line_text]
+            line_text = _normalise_spaces(" / ".join(dict.fromkeys(part for part in line_parts if part)))
+            projected_evidence_items.append(
+                {
+                    "evidence_id": f"entity_table::{evidence_kind}::{index:03d}",
+                    "source_anchor": anchor,
+                    "claim": line_text[:1200],
+                    "quote_span": line_text[:500],
+                    "raw_row_text": line_text[:1200],
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [],
+                    "metadata": {"section_path": anchor},
+                }
+            )
+        merged_evidence_items = list(evidence_items or [])
+        existing_evidence_ids = {str(item.get("evidence_id") or "").strip() for item in merged_evidence_items}
+        for item in projected_evidence_items:
+            evidence_id = str(item.get("evidence_id") or "").strip()
+            if evidence_id and evidence_id in existing_evidence_ids:
+                continue
+            if evidence_id:
+                existing_evidence_ids.add(evidence_id)
+            merged_evidence_items.append(item)
         return {
             "selected_claim_ids": list(dict.fromkeys(selected_ids)),
             "draft_points": sentences,
             "compressed_answer": answer,
+            "evidence_items": merged_evidence_items,
             "calculation_projection": {
                 "calculation_operands": calculation_operands,
                 "calculation_plan": {

@@ -1072,21 +1072,24 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
   - `HYU_T2_010`: visible answer and structured growth-rate trace are corrected;
     operand selection, grounded rendering, and calculation correctness are all
     `1.0` in the latest focused check.
-  - `HYU_T3_072`: visible Motional answer is correct again, but evaluator
-    grounding is still insufficient.
-- Latest `HYU_T3_072` focused signal:
+  - `HYU_T3_072`: visible Motional answer is correct and evaluator-visible
+    structured row evidence now carries the required Motional slot labels.
+- Latest `HYU_T3_072` focused store-fixed signal:
   - answer includes `25.81%`, `1,294,367백만원`,
     `계속영업손실 (803,742)백만원`, and `총포괄손실 (791,627)백만원`
   - `completeness = 1.0`
-  - `absolute_error_rate = 0.0`
-  - `faithfulness = 0.0`
-  - `context_recall = 0.5`
-  - `entity_coverage = 0.4`
-  - `grounded_rendering_correctness = 0.0`
+  - `faithfulness = 1.0`
+  - `context_recall = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `entity_coverage = 1.0`
+  - `grounded_rendering_correctness = 1.0`
+  - latest store-fixed replay: `section_match_rate = 0.625`,
+    `avg_score = 0.910`
 - Interpretation:
-  - `HYU_T3_072` is no longer primarily an answer-selection problem.
-  - The remaining work is to make Motional table evidence and entity-table
-    projection evaluator-visible enough for grounding / faithfulness checks.
+  - `HYU_T3_072` is no longer primarily an answer-selection or evidence
+    projection problem.
+  - Remaining variance should be investigated as retrieval/ranking stability
+    across repeated store-fixed runs.
 
 ## 2026-05-29 Three-Case Focused Closure
 
@@ -1531,10 +1534,12 @@ Dataset contract follow-up:
   `required_entities` and `ground_truth_evidence_quotes`, matching the answer
   key and ground truth. The beginning ratio `25.92%` remains in explanatory
   notes/selection context only.
-- A focused `HYU_T3_072` replay after this contract fix still passes the answer
-  path: `faithfulness = 1.000`, `context_recall = 1.000`,
+- A focused `HYU_T3_072` store-fixed eval-only after structured row evidence
+  projection passes the answer and evaluator-visible entity path:
+  `faithfulness = 1.000`, `context_recall = 1.000`,
   `retrieval_hit_at_k = 1.000`, `citation_coverage = 1.000`,
-  `grounded_rendering_correctness = 1.000`, `avg_score = 0.912`.
-- `entity_coverage` remains `0.600` and `section_match_rate` remains `0.625`;
-  this is now an evidence-projection / evaluator-visibility signal rather than
-  the stale beginning-ownership annotation.
+  `entity_coverage = 1.000`, `grounded_rendering_correctness = 1.000`,
+  `avg_score = 0.910`.
+- The stale beginning-ownership annotation and the Motional evidence projection
+  gap are both closed; remaining metric movement in this single-question replay
+  is ranking/path variance.

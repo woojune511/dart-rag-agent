@@ -419,6 +419,8 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(candidate["metadata"]["row_label"], "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4")
         self.assertEqual(candidate["metadata"]["semantic_label"], "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4")
         self.assertEqual(candidate["metadata"]["structured_cells"][0]["value_text"], "2,526,280")
+        self.assertIn("\uc870\uc815\ud56d\ubaa9\uc5d0 \uc758\ud55c \ud569\uacc4", candidate["metadata"]["row_text"])
+        self.assertIn("\uacf5\uc2dc\uae08\uc561 2,526,280 \ucc9c\uc6d0", candidate["metadata"]["row_text"])
         self.assertTrue(
             _candidate_matches_operand(
                 candidate,
@@ -432,6 +434,128 @@ class OperationContractTests(unittest.TestCase):
                 },
             )
         )
+
+    def test_table_value_candidates_preserve_row_text_for_evidence_projection(self) -> None:
+        metadata = {
+            "unit_hint": "\ubc31\ub9cc\uc6d0",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "row_index": 3,
+                        "row_label": "Motional AD LLC (*1,11)",
+                        "semantic_label": "\uacf5\ub3d9\uae30\uc5c5\uc5d0 \ub300\ud55c \uc18c\uc720\uc9c0\ubd84\uc728",
+                        "row_headers": ["Motional AD LLC (*1,11)", "\ubbf8\uad6d"],
+                        "column_headers": ["\ub2f9\uae30"],
+                        "period_text": "2023",
+                        "value_text": "25.81",
+                        "unit_hint": "%",
+                    },
+                    {
+                        "row_index": 3,
+                        "row_label": "Motional AD LLC (*1,11)",
+                        "semantic_label": "\uacf5\ub3d9\uae30\uc5c5\uc5d0 \ub300\ud55c \ud22c\uc790\uc790\uc0b0",
+                        "row_headers": ["Motional AD LLC (*1,11)", "\ubbf8\uad6d"],
+                        "column_headers": ["\ub2f9\uae30"],
+                        "period_text": "2023",
+                        "value_text": "1,294,367",
+                        "unit_hint": "\ubc31\ub9cc\uc6d0",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        candidates = _build_table_row_reconciliation_candidates(
+            candidate_id_prefix="report:chunk",
+            anchor="[현대자동차 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+            table_text="",
+            metadata=metadata,
+        )
+
+        candidate = next(
+            item
+            for item in candidates
+            if item["candidate_kind"] == "structured_value"
+            and item["metadata"]["semantic_label"] == "\uacf5\ub3d9\uae30\uc5c5\uc5d0 \ub300\ud55c \uc18c\uc720\uc9c0\ubd84\uc728"
+        )
+        row_text = candidate["metadata"]["row_text"]
+        self.assertIn("Motional AD LLC (*1,11)", row_text)
+        self.assertIn("\ubbf8\uad6d", row_text)
+        self.assertIn("2023 25.81 %", row_text)
+        self.assertIn("2023 1,294,367 \ubc31\ub9cc\uc6d0", row_text)
+
+    def test_reconciliation_evidence_uses_structured_value_row_text(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "report_type": "annual",
+            "chunk_uid": "chunk_1",
+            "section_path": "Notes > Investments",
+            "table_value_records_json": json.dumps(
+                [
+                    {
+                        "row_index": 7,
+                        "row_label": "Entity Alpha LLC",
+                        "semantic_label": "Ownership ratio",
+                        "row_headers": ["Entity Alpha LLC", "United States"],
+                        "column_headers": ["Current"],
+                        "period_text": "2023",
+                        "value_text": "25.81",
+                        "unit_hint": "%",
+                    },
+                    {
+                        "row_index": 7,
+                        "row_label": "Entity Alpha LLC",
+                        "semantic_label": "Carrying amount",
+                        "row_headers": ["Entity Alpha LLC", "United States"],
+                        "column_headers": ["Current"],
+                        "period_text": "2023",
+                        "value_text": "1,294,367",
+                        "unit_hint": "million KRW",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        state = {
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {
+                        "label": "Ownership ratio",
+                        "role": "ownership_ratio",
+                        "unit_family": "PERCENT",
+                        "required": True,
+                    }
+                ],
+            },
+            "retrieved_docs": [(Document(page_content="", metadata=metadata), 0.1)],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {
+                "status": "ready",
+                "matched_operands": [
+                    {
+                        "label": "Ownership ratio",
+                        "role": "ownership_ratio",
+                        "matched": True,
+                        "candidate_ids": ["chunk_1::value:0"],
+                    }
+                ],
+            },
+        }
+
+        evidence = agent._evidence_items_from_reconciliation_matches(state)
+
+        self.assertEqual(len(evidence), 1)
+        self.assertIn("Entity Alpha LLC", evidence[0]["quote_span"])
+        self.assertIn("United States", evidence[0]["quote_span"])
+        self.assertIn("2023 25.81 %", evidence[0]["quote_span"])
+        self.assertIn("2023 1,294,367 million KRW", evidence[0]["quote_span"])
+        self.assertEqual(evidence[0]["raw_row_text"], evidence[0]["quote_span"])
 
     def test_inventory_loss_ontology_removes_ambiguous_reversal_aliases(self) -> None:
         concept = self.ontology.concept("inventory_valuation_loss") or {}
@@ -4218,6 +4342,24 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(projection["calculation_result"]["answer_slots"]["operation_family"], "lookup")
         self.assertIn("investment_carrying_amount", projection["calculation_result"]["answer_slots"]["components_by_role"])
         self.assertTrue(projection["calculation_result"]["source_row_ids"])
+        evidence_text = "\n".join(
+            str(item.get("quote_span") or item.get("raw_row_text") or "")
+            for item in result.get("evidence_items") or []
+        )
+        self.assertIn("Motional AD LLC", evidence_text)
+        self.assertIn("25.81%", evidence_text)
+        self.assertIn("1,294,367", evidence_text)
+        self.assertIn("계속영업손실", evidence_text)
+        self.assertIn("총포괄손실", evidence_text)
+        self.assertIn("(803,742)", evidence_text)
+        self.assertIn("(791,627)", evidence_text)
+        self.assertTrue(
+            any(
+                " / " in str(item.get("quote_span") or item.get("raw_row_text") or "")
+                and "Motional AD LLC" in str(item.get("quote_span") or item.get("raw_row_text") or "")
+                for item in result.get("evidence_items") or []
+            )
+        )
 
     def test_business_technology_focus_answer_preserves_harman_required_facets(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

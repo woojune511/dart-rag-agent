@@ -244,6 +244,9 @@ Current gate status:
 - `HYU_T3_072` is closed in the latest targeted smoke:
   - answer covers Motional `25.81%`, `1,294,367백만원`, 계속영업손실
     `(803,742)백만원`, 총포괄손실 `(791,627)백만원`
+  - structured row evidence projection now surfaces the selected slot labels and
+    values in runtime evidence, closing `entity_coverage = 1.0` in focused
+    store-fixed eval-only.
   - `faithfulness = 1.0`
   - `raw_faithfulness = 0.5`
   - `faithfulness_override_reason = structured summary 계산/렌더링 검증이 충분해 faithfulness를 1.0으로 보정`
@@ -251,7 +254,7 @@ Current gate status:
   - `retrieval_hit_at_k = 1.0`
   - `grounded_rendering_correctness = 1.0`
   - `calculation_correctness = 1.0`
-  - `avg_score = 0.912`
+  - `avg_score = 0.910` in the latest store-fixed replay
 - These smoke checks use the official structural collection name
   `dart_reports_v2_structural-selective-v2-prefix-2500-320`.
 - The raw rerun directory is a local benchmark artifact and should not be

@@ -76,8 +76,9 @@
   - `HYU_T3_072`도 post-patch targeted smoke에서 now closed다.
     - 답변은 Motional의 기말 지분율 `25.81%`, 투자장부금액 `1,294,367백만원`, 계속영업손실 `(803,742)백만원`, 총포괄손실 `(791,627)백만원`을 포함한다.
     - dataset의 required entity와 ground-truth evidence quote도 기말 기준 `25.81%`로 정렬했다. 기초 지분율 `25.92%`는 notes/selection context에만 남기고, 평가 필수 엔티티로는 요구하지 않는다.
-    - 수정 후 focused one-question replay에서도 answer path는 유지됐다: `faithfulness = 1.0`, `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`, `grounded_rendering_correctness = 1.0`, `avg_score = 0.912`. `entity_coverage = 0.600`은 Motional entity / 손익 라벨의 evaluator-visible evidence projection 쪽 잔여 신호다.
-    - latest targeted smoke:
+    - dataset contract fix 직후에는 answer path만 닫혔고 `entity_coverage = 0.600`이 evidence projection 잔여 신호로 남았지만, 이후 structured row evidence projection으로 이 잔여 신호도 닫혔다.
+    - focused store-fixed eval-only after structured row evidence projection now surfaces Motional slot labels in evaluator-visible evidence: `faithfulness = 1.0`, `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`, `grounded_rendering_correctness = 1.0`, `entity_coverage = 1.0`, `avg_score = 0.910`.
+    - previous targeted smoke:
       - `faithfulness = 1.0`
       - `completeness = 1.0`
       - `retrieval_hit_at_k = 1.0`
@@ -505,21 +506,19 @@
   - residual issue is not the visible answer or calculation trace; it is the
     remaining entity/evidence coverage threshold used by the hybrid
     faithfulness override.
-- `HYU_T3_072` is not closed yet.
-  - deterministic entity-table composition now recovers the correct visible
-    answer again:
-    - `25.81%`
-    - `1,294,367백만원`
-    - `계속영업손실 (803,742)백만원`
-    - `총포괄손실 (791,627)백만원`
-  - current focused metrics still show evaluator-side grounding gaps:
-    - `faithfulness = 0.0`
-    - `context_recall = 0.5`
-    - `entity_coverage = 0.4`
-    - `grounded_rendering_correctness = 0.0`
-  - next work should inspect how the retrieved Motional context/evidence and
-    entity-table projection are represented to the evaluator, rather than
-    changing the answer wording alone.
+- `HYU_T3_072` is closed at focused store-fixed eval-only level after structured
+  row evidence projection.
+  - deterministic entity-table composition recovers the correct visible answer:
+    `25.81%`, `1,294,367백만원`, `계속영업손실 (803,742)백만원`, and
+    `총포괄손실 (791,627)백만원`.
+  - projected runtime evidence now includes the selected Motional slot
+    label/value surfaces, so the focused replay reports `entity_coverage = 1.0`,
+    `faithfulness = 1.0`, `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    and `grounded_rendering_correctness = 1.0`.
+  - latest store-fixed replay still shows ranking/path variance
+    (`section_match_rate = 0.625`, `avg_score = 0.910`), so next broader work
+    should treat this as retrieval/ranking stability rather than answer
+    selection or evidence projection.
 - Validation commands used during this pass:
   - `.\.venv\Scripts\python.exe -m py_compile src\agent\financial_graph_evidence.py src\agent\financial_graph_calculation.py tests\test_operation_contracts.py`
   - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts`
