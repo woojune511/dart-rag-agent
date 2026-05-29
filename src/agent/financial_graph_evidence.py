@@ -345,6 +345,12 @@ class FinancialAgentEvidenceMixin:
         dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
         driver_groups = self._narrative_driver_groups(query)
         query_focus_markers = self._query_focus_markers(query)
+        active_subtask = dict(state.get("active_subtask") or {})
+        format_preference = str(
+            active_subtask.get("format_preference_override")
+            or state.get("format_preference")
+            or ""
+        ).strip().lower()
 
         def _doc_surface(doc: Document) -> str:
             metadata = doc.metadata or {}
@@ -492,6 +498,40 @@ class FinancialAgentEvidenceMixin:
             return priority, float(score)
 
         entity_slot_groups = _active_policy_slot_groups()
+        focus_groups = [
+            group
+            for group in driver_groups
+            if bool(group.get("query_focus")) and list(group.get("variants") or [])
+        ]
+        table_first_focus_query = bool(format_preference == "table" and focus_groups)
+
+        def _focus_table_priority(item: Any) -> int:
+            doc = item[0] if isinstance(item, (tuple, list)) else item
+            metadata = getattr(doc, "metadata", {}) or {}
+            if str(metadata.get("block_type") or "").strip().lower() != "table":
+                return 0
+            return max(
+                (
+                    _focus_candidate_priority(item, list(group.get("variants") or []))[0]
+                    for group in focus_groups
+                    if list(group.get("variants") or [])
+                ),
+                default=0,
+            )
+
+        focus_table_fill_limit = 0
+        if entity_slot_groups and focus_groups:
+            focus_table_fill_limit = min(
+                effective_k,
+                max(2, len(entity_slot_groups)),
+            )
+        elif focus_groups:
+            focus_table_fill_limit = min(effective_k, 2)
+        driver_focus_table_limit = min(effective_k, 2) if focus_groups else 0
+
+        def _selected_focus_table_count() -> int:
+            return sum(1 for item in selected if _focus_table_priority(item) > 0)
+
         paragraph_candidates = []
         remainder = []
         for item in reranked:
@@ -503,21 +543,22 @@ class FinancialAgentEvidenceMixin:
                 remainder.append(item)
 
         paragraph_limit = min(max(effective_k // 2, 3), effective_k)
-        if entity_slot_groups:
-            paragraph_limit = min(1, effective_k)
+        if entity_slot_groups or table_first_focus_query:
+            paragraph_limit = 0
         paragraph_candidates.sort(key=_paragraph_priority, reverse=True)
         selected = []
         seen_chunk_ids = set()
-        for item in paragraph_candidates:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-            if chunk_id and chunk_id in seen_chunk_ids:
-                continue
-            selected.append(item)
-            if chunk_id:
-                seen_chunk_ids.add(chunk_id)
-            if len(selected) >= paragraph_limit:
-                break
+        if paragraph_limit > 0:
+            for item in paragraph_candidates:
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                if chunk_id and chunk_id in seen_chunk_ids:
+                    continue
+                selected.append(item)
+                if chunk_id:
+                    seen_chunk_ids.add(chunk_id)
+                if len(selected) >= paragraph_limit:
+                    break
 
         for group in driver_groups:
             variants = list(group.get("variants") or [])
@@ -544,6 +585,12 @@ class FinancialAgentEvidenceMixin:
                 key=lambda candidate: _focus_candidate_priority(candidate, variants),
                 reverse=True,
             )[0]
+            if (
+                driver_focus_table_limit
+                and _focus_table_priority(best_item) > 0
+                and _selected_focus_table_count() >= driver_focus_table_limit
+            ):
+                continue
             selected.append(best_item)
             best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
             best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
@@ -551,11 +598,6 @@ class FinancialAgentEvidenceMixin:
                 seen_chunk_ids.add(best_chunk_id)
 
         if entity_slot_groups:
-            focus_groups = [
-                group
-                for group in driver_groups
-                if bool(group.get("query_focus")) and list(group.get("variants") or [])
-            ]
             for group in focus_groups:
                 variants = list(group.get("variants") or [])
                 for slot_group in entity_slot_groups:
@@ -594,6 +636,15 @@ class FinancialAgentEvidenceMixin:
                         replacement_index = index
                         break
                     if replacement_index is None:
+                        if any(
+                            _doc_matches_entity_slot(
+                                selected_item[0] if isinstance(selected_item, (tuple, list)) else selected_item,
+                                variants,
+                                slot_group,
+                            )
+                            for selected_item in selected
+                        ):
+                            continue
                         selected.append(best_item)
                     else:
                         old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
@@ -604,6 +655,87 @@ class FinancialAgentEvidenceMixin:
                     best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
                     if best_chunk_id:
                         seen_chunk_ids.add(best_chunk_id)
+
+            table_fill_candidates = []
+            for item in reranked:
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                metadata = getattr(doc, "metadata", {}) or {}
+                chunk_id = str(metadata.get("chunk_id") or "")
+                if chunk_id and chunk_id in seen_chunk_ids:
+                    continue
+                if str(metadata.get("block_type") or "").strip().lower() != "table":
+                    continue
+                surfaces_match = False
+                for group in focus_groups:
+                    variants = list(group.get("variants") or [])
+                    if not variants:
+                        continue
+                    if any(
+                        _doc_matches_entity_slot(doc, variants, slot_group)
+                        for slot_group in entity_slot_groups
+                    ):
+                        surfaces_match = True
+                        break
+                if not surfaces_match:
+                    continue
+                table_fill_candidates.append(item)
+            for item in sorted(
+                table_fill_candidates,
+                key=lambda candidate: max(
+                    (
+                        _focus_candidate_priority(candidate, list(group.get("variants") or []))
+                        for group in focus_groups
+                        if list(group.get("variants") or [])
+                    ),
+                    default=(0, float(candidate[1] if isinstance(candidate, (tuple, list)) and len(candidate) > 1 else 0.0)),
+                ),
+                reverse=True,
+            ):
+                if focus_table_fill_limit and _selected_focus_table_count() >= focus_table_fill_limit:
+                    break
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                if chunk_id and chunk_id in seen_chunk_ids:
+                    continue
+                selected.append(item)
+                if chunk_id:
+                    seen_chunk_ids.add(chunk_id)
+
+        if table_first_focus_query and not entity_slot_groups:
+            table_fill_candidates = []
+            for item in reranked:
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                metadata = getattr(doc, "metadata", {}) or {}
+                chunk_id = str(metadata.get("chunk_id") or "")
+                if chunk_id and chunk_id in seen_chunk_ids:
+                    continue
+                if str(metadata.get("block_type") or "").strip().lower() != "table":
+                    continue
+                priority = _focus_table_priority(item)
+                if priority <= 0:
+                    continue
+                table_fill_candidates.append(item)
+            for item in sorted(
+                table_fill_candidates,
+                key=lambda candidate: max(
+                    (
+                        _focus_candidate_priority(candidate, list(group.get("variants") or []))
+                        for group in focus_groups
+                        if list(group.get("variants") or [])
+                    ),
+                    default=(0, float(candidate[1] if isinstance(candidate, (tuple, list)) and len(candidate) > 1 else 0.0)),
+                ),
+                reverse=True,
+            ):
+                if focus_table_fill_limit and _selected_focus_table_count() >= focus_table_fill_limit:
+                    break
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                if chunk_id and chunk_id in seen_chunk_ids:
+                    continue
+                selected.append(item)
+                if chunk_id:
+                    seen_chunk_ids.add(chunk_id)
 
         quantitative_impact_query = any(marker in query for marker in QUANTITATIVE_IMPACT_QUERY_TERMS)
         if quantitative_impact_query:
@@ -678,6 +810,12 @@ class FinancialAgentEvidenceMixin:
             doc = item[0] if isinstance(item, (tuple, list)) else item
             chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
             if chunk_id and chunk_id in seen_chunk_ids:
+                continue
+            if (
+                focus_table_fill_limit
+                and _focus_table_priority(item) > 0
+                and _selected_focus_table_count() >= focus_table_fill_limit
+            ):
                 continue
             selected.append(item)
             if chunk_id:
@@ -1895,6 +2033,14 @@ class FinancialAgentEvidenceMixin:
 
                 if not raw_value:
                     continue
+
+                inline_unit_match = re.fullmatch(
+                    r"(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|백만원|천원|원)",
+                    raw_value,
+                )
+                if inline_unit_match and not re.search(r"\(\s*" + re.escape(raw_value), raw_row):
+                    raw_value = inline_unit_match.group("value")
+                    raw_unit = raw_unit or inline_unit_match.group("unit")
 
                 if not raw_unit:
                     if "조" in raw_value or "억" in raw_value:

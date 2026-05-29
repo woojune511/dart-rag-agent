@@ -49,6 +49,7 @@ from src.agent.financial_graph_helpers import (
     _supplement_section_terms_for_query,
 )
 from src.agent.financial_graph_models import EvidenceExtraction
+from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
 
@@ -3531,6 +3532,87 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertIn("investment-table", chunk_ids)
         self.assertIn("summary-profit-loss-table", chunk_ids)
+
+    def test_entity_metric_narrative_task_prefers_table_format(self) -> None:
+        task = _build_hybrid_narrative_subtask(
+            query="2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            intent="numeric_fact",
+            report_scope={"company": "현대자동차", "year": 2023},
+            next_task_id="task_2",
+        )
+
+        self.assertEqual(task["format_preference_override"], "table")
+
+    def test_entity_metric_doc_selection_fills_with_slot_tables_before_generic_paragraphs(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        reranked = [
+            (
+                Document(
+                    page_content="일반 경영진단 문단",
+                    metadata={
+                        "chunk_id": "generic-mda",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                1.20,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "기업명 | 주요영업활동 | 소재지 | 소유지분율 | 투자자산\n"
+                        "Motional AD LLC | 자율주행 소프트웨어 개발 | 미국 | 25.81% | 1,294,367"
+                    ),
+                    metadata={
+                        "chunk_id": "motional-investment",
+                        "block_type": "table",
+                        "section_path": "III. 재무에 관한 사항 > 5. 재무제표 주석",
+                        "consolidation_scope": "separate",
+                        "period_focus": "current",
+                    },
+                ),
+                0.70,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "회사명 | 계속영업손실 | 총포괄손실\n"
+                        "Motional AD LLC | (803,742) | (791,627)"
+                    ),
+                    metadata={
+                        "chunk_id": "motional-profit-loss",
+                        "block_type": "table",
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                ),
+                0.60,
+            ),
+            (
+                Document(
+                    page_content="Motional AD LLC 이름만 있는 헤더 표",
+                    metadata={
+                        "chunk_id": "motional-header-only",
+                        "block_type": "table",
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    },
+                ),
+                0.90,
+            ),
+        ]
+        state = {
+            "query": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+            "active_subtask": {"operation_family": "narrative_summary", "format_preference_override": "table"},
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("motional-investment", chunk_ids)
+        self.assertIn("motional-profit-loss", chunk_ids)
+        self.assertNotIn("generic-mda", chunk_ids[:2])
+        self.assertNotIn("motional-header-only", chunk_ids)
 
     def test_narrative_summary_doc_selection_prefers_dividend_policy_sections(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

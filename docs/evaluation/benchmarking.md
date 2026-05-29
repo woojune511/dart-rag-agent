@@ -1543,3 +1543,10 @@ Dataset contract follow-up:
 - The stale beginning-ownership annotation and the Motional evidence projection
   gap are both closed; remaining metric movement in this single-question replay
   is ranking/path variance.
+- A follow-up `HYU_T3_072` store-fixed eval-only with narrative table-focus
+  selection reduces that ranking/path variance without adding runtime
+  benchmark strings: `ndcg_at_5 = 0.931`, `context_precision_at_5 = 0.600`,
+  `faithfulness = 1.000`, `context_recall = 1.000`,
+  `retrieval_hit_at_k = 1.000`, `citation_coverage = 1.000`,
+  `entity_coverage = 1.000`, `grounded_rendering_correctness = 1.000`,
+  `avg_score = 0.889`, `error_rate = 0.0%`.

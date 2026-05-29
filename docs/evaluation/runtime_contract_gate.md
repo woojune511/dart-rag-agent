@@ -255,6 +255,11 @@ Current gate status:
   - `grounded_rendering_correctness = 1.0`
   - `calculation_correctness = 1.0`
   - `avg_score = 0.910` in the latest store-fixed replay
+  - follow-up narrative table-focus replay: `ndcg_at_5 = 0.931`,
+    `context_precision_at_5 = 0.600`, `entity_coverage = 1.0`,
+    `grounded_rendering_correctness = 1.0`, `avg_score = 0.889`.
+    This uses table/numeric intent format inheritance and declarative slot/focus
+    coverage rather than new runtime benchmark strings.
 - These smoke checks use the official structural collection name
   `dart_reports_v2_structural-selective-v2-prefix-2500-320`.
 - The raw rerun directory is a local benchmark artifact and should not be

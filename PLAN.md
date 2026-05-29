@@ -72,6 +72,20 @@
     least one table in small visible windows and leaves table hits before
     supplemental paragraphs, reducing path noise where paragraph scores dominate
     a numeric/table query.
+  - Follow-up narrative table-focus guard: hybrid narrative subtasks spawned
+    from table/numeric intents now keep `format_preference = table`, and
+    narrative evidence selection uses declarative slot/focus coverage to place
+    the Motional investment/detail and profit-loss tables before generic
+    paragraphs without adding benchmark-specific runtime strings.
+  - Focused store-fixed eval-only after this guard:
+    `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `ndcg_at_5 = 0.931`,
+    `context_precision_at_5 = 0.600`, `section_match_rate = 0.500`,
+    `citation_coverage = 1.000`, `entity_coverage = 1.000`,
+    `grounded_rendering_correctness = 1.000`, `avg_score = 0.889`.
+  - Compared with the prior focused replay, the remaining issue moved from
+    answer/evidence projection to broader section precision; table ranking is
+    now stable enough for the Motional answer path.
 
 ## 2026-05-29 Immediate Update
 

@@ -28,6 +28,7 @@ from src.config.retrieval_policy import (
     active_narrative_policies,
     narrative_policy_preferred_sections,
     narrative_policy_query_suffixes,
+    narrative_policy_slot_groups,
 )
 from src.routing import default_format_preference
 from src.schema import ArtifactKind, TaskKind, TaskStatus
@@ -348,12 +349,18 @@ def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
 def _build_hybrid_narrative_subtask(
     *,
     query: str,
+    intent: str = "qa",
     report_scope: Dict[str, Any],
     next_task_id: str,
 ) -> Dict[str, Any]:
     consolidation_scope = _desired_consolidation_scope(query, report_scope)
     period_focus = _infer_period_focus(query, "unknown")
     active_policies = active_narrative_policies(query)
+    active_slot_groups = [
+        group
+        for group in narrative_policy_slot_groups(active_policies)
+        if any(str(term).strip() and str(term).strip() in query for term in (group.get("query_terms") or []))
+    ]
     retrieval_queries = [_normalise_spaces(query)]
     retrieval_queries.extend(
         _normalise_spaces(f"{query} {suffix}")
@@ -378,7 +385,11 @@ def _build_hybrid_narrative_subtask(
             "context_scope": "narrative",
         },
         "intent_override": "qa",
-        "format_preference_override": "paragraph",
+        "format_preference_override": (
+            "table"
+            if active_slot_groups or default_format_preference(intent) == "table"
+            else "paragraph"
+        ),
     }
 
 
@@ -414,6 +425,7 @@ def _append_hybrid_narrative_task(
     base_tasks.append(
         _build_hybrid_narrative_subtask(
             query=query,
+            intent=intent,
             report_scope=report_scope,
             next_task_id=f"task_{next_index}",
         )
