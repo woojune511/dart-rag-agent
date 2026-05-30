@@ -225,6 +225,7 @@ class FinancialAgentContextualMixin:
         self,
         chunks: List,
         on_progress=None,
+        on_store_progress=None,
         max_workers: Optional[int] = None,
         batch_size: Optional[int] = None,
         resume_partial_store: bool = False,
@@ -315,6 +316,7 @@ class FinancialAgentContextualMixin:
             metadatas,
             resume=resume_partial_store,
             batch_size=resume_batch_size,
+            on_progress=on_store_progress,
         )
 
         result = {

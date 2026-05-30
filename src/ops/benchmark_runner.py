@@ -13,10 +13,11 @@ import json
 import logging
 import shutil
 import sys
+import threading
 import time
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -69,6 +70,184 @@ ABSTENTION_MARKERS = (
 )
 RISK_FAILURE_MARKERS = ("찾지 못", "확인하기 어렵", "확인할 수 없", "명시되지")
 BENCHMARK_CACHE_SCHEMA_VERSION = 2
+
+
+class _BenchmarkProgressReporter:
+    """Emit coarse benchmark heartbeat logs without controlling process lifetime."""
+
+    def __init__(
+        self,
+        *,
+        heartbeat_sec: int = 0,
+        heartbeat_log: Optional[Path] = None,
+        log: Optional[logging.Logger] = None,
+    ) -> None:
+        self.heartbeat_sec = max(0, int(heartbeat_sec or 0))
+        self.heartbeat_log = heartbeat_log
+        self.log = log or logger
+        self.started_at = time.time()
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        self._state: Dict[str, Any] = {
+            "phase": "initializing",
+            "current": None,
+            "total": None,
+            "details": {},
+            "last_update_at": self.started_at,
+        }
+
+    def __enter__(self) -> "_BenchmarkProgressReporter":
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.stop(status="failed" if exc_type else "completed")
+
+    @property
+    def enabled(self) -> bool:
+        return self.heartbeat_sec > 0 or self.heartbeat_log is not None
+
+    def start(self) -> None:
+        if not self.enabled:
+            return
+        if self.heartbeat_log is not None:
+            self.heartbeat_log.parent.mkdir(parents=True, exist_ok=True)
+        self._emit("started")
+        if self.heartbeat_sec > 0:
+            self._thread = threading.Thread(
+                target=self._heartbeat_worker,
+                name="benchmark-runner-heartbeat",
+                daemon=True,
+            )
+            self._thread.start()
+
+    def stop(self, *, status: str = "completed") -> None:
+        if not self.enabled:
+            return
+        self.update(status=status, emit_now=True)
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+
+    def update(
+        self,
+        phase: Optional[str] = None,
+        current: Optional[int] = None,
+        total: Optional[int] = None,
+        *,
+        emit_now: bool = False,
+        **details: Any,
+    ) -> None:
+        if not self.enabled:
+            return
+        with self._lock:
+            if phase is not None:
+                self._state["phase"] = str(phase)
+            if current is not None:
+                self._state["current"] = int(current)
+            if total is not None:
+                self._state["total"] = int(total)
+            merged_details = dict(self._state.get("details") or {})
+            merged_details.update({key: _stringify_progress_value(value) for key, value in details.items()})
+            self._state["details"] = merged_details
+            self._state["last_update_at"] = time.time()
+            should_emit = emit_now or (
+                current is not None
+                and total is not None
+                and int(total) > 0
+                and int(current) >= int(total)
+            )
+        if should_emit:
+            self._emit("progress")
+
+    def context_progress(self, phase: str) -> Callable[[int, int], None]:
+        def _callback(current: int, total: int) -> None:
+            self.update(phase, current, total)
+
+        return _callback
+
+    def _heartbeat_worker(self) -> None:
+        while not self._stop.wait(self.heartbeat_sec):
+            self._emit("heartbeat")
+
+    def _snapshot(self, event: str) -> Dict[str, Any]:
+        now = time.time()
+        with self._lock:
+            state = dict(self._state)
+            details = dict(state.get("details") or {})
+        watch_summary = _progress_watch_path_summary(details.get("watch_paths") or [])
+        payload = {
+            "event": event,
+            "phase": state.get("phase"),
+            "current": state.get("current"),
+            "total": state.get("total"),
+            "elapsed_sec": round(now - self.started_at, 3),
+            "seconds_since_update": round(now - float(state.get("last_update_at") or self.started_at), 3),
+            "details": details,
+        }
+        if watch_summary:
+            payload["watch_paths"] = watch_summary
+        return payload
+
+    def _emit(self, event: str) -> None:
+        payload = self._snapshot(event)
+        self.log.info(
+            "[heartbeat] event=%s phase=%s progress=%s/%s elapsed=%.1fs idle=%.1fs details=%s",
+            payload["event"],
+            payload["phase"],
+            payload["current"] if payload["current"] is not None else "-",
+            payload["total"] if payload["total"] is not None else "-",
+            payload["elapsed_sec"],
+            payload["seconds_since_update"],
+            payload["details"],
+        )
+        if self.heartbeat_log is not None:
+            with open(self.heartbeat_log, "a", encoding="utf-8") as file:
+                file.write(json.dumps(payload, ensure_ascii=False, default=str) + "\n")
+
+
+def _stringify_progress_value(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, (list, tuple, set)):
+        return [_stringify_progress_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _stringify_progress_value(item) for key, item in value.items()}
+    return value
+
+
+def _progress_watch_path_summary(paths: Iterable[Any]) -> Dict[str, Any]:
+    latest_path = ""
+    latest_mtime = 0.0
+    existing_count = 0
+    for raw_path in paths:
+        path = Path(str(raw_path))
+        if not path.exists():
+            continue
+        existing_count += 1
+        candidates = [path] if path.is_file() else []
+        if path.is_dir():
+            try:
+                candidates.extend(item for item in path.rglob("*") if item.is_file())
+            except OSError:
+                pass
+        for candidate in candidates:
+            try:
+                mtime = candidate.stat().st_mtime
+            except OSError:
+                continue
+            if mtime >= latest_mtime:
+                latest_mtime = mtime
+                latest_path = str(candidate)
+    if not existing_count:
+        return {}
+    return {
+        "existing_count": existing_count,
+        "latest_path": latest_path,
+        "latest_mtime": latest_mtime,
+        "latest_age_sec": round(time.time() - latest_mtime, 3) if latest_mtime else None,
+    }
 
 
 def _normalise_company_name(value: str) -> str:
@@ -588,6 +767,12 @@ def _restore_store_from_context_cache(vsm: VectorStoreManager, context_cache: Di
         "stored_parent_chunks": len(parents),
         "restored_documents": len(texts),
     }
+
+
+def _store_progress_callback(progress_reporter: Optional[_BenchmarkProgressReporter], phase: str):
+    if progress_reporter is None:
+        return None
+    return progress_reporter.context_progress(phase)
 
 
 def _resolve_boolean_config(config: Dict[str, Any], key: str, default: bool) -> bool:
@@ -1595,6 +1780,7 @@ def _benchmark_parent_only_ingest(
     chunks: List[Any],
     *,
     on_progress=None,
+    on_store_progress=None,
     max_workers: Optional[int] = None,
     batch_size: Optional[int] = None,
     resume_partial_store: bool = False,
@@ -1639,6 +1825,7 @@ def _benchmark_parent_only_ingest(
         metadatas,
         resume=resume_partial_store,
         batch_size=resume_batch_size,
+        on_progress=on_store_progress,
     )
 
     result = _merge_resume_metrics(
@@ -1669,6 +1856,7 @@ def _benchmark_parent_hybrid_ingest(
     chunks: List[Any],
     *,
     on_progress=None,
+    on_store_progress=None,
     max_workers: Optional[int] = None,
     batch_size: Optional[int] = None,
     short_text_threshold: int = 700,
@@ -1746,6 +1934,7 @@ def _benchmark_parent_hybrid_ingest(
         metadatas,
         resume=resume_partial_store,
         batch_size=resume_batch_size,
+        on_progress=on_store_progress,
     )
 
     result = _merge_resume_metrics(
@@ -1784,6 +1973,7 @@ def _benchmark_selective_ingest(
     chunks: List[Any],
     *,
     on_progress=None,
+    on_store_progress=None,
     max_workers: Optional[int] = None,
     batch_size: Optional[int] = None,
     short_text_threshold: int = 900,
@@ -1825,6 +2015,7 @@ def _benchmark_selective_ingest(
         metadatas,
         resume=resume_partial_store,
         batch_size=resume_batch_size,
+        on_progress=on_store_progress,
     )
 
     result = _merge_resume_metrics(
@@ -1855,6 +2046,7 @@ def _benchmark_selective_v2_ingest(
     chunks: List[Any],
     *,
     on_progress=None,
+    on_store_progress=None,
     max_workers: Optional[int] = None,
     batch_size: Optional[int] = None,
     short_text_threshold: int = 700,
@@ -1903,6 +2095,7 @@ def _benchmark_selective_v2_ingest(
         metadatas,
         resume=resume_partial_store,
         batch_size=resume_batch_size,
+        on_progress=on_store_progress,
     )
 
     result = _merge_resume_metrics(
@@ -1933,6 +2126,7 @@ def _benchmark_structural_selective_v2_ingest(
     agent: FinancialAgent,
     chunks: List[Any],
     *,
+    on_store_progress=None,
     short_text_threshold: int = 700,
     targeted_sections: Optional[List[str]] = None,
     short_table_threshold: int = 1600,
@@ -1964,6 +2158,7 @@ def _benchmark_structural_selective_v2_ingest(
         metadatas,
         resume=resume_partial_store,
         batch_size=resume_batch_size,
+        on_progress=on_store_progress,
     )
 
     result = _merge_resume_metrics(
@@ -2002,6 +2197,7 @@ def _benchmark_structural_parent_hybrid_v2_ingest(
     agent: FinancialAgent,
     chunks: List[Any],
     *,
+    on_store_progress=None,
     short_text_threshold: int = 700,
     targeted_sections: Optional[List[str]] = None,
     short_table_threshold: int = 1600,
@@ -2038,6 +2234,7 @@ def _benchmark_structural_parent_hybrid_v2_ingest(
         metadatas,
         resume=resume_partial_store,
         batch_size=resume_batch_size,
+        on_progress=on_store_progress,
     )
 
     result = _merge_resume_metrics(
@@ -3167,6 +3364,7 @@ def _run_ingest(
     chunks: List[Any],
     config: Dict[str, Any],
     *,
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
     return_artifacts: bool = False,
 ) -> Dict[str, Any]:
     ingest_mode = str(config.get("ingest_mode", CANONICAL_INGEST_MODE))
@@ -3174,9 +3372,13 @@ def _run_ingest(
     batch_size = int(config.get("batch_size", DEFAULT_CONTEXT_BATCH_SIZE))
     resume_partial_store = bool(config.get("resume_partial_store", True))
     resume_batch_size = int(config.get("resume_batch_size", 64))
+    context_progress = progress_reporter.context_progress("ingest:context") if progress_reporter else None
+    store_progress = _store_progress_callback(progress_reporter, "ingest:store")
     if ingest_mode == "plain":
         started_at = time.perf_counter()
         metadatas = [chunk.metadata for chunk in chunks]
+        if progress_reporter:
+            progress_reporter.update("ingest:store", 0, len(chunks), emit_now=True)
         if bool(config.get("use_zero_cost_prefix", False)):
             texts = [_build_zero_cost_prefixed_text(chunk.metadata, chunk.content) for chunk in chunks]
             add_metrics = agent.vsm.add_documents(
@@ -3184,6 +3386,7 @@ def _run_ingest(
                 metadatas,
                 resume=resume_partial_store,
                 batch_size=resume_batch_size,
+                on_progress=store_progress,
             )
         else:
             texts = [chunk.content for chunk in chunks]
@@ -3192,6 +3395,7 @@ def _run_ingest(
                 metadatas,
                 resume=resume_partial_store,
                 batch_size=resume_batch_size,
+                on_progress=store_progress,
             )
         metrics = _merge_resume_metrics(
             _build_plain_ingest_metrics(len(chunks), time.perf_counter() - started_at),
@@ -3208,6 +3412,8 @@ def _run_ingest(
     if ingest_mode in {"contextual", "contextual_all"}:
         metrics = agent.benchmark_contextual_ingest(
             chunks,
+            on_progress=context_progress,
+            on_store_progress=store_progress,
             max_workers=max_workers,
             batch_size=batch_size,
             resume_partial_store=resume_partial_store,
@@ -3221,6 +3427,8 @@ def _run_ingest(
         return _benchmark_parent_only_ingest(
             agent,
             chunks,
+            on_progress=context_progress,
+            on_store_progress=store_progress,
             max_workers=max_workers,
             batch_size=batch_size,
             resume_partial_store=resume_partial_store,
@@ -3231,6 +3439,8 @@ def _run_ingest(
         return _benchmark_parent_hybrid_ingest(
             agent,
             chunks,
+            on_progress=context_progress,
+            on_store_progress=store_progress,
             max_workers=max_workers,
             batch_size=batch_size,
             short_text_threshold=int(config.get("parent_hybrid_short_text_threshold", 700)),
@@ -3243,6 +3453,8 @@ def _run_ingest(
         return _benchmark_selective_ingest(
             agent,
             chunks,
+            on_progress=context_progress,
+            on_store_progress=store_progress,
             max_workers=max_workers,
             batch_size=batch_size,
             short_text_threshold=int(config.get("selective_short_text_threshold", 900)),
@@ -3255,6 +3467,8 @@ def _run_ingest(
         return _benchmark_selective_v2_ingest(
             agent,
             chunks,
+            on_progress=context_progress,
+            on_store_progress=store_progress,
             max_workers=max_workers,
             batch_size=batch_size,
             short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
@@ -3269,6 +3483,7 @@ def _run_ingest(
         return _benchmark_structural_selective_v2_ingest(
             agent,
             chunks,
+            on_store_progress=store_progress,
             short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
             targeted_sections=list(config.get("selective_v2_sections", [])),
             short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
@@ -3280,6 +3495,7 @@ def _run_ingest(
         return _benchmark_structural_parent_hybrid_v2_ingest(
             agent,
             chunks,
+            on_store_progress=store_progress,
             short_text_threshold=int(config.get("selective_v2_short_text_threshold", 700)),
             targeted_sections=list(config.get("selective_v2_sections", [])),
             short_table_threshold=int(config.get("selective_v2_short_table_threshold", 1600)),
@@ -3295,9 +3511,12 @@ def run_screening_experiment(
     output_root: Path,
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
 ) -> Dict[str, Any]:
     experiment_id = config["id"]
     report_path = _normalise_path(config["report_path"])
+    if progress_reporter:
+        progress_reporter.update("screening:prepare", experiment_id=experiment_id, emit_now=True)
 
     metadata = dict(config["metadata"])
     screening_examples = _select_eval_examples(config, metadata)
@@ -3312,6 +3531,14 @@ def run_screening_experiment(
     reuse_context_cache = _resolve_boolean_config(config_with_inventory, "reuse_context_cache", True)
     resume_partial_store = _resolve_boolean_config(config_with_inventory, "resume_partial_store", True)
     allow_retrieval_fallback = _resolve_boolean_config(config_with_inventory, "allow_retrieval_fallback", False)
+    if progress_reporter:
+        progress_reporter.update(
+            "screening:store_prepare",
+            experiment_id=experiment_id,
+            persist_dir=persist_dir,
+            watch_paths=[persist_dir, context_cache_path],
+            emit_now=True,
+        )
 
     collection_name = config_with_inventory.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
     store_signature = _build_store_signature(config_with_inventory, collection_name)
@@ -3389,6 +3616,8 @@ def run_screening_experiment(
     cache_level = "none"
 
     if store_cache_hit:
+        if progress_reporter:
+            progress_reporter.update("screening:store_cache_hit", experiment_id=experiment_id, emit_now=True)
         parse_info = cache_meta.get("parse", {})
         parse_elapsed = float(parse_info.get("elapsed_sec", 0.0) or 0.0)
         chunk_count = int(parse_info.get("chunk_count", 0) or 0)
@@ -3404,6 +3633,8 @@ def run_screening_experiment(
             },
         )
     elif reuse_context_cache and not force_reindex and context_matches:
+        if progress_reporter:
+            progress_reporter.update("screening:context_cache_restore", experiment_id=experiment_id, emit_now=True)
         restore_started = time.perf_counter()
         restore_info = _restore_store_from_context_cache(vsm, context_cache)
         restore_elapsed = time.perf_counter() - restore_started
@@ -3449,6 +3680,8 @@ def run_screening_experiment(
             },
         )
     else:
+        if progress_reporter:
+            progress_reporter.update("screening:parse", experiment_id=experiment_id, emit_now=True)
         parser = FinancialParser(
             chunk_size=int(config_with_inventory.get("chunk_size", DEFAULT_CHUNK_SIZE)),
             chunk_overlap=int(config_with_inventory.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
@@ -3466,6 +3699,16 @@ def run_screening_experiment(
             report_path = resolved_report_paths[0]
         parse_elapsed = time.perf_counter() - parse_started
         chunk_count = len(chunks)
+        if progress_reporter:
+            progress_reporter.update(
+                "screening:ingest",
+                0,
+                chunk_count,
+                experiment_id=experiment_id,
+                ingest_mode=str(config_with_inventory.get("ingest_mode", "contextual_all")),
+                watch_paths=[persist_dir, context_cache_path],
+                emit_now=True,
+            )
         _write_cache_meta(
             persist_dir,
             {
@@ -3498,7 +3741,13 @@ def run_screening_experiment(
                 "collection_name": collection_name,
             },
         )
-        ingest_metrics = _run_ingest(agent, chunks, config_with_inventory, return_artifacts=True)
+        ingest_metrics = _run_ingest(
+            agent,
+            chunks,
+            config_with_inventory,
+            progress_reporter=progress_reporter,
+            return_artifacts=True,
+        )
         artifacts = dict(ingest_metrics.pop("artifacts", {}) or {})
         _write_cache_meta(
             persist_dir,
@@ -3556,7 +3805,11 @@ def run_screening_experiment(
             },
         )
 
+    if progress_reporter:
+        progress_reporter.update("screening:smoke", experiment_id=experiment_id, emit_now=True)
     smoke = _run_smoke_queries(agent, list(config_with_inventory.get("smoke_queries", [])))
+    if progress_reporter:
+        progress_reporter.update("screening:evaluate", experiment_id=experiment_id, emit_now=True)
     screening_eval = _run_screening_eval(agent, screening_examples, screening_config) if screening_examples else {}
     estimated_cost = _estimate_cost_usd(ingest_metrics, config_with_inventory.get("pricing"))
 
@@ -3682,6 +3935,7 @@ def _run_screening_experiments(
     output_dir: Path,
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
 ) -> List[Dict[str, Any]]:
     if not merged_experiments:
         return []
@@ -3693,7 +3947,13 @@ def _run_screening_experiments(
         results_by_id: Dict[str, Dict[str, Any]] = {}
         for merged in merged_experiments:
             logger.info("Running screening benchmark: %s", merged["id"])
-            results_by_id[merged["id"]] = run_screening_experiment(merged, output_dir, screening_config, full_eval_config)
+            results_by_id[merged["id"]] = run_screening_experiment(
+                merged,
+                output_dir,
+                screening_config,
+                full_eval_config,
+                progress_reporter=progress_reporter,
+            )
         return [results_by_id[merged["id"]] for merged in merged_experiments]
 
     logger.info("Running screening benchmarks with parallel_experiments=%s", max_workers)
@@ -3702,7 +3962,14 @@ def _run_screening_experiments(
         futures = {}
         for merged in merged_experiments:
             logger.info("Queueing screening benchmark: %s", merged["id"])
-            future = executor.submit(run_screening_experiment, merged, output_dir, screening_config, full_eval_config)
+            future = executor.submit(
+                run_screening_experiment,
+                merged,
+                output_dir,
+                screening_config,
+                full_eval_config,
+                progress_reporter,
+            )
             futures[future] = merged["id"]
 
         for future in concurrent.futures.as_completed(futures):
@@ -3717,7 +3984,14 @@ def _run_screening_experiments(
     return [results_by_id[merged["id"]] for merged in merged_experiments]
 
 
-def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], full_eval_config: Dict[str, Any]) -> Dict[str, Any]:
+def _run_full_evaluation(
+    result: Dict[str, Any],
+    merged_config: Dict[str, Any],
+    full_eval_config: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
+) -> Dict[str, Any]:
+    if progress_reporter:
+        progress_reporter.update("full_eval:prepare", experiment_id=result.get("id"), emit_now=True)
     store_info = result["store"]
     vsm = VectorStoreManager(
         persist_directory=store_info["persist_directory"],
@@ -3760,6 +4034,15 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
     examples = _select_eval_examples(full_config, result["metadata"])
     if not examples:
         return {}
+    if progress_reporter:
+        progress_reporter.update(
+            "full_eval:run",
+            0,
+            len(examples),
+            experiment_id=result.get("id"),
+            eval_max_workers=eval_max_workers,
+            emit_now=True,
+        )
 
     eval_results = evaluator.run(
         examples=examples,
@@ -3782,6 +4065,14 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
         },
         max_workers=eval_max_workers,
     )
+    if progress_reporter:
+        progress_reporter.update(
+            "full_eval:done",
+            len(examples),
+            len(examples),
+            experiment_id=result.get("id"),
+            emit_now=True,
+        )
     return {
         "question_count": len(examples),
         "aggregate": eval_results["aggregate"],
@@ -3798,6 +4089,7 @@ def _run_company_bundle(
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
     company_run: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
 ) -> Dict[str, Any]:
     company_defaults = _deep_merge(global_defaults, company_run.get("defaults", {}))
     experiments = company_run.get("experiments", shared_experiments)
@@ -3807,6 +4099,14 @@ def _run_company_bundle(
     company_id = str(company_run.get("id") or _company_output_subdir(company_run, global_defaults))
     company_label = _company_run_label(company_run, global_defaults)
     company_output_dir = output_root / _company_output_subdir(company_run, global_defaults)
+    if progress_reporter:
+        progress_reporter.update(
+            "company:run",
+            company_id=company_id,
+            company_label=company_label,
+            output_dir=company_output_dir,
+            emit_now=True,
+        )
 
     candidate_ids = list(company_run.get("candidate_ids") or global_defaults.get("candidate_ids") or [])
     experiments = _filter_experiments_by_candidate_ids(list(experiments), candidate_ids)
@@ -3822,7 +4122,13 @@ def _run_company_bundle(
         merged_experiments.append(merged)
         merged_by_id[merged["id"]] = merged
 
-    results = _run_screening_experiments(merged_experiments, company_output_dir, screening_config, full_eval_config)
+    results = _run_screening_experiments(
+        merged_experiments,
+        company_output_dir,
+        screening_config,
+        full_eval_config,
+        progress_reporter=progress_reporter,
+    )
 
     baseline_id = screening_config.get("baseline_experiment_id")
     baseline_result = next((result for result in results if result["id"] == baseline_id), None)
@@ -3842,7 +4148,12 @@ def _run_company_bundle(
         for experiment_id in selected_ids:
             logger.info("Running full evaluation for %s: %s", company_id, experiment_id)
             result = next(result for result in results if result["id"] == experiment_id)
-            result["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+            result["full_eval"] = _run_full_evaluation(
+                result,
+                merged_by_id[experiment_id],
+                full_eval_config,
+                progress_reporter=progress_reporter,
+            )
 
     recorded_matrix = {
         "mode": "company_run",
@@ -3886,6 +4197,7 @@ def _rerun_company_full_evaluation_only(
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
     company_run: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
 ) -> Dict[str, Any]:
     company_defaults = _deep_merge(global_defaults, company_run.get("defaults", {}))
     experiments = company_run.get("experiments", shared_experiments)
@@ -3896,6 +4208,14 @@ def _rerun_company_full_evaluation_only(
     company_id = str(company_run.get("id") or _company_output_subdir(company_run, global_defaults))
     company_label = _company_run_label(company_run, global_defaults)
     company_output_dir = output_root / _company_output_subdir(company_run, global_defaults)
+    if progress_reporter:
+        progress_reporter.update(
+            "company:eval_only",
+            company_id=company_id,
+            company_label=company_label,
+            output_dir=company_output_dir,
+            emit_now=True,
+        )
     result_path = company_output_dir / "results.json"
     if not result_path.exists():
         raise FileNotFoundError(
@@ -3915,7 +4235,12 @@ def _rerun_company_full_evaluation_only(
         if result is None:
             raise ValueError(f"Existing results.json has no result for {company_id}: {experiment_id}")
         logger.info("Re-running full evaluation only for %s: %s", company_id, experiment_id)
-        result["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+        result["full_eval"] = _run_full_evaluation(
+            result,
+            merged_by_id[experiment_id],
+            full_eval_config,
+            progress_reporter=progress_reporter,
+        )
 
     recorded_matrix = dict(data.get("recorded_matrix") or {})
     if not recorded_matrix:
@@ -4020,12 +4345,29 @@ def main() -> None:
             "and offline retrieval routing."
         ),
     )
+    parser.add_argument(
+        "--progress-heartbeat-sec",
+        type=int,
+        default=0,
+        help="Emit benchmark progress heartbeat logs every N seconds. Use 0 to disable.",
+    )
+    parser.add_argument(
+        "--heartbeat-log",
+        default="",
+        help="Optional JSONL file for benchmark heartbeat events.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     config_path = _normalise_path(args.config)
     output_dir = _normalise_path(args.output_dir)
+    heartbeat_log = _normalise_path(args.heartbeat_log) if str(args.heartbeat_log or "").strip() else None
+    progress_reporter = _BenchmarkProgressReporter(
+        heartbeat_sec=int(args.progress_heartbeat_sec or 0),
+        heartbeat_log=heartbeat_log,
+    )
+    progress_reporter.start()
     matrix = _load_json(config_path)
     defaults = matrix.get("defaults", {})
     experiments = _filter_experiments_by_candidate_ids(
@@ -4076,6 +4418,7 @@ def main() -> None:
                         screening_config=screening_config,
                         full_eval_config=full_eval_config,
                         company_run=company_run,
+                        progress_reporter=progress_reporter,
                     )
                 )
             else:
@@ -4088,6 +4431,7 @@ def main() -> None:
                         screening_config=screening_config,
                         full_eval_config=full_eval_config,
                         company_run=company_run,
+                        progress_reporter=progress_reporter,
                     )
                 )
 
@@ -4112,6 +4456,7 @@ def main() -> None:
             company_bundles=completed_bundles,
         )
         logger.info("Wrote multi-company benchmark outputs to %s", output_dir)
+        progress_reporter.stop(status="completed")
         return
 
     merged_by_id = _merged_experiment_lookup(defaults, experiments)
@@ -4133,7 +4478,12 @@ def main() -> None:
             result = next((item for item in results if str(item.get("id")) == experiment_id), None)
             if result is None:
                 raise ValueError(f"Existing results.json has no result for experiment id: {experiment_id}")
-            result["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+            result["full_eval"] = _run_full_evaluation(
+                result,
+                merged_by_id[experiment_id],
+                full_eval_config,
+                progress_reporter=progress_reporter,
+            )
         _write_benchmark_outputs(
             output_dir=output_dir,
             config_path=config_path,
@@ -4150,9 +4500,16 @@ def main() -> None:
             results=results,
         )
         logger.info("Wrote eval-only benchmark outputs to %s", output_dir)
+        progress_reporter.stop(status="completed")
         return
 
-    results = _run_screening_experiments(merged_experiments, output_dir, screening_config, full_eval_config)
+    results = _run_screening_experiments(
+        merged_experiments,
+        output_dir,
+        screening_config,
+        full_eval_config,
+        progress_reporter=progress_reporter,
+    )
 
     baseline_id = screening_config.get("baseline_experiment_id")
     baseline_result = next((result for result in results if result["id"] == baseline_id), None)
@@ -4172,7 +4529,12 @@ def main() -> None:
         for experiment_id in selected_ids:
             logger.info("Running full evaluation: %s", experiment_id)
             result = next(result for result in results if result["id"] == experiment_id)
-            result["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+            result["full_eval"] = _run_full_evaluation(
+                result,
+                merged_by_id[experiment_id],
+                full_eval_config,
+                progress_reporter=progress_reporter,
+            )
 
     _write_benchmark_outputs(
         output_dir=output_dir,
@@ -4190,6 +4552,7 @@ def main() -> None:
         results=results,
     )
     logger.info("Wrote benchmark outputs to %s", output_dir)
+    progress_reporter.stop(status="completed")
 
 
 if __name__ == "__main__":

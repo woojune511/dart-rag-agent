@@ -177,6 +177,10 @@ Last checked: 2026-05-31.
       embedding was still active
     - monitored rerun tracked log growth as the heartbeat and completed
       successfully at about 10 minutes
+    - future monitored refreshes should prefer runner-native
+      `--progress-heartbeat-sec <seconds> --heartbeat-log <path>` so the
+      runner records phase/progress/store mtime directly instead of relying
+      only on an external PowerShell wrapper
   - Artifact status:
     - `benchmarks/results/runtime_contract_gate_refresh_2026-05-31/` is an
       experiment output and should stay out of source commits

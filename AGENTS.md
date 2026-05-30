@@ -40,7 +40,7 @@
    - 먼저 unit/contract test로 실패 층을 좁힌다.
    - 그 다음 focused benchmark 또는 eval-only를 실행한다.
    - full benchmark는 필요한 입력/store/cache 조건을 확인한 뒤에만 실행한다. 장시간 결과 파일이 생성되지 않으면 진행 로그, store/cache 파일 갱신, 프로세스 CPU/IO 같은 heartbeat를 확인하고 원인을 기록한다.
-   - fresh output directory에서 store를 새로 만드는 경우에는 `results.json` 생성이 늦을 수 있다. 로그나 store 파일이 계속 갱신되면 "멈춤"으로 보지 말고, monitored run으로 전환해 진행 상황을 주기적으로 기록한다.
+   - fresh output directory에서 store를 새로 만드는 경우에는 `results.json` 생성이 늦을 수 있다. 로그나 store 파일이 계속 갱신되면 "멈춤"으로 보지 말고, `benchmark_runner --progress-heartbeat-sec <seconds> --heartbeat-log <path>` 같은 monitored run으로 전환해 진행 상황을 주기적으로 기록한다.
 
 5. **실험 산출물과 소스 변경을 분리한다.**
    - `benchmarks/results/**`, 임시 profile/dataset, local store/cache는 기본적으로 commit 대상이 아니다.

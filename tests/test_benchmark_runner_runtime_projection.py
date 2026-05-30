@@ -1,7 +1,9 @@
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -12,15 +14,57 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.ops.benchmark_runner import (
+    _BenchmarkProgressReporter,
     _build_cross_company_rows,
     _build_winner_ranking,
     _flatten_review_rows,
+    _progress_watch_path_summary,
     _render_cross_company_summary_markdown,
     _serialise_eval_results,
 )
 
 
 class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
+    def test_progress_reporter_writes_jsonl_events(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            heartbeat_log = Path(temp_dir) / "heartbeat.jsonl"
+            reporter = _BenchmarkProgressReporter(
+                heartbeat_sec=0,
+                heartbeat_log=heartbeat_log,
+            )
+
+            reporter.start()
+            reporter.update("screening:ingest", 1, 3, experiment_id="exp-1", emit_now=True)
+            reporter.stop(status="completed")
+
+            events = [
+                json.loads(line)
+                for line in heartbeat_log.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+
+        self.assertEqual(events[0]["event"], "started")
+        self.assertEqual(events[1]["phase"], "screening:ingest")
+        self.assertEqual(events[1]["current"], 1)
+        self.assertEqual(events[1]["total"], 3)
+        self.assertEqual(events[-1]["details"]["status"], "completed")
+
+    def test_progress_watch_path_summary_reports_latest_file(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            older = root / "older.txt"
+            newer = root / "nested" / "newer.txt"
+            older.write_text("old", encoding="utf-8")
+            newer.parent.mkdir()
+            newer.write_text("new", encoding="utf-8")
+            os.utime(older, (1, 1))
+            os.utime(newer, (2, 2))
+
+            summary = _progress_watch_path_summary([root])
+
+        self.assertEqual(summary["existing_count"], 1)
+        self.assertTrue(summary["latest_path"].endswith("newer.txt"))
+
     def test_winner_ranking_prefers_full_eval_pass_over_cheaper_candidate(self) -> None:
         company_bundles = [
             {

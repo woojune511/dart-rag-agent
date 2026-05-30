@@ -69,7 +69,7 @@ class _FakeIngestVectorManager:
     def add_parents(self, parents):
         self.parent_calls.append(dict(parents))
 
-    def add_documents(self, texts, metadatas, resume=False, batch_size=64):
+    def add_documents(self, texts, metadatas, resume=False, batch_size=64, on_progress=None):
         self.document_calls.append(
             {
                 "texts": list(texts),
@@ -92,6 +92,7 @@ class ResumableIngestTests(unittest.TestCase):
         manager._update_structure_graph = Mock()
         manager._init_bm25 = Mock()
         manager.allow_query_embedding_fallback = True
+        manager.force_bm25_only = False
         manager.bm25 = None
         manager.bm25_docs = []
         manager.bm25_metadatas = []
@@ -126,6 +127,7 @@ class ResumableIngestTests(unittest.TestCase):
 
     def test_add_documents_batches_pending_chunks_and_skips_input_duplicates(self) -> None:
         manager = self._make_manager()
+        progress_events = []
 
         result = manager.add_documents(
             ["a", "b", "dup", "c"],
@@ -137,6 +139,7 @@ class ResumableIngestTests(unittest.TestCase):
             ],
             resume=False,
             batch_size=2,
+            on_progress=lambda current, total: progress_events.append((current, total)),
         )
 
         self.assertEqual(result["added_chunks"], 3)
@@ -145,6 +148,7 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(len(manager.vector_store.add_calls), 2)
         self.assertEqual(manager.vector_store.add_calls[0]["texts"], ["a", "b"])
         self.assertEqual(manager.vector_store.add_calls[1]["texts"], ["c"])
+        self.assertEqual(progress_events, [(0, 3), (2, 3), (3, 3)])
         self.assertEqual(manager._update_structure_graph.call_count, 2)
         manager._init_bm25.assert_called_once()
 

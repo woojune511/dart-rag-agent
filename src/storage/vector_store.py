@@ -740,6 +740,7 @@ class VectorStoreManager:
         *,
         resume: bool = False,
         batch_size: int = 64,
+        on_progress=None,
     ) -> Dict[str, Any]:
         """Add document chunks to the vector store."""
         if not chunks:
@@ -791,6 +792,8 @@ class VectorStoreManager:
                 len(prepared),
                 resume,
             )
+            if on_progress:
+                on_progress(0, 0)
             return {
                 "requested_chunks": len(chunks),
                 "added_chunks": 0,
@@ -807,7 +810,10 @@ class VectorStoreManager:
             resume,
             skipped_chunks,
         )
+        if on_progress:
+            on_progress(0, len(pending))
         batch_count = 0
+        added_count = 0
         for start in range(0, len(pending), effective_batch_size):
             batch = pending[start : start + effective_batch_size]
             batch_texts = [text for text, _, _ in batch]
@@ -835,6 +841,9 @@ class VectorStoreManager:
                         time.sleep(sleep_sec)
             self._update_structure_graph(batch_texts, batch_metadatas)
             batch_count += 1
+            added_count += len(batch)
+            if on_progress:
+                on_progress(added_count, len(pending))
         self.persist()
         self._init_bm25()
         logger.info("Successfully added documents and updated BM25 index.")

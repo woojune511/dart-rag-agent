@@ -17,7 +17,7 @@ class _FakeVectorStoreManager:
         self.parents = None
         type(self).instances.append(self)
 
-    def add_documents(self, chunks, metadatas, *, resume=False, batch_size=64):
+    def add_documents(self, chunks, metadatas, *, resume=False, batch_size=64, on_progress=None):
         self.added = {
             "chunks": list(chunks),
             "metadatas": list(metadatas),
