@@ -39,7 +39,8 @@
 4. **작게 검증하고 크게 돌린다.**
    - 먼저 unit/contract test로 실패 층을 좁힌다.
    - 그 다음 focused benchmark 또는 eval-only를 실행한다.
-   - full benchmark는 필요한 입력/store/cache 조건을 확인한 뒤에만 실행한다. 장시간 결과 파일이 생성되지 않으면 중단하고 원인을 기록한다.
+   - full benchmark는 필요한 입력/store/cache 조건을 확인한 뒤에만 실행한다. 장시간 결과 파일이 생성되지 않으면 진행 로그, store/cache 파일 갱신, 프로세스 CPU/IO 같은 heartbeat를 확인하고 원인을 기록한다.
+   - fresh output directory에서 store를 새로 만드는 경우에는 `results.json` 생성이 늦을 수 있다. 로그나 store 파일이 계속 갱신되면 "멈춤"으로 보지 말고, monitored run으로 전환해 진행 상황을 주기적으로 기록한다.
 
 5. **실험 산출물과 소스 변경을 분리한다.**
    - `benchmarks/results/**`, 임시 profile/dataset, local store/cache는 기본적으로 commit 대상이 아니다.
@@ -95,7 +96,8 @@
 
 다음 상황에서는 코드를 계속 고치기 전에 사용자에게 보고한다.
 
-- full benchmark가 5분 이상 결과 파일 없이 멈춘 경우
+- full benchmark가 5분 이상 `results.json` 없이 진행 heartbeat도 없는 경우
+- fresh store/cache 구축처럼 heartbeat는 있지만 결과 파일이 늦는 경우에는 코드를 고치지 말고 monitored run으로 전환해 계속 진행할지, 중단할지, 더 작은 focused/eval-only 경로로 쪼갤지 사용자에게 보고한다
 - 새 rule이 특정 회사/질문 이름 없이는 설명되지 않는 경우
 - 점수 개선이 evidence faithfulness를 낮추는 경우
 - 테스트를 통과시키려면 기존 계약을 약화해야 하는 경우

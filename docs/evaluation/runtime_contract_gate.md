@@ -157,8 +157,29 @@ Current gate interpretation is now stable:
 
 ## Current Focused Triage Notes
 
-Last checked: 2026-05-30.
+Last checked: 2026-05-31.
 
+- `runtime_contract_gate_refresh_2026-05-31`
+  - Command shape:
+    - `benchmark_runner --config benchmarks/profiles/curated_runtime_contract_gate.json --output-dir benchmarks/results/runtime_contract_gate_refresh_2026-05-31 --company-run-id <company> --numeric-fast-gate`
+  - Official-path refresh:
+    - `NAV_T1_030`: PASS
+    - `NAV_T1_071`: PASS
+    - `KBF_T1_017`: PASS
+    - `MIX_T1_021`: PASS
+    - `SKH_T1_060`: PASS (`42.02%`)
+  - Run status:
+    - completed
+    - aggregate `results.json` lists no pending companies
+  - Timeout note:
+    - KBF initially exceeded the old 5-minute no-result stop window because a
+      fresh output directory had no reusable KBF store and store construction /
+      embedding was still active
+    - monitored rerun tracked log growth as the heartbeat and completed
+      successfully at about 10 minutes
+  - Artifact status:
+    - `benchmarks/results/runtime_contract_gate_refresh_2026-05-31/` is an
+      experiment output and should stay out of source commits
 - `SKH_T1_060`
   - Command shape:
     - `benchmark_runner --eval-only --question-id SKH_T1_060 --low-api-debug`

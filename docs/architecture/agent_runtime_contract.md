@@ -43,7 +43,7 @@ retrieval 단계는 최소한 `retrieval_debug_trace`를 남긴다.
 3. 필요한 경우 focused benchmark 또는 eval-only
 4. full benchmark
 
-full benchmark는 store/cache/input 조건이 확인됐을 때만 실행한다. 5분 이상 결과 파일이 생성되지 않으면 중단하고, 코드 실패인지 실행 환경 문제인지 분리해서 기록한다.
+full benchmark는 store/cache/input 조건이 확인됐을 때만 실행한다. 5분 이상 결과 파일이 생성되지 않으면 `results.json` 존재 여부만 보지 말고 실행 heartbeat를 확인한다. 로그 출력, store/cache 파일 갱신, 프로세스 CPU/IO가 계속 움직이면 fresh store 구축 또는 장기 ingest로 분류하고 monitored run으로 전환한다. 결과 파일도 없고 heartbeat도 없으면 중단하고, 코드 실패인지 실행 환경 문제인지 분리해서 기록한다.
 
 ## 4. Task Ledger And Artifact Store
 
