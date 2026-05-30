@@ -24,6 +24,7 @@ benchmarks/results/latest/
 benchmarks/results/tmp_*.json
 benchmarks/results/tmp_*/
 benchmarks/results/*_manual/
+benchmarks/results/*_final_smoke_*/
 benchmarks/results/*_formal_structural_*/
 benchmarks/results/*_structural_probe_*/
 benchmarks/results/targeted_*_structural_*/

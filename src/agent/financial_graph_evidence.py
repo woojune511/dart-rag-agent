@@ -109,6 +109,148 @@ def _sentence_has_subject_after_location_context(sentence: str) -> bool:
     )
 
 
+_LOOKUP_AGGREGATE_RESULT_RE = re.compile(
+    r"(차이|차액|격차|합계|합산|더한|더하면|총합|차감|뺀|비율|비중|성장률|증가율|감소율|몇\s*배|더\s*(?:큽|작|많|적))"
+)
+
+
+def _safe_json_loads(value: Any) -> Any:
+    if not value:
+        return None
+    try:
+        return json.loads(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _active_lookup_required_operands(state: FinancialAgentState) -> List[Dict[str, Any]]:
+    active_subtask = dict(state.get("active_subtask") or {})
+    operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+    if operation_family not in {"lookup", "single_value"}:
+        return []
+    return [
+        dict(item)
+        for item in (active_subtask.get("required_operands") or [])
+        if isinstance(item, dict) and bool(item.get("required", True))
+    ]
+
+
+def _numeric_extractor_query_for_state(state: FinancialAgentState) -> str:
+    active_subtask = dict(state.get("active_subtask") or {})
+    required_operands = _active_lookup_required_operands(state)
+    if list(state.get("calc_subtasks") or []) and required_operands:
+        operand = required_operands[0]
+        label = _normalise_spaces(
+            str(
+                operand.get("label")
+                or operand.get("name")
+                or active_subtask.get("metric_label")
+                or state.get("query")
+                or ""
+            )
+        )
+        period = _normalise_spaces(str(operand.get("period_hint") or ""))
+        scope = _normalise_spaces(str(operand.get("consolidation_scope") or ""))
+        bits = [bit for bit in (period, scope, label) if bit]
+        focused = " ".join(bits) or _normalise_spaces(str(state.get("query") or ""))
+        return (
+            f"{focused} 원문 수치만 찾으세요. "
+            "차이, 합계, 비율, 증감액 같은 계산 결과가 아니라 해당 항목 자체의 값을 추출하세요."
+        )
+    metric_label = _normalise_spaces(str(active_subtask.get("metric_label") or ""))
+    if list(state.get("calc_subtasks") or []) and metric_label:
+        return metric_label
+    return _normalise_spaces(str(state.get("query") or ""))
+
+
+def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> bool:
+    if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+        return True
+    compact_line = re.sub(r"\s+", "", _normalise_spaces(line))
+    for needle in _operand_needles(operand):
+        tokens = [
+            token
+            for token in re.split(r"[\s/|,()]+", _normalise_spaces(needle))
+            if token and token not in {"부문", "부", "기준", "연결", "별도", "당기", "전기"}
+        ]
+        if len(tokens) >= 2 and all(re.sub(r"\s+", "", token) in compact_line for token in tokens):
+            return True
+    return False
+
+
+def _line_contains_exact_raw_value(line: str, raw_value: str) -> bool:
+    raw_normalized = re.sub(r"[\s,]", "", _normalise_spaces(raw_value))
+    if not raw_normalized:
+        return False
+    for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", line):
+        token_normalized = re.sub(r"[\s,]", "", match.group(0))
+        if token_normalized == raw_normalized:
+            return True
+    return False
+
+
+def _lookup_numeric_extraction_has_direct_support(
+    state: FinancialAgentState,
+    debug_trace: Dict[str, Any],
+    docs: List[Any],
+) -> bool:
+    required_operands = _active_lookup_required_operands(state)
+    if not required_operands:
+        return True
+
+    raw_value = _normalise_spaces(str(debug_trace.get("raw_value") or ""))
+    if not raw_value:
+        return False
+    result_text = _normalise_spaces(
+        " ".join(
+            str(debug_trace.get(key) or "")
+            for key in ("final_value", "period_check", "consolidation_check")
+        )
+    )
+    if _LOOKUP_AGGREGATE_RESULT_RE.search(result_text):
+        return False
+
+    operand = dict(required_operands[0])
+    if not re.sub(r"[\s,]", "", raw_value):
+        return False
+
+    support_lines: List[str] = []
+    for doc_score in docs[: min(8, len(docs))]:
+        doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+        metadata = dict(getattr(doc, "metadata", {}) or {})
+        page_content = str(getattr(doc, "page_content", "") or "")
+        support_lines.extend(line for line in re.split(r"[\r\n]+", page_content) if line.strip())
+        for key in ("row_text", "raw_row_text", "table_header_context", "semantic_label", "row_label"):
+            value = _normalise_spaces(str(metadata.get(key) or ""))
+            if value:
+                support_lines.append(value)
+        for record in _safe_json_loads(metadata.get("table_row_records_json")) or []:
+            if not isinstance(record, dict):
+                continue
+            row_bits = [
+                str(record.get("row_label") or ""),
+                str(record.get("semantic_label") or ""),
+            ]
+            for cell in record.get("cells") or []:
+                if isinstance(cell, dict):
+                    row_bits.append(" ".join(str(item) for item in (cell.get("column_headers") or [])))
+                    row_bits.append(str(cell.get("value_text") or ""))
+                    row_bits.append(str(cell.get("unit_hint") or ""))
+            support_lines.append(_normalise_spaces(" ".join(bit for bit in row_bits if bit)))
+
+    for line in support_lines:
+        normalized = _normalise_spaces(line)
+        if not _line_contains_exact_raw_value(normalized, raw_value):
+            continue
+        if _LOOKUP_AGGREGATE_RESULT_RE.search(normalized):
+            continue
+        if _text_has_negative_surface(normalized, operand):
+            continue
+        if _lookup_line_matches_operand_surface(normalized, operand):
+            return True
+    return False
+
+
 def _period_comparison_count_value_from_text(
     text: str,
     operand: Dict[str, Any],
@@ -2385,11 +2527,24 @@ class FinancialAgentEvidenceMixin:
                     and bool(re.search(_COUNT_VALUE_UNIT_RE, context_text or raw_row))
                     and _sentence_matches_operand_context(context_text or raw_row, operand)
                 )
+                parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
+                target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
+                cell_context_match = any(
+                    _score_structured_cell(
+                        cell,
+                        query_years=target_years,
+                        period_focus="unknown",
+                        operand=operand,
+                    )
+                    > 0
+                    for cell in parsed_cells
+                )
                 if (
                     not _operand_text_match(raw_row, operand)
                     and not aggregate_context_match
                     and not surface_contract_match
                     and not period_count_context_match
+                    and not cell_context_match
                 ):
                     continue
 
@@ -2404,9 +2559,7 @@ class FinancialAgentEvidenceMixin:
                 stated_change_raw_unit = ""
 
                 if not raw_value:
-                    parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
                     if parsed_cells:
-                        target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
                         ranked_cells = sorted(
                             parsed_cells,
                             key=lambda cell: _score_structured_cell(
@@ -4787,6 +4940,7 @@ Structured Evidence:
             return empty_result
 
         context = self._format_context(docs[: min(8, len(docs))])
+        numeric_query = _numeric_extractor_query_for_state(state)
         structured_llm = self.llm.with_structured_output(NumericExtraction)
         prompt = ChatPromptTemplate.from_template(
             """당신은 재무 데이터 전문 분석가입니다.
@@ -4808,7 +4962,7 @@ Structured Evidence:
 
         try:
             result: NumericExtraction = (prompt | structured_llm).invoke(
-                {"query": state["query"], "context": context}
+                {"query": numeric_query, "context": context}
             )
             debug_trace = result.model_dump()
             logger.info(
@@ -4822,6 +4976,14 @@ Structured Evidence:
         except Exception as exc:
             logger.warning("[numeric_extractor] structured output failed: %s", exc)
             debug_trace = {"error": str(exc)}
+            answer = empty_result["answer"]
+
+        if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(state, debug_trace, docs):
+            logger.info(
+                "[numeric_extractor] rejected lookup raw=%s without direct operand support",
+                debug_trace.get("raw_value"),
+            )
+            debug_trace = {**debug_trace, "raw_value": "", "rejected_reason": "missing_direct_lookup_operand_support"}
             answer = empty_result["answer"]
 
         if not debug_trace.get("raw_value"):

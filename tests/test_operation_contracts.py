@@ -42,13 +42,14 @@ from src.agent.financial_graph_helpers import (
     _operand_target_years,
     _operand_row_matches_requirement,
     _order_concept_specs_by_query,
+    _parse_unstructured_table_row_cells,
     _resolve_candidate_local_unit_hint,
     _requires_direct_numeric_grounding,
     _retrieval_hint_from_topic,
     _structured_cell_period_text,
     _supplement_section_terms_for_query,
 )
-from src.agent.financial_graph_models import EvidenceExtraction
+from src.agent.financial_graph_models import EvidenceExtraction, NumericExtraction
 from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
@@ -87,6 +88,99 @@ class _FailingLLM:
 
 
 class OperationContractTests(unittest.TestCase):
+    def test_lookup_operand_rejects_unlabeled_aggregate_claim(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2024년 DX 매출액",
+            "raw_value": "638,217",
+            "raw_unit": "억원",
+            "normalized_value": 63821700000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "638,217 (억원)",
+            "quote_span": "638,217",
+        }
+        required_operands = [
+            {
+                "label": "2024년 DX 매출액",
+                "role": "minuend",
+                "concept": "revenue",
+                "required": True,
+            }
+        ]
+
+        self.assertFalse(
+            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+        )
+
+    def test_lookup_operand_rejects_inferred_sum_claim(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2024년 SDC 매출액",
+            "raw_value": "434,327",
+            "raw_unit": "억원",
+            "normalized_value": 43432700000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "SDC: 291,578, Harman: 142,749 (억원)",
+            "quote_span": "SDC: 291,578, Harman: 142,749",
+        }
+        required_operands = [
+            {
+                "label": "2024년 SDC 매출액",
+                "role": "addend",
+                "concept": "revenue",
+                "required": True,
+            }
+        ]
+
+        self.assertFalse(
+            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+        )
+
+    def test_lookup_operand_accepts_direct_labeled_claim(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2024년 SDC 매출액",
+            "raw_value": "291,578",
+            "raw_unit": "억원",
+            "normalized_value": 29157800000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "SDC 매출액: 291,578억원, Harman 매출액: 142,749억원",
+            "quote_span": "SDC 매출액: 291,578억원",
+        }
+        required_operands = [
+            {
+                "label": "2024년 SDC 매출액",
+                "role": "addend",
+                "concept": "revenue",
+                "required": True,
+            }
+        ]
+
+        self.assertTrue(
+            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+        )
+
+    def test_segment_row_parser_splits_labeled_value_cells(self) -> None:
+        row_text = (
+            "매출액 | 기업 전체 총계 / 영업부문 / DX 부문 174,887,683 백만원 | "
+            "기업 전체 총계 / 영업부문 / DS 부문 111,065,950 백만원"
+        )
+
+        cells = _parse_unstructured_table_row_cells(row_text, {})
+
+        self.assertEqual(cells[0]["value_text"], "174,887,683")
+        self.assertEqual(cells[0]["unit_hint"], "백만원")
+        self.assertIn("DX 부문", cells[0]["column_headers"][-1])
+        self.assertEqual(cells[1]["value_text"], "111,065,950")
+        self.assertEqual(cells[1]["unit_hint"], "백만원")
+        self.assertIn("DS 부문", cells[1]["column_headers"][-1])
+
     def test_financial_statement_queries_default_to_consolidated_scope(self) -> None:
         self.assertEqual(
             _desired_consolidation_scope(
@@ -325,6 +419,133 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("2,578,089,956천원", result["answer"])
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(result["selected_claim_ids"], ["ev_001", "ev_002"])
+
+    def test_lookup_numeric_extractor_rejects_aggregate_result_for_component_operand(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2024년",
+                consolidation_check="연결",
+                unit="백만원",
+                raw_value="638,217",
+                final_value="DX 부문과 DS 부문의 2024년 매출액 차이는 638,217백만원입니다.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "DX 부문과 DS 부문의 2024년 매출액 차이를 계산해 줘.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="DX 부문과 DS 부문의 2024년 매출액 차이는 638,217 백만원입니다.",
+                            metadata={"company": "삼성전자", "year": 2024},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "DX 부문 매출액",
+                    "required_operands": [
+                        {
+                            "label": "DX 부문 매출액",
+                            "concept": "revenue",
+                            "role": "minuend",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertEqual(result["selected_claim_ids"], [])
+        self.assertEqual(result["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
+
+    def test_lookup_numeric_extractor_accepts_direct_component_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2024년",
+                consolidation_check="연결",
+                unit="백만원",
+                raw_value="174,887,683",
+                final_value="DX 부문의 2024년 매출액은 174,887,683백만원입니다.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "DX 부문과 DS 부문의 2024년 매출액 차이를 계산해 줘.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="매출액 | 기업 전체 총계 / 영업부문 / DX 부문 174,887,683 백만원 | 기업 전체 총계 / 영업부문 / DS 부문 111,065,950 백만원",
+                            metadata={"company": "삼성전자", "year": 2024},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "DX 부문 매출액",
+                    "required_operands": [
+                        {
+                            "label": "DX 부문 매출액",
+                            "concept": "revenue",
+                            "role": "minuend",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(result["selected_claim_ids"], ["ev_001"])
+
+    def test_lookup_numeric_extractor_rejects_substring_numeric_match(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2024년",
+                consolidation_check="연결",
+                unit="백만원",
+                raw_value="291,578",
+                final_value="SDC 부문의 2024년 매출액은 291,578백만원입니다.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "SDC와 Harman 부문의 2024년 매출 합계를 계산해 줘.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="매출액 | 기업 전체 총계 / 영업부문 / SDC 29,157,820 백만원 | 기업 전체 총계 / 영업부문 / Harman 14,274,930 백만원",
+                            metadata={"company": "삼성전자", "year": 2024},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "SDC 매출액",
+                    "required_operands": [
+                        {
+                            "label": "SDC 매출액",
+                            "concept": "revenue",
+                            "role": "addend_1",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertEqual(result["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
 
     def test_non_expense_lookup_preserves_negative_parenthesized_value(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(1,234)", "천원")

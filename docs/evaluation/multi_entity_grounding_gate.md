@@ -60,6 +60,14 @@ These three questions cover:
 
 ## Latest direct runtime validation
 
+- Last checked: 2026-05-30
+- Output:
+  - `benchmarks/results/multi_entity_grounding_gate_final_smoke_2026-05-30`
+- Result:
+  - `numeric_pass_rate = 1.000`
+  - `completeness = 1.000`
+  - `faithfulness = 1.000`
+
 - `comparison_001`
   - `DX 매출액 = 174조 8,877억원`
   - `DS 매출액 = 111조 660억원`
@@ -71,7 +79,24 @@ These three questions cover:
 - `comparison_003`
   - `DS 매출액 = 111조 660억원`
   - `SDC 매출액 = 29조 1,578억원`
-  - `차이 = 81조 9,082억원`
+  - `차이 = 81조 9,081억원`
+
+## Regression fixed on 2026-05-30
+
+The multi-entity failure mode was not retrieval miss. The correct segment row
+was retrieved, but the lookup fast path could accept an LLM-extracted aggregate
+or partial numeric substring as `ev_001` before reconciliation had a chance to
+bind the structured segment row.
+
+The runtime now protects component lookups by:
+
+- focusing `numeric_extractor` on the active lookup operand rather than the
+  whole comparison question
+- rejecting lookup fast-path values that look like aggregate outputs such as
+  difference, sum, ratio, or growth
+- requiring exact numeric-token support instead of substring matches
+- letting reconciliation bind the structured row when the fast path cannot
+  prove direct operand support
 
 ## Current interpretation
 

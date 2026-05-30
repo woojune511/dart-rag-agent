@@ -4429,6 +4429,26 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
     elif any(_operand_text_match(header, operand) for header in headers):
         score += 0.35
 
+    row_label = _normalise_spaces(str(cell.get("row_label") or ""))
+    operand_label = _normalise_spaces(str(operand.get("label") or operand.get("name") or ""))
+    metric_terms = ("매출액", "매출", "영업수익", "수익")
+    if row_label and operand_label and any(term in row_label for term in metric_terms) and any(
+        term in operand_label for term in metric_terms
+    ):
+        entity_surface = operand_label
+        entity_surface = re.sub(r"20\d{2}\s*년?", " ", entity_surface)
+        for term in (*metric_terms, "부문", "사업부", "사업"):
+            entity_surface = entity_surface.replace(term, " ")
+        entity_tokens = [
+            token
+            for token in re.split(r"[\s/|,]+", _normalise_spaces(entity_surface))
+            if token
+        ]
+        header_blob = _normalise_spaces(" ".join(headers))
+        header_compact = re.sub(r"\s+", "", header_blob)
+        if any(token in header_blob or token in header_compact for token in entity_tokens):
+            score += 3.0
+
     aggregate_tokens = ("합계", "총계", "소계", "계")
     if any(token in last_header for token in aggregate_tokens) and _operand_text_match(last_header, operand):
         score += 4.0
@@ -4940,11 +4960,25 @@ def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any])
         raw_value = str(value).strip()
         if not raw_value or not re.search(r"[0-9]", raw_value):
             continue
+        value_headers = [str(header).strip()] if str(header).strip() else []
+        unit_hint = str(metadata.get("unit_hint") or "").strip()
+        labeled_value_match = re.match(
+            r"^(?P<label>.*?)(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*"
+            r"(?P<unit>백만원|천원|억원|원|%|퍼센트)?$",
+            raw_value,
+        )
+        if labeled_value_match:
+            label = _normalise_spaces(labeled_value_match.group("label") or "")
+            if label:
+                value_headers.append(label)
+            raw_value = _normalise_spaces(labeled_value_match.group("value") or raw_value)
+            unit_hint = _normalise_spaces(labeled_value_match.group("unit") or unit_hint)
         cells.append(
             {
-                "column_headers": [str(header).strip()] if str(header).strip() else [],
+                "column_headers": value_headers,
+                "row_label": row_parts[0],
                 "value_text": raw_value,
-                "unit_hint": str(metadata.get("unit_hint") or "").strip(),
+                "unit_hint": unit_hint,
             }
         )
     return cells

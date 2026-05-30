@@ -1402,6 +1402,78 @@ class FinancialAgentCalculationMixin:
             "missing_info": [],
         }
 
+    def _llm_lookup_operand_has_direct_support(
+        self,
+        row: Dict[str, Any],
+        evidence_item: Optional[Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+    ) -> bool:
+        """Reject lookup operands that are inferred from aggregate prose, not directly stated."""
+        if not required_operands:
+            return True
+        if not evidence_item:
+            return bool(str(row.get("source_anchor") or "").strip())
+
+        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+        if not raw_value:
+            return False
+
+        evidence_text = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in (
+                    evidence_item.get("claim"),
+                    evidence_item.get("quote_span"),
+                    evidence_item.get("raw_row_text"),
+                    evidence_item.get("source_context"),
+                )
+            )
+        )
+        if not evidence_text:
+            return False
+
+        matching_operand = next(
+            (
+                operand
+                for operand in required_operands
+                if _operand_row_matches_requirement(row, operand)
+            ),
+            None,
+        )
+        if matching_operand is None:
+            return False
+
+        surface_operand = matching_operand
+        if not (
+            _text_has_positive_surface(evidence_text, surface_operand)
+            or _operand_text_match(evidence_text, surface_operand)
+        ):
+            periodless_label = _normalise_spaces(
+                re.sub(
+                    rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+",
+                    "",
+                    str(matching_operand.get("label") or ""),
+                )
+            )
+            if periodless_label and periodless_label != str(matching_operand.get("label") or ""):
+                surface_operand = dict(matching_operand)
+                surface_operand["label"] = periodless_label
+        if not (
+            _text_has_positive_surface(evidence_text, surface_operand)
+            or _operand_text_match(evidence_text, surface_operand)
+        ):
+            return False
+        if _text_has_negative_surface(evidence_text, surface_operand):
+            return False
+
+        raw_compact = re.sub(r"[\s,]", "", raw_value)
+        if not raw_compact:
+            return False
+        for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", evidence_text):
+            if re.sub(r"[\s,]", "", match.group(0)) == raw_compact:
+                return True
+        return False
+
     def _build_deterministic_ontology_plan(
         self,
         state: FinancialAgentState,
@@ -1762,6 +1834,23 @@ class FinancialAgentCalculationMixin:
                 row
                 for row in direct_structured_rows
                 if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+            ]
+        if direct_structured_rows and required_operands and operation_family in {"lookup", "single_value"}:
+            evidence_by_id = {
+                str(item.get("evidence_id") or "").strip(): dict(item)
+                for item in evidence_items
+                if str(item.get("evidence_id") or "").strip()
+            }
+            direct_structured_rows = [
+                row
+                for row in direct_structured_rows
+                if self._llm_lookup_operand_has_direct_support(
+                    row,
+                    evidence_by_id.get(
+                        str(row.get("evidence_id") or row.get("source_row_id") or "").strip()
+                    ),
+                    required_operands,
+                )
             ]
         dependency_state = self._dependency_binding_resolution_state(state)
         dependency_rows = list(dependency_state.get("rows") or [])
@@ -2216,6 +2305,9 @@ Structured Evidence:
                 row["normalized_value"] = normalized_value
                 row["normalized_unit"] = normalized_unit
                 row = self._refine_operand_precision_from_evidence_table(row, evidence_item)
+                if operation_family in {"lookup", "single_value"} and required_operands:
+                    if not self._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands):
+                        continue
                 operand_rows.append(row)
             if required_operands:
                 operand_rows = [
