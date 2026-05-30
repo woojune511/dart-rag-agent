@@ -1066,6 +1066,48 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("실질 영업이익은 1조 4,863억원", answer)
         self.assertNotIn("676,900백만원", answer)
 
+    def test_difference_answer_composer_recovers_company_from_slot_anchor(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = agent._compose_slot_based_difference_answer(
+            query="2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
+            report_scope={},
+            calculation_result={
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "label": "영업이익",
+                                "period": "2023",
+                                "rendered_value": "2,163,234백만원",
+                                "normalized_value": 2163234000000.0,
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "label": "첨단제조 생산세액공제",
+                                "period": "2023년",
+                                "rendered_value": "6,769억원",
+                                "normalized_value": 676900000000.0,
+                                "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                            }
+                        ],
+                    },
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "실질 영업이익",
+                        "period": "2023",
+                        "rendered_value": "1,486,334백만원",
+                        "normalized_value": 1486334000000.0,
+                    },
+                }
+            },
+        )
+
+        self.assertIn("LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원", answer)
+
     def test_adjusted_difference_result_preserves_source_unit_when_excluding_component(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._execute_calculation(

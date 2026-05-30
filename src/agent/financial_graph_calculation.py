@@ -2940,6 +2940,22 @@ Ontology Context:
                 return fallback
         return {}
 
+    def _infer_company_from_answer_slots(self, answer_slots: Dict[str, Any]) -> str:
+        candidate_slots: List[Dict[str, Any]] = []
+        for slots in dict(answer_slots.get("components_by_role") or {}).values():
+            candidate_slots.extend(dict(slot or {}) for slot in list(slots or []))
+        for key in ("primary_value", "current_value", "prior_value", "delta_value"):
+            candidate_slots.append(dict(answer_slots.get(key) or {}))
+
+        for slot in candidate_slots:
+            source_anchor = _normalise_spaces(str(slot.get("source_anchor") or ""))
+            match = re.match(r"^\[\s*([^|\]]+?)\s*\|", source_anchor)
+            if match:
+                company = _normalise_spaces(match.group(1))
+                if company and company != "?":
+                    return company
+        return ""
+
     def _compose_slot_based_difference_answer(
         self,
         *,
@@ -2967,6 +2983,8 @@ Ontology Context:
             return ""
 
         company = _normalise_spaces(str((report_scope or {}).get("company") or ""))
+        if not company:
+            company = self._infer_company_from_answer_slots(answer_slots)
         period = _normalise_spaces(
             str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
         )

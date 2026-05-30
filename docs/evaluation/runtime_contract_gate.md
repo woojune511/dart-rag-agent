@@ -200,7 +200,7 @@ Current gate status:
     `삼성전자 2023`
   - pending in this bundle: `hyundai_2023_policy_driven_runtime_gate`
   - winner ranking for the three-company bundle:
-    `pass_count = 3`, `company_count = 3`, `full_eval_fail_count = 1`,
+    `pass_count = 3`, `company_count = 3`, `full_eval_fail_count = 0`,
     `critical_category_miss_count = 0`
   - `NAV_T2_006`: `faithfulness = 1.0`, `completeness = 1.0`,
     `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`
@@ -209,10 +209,10 @@ Current gate status:
   - `LGE_T1_051`: numeric path is closed with
     `numeric_final_judgement = PASS`, `numeric_equivalence = 1.0`,
     `numeric_grounding = 1.0`, and `numeric_retrieval_support = 1.0`.
-    The current official answer uses the rounded AMPC expression
-    `6,769억원`, yielding `1,486,334백만원`; this is numerically equivalent
-    to the canonical answer but leaves `completeness = 0.7`, so the
-    three-company bundle still records one full-eval failure.
+    The current official answer includes the company context and exact AMPC
+    value: `LG에너지솔루션 2023년 연결기준 영업이익 2,163,234백만원`,
+    `AMPC 676,874백만원(약 6,769억원)`, and
+    `실질 영업이익 1,486,360백만원`; `completeness = 1.0`.
   - Hyundai was refreshed separately in
     `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` with
     `pass_count = 1`, `full_eval_fail_count = 0`, `faithfulness = 1.0`,
@@ -223,6 +223,8 @@ Current gate status:
     original calculation trace, and a resolved `task_output:*` operand no
     longer needs its own `source_anchor` to allow deterministic numeric
     grounding override. Unresolved task-output-only operands remain blocked.
+    Slot-based difference answers also recover company context from grounded
+    slot anchors when `report_scope.company` is unavailable.
 
 - 2026-05-29 cleanup update:
   - Removed the runtime deterministic composer that hard-coded one

@@ -1309,10 +1309,10 @@ Result:
 - Winner ranking for the three completed companies:
   - `pass_count = 3`
   - `company_count = 3`
-  - `full_eval_fail_count = 1`
+  - `full_eval_fail_count = 0`
   - `critical_category_miss_count = 0`
   - `avg_numeric = 1.0`
-  - `avg_completeness = 0.9`
+  - `avg_completeness = 1.0`
   - `avg_faithfulness = 1.0`
   - `avg_recall = 1.0`
 
@@ -1327,10 +1327,10 @@ Per-question interpretation:
 - `LGE_T1_051`: numeric grounding is closed after evaluator trace hardening:
   `numeric_final_judgement = PASS`, `numeric_equivalence = 1.0`,
   `numeric_grounding = 1.0`, and `numeric_retrieval_support = 1.0`.
-  The latest official answer uses the rounded AMPC expression `6,769억원` and
-  renders `1,486,334백만원`; numeric equivalence passes, but
-  `completeness = 0.7`, leaving one full-eval failure in the three-company
-  refresh.
+  The latest official answer includes company context and exact AMPC rendering:
+  `LG에너지솔루션 2023년 연결기준 영업이익 2,163,234백만원`,
+  `AMPC 676,874백만원(약 6,769억원)`, and
+  `실질 영업이익 1,486,360백만원`; `completeness = 1.0`.
 
 Related Hyundai refresh:
 
@@ -1351,6 +1351,9 @@ Implementation notes:
   operand without its own `source_anchor` when it still carries
   `dependency_resolved` and a source task/slot reference. Unresolved task-output
   operands remain blocked.
+- Slot-based difference answers now recover company context from grounded slot
+  anchors when `report_scope.company` is unavailable, preventing otherwise
+  correct numeric answers from losing required entity context.
 
 Validation:
 
