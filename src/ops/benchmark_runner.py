@@ -2739,6 +2739,13 @@ def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, b
     }
 
 
+def _low_api_retrieval_enabled(full_eval_config: Dict[str, Any]) -> bool:
+    return bool(
+        full_eval_config.get("offline_retrieval", False)
+        or full_eval_config.get("low_api_debug", False)
+    )
+
+
 def _mean_or_none(values: List[float | None]) -> float | None:
     filtered = [float(value) for value in values if value is not None]
     return float(mean(filtered)) if filtered else None
@@ -3360,7 +3367,8 @@ def run_screening_experiment(
         collection_name=collection_name,
         embedding_provider=embedding_provider,
         embedding_model_name=embedding_model_name,
-        allow_query_embedding_fallback=allow_retrieval_fallback or bool(full_eval_config.get("offline_retrieval", False)),
+        allow_query_embedding_fallback=allow_retrieval_fallback or _low_api_retrieval_enabled(full_eval_config),
+        force_bm25_only=_low_api_retrieval_enabled(full_eval_config),
     )
     agent = FinancialAgent(
         vsm,
@@ -3718,8 +3726,9 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
         embedding_model_name=store_info.get("embedding_model_name", DEFAULT_EMBEDDING_MODEL),
         allow_query_embedding_fallback=bool(
             store_info.get("allow_retrieval_fallback", False)
-            or full_eval_config.get("offline_retrieval", False)
+            or _low_api_retrieval_enabled(full_eval_config)
         ),
+        force_bm25_only=_low_api_retrieval_enabled(full_eval_config),
     )
     agent = FinancialAgent(
         vsm,

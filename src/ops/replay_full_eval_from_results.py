@@ -77,6 +77,22 @@ def _aggregate_replayed(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _source_row_warnings(row: Dict[str, Any]) -> List[str]:
+    warnings: List[str] = []
+    source_verdict = str(row.get("numeric_final_judgement") or "").strip()
+    if source_verdict and source_verdict != "PASS":
+        warnings.append(f"source_numeric_final_judgement={source_verdict}")
+    if row.get("numeric_grounding") is None:
+        warnings.append("source_numeric_grounding_missing")
+    grounding_debug = dict((row.get("numeric_debug") or {}).get("grounding") or {})
+    reason = str(grounding_debug.get("reason") or "")
+    if "RESOURCE_EXHAUSTED" in reason or "429" in reason:
+        warnings.append("source_grounding_cap_or_rate_limited")
+    if row.get("calculation_operands") in (None, []):
+        warnings.append("source_calculation_operands_missing")
+    return warnings
+
+
 def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, Any]:
     question_id = str(row.get("id") or "")
     example = example_by_id.get(question_id)
@@ -151,6 +167,7 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         "unit_consistency_pass": unit_consistency_pass,
         "numeric_result_correctness": numeric_result_correctness,
         "calculation_correctness": calculation_correctness,
+        "source_warnings": _source_row_warnings(row),
         "debug": {
             "numeric_equivalence": equivalence_debug,
             "operand_grounding": operand_grounding_debug,
@@ -184,6 +201,7 @@ def _write_outputs(output_dir: Path, rows: List[Dict[str, Any]], source_results:
                 "unit_consistency_pass",
                 "numeric_result_correctness",
                 "calculation_correctness",
+                "source_warnings",
             ],
         )
         writer.writeheader()
@@ -201,6 +219,7 @@ def _write_outputs(output_dir: Path, rows: List[Dict[str, Any]], source_results:
         "|---|---|---|---:|---:|---:|",
     ]
     for row in rows:
+        warnings = [str(item) for item in (row.get("source_warnings") or []) if str(item).strip()]
         lines.append(
             "| {id} | {source} | {verdict} | {equivalence} | {grounding} | {support} |".format(
                 id=row.get("id"),
@@ -211,6 +230,8 @@ def _write_outputs(output_dir: Path, rows: List[Dict[str, Any]], source_results:
                 support=row.get("numeric_retrieval_support"),
             )
         )
+        if warnings:
+            lines.append(f"- Warning for `{row.get('id')}`: {', '.join(warnings)}")
     (output_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

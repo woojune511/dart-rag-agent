@@ -166,10 +166,14 @@ API 비용이나 rate/cap 문제가 있을 때는 full gate를 바로 돌리지 
 | `--numeric-fast-gate` | deterministic operand grounding이 가능한 numeric 문항에서 numeric grounding LLM judge | numeric equivalence, operand grounding, retrieval support |
 | `--skip-llm-judges` | evaluator faithfulness/completeness/trend/rendering LLM judges | deterministic numeric verdict, heuristic completeness |
 | `--skip-embedding-metrics` | evaluator answer relevancy embedding calls | retrieval hit/context/section/citation metrics |
-| `--offline-retrieval` | routing semantic embedding과 routing LLM fallback | BM25 fallback, generic operation-signal heuristic routing |
-| `low_api_debug` runtime flag | concept-planner LLM fallback, operand/formula planner LLM fallback, calculation answer render/verification LLM | deterministic plan/trace, deterministic formatted numeric result |
+| `--offline-retrieval` | routing semantic embedding과 routing LLM fallback, vector query embedding | BM25-only retrieval, generic operation-signal heuristic routing |
+| `low_api_debug` runtime flag | concept-planner LLM fallback, direct numeric evidence extraction LLM, calculation-subtask numeric extractor LLM, operand/formula planner LLM fallback, aggregate synthesis LLM, calculation answer render/verification LLM | deterministic plan/trace, deterministic formatted numeric result |
 
 이 모드는 공식 점수로 쓰지 않는다. 목적은 실패가 retrieval, dependency/synthesis, answer formatting 중 어디에 가까운지 빠르게 좁히는 것이다. 새 수정 케이스가 2-3개 쌓이면 그때 `--low-api-debug` 없이 curated runtime gate 전체를 한 번만 실행한다.
+
+2026-05-30 기준 `SKH_T1_060` focused triage는 이 모드에서 `42.02%`로
+PASS했다. 이 확인은 BM25-only retrieval과 deterministic numeric path로
+수행했으며, 로그상 numeric path의 `generateContent` 호출은 발생하지 않았다.
 
 Official gate output을 이미 만든 뒤 current code path만 다시 검증하려면:
 

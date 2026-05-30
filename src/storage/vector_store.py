@@ -257,6 +257,7 @@ class VectorStoreManager:
         embedding_provider: str = DEFAULT_EMBEDDING_PROVIDER,
         embedding_model_name: str = DEFAULT_EMBEDDING_MODEL,
         allow_query_embedding_fallback: bool = True,
+        force_bm25_only: bool = False,
     ):
         self.persist_directory = persist_directory
         os.makedirs(self.persist_directory, exist_ok=True)
@@ -264,6 +265,7 @@ class VectorStoreManager:
         self.embedding_provider = embedding_provider
         self.embedding_model_name = embedding_model_name
         self.allow_query_embedding_fallback = bool(allow_query_embedding_fallback)
+        self.force_bm25_only = bool(force_bm25_only)
         self.vector_capacity_cooldown_sec = max(0.0, float(os.getenv("DART_VECTOR_CAPACITY_COOLDOWN_SEC", "90") or 90))
         self.search_cache_size = max(0, int(os.getenv("DART_RETRIEVAL_SEARCH_CACHE_SIZE", "256") or 256))
         self.vector_add_max_retries = max(1, int(os.getenv("DART_VECTOR_ADD_MAX_RETRIES", "4") or 4))
@@ -969,7 +971,9 @@ class VectorStoreManager:
             return cached
 
         vector_results = []
-        if self.allow_query_embedding_fallback and self.in_capacity_cooldown():
+        if self.force_bm25_only:
+            logger.info("Skipping vector search for %r because force_bm25_only is enabled.", query)
+        elif self.allow_query_embedding_fallback and self.in_capacity_cooldown():
             logger.info(
                 "Skipping vector search for %r because capacity cooldown is active for %.1fs more.",
                 query,

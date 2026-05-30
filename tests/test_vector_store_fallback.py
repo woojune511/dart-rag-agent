@@ -79,6 +79,7 @@ class VectorStoreFallbackTests(unittest.TestCase):
         manager.bm25_docs = docs
         manager.bm25_metadatas = metadatas
         manager.allow_query_embedding_fallback = True
+        manager.force_bm25_only = False
         manager.vector_capacity_cooldown_sec = 90.0
         manager._vector_capacity_cooldown_until = 0.0
         manager.search_cache_size = 256
@@ -136,6 +137,22 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertTrue(manager.in_capacity_cooldown())
         self.assertEqual(len(first_results), 1)
         self.assertEqual(len(second_results), 1)
+
+    def test_force_bm25_only_skips_vector_search(self) -> None:
+        vector_store = _CountVectorStore([])
+        manager = self._build_manager(
+            vector_store,
+            docs=["사채 9,490,410"],
+            metadatas=[{"company": "SK하이닉스", "year": 2023, "chunk_uid": "bond"}],
+            scores=[3.0],
+        )
+        manager.force_bm25_only = True
+
+        results = manager.search("사채", k=1, where_filter={"company": "SK하이닉스"})
+
+        self.assertEqual(vector_store.calls, 0)
+        self.assertEqual(len(results), 1)
+        self.assertIn("9,490,410", results[0][0].page_content)
 
     def test_search_falls_back_to_bm25_when_hnsw_reader_is_unavailable(self) -> None:
         manager = self._build_manager(

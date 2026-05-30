@@ -325,6 +325,25 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         default_answer: str,
     ) -> str:
+        if getattr(self, "low_api_debug", False):
+            for row in reversed(ordered_results):
+                operation_family = self._aggregate_result_operation_family(row)
+                status = _normalise_spaces(
+                    str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+                ).lower()
+                if operation_family in {"ratio", "sum", "difference", "growth_rate"} and status == "ok":
+                    calculation_result = dict(row.get("calculation_result") or {})
+                    answer = _normalise_spaces(
+                        str(
+                            calculation_result.get("formatted_result")
+                            or calculation_result.get("rendered_value")
+                            or row.get("answer")
+                            or ""
+                        )
+                    )
+                    if answer:
+                        return answer
+
         for row in ordered_results:
             sibling_metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
             sibling_operation_family = self._aggregate_result_operation_family(row)
@@ -1418,20 +1437,6 @@ class FinancialAgentCalculationMixin:
         if not raw_value:
             return False
 
-        evidence_text = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for value in (
-                    evidence_item.get("claim"),
-                    evidence_item.get("quote_span"),
-                    evidence_item.get("raw_row_text"),
-                    evidence_item.get("source_context"),
-                )
-            )
-        )
-        if not evidence_text:
-            return False
-
         matching_operand = next(
             (
                 operand
@@ -1443,35 +1448,57 @@ class FinancialAgentCalculationMixin:
         if matching_operand is None:
             return False
 
-        surface_operand = matching_operand
-        if not (
-            _text_has_positive_surface(evidence_text, surface_operand)
-            or _operand_text_match(evidence_text, surface_operand)
-        ):
-            periodless_label = _normalise_spaces(
-                re.sub(
-                    rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+",
-                    "",
-                    str(matching_operand.get("label") or ""),
-                )
-            )
-            if periodless_label and periodless_label != str(matching_operand.get("label") or ""):
-                surface_operand = dict(matching_operand)
-                surface_operand["label"] = periodless_label
-        if not (
-            _text_has_positive_surface(evidence_text, surface_operand)
-            or _operand_text_match(evidence_text, surface_operand)
-        ):
-            return False
-        if _text_has_negative_surface(evidence_text, surface_operand):
-            return False
-
         raw_compact = re.sub(r"[\s,]", "", raw_value)
         if not raw_compact:
             return False
-        for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", evidence_text):
-            if re.sub(r"[\s,]", "", match.group(0)) == raw_compact:
-                return True
+
+        def _text_supports_operand(text: str) -> bool:
+            evidence_text = _normalise_spaces(text)
+            if not evidence_text:
+                return False
+            surface_operand = matching_operand
+            if not (
+                _text_has_positive_surface(evidence_text, surface_operand)
+                or _operand_text_match(evidence_text, surface_operand)
+            ):
+                periodless_label = _normalise_spaces(
+                    re.sub(
+                        rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+",
+                        "",
+                        str(matching_operand.get("label") or ""),
+                    )
+                )
+                if periodless_label and periodless_label != str(matching_operand.get("label") or ""):
+                    surface_operand = dict(matching_operand)
+                    surface_operand["label"] = periodless_label
+            if not (
+                _text_has_positive_surface(evidence_text, surface_operand)
+                or _operand_text_match(evidence_text, surface_operand)
+            ):
+                return False
+            if _text_has_negative_surface(evidence_text, surface_operand):
+                return False
+            for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", evidence_text):
+                if re.sub(r"[\s,]", "", match.group(0)) == raw_compact:
+                    return True
+            return False
+
+        direct_text = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in (
+                    evidence_item.get("claim"),
+                    evidence_item.get("quote_span"),
+                    evidence_item.get("raw_row_text"),
+                )
+            )
+        )
+        if direct_text:
+            return _text_supports_operand(direct_text)
+
+        source_context = _normalise_spaces(str(evidence_item.get("source_context") or ""))
+        if source_context:
+            return _text_supports_operand(source_context)
         return False
 
     def _build_deterministic_ontology_plan(
@@ -2227,6 +2254,7 @@ class FinancialAgentCalculationMixin:
         if not evidence_items:
             return empty_result
 
+        deterministic_required_rows: List[Dict[str, Any]] = []
         if required_operands and not direct_numeric_grounding:
             deterministic_required_rows = self._build_required_operands_from_candidates(
                 evidence_items,
@@ -2247,7 +2275,43 @@ class FinancialAgentCalculationMixin:
                 )
 
         if getattr(self, "low_api_debug", False):
+            evidence_by_id = {
+                str(item.get("evidence_id") or "").strip(): dict(item)
+                for item in evidence_items
+                if str(item.get("evidence_id") or "").strip()
+            }
+
+            def _filter_supported_low_api_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                if not required_operands:
+                    return [dict(row) for row in rows]
+                filtered: List[Dict[str, Any]] = []
+                for row in rows:
+                    candidate = dict(row)
+                    matching_requirements = [
+                        operand
+                        for operand in required_operands
+                        if _operand_row_matches_requirement(candidate, operand)
+                    ]
+                    if not matching_requirements:
+                        continue
+                    evidence_item = evidence_by_id.get(
+                        str(candidate.get("evidence_id") or candidate.get("source_row_id") or "").strip()
+                    )
+                    if evidence_item is None or any(
+                        self._llm_lookup_operand_has_direct_support(candidate, evidence_item, [operand])
+                        for operand in matching_requirements
+                    ):
+                        filtered.append(candidate)
+                return filtered
+
             operand_rows = list(direct_structured_rows)
+            if deterministic_required_rows:
+                operand_rows = _merge_operand_rows(
+                    deterministic_required_rows,
+                    operand_rows,
+                    required_operands=required_operands,
+                )
+            operand_rows = _filter_supported_low_api_rows(operand_rows)
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and surface_contract_evidence:
                 surface_fallback_rows = self._build_required_operands_from_candidates(
@@ -2262,6 +2326,7 @@ class FinancialAgentCalculationMixin:
                     surface_fallback_rows,
                     required_operands=required_operands,
                 )
+                operand_rows = _filter_supported_low_api_rows(operand_rows)
                 missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding:
                 generic_fallback_rows = self._build_required_operands_from_candidates(
@@ -2276,6 +2341,7 @@ class FinancialAgentCalculationMixin:
                     generic_fallback_rows,
                     required_operands=required_operands,
                 )
+                operand_rows = _filter_supported_low_api_rows(operand_rows)
                 missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
                 ratio_fallback_rows = self._build_ratio_operands_from_candidates(
@@ -2283,12 +2349,14 @@ class FinancialAgentCalculationMixin:
                     query,
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
+                    required_operands=required_operands,
                 )
                 operand_rows = _merge_operand_rows(
                     operand_rows,
                     ratio_fallback_rows,
                     required_operands=required_operands,
                 )
+                operand_rows = _filter_supported_low_api_rows(operand_rows)
             if _is_percent_point_difference_query(query):
                 operand_rows = [
                     row for row in operand_rows
@@ -4388,7 +4456,7 @@ Operands:
         )
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         max_plan_loops = 2
-        if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
+        if not getattr(self, "low_api_debug", False) and hasattr(self, "llm") and getattr(self, "llm", None) is not None:
             structured_llm = self.llm.with_structured_output(AggregateSynthesisOutput)
             prompt = ChatPromptTemplate.from_template(
                 """당신은 DART 재무 질의용 최종 synthesizer입니다.

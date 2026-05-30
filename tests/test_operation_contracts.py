@@ -166,6 +166,67 @@ class OperationContractTests(unittest.TestCase):
             agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
+    def test_lookup_operand_rejects_label_from_broad_context_only(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2024년 target metric",
+            "raw_value": "451,284",
+            "raw_unit": "백만원",
+            "normalized_value": 451284000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "other metric | item A 451,284 백만원 | other metric total 4,145,647 백만원",
+            "quote_span": "other metric | item A 451,284 백만원",
+            "source_context": "target metric | target metric total 10,121,033 백만원",
+        }
+        required_operands = [
+            {
+                "label": "2024년 target metric",
+                "role": "addend",
+                "concept": "target_metric",
+                "required": True,
+            }
+        ]
+
+        self.assertFalse(
+            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+        )
+
+    def test_required_operand_builder_does_not_steal_other_operand_row_from_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {"label": "항목 A", "role": "addend_a", "concept": "metric_a", "required": True},
+            {"label": "항목 B", "role": "addend_b", "concept": "metric_b", "required": True},
+        ]
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_a",
+                    "source_anchor": "[회사 | 2024 | 표]",
+                    "claim": "항목 A 합계 111 백만원",
+                    "source_context": "항목 B 합계 222 백만원",
+                    "raw_row_text": "항목 A 합계 111 백만원",
+                    "metadata": {"table_source_id": "table:1"},
+                },
+                {
+                    "evidence_id": "ev_b",
+                    "source_anchor": "[회사 | 2024 | 표]",
+                    "claim": "항목 B 합계 222 백만원",
+                    "source_context": "항목 A 합계 111 백만원",
+                    "raw_row_text": "항목 B 합계 222 백만원",
+                    "metadata": {"table_source_id": "table:1"},
+                },
+            ],
+            required_operands=required_operands,
+            query="2024년 항목 A와 항목 B를 합산해 줘.",
+            report_scope={"year": 2024},
+        )
+
+        by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(by_role["addend_a"]["raw_value"], "111")
+        self.assertEqual(by_role["addend_b"]["raw_value"], "222")
+
     def test_segment_row_parser_splits_labeled_value_cells(self) -> None:
         row_text = (
             "매출액 | 기업 전체 총계 / 영업부문 / DX 부문 174,887,683 백만원 | "

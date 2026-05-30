@@ -745,6 +745,13 @@ class FinancialAgentReconciliationMixin:
                 if str(item.get("candidate", {}).get("candidate_id") or "").strip()
             ]
 
+        if getattr(self, "low_api_debug", False):
+            return [
+                str(item.get("candidate", {}).get("candidate_id") or "").strip()
+                for item in top_candidates
+                if str(item.get("candidate", {}).get("candidate_id") or "").strip()
+            ]
+
         option_lines: List[str] = []
         allowed_ids: List[str] = []
         for rank, item in enumerate(top_candidates, start=1):
@@ -1810,6 +1817,21 @@ candidate options:
             retry_objective=fallback_retry_objective,
             explanation="fallback reflection query plan",
         )
+
+        if getattr(self, "low_api_debug", False):
+            logger.info("[reflection] structured planner skipped by low_api_debug")
+            return {
+                "missing_info": list(heuristic_plan.get("missing_info") or []),
+                "retry_queries": list(heuristic_plan.get("subqueries") or []),
+                "retry_reason": str(heuristic_plan.get("explanation") or ""),
+                "retry_strategy": str(heuristic_plan.get("retry_strategy") or "retry_retrieval"),
+                "reflection_plan": dict(heuristic_plan),
+                "planner_debug_trace": {
+                    **dict(state.get("planner_debug_trace") or {}),
+                    "reflection_llm_invoked": False,
+                    "reflection_skip_reason": "low_api_debug",
+                },
+            }
 
         structured_llm = self.llm.with_structured_output(ReflectionQueryPlan)
         prompt = ChatPromptTemplate.from_template(

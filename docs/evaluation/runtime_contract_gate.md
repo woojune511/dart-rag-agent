@@ -163,25 +163,37 @@ Last checked: 2026-05-30.
   - Command shape:
     - `benchmark_runner --eval-only --question-id SKH_T1_060 --low-api-debug`
   - Diagnostic result:
+    - `answer = 42.02%`
     - `numeric_final_judgement = PASS`
     - `numeric_equivalence = 1.0`
     - `numeric_grounding = 1.0`
     - `numeric_retrieval_support = 1.0`
   - Failure class:
     - not a current retrieval/dependency blocker
-    - remaining issue is answer formatting in low-API mode: the final answer
-      can include intermediate lookup fragments and missing-subtask messages
-      before the final ratio display
+    - previous low-API residual was deterministic operand binding: a broad
+      table context allowed one row/value to be reused for a different required
+      operand
+    - fixed by generic provenance rules:
+      - direct support must find the operand surface and value in the same
+        claim / quote / raw-row snippet before falling back to broad context
+      - required-operand candidate construction does not bind a row to one
+        operand based only on context when that row directly names another
+        required operand
 - `low-api-debug`
   - Failure class:
-    - cost-control gap
+    - current numeric triage path is cost-controlled
   - Observation:
-    - evaluator/router/calculation fallback calls are reduced, but the live
-      graph can still attempt numeric extractor / aggregate synthesis LLM calls
-      and query embedding calls during retry retrieval
+    - evaluator/router/calculation fallback calls are reduced
+    - current implementation also forces benchmark retrieval into BM25-only
+      mode and skips direct numeric evidence extraction, calculation-subtask
+      numeric extractor, operand/formula planner fallback, aggregate synthesis,
+      and calculation render/verification LLM calls
+    - latest `SKH_T1_060` low-API focused run showed no `generateContent`
+      calls in the numeric path
   - Next improvement:
-    - add a true BM25-only retrieval mode and deterministic numeric extractor
-      bypass for direct structured reconciliation tasks
+    - keep checking whether non-calculation narrative paths need a separate
+      low-API diagnostic policy before broadening this mode beyond numeric
+      triage
 - `comparison_002`
   - Treat as a solved multi-entity grounding case only when replaying a saved
     PASS trace.

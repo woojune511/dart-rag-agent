@@ -2284,6 +2284,7 @@ class FinancialAgentEvidenceMixin:
         query: str,
         topic: str = "",
         report_scope: Optional[Dict[str, Any]] = None,
+        required_operands: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Dict[str, Any]]:
         if not candidate_items:
             return []
@@ -2297,6 +2298,7 @@ class FinancialAgentEvidenceMixin:
             report_scope=dict(report_scope or {}),
             query_years=[int(year.replace("년", "")) for year in query_years],
         )
+        required_operands = [dict(item) for item in (required_operands or [])]
         if required_operands:
             def _period_count_item_priority(item: Dict[str, Any]) -> tuple[int, int]:
                 metadata = dict(item.get("metadata") or {})
@@ -2539,6 +2541,17 @@ class FinancialAgentEvidenceMixin:
                     > 0
                     for cell in parsed_cells
                 )
+                raw_row_direct_match = _operand_text_match(raw_row, operand) or _text_has_positive_surface(raw_row, operand)
+                raw_row_matches_other_required = any(
+                    other_operand is not operand
+                    and (
+                        _operand_text_match(raw_row, other_operand)
+                        or _text_has_positive_surface(raw_row, other_operand)
+                    )
+                    for other_operand in required_operands
+                )
+                if not raw_row_direct_match and raw_row_matches_other_required:
+                    continue
                 if (
                     not _operand_text_match(raw_row, operand)
                     and not aggregate_context_match
@@ -4192,6 +4205,28 @@ class FinancialAgentEvidenceMixin:
                 )
             return bullets, items
 
+        if getattr(self, "low_api_debug", False) and direct_numeric_grounding:
+            fallback, fallback_items = _deterministic_fallback(docs)
+            fallback_items = self._filter_evidence_items_for_required_operands(fallback_items, state)
+            fallback_items = self._restrict_direct_numeric_evidence_items(
+                fallback_items,
+                preserve_narrative_context=preserve_narrative_context,
+            )
+            fallback_bullets = [
+                f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
+                for item in fallback_items
+            ]
+            return {
+                "evidence_bullets": fallback_bullets,
+                "evidence_items": fallback_items,
+                "evidence_status": "sparse" if fallback_items else "missing",
+                "numeric_debug_trace": {
+                    "path": "low_api_debug_skip_evidence_llm",
+                    "llm_invoked": False,
+                    "candidate_count": len(fallback_items),
+                },
+            }
+
         try:
             result: EvidenceExtraction = (prompt | structured_llm).invoke(
                 {
@@ -4941,6 +4976,16 @@ Structured Evidence:
 
         context = self._format_context(docs[: min(8, len(docs))])
         numeric_query = _numeric_extractor_query_for_state(state)
+        if getattr(self, "low_api_debug", False) and list(state.get("calc_subtasks") or []):
+            return {
+                **empty_result,
+                "answer": "",
+                "numeric_debug_trace": {
+                    "path": "low_api_debug_skip_numeric_extractor_llm",
+                    "query": numeric_query,
+                },
+            }
+
         structured_llm = self.llm.with_structured_output(NumericExtraction)
         prompt = ChatPromptTemplate.from_template(
             """당신은 재무 데이터 전문 분석가입니다.
