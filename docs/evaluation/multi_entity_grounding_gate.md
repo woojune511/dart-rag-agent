@@ -70,6 +70,39 @@ generation and full evaluation. Use retrospective evaluator scripts instead
 when the goal is to re-score the exact historical answers without rerunning the
 agent.
 
+Focused single-question rerun:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_multi_entity_grounding_gate.json `
+  --output-dir benchmarks/results/multi_entity_grounding_gate_manual `
+  --company-run-id samsung_2024_multi_entity_grounding_gate `
+  --eval-only `
+  --question-id comparison_002
+```
+
+Fast numeric canary mode:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_multi_entity_grounding_gate.json `
+  --output-dir benchmarks/results/multi_entity_grounding_gate_manual `
+  --company-run-id samsung_2024_multi_entity_grounding_gate `
+  --eval-only `
+  --question-id comparison_002 `
+  --numeric-fast-gate
+```
+
+Historical answer replay, with no agent rerun:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.replay_full_eval_from_results `
+  --source-results benchmarks/results/multi_entity_grounding_gate_manual/삼성전자-2024/results.json `
+  --dataset-path benchmarks/eval_dataset.math_focus.json `
+  --output-dir benchmarks/results/replay_multi_entity_manual `
+  --question-id comparison_002
+```
+
 ## Pass criteria
 
 - All three gate questions must finish with `numeric_final_judgement = PASS`.

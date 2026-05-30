@@ -53,10 +53,43 @@ These five questions cover:
 
 ## Recommended invocation
 
+Full gate run:
+
 ```powershell
 .\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
   --config benchmarks/profiles/curated_runtime_contract_gate.json `
   --output-dir benchmarks/results/runtime_contract_gate_manual
+```
+
+Store-fixed single-question rerun:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_runtime_contract_gate.json `
+  --output-dir benchmarks/results/runtime_contract_gate_manual `
+  --eval-only `
+  --question-id SKH_T1_060
+```
+
+Fast numeric canary mode:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_runtime_contract_gate.json `
+  --output-dir benchmarks/results/runtime_contract_gate_manual `
+  --eval-only `
+  --question-id SKH_T1_060 `
+  --numeric-fast-gate
+```
+
+Historical answer replay:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.replay_full_eval_from_results `
+  --source-results benchmarks/results/runtime_contract_gate_manual/SK하이닉스-2023/results.json `
+  --dataset-path benchmarks/datasets/single_doc_eval_full.curated.json `
+  --output-dir benchmarks/results/replay_runtime_contract_manual `
+  --question-id SKH_T1_060
 ```
 
 ## Pass criteria

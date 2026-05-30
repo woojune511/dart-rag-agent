@@ -15,6 +15,8 @@ from src.agent.financial_graph import (
     _should_coerce_percent_point_unit,
 )
 from src.ops.evaluator import (
+    EvalExample,
+    _compute_numeric_evaluation,
     _compute_operand_selection_correctness,
     _compute_operand_grounding_score,
     _extract_composite_krw_value,
@@ -23,6 +25,11 @@ from src.ops.evaluator import (
     _normalise_period_text,
     _numeric_values_equivalent,
 )
+
+
+class _ExplodingLLM:
+    def invoke(self, _prompt):
+        raise AssertionError("LLM should be skipped in deterministic numeric fast gate")
 
 
 class CompositeKrwParsingTests(unittest.TestCase):
@@ -81,6 +88,57 @@ class CompositeKrwParsingTests(unittest.TestCase):
         left = _extract_numeric_candidates("차이는 63조 8,217억원입니다.")[0]
         right = _extract_numeric_candidates("차이는 63조 8,220억원입니다.")[0]
         self.assertFalse(_numeric_values_equivalent(left, right))
+
+    def test_numeric_fast_gate_skips_llm_grounding_when_operands_are_grounded(self) -> None:
+        example = EvalExample(
+            id="comparison_002",
+            question="SDC와 Harman 부문 매출 합계를 계산해 줘.",
+            ground_truth="합계는 43조 4,327억원이다.",
+            answer_key="합계는 43조 4,327억원이다.",
+            company="삼성전자",
+            year=2024,
+            section="연결재무제표 주석",
+            answer_type="numeric",
+            category="comparison",
+        )
+        runtime_evidence = [
+            {
+                "claim": "매출액 | SDC 29,157,820 백만원 | Harman 14,274,930 백만원",
+                "quote_span": "SDC 29,157,820 백만원 | Harman 14,274,930 백만원",
+                "metadata": {"company": "삼성전자", "year": 2024},
+            }
+        ]
+        calculation_operands = [
+            {
+                "label": "SDC 매출액",
+                "raw_value": "29,157,820",
+                "raw_unit": "백만원",
+                "normalized_value": 29_157_820_000_000.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "label": "Harman 매출액",
+                "raw_value": "14,274,930",
+                "raw_unit": "백만원",
+                "normalized_value": 14_274_930_000_000.0,
+                "normalized_unit": "KRW",
+            },
+        ]
+
+        result = _compute_numeric_evaluation(
+            llm=_ExplodingLLM(),
+            example=example,
+            answer="합계는 43조 4,327억원입니다.",
+            runtime_evidence=runtime_evidence,
+            contexts=[],
+            calculation_operands=calculation_operands,
+            retrieval_hit_at_k=1.0,
+            deterministic_grounding_only=True,
+        )
+
+        self.assertEqual(result["numeric_final_judgement"], "PASS")
+        self.assertEqual(result["numeric_grounding"], 1.0)
+        self.assertTrue(result["numeric_debug"]["grounding"]["llm_skipped"])
 
     def test_percent_point_query_coerces_result_unit(self) -> None:
         operands = [

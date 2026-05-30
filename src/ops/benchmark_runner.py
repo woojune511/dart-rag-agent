@@ -2716,6 +2716,20 @@ def _merged_experiment_lookup(
     return merged_by_id
 
 
+def _apply_question_id_override(
+    full_eval_config: Dict[str, Any],
+    question_ids: List[str],
+) -> Dict[str, Any]:
+    if not question_ids:
+        return full_eval_config
+    overridden = dict(full_eval_config)
+    overridden["enabled"] = True
+    overridden["eval_mode"] = "question_ids"
+    overridden["question_ids"] = list(dict.fromkeys(str(item).strip() for item in question_ids if str(item).strip()))
+    overridden["eval_limit"] = 0
+    return overridden
+
+
 def _mean_or_none(values: List[float | None]) -> float | None:
     filtered = [float(value) for value in values if value is not None]
     return float(mean(filtered)) if filtered else None
@@ -3703,6 +3717,7 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
         agent,
         dataset_path=str(_normalise_path(merged_config["eval_dataset_path"])),
         experiment_name=merged_config.get("mlflow_experiment_name", "dart_rag_benchmark"),
+        numeric_fast_gate=bool(full_eval_config.get("numeric_fast_gate", False)),
     )
 
     full_config = dict(merged_config)
@@ -3734,6 +3749,7 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
             "eval_max_workers": eval_max_workers,
             "collection_name": store_info["collection_name"],
             "stage": "full_evaluation",
+            "numeric_fast_gate": bool(full_eval_config.get("numeric_fast_gate", False)),
         },
         max_workers=eval_max_workers,
     )
@@ -3932,6 +3948,23 @@ def main() -> None:
             "and rerun only the configured full evaluation candidates."
         ),
     )
+    parser.add_argument(
+        "--question-id",
+        action="append",
+        default=[],
+        help=(
+            "Override full_evaluation.question_ids for this run. Repeat to run multiple questions. "
+            "Useful with --eval-only for focused gate debugging."
+        ),
+    )
+    parser.add_argument(
+        "--numeric-fast-gate",
+        action="store_true",
+        help=(
+            "For numeric full-eval questions that pass numeric_final_judgement, skip generic "
+            "faithfulness/completeness/relevancy judges and use the numeric evaluator as the gate verdict."
+        ),
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -3946,7 +3979,12 @@ def main() -> None:
     )
     company_runs = matrix.get("company_runs", [])
     screening_config = matrix.get("screening", {})
-    full_eval_config = matrix.get("full_evaluation", {})
+    full_eval_config = _apply_question_id_override(
+        dict(matrix.get("full_evaluation", {}) or {}),
+        list(args.question_id or []),
+    )
+    if args.numeric_fast_gate:
+        full_eval_config["numeric_fast_gate"] = True
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")
 

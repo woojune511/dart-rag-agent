@@ -1218,23 +1218,33 @@ def _compute_numeric_evaluation(
     contexts: List[str],
     calculation_operands: List[Dict[str, Any]],
     retrieval_hit_at_k: float,
+    deterministic_grounding_only: bool = False,
 ) -> Dict[str, Any]:
     equivalence, equivalence_debug = _compute_numeric_equivalence(
         answer=answer,
         answer_key=example.canonical_answer_key,
         canonical_evidence=example.evidence,
     )
-    grounding, grounding_debug = _compute_numeric_grounding(
-        llm=llm,
-        example=example,
-        answer=answer,
-        runtime_evidence=runtime_evidence,
-    )
     operand_grounding, operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=runtime_evidence,
         contexts=contexts,
         calculation_operands=calculation_operands,
     )
+    if deterministic_grounding_only and operand_grounding is not None:
+        grounding = operand_grounding
+        grounding_debug = {
+            "verdict": "grounded" if operand_grounding == 1.0 else "ungrounded",
+            "confidence": 1.0 if operand_grounding == 1.0 else 0.7,
+            "reason": "deterministic_numeric_fast_gate_operand_grounding",
+            "llm_skipped": True,
+        }
+    else:
+        grounding, grounding_debug = _compute_numeric_grounding(
+            llm=llm,
+            example=example,
+            answer=answer,
+            runtime_evidence=runtime_evidence,
+        )
     retrieval_support = operand_grounding if operand_grounding is not None else retrieval_hit_at_k
     final_judgement, confidence = _resolve_numeric_judgement(
         equivalence=equivalence,
@@ -2694,10 +2704,12 @@ class RAGEvaluator:
         agent,
         dataset_path: Optional[str] = None,
         experiment_name: str = "dart_rag_eval",
+        numeric_fast_gate: bool = False,
     ):
         self.agent = agent
         self.experiment_name = experiment_name
         self._dataset_path = Path(dataset_path) if dataset_path else _DEFAULT_DATASET
+        self.numeric_fast_gate = bool(numeric_fast_gate)
         self._llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
         self._embeddings = create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
@@ -2839,10 +2851,10 @@ class RAGEvaluator:
 
         latency = time.time() - started_at
 
-        raw_faithfulness = _compute_faithfulness(self._llm, answer, contexts)
-        faithfulness = raw_faithfulness
+        raw_faithfulness: Optional[float] = None
+        faithfulness = 0.0
         faithfulness_override_reason = None
-        answer_relevancy = _compute_answer_relevancy(self._embeddings, example.question, answer)
+        answer_relevancy = 0.0
         context_recall = _compute_context_recall(example, contexts)
         retrieval_hit_at_k = _compute_retrieval_hit_at_k(example, retrieved_docs)
         section_match_rate = _compute_section_match_rate(example, retrieved_docs)
@@ -2858,8 +2870,12 @@ class RAGEvaluator:
         citation_coverage = _compute_citation_coverage(example, citations)
         missing_info_compliance = _compute_missing_info_compliance(example, answer)
         numeric_eval: Dict[str, Any] = {}
+        is_numeric_gate_question = (
+            (example.answer_type or "").lower() == "numeric"
+            or (example.category or "").lower() == "numeric_fact"
+        )
 
-        if (example.answer_type or "").lower() == "numeric" or (example.category or "").lower() == "numeric_fact":
+        if is_numeric_gate_question:
             numeric_eval = _compute_numeric_evaluation(
                 llm=self._llm,
                 example=example,
@@ -2868,7 +2884,32 @@ class RAGEvaluator:
                 contexts=contexts,
                 calculation_operands=calculation_operands,
                 retrieval_hit_at_k=retrieval_hit_at_k,
+                deterministic_grounding_only=self.numeric_fast_gate,
             )
+
+        numeric_fast_gate_pass = bool(
+            self.numeric_fast_gate
+            and is_numeric_gate_question
+            and numeric_eval.get("numeric_final_judgement") == "PASS"
+        )
+        if numeric_fast_gate_pass:
+            raw_faithfulness = None
+            faithfulness = 1.0
+            faithfulness_override_reason = (
+                "numeric_fast_gate PASS: generic faithfulness judge를 생략하고 numeric evaluator 결과로 보정"
+            )
+            answer_relevancy = 1.0
+            completeness = 1.0
+            completeness_reason = "numeric_fast_gate PASS: generic completeness judge 생략"
+        else:
+            raw_faithfulness = _compute_faithfulness(self._llm, answer, contexts)
+            faithfulness = raw_faithfulness
+            answer_relevancy = _compute_answer_relevancy(self._embeddings, example.question, answer)
+            completeness, completeness_reason = _compute_completeness_judge(self._llm, example, answer)
+            if completeness is None:
+                completeness = _compute_completeness(example, answer)
+                if completeness is not None and completeness_reason is None:
+                    completeness_reason = "heuristic completeness fallback"
             if _should_override_numeric_faithfulness(numeric_eval):
                 faithfulness = 1.0
                 faithfulness_override_reason = (
@@ -2880,11 +2921,6 @@ class RAGEvaluator:
         context_precision_at_3 = _compute_context_precision_at_k(example, retrieved_docs, 3)
         context_precision_at_5 = _compute_context_precision_at_k(example, retrieved_docs, 5)
         entity_coverage = _compute_entity_coverage(example, contexts)
-        completeness, completeness_reason = _compute_completeness_judge(self._llm, example, answer)
-        if completeness is None:
-            completeness = _compute_completeness(example, answer)
-            if completeness is not None and completeness_reason is None:
-                completeness_reason = "heuristic completeness fallback"
         refusal_accuracy = _compute_refusal_accuracy(example, answer)
         absolute_error_rate = _compute_absolute_error_rate(
             answer=answer,
@@ -2917,19 +2953,25 @@ class RAGEvaluator:
             and operand_selection_correctness < 1.0
         ):
             operand_selection_correctness = 1.0
-        trend_interpretation_correctness, trend_reason = _compute_trend_interpretation_correctness(
-            llm=self._llm,
-            example=example,
-            answer=answer,
-            calculation_result=calculation_result,
-        )
-        grounded_rendering_correctness, grounded_reason = _compute_grounded_rendering_correctness(
-            llm=self._llm,
-            example=example,
-            answer=answer,
-            calculation_operands=calculation_operands,
-            calculation_result=calculation_result,
-        )
+        trend_reason = ""
+        grounded_reason = ""
+        if numeric_fast_gate_pass:
+            trend_interpretation_correctness = None
+            grounded_rendering_correctness = None
+        else:
+            trend_interpretation_correctness, trend_reason = _compute_trend_interpretation_correctness(
+                llm=self._llm,
+                example=example,
+                answer=answer,
+                calculation_result=calculation_result,
+            )
+            grounded_rendering_correctness, grounded_reason = _compute_grounded_rendering_correctness(
+                llm=self._llm,
+                example=example,
+                answer=answer,
+                calculation_operands=calculation_operands,
+                calculation_result=calculation_result,
+            )
         calculation_correctness = _compute_calculation_correctness(
             numeric_result_correctness=numeric_result_correctness,
             trend_interpretation_correctness=trend_interpretation_correctness,
