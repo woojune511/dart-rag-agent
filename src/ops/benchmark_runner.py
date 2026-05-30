@@ -4044,6 +4044,26 @@ def _run_full_evaluation(
             emit_now=True,
         )
 
+    def on_eval_progress(event: Dict[str, Any]) -> None:
+        if progress_reporter is None:
+            return
+        total = int(event.get("total") or len(examples) or 0)
+        completed = int(event.get("completed") or 0)
+        progress_reporter.update(
+            "full_eval:run",
+            completed,
+            total,
+            experiment_id=result.get("id"),
+            eval_max_workers=eval_max_workers,
+            eval_event=event.get("event"),
+            question_id=event.get("question_id"),
+            question_index=event.get("index"),
+            numeric_final_judgement=event.get("numeric_final_judgement"),
+            question_latency_sec=event.get("latency_sec"),
+            error=event.get("error"),
+            emit_now=True,
+        )
+
     eval_results = evaluator.run(
         examples=examples,
         run_name=result["id"],
@@ -4064,6 +4084,7 @@ def _run_full_evaluation(
             "low_api_debug": bool(full_eval_config.get("low_api_debug", False)),
         },
         max_workers=eval_max_workers,
+        on_progress=on_eval_progress,
     )
     if progress_reporter:
         progress_reporter.update(

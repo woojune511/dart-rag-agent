@@ -198,6 +198,12 @@ Runner-native heartbeat:
 멈춤인지 장기 ingest/store 구축인지 사람이 판단할 수 있게 한다. `--heartbeat-log`
 를 주면 같은 내용을 JSONL로 저장한다.
 
+`full_eval:run` 단계에서는 evaluator가 문항 단위 progress도 보낸다.
+Heartbeat details의 `eval_event`, `question_id`, `question_index`로 현재
+실행 중인 문항을 확인하고, 완료 이벤트에서는 `current/total`,
+`numeric_final_judgement`, `question_latency_sec`로 어느 문항이 통과/지연됐는지
+확인한다.
+
 권장 기준:
 
 - `results.json`이 생기면 성공/실패 내용을 분석한다.

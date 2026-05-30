@@ -9,10 +9,11 @@ import json
 import logging
 import re
 from statistics import mean
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import mlflow
 import numpy as np
@@ -3178,6 +3179,7 @@ class RAGEvaluator:
         run_name: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
         max_workers: Optional[int] = None,
+        on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
         if examples is None:
             examples = self.load_dataset()
@@ -3191,10 +3193,57 @@ class RAGEvaluator:
 
             results: List[EvalResult] = []
             worker_count = max(1, min(int(max_workers or 1), len(examples)))
+            progress_lock = threading.Lock()
+            completed_count = 0
+
+            def emit_progress(
+                event: str,
+                *,
+                index: int,
+                example_id: str,
+                result: Optional[EvalResult] = None,
+                error: Optional[BaseException] = None,
+            ) -> None:
+                if on_progress is None:
+                    return
+                nonlocal completed_count
+                with progress_lock:
+                    if event in {"completed", "failed"}:
+                        completed_count += 1
+                    completed = completed_count
+                payload: Dict[str, Any] = {
+                    "event": event,
+                    "index": index,
+                    "total": len(examples),
+                    "completed": completed,
+                    "question_id": example_id,
+                }
+                if result is not None:
+                    payload.update(
+                        {
+                            "latency_sec": result.latency_sec,
+                            "numeric_final_judgement": result.numeric_final_judgement,
+                            "error": result.error,
+                        }
+                    )
+                if error is not None:
+                    payload["error"] = str(error)
+                on_progress(payload)
+
+            def evaluate_with_progress(index: int, example: EvalExample) -> EvalResult:
+                emit_progress("started", index=index, example_id=example.id)
+                try:
+                    result = self.evaluate_one(example)
+                except Exception as exc:
+                    emit_progress("failed", index=index, example_id=example.id, error=exc)
+                    raise
+                emit_progress("completed", index=index, example_id=example.id, result=result)
+                return result
+
             if worker_count == 1:
                 for index, example in enumerate(examples, 1):
                     logger.info("Evaluating [%s/%s] %s", index, len(examples), example.id)
-                    result = self.evaluate_one(example)
+                    result = evaluate_with_progress(index, example)
                     results.append(result)
             else:
                 logger.info("Evaluating %s questions with eval_max_workers=%s", len(examples), worker_count)
@@ -3203,7 +3252,7 @@ class RAGEvaluator:
                     futures = {}
                     for index, example in enumerate(examples, 1):
                         logger.info("Queueing evaluation [%s/%s] %s", index, len(examples), example.id)
-                        future = executor.submit(self.evaluate_one, example)
+                        future = executor.submit(evaluate_with_progress, index, example)
                         futures[future] = (index, example.id)
 
                     for future in concurrent.futures.as_completed(futures):
