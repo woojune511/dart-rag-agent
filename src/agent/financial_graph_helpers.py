@@ -3346,6 +3346,30 @@ def _lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]:
     ]
 
 
+def _operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool:
+    surfaces = _lookup_query_surface_preferences(operand)
+    if not surfaces:
+        return False
+    return _text_has_contract_term(text, surfaces)
+
+
+def _candidate_has_operand_context_surface(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    metadata = dict(candidate.get("metadata") or {})
+    context_text = " ".join(
+        str(part or "").strip()
+        for part in (
+            " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+            " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+            str(metadata.get("table_row_labels_text") or ""),
+            str(metadata.get("table_summary_text") or ""),
+            str(metadata.get("row_text") or ""),
+            str(candidate.get("text") or ""),
+        )
+        if str(part or "").strip()
+    )
+    return _text_has_positive_surface(context_text, operand) or _operand_text_match(context_text, operand)
+
+
 def _concept_spec_for_key(ontology: Any, key: str) -> Dict[str, Any]:
     concept_key = _normalise_spaces(str(key or ""))
     if not concept_key:
@@ -6530,6 +6554,14 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
     if (
         aggregate_signal
         and _operand_text_match(aggregate_signal, operand)
+        and _candidate_value_role(candidate) == "aggregate"
+        and _candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
+    ):
+        best = max(best, 2.25)
+    if (
+        aggregate_signal
+        and _operand_lookup_surface_match(aggregate_signal, operand)
+        and _candidate_has_operand_context_surface(candidate, operand)
         and _candidate_value_role(candidate) == "aggregate"
         and _candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
     ):

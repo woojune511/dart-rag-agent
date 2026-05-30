@@ -1211,7 +1211,7 @@ def _resolve_numeric_judgement(
 
 def _compute_numeric_evaluation(
     *,
-    llm: ChatGoogleGenerativeAI,
+    llm: Optional[ChatGoogleGenerativeAI],
     example: EvalExample,
     answer: str,
     runtime_evidence: List[Dict[str, Any]],
@@ -1230,12 +1230,29 @@ def _compute_numeric_evaluation(
         contexts=contexts,
         calculation_operands=calculation_operands,
     )
-    if deterministic_grounding_only and operand_grounding is not None:
-        grounding = operand_grounding
+    if deterministic_grounding_only:
+        if operand_grounding is not None:
+            grounding = operand_grounding
+            grounding_debug = {
+                "verdict": "grounded" if operand_grounding == 1.0 else "ungrounded",
+                "confidence": 1.0 if operand_grounding == 1.0 else 0.7,
+                "reason": "deterministic_numeric_fast_gate_operand_grounding",
+                "llm_skipped": True,
+            }
+        else:
+            grounding = None
+            grounding_debug = {
+                "verdict": "uncertain",
+                "confidence": 0.0,
+                "reason": "deterministic_numeric_fast_gate_operand_grounding_unavailable",
+                "llm_skipped": True,
+            }
+    elif llm is None:
+        grounding = None
         grounding_debug = {
-            "verdict": "grounded" if operand_grounding == 1.0 else "ungrounded",
-            "confidence": 1.0 if operand_grounding == 1.0 else 0.7,
-            "reason": "deterministic_numeric_fast_gate_operand_grounding",
+            "verdict": "uncertain",
+            "confidence": 0.0,
+            "reason": "numeric_grounding_llm_disabled",
             "llm_skipped": True,
         }
     else:
@@ -2705,13 +2722,17 @@ class RAGEvaluator:
         dataset_path: Optional[str] = None,
         experiment_name: str = "dart_rag_eval",
         numeric_fast_gate: bool = False,
+        skip_llm_judges: bool = False,
+        skip_embedding_metrics: bool = False,
     ):
         self.agent = agent
         self.experiment_name = experiment_name
         self._dataset_path = Path(dataset_path) if dataset_path else _DEFAULT_DATASET
         self.numeric_fast_gate = bool(numeric_fast_gate)
-        self._llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
-        self._embeddings = create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
+        self.skip_llm_judges = bool(skip_llm_judges)
+        self.skip_embedding_metrics = bool(skip_embedding_metrics or self.skip_llm_judges)
+        self._llm = None if self.skip_llm_judges else ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
+        self._embeddings = None if self.skip_embedding_metrics else create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
     def load_dataset(self) -> List[EvalExample]:
         return load_eval_examples_from_path(self._dataset_path)
@@ -2884,7 +2905,7 @@ class RAGEvaluator:
                 contexts=contexts,
                 calculation_operands=calculation_operands,
                 retrieval_hit_at_k=retrieval_hit_at_k,
-                deterministic_grounding_only=self.numeric_fast_gate,
+                deterministic_grounding_only=self.numeric_fast_gate or self.skip_llm_judges,
             )
 
         numeric_fast_gate_pass = bool(
@@ -2901,10 +2922,23 @@ class RAGEvaluator:
             answer_relevancy = 1.0
             completeness = 1.0
             completeness_reason = "numeric_fast_gate PASS: generic completeness judge 생략"
+        elif self.skip_llm_judges:
+            raw_faithfulness = None
+            faithfulness = 1.0 if _should_override_numeric_faithfulness(numeric_eval) else 0.0
+            faithfulness_override_reason = (
+                "skip_llm_judges: LLM faithfulness judge disabled; deterministic numeric PASS only can promote score"
+            )
+            answer_relevancy = 0.0
+            completeness = _compute_completeness(example, answer)
+            completeness_reason = "skip_llm_judges: heuristic completeness only"
         else:
             raw_faithfulness = _compute_faithfulness(self._llm, answer, contexts)
             faithfulness = raw_faithfulness
-            answer_relevancy = _compute_answer_relevancy(self._embeddings, example.question, answer)
+            answer_relevancy = (
+                0.0
+                if self.skip_embedding_metrics
+                else _compute_answer_relevancy(self._embeddings, example.question, answer)
+            )
             completeness, completeness_reason = _compute_completeness_judge(self._llm, example, answer)
             if completeness is None:
                 completeness = _compute_completeness(example, answer)
@@ -2955,7 +2989,7 @@ class RAGEvaluator:
             operand_selection_correctness = 1.0
         trend_reason = ""
         grounded_reason = ""
-        if numeric_fast_gate_pass:
+        if numeric_fast_gate_pass or self.skip_llm_judges:
             trend_interpretation_correctness = None
             grounded_rendering_correctness = None
         else:

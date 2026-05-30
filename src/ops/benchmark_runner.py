@@ -2730,6 +2730,15 @@ def _apply_question_id_override(
     return overridden
 
 
+def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, bool]:
+    offline_retrieval = bool(full_eval_config.get("offline_retrieval", False))
+    return {
+        "low_api_debug": bool(full_eval_config.get("low_api_debug", False)),
+        "enable_semantic_router": not (offline_retrieval or bool(full_eval_config.get("disable_semantic_router", False))),
+        "enable_llm_fallback": not (offline_retrieval or bool(full_eval_config.get("disable_router_llm", False))),
+    }
+
+
 def _mean_or_none(values: List[float | None]) -> float | None:
     filtered = [float(value) for value in values if value is not None]
     return float(mean(filtered)) if filtered else None
@@ -3351,12 +3360,13 @@ def run_screening_experiment(
         collection_name=collection_name,
         embedding_provider=embedding_provider,
         embedding_model_name=embedding_model_name,
-        allow_query_embedding_fallback=allow_retrieval_fallback,
+        allow_query_embedding_fallback=allow_retrieval_fallback or bool(full_eval_config.get("offline_retrieval", False)),
     )
     agent = FinancialAgent(
         vsm,
         k=int(config_with_inventory.get("k", 8)),
         graph_expansion_config=_build_graph_expansion_config(config_with_inventory),
+        routing_config=_build_agent_routing_config(full_eval_config),
     )
 
     store_cache_hit = (
@@ -3706,18 +3716,24 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
         collection_name=store_info["collection_name"],
         embedding_provider=store_info.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
         embedding_model_name=store_info.get("embedding_model_name", DEFAULT_EMBEDDING_MODEL),
-        allow_query_embedding_fallback=bool(store_info.get("allow_retrieval_fallback", False)),
+        allow_query_embedding_fallback=bool(
+            store_info.get("allow_retrieval_fallback", False)
+            or full_eval_config.get("offline_retrieval", False)
+        ),
     )
     agent = FinancialAgent(
         vsm,
         k=int(merged_config.get("k", 8)),
         graph_expansion_config=_build_graph_expansion_config(merged_config),
+        routing_config=_build_agent_routing_config(full_eval_config),
     )
     evaluator = RAGEvaluator(
         agent,
         dataset_path=str(_normalise_path(merged_config["eval_dataset_path"])),
         experiment_name=merged_config.get("mlflow_experiment_name", "dart_rag_benchmark"),
         numeric_fast_gate=bool(full_eval_config.get("numeric_fast_gate", False)),
+        skip_llm_judges=bool(full_eval_config.get("skip_llm_judges", False)),
+        skip_embedding_metrics=bool(full_eval_config.get("skip_embedding_metrics", False)),
     )
 
     full_config = dict(merged_config)
@@ -3750,6 +3766,10 @@ def _run_full_evaluation(result: Dict[str, Any], merged_config: Dict[str, Any], 
             "collection_name": store_info["collection_name"],
             "stage": "full_evaluation",
             "numeric_fast_gate": bool(full_eval_config.get("numeric_fast_gate", False)),
+            "skip_llm_judges": bool(full_eval_config.get("skip_llm_judges", False)),
+            "skip_embedding_metrics": bool(full_eval_config.get("skip_embedding_metrics", False)),
+            "offline_retrieval": bool(full_eval_config.get("offline_retrieval", False)),
+            "low_api_debug": bool(full_eval_config.get("low_api_debug", False)),
         },
         max_workers=eval_max_workers,
     )
@@ -3965,6 +3985,32 @@ def main() -> None:
             "faithfulness/completeness/relevancy judges and use the numeric evaluator as the gate verdict."
         ),
     )
+    parser.add_argument(
+        "--skip-llm-judges",
+        action="store_true",
+        help="Diagnostic mode: skip evaluator LLM judges and use deterministic/heuristic metrics only.",
+    )
+    parser.add_argument(
+        "--skip-embedding-metrics",
+        action="store_true",
+        help="Diagnostic mode: skip evaluator embedding-based metrics such as answer relevancy.",
+    )
+    parser.add_argument(
+        "--offline-retrieval",
+        action="store_true",
+        help=(
+            "Diagnostic mode: allow BM25 fallback for query embedding failures and disable "
+            "semantic/LLM routing fallback. Not an official gate mode."
+        ),
+    )
+    parser.add_argument(
+        "--low-api-debug",
+        action="store_true",
+        help=(
+            "Bundle for focused debugging: numeric fast gate, skip LLM judges, skip embedding metrics, "
+            "and offline retrieval routing."
+        ),
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -3983,8 +4029,16 @@ def main() -> None:
         dict(matrix.get("full_evaluation", {}) or {}),
         list(args.question_id or []),
     )
-    if args.numeric_fast_gate:
+    if args.numeric_fast_gate or args.low_api_debug:
         full_eval_config["numeric_fast_gate"] = True
+    if args.skip_llm_judges or args.low_api_debug:
+        full_eval_config["skip_llm_judges"] = True
+    if args.skip_embedding_metrics or args.low_api_debug:
+        full_eval_config["skip_embedding_metrics"] = True
+    if args.offline_retrieval or args.low_api_debug:
+        full_eval_config["offline_retrieval"] = True
+    if args.low_api_debug:
+        full_eval_config["low_api_debug"] = True
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")
 

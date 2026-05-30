@@ -2246,6 +2246,103 @@ class FinancialAgentCalculationMixin:
                     len(deterministic_required_rows),
                 )
 
+        if getattr(self, "low_api_debug", False):
+            operand_rows = list(direct_structured_rows)
+            missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            if missing_required and surface_contract_evidence:
+                surface_fallback_rows = self._build_required_operands_from_candidates(
+                    surface_contract_evidence,
+                    required_operands=missing_required,
+                    query=query,
+                    topic=state.get("topic") or "",
+                    report_scope=dict(state.get("report_scope") or {}),
+                )
+                operand_rows = _merge_operand_rows(
+                    operand_rows,
+                    surface_fallback_rows,
+                    required_operands=required_operands,
+                )
+                missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            if missing_required and not direct_numeric_grounding:
+                generic_fallback_rows = self._build_required_operands_from_candidates(
+                    evidence_items,
+                    required_operands=missing_required,
+                    query=query,
+                    topic=state.get("topic") or "",
+                    report_scope=dict(state.get("report_scope") or {}),
+                )
+                operand_rows = _merge_operand_rows(
+                    operand_rows,
+                    generic_fallback_rows,
+                    required_operands=required_operands,
+                )
+                missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
+                ratio_fallback_rows = self._build_ratio_operands_from_candidates(
+                    [item for item in evidence_items if item.get("raw_row_text")],
+                    query,
+                    topic=state.get("topic") or "",
+                    report_scope=dict(state.get("report_scope") or {}),
+                )
+                operand_rows = _merge_operand_rows(
+                    operand_rows,
+                    ratio_fallback_rows,
+                    required_operands=required_operands,
+                )
+            if _is_percent_point_difference_query(query):
+                operand_rows = [
+                    row for row in operand_rows
+                    if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
+                ]
+            missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            coverage = "sufficient" if operand_rows and not missing_required else "partial" if operand_rows else "missing"
+            artifacts = list(state.get("artifacts") or [])
+            tasks = list(state.get("tasks") or [])
+            task_id = str(active_subtask.get("task_id") or "calc")
+            if operand_rows:
+                artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
+                artifacts = _append_artifact(
+                    artifacts,
+                    artifact_id=artifact_id,
+                    task_id=task_id,
+                    kind=ArtifactKind.OPERAND_SET,
+                    status=coverage,
+                    summary=f"{len(operand_rows)} deterministic operand(s)",
+                    payload={"calculation_operands": operand_rows, "coverage": coverage, "source": "low_api_debug"},
+                    evidence_refs=[str(row.get("evidence_id") or "") for row in operand_rows if str(row.get("evidence_id") or "").strip()],
+                )
+                tasks = _upsert_task(
+                    tasks,
+                    task_id=task_id,
+                    kind=TaskKind.CALCULATION,
+                    label=str(active_subtask.get("metric_label") or task_id),
+                    status=TaskStatus.IN_PROGRESS,
+                    query=self._calc_query(state),
+                    metric_family=self._calc_metric_family(state),
+                    artifact_id=artifact_id,
+                )
+            return {
+                "calculation_debug_trace": {
+                    "coverage": coverage,
+                    "source": "low_api_debug_deterministic_operands",
+                    "llm_invoked": False,
+                    "direct_structured_rows": direct_structured_rows,
+                    "missing_required": missing_required,
+                    "operands": operand_rows,
+                },
+                "evidence_items": evidence_items,
+                "evidence_bullets": evidence_bullets,
+                "evidence_status": coverage,
+                "tasks": tasks,
+                "artifacts": artifacts,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=operand_rows,
+                    calculation_plan={},
+                    calculation_result={},
+                ),
+            }
+
         structured_llm = self.llm.with_structured_output(OperandExtraction)
         evidence_text = self._format_evidence_for_prompt(evidence_items, evidence_bullets)
         prompt = ChatPromptTemplate.from_template(
@@ -2681,6 +2778,40 @@ Structured Evidence:
                     calculation_result={},
                 ),
             }
+        if getattr(self, "low_api_debug", False):
+            failed_plan = {
+                "status": "incomplete",
+                "mode": "none",
+                "operation": "none",
+                "ordered_operand_ids": [],
+                "variable_bindings": [],
+                "formula": "",
+                "pairwise_formula": "",
+                "result_unit": "",
+                "operation_text": "",
+                "explanation": "low_api_debug skipped formula planner LLM fallback",
+                "missing_info": self._infer_missing_info(state, operands),
+            }
+            return {
+                "missing_info": self._infer_missing_info(state, operands),
+                "planner_debug_trace": {
+                    "active_metric_family": metric_key,
+                    "ontology_context": "low_api_debug",
+                    "operands_text": "\n".join(
+                        f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
+                        for row in operands
+                    ),
+                    "llm_invoked": False,
+                    "guard_applied": False,
+                    "reason": "low_api_debug",
+                },
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_plan=failed_plan,
+                    calculation_result={},
+                ),
+            }
+
         structured_llm = self.llm.with_structured_output(CalculationPlan)
         ontology_context = ""
         if metric_info:
@@ -3890,6 +4021,31 @@ Ontology Context:
                 ),
             }
 
+        if getattr(self, "low_api_debug", False):
+            answer = str(
+                calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or ""
+            ).strip()
+            if not answer:
+                answer = "질문에 필요한 수치를 계산했지만 자연어 답변 생성을 생략했습니다."
+            answer = self._coerce_sign_aware_subtraction_answer(
+                answer,
+                calculation_result=calculation_result,
+            )
+            if operation == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+                answer = self._compact_ratio_answer(state, calculation_result)
+            calculation_result["formatted_result"] = answer
+            return {
+                "answer": answer,
+                "compressed_answer": answer,
+                "draft_points": [answer] if answer else [],
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_result=calculation_result,
+                ),
+            }
+
         structured_llm = self.llm.with_structured_output(CalculationRenderOutput)
         prompt = ChatPromptTemplate.from_template(
             """당신은 한국 기업 공시(DART) 계산 결과를 사용자 친화적인 한국어로 렌더링하는 분석가입니다.
@@ -3998,6 +4154,24 @@ Operands:
             direction_hint = "더 큽니다" if result_val > 0 else "더 작습니다" if result_val < 0 else "동일합니다"
         else:
             direction_hint = ""
+        if getattr(self, "low_api_debug", False):
+            debug_trace = dict(state.get("calculation_debug_trace") or {})
+            debug_trace["verification"] = {
+                "verdict": "skip",
+                "reason": "low_api_debug",
+                "input_answer": answer,
+                "final_answer": answer,
+                "rendered_value": rendered_value,
+                "direction_hint": direction_hint,
+            }
+            calculation_result["formatted_result"] = answer
+            return {
+                "answer": answer,
+                "compressed_answer": answer,
+                "calculation_debug_trace": debug_trace,
+                **_runtime_trace_state_update(state, calculation_result=calculation_result),
+            }
+
         structured_llm = self.llm.with_structured_output(CalculationVerificationOutput)
         prompt = ChatPromptTemplate.from_template(
             """당신은 재무 계산 답변 검증기입니다.

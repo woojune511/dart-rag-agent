@@ -110,18 +110,25 @@ Historical answer replay, with no agent rerun:
   `resolved_calculation_trace` / `structured_result`.
 - No fallback retrieval backend should be used in benchmark mode.
 
-## Latest direct runtime validation
+## Latest validation notes
 
 - Last checked: 2026-05-30
-- Output:
+- Historical replay source for `comparison_002`:
+  - `benchmarks/results/dev_math_focus_evalonly_2026-04-28/삼성전자-2024/results.json`
+- Replay result:
+  - `comparison_002 = PASS`
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+- Artifact hygiene note:
   - `benchmarks/results/multi_entity_grounding_gate_final_smoke_2026-05-30`
-- Result:
-  - `numeric_pass_rate = 1.000`
-  - `completeness = 1.000`
-  - `faithfulness = 1.000`
-- Eval-only check:
-  - same output dir rerun with `--eval-only`
-  - still PASS with `numeric_pass_rate = 1.000`
+    currently contains a later cap-affected `comparison_002 = UNCERTAIN`
+    result, so do not use that bundle as the replay source for the solved-case
+    regression check.
+- Operating rule:
+  - solved multi-entity cases should be checked by historical replay first
+  - rerun the live focused gate only when multi-entity routing, retrieval,
+    reconciliation, calculation, or evaluator projection changed
 
 - `comparison_001`
   - `DX 매출액 = 174조 8,877억원`

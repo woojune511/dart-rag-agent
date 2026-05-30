@@ -47,9 +47,17 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
     _SECTION_BIAS_BY_QUERY_TYPE = SECTION_BIAS_BY_QUERY_TYPE
 
-    def __init__(self, vector_store_manager, k: int = 8, graph_expansion_config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        vector_store_manager,
+        k: int = 8,
+        graph_expansion_config: Optional[Dict[str, Any]] = None,
+        routing_config: Optional[Dict[str, Any]] = None,
+    ):
         self.vsm = vector_store_manager
         self.k = k
+        self.routing_config = dict(routing_config or {})
+        self.low_api_debug = bool(self.routing_config.get("low_api_debug", False))
         # Expansion keeps the initial retrieval hits intact and selectively
         # appends nearby structural context such as parent paragraphs or table
         # descriptions.
@@ -74,7 +82,12 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
-        self.query_router = QueryRouter(embeddings=self.vsm.embeddings, llm=self.llm)
+        self.query_router = QueryRouter(
+            embeddings=self.vsm.embeddings,
+            llm=self.llm,
+            enable_semantic_router=bool(self.routing_config.get("enable_semantic_router", True)),
+            enable_llm_fallback=bool(self.routing_config.get("enable_llm_fallback", True)),
+        )
         self.graph = self._build_graph()
 
     def _build_graph(self):

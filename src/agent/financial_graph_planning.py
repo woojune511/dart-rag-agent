@@ -753,6 +753,10 @@ class FinancialAgentPlanningMixin:
         - operands must reference known ontology concepts
         - output is converted back into the same task IR used elsewhere
         """
+        if getattr(self, "low_api_debug", False):
+            logger.info("[concept_llm_plan] skipped by low_api_debug")
+            return None
+
         ontology = get_financial_ontology()
         planner_feedback = _normalise_spaces(planner_feedback)
         concept_seed_query = query if not planner_feedback else f"{query}\n{planner_feedback}"

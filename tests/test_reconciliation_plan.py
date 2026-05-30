@@ -1630,6 +1630,68 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertTrue(matched["matched"])
         self.assertEqual(matched["candidate_ids"][0], "bond_final")
 
+    def test_lookup_accepts_policy_surface_final_total_for_bonds(self) -> None:
+        active_subtask = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "metric_label": "2023년 사채",
+            "operation_family": "lookup",
+            "required_operands": [
+                {
+                    "label": "사채",
+                    "concept": "bonds_payable",
+                    "aliases": ["회사채", "원화일반사채"],
+                    "role": "current_period",
+                    "required": True,
+                    "preferred_sections": ["차입금 및 사채", "사채"],
+                    "preferred_statement_types": ["notes"],
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate", "detail"],
+                        "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+                        "prefer_period_focus": "current",
+                        "prefer_consolidation_scope": "consolidated",
+                    },
+                }
+            ],
+            "preferred_statement_types": ["notes"],
+            "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+        }
+        final_total_candidate = {
+            "candidate_id": "bond_final_generic",
+            "candidate_kind": "structured_value",
+            "text": "차입금명칭 원화일반사채 외화일반사채 외화교환사채 차감 계 9,490,410",
+            "metadata": {
+                "row_label": "차감 계",
+                "semantic_label": "차입금명칭 합계",
+                "semantic_aliases": ["차입금명칭 합계", "차입금명칭", "차감 계"],
+                "aggregate_label": "차입금명칭 합계",
+                "aggregate_role": "final_total",
+                "aggregation_stage": "final",
+                "value_role": "aggregate",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 차입금 및 사채",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "table_row_labels_text": "차입금명칭 원화일반사채 외화일반사채 외화교환사채 합계 차감 계",
+                "structured_cells": [
+                    {"column_headers": ["차입금명칭 합계"], "value_text": "9,490,410", "unit_hint": "백만원"},
+                ],
+            },
+        }
+
+        result = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=[final_total_candidate],
+            years=[2023],
+            reconciliation_retry_count=1,
+        )
+
+        self.assertEqual(result["status"], "ready")
+        matched = result["matched_operands"][0]
+        self.assertTrue(matched["matched"])
+        self.assertEqual(matched["candidate_ids"][0], "bond_final_generic")
+
     def test_note_aggregate_structured_value_beats_mixed_table_row_summary(self) -> None:
         operand = {
             "label": "장기차입금",

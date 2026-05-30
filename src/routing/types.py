@@ -29,7 +29,7 @@ class QueryRoutingDecision(BaseModel):
 class QueryRouteResult(BaseModel):
     intent: QueryIntent
     format_preference: FormatPreference
-    routing_source: Literal["semantic_fast_path", "llm_fallback"]
+    routing_source: Literal["semantic_fast_path", "llm_fallback", "heuristic_fallback"]
     routing_confidence: float = Field(description="최종 routing confidence")
     routing_scores: Dict[str, float] = Field(default_factory=dict)
     second_intent: Optional[QueryIntent] = None

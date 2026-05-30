@@ -47,9 +47,31 @@ These five questions cover:
   filings from DART without changing the required receipt number.
 - Run this gate with `structural_selective_v2_prefix_2500_320` only in routine
   development regression checks.
+- Do not use `contextual_selective_v2_prefix_2500_320` for routine triage,
+  single-question canaries, or low-API debug. It is an arbitration-only
+  quality reference when the structural path has a confirmed regression.
 - Treat embedding-provider/model/dimension mismatch as cache miss and reindex.
 - Use the stored `store_signature` / `benchmark_cache_meta.json` metadata to
   avoid cross-environment store reuse mistakes.
+
+## Cost-Controlled Triage Loop
+
+Use this order before paying for a full curated gate rerun:
+
+1. Commit the code/docs/test change once unit and contract tests pass.
+2. Recheck the active runtime canary with one question only, usually
+   `--eval-only --question-id <ID> --low-api-debug`.
+3. For already-closed cases such as `comparison_002`, use historical replay
+   only unless the live agent path changed.
+4. Classify only two or three remaining focused failures at a time as
+   retrieval, dependency/synthesis, answer formatting, or evaluator issues.
+5. Run the full curated runtime gate once after two or three focused fixes have
+   accumulated, without `--low-api-debug`.
+
+`--low-api-debug` is a diagnostic mode, not an official score. It intentionally
+skips evaluator LLM judges, evaluator embedding metrics, semantic/LLM router
+fallback, and calculation-path LLM fallbacks where deterministic artifacts are
+available.
 
 ## Recommended invocation
 
@@ -80,6 +102,18 @@ Fast numeric canary mode:
   --eval-only `
   --question-id SKH_T1_060 `
   --numeric-fast-gate
+```
+
+Low-API diagnostic canary mode:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_runtime_contract_gate.json `
+  --output-dir benchmarks/results/runtime_contract_gate_manual `
+  --company-run-id skh_2023_runtime_contract_gate `
+  --eval-only `
+  --question-id SKH_T1_060 `
+  --low-api-debug
 ```
 
 Historical answer replay:
@@ -120,6 +154,40 @@ Current gate interpretation is now stable:
     full ingest-time cost of contextual selective ingestion
   - latest `SKH_T1_060` closure came from note-aggregate lookup hardening for
     `장기차입금` / `사채`, not from relaxing the gate
+
+## Current Focused Triage Notes
+
+Last checked: 2026-05-30.
+
+- `SKH_T1_060`
+  - Command shape:
+    - `benchmark_runner --eval-only --question-id SKH_T1_060 --low-api-debug`
+  - Diagnostic result:
+    - `numeric_final_judgement = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+  - Failure class:
+    - not a current retrieval/dependency blocker
+    - remaining issue is answer formatting in low-API mode: the final answer
+      can include intermediate lookup fragments and missing-subtask messages
+      before the final ratio display
+- `low-api-debug`
+  - Failure class:
+    - cost-control gap
+  - Observation:
+    - evaluator/router/calculation fallback calls are reduced, but the live
+      graph can still attempt numeric extractor / aggregate synthesis LLM calls
+      and query embedding calls during retry retrieval
+  - Next improvement:
+    - add a true BM25-only retrieval mode and deterministic numeric extractor
+      bypass for direct structured reconciliation tasks
+- `comparison_002`
+  - Treat as a solved multi-entity grounding case only when replaying a saved
+    PASS trace.
+  - Use historical replay for routine regression; do not rerun the live agent
+    unless multi-entity routing, retrieval, reconciliation, or calculation
+    code changed.
 
 ## Related canary
 

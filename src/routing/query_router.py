@@ -88,13 +88,21 @@ class QueryRouter:
         embeddings: Any,
         llm: Any,
         canonical_queries_path: Optional[Path] = None,
+        enable_semantic_router: bool = True,
+        enable_llm_fallback: bool = True,
     ) -> None:
         self.embeddings = embeddings
         self.llm = llm
         self.canonical_queries_path = canonical_queries_path or default_canonical_queries_path()
+        self.enable_semantic_router = bool(enable_semantic_router)
+        self.enable_llm_fallback = bool(enable_llm_fallback)
         self._semantic_router = self._build_semantic_router()
 
     def _build_semantic_router(self) -> Dict[str, Any]:
+        if not self.enable_semantic_router:
+            logger.info("[routing] semantic router disabled by runtime config")
+            return {"enabled": False, "examples": []}
+
         try:
             examples = load_canonical_routing_examples(self.canonical_queries_path)
         except Exception as exc:
@@ -235,6 +243,30 @@ class QueryRouter:
                 format_preference=format_preference,  # type: ignore[arg-type]
                 routing_source="semantic_fast_path",
                 routing_confidence=float(semantic_result.get("confidence") or 0.0),
+                routing_scores=dict(semantic_result.get("scores") or {}),
+                second_intent=semantic_result.get("second_intent") or None,  # type: ignore[arg-type]
+                margin=float(semantic_result.get("margin") or 0.0),
+                required_margin=float(semantic_result.get("required_margin") or SEMANTIC_FASTPATH_MARGIN),
+            )
+
+        if not self.enable_llm_fallback:
+            operation_signal = any(term in query for term in ROUTING_CALC_GUARDRAIL_OPERATION_TERMS)
+            semantic_intent = str(semantic_result.get("intent") or "").strip()
+            intent = semantic_intent if semantic_intent in ROUTER_INTENTS else ("comparison" if operation_signal else "qa")
+            format_preference = str(
+                semantic_result.get("format_preference") or default_format_preference(intent)
+            )
+            logger.info(
+                "[routing] heuristic fallback intent=%s format=%s semantic_scores=%s",
+                intent,
+                format_preference,
+                semantic_result.get("scores", {}),
+            )
+            return QueryRouteResult(
+                intent=intent,  # type: ignore[arg-type]
+                format_preference=format_preference,  # type: ignore[arg-type]
+                routing_source="heuristic_fallback",
+                routing_confidence=float(semantic_result.get("confidence") or (0.35 if operation_signal else 0.2)),
                 routing_scores=dict(semantic_result.get("scores") or {}),
                 second_intent=semantic_result.get("second_intent") or None,  # type: ignore[arg-type]
                 margin=float(semantic_result.get("margin") or 0.0),

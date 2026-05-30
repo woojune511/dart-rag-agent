@@ -138,6 +138,33 @@ class CompositeKrwParsingTests(unittest.TestCase):
 
         self.assertEqual(result["numeric_final_judgement"], "PASS")
         self.assertEqual(result["numeric_grounding"], 1.0)
+
+    def test_numeric_fast_gate_does_not_call_llm_when_operand_grounding_is_unavailable(self) -> None:
+        example = EvalExample(
+            id="numeric_debug",
+            question="계산 결과를 확인해 줘.",
+            ground_truth="정답은 10이다.",
+            answer_key="정답은 10이다.",
+            company="테스트",
+            year=2024,
+            section="",
+            answer_type="numeric",
+            category="comparison",
+        )
+
+        result = _compute_numeric_evaluation(
+            llm=_ExplodingLLM(),
+            example=example,
+            answer="정답은 10입니다.",
+            runtime_evidence=[],
+            contexts=[],
+            calculation_operands=[],
+            retrieval_hit_at_k=0.0,
+            deterministic_grounding_only=True,
+        )
+
+        self.assertEqual(result["numeric_final_judgement"], "UNCERTAIN")
+        self.assertIsNone(result["numeric_grounding"])
         self.assertTrue(result["numeric_debug"]["grounding"]["llm_skipped"])
 
     def test_percent_point_query_coerces_result_unit(self) -> None:
