@@ -1273,6 +1273,98 @@ Artifact policy:
 - `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/` is a local
   benchmark artifact and should not be committed.
 
+## 2026-05-30 Policy Gate Refresh
+
+Purpose:
+
+- Refill official policy-driven gate artifacts after the latest mainline pull
+  and evaluator/runtime changes.
+- Confirm the NAVER/LGE/Samsung policy-driven rows under the structural default
+  without committing raw result directories.
+
+Commands:
+
+```bash
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
+  --company-run-id naver_2023_policy_driven_runtime_gate
+
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
+  --company-run-id lge_2023_policy_driven_runtime_gate
+
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
+  --company-run-id samsung_2023_policy_driven_runtime_gate
+```
+
+Result:
+
+- Run status: `completed` for NAVER, LGE, and Samsung.
+- Pending in this bundle: `hyundai_2023_policy_driven_runtime_gate`.
+- Candidate: `structural_selective_v2_prefix_2500_320`.
+- Winner ranking for the three completed companies:
+  - `pass_count = 3`
+  - `company_count = 3`
+  - `full_eval_fail_count = 1`
+  - `critical_category_miss_count = 0`
+  - `avg_numeric = 1.0`
+  - `avg_completeness = 0.9`
+  - `avg_faithfulness = 1.0`
+  - `avg_recall = 1.0`
+
+Per-question interpretation:
+
+- `NAV_T2_006`: closed in the refreshed official bundle with
+  `faithfulness = 1.0`, `completeness = 1.0`, `context_recall = 1.0`, and
+  `retrieval_hit_at_k = 1.0`.
+- `SAM_T2_078`: closed in the refreshed official bundle with
+  `faithfulness = 1.0`, `completeness = 1.0`, `context_recall = 1.0`, and
+  `retrieval_hit_at_k = 1.0`.
+- `LGE_T1_051`: numeric grounding is closed after evaluator trace hardening:
+  `numeric_final_judgement = PASS`, `numeric_equivalence = 1.0`,
+  `numeric_grounding = 1.0`, and `numeric_retrieval_support = 1.0`.
+  The latest official answer uses the rounded AMPC expression `6,769억원` and
+  renders `1,486,334백만원`; numeric equivalence passes, but
+  `completeness = 0.7`, leaving one full-eval failure in the three-company
+  refresh.
+
+Related Hyundai refresh:
+
+- `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` completed
+  separately with `pass_count = 1`, `full_eval_fail_count = 0`,
+  `faithfulness = 1.0`, `completeness = 1.0`, and `context_recall = 1.0`.
+
+Implementation notes:
+
+- The LGE rerun exposed an evaluator-only failure mode: resolved sibling-task
+  operands were preserved in the calculation trace, but `_resolve_evaluator_operands`
+  rebuilt operands from `answer_slots` and dropped `dependency_resolved`,
+  `source_task_id`, and `source_slot`.
+- `_resolve_evaluator_operands` now enriches slot-derived operands from the
+  original calculation trace by matching `source_row_id`, `row_id`,
+  `evidence_id`, and `source_row_ids`.
+- `_should_override_numeric_grounding` now allows a resolved `task_output:*`
+  operand without its own `source_anchor` when it still carries
+  `dependency_resolved` and a source task/slot reference. Unresolved task-output
+  operands remain blocked.
+
+Validation:
+
+- `python -m unittest tests.test_evaluator_runtime_projection` passed:
+  `37` tests.
+- `pytest` was not available in the active virtual environment, so the focused
+  validation used standard-library `unittest`.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_refresh_2026-05-30/` and
+  `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` are local
+  benchmark artifacts and should not be committed.
+
 ## 2026-05-29 Hyundai Policy Gate Replay
 
 Purpose:

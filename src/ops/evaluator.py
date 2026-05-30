@@ -1929,10 +1929,10 @@ def _should_override_numeric_grounding(
             operand.get("source_row_id") or operand.get("row_id") or operand.get("evidence_id") or ""
         ).strip()
         source_anchor = str(operand.get("source_anchor") or "").strip()
-        if not source_row_id or not source_anchor:
+        if not source_row_id:
             return False
         if not source_row_id.startswith("task_output:"):
-            return True
+            return bool(source_anchor)
         return bool(
             operand.get("dependency_resolved")
             and (operand.get("source_task_id") or operand.get("source_slot"))
@@ -2574,7 +2574,53 @@ def _resolve_evaluator_operands(
 ) -> List[Dict[str, Any]]:
     slot_rows = _derive_operands_from_answer_slots(calculation_result)
     if slot_rows:
-        return _dedupe_semantic_operands(_promote_direct_sources_across_semantic_equivalents(slot_rows))
+        original_by_source_id: Dict[str, Dict[str, Any]] = {}
+        for operand in list(calculation_operands or []):
+            source_ids = [
+                operand.get("source_row_id"),
+                operand.get("row_id"),
+                operand.get("evidence_id"),
+                *(operand.get("source_row_ids") or []),
+            ]
+            for source_id in source_ids:
+                source_id_text = str(source_id or "").strip()
+                if source_id_text and source_id_text not in original_by_source_id:
+                    original_by_source_id[source_id_text] = dict(operand)
+
+        enriched_slot_rows: List[Dict[str, Any]] = []
+        for slot_row in slot_rows:
+            enriched = dict(slot_row)
+            source_ids = [
+                enriched.get("source_row_id"),
+                enriched.get("row_id"),
+                enriched.get("evidence_id"),
+                *(enriched.get("source_row_ids") or []),
+            ]
+            original = next(
+                (
+                    original_by_source_id.get(str(source_id or "").strip())
+                    for source_id in source_ids
+                    if str(source_id or "").strip() in original_by_source_id
+                ),
+                None,
+            )
+            if original:
+                for key in (
+                    "dependency_resolved",
+                    "source_task_id",
+                    "source_slot",
+                    "evidence_id",
+                    "table_source_id",
+                    "precision_source",
+                ):
+                    if original.get(key) is not None and enriched.get(key) is None:
+                        enriched[key] = original.get(key)
+                if not str(enriched.get("source_anchor") or "").strip() and original.get("source_anchor"):
+                    enriched["source_anchor"] = original.get("source_anchor")
+            enriched_slot_rows.append(enriched)
+        return _dedupe_semantic_operands(
+            _promote_direct_sources_across_semantic_equivalents(enriched_slot_rows)
+        )
     return _dedupe_semantic_operands(
         _promote_direct_sources_across_semantic_equivalents(list(calculation_operands or []))
     )

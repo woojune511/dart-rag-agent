@@ -194,6 +194,36 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-05-30 refresh:
+  - output bundle: `benchmarks/results/policy_gate_refresh_2026-05-30/`
+  - completed company runs: `NAVER 2023`, `LG에너지솔루션 2023`,
+    `삼성전자 2023`
+  - pending in this bundle: `hyundai_2023_policy_driven_runtime_gate`
+  - winner ranking for the three-company bundle:
+    `pass_count = 3`, `company_count = 3`, `full_eval_fail_count = 1`,
+    `critical_category_miss_count = 0`
+  - `NAV_T2_006`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`
+  - `SAM_T2_078`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`
+  - `LGE_T1_051`: numeric path is closed with
+    `numeric_final_judgement = PASS`, `numeric_equivalence = 1.0`,
+    `numeric_grounding = 1.0`, and `numeric_retrieval_support = 1.0`.
+    The current official answer uses the rounded AMPC expression
+    `6,769억원`, yielding `1,486,334백만원`; this is numerically equivalent
+    to the canonical answer but leaves `completeness = 0.7`, so the
+    three-company bundle still records one full-eval failure.
+  - Hyundai was refreshed separately in
+    `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` with
+    `pass_count = 1`, `full_eval_fail_count = 0`, `faithfulness = 1.0`,
+    `completeness = 1.0`, and `context_recall = 1.0`.
+  - Runtime/evaluator hardening from this refresh:
+    slot-derived evaluator operands now preserve resolved sibling-task
+    metadata (`dependency_resolved`, `source_task_id`, `source_slot`) from the
+    original calculation trace, and a resolved `task_output:*` operand no
+    longer needs its own `source_anchor` to allow deterministic numeric
+    grounding override. Unresolved task-output-only operands remain blocked.
+
 - 2026-05-29 cleanup update:
   - Removed the runtime deterministic composer that hard-coded one
     policy-growth sales case shape. Future coverage for that class should come

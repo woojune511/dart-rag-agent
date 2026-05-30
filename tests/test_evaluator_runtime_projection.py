@@ -207,6 +207,123 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_should_override_numeric_grounding_for_resolved_task_output_without_anchor(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        calculation_operands = [
+            {
+                "label": "영업이익",
+                "source_row_id": "task_output:task_1",
+                "source_anchor": "",
+                "dependency_resolved": True,
+                "source_task_id": "task_1",
+                "source_slot": "primary_value",
+            },
+            {
+                "label": "첨단제조 생산세액공제 (AMPC)",
+                "source_row_id": "ev_001",
+                "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_resolve_evaluator_operands_preserves_resolved_task_output_metadata(self) -> None:
+        calculation_operands = [
+            {
+                "operand_id": "dep_task_1_001",
+                "evidence_id": "task_output:task_1",
+                "source_anchor": "",
+                "label": "영업이익",
+                "raw_value": "2,163,234",
+                "raw_unit": "백만원",
+                "normalized_value": 2163234000000,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "dependency_resolved": True,
+                "source_task_id": "task_1",
+                "source_slot": "primary_value",
+            },
+            {
+                "operand_id": "op_002",
+                "evidence_id": "ev_001",
+                "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "label": "2023년 첨단제조 생산세액공제 (AMPC)",
+                "raw_value": "676,874",
+                "raw_unit": "백만원",
+                "normalized_value": 676874000000,
+                "normalized_unit": "KRW",
+                "period": "2023년",
+            },
+        ]
+        calculation_result = {
+            "answer_slots": {
+                "operation_family": "difference",
+                "components_by_role": {
+                    "minuend": [
+                        {
+                            "role": "minuend",
+                            "label": "영업이익",
+                            "period": "2023",
+                            "raw_value": "2,163,234",
+                            "raw_unit": "백만원",
+                            "normalized_value": 2163234000000,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "task_output:task_1",
+                            "source_row_ids": ["task_output:task_1"],
+                            "source_anchor": "",
+                        }
+                    ],
+                    "operand": [
+                        {
+                            "role": "operand",
+                            "label": "첨단제조 생산세액공제 (AMPC)",
+                            "period": "2023년",
+                            "raw_value": "676,874",
+                            "raw_unit": "백만원",
+                            "normalized_value": 676874000000,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_001",
+                            "source_row_ids": ["ev_001"],
+                            "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                        }
+                    ],
+                },
+            }
+        }
+
+        resolved = _resolve_evaluator_operands(calculation_operands, calculation_result)
+        task_operand = next(row for row in resolved if row["source_row_id"] == "task_output:task_1")
+
+        self.assertTrue(task_operand["dependency_resolved"])
+        self.assertEqual(task_operand["source_task_id"], "task_1")
+        self.assertEqual(task_operand["source_slot"], "primary_value")
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval={
+                    "numeric_equivalence": 1.0,
+                    "numeric_grounding": 0.0,
+                    "numeric_retrieval_support": 1.0,
+                },
+                calculation_operands=resolved,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=1.0,
+            )
+        )
+
     def test_should_override_numeric_grounding_for_evidence_id_trace_sources(self) -> None:
         numeric_eval = {
             "numeric_equivalence": 1.0,
