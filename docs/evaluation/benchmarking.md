@@ -1289,9 +1289,10 @@ Commands:
   -OutputDir benchmarks/results/policy_gate_refresh_2026-05-30
 ```
 
-The wrapper expands the official gate to NAVER, Hyundai, LGE, and Samsung
-company runs. Use `-CompanyRunId <id>` to replay a subset, and `-DryRun` to
-verify the exact commands before starting the expensive benchmark.
+The wrapper is a manual mainline regression check, not a CI/release blocker.
+It expands the official gate to NAVER, Hyundai, LGE, and Samsung company runs.
+Use `-CompanyRunId <id>` to replay a subset, and `-DryRun` to verify the exact
+commands before starting the expensive benchmark.
 
 Result:
 

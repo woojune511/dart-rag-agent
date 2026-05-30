@@ -45,8 +45,8 @@ These five questions cover:
 - Keep `allow_retrieval_fallback = false`.
 - Keep `auto_fetch_missing_report = true` so the gate can recover missing local
   filings from DART without changing the required receipt number.
-- Run this gate with `structural_selective_v2_prefix_2500_320` only in normal
-  development and release checks.
+- Run this gate with `structural_selective_v2_prefix_2500_320` only in routine
+  development regression checks.
 - Treat embedding-provider/model/dimension mismatch as cache miss and reindex.
 - Use the stored `store_signature` / `benchmark_cache_meta.json` metadata to
   avoid cross-environment store reuse mistakes.
@@ -325,7 +325,7 @@ Recommended invocation:
 
 ```powershell
 .\scripts\run_policy_driven_gate.ps1 `
-  -OutputDir benchmarks/results/policy_gate_release_YYYY-MM-DD
+  -OutputDir benchmarks/results/policy_gate_regression_YYYY-MM-DD
 ```
 
 For a no-cost command check before starting the expensive gate:

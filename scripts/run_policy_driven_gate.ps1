@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$Config = "benchmarks/profiles/curated_policy_driven_runtime_gate.json",
-    [string]$OutputDir = ("benchmarks/results/policy_gate_release_" + (Get-Date -Format "yyyy-MM-dd_HHmmss")),
+    [string]$OutputDir = ("benchmarks/results/policy_gate_regression_" + (Get-Date -Format "yyyy-MM-dd_HHmmss")),
     [string[]]$CompanyRunId = @(
         "naver_2023_policy_driven_runtime_gate",
         "hyundai_2023_policy_driven_runtime_gate",
