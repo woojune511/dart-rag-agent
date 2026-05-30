@@ -175,6 +175,67 @@ API 비용이나 rate/cap 문제가 있을 때는 full gate를 바로 돌리지 
 PASS했다. 이 확인은 BM25-only retrieval과 deterministic numeric path로
 수행했으며, 로그상 numeric path의 `generateContent` 호출은 발생하지 않았다.
 
+### Monitored Full Gate Run
+
+Fresh output directory에서 store/cache를 새로 만들 때는 `results.json`이
+늦게 생긴다. 이 경우 5분 안에 결과 파일이 없다는 이유만으로 중단하지 말고,
+로그 또는 store 파일 갱신을 heartbeat로 보고 monitored run으로 전환한다.
+
+권장 기준:
+
+- `results.json`이 생기면 성공/실패 내용을 분석한다.
+- 로그 크기, store/cache 파일 mtime, 프로세스 CPU/IO 중 하나라도 계속
+  움직이면 ingest/store 구축 중으로 분류한다.
+- 5분 이상 `results.json`도 없고 heartbeat도 없으면 중단하고 환경/실행
+  blocker로 기록한다.
+- fresh store 구축이 길어지는 company는 `--company-run-id`로 쪼개서
+  실행하고, 이미 완료된 company 결과는 그대로 둔다.
+
+예시 PowerShell heartbeat wrapper:
+
+```powershell
+$outDir = "benchmarks/results/runtime_contract_gate_refresh_YYYY-MM-DD"
+$company = "kbf_2023_runtime_contract_gate"
+$logDir = Join-Path $outDir "_logs"
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+$stdout = Join-Path $logDir "$company.stdout.log"
+$stderr = Join-Path $logDir "$company.stderr.log"
+$resultFile = Join-Path $outDir "KB금융-2023/results.json"
+
+$p = Start-Process `
+  -FilePath .\.venv\Scripts\python.exe `
+  -ArgumentList @(
+    "-m", "src.ops.benchmark_runner",
+    "--config", "benchmarks/profiles/curated_runtime_contract_gate.json",
+    "--output-dir", $outDir,
+    "--company-run-id", $company,
+    "--numeric-fast-gate"
+  ) `
+  -WorkingDirectory (Get-Location) `
+  -RedirectStandardOutput $stdout `
+  -RedirectStandardError $stderr `
+  -WindowStyle Hidden `
+  -PassThru
+
+$lastBytes = -1
+$lastProgress = Get-Date
+while (-not $p.HasExited) {
+  Start-Sleep -Seconds 30
+  $bytes = 0
+  if (Test-Path $stdout) { $bytes += (Get-Item $stdout).Length }
+  if (Test-Path $stderr) { $bytes += (Get-Item $stderr).Length }
+  if ($bytes -ne $lastBytes) {
+    $lastBytes = $bytes
+    $lastProgress = Get-Date
+  }
+  if (Test-Path $resultFile) { break }
+  if (((Get-Date) - $lastProgress).TotalMinutes -gt 5) {
+    Stop-Process -Id $p.Id -Force
+    throw "No benchmark heartbeat for more than 5 minutes."
+  }
+}
+```
+
 Official gate output을 이미 만든 뒤 current code path만 다시 검증하려면:
 
 ```powershell
