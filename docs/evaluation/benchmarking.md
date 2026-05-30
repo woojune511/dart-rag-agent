@@ -1279,8 +1279,8 @@ Purpose:
 
 - Refill official policy-driven gate artifacts after the latest mainline pull
   and evaluator/runtime changes.
-- Confirm the NAVER/LGE/Samsung policy-driven rows under the structural default
-  without committing raw result directories.
+- Confirm the NAVER/Hyundai/LGE/Samsung policy-driven rows under the structural
+  default without committing raw result directories.
 
 Commands:
 
@@ -1289,6 +1289,11 @@ python -m src.ops.benchmark_runner \
   --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
   --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
   --company-run-id naver_2023_policy_driven_runtime_gate
+
+python -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
+  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
+  --company-run-id hyundai_2023_policy_driven_runtime_gate
 
 python -m src.ops.benchmark_runner \
   --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
@@ -1303,12 +1308,12 @@ python -m src.ops.benchmark_runner \
 
 Result:
 
-- Run status: `completed` for NAVER, LGE, and Samsung.
-- Pending in this bundle: `hyundai_2023_policy_driven_runtime_gate`.
+- Run status: `completed` for NAVER, Hyundai, LGE, and Samsung.
+- Pending in this bundle: none.
 - Candidate: `structural_selective_v2_prefix_2500_320`.
-- Winner ranking for the three completed companies:
-  - `pass_count = 3`
-  - `company_count = 3`
+- Winner ranking for the four completed companies:
+  - `pass_count = 4`
+  - `company_count = 4`
   - `full_eval_fail_count = 0`
   - `critical_category_miss_count = 0`
   - `avg_numeric = 1.0`
@@ -1321,6 +1326,16 @@ Per-question interpretation:
 - `NAV_T2_006`: closed in the refreshed official bundle with
   `faithfulness = 1.0`, `completeness = 1.0`, `context_recall = 1.0`, and
   `retrieval_hit_at_k = 1.0`.
+- `HYU_T2_010`: closed in the refreshed official bundle with
+  `faithfulness = 1.0`, `completeness = 1.0`, `context_recall = 1.0`, and
+  `retrieval_hit_at_k = 1.0`; the answer covers 2022/2023 US sales
+  (`78.1만 대`, `87.0만 대`), the `11.5%` growth rate, and IRA /
+  핵심원자재법 / 보호무역주의 대응 context.
+- `HYU_T3_072`: closed in the refreshed official bundle with
+  `faithfulness = 1.0`, `completeness = 1.0`, `context_recall = 1.0`, and
+  `retrieval_hit_at_k = 1.0`; the answer covers Motional ownership,
+  `1,294,367백만원` carrying amount, continuing loss, and total
+  comprehensive loss.
 - `SAM_T2_078`: closed in the refreshed official bundle with
   `faithfulness = 1.0`, `completeness = 1.0`, `context_recall = 1.0`, and
   `retrieval_hit_at_k = 1.0`.
@@ -1331,12 +1346,6 @@ Per-question interpretation:
   `LG에너지솔루션 2023년 연결기준 영업이익 2,163,234백만원`,
   `AMPC 676,874백만원(약 6,769억원)`, and
   `실질 영업이익 1,486,360백만원`; `completeness = 1.0`.
-
-Related Hyundai refresh:
-
-- `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` completed
-  separately with `pass_count = 1`, `full_eval_fail_count = 0`,
-  `faithfulness = 1.0`, `completeness = 1.0`, and `context_recall = 1.0`.
 
 Implementation notes:
 
@@ -1364,9 +1373,8 @@ Validation:
 
 Artifact policy:
 
-- `benchmarks/results/policy_gate_refresh_2026-05-30/` and
-  `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` are local
-  benchmark artifacts and should not be committed.
+- `benchmarks/results/policy_gate_refresh_2026-05-30/` is a local benchmark
+  artifact and should not be committed.
 
 ## 2026-05-29 Hyundai Policy Gate Replay
 

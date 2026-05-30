@@ -196,14 +196,23 @@ Current gate status:
 
 - 2026-05-30 refresh:
   - output bundle: `benchmarks/results/policy_gate_refresh_2026-05-30/`
-  - completed company runs: `NAVER 2023`, `LG에너지솔루션 2023`,
-    `삼성전자 2023`
-  - pending in this bundle: `hyundai_2023_policy_driven_runtime_gate`
-  - winner ranking for the three-company bundle:
-    `pass_count = 3`, `company_count = 3`, `full_eval_fail_count = 0`,
+  - completed company runs: `NAVER 2023`, `현대자동차 2023`,
+    `LG에너지솔루션 2023`, `삼성전자 2023`
+  - pending company runs: none
+  - winner ranking for the four-company bundle:
+    `pass_count = 4`, `company_count = 4`, `full_eval_fail_count = 0`,
     `critical_category_miss_count = 0`
   - `NAV_T2_006`: `faithfulness = 1.0`, `completeness = 1.0`,
     `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`
+  - `HYU_T2_010`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`; answer covers
+    `78.1만 대`, `87.0만 대`, `11.5%`, and IRA / 핵심원자재법 /
+    보호무역주의 대응 필요성.
+  - `HYU_T3_072`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`; answer covers
+    Motional 기초 지분율 `50.00%`, 기말 지분율 `25.81%`,
+    투자장부금액 `1,294,367백만원`, 계속영업손실 `(803,742)백만원`,
+    and 총포괄손실 `(791,627)백만원`.
   - `SAM_T2_078`: `faithfulness = 1.0`, `completeness = 1.0`,
     `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`
   - `LGE_T1_051`: numeric path is closed with
@@ -213,10 +222,9 @@ Current gate status:
     value: `LG에너지솔루션 2023년 연결기준 영업이익 2,163,234백만원`,
     `AMPC 676,874백만원(약 6,769억원)`, and
     `실질 영업이익 1,486,360백만원`; `completeness = 1.0`.
-  - Hyundai was refreshed separately in
-    `benchmarks/results/hyundai_policy_gate_refresh_2026-05-30/` with
-    `pass_count = 1`, `full_eval_fail_count = 0`, `faithfulness = 1.0`,
-    `completeness = 1.0`, and `context_recall = 1.0`.
+  - aggregate full-eval metrics: `avg_full_faithfulness = 1.0`,
+    `avg_full_completeness = 1.0`, `avg_full_numeric_pass_rate = 1.0`,
+    and `avg_full_context_recall = 1.0`.
   - Runtime/evaluator hardening from this refresh:
     slot-derived evaluator operands now preserve resolved sibling-task
     metadata (`dependency_resolved`, `source_task_id`, `source_slot`) from the
