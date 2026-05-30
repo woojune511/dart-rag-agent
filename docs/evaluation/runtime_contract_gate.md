@@ -324,7 +324,12 @@ Current gate status:
 Recommended invocation:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
-  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
-  --output-dir benchmarks/results/policy_driven_runtime_gate_manual
+.\scripts\run_policy_driven_gate.ps1 `
+  -OutputDir benchmarks/results/policy_gate_release_YYYY-MM-DD
+```
+
+For a no-cost command check before starting the expensive gate:
+
+```powershell
+.\scripts\run_policy_driven_gate.ps1 -DryRun
 ```

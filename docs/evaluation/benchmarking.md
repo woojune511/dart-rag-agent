@@ -1284,27 +1284,14 @@ Purpose:
 
 Commands:
 
-```bash
-python -m src.ops.benchmark_runner \
-  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
-  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
-  --company-run-id naver_2023_policy_driven_runtime_gate
-
-python -m src.ops.benchmark_runner \
-  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
-  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
-  --company-run-id hyundai_2023_policy_driven_runtime_gate
-
-python -m src.ops.benchmark_runner \
-  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
-  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
-  --company-run-id lge_2023_policy_driven_runtime_gate
-
-python -m src.ops.benchmark_runner \
-  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json \
-  --output-dir benchmarks/results/policy_gate_refresh_2026-05-30 \
-  --company-run-id samsung_2023_policy_driven_runtime_gate
+```powershell
+.\scripts\run_policy_driven_gate.ps1 `
+  -OutputDir benchmarks/results/policy_gate_refresh_2026-05-30
 ```
+
+The wrapper expands the official gate to NAVER, Hyundai, LGE, and Samsung
+company runs. Use `-CompanyRunId <id>` to replay a subset, and `-DryRun` to
+verify the exact commands before starting the expensive benchmark.
 
 Result:
 

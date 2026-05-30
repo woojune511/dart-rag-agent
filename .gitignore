@@ -16,6 +16,19 @@ archive/
 
 # Local benchmark configs / generated artifacts
 benchmarks/experiment_matrix.local.json
+benchmarks/datasets/tmp_*.json
+benchmarks/profiles/tmp_*.json
 benchmarks/results/**/stores/
 benchmarks/results/**/context_cache/
+benchmarks/results/latest/
+benchmarks/results/tmp_*.json
+benchmarks/results/tmp_*/
+benchmarks/results/*_manual/
+benchmarks/results/*_formal_structural_*/
+benchmarks/results/*_structural_probe_*/
+benchmarks/results/targeted_*_structural_*/
+benchmarks/results/policy_gate_refresh_*/
+benchmarks/results/policy_gate_release_*/
+benchmarks/results/hyundai_policy_gate_refresh_*/
+benchmarks/results/curated_concept_planner_shadow_*.json
 mlflow.db
