@@ -2703,6 +2703,19 @@ def _load_completed_company_bundle(
     }
 
 
+def _merged_experiment_lookup(
+    defaults: Dict[str, Any],
+    experiments: List[Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    merged_by_id: Dict[str, Dict[str, Any]] = {}
+    for experiment in experiments:
+        merged = _deep_merge(defaults, experiment)
+        if "id" not in merged:
+            raise ValueError("Each experiment must include an id.")
+        merged_by_id[str(merged["id"])] = merged
+    return merged_by_id
+
+
 def _mean_or_none(values: List[float | None]) -> float | None:
     filtered = [float(value) for value in values if value is not None]
     return float(mean(filtered)) if filtered else None
@@ -3819,6 +3832,80 @@ def _run_company_bundle(
     }
 
 
+def _rerun_company_full_evaluation_only(
+    *,
+    config_path: Path,
+    output_root: Path,
+    global_defaults: Dict[str, Any],
+    shared_experiments: List[Dict[str, Any]],
+    screening_config: Dict[str, Any],
+    full_eval_config: Dict[str, Any],
+    company_run: Dict[str, Any],
+) -> Dict[str, Any]:
+    company_defaults = _deep_merge(global_defaults, company_run.get("defaults", {}))
+    experiments = company_run.get("experiments", shared_experiments)
+    candidate_ids = list(company_run.get("candidate_ids") or global_defaults.get("candidate_ids") or [])
+    experiments = _filter_experiments_by_candidate_ids(list(experiments), candidate_ids)
+    merged_by_id = _merged_experiment_lookup(company_defaults, experiments)
+
+    company_id = str(company_run.get("id") or _company_output_subdir(company_run, global_defaults))
+    company_label = _company_run_label(company_run, global_defaults)
+    company_output_dir = output_root / _company_output_subdir(company_run, global_defaults)
+    result_path = company_output_dir / "results.json"
+    if not result_path.exists():
+        raise FileNotFoundError(
+            f"--eval-only requires an existing company results.json: {result_path}"
+        )
+
+    data = _load_json(result_path)
+    results = list(data.get("results") or [])
+    selected_ids = list(data.get("full_eval_candidates") or [])
+    if not selected_ids:
+        selected_ids = _select_full_eval_candidates(results, screening_config)
+
+    for experiment_id in selected_ids:
+        if experiment_id not in merged_by_id:
+            raise ValueError(f"Cannot eval-only unknown experiment id for {company_id}: {experiment_id}")
+        result = next((item for item in results if str(item.get("id")) == experiment_id), None)
+        if result is None:
+            raise ValueError(f"Existing results.json has no result for {company_id}: {experiment_id}")
+        logger.info("Re-running full evaluation only for %s: %s", company_id, experiment_id)
+        result["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+
+    recorded_matrix = dict(data.get("recorded_matrix") or {})
+    if not recorded_matrix:
+        recorded_matrix = {
+            "mode": "company_run",
+            "company_run": {
+                "id": company_id,
+                "label": company_label,
+                "defaults": _sanitize_settings(company_run.get("defaults", {})),
+                "experiments": [_sanitize_settings(experiment) for experiment in experiments],
+            },
+            "defaults": _sanitize_settings(global_defaults),
+            "screening": _sanitize_settings(screening_config),
+            "full_evaluation": _sanitize_settings(full_eval_config),
+        }
+
+    _write_benchmark_outputs(
+        output_dir=company_output_dir,
+        config_path=config_path,
+        recorded_matrix=recorded_matrix,
+        screening_config=screening_config,
+        full_eval_config=full_eval_config,
+        selected_ids=selected_ids,
+        results=results,
+    )
+    return {
+        "company_id": company_id,
+        "company_label": company_label,
+        "output_dir": str(company_output_dir),
+        "full_eval_candidates": selected_ids,
+        "results": results,
+        "recorded_matrix": recorded_matrix,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run low-cost retrieval benchmark experiments.")
     parser.add_argument(
@@ -3836,6 +3923,14 @@ def main() -> None:
         action="append",
         default=[],
         help="Optional company_run id to execute. Repeat to run multiple companies as separate jobs.",
+    )
+    parser.add_argument(
+        "--eval-only",
+        action="store_true",
+        help=(
+            "Reuse an existing output-dir results.json and vector store, skip parse/ingest/screening, "
+            "and rerun only the configured full evaluation candidates."
+        ),
     )
     args = parser.parse_args()
 
@@ -3870,17 +3965,30 @@ def main() -> None:
         company_bundles: List[Dict[str, Any]] = []
         for company_run in selected_company_runs:
             logger.info("Running company benchmark: %s", company_run.get("id") or company_run.get("defaults", {}))
-            company_bundles.append(
-                _run_company_bundle(
-                    config_path=config_path,
-                    output_root=output_dir,
-                    global_defaults=defaults,
-                    shared_experiments=experiments,
-                    screening_config=screening_config,
-                    full_eval_config=full_eval_config,
-                    company_run=company_run,
+            if args.eval_only:
+                company_bundles.append(
+                    _rerun_company_full_evaluation_only(
+                        config_path=config_path,
+                        output_root=output_dir,
+                        global_defaults=defaults,
+                        shared_experiments=experiments,
+                        screening_config=screening_config,
+                        full_eval_config=full_eval_config,
+                        company_run=company_run,
+                    )
                 )
-            )
+            else:
+                company_bundles.append(
+                    _run_company_bundle(
+                        config_path=config_path,
+                        output_root=output_dir,
+                        global_defaults=defaults,
+                        shared_experiments=experiments,
+                        screening_config=screening_config,
+                        full_eval_config=full_eval_config,
+                        company_run=company_run,
+                    )
+                )
 
         completed_bundles: List[Dict[str, Any]] = []
         for company_run in company_runs:
@@ -3905,14 +4013,43 @@ def main() -> None:
         logger.info("Wrote multi-company benchmark outputs to %s", output_dir)
         return
 
-    merged_experiments: List[Dict[str, Any]] = []
-    merged_by_id: Dict[str, Dict[str, Any]] = {}
-    for experiment in experiments:
-        merged = _deep_merge(defaults, experiment)
-        if "id" not in merged:
-            raise ValueError("Each experiment must include an id.")
-        merged_experiments.append(merged)
-        merged_by_id[merged["id"]] = merged
+    merged_by_id = _merged_experiment_lookup(defaults, experiments)
+    merged_experiments = list(merged_by_id.values())
+
+    if args.eval_only:
+        result_path = output_dir / "results.json"
+        if not result_path.exists():
+            raise FileNotFoundError(f"--eval-only requires an existing results.json: {result_path}")
+        data = _load_json(result_path)
+        results = list(data.get("results") or [])
+        selected_ids = list(data.get("full_eval_candidates") or [])
+        if not selected_ids:
+            selected_ids = _select_full_eval_candidates(results, screening_config)
+        for experiment_id in selected_ids:
+            if experiment_id not in merged_by_id:
+                raise ValueError(f"Cannot eval-only unknown experiment id: {experiment_id}")
+            logger.info("Re-running full evaluation only: %s", experiment_id)
+            result = next((item for item in results if str(item.get("id")) == experiment_id), None)
+            if result is None:
+                raise ValueError(f"Existing results.json has no result for experiment id: {experiment_id}")
+            result["full_eval"] = _run_full_evaluation(result, merged_by_id[experiment_id], full_eval_config)
+        _write_benchmark_outputs(
+            output_dir=output_dir,
+            config_path=config_path,
+            recorded_matrix=dict(data.get("recorded_matrix") or {
+                "mode": "single_company",
+                "defaults": _sanitize_settings(defaults),
+                "screening": _sanitize_settings(screening_config),
+                "full_evaluation": _sanitize_settings(full_eval_config),
+                "experiments": [_sanitize_settings(experiment) for experiment in experiments],
+            }),
+            screening_config=screening_config,
+            full_eval_config=full_eval_config,
+            selected_ids=selected_ids,
+            results=results,
+        )
+        logger.info("Wrote eval-only benchmark outputs to %s", output_dir)
+        return
 
     results = _run_screening_experiments(merged_experiments, output_dir, screening_config, full_eval_config)
 

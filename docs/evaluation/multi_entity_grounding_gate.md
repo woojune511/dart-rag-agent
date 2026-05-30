@@ -45,11 +45,30 @@ These three questions cover:
 
 ## Recommended invocation
 
+Full gate run, including parse / ingest / screening when the store is missing
+or invalidated:
+
 ```powershell
 .\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
   --config benchmarks/profiles/curated_multi_entity_grounding_gate.json `
   --output-dir benchmarks/results/multi_entity_grounding_gate_manual
 ```
+
+Store-fixed rerun, for current agent/evaluator validation after a successful
+full gate has already produced `results.json` and `stores/`:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_multi_entity_grounding_gate.json `
+  --output-dir benchmarks/results/multi_entity_grounding_gate_manual `
+  --company-run-id samsung_2024_multi_entity_grounding_gate `
+  --eval-only
+```
+
+`--eval-only` skips parse / ingest / screening, but it still reruns answer
+generation and full evaluation. Use retrospective evaluator scripts instead
+when the goal is to re-score the exact historical answers without rerunning the
+agent.
 
 ## Pass criteria
 
@@ -67,6 +86,9 @@ These three questions cover:
   - `numeric_pass_rate = 1.000`
   - `completeness = 1.000`
   - `faithfulness = 1.000`
+- Eval-only check:
+  - same output dir rerun with `--eval-only`
+  - still PASS with `numeric_pass_rate = 1.000`
 
 - `comparison_001`
   - `DX 매출액 = 174조 8,877억원`
