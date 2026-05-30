@@ -56,6 +56,8 @@ def _slot_has_material(slot: Dict[str, Any]) -> bool:
 
 def _money_match_to_slot_values(match: re.Match[str]) -> Dict[str, Any]:
     raw_number = _normalise_spaces(match.group("raw"))
+    if raw_number.startswith("(") and not raw_number.endswith(")"):
+        raw_number = raw_number[1:]
     raw_unit = _normalise_spaces(match.group("unit"))
     rendered_value = _normalise_spaces(f"{raw_number}{raw_unit}")
     normalized_input = rendered_value if raw_unit.startswith("조") else raw_number
@@ -67,6 +69,16 @@ def _money_match_to_slot_values(match: re.Match[str]) -> Dict[str, Any]:
         "normalized_value": normalized_value,
         "normalized_unit": normalized_unit,
     }
+
+
+def _slot_values_match_operand_unit(values: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    desired_unit = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+    actual_unit = _normalise_spaces(str(values.get("normalized_unit") or "")).upper()
+    if desired_unit not in {"KRW", "USD", "COUNT", "PERCENT"}:
+        return True
+    if not actual_unit or actual_unit == "UNKNOWN":
+        return True
+    return actual_unit == desired_unit
 
 
 def _extract_lookup_slot_from_answer_text(
@@ -98,6 +110,8 @@ def _extract_lookup_slot_from_answer_text(
         values = _money_match_to_slot_values(best_match)
         if values.get("normalized_value") is None and not values.get("rendered_value"):
             return None
+        if not _slot_values_match_operand_unit(values, operand):
+            return None
         source_claim_ids = [
             str(claim_id).strip()
             for claim_id in selected_claim_ids
@@ -128,6 +142,10 @@ def _extract_lookup_slot_from_answer_text(
             window = text[surface_index : surface_index + max(80, len(surface) + 80)]
             money_match = _MONEY_SURFACE_RE.search(window)
             if money_match:
+                values = _money_match_to_slot_values(money_match)
+                if not _slot_values_match_operand_unit(values, operand):
+                    search_from = surface_index + max(1, len(needle))
+                    continue
                 distance = money_match.start()
                 if best_distance is None or distance < best_distance:
                     best_distance = distance

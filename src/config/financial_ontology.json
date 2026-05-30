@@ -54,6 +54,7 @@
       },
       "components": {
         "numerator": {
+          "concept_ref": "research_and_development_expense",
           "name": "연구개발비용",
           "aliases": [
             "연구개발비",
@@ -72,6 +73,7 @@
           ]
         },
         "denominator": {
+          "concept_ref": "revenue",
           "name": "매출액",
           "aliases": [
             "영업수익",
@@ -140,6 +142,7 @@
       },
       "components": {
         "numerator": {
+          "concept_ref": "operating_income",
           "name": "영업이익",
           "aliases": [
             "영업손익"
@@ -155,6 +158,7 @@
           ]
         },
         "denominator": {
+          "concept_ref": "revenue",
           "name": "매출액",
           "aliases": [
             "영업수익",

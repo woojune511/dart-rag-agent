@@ -95,6 +95,19 @@ LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concep
 그럴듯해 보이는 concept 과매칭이 runtime execution으로 넘어가는 것을 막기
 위한 최소 게이트다.
 
+### Segment Binding Scope
+
+Planner/runtime code may attach a `segment_label` only when the segment surface
+and the numeric metric surface are co-located in the same query clause or a very
+near local span. A segment mentioned only in a separate narrative/background
+clause must not scope an unrelated numeric lookup. Mixed numeric+narrative
+queries should remain split into a company-level numeric task plus a narrative
+task when the query wording supports that split.
+
+This is a generic binding rule, not a place to encode company names, segment
+names, or benchmark-specific vocabulary. Metric surfaces must come from the
+ontology/policy-backed concept spec or the inferred generic metric label.
+
 ## 7. Ontology-Driven Prose Lookup Slots
 
 When a concept lookup obtains the required numeric value from prose rather than

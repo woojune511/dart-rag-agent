@@ -2445,6 +2445,63 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertFalse(_llm_plan_preserves_analysis_shape(base_plan, lookup_only_plan))
         self.assertTrue(_llm_plan_preserves_analysis_shape(base_plan, compatible_plan))
 
+    def test_segment_in_narrative_clause_does_not_scope_unrelated_numeric_lookup(self) -> None:
+        query = "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘."
+
+        plan = _build_semantic_numeric_plan(
+            query=query,
+            topic=query,
+            intent="comparison",
+            report_scope={"company": "삼성전자", "year": 2023, "report_type": "사업보고서"},
+            target_metric_family="",
+        )
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        operand = task["required_operands"][0]
+        self.assertEqual(operand["concept"], "research_and_development_expense")
+        self.assertNotIn("Harman", operand["label"])
+        self.assertNotIn("segment_label", dict(operand.get("binding_policy") or {}))
+        self.assertIn("planner_entity_scoped_specs:0", plan.get("planner_notes") or [])
+
+    def test_segment_in_metric_clause_still_scopes_single_lookup(self) -> None:
+        query = "2024년 Harman 부문의 매출액을 찾아줘."
+
+        plan = _build_semantic_numeric_plan(
+            query=query,
+            topic=query,
+            intent="numeric_fact",
+            report_scope={"company": "삼성전자", "year": 2024, "report_type": "사업보고서"},
+            target_metric_family="",
+        )
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        operand = task["required_operands"][0]
+        self.assertEqual(operand["concept"], "revenue")
+        self.assertEqual(dict(operand.get("binding_policy") or {}).get("segment_label"), "Harman")
+
+    def test_strong_metric_family_match_takes_precedence_over_partial_concept_match(self) -> None:
+        query = "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘."
+
+        plan = _build_semantic_numeric_plan(
+            query=query,
+            topic=query,
+            intent="comparison",
+            report_scope={"company": "삼성전자", "year": 2023, "report_type": "사업보고서"},
+            target_metric_family="",
+        )
+
+        self.assertEqual(plan["status"], "ok")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "operating_margin")
+        self.assertEqual(task["operation_family"], "ratio")
+        self.assertEqual(
+            [(operand["concept"], operand["role"]) for operand in task["required_operands"]],
+            [("operating_income", "numerator"), ("revenue", "denominator")],
+        )
+        self.assertIn("metric_match_preferred_over_concept", plan.get("planner_notes") or [])
+
 
 if __name__ == "__main__":
     unittest.main()

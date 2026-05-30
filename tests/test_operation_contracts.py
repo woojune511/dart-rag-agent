@@ -2126,6 +2126,57 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
+    def test_lookup_direct_acceptance_rejects_percent_row_for_krw_operand(self) -> None:
+        operand = {
+            "label": "영업이익",
+            "concept": "operating_income",
+            "aliases": ["영업손익"],
+            "role": "primary_value",
+            "unit_family": "KRW",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "영업이익률 | 2023 | 2.54%",
+            "metadata": {
+                "row_label": "영업이익률",
+                "semantic_label": "영업이익률",
+                "statement_type": "summary_financials",
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "period_labels": ["2023"],
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "2.54", "unit_hint": "%"},
+                ],
+            },
+        }
+
+        selected_cell = _candidate_selected_cell_for_operand(
+            candidate,
+            operand=operand,
+            query_years=[2023],
+            period_focus="current",
+        )
+
+        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell=selected_cell,
+                report_scope={"company": "삼성전자", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240312000736"},
+            )
+        )
+
     def test_operand_text_match_ignores_leading_year_prefix_for_lookup_labels(self) -> None:
         operand = {
             "label": "2023년 영업비용",

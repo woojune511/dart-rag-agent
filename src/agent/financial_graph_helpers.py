@@ -2372,6 +2372,8 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
         return "difference"
     if _is_single_metric_period_comparison(query, generic_operand_labels):
         return "difference"
+    if _is_ratio_percent_query(query):
+        return "ratio"
     if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "growth_rate")):
         return "growth_rate"
     if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "ratio")):
@@ -2980,6 +2982,81 @@ def _build_concept_numeric_task(
     )
 
 
+def _metric_scope_surfaces(concept_spec: Dict[str, Any], base_label: str) -> List[str]:
+    surfaces: List[str] = []
+    for value in (
+        base_label,
+        str(concept_spec.get("name") or "").strip(),
+        *(concept_spec.get("aliases") or []),
+        *(concept_spec.get("keywords") or []),
+    ):
+        normalized = _normalise_spaces(str(value or ""))
+        if normalized:
+            surfaces.append(normalized)
+        compact = re.sub(r"\s+", "", normalized)
+        if compact and compact != normalized:
+            surfaces.append(compact)
+    return list(dict.fromkeys(surface for surface in surfaces if surface))
+
+
+def _query_clause_spans(text: str) -> List[tuple[int, int]]:
+    spans: List[tuple[int, int]] = []
+    start = 0
+    for match in re.finditer(r"(?:[,.;:?!]|\b(?:and|then)\b|그리고|또한|하며|하고)\s*", text, flags=re.IGNORECASE):
+        end = match.start()
+        if end > start:
+            spans.append((start, end))
+        start = match.end()
+    if start < len(text):
+        spans.append((start, len(text)))
+    return spans or [(0, len(text))]
+
+
+def _segment_label_shares_metric_clause(query: str, label: str, metric_surfaces: List[str]) -> bool:
+    text = _normalise_spaces(query)
+    normalized_label = _normalise_spaces(label)
+    if not text or not normalized_label or not metric_surfaces:
+        return False
+    compact_text = re.sub(r"\s+", "", text)
+    compact_label = re.sub(r"\s+", "", normalized_label)
+    normalized_surfaces = [
+        _normalise_spaces(surface)
+        for surface in metric_surfaces
+        if _normalise_spaces(surface)
+    ]
+    compact_surfaces = [
+        re.sub(r"\s+", "", surface)
+        for surface in normalized_surfaces
+        if re.sub(r"\s+", "", surface)
+    ]
+
+    for start, end in _query_clause_spans(text):
+        clause = text[start:end]
+        clause_compact = re.sub(r"\s+", "", clause)
+        label_in_clause = normalized_label in clause or (compact_label and compact_label in clause_compact)
+        if not label_in_clause:
+            continue
+        if any(surface in clause for surface in normalized_surfaces):
+            return True
+        if any(surface and surface in clause_compact for surface in compact_surfaces):
+            return True
+
+    label_positions = [match.start() for match in re.finditer(re.escape(normalized_label), text, flags=re.IGNORECASE)]
+    if not label_positions and compact_label:
+        label_positions = [match.start() for match in re.finditer(re.escape(compact_label), compact_text, flags=re.IGNORECASE)]
+    if not label_positions:
+        return False
+    for surface in normalized_surfaces:
+        for surface_match in re.finditer(re.escape(surface), text, flags=re.IGNORECASE):
+            if any(abs(surface_match.start() - label_pos) <= 24 for label_pos in label_positions):
+                return True
+    for surface in compact_surfaces:
+        for surface_match in re.finditer(re.escape(surface), compact_text, flags=re.IGNORECASE):
+            if any(abs(surface_match.start() - label_pos) <= 24 for label_pos in label_positions):
+                return True
+    return False
+
+
 def _build_entity_scoped_concept_specs(
     *,
     query: str,
@@ -2998,6 +3075,16 @@ def _build_entity_scoped_concept_specs(
     base_label = "매출액" if "매출" in _normalise_spaces(query) else _infer_generic_metric_label(query, "")
     concept_spec = _infer_generic_concept_spec(base_label, ontology)
     if not concept_spec:
+        return []
+    metric_surfaces = _metric_scope_surfaces(concept_spec, base_label)
+    labels = [
+        label
+        for label in labels
+        if _segment_label_shares_metric_clause(query, label, metric_surfaces)
+    ]
+    if not labels:
+        return []
+    if operation_family in {"sum", "difference"} and len(labels) < 2:
         return []
 
     specs: List[Dict[str, Any]] = []
@@ -3941,6 +4028,14 @@ def _build_semantic_numeric_plan(
         for item in matches
         if str(item.get("key") or "").strip()
     }
+    strong_metric_keys = [
+        str(item.get("key") or "").strip()
+        for item in matches
+        if str(item.get("key") or "").strip()
+        and _query_mentions_metric(query, item)
+        and str(item.get("formula_family") or "").strip().lower() == operation_family
+    ]
+    strong_metric_keys = list(dict.fromkeys(strong_metric_keys))
     metric_keys: List[str] = []
     entity_scoped_specs = _build_entity_scoped_concept_specs(
         query=query,
@@ -3967,7 +4062,9 @@ def _build_semantic_numeric_plan(
     ):
         concept_specs = entity_scoped_specs
         planner_notes.append("entity_scoped_concept_fallback")
-    if not target_metric_family and concept_specs:
+    if strong_metric_keys and concept_specs:
+        planner_notes.append("metric_match_preferred_over_concept")
+    if not target_metric_family and concept_specs and not strong_metric_keys:
         concept_task = _build_concept_numeric_task(
             query=query,
             topic=topic,
@@ -3998,11 +4095,7 @@ def _build_semantic_numeric_plan(
             metric_keys.append(target_metric_family)
         else:
             planner_notes.append(f"drop_weak_target:{target_metric_family}")
-    metric_keys.extend(
-        str(item.get("key") or "").strip()
-        for item in matches
-        if str(item.get("key") or "").strip() and _query_mentions_metric(query, item)
-    )
+    metric_keys.extend(strong_metric_keys)
     metric_keys = list(dict.fromkeys(metric_keys))
 
     tasks: List[Dict[str, Any]] = []
@@ -6096,6 +6189,14 @@ def _candidate_satisfies_direct_acceptance_contract(
             return False
 
     if operation_family in {"lookup", "single_value"}:
+        desired_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+        candidate_unit_family = _candidate_selected_unit_family(candidate, selected_cell=selected_cell)
+        if (
+            desired_unit_family in {"KRW", "USD", "COUNT", "PERCENT"}
+            and candidate_unit_family
+            and candidate_unit_family != desired_unit_family
+        ):
+            return False
         direct_match_strength = _candidate_direct_match_strength(candidate, operand)
         if direct_match_strength < 2.0:
             return False
@@ -6152,6 +6253,48 @@ def _candidate_satisfies_direct_acceptance_contract(
             return False
 
     return True
+
+
+def _candidate_selected_unit_family(
+    candidate: Dict[str, Any],
+    *,
+    selected_cell: Optional[Dict[str, Any]] = None,
+) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    raw_value = _normalise_spaces(
+        str(
+            (selected_cell or {}).get("value_text")
+            or metadata.get("value_text")
+            or metadata.get("raw_value")
+            or ""
+        )
+    )
+    raw_unit = _normalise_spaces(
+        str(
+            (selected_cell or {}).get("unit_hint")
+            or metadata.get("unit_hint")
+            or metadata.get("raw_unit")
+            or ""
+        )
+    )
+    if raw_value or raw_unit:
+        _, normalized_unit = _normalise_operand_value(raw_value or "1", raw_unit)
+        if normalized_unit and normalized_unit != "UNKNOWN":
+            return normalized_unit
+    label_text = _normalise_spaces(
+        " ".join(
+            str(part or "").strip()
+            for part in (
+                metadata.get("semantic_label"),
+                metadata.get("row_label"),
+                metadata.get("aggregate_label"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    if _label_implies_percent_metric(label_text):
+        return "PERCENT"
+    return ""
 
 
 def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:

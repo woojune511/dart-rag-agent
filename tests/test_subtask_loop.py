@@ -1680,6 +1680,97 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(current["calculation_operands"][0]["rendered_value"], "28,352,769백만원")
         self.assertTrue(current["calculation_operands"][0]["source_row_ids"])
 
+    def test_capture_current_subtask_result_does_not_promote_percent_prose_for_krw_lookup(self) -> None:
+        state = {
+            "query": "삼성전자의 2023년 영업이익을 찾아줘.",
+            "answer": "삼성전자의 2023년 연결 기준 영업이익률은 2.5361%입니다.",
+            "compressed_answer": "삼성전자의 2023년 연결 기준 영업이익률은 2.5361%입니다.",
+            "active_subtask": {
+                "task_id": "task_3",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 영업이익",
+                "query": "2023년 영업이익을 찾아줘.",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {
+                        "label": "영업이익",
+                        "concept": "operating_income",
+                        "aliases": ["영업손익"],
+                        "role": "primary_value",
+                        "unit_family": "KRW",
+                        "required": True,
+                    }
+                ],
+            },
+            "selected_claim_ids": ["ev_margin"],
+            "evidence_items": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="영업이익률 | 2023 | 2.5361%",
+                        metadata={"company": "삼성전자", "year": 2023},
+                    ),
+                    0.9,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "reconciliation_result": {},
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        self.assertEqual(current["status"], "ok")
+        self.assertEqual(current["calculation_operands"], [])
+        self.assertNotIn("primary_value", current["calculation_result"].get("answer_slots") or {})
+
+    def test_capture_current_subtask_result_strips_formula_open_paren_from_prose_value(self) -> None:
+        state = {
+            "query": "삼성전자의 2023년 영업이익을 찾아줘.",
+            "answer": "영업이익률은 (6,566,976 백만원 / 258,935,494 백만원) * 100입니다.",
+            "compressed_answer": "영업이익률은 (6,566,976 백만원 / 258,935,494 백만원) * 100입니다.",
+            "active_subtask": {
+                "task_id": "task_3",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 영업이익",
+                "query": "2023년 영업이익을 찾아줘.",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {
+                        "label": "영업이익",
+                        "concept": "operating_income",
+                        "aliases": ["영업손익"],
+                        "role": "primary_value",
+                        "unit_family": "KRW",
+                        "required": True,
+                    }
+                ],
+            },
+            "selected_claim_ids": ["ev_income"],
+            "evidence_items": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "reconciliation_result": {},
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        slot = current["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertEqual(slot["raw_value"], "6,566,976")
+        self.assertEqual(slot["normalized_unit"], "KRW")
+        self.assertEqual(slot["rendered_value"], "6,566,976백만원")
+
     def test_capture_current_subtask_result_prefers_deterministic_dividend_hybrid_answer(self) -> None:
         state = {
             "query": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
