@@ -159,9 +159,9 @@ Current gate interpretation is now stable:
 
 Last checked: 2026-05-31.
 
-- `runtime_contract_gate_refresh_2026-05-31`
+- `runtime_contract_gate_official_2026-05-31`
   - Command shape:
-    - `benchmark_runner --config benchmarks/profiles/curated_runtime_contract_gate.json --output-dir benchmarks/results/runtime_contract_gate_refresh_2026-05-31 --company-run-id <company> --numeric-fast-gate`
+    - `benchmark_runner --config benchmarks/profiles/curated_runtime_contract_gate.json --output-dir benchmarks/results/runtime_contract_gate_official_2026-05-31 --numeric-fast-gate --progress-heartbeat-sec 30 --heartbeat-log <path>`
   - Official-path refresh:
     - `NAV_T1_030`: PASS
     - `NAV_T1_071`: PASS
@@ -171,18 +171,25 @@ Last checked: 2026-05-31.
   - Run status:
     - completed
     - aggregate `results.json` lists no pending companies
+    - `cross_company_summary.md` reports 4 / 4 company runs with 0 full-eval
+      fails and 0 critical misses
+    - API calls / estimated cost: `0 / $0.0000`
   - Timeout note:
     - KBF initially exceeded the old 5-minute no-result stop window because a
       fresh output directory had no reusable KBF store and store construction /
       embedding was still active
-    - monitored rerun tracked log growth as the heartbeat and completed
-      successfully at about 10 minutes
+    - the fresh official run again spent most of its time in KBF store
+      construction (`ingest = 1428.606s`) but heartbeat progress continued to
+      advance and the run completed successfully
+    - a shell wrapper timeout can fire before the runner process finishes; if
+      the heartbeat process is still alive, continue monitoring the existing
+      run instead of starting a second one
     - future monitored refreshes should prefer runner-native
       `--progress-heartbeat-sec <seconds> --heartbeat-log <path>` so the
       runner records phase/progress/store mtime directly instead of relying
       only on an external PowerShell wrapper
   - Artifact status:
-    - `benchmarks/results/runtime_contract_gate_refresh_2026-05-31/` is an
+    - `benchmarks/results/runtime_contract_gate_official_2026-05-31/` is an
       experiment output and should stay out of source commits
 - `SKH_T1_060`
   - Command shape:
