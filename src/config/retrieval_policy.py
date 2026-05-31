@@ -99,6 +99,49 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
     ),
 }
 
+NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
+    "inline_value_unit_pattern": (
+        r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
+        rf"(?P<unit>조\s*원?|억\s*원?|백만\s*원|천\s*원|원|%|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
+    ),
+    "inline_unit_aliases": {"억": "억원", "조": "조원"},
+    "krw_scales": {
+        "원": 1.0,
+        "천원": 1_000.0,
+        "백만원": 1_000_000.0,
+        "억원": 100_000_000.0,
+        "조원": 1_0000_0000_0000.0,
+    },
+    "usd_scales": {"usd": 1.0, "$": 1.0, "달러": 1.0, "백만달러": 1_000_000.0},
+    "percent_units": ("%", "퍼센트"),
+}
+
+GENERIC_METRIC_ALIAS_SUBSTITUTIONS: Tuple[Dict[str, Any], ...] = (
+    {"source": "순이익", "target": "순손익"},
+    {"source": "순손익", "target": "순이익"},
+    {"source": "손익", "target": "이익"},
+    {"source": "이익", "target": "손익", "blocked_if_present": ("손익",)},
+)
+
+OPERATION_FAMILY_QUERY_POLICIES: Tuple[Dict[str, Any], ...] = (
+    {"operation_family": "growth_rate", "markers": ("증감률", "증가율", "감소율", "성장률", "변화율")},
+    {"operation_family": "difference", "markers": ("차이", "얼마나 더", "보다 얼마나", "더 큰가", "더 높은가", "더 많은가")},
+)
+
+PERCENT_POINT_DIFFERENCE_POLICY: Dict[str, Any] = {
+    "direct_markers": ("%p",),
+    "ratio_metric_markers": ("비율", "비중", "이익률"),
+    "comparison_markers": ("차이", "격차", "비교", "증감", "변화", "변동", "몇 %p", "몇%p"),
+}
+
+STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
+    "metric_terms": ("매출액", "매출", "영업수익", "수익"),
+    "entity_surface_drop_terms": ("부문", "사업부", "사업"),
+    "year_pattern": r"20\d{2}\s*년?",
+    "entity_token_split_pattern": r"[\s/|,]+",
+    "aggregate_tokens": ("합계", "총계", "소계", "계"),
+}
+
 KOREAN_SEGMENT_LABEL_REPORT_TERMS = (
     "사업보고서",
     "반기보고서",

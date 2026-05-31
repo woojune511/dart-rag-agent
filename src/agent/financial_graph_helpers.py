@@ -27,6 +27,7 @@ from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
     FINANCIAL_SEGMENT_SECTION_HINT_POLICY,
+    GENERIC_METRIC_ALIAS_SUBSTITUTIONS,
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_COUNT_UNITS,
@@ -47,6 +48,10 @@ from src.config.retrieval_policy import (
     KOREAN_SEGMENT_LABEL_SPLIT_RE_FRAGMENT,
     KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS,
     KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT,
+    NUMERIC_UNIT_NORMALIZATION_POLICY,
+    OPERATION_FAMILY_QUERY_POLICIES,
+    PERCENT_POINT_DIFFERENCE_POLICY,
+    STRUCTURED_CELL_AFFINITY_POLICY,
     active_numeric_section_hint_policies,
     active_narrative_policies,
     narrative_policy_preferred_sections,
@@ -894,46 +899,34 @@ def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[fl
     if composite_krw is not None:
         return composite_krw, "KRW"
 
+    unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
     inline_unit_match = re.fullmatch(
-        r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
-        r"(?P<unit>조\s*원?|억\s*원?|백만\s*원|천\s*원|원|%|"
-        rf"{KOREAN_COUNT_UNIT_RE_FRAGMENT})",
+        str(unit_policy.get("inline_value_unit_pattern") or ""),
         _normalise_spaces(raw_value),
     )
     if inline_unit_match:
         raw_value = inline_unit_match.group("value")
         inline_unit = re.sub(r"\s+", "", inline_unit_match.group("unit"))
-        if inline_unit == "억":
-            inline_unit = "억원"
-        elif inline_unit == "조":
-            inline_unit = "조원"
+        inline_unit = str(dict(unit_policy.get("inline_unit_aliases") or {}).get(inline_unit) or inline_unit)
         unit = inline_unit.lower()
 
     value = _parse_number_text(raw_value)
-    if value is None and unit in {"%", "퍼센트"}:
-        value = _parse_number_text(str(raw_value or "").replace("%", "").replace("퍼센트", ""))
+    percent_units = tuple(str(item) for item in (unit_policy.get("percent_units") or ()) if str(item))
+    if value is None and unit in percent_units:
+        stripped_value = str(raw_value or "")
+        for percent_unit in percent_units:
+            stripped_value = stripped_value.replace(percent_unit, "")
+        value = _parse_number_text(stripped_value)
     if value is None:
         return None, "UNKNOWN"
 
-    krw_scale = {
-        "원": 1.0,
-        "천원": 1_000.0,
-        "백만원": 1_000_000.0,
-        "억원": 100_000_000.0,
-        "조원": 1_0000_0000_0000.0,
-    }
-    usd_scale = {
-        "usd": 1.0,
-        "$": 1.0,
-        "달러": 1.0,
-        "백만달러": 1_000_000.0,
-    }
+    krw_scale = dict(unit_policy.get("krw_scales") or {})
+    usd_scale = dict(unit_policy.get("usd_scales") or {})
     compact_unit = re.sub(r"\s+", "", unit)
     count_scale = {base_unit: 1.0 for base_unit in KOREAN_COUNT_UNITS}
     for prefix, scale in KOREAN_COUNT_SCALE_PREFIXES:
         for base_unit in KOREAN_COUNT_UNITS:
             count_scale[f"{prefix}{base_unit}"] = scale
-    percent_units = {"%", "퍼센트"}
 
     if unit in krw_scale:
         return value * krw_scale[unit], "KRW"
@@ -1951,14 +1944,12 @@ def _build_generic_metric_aliases(label: str) -> List[str]:
         cleaned_inner = _normalise_spaces(inner)
         if cleaned_inner:
             aliases.append(cleaned_inner)
-    if "순이익" in base:
-        aliases.append(base.replace("순이익", "순손익"))
-    if "순손익" in base:
-        aliases.append(base.replace("순손익", "순이익"))
-    if "손익" in base:
-        aliases.append(base.replace("손익", "이익"))
-    if "이익" in base and "손익" not in base:
-        aliases.append(base.replace("이익", "손익"))
+    for substitution in GENERIC_METRIC_ALIAS_SUBSTITUTIONS:
+        source = str(substitution.get("source") or "")
+        target = str(substitution.get("target") or "")
+        blocked = tuple(str(item) for item in (substitution.get("blocked_if_present") or ()) if str(item))
+        if source and target and source in base and not any(token in base for token in blocked):
+            aliases.append(base.replace(source, target))
     return list(dict.fromkeys(alias for alias in aliases if alias))
 
 
@@ -2416,10 +2407,10 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
         return "single_value"
 
     generic_operand_labels = _extract_generic_operand_labels(query)
-    if any(token in text for token in ("증감률", "증가율", "감소율", "성장률", "변화율")):
-        return "growth_rate"
-    if any(token in text for token in ("차이", "얼마나 더", "보다 얼마나", "더 큰가", "더 높은가", "더 많은가")):
-        return "difference"
+    for policy in OPERATION_FAMILY_QUERY_POLICIES:
+        markers = tuple(str(marker).lower() for marker in (policy.get("markers") or ()) if str(marker))
+        if any(marker in text for marker in markers):
+            return str(policy.get("operation_family") or "single_value")
     if _is_percent_point_difference_query(query):
         return "difference"
     if _is_single_metric_period_comparison(query, generic_operand_labels):
@@ -4603,17 +4594,18 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
 
     row_label = _normalise_spaces(str(cell.get("row_label") or ""))
     operand_label = _normalise_spaces(str(operand.get("label") or operand.get("name") or ""))
-    metric_terms = ("매출액", "매출", "영업수익", "수익")
+    affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+    metric_terms = tuple(str(item) for item in (affinity_policy.get("metric_terms") or ()) if str(item))
     if row_label and operand_label and any(term in row_label for term in metric_terms) and any(
         term in operand_label for term in metric_terms
     ):
         entity_surface = operand_label
-        entity_surface = re.sub(r"20\d{2}\s*년?", " ", entity_surface)
-        for term in (*metric_terms, "부문", "사업부", "사업"):
+        entity_surface = re.sub(str(affinity_policy.get("year_pattern") or r"$^"), " ", entity_surface)
+        for term in (*metric_terms, *(affinity_policy.get("entity_surface_drop_terms") or ())):
             entity_surface = entity_surface.replace(term, " ")
         entity_tokens = [
             token
-            for token in re.split(r"[\s/|,]+", _normalise_spaces(entity_surface))
+            for token in re.split(str(affinity_policy.get("entity_token_split_pattern") or r"\s+"), _normalise_spaces(entity_surface))
             if token
         ]
         header_blob = _normalise_spaces(" ".join(headers))
@@ -4621,7 +4613,7 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
         if any(token in header_blob or token in header_compact for token in entity_tokens):
             score += 3.0
 
-    aggregate_tokens = ("합계", "총계", "소계", "계")
+    aggregate_tokens = tuple(str(item) for item in (affinity_policy.get("aggregate_tokens") or ()) if str(item))
     if any(token in last_header for token in aggregate_tokens) and _operand_text_match(last_header, operand):
         score += 4.0
 
@@ -7449,21 +7441,15 @@ def _preferred_calc_sections(query: str, topic: str, intent: str) -> List[str]:
 
 def _is_percent_point_difference_query(text: str) -> bool:
     normalized = _normalise_spaces(text)
-    if "%p" in normalized:
+    policy = dict(PERCENT_POINT_DIFFERENCE_POLICY)
+    direct_markers = tuple(str(item) for item in (policy.get("direct_markers") or ()) if str(item))
+    if any(marker in normalized for marker in direct_markers):
         return True
-    ratio_metric = any(keyword in normalized for keyword in ("비율", "비중", "이익률"))
+    ratio_metric_markers = tuple(str(item) for item in (policy.get("ratio_metric_markers") or ()) if str(item))
+    ratio_metric = any(keyword in normalized for keyword in ratio_metric_markers)
     if not ratio_metric:
         return False
-    comparison_markers = (
-        "차이",
-        "격차",
-        "비교",
-        "증감",
-        "변화",
-        "변동",
-        "몇 %p",
-        "몇%p",
-    )
+    comparison_markers = tuple(str(item) for item in (policy.get("comparison_markers") or ()) if str(item))
     return any(marker in normalized for marker in comparison_markers)
 
 
