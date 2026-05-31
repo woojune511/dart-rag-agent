@@ -81,6 +81,14 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
         "consolidated": "연결기준",
         "separate": "별도기준",
     },
+    "context_markers": {
+        "consolidated": ("연결재무제표", "연결"),
+        "separate": ("별도",),
+    },
+    "separate_section_patterns": (
+        r"(^|>)\s*4\.\s*재무제표(?!\s*주석)",
+        r"(^|>)\s*5\.\s*재무제표\s*주석",
+    ),
     "default_consolidated_markers": (
         "재무제표",
         "주석",
@@ -144,6 +152,10 @@ STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "year_pattern": r"20\d{2}\s*년?",
     "entity_token_split_pattern": r"[\s/|,]+",
     "aggregate_tokens": ("합계", "총계", "소계", "계"),
+    "aggregate_stage_tokens": {
+        "subtotal": ("소계",),
+        "final": ("합계", "총계", "계"),
+    },
 }
 
 STRUCTURED_CELL_PERIOD_SCORING_POLICY: Dict[str, Any] = {
@@ -199,13 +211,27 @@ CONCEPT_METRIC_LABEL_POLICY: Dict[str, Any] = {
 GENERIC_PERIOD_OPERAND_POLICY: Dict[str, Any] = {
     "current_period_hint": "당기",
     "prior_period_hint": "전기",
+    "current_period_hints": ("당기", "현재"),
+    "prior_period_hints": ("전기", "전년", "직전 연도", "이전 연도", "이전"),
     "current_label_template": "{period_hint} {label}",
     "prior_label_template": "{period_hint} {label}",
     "year_label_template": "{year}년 {label}",
     "year_suffix_template": "{year}년",
-    "prior_period_hints": ("전기", "전년", "직전 연도", "이전 연도"),
     "comparison_markers": ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이"),
     "fallback_metric_label": "수치 계산",
+}
+
+CONCEPT_RATIO_RESULT_UNIT_POLICY: Dict[str, Any] = {
+    "multiplier_markers": ("배율",),
+    "percent_markers": ("비율", "%", "퍼센트", "percentage"),
+    "multiplier_unit": "배",
+    "percent_unit": "%",
+}
+
+METRIC_TASK_QUERY_POLICY: Dict[str, Any] = {
+    "operand_joiner": "/",
+    "operand_hint_template": "({labels} )",
+    "canonical_query_template": "{year_text}{consolidation_text}{metric_label}{operand_hint}을 계산해 줘.",
 }
 
 TASK_CONSTRAINT_POLICY: Dict[str, Any] = {
@@ -229,6 +255,13 @@ OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "note_context_markers": ("주석",),
     "related_party_penalty_terms": ("특수관계자", "관계기업", "공동기업"),
     "generic_suffix_penalty_terms": ("등",),
+    "delta_row_markers": ("증가(감소)", "증가", "감소", "증감", "변동"),
+    "capex_total_surfaces": ("시설투자", "시설투자(capex)", "capex", "자본적지출", "시설투자총액"),
+    "capex_priority_section_terms": ("원재료 및 생산설비", "시설투자", "사업의 내용"),
+    "balance_sheet_scope_markers": {
+        "consolidated": ("연결",),
+        "separate": ("별도",),
+    },
 }
 
 VALUE_NEAR_MATCH_POLICY: Dict[str, Any] = {

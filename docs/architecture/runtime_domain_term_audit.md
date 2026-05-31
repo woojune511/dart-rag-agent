@@ -77,22 +77,26 @@ presence checks, note-context markers, and nearby value/unit extraction
 patterns into retrieval policy. A period-operand helper follow-up moved metric
 label cleanup boundaries, period operand label templates, comparison markers,
 KRW compact-format labels/scales, and reconciliation query scope prefixes into
-retrieval policy.
+retrieval policy. A candidate-scoring helper follow-up moved concept ratio
+result-unit markers, metric-task query templates, aggregate row-stage tokens,
+candidate explicit-year period markers, consolidation context markers, CAPEX
+source-priority surfaces, balance-sheet scope markers, and delta-row markers
+into retrieval policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 399 |
-| Literal occurrences | 478 |
-| `runtime_literal` records | 306 |
-| `regex_or_pattern` records | 63 |
+| Reviewed records | 374 |
+| Literal occurrences | 439 |
+| `runtime_literal` records | 283 |
+| `regex_or_pattern` records | 61 |
 | `prompt_or_template` records | 30 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 119 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
+| `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
@@ -211,6 +215,16 @@ For each P0 record, classify it as one of:
   retrieval policy. Runtime keeps the generic mechanics: normalize labels,
   build current/prior operands, derive year-aware query surfaces, and assemble
   retry queries from missing operands.
+- `_infer_concept_ratio_result_unit()`, `_build_metric_task_query()`,
+  `_operand_period_focus()`, `_aggregate_like_row_stage()`,
+  `_candidate_explicit_years()`, `_is_capex_total_operand()`,
+  `_candidate_consolidation_scope()`, `_candidate_source_priority_bonus()`,
+  and `_is_delta_like_row_label()` now read ratio-result units, task query
+  templates, period hint groups, aggregate stage tokens, consolidation scope
+  markers, CAPEX source-priority surfaces, balance-sheet scope markers, and
+  delta-row markers from retrieval policy. Runtime keeps the generic mechanics:
+  infer result units, build canonical task text, map period hints, classify
+  aggregate rows, infer candidate years, and score source priority.
 - `_build_ratio_operands_from_candidates()` no longer carries a fixed
   R&D/revenue component fallback. When row-level percent values are absent, it
   asks the active ontology metric family for ratio component specs and matches

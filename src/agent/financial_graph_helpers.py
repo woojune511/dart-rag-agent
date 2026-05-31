@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     CONSOLIDATION_SCOPE_POLICY,
+    CONCEPT_RATIO_RESULT_UNIT_POLICY,
     EXPLICIT_RATIO_DEFINITION_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
@@ -55,6 +56,7 @@ from src.config.retrieval_policy import (
     KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS,
     KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT,
     METRIC_TOPIC_EXTRACTION_TERMS,
+    METRIC_TASK_QUERY_POLICY,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
     OPERATION_FAMILY_QUERY_POLICIES,
     OPERAND_CANDIDATE_SCORING_POLICY,
@@ -3856,9 +3858,12 @@ def _infer_concept_ratio_result_unit(query: str, metric_label: str, operation_fa
     if _normalise_spaces(operation_family) != "ratio":
         return ""
     text = _normalise_spaces(f"{query} {metric_label}")
-    if "배율" in text and not any(token in text for token in ("비율", "%", "퍼센트", "percentage")):
-        return "배"
-    return "%"
+    ratio_policy = dict(CONCEPT_RATIO_RESULT_UNIT_POLICY)
+    multiplier_markers = tuple(str(item) for item in (ratio_policy.get("multiplier_markers") or ()) if str(item))
+    percent_markers = tuple(str(item) for item in (ratio_policy.get("percent_markers") or ()) if str(item))
+    if any(marker in text for marker in multiplier_markers) and not any(marker in text for marker in percent_markers):
+        return str(ratio_policy.get("multiplier_unit") or "")
+    return str(ratio_policy.get("percent_unit") or "")
 
 
 def _build_lookup_producer_task_from_binding(
@@ -4212,17 +4217,33 @@ def _build_metric_task_query(
 ) -> str:
     query_text = _normalise_spaces(original_query)
     year = report_scope.get("year")
-    year_text = f"{year}년 " if str(year or "").strip() else ""
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    year_suffix_template = str(period_policy.get("year_suffix_template") or "{year}")
+    year_text = f"{year_suffix_template.format(year=year)} " if str(year or "").strip() else ""
     consolidation_scope = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     consolidation_text = ""
+    scope_prefix_labels = dict(CONSOLIDATION_SCOPE_POLICY.get("query_prefix_labels") or {})
     if consolidation_scope == "consolidated":
-        consolidation_text = "연결기준 "
+        consolidation_text = f"{scope_prefix_labels.get('consolidated') or ''} "
     elif consolidation_scope == "separate":
-        consolidation_text = "별도기준 "
+        consolidation_text = f"{scope_prefix_labels.get('separate') or ''} "
 
+    query_policy = dict(METRIC_TASK_QUERY_POLICY)
     operand_labels = [str(spec.get("label") or "").strip() for spec in operand_specs if str(spec.get("label") or "").strip()]
-    operand_hint = f"({ '/'.join(operand_labels) })" if len(operand_labels) >= 2 else ""
-    canonical_query = _normalise_spaces(f"{year_text}{consolidation_text}{metric_label}{operand_hint}을 계산해 줘.")
+    operand_joiner = str(query_policy.get("operand_joiner") or "/")
+    operand_hint = (
+        str(query_policy.get("operand_hint_template") or "{labels}").format(labels=operand_joiner.join(operand_labels))
+        if len(operand_labels) >= 2
+        else ""
+    )
+    canonical_query = _normalise_spaces(
+        str(query_policy.get("canonical_query_template") or "{metric_label}").format(
+            year_text=year_text,
+            consolidation_text=consolidation_text,
+            metric_label=metric_label,
+            operand_hint=operand_hint,
+        )
+    )
     if canonical_query:
         return canonical_query
     return query_text or metric_label
@@ -4630,9 +4651,12 @@ def _operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> Li
 def _operand_period_focus(operand: Dict[str, Any], default_period_focus: str) -> str:
     hint = str(operand.get("period_hint") or "").strip()
     role = str(operand.get("role") or "").strip()
-    if hint in {"당기", "현재"} or role == "current_period":
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    current_hints = set(str(item) for item in (period_policy.get("current_period_hints") or ()) if str(item))
+    prior_hints = set(str(item) for item in (period_policy.get("prior_period_hints") or ()) if str(item))
+    if hint in current_hints or role == "current_period":
         return "current"
-    if hint in {"전기", "이전"} or role == "prior_period":
+    if hint in prior_hints or role == "prior_period":
         return "prior"
     return default_period_focus
 
@@ -5164,10 +5188,11 @@ def _aggregate_like_row_stage(label: str) -> str:
     compact = re.sub(r"\s+", "", _normalise_spaces(str(label or "")))
     if not compact:
         return "none"
-    if compact == "소계":
-        return "subtotal"
-    if compact in {"합계", "총계", "계"}:
-        return "final"
+    affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+    aggregate_stage_tokens = dict(affinity_policy.get("aggregate_stage_tokens") or {})
+    for stage, tokens in aggregate_stage_tokens.items():
+        if compact in {re.sub(r"\s+", "", _normalise_spaces(str(token))) for token in tokens}:
+            return str(stage)
     return "none"
 
 
@@ -5868,8 +5893,13 @@ def _candidate_has_numeric_value_signal(candidate: Dict[str, Any]) -> bool:
 def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
     metadata = dict(candidate.get("metadata") or {})
     years: set[int] = set()
+    period_policy = dict(PERIOD_FOCUS_POLICY)
+    scoring_policy = dict(STRUCTURED_CELL_PERIOD_SCORING_POLICY)
+    year_pattern = str(period_policy.get("explicit_year_pattern") or r"20\d{2}")
+    current_markers = tuple(str(item) for item in (scoring_policy.get("current_positive_markers") or ()) if str(item))
+    prior_markers = tuple(str(item) for item in (scoring_policy.get("prior_positive_markers") or ()) if str(item))
     for raw in metadata.get("period_labels") or []:
-        years.update(int(token) for token in re.findall(r"20\d{2}", str(raw or "")))
+        years.update(int(token) for token in re.findall(year_pattern, str(raw or "")))
     report_year: Optional[int] = None
     try:
         raw_year = metadata.get("year")
@@ -5883,7 +5913,7 @@ def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
             str(cell_data.get("period_text") or ""),
             " ".join(str(item).strip() for item in (cell_data.get("column_headers") or []) if str(item).strip()),
         ):
-            years.update(int(token) for token in re.findall(r"20\d{2}", raw))
+            years.update(int(token) for token in re.findall(year_pattern, raw))
         if report_year is None:
             continue
         period_headers = _normalise_spaces(
@@ -5891,9 +5921,9 @@ def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
         )
         if not period_headers:
             continue
-        if any(token in period_headers for token in ("당기", "현재")):
+        if any(token in period_headers for token in current_markers):
             years.add(report_year)
-        if any(token in period_headers for token in ("전기", "이전")):
+        if any(token in period_headers for token in prior_markers):
             years.add(report_year - 1)
     return sorted(years)
 
@@ -5931,10 +5961,13 @@ def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
         return True
     needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
     needles.discard("")
-    return any(
-        needle in {"시설투자", "시설투자(capex)", "capex", "자본적지출", "시설투자총액"}
-        for needle in needles
-    )
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    capex_surfaces = {
+        re.sub(r"\s+", "", _normalise_spaces(str(surface)))
+        for surface in (scoring_policy.get("capex_total_surfaces") or ())
+        if str(surface).strip()
+    }
+    return any(needle in capex_surfaces for needle in needles)
 
 
 def _operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
@@ -6027,14 +6060,15 @@ def _candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
         if part
     )
     normalized_context = _normalise_spaces(context_text)
-    if "연결재무제표" in normalized_context or "연결" in normalized_context:
+    scope_policy = dict(CONSOLIDATION_SCOPE_POLICY)
+    context_markers = dict(scope_policy.get("context_markers") or {})
+    if any(marker in normalized_context for marker in context_markers.get("consolidated") or ()):
         return "consolidated"
-    if "별도" in normalized_context:
+    if any(marker in normalized_context for marker in context_markers.get("separate") or ()):
         return "separate"
-    if re.search(r"(^|>)\s*4\.\s*재무제표(?!\s*주석)", normalized_context):
-        return "separate"
-    if re.search(r"(^|>)\s*5\.\s*재무제표\s*주석", normalized_context):
-        return "separate"
+    for pattern in scope_policy.get("separate_section_patterns") or ():
+        if re.search(str(pattern), normalized_context):
+            return "separate"
     return explicit or "unknown"
 
 
@@ -6158,9 +6192,11 @@ def _candidate_source_priority_bonus(
                 score -= 0.5
             if aggregation_stage in {"direct", "final"}:
                 score += 0.75
-            if "연결" in local_heading:
+            scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+            scope_markers = dict(scoring_policy.get("balance_sheet_scope_markers") or {})
+            if any(marker in local_heading for marker in scope_markers.get("consolidated") or ()):
                 score += 0.5
-            elif "별도" in local_heading:
+            elif any(marker in local_heading for marker in scope_markers.get("separate") or ()):
                 score -= 0.5
         elif statement_type == "notes":
             score -= 1.5
@@ -6168,7 +6204,9 @@ def _candidate_source_priority_bonus(
                 score -= 1.25
 
     if _is_capex_total_operand(operand):
-        if any(token in local_heading for token in ("원재료 및 생산설비", "시설투자", "사업의 내용")):
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+        capex_section_terms = tuple(str(item) for item in (scoring_policy.get("capex_priority_section_terms") or ()) if str(item))
+        if any(token in local_heading for token in capex_section_terms):
             score += 2.75
             if value_role == "aggregate":
                 score += 1.0
@@ -6676,7 +6714,9 @@ def _is_delta_like_row_label(label: str) -> bool:
     text = _normalise_spaces(str(label or ""))
     if not text:
         return False
-    return any(token in text for token in ("증가(감소)", "증가", "감소", "증감", "변동"))
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    delta_markers = tuple(str(item) for item in (scoring_policy.get("delta_row_markers") or ()) if str(item))
+    return any(token in text for token in delta_markers)
 
 
 def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
