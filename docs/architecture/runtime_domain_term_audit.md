@@ -24,21 +24,22 @@ remaining literal is justified.
 
 Generated on 2026-06-01 after excluding `if __name__ == "__main__"` demo
 blocks and replacing the MAS orchestrator fallback keyword classifier with a
-generic two-worker fallback.
+generic two-worker fallback. The helpers cleanup also removed a company-specific
+operand-label normalization rule.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 777 |
-| Literal occurrences | 1,260 |
+| Reviewed records | 776 |
+| Literal occurrences | 1,259 |
 | `runtime_literal` records | 656 |
-| `regex_or_pattern` records | 89 |
+| `regex_or_pattern` records | 88 |
 | `prompt_or_template` records | 32 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 276 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 275 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_evidence.py` | 191 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
@@ -81,3 +82,8 @@ For each P0 record, classify it as one of:
   tasks with query keyword lists. Planner failure now creates generic Analyst
   and Researcher tasks, letting workers handle applicability from their
   contracts. This removed 19 reviewed records from the baseline.
+- `src/agent/financial_graph_helpers.py` no longer strips only one hard-coded
+  company name from operand display labels. It now removes a generic
+  company/entity prefix when followed by a year, preserving the same display
+  behavior without company-specific vocabulary. This removed one reviewed
+  regex record from the baseline.

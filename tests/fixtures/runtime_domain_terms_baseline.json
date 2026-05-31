@@ -3827,16 +3827,6 @@
       "fingerprint": "9d38cab54d22f5c5",
       "count": 1,
       "first_lines": [
-        1006
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "^삼성전자\\s*",
-      "category": "regex_or_pattern",
-      "fingerprint": "1c6a21749c07bd52",
-      "count": 1,
-      "first_lines": [
         1007
       ]
     },

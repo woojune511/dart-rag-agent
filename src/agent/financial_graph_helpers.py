@@ -1003,8 +1003,8 @@ def _format_korean_won_compact(value: float) -> str:
 
 def _display_operand_label(label: str) -> str:
     text = _normalise_spaces(label)
+    text = re.sub(r"^[\uac00-\ud7a3A-Za-z0-9&.\- ]{2,40}\s+(?=\d{4}\ub144\s+)", "", text)
     text = re.sub(r"^\d{4}년\s*", "", text)
-    text = re.sub(r"^삼성전자\s*", "", text)
     return text
 
 
