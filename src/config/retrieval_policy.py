@@ -640,6 +640,83 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 }
 
 
+CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
+    "operand_extraction_prompt_template": (
+        "당신은 재무 계산을 위한 피연산자 추출기입니다.\n"
+        "질문을 풀기 위해 필요한 숫자만 single-shot으로 한 번에 추출하세요.\n\n"
+        "규칙:\n"
+        "- 여러 번 나눠 찾지 말고, 필요한 피연산자를 한 번의 호출로 모두 찾으세요.\n"
+        "- operand_id는 비워도 됩니다. 코드는 이후에 고유 ID를 부여합니다.\n"
+        "- 각 operand는 반드시 evidence_id와 source_anchor를 포함하세요.\n"
+        "- raw_value는 문서에 있는 숫자 표현 그대로 적으세요. '111조 659억원'처럼 조+억 복합 표기는 절대 억원이나 조원으로 변환하지 말고 원문 그대로 적으세요. 변환하면 반올림 오차가 발생합니다.\n"
+        "- raw_unit은 숫자 바로 옆 단위를 적으세요. 복합 표기('111조 659억원')는 raw_unit을 '억원'으로 적지 말고, raw_value에 원문 전체를 넣고 raw_unit은 '원'으로 적으세요.\n"
+        "- normalized_value와 normalized_unit은 추정해서 채워도 되지만, 이후 코드가 다시 검증합니다.\n"
+        "- 비교/추세 질문은 질문 해결에 꼭 필요한 숫자만 추출하세요.\n"
+        "- source_context와 raw_row_text가 있으면, 해당 표의 헤더와 행을 함께 읽어 period와 숫자 매핑을 복원하세요.\n"
+        "- raw_row_text에 같은 metric의 여러 연도/기간 값이 함께 있으면, 각 연도/기간별 숫자를 별도 operand로 나누어 추출하세요.\n"
+        "- 질문이 단일 비율/비중/이익률 조회라면 피연산자 1개만 추출할 수 있습니다.\n"
+        "- 질문이 두 기간/두 부문/두 비율의 차이·비교·대비·%p 차이를 묻는다면, 절대 단일 비율 피연산자 1개로 축약하지 말고 비교 대상별 피연산자를 각각 추출하세요.\n"
+        "- 질문에 `%p`, `차이`, `비교`, `대비`가 있고 evidence에 동일 metric의 여러 기간/부문 percent 값이 보이면, 해당 percent 값들을 period별/대상별로 각각 별도 operand로 추출하세요.\n"
+        "- 추이(trend) 질문이고 evidence에 3개 이상의 연도/기간 수치가 보이면, 가능한 한 3개 이상 기간의 피연산자를 빠짐없이 추출하세요.\n"
+        "- 문서 메타데이터의 보고서 연도와 표 안에 적힌 비교 기간(예: 2024년, 2023년, 2022년)을 혼동하지 말고, period 필드에는 표에서 읽은 실제 기간을 그대로 적으세요.\n"
+        "- 수치가 없는 descriptive evidence는 operand로 만들지 마세요.\n\n"
+        "질문: {query}\n\n"
+        "Structured Evidence:\n{evidence}\n"
+    ),
+    "formula_plan_prompt_template": (
+        "당신은 재무 계산 계획기입니다.\n"
+        "질문과 피연산자 목록을 보고 변수 바인딩과 계산식을 작성하세요.\n\n"
+        "규칙:\n"
+        "- variable_bindings에는 반드시 아래 피연산자 목록의 operand_id만 넣으세요.\n"
+        "- 각 binding의 variable은 A, B, C, D, E, F 중 하나만 사용하세요.\n"
+        "- ordered_operand_ids는 variable_bindings와 같은 순서로 넣으세요.\n"
+        "- operation은 로그/평가용 힌트입니다. subtract, add, ratio, growth_rate, max, min, time_series_trend, none 중 가장 가까운 값을 넣으세요.\n"
+        "- 실제 계산은 formula와 pairwise_formula로 표현합니다.\n"
+        "- formula에는 숫자 상수와 변수(A, B, C...) 그리고 +, -, *, /, **, min(), max(), abs(), round(), log(), exp()만 사용할 수 있습니다.\n"
+        "- mode=single_value 이면 formula로 단일 결과를 계산하세요.\n"
+        "- mode=time_series 이면 variable_bindings를 시계열 순서로 배치하고, formula에는 전체 흐름을 대표하는 계산식(예: ((C - A) / A) * 100)을, pairwise_formula에는 인접 시점 계산식(예: ((CURR - PREV) / PREV) * 100)을 적으세요.\n"
+        "- 최근 3년/연도별/추이 질문처럼 3개 이상 기간 데이터가 있을 때는 mode=time_series 와 operation=time_series_trend 를 우선 사용하세요.\n"
+        "- 이미 계산된 단일 비율/비중/이익률 하나만 답하면 되는 질문이라면 mode=single_value, formula=A 를 사용하세요.\n"
+        "- 질문이 단일 비율/비중/이익률 조회이고 피연산자가 퍼센트 1개뿐이라면 반드시 mode=single_value, formula=A 를 사용하세요.\n"
+        "- 질문이 단일 비율/비중/이익률 조회이고 분자/분모 역할의 금액 피연산자 2개가 있다면 formula는 (A / B) * 100 형태로 작성하세요.\n"
+        "- 두 비율/비중의 차이(%p 차이 포함)를 묻는 질문이라면 mode=single_value 로 두고 formula는 A - B 또는 질문 순서에 맞는 차이식으로 작성하세요. 단일 operand 하나로 끝내지 마세요.\n"
+        "- 증가율/감소율/변화율은 가능한 한 질문에서 기준이 되는 이전 값이 분모가 되도록 식을 작성하세요.\n"
+        "- 현재 피연산자만으로 질문을 풀 수 없으면 억지로 수식을 만들지 말고 status=incomplete, mode=none, operation=none 으로 두고 missing_info에 부족한 정보를 적으세요.\n"
+        "- result_unit은 최종 답변 단위를 적으세요. 예: 억원, 원, %, 개\n"
+        "- ontology_context는 이 질문에 대해 추정된 metric family prior 입니다. 실제 피연산자와 모순되면 ontology_context보다 피연산자를 우선하세요.\n"
+        "- ontology_context에 formula_template과 components가 있으면, 단일 비율 조회는 A 또는 (A / B) * 100, %p 차이는 A - B 같은 계획을 세울 때 참고하세요.\n\n"
+        "질문: {query}\n\n"
+        "Ontology Context:\n{ontology_context}\n\n"
+        "사용 가능한 피연산자:\n{operands}\n"
+    ),
+    "aggregate_synthesis_prompt_template": (
+        "당신은 DART 재무 질의용 최종 synthesizer입니다.\n"
+        "원본 질문과 내부 subtask 결과를 읽고, 사용자에게 보여줄 최종 답변을 작성하세요.\n\n"
+        "입력 데이터:\n"
+        "1. 원본 질문\n"
+        "2. subtask 결과 목록\n"
+        "3. deterministic structured material check\n"
+        "4. narrative context evidence\n\n"
+        "규칙:\n"
+        "- 최종 답변은 원본 질문이 명시적으로 요구한 값과 계산 결과를 빠짐없이 포함하도록 노력하세요.\n"
+        "- subtask 결과의 answer, calculation_result.rendered_value, calculation_result.series, calculation_operands를 근거로 사용하세요.\n"
+        "- subtask 결과의 calculation_result.answer_slots가 있으면 그것을 가장 우선적인 structured result contract로 사용하세요.\n"
+        "- narrative context evidence가 있고 원본 질문이 업황/배경/영향 같은 맥락을 요구하면, 최종 답변에 그 맥락을 짧게 반영하세요.\n"
+        "- 새로운 숫자, 연도, 단위를 만들지 마세요.\n"
+        "- deterministic structured material check가 비어 있으면, 현재 재료만으로 원본 질문을 완전히 충족한다고 보고 planner_feedback은 비워 두세요.\n"
+        "- deterministic structured material check가 비어 있지 않으면, 그 누락 재료를 planner_feedback에 반영하세요.\n"
+        "- 현재 재료만으로는 원본 질문의 요구사항 일부를 충족할 수 없다면, planner_feedback에 planner가 추가로 모아야 할 재료를 한 문장으로 적으세요.\n"
+        "- planner_feedback은 내부 시스템용이므로 간결하게, 누락된 값/기간/개념 중심으로 쓰세요.\n"
+        "- final_answer는 사용자용 한국어 답변만 작성하세요.\n\n"
+        "원본 질문:\n{query}\n\n"
+        "Fallback Answer:\n{fallback_answer}\n\n"
+        "Deterministic Structured Material Check:\n{deterministic_feedback}\n\n"
+        "Narrative Context Evidence:\n{narrative_context}\n\n"
+        "Subtask Results JSON:\n{subtask_results_json}\n"
+    ),
+}
+
+
 RECONCILIATION_POLICY: Dict[str, Any] = {
     "lookup_surface_period_prefix_pattern": r"^(?:20\d{2}\s*년?)\s+",
     "period_presence_pattern": r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기",
