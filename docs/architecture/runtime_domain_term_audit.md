@@ -84,16 +84,18 @@ source-priority surfaces, balance-sheet scope markers, and delta-row markers
 into retrieval policy. A schema-audit follow-up taught the audit scanner to
 classify Pydantic `Field(description=...)` text as `schema_description` so
 structured-output contracts are tracked separately from runtime decision
-literals.
+literals. An evidence prompt-policy follow-up moved compression guidance,
+evidence extraction extra rules, and the evidence extraction prompt template
+into retrieval policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 374 |
-| Literal occurrences | 439 |
-| `runtime_literal` records | 170 |
+| Reviewed records | 354 |
+| Literal occurrences | 419 |
+| `runtime_literal` records | 156 |
 | `schema_description` records | 117 |
 | `regex_or_pattern` records | 60 |
-| `prompt_or_template` records | 27 |
+| `prompt_or_template` records | 21 |
 
 Top files:
 
@@ -101,7 +103,7 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
 | `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
-| `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
+| `src/agent/financial_graph_evidence.py` | 47 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
@@ -235,6 +237,12 @@ For each P0 record, classify it as one of:
   schema guidance from runtime control-flow vocabulary. The current
   `financial_graph_models.py` records are all schema descriptions, so no
   model-file domain terms were moved into policy in this pass.
+- `_compression_guidance()` and `_extract_evidence()` now read compression
+  instructions, output-style guidance, coverage notes, evidence extraction
+  extra rules, and the evidence extraction prompt template from retrieval
+  policy. Runtime keeps the generic mechanics: choose guidance by query type
+  and operation family, build evidence context, invoke structured extraction,
+  and run deterministic fallback only from retrieved source text.
 - `_build_ratio_operands_from_candidates()` no longer carries a fixed
   R&D/revenue component fallback. When row-level percent values are absent, it
   asks the active ontology metric family for ratio component specs and matches

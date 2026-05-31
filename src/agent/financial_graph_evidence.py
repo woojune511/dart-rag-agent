@@ -33,6 +33,8 @@ from src.config.retrieval_policy import (
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY,
+    EVIDENCE_COMPRESSION_GUIDANCE_POLICY,
+    EVIDENCE_EXTRACTION_POLICY,
     NARRATIVE_RERANK_POLICY,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
     QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
@@ -4366,56 +4368,22 @@ class FinancialAgentEvidenceMixin:
         }
 
     def _compression_guidance(self, query_type: str, query: str, coverage: str) -> Dict[str, str]:
-        trend_instruction = "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요."
-        trend_output_style = "2~4문장."
+        policy = dict(EVIDENCE_COMPRESSION_GUIDANCE_POLICY)
+        trend_instruction = str(policy.get("trend_instruction") or "")
+        trend_output_style = str(policy.get("trend_output_style") or "")
         if _query_requests_narrative_context(query):
-            trend_instruction = (
-                "시계열 변화와 함께 실적에 직접 기여한 운영 요인을 1~2개까지 정리하세요. "
-                "계약 목적이나 기대효과보다 근거 문서에 실제 성과 원인으로 명시된 요인을 우선하세요."
-            )
-            trend_output_style = "2~5문장."
-        instructions = {
-            "numeric_fact": (
-                "질문이 요청한 숫자·금액·비율만 답하세요. claim과 quote_span에 있는 표기를 그대로 유지하고, "
-                "동일 값을 다른 단위나 다른 숫자 표기로 바꾸지 마세요."
-            ),
-            "business_overview": (
-                "질문에 직접 필요한 사업 구조를 정리하되, 각 부문을 설명할 때 "
-                "근거에 등장하는 구체적인 예시(제품명, 주요 역할 등)를 생략하지 말고 포함하세요. "
-                "같은 사실을 반복하거나 evidence에 없는 배경 설명은 빼세요. "
-                "evidence에 parent_category가 명시된 항목들은 해당 상위 부문을 먼저 적고 "
-                "그 아래에 하위 항목을 묶어서 구조화하세요."
-            ),
-            "risk": (
-                "근거에 있는 리스크 항목만 추출하세요. 각 항목을 나열할 때 이름만 적지 말고, "
-                "근거에 있는 구체적인 정의나 영향을 한 줄씩 함께 요약하세요. "
-                "evidence에 parent_category가 명시된 항목들은 해당 상위 범주(예: 시장위험)를 먼저 적고 "
-                "그 아래에 하위 항목을 묶어서 구조화하세요. "
-                "evidence에 없는 새로운 상위 범주를 만들지 마세요."
-            ),
-            "comparison": "각 항목을 나란히 비교하되, evidence에 직접 있는 차이만 정리하세요.",
-            "trend": trend_instruction,
-            "qa": "질문에 직접 답하는 핵심 사실만 짧게 답하세요.",
-        }
-        output_styles = {
-            "numeric_fact": "최대 1문장.",
-            "business_overview": "각 부문의 구체적 제품/역할이 포함된 3~5개의 bullet.",
-            "risk": "항목별로 이름과 짧은 설명(1~2줄)이 함께 있는 bullet. 항목 수는 evidence 범위를 넘기지 말 것.",
-            "comparison": "짧은 bullet 비교.",
-            "trend": trend_output_style,
-            "qa": "짧고 직접적으로.",
-        }
-
-        coverage_note = ""
-        if coverage == "sparse":
-            coverage_note = "근거가 제한적입니다. evidence에 직접 적힌 claim과 quote_span만 사용하세요."
-        elif coverage == "conflicting":
-            coverage_note = "근거가 서로 상충하면 충돌을 명시하세요."
+            trend_instruction = str(policy.get("trend_context_instruction") or trend_instruction)
+            trend_output_style = str(policy.get("trend_context_output_style") or trend_output_style)
+        instructions = dict(policy.get("instructions") or {})
+        instructions["trend"] = trend_instruction
+        output_styles = dict(policy.get("output_styles") or {})
+        output_styles["trend"] = trend_output_style
+        coverage_notes = dict(policy.get("coverage_notes") or {})
 
         return {
-            "instruction": instructions.get(query_type, instructions["qa"]),
-            "output_style": output_styles.get(query_type, output_styles["qa"]),
-            "coverage_note": coverage_note,
+            "instruction": str(instructions.get(query_type) or instructions.get("qa") or ""),
+            "output_style": str(output_styles.get(query_type) or output_styles.get("qa") or ""),
+            "coverage_note": str(coverage_notes.get(coverage) or ""),
         }
 
     def _extract_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -4435,60 +4403,11 @@ class FinancialAgentEvidenceMixin:
         query_type = state.get("query_type", "qa")
         evidence_context = self._build_evidence_context(docs[: min(8, len(docs))])
         anchor_lookup = evidence_context["anchor_lookup"]
-        if query_type == "risk":
-            extra_rules = (
-                "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
-                "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
-                "\n- [중요] 컨텍스트에 여러 개의 독립적인 리스크 항목이 나열되어 있다면, "
-                "임의로 그룹화하거나 생략하지 마세요. "
-                "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-                "\n- 문서에서 여러 하위 항목이 상위 범주 아래 묶여 있다면(예: '시장위험' 아래 환율변동위험·이자율변동위험·주가변동위험), "
-                "각 하위 항목의 parent_category 필드에 해당 상위 범주 명칭을 그대로 적으세요. "
-                "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
-            )
-        elif query_type == "business_overview":
-            extra_rules = (
-                "\n- [중요] 컨텍스트에 여러 개의 독립적인 사업 부문이나 항목이 나열되어 있다면, "
-                "임의로 그룹화하거나 생략하지 마세요. "
-                "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-                "\n- 문서에서 여러 하위 항목이 상위 부문 아래 묶여 있다면(예: 'DS부문' 아래 메모리·시스템반도체·파운드리), "
-                "각 하위 항목의 parent_category 필드에 해당 상위 부문 명칭을 그대로 적으세요. "
-                "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
-            )
-        elif operation_family == "narrative_summary":
-            extra_rules = (
-                "\n- 질문이 영향/원인을 묻는 경우, 계약 목적이나 예상효과만 적힌 문단보다 "
-                "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
-                "\n- 가능하면 서로 다른 관점의 근거를 2개 이상 추출하세요. "
-                "예: (1) 실적 변화나 성장률을 직접 설명하는 문단, "
-                "(2) 그 변화의 배경 driver를 문서 표현 그대로 설명하는 문단."
-                "\n- '주요 계약' 문단은 실제 성과 영향 문단이 부족할 때만 보조 근거로 사용하세요."
-            )
-        else:
-            extra_rules = ""
-        prompt = ChatPromptTemplate.from_template(
-            """당신은 기업 공시 분석 보조자입니다.
-질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.
-
-규칙:
-- 제공된 컨텍스트 밖의 정보를 추가하지 마세요.
-- 각 근거는 반드시 아래 제공된 source_anchor 중 하나를 정확히 사용하세요.
-- 숫자, 기간, 조건이 보이면 그대로 유지하세요.
-- quote_span에는 실제 근거 원문 일부를 짧게 그대로 옮기세요.
-- allowed_terms에는 답변에 사용 가능한 핵심 용어만 넣으세요.
-- 근거가 부족하면 coverage를 sparse로, 서로 충돌하면 conflicting으로 설정하세요.
-- 아예 답할 근거가 없으면 coverage를 missing으로 두고 evidence는 비우세요.{extra_rules}
-
-질문: {query}
-핵심 주제: {topic}
-
-사용 가능한 source_anchor:
-{available_anchors}
-
-컨텍스트:
-{context}
-"""
-        )
+        extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
+        extra_rules = str(dict(extraction_policy.get("extra_rules_by_query_type") or {}).get(query_type) or "")
+        if not extra_rules:
+            extra_rules = str(dict(extraction_policy.get("extra_rules_by_operation_family") or {}).get(operation_family) or "")
+        prompt = ChatPromptTemplate.from_template(str(extraction_policy.get("prompt_template") or ""))
 
         fallback_terms = sorted(
             (term for term in _tokenize_terms(f"{state.get('query', '')} {state.get('topic') or ''}") if len(term) >= 2),
