@@ -41,14 +41,17 @@ pass moved lookup surface token handling and ratio operand assembly patterns
 into required-operand assembly policy. A follow-up pass moved narrative rerank
 causal markers, quantitative-impact focus stopwords, dividend policy period
 markers, ratio row candidate patterns, ratio component percent-value allowance,
-and sentence-normalisation messages into policy/config.
+and sentence-normalisation messages into policy/config. The latest calculation
+pass moved growth-narrative explanatory markers, context stopwords, missing
+answer markers, growth intent checks, direction wording, and the numeric
+sentence template into calculation narrative policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 601 |
-| Literal occurrences | 922 |
-| `runtime_literal` records | 498 |
-| `regex_or_pattern` records | 71 |
+| Reviewed records | 547 |
+| Literal occurrences | 839 |
+| `runtime_literal` records | 445 |
+| `regex_or_pattern` records | 70 |
 | `prompt_or_template` records | 32 |
 
 Top files:
@@ -56,8 +59,8 @@ Top files:
 | File | Records | Initial disposition |
 | --- | ---: | --- |
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
-| `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
+| `src/agent/financial_graph_calculation.py` | 73 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
@@ -183,6 +186,34 @@ For each P0 record, classify it as one of:
 - `_normalise_sentence_checks()` and `_is_intro_sentence()` now read intro
   patterns and fallback reason text from sentence-normalisation policy. Runtime
   keeps verdict validation and evidence-overlap checks as code.
+- Calculation growth-narrative paths now read explanatory query markers,
+  context stopwords, priority section/support-level hints, missing-answer
+  markers, growth intent/display patterns, focus stopwords, direction wording,
+  and the numeric sentence template from `CALCULATION_NARRATIVE_POLICY`. Runtime
+  keeps the generic mechanics: select material growth slots, score supported
+  narrative sentences, preserve evidence-visible values, and validate that the
+  aggregate answer contains both the numeric result and narrative support.
+
+## Calculation Hotspots
+
+The current calculation-module audit was inspected with:
+
+```bash
+python -m src.ops.audit_runtime_domain_terms --by-function --scan-root src/agent/financial_graph_calculation.py
+```
+
+Top calculation targets for the next cleanup are:
+
+| Symbol | Occurrences | Initial read |
+| --- | ---: | --- |
+| `_compose_slot_based_difference_answer` | 15 | answer assembly; inspect display templates and sign/role wording |
+| `_adjusted_difference_source_display_unit` | 11 | unit display handling; likely structural unit policy candidate |
+| `_render_calculation_answer` | 10 | final answer rendering; separate templates from execution |
+| `_material_gap_feedback_for_subtask_result` | 9 | planner feedback text; decide config vs schema/status wording |
+| `_render_grounded_operand_display` | 9 | display formatting; likely unit/period mechanics |
+| `_slot_metric_keys` | 8 | slot normalization terms; move metric suffixes to policy if selector-like |
+| `_refine_operand_precision_from_evidence_table` | 8 | evidence table unit precision; likely unit policy candidate |
+| `_coerce_sign_aware_subtraction_answer` | 8 | sign-aware answer rewrite; inspect templates and evidence preservation |
 
 ## Evidence Hotspots
 

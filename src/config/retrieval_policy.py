@@ -187,6 +187,74 @@ SENTENCE_NORMALISATION_POLICY: Dict[str, Any] = {
 }
 
 
+CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
+    "explanatory_markers": (
+        "요약",
+        "설명",
+        "배경",
+        "이유",
+        "원인",
+        "요인",
+        "영향",
+        "의미를",
+        "의미는",
+        "의미가",
+        "어떤 의미",
+        "해석",
+        "분석",
+        "평가",
+        "왜",
+        "why",
+        "explain",
+        "reason",
+        "driver",
+        "impact",
+    ),
+    "context_stopwords": (
+        "2023년",
+        "2022년",
+        "전년",
+        "대비",
+        "증감률",
+        "계산",
+        "계산해",
+        "찾고",
+        "찾아",
+        "총액",
+        "시설투자",
+        "CAPEX",
+        "capex",
+        "집행된",
+    ),
+    "context_priority_section_terms": ("이사의 경영진단",),
+    "context_support_levels": ("context",),
+    "context_reuse_excluded_terms": ("불구하고", "불구"),
+    "growth_narrative_markers": ("영향", "기여", "개선", "성장", "인수", "편입", "확대", "강화", "회복", "둔화"),
+    "missing_answer_markers": (
+        "확인하지 못",
+        "찾을 수 없",
+        "제공되지 않았",
+        "계산할 수 없습니다",
+        "충분히 확인",
+        "충분히 확보하지 못",
+        "누락",
+        "필요한 값",
+    ),
+    "growth_query_pattern": r"(성장률|증감률|증가율|전년\s*대비)",
+    "percent_display_pattern": r"\d+(?:\.\d+)?\s*%",
+    "growth_impact_markers": ("영향", "기여", "기인", "개선", "인수", "편입", "성장", "강화", "증가"),
+    "growth_generic_focus_terms": ("부문", "매출", "성장률", "계산하고", "요약해", "영향", "실적", "전년", "대비"),
+    "growth_metric_label_terms": ("성장률",),
+    "growth_direction_metric_terms": ("매출",),
+    "direction_words": {"decrease": "감소", "increase": "증가", "growth": "성장"},
+    "default_prior_period": "전년",
+    "growth_numeric_sentence_template": (
+        "{period_prefix}{metric_label}{topic_particle} {current_value}이며, "
+        "{prior_phrase}{growth_value} {direction_word}했습니다."
+    ),
+}
+
+
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
         "2021년",

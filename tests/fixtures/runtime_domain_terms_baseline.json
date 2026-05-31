@@ -23,7 +23,7 @@
       "fingerprint": "6606787fbeb83141",
       "count": 1,
       "first_lines": [
-        1218
+        1197
       ]
     },
     {
@@ -38,36 +38,6 @@
     },
     {
       "path": "src/agent/financial_graph_calculation.py",
-      "text": "(성장률|증감률|증가율|전년\\s*대비)",
-      "category": "regex_or_pattern",
-      "fingerprint": "34f3bdcf288ca941",
-      "count": 1,
-      "first_lines": [
-        1376
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "2022년",
-      "category": "runtime_literal",
-      "fingerprint": "2e08516ca00785c7",
-      "count": 1,
-      "first_lines": [
-        1114
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "2023년",
-      "category": "runtime_literal",
-      "fingerprint": "59d14d5c3d27c8ab",
-      "count": 1,
-      "first_lines": [
-        1113
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
       "text": "20\\d{2}\\s*년?",
       "category": "regex_or_pattern",
       "fingerprint": "a8a093c7e803f64e",
@@ -77,7 +47,7 @@
         73,
         125,
         301,
-        1331
+        1312
       ]
     },
     {
@@ -87,7 +57,7 @@
       "fingerprint": "856229ecec7673f5",
       "count": 1,
       "first_lines": [
-        1111
+        1090
       ]
     },
     {
@@ -97,7 +67,7 @@
       "fingerprint": "7eedf3c80dbfb201",
       "count": 1,
       "first_lines": [
-        2460
+        2457
       ]
     },
     {
@@ -117,7 +87,7 @@
       "fingerprint": "f85e12eabd11e967",
       "count": 1,
       "first_lines": [
-        1486
+        1483
       ]
     },
     {
@@ -127,7 +97,7 @@
       "fingerprint": "e0672f42e76a8987",
       "count": 1,
       "first_lines": [
-        4530
+        4527
       ]
     },
     {
@@ -137,7 +107,7 @@
       "fingerprint": "a43513abb52623b7",
       "count": 1,
       "first_lines": [
-        955
+        934
       ]
     },
     {
@@ -145,11 +115,10 @@
       "text": "감소",
       "category": "runtime_literal",
       "fingerprint": "62e5b0922c67d0d2",
-      "count": 3,
+      "count": 2,
       "first_lines": [
-        1351,
-        4809,
-        4973
+        4806,
+        4970
       ]
     },
     {
@@ -159,19 +128,8 @@
       "fingerprint": "7a658678c14ad4cc",
       "count": 2,
       "first_lines": [
-        964,
-        966
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "강화",
-      "category": "runtime_literal",
-      "fingerprint": "7fafe23409ac7479",
-      "count": 2,
-      "first_lines": [
-        1232,
-        1383
+        943,
+        945
       ]
     },
     {
@@ -181,28 +139,7 @@
       "fingerprint": "c2184361c0cd968f",
       "count": 1,
       "first_lines": [
-        555
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "개선",
-      "category": "runtime_literal",
-      "fingerprint": "003eedee5d3fb748",
-      "count": 2,
-      "first_lines": [
-        1232,
-        1383
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "계산",
-      "category": "runtime_literal",
-      "fingerprint": "be2df46805227972",
-      "count": 1,
-      "first_lines": [
-        1118
+        534
       ]
     },
     {
@@ -213,9 +150,9 @@
       "count": 4,
       "first_lines": [
         360,
-        904,
-        1017,
-        4013
+        883,
+        996,
+        4010
       ]
     },
     {
@@ -225,7 +162,7 @@
       "fingerprint": "573cd4632e982c8a",
       "count": 1,
       "first_lines": [
-        982
+        961
       ]
     },
     {
@@ -235,7 +172,7 @@
       "fingerprint": "a02240822d351668",
       "count": 1,
       "first_lines": [
-        975
+        954
       ]
     },
     {
@@ -246,39 +183,7 @@
       "count": 2,
       "first_lines": [
         362,
-        1019
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "계산하고",
-      "category": "runtime_literal",
-      "fingerprint": "d1881fbba7af13f6",
-      "count": 1,
-      "first_lines": [
-        1391
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "계산할 수 없습니다",
-      "category": "runtime_literal",
-      "fingerprint": "952e5b5b57d6e130",
-      "count": 3,
-      "first_lines": [
-        1233,
-        1281,
-        1378
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "계산해",
-      "category": "runtime_literal",
-      "fingerprint": "0f6301ee3725869c",
-      "count": 1,
-      "first_lines": [
-        1119
+        998
       ]
     },
     {
@@ -288,28 +193,7 @@
       "fingerprint": "e90396d4356b54f8",
       "count": 1,
       "first_lines": [
-        4020
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "기여",
-      "category": "runtime_literal",
-      "fingerprint": "54f76b579606eeb6",
-      "count": 2,
-      "first_lines": [
-        1232,
-        1383
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "기인",
-      "category": "runtime_literal",
-      "fingerprint": "02e2b7c6e0a1547f",
-      "count": 1,
-      "first_lines": [
-        1383
+        4017
       ]
     },
     {
@@ -319,7 +203,7 @@
       "fingerprint": "fcb38fa4874f78fe",
       "count": 1,
       "first_lines": [
-        4011
+        4008
       ]
     },
     {
@@ -329,22 +213,10 @@
       "fingerprint": "17fe383876fff52a",
       "count": 6,
       "first_lines": [
-        1352,
-        1696,
-        4008,
-        5664
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "누락",
-      "category": "runtime_literal",
-      "fingerprint": "e381c7e5d2de7b60",
-      "count": 3,
-      "first_lines": [
-        1233,
-        1281,
-        1378
+        1344,
+        1693,
+        4005,
+        5661
       ]
     },
     {
@@ -365,7 +237,7 @@
       "fingerprint": "8c7e3ede0fa967ac",
       "count": 1,
       "first_lines": [
-        5402
+        5399
       ]
     },
     {
@@ -375,7 +247,7 @@
       "fingerprint": "c117f7b0d39ae37e",
       "count": 1,
       "first_lines": [
-        5223
+        5220
       ]
     },
     {
@@ -385,7 +257,7 @@
       "fingerprint": "6056043e50ba39d6",
       "count": 1,
       "first_lines": [
-        3644
+        3641
       ]
     },
     {
@@ -395,7 +267,7 @@
       "fingerprint": "32e4699f1c472080",
       "count": 1,
       "first_lines": [
-        4998
+        4995
       ]
     },
     {
@@ -405,7 +277,7 @@
       "fingerprint": "12584e4ab2fc29fb",
       "count": 1,
       "first_lines": [
-        2948
+        2945
       ]
     },
     {
@@ -415,7 +287,7 @@
       "fingerprint": "98c34316d25fbee6",
       "count": 1,
       "first_lines": [
-        4872
+        4869
       ]
     },
     {
@@ -423,11 +295,9 @@
       "text": "대비",
       "category": "runtime_literal",
       "fingerprint": "8ffe65028e5adab3",
-      "count": 4,
+      "count": 2,
       "first_lines": [
-        1116,
-        1353,
-        1396
+        1345
       ]
     },
     {
@@ -437,8 +307,8 @@
       "fingerprint": "6d704c790e8eb4a0",
       "count": 2,
       "first_lines": [
-        4811,
-        4975
+        4808,
+        4972
       ]
     },
     {
@@ -448,8 +318,8 @@
       "fingerprint": "232a701f1c3e35ff",
       "count": 2,
       "first_lines": [
-        4811,
-        4975
+        4808,
+        4972
       ]
     },
     {
@@ -459,18 +329,8 @@
       "fingerprint": "743feca12ee9f52b",
       "count": 2,
       "first_lines": [
-        4811,
-        4975
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "둔화",
-      "category": "runtime_literal",
-      "fingerprint": "503c46502b99faa2",
-      "count": 1,
-      "first_lines": [
-        1232
+        4808,
+        4972
       ]
     },
     {
@@ -480,7 +340,7 @@
       "fingerprint": "e3738b3e016b6410",
       "count": 2,
       "first_lines": [
-        3934
+        3931
       ]
     },
     {
@@ -490,19 +350,8 @@
       "fingerprint": "2cfbef1fae8fa2d8",
       "count": 4,
       "first_lines": [
-        3935,
-        3936
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "매출",
-      "category": "runtime_literal",
-      "fingerprint": "3bc157f3dcc3b86f",
-      "count": 2,
-      "first_lines": [
-        1351,
-        1389
+        3932,
+        3933
       ]
     },
     {
@@ -512,17 +361,7 @@
       "fingerprint": "3fbdb9de7229dfdb",
       "count": 1,
       "first_lines": [
-        555
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "배경",
-      "category": "runtime_literal",
-      "fingerprint": "00e37e316bc5a173",
-      "count": 1,
-      "first_lines": [
-        437
+        534
       ]
     },
     {
@@ -532,11 +371,11 @@
       "fingerprint": "5b9aca9efa1cb642",
       "count": 8,
       "first_lines": [
-        553,
-        1438,
-        1570,
-        3805,
-        3843
+        532,
+        1435,
+        1567,
+        3802,
+        3840
       ]
     },
     {
@@ -546,8 +385,8 @@
       "fingerprint": "865db80366645384",
       "count": 2,
       "first_lines": [
-        4809,
-        4973
+        4806,
+        4970
       ]
     },
     {
@@ -557,47 +396,7 @@
       "fingerprint": "3a6c031e0007f384",
       "count": 1,
       "first_lines": [
-        4007
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "부문",
-      "category": "runtime_literal",
-      "fingerprint": "3520795ff1c9b0e3",
-      "count": 1,
-      "first_lines": [
-        1388
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "분석",
-      "category": "runtime_literal",
-      "fingerprint": "558047fca011521f",
-      "count": 1,
-      "first_lines": [
-        447
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "불구",
-      "category": "runtime_literal",
-      "fingerprint": "a5dd83c4cf4ca716",
-      "count": 1,
-      "first_lines": [
-        1205
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "불구하고",
-      "category": "runtime_literal",
-      "fingerprint": "f35cb5b1a3dbb2ef",
-      "count": 1,
-      "first_lines": [
-        1205
+        4004
       ]
     },
     {
@@ -608,7 +407,7 @@
       "count": 2,
       "first_lines": [
         56,
-        1681
+        1678
       ]
     },
     {
@@ -623,75 +422,12 @@
     },
     {
       "path": "src/agent/financial_graph_calculation.py",
-      "text": "설명",
-      "category": "runtime_literal",
-      "fingerprint": "dfbbbe3358d9fd7b",
-      "count": 1,
-      "first_lines": [
-        436
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "성장",
-      "category": "runtime_literal",
-      "fingerprint": "8bcc4e59313aa8fe",
-      "count": 3,
-      "first_lines": [
-        1232,
-        1351,
-        1383
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "성장률",
-      "category": "runtime_literal",
-      "fingerprint": "6e9dc3fccc1a49c6",
-      "count": 2,
-      "first_lines": [
-        1390,
-        1409
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "시설투자",
-      "category": "runtime_literal",
-      "fingerprint": "5eb06e8680b6cf33",
-      "count": 1,
-      "first_lines": [
-        1123
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "실적",
-      "category": "runtime_literal",
-      "fingerprint": "ad78244543455ca6",
-      "count": 1,
-      "first_lines": [
-        1394
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
       "text": "실질",
       "category": "runtime_literal",
       "fingerprint": "2053a6aebe19fa48",
       "count": 1,
       "first_lines": [
-        3832
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "어떤 의미",
-      "category": "runtime_literal",
-      "fingerprint": "2aacdeb120165767",
-      "count": 1,
-      "first_lines": [
-        445
+        3829
       ]
     },
     {
@@ -701,8 +437,8 @@
       "fingerprint": "39373ea3351646bb",
       "count": 2,
       "first_lines": [
-        1472,
-        3872
+        1469,
+        3869
       ]
     },
     {
@@ -712,11 +448,11 @@
       "fingerprint": "e55582e95ffe1d94",
       "count": 6,
       "first_lines": [
-        553,
-        1438,
-        1472,
-        3806,
-        3846
+        532,
+        1435,
+        1469,
+        3803,
+        3843
       ]
     },
     {
@@ -726,7 +462,7 @@
       "fingerprint": "00537036c11979e5",
       "count": 1,
       "first_lines": [
-        1974
+        1971
       ]
     },
     {
@@ -736,8 +472,8 @@
       "fingerprint": "24fd49b30d078436",
       "count": 2,
       "first_lines": [
-        2109,
-        2113
+        2106,
+        2110
       ]
     },
     {
@@ -747,60 +483,7 @@
       "fingerprint": "d58c42cb94379f45",
       "count": 1,
       "first_lines": [
-        4007
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "영향",
-      "category": "runtime_literal",
-      "fingerprint": "ccfc3ea6d510760e",
-      "count": 4,
-      "first_lines": [
-        441,
-        1232,
-        1383,
-        1393
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "왜",
-      "category": "runtime_literal",
-      "fingerprint": "d196ac1f29515405",
-      "count": 1,
-      "first_lines": [
-        449
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "요약",
-      "category": "runtime_literal",
-      "fingerprint": "1ff66e7feaa9af29",
-      "count": 1,
-      "first_lines": [
-        435
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "요약해",
-      "category": "runtime_literal",
-      "fingerprint": "f08b8a5360a5395c",
-      "count": 1,
-      "first_lines": [
-        1392
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "요인",
-      "category": "runtime_literal",
-      "fingerprint": "3055703db4239e4f",
-      "count": 1,
-      "first_lines": [
-        440
+        4004
       ]
     },
     {
@@ -810,21 +493,11 @@
       "fingerprint": "7ca792d9bb061cde",
       "count": 8,
       "first_lines": [
-        553,
-        1438,
-        1472,
-        1661,
-        3803
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "원인",
-      "category": "runtime_literal",
-      "fingerprint": "7ee8559c77a18f31",
-      "count": 1,
-      "first_lines": [
-        439
+        532,
+        1435,
+        1469,
+        1658,
+        3800
       ]
     },
     {
@@ -836,9 +509,9 @@
       "first_lines": [
         29,
         33,
-        1698,
-        4016,
-        4018
+        1695,
+        4013,
+        4015
       ]
     },
     {
@@ -848,7 +521,7 @@
       "fingerprint": "ef96444e507843e2",
       "count": 2,
       "first_lines": [
-        3933
+        3930
       ]
     },
     {
@@ -858,37 +531,7 @@
       "fingerprint": "de4d14c45b9e10fd",
       "count": 1,
       "first_lines": [
-        1956
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "의미가",
-      "category": "runtime_literal",
-      "fingerprint": "45c33a0f2bb8607b",
-      "count": 1,
-      "first_lines": [
-        444
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "의미는",
-      "category": "runtime_literal",
-      "fingerprint": "45d0e8ca3201148e",
-      "count": 1,
-      "first_lines": [
-        443
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "의미를",
-      "category": "runtime_literal",
-      "fingerprint": "bd2af495808fdc08",
-      "count": 1,
-      "first_lines": [
-        442
+        1953
       ]
     },
     {
@@ -898,17 +541,7 @@
       "fingerprint": "11c1b1a30a593be3",
       "count": 1,
       "first_lines": [
-        975
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "이며,",
-      "category": "runtime_literal",
-      "fingerprint": "3afb24119d0b9a12",
-      "count": 1,
-      "first_lines": [
-        1355
+        954
       ]
     },
     {
@@ -918,38 +551,7 @@
       "fingerprint": "1334c9bc204134fb",
       "count": 1,
       "first_lines": [
-        4020
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "이사의 경영진단",
-      "category": "runtime_literal",
-      "fingerprint": "8187016fb4c6e9fa",
-      "count": 1,
-      "first_lines": [
-        1177
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "이유",
-      "category": "runtime_literal",
-      "fingerprint": "2d106b9a63527d62",
-      "count": 1,
-      "first_lines": [
-        438
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "인수",
-      "category": "runtime_literal",
-      "fingerprint": "eb56ce4bf81f7406",
-      "count": 2,
-      "first_lines": [
-        1232,
-        1383
+        4017
       ]
     },
     {
@@ -959,32 +561,10 @@
       "fingerprint": "8eaef015ead0564b",
       "count": 4,
       "first_lines": [
-        1698,
-        4016,
-        4018,
-        4020
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "전년",
-      "category": "runtime_literal",
-      "fingerprint": "d0e905f107340c23",
-      "count": 3,
-      "first_lines": [
-        1115,
-        1326,
-        1395
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "제공되지 않았",
-      "category": "runtime_literal",
-      "fingerprint": "3764815b95830d79",
-      "count": 1,
-      "first_lines": [
-        1281
+        1695,
+        4013,
+        4015,
+        4017
       ]
     },
     {
@@ -994,7 +574,7 @@
       "fingerprint": "bb1ce86fbffc2830",
       "count": 1,
       "first_lines": [
-        3832
+        3829
       ]
     },
     {
@@ -1004,8 +584,8 @@
       "fingerprint": "4064147e76d83ee0",
       "count": 2,
       "first_lines": [
-        1472,
-        3872
+        1469,
+        3869
       ]
     },
     {
@@ -1015,11 +595,11 @@
       "fingerprint": "2081f077f4407ea5",
       "count": 6,
       "first_lines": [
-        553,
-        1438,
-        1472,
-        3807,
-        3846
+        532,
+        1435,
+        1469,
+        3804,
+        3843
       ]
     },
     {
@@ -1029,7 +609,7 @@
       "fingerprint": "674a7726bedde28d",
       "count": 1,
       "first_lines": [
-        3832
+        3829
       ]
     },
     {
@@ -1039,7 +619,7 @@
       "fingerprint": "cb4958652000269f",
       "count": 1,
       "first_lines": [
-        1748
+        1745
       ]
     },
     {
@@ -1049,8 +629,8 @@
       "fingerprint": "264262cd95b748f1",
       "count": 2,
       "first_lines": [
-        831,
-        835
+        810,
+        814
       ]
     },
     {
@@ -1058,12 +638,10 @@
       "text": "증가",
       "category": "runtime_literal",
       "fingerprint": "a586cb08ac456e94",
-      "count": 4,
+      "count": 2,
       "first_lines": [
-        1351,
-        1383,
-        4809,
-        4973
+        4806,
+        4970
       ]
     },
     {
@@ -1083,7 +661,7 @@
       "fingerprint": "e9878ddccefecfdc",
       "count": 1,
       "first_lines": [
-        969
+        948
       ]
     },
     {
@@ -1091,11 +669,10 @@
       "text": "증감률",
       "category": "runtime_literal",
       "fingerprint": "29c4b54e59205c6c",
-      "count": 3,
+      "count": 2,
       "first_lines": [
         56,
-        973,
-        1117
+        952
       ]
     },
     {
@@ -1115,7 +692,7 @@
       "fingerprint": "5cc7250da5f208a1",
       "count": 1,
       "first_lines": [
-        4531
+        4528
       ]
     },
     {
@@ -1125,8 +702,8 @@
       "fingerprint": "0b992c4a6917dad0",
       "count": 2,
       "first_lines": [
-        4381,
-        4821
+        4378,
+        4818
       ]
     },
     {
@@ -1136,7 +713,7 @@
       "fingerprint": "9c29e08987d0c20c",
       "count": 1,
       "first_lines": [
-        4852
+        4849
       ]
     },
     {
@@ -1146,7 +723,7 @@
       "fingerprint": "2d3c4edf6182dfce",
       "count": 1,
       "first_lines": [
-        4917
+        4914
       ]
     },
     {
@@ -1156,17 +733,7 @@
       "fingerprint": "23ab25b3ab77e604",
       "count": 1,
       "first_lines": [
-        5407
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "집행된",
-      "category": "runtime_literal",
-      "fingerprint": "25fb24deda6411c9",
-      "count": 1,
-      "first_lines": [
-        1126
+        5404
       ]
     },
     {
@@ -1176,7 +743,7 @@
       "fingerprint": "b653cc71ae6a23b2",
       "count": 1,
       "first_lines": [
-        3833
+        3830
       ]
     },
     {
@@ -1186,38 +753,7 @@
       "fingerprint": "b40420f3e73f167e",
       "count": 1,
       "first_lines": [
-        4012
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "찾고",
-      "category": "runtime_literal",
-      "fingerprint": "b71631ca5e3f90a8",
-      "count": 1,
-      "first_lines": [
-        1120
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "찾아",
-      "category": "runtime_literal",
-      "fingerprint": "84d777c2c906f066",
-      "count": 1,
-      "first_lines": [
-        1121
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "찾을 수 없",
-      "category": "runtime_literal",
-      "fingerprint": "3b9e217c53742694",
-      "count": 2,
-      "first_lines": [
-        1281,
-        1378
+        4009
       ]
     },
     {
@@ -1227,11 +763,11 @@
       "fingerprint": "9e011f27d9f7b129",
       "count": 8,
       "first_lines": [
-        553,
-        1438,
-        1570,
-        3804,
-        3843
+        532,
+        1435,
+        1567,
+        3801,
+        3840
       ]
     },
     {
@@ -1239,31 +775,9 @@
       "text": "총액",
       "category": "runtime_literal",
       "fingerprint": "0b6adaa18246e745",
-      "count": 2,
-      "first_lines": [
-        56,
-        1122
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "충분히 확보하지 못",
-      "category": "runtime_literal",
-      "fingerprint": "27b9883952f55e60",
-      "count": 2,
-      "first_lines": [
-        1281,
-        1378
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "충분히 확인",
-      "category": "runtime_literal",
-      "fingerprint": "dfa51e6b12fad2ed",
       "count": 1,
       "first_lines": [
-        1233
+        56
       ]
     },
     {
@@ -1273,94 +787,11 @@
       "fingerprint": "bd1699610adad626",
       "count": 5,
       "first_lines": [
-        1936,
-        3790,
-        3854,
-        3864,
-        4560
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "편입",
-      "category": "runtime_literal",
-      "fingerprint": "220c52f3495c2c3b",
-      "count": 2,
-      "first_lines": [
-        1232,
-        1383
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "평가",
-      "category": "runtime_literal",
-      "fingerprint": "ed475ea0a1f336d4",
-      "count": 1,
-      "first_lines": [
-        448
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "필요한 값",
-      "category": "runtime_literal",
-      "fingerprint": "f2fef04751f857fa",
-      "count": 1,
-      "first_lines": [
-        1233
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "해석",
-      "category": "runtime_literal",
-      "fingerprint": "2ec55875de7e42b6",
-      "count": 1,
-      "first_lines": [
-        446
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "했습니다.",
-      "category": "runtime_literal",
-      "fingerprint": "335c790a28723835",
-      "count": 1,
-      "first_lines": [
-        1355
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "확대",
-      "category": "runtime_literal",
-      "fingerprint": "31006fb0d3091c36",
-      "count": 1,
-      "first_lines": [
-        1232
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "확인하지 못",
-      "category": "runtime_literal",
-      "fingerprint": "e56bbc0bda6ba333",
-      "count": 3,
-      "first_lines": [
-        1233,
-        1281,
-        1378
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "회복",
-      "category": "runtime_literal",
-      "fingerprint": "0e469cac8b6e41cc",
-      "count": 1,
-      "first_lines": [
-        1232
+        1933,
+        3787,
+        3851,
+        3861,
+        4557
       ]
     },
     {

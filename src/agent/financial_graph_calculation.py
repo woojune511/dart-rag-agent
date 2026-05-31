@@ -17,7 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import KOREAN_PERIOD_PREFIX_RE_FRAGMENT
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -431,28 +431,7 @@ class FinancialAgentCalculationMixin:
         text = _normalise_spaces(str(query or "")).lower()
         if not text:
             return False
-        explanatory_markers = (
-            "요약",
-            "설명",
-            "배경",
-            "이유",
-            "원인",
-            "요인",
-            "영향",
-            "의미를",
-            "의미는",
-            "의미가",
-            "어떤 의미",
-            "해석",
-            "분석",
-            "평가",
-            "왜",
-            "why",
-            "explain",
-            "reason",
-            "driver",
-            "impact",
-        )
+        explanatory_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ()))
         return any(marker in text for marker in explanatory_markers)
 
     def _answer_reuses_narrative_summary_text(
@@ -1110,20 +1089,9 @@ class FinancialAgentCalculationMixin:
     def _narrative_context_terms(self, query: str) -> List[str]:
         tokens = re.findall(r"[가-힣A-Za-z0-9()]+", _normalise_spaces(str(query or "")))
         stopwords = {
-            "2023년",
-            "2022년",
-            "전년",
-            "대비",
-            "증감률",
-            "계산",
-            "계산해",
-            "찾고",
-            "찾아",
-            "총액",
-            "시설투자",
-            "CAPEX",
-            "capex",
-            "집행된",
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("context_stopwords") or ())
+            if str(item)
         }
         terms: List[str] = []
         for token in tokens:
@@ -1174,9 +1142,16 @@ class FinancialAgentCalculationMixin:
                 continue
             haystack = f"{source_text} {claim}".lower()
             term_score = sum(1 for term in query_terms if term.lower() in haystack)
-            if "이사의 경영진단" in source_text:
+            if any(
+                str(term) in source_text
+                for term in (CALCULATION_NARRATIVE_POLICY.get("context_priority_section_terms") or ())
+            ):
                 term_score += 2
-            if str(evidence.get("support_level") or "").lower() == "context":
+            if str(evidence.get("support_level") or "").lower() in {
+                str(item).lower()
+                for item in (CALCULATION_NARRATIVE_POLICY.get("context_support_levels") or ())
+                if str(item)
+            }:
                 term_score += 1
             if term_score <= best_score:
                 continue
@@ -1202,7 +1177,11 @@ class FinancialAgentCalculationMixin:
         key_terms = [
             term
             for term in self._narrative_context_terms(query)
-            if term not in {"불구하고", "불구"}
+            if term not in {
+                str(item)
+                for item in (CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
+                if str(item)
+            }
         ]
         context_terms = [term for term in key_terms if term in context]
         if context_terms and any(term in answer_text for term in context_terms):
@@ -1229,8 +1208,8 @@ class FinancialAgentCalculationMixin:
         evidence_items: List[Dict[str, Any]],
     ) -> List[tuple[int, str, List[str]]]:
         query_terms = self._narrative_context_terms(query)
-        narrative_markers = ("영향", "기여", "개선", "성장", "인수", "편입", "확대", "강화", "회복", "둔화")
-        missing_markers = ("확인하지 못", "충분히 확인", "계산할 수 없습니다", "누락", "필요한 값")
+        narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
+        missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         candidates: List[tuple[int, str, List[str]]] = []
 
         def _add_candidate(text: str, claim_ids: List[str], base_score: int) -> None:
@@ -1278,7 +1257,7 @@ class FinancialAgentCalculationMixin:
         if not _query_requests_narrative_context(query):
             return None
         existing_answer_text = _normalise_spaces(str(existing_answer or ""))
-        missing_markers = ("확인하지 못", "찾을 수 없", "제공되지 않았", "계산할 수 없습니다", "충분히 확보하지 못", "누락")
+        missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         answer_has_missing_claim = any(marker in existing_answer_text for marker in missing_markers)
         answer_is_truncated = self._answer_looks_truncated(existing_answer)
 
@@ -1323,7 +1302,9 @@ class FinancialAgentCalculationMixin:
         growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
         current_value = _normalise_spaces(str(current_slot.get("rendered_value") or current_slot.get("raw_value") or ""))
         prior_value = _normalise_spaces(str(prior_slot.get("rendered_value") or prior_slot.get("raw_value") or ""))
-        prior_period = _normalise_spaces(str(prior_slot.get("period") or "전년"))
+        prior_period = _normalise_spaces(
+            str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
+        )
         current_period = _normalise_spaces(str(current_slot.get("period") or primary_slot.get("period") or ""))
         metric_label = _normalise_spaces(
             str(current_slot.get("label") or primary_slot.get("label") or growth_row.get("metric_label") or "")
@@ -1348,11 +1329,30 @@ class FinancialAgentCalculationMixin:
                 direction = "decrease" if normalized_value is not None and float(normalized_value) < 0 else "increase"
             except (TypeError, ValueError):
                 direction = "decrease" if growth_value.startswith("-") else "increase"
-        direction_word = "감소" if direction == "decrease" else ("성장" if "매출" in metric_label else "증가")
+        direction_words = dict(CALCULATION_NARRATIVE_POLICY.get("direction_words") or {})
+        growth_direction_metric_terms = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_direction_metric_terms") or ())
+            if str(item)
+        )
+        if direction == "decrease":
+            direction_word = str(direction_words.get("decrease") or "decrease")
+        elif any(term in metric_label for term in growth_direction_metric_terms):
+            direction_word = str(direction_words.get("growth") or direction_words.get("increase") or "increase")
+        else:
+            direction_word = str(direction_words.get("increase") or "increase")
         period_prefix = f"{current_period}년 " if current_period and not current_period.endswith("년") else f"{current_period} " if current_period else ""
         prior_phrase = f"{prior_period} {prior_value} 대비 " if prior_value else f"{prior_period} 대비 "
         numeric_sentence = _normalise_spaces(
-            f"{period_prefix}{metric_label}{_topic_particle(metric_label)} {current_value}이며, {prior_phrase}{growth_value} {direction_word}했습니다."
+            str(CALCULATION_NARRATIVE_POLICY.get("growth_numeric_sentence_template") or "").format(
+                period_prefix=period_prefix,
+                metric_label=metric_label,
+                topic_particle=_topic_particle(metric_label),
+                current_value=current_value,
+                prior_phrase=prior_phrase,
+                growth_value=growth_value,
+                direction_word=direction_word,
+            )
         )
         narrative_sentence, selected_claim_ids = narrative_candidates[0][1], narrative_candidates[0][2]
         if narrative_sentence and not re.search(r"[.!?。]$", narrative_sentence):
@@ -1373,27 +1373,21 @@ class FinancialAgentCalculationMixin:
         answer_text = _normalise_spaces(str(answer or ""))
         if not query_text or not answer_text or not _query_requests_narrative_context(query_text):
             return False
-        if not re.search(r"(성장률|증감률|증가율|전년\s*대비)", query_text):
+        if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("growth_query_pattern") or r"$^"), query_text):
             return False
-        missing_markers = ("확인하지 못", "찾을 수 없", "계산할 수 없습니다", "충분히 확보하지 못", "누락")
+        missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         if any(marker in answer_text for marker in missing_markers):
             return False
-        if not re.search(r"\d+(?:\.\d+)?\s*%", answer_text):
+        if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"$^"), answer_text):
             return False
-        impact_markers = ("영향", "기여", "기인", "개선", "인수", "편입", "성장", "강화", "증가")
+        impact_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ()))
         if not any(marker in answer_text for marker in impact_markers):
             return False
 
         generic_terms = {
-            "부문",
-            "매출",
-            "성장률",
-            "계산하고",
-            "요약해",
-            "영향",
-            "실적",
-            "전년",
-            "대비",
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_generic_focus_terms") or ())
+            if str(item)
         }
         focus_terms = [
             term
@@ -1406,7 +1400,10 @@ class FinancialAgentCalculationMixin:
         has_growth_row = any(
             self._aggregate_result_operation_family(row) == "growth_rate"
             or "growth" in _normalise_spaces(str(row.get("metric_family") or "")).lower()
-            or "성장률" in _normalise_spaces(str(row.get("metric_label") or ""))
+            or any(
+                str(term) in _normalise_spaces(str(row.get("metric_label") or ""))
+                for term in (CALCULATION_NARRATIVE_POLICY.get("growth_metric_label_terms") or ())
+            )
             for row in ordered_results or []
         )
         has_narrative_material = any(
