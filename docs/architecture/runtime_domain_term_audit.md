@@ -23,15 +23,16 @@ remaining literal is justified.
 ## Current Snapshot
 
 Generated on 2026-06-01 after excluding `if __name__ == "__main__"` demo
-blocks.
+blocks and replacing the MAS orchestrator fallback keyword classifier with a
+generic two-worker fallback.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 796 |
-| Literal occurrences | 1,280 |
-| `runtime_literal` records | 674 |
+| Reviewed records | 777 |
+| Literal occurrences | 1,260 |
+| `runtime_literal` records | 656 |
 | `regex_or_pattern` records | 89 |
-| `prompt_or_template` records | 33 |
+| `prompt_or_template` records | 32 |
 
 Top files:
 
@@ -41,21 +42,20 @@ Top files:
 | `src/agent/financial_graph_evidence.py` | 191 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
-| `src/agent/nodes/orchestrator_node.py` | 22 | P0: fallback query classification keywords should move out of code |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
 | `src/agent/financial_graph_planning.py` | 8 | P0/P1: planning hints and query text need review |
 | `src/agent/nodes/dummy_nodes.py` | 8 | P2: MAS skeleton fixtures, not production retrieval policy |
 | `src/routing/types.py` | 4 | P1: schema field descriptions |
+| `src/agent/nodes/orchestrator_node.py` | 3 | P1: prompt/fallback answer text; keyword fallback removed |
 | `src/agent/nodes/researcher_node.py` | 2 | P1: refusal text |
 
 ## Review Priority
 
 1. P0 runtime decision paths:
    `financial_graph_helpers.py`, `financial_graph_evidence.py`,
-   `financial_graph_calculation.py`, `orchestrator_node.py`,
-   `financial_graph_planning.py`.
+   `financial_graph_calculation.py`, `financial_graph_planning.py`.
 2. P1 schema/prompt/message paths:
    `financial_graph_models.py`, `financial_graph_contextual.py`,
    `financial_graph_reconciliation.py`, `critic_node.py`,
@@ -74,6 +74,10 @@ For each P0 record, classify it as one of:
 
 ## First Cleanup Completed
 
-The scanner now ignores `if __name__ == "__main__"` demo blocks. This removed
-five non-production demo literals from the reviewed baseline and keeps the audit
-focused on import-time runtime paths.
+- The scanner now ignores `if __name__ == "__main__"` demo blocks. This removed
+  five non-production demo literals from the reviewed baseline and keeps the
+  audit focused on import-time runtime paths.
+- `src/agent/nodes/orchestrator_node.py` no longer classifies fallback planner
+  tasks with query keyword lists. Planner failure now creates generic Analyst
+  and Researcher tasks, letting workers handle applicability from their
+  contracts. This removed 19 reviewed records from the baseline.

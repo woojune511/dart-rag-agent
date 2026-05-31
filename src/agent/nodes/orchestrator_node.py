@@ -75,69 +75,29 @@ def _extract_json_payload(text: str) -> Dict[str, Any]:
 
 def _fallback_plan(query: str) -> Dict[str, Any]:
     text = str(query or "").strip()
-    lowered = text.lower()
-    numeric_signals = [
-        "얼마",
-        "비중",
-        "차이",
-        "증가",
-        "감소",
-        "계산",
-        "매출",
-        "영업이익",
-        "%",
-        "ratio",
-        "compare",
-    ]
-    narrative_signals = [
-        "무엇",
-        "왜",
-        "원인",
-        "리스크",
-        "설명",
-        "요약",
-        "현황",
-        "사업",
-        "맥락",
-        "성과",
-    ]
-
-    tasks: List[Dict[str, Any]] = []
-    if any(signal in text or signal in lowered for signal in numeric_signals):
-        tasks.append(
+    base = text or "(empty user query)"
+    return {
+        "tasks": [
             {
                 "task_id": "task_1",
                 "assignee": "Analyst",
-                "instruction": text,
-            }
-        )
-    if any(signal in text or signal in lowered for signal in narrative_signals):
-        tasks.append(
+                "instruction": (
+                    f"{base}\n\n"
+                    "Task: handle any numeric, table-backed, or calculation requirement. "
+                    "Use only available evidence; if not applicable, return a limitation."
+                ),
+            },
             {
                 "task_id": "task_2",
                 "assignee": "Researcher",
-                "instruction": f"{text}\n\n이 질문과 관련된 맥락/원인을 짧게 요약해줘.",
-            }
-        )
-
-    if not tasks:
-        tasks = [
-            {
-                "task_id": "task_1",
-                "assignee": "Analyst",
-                "instruction": text,
-            }
+                "instruction": (
+                    f"{base}\n\n"
+                    "Task: handle any narrative, contextual, or explanatory requirement. "
+                    "Use only available evidence; if not applicable, return a limitation."
+                ),
+            },
         ]
-    if len(tasks) == 1 and tasks[0]["assignee"] == "Analyst":
-        tasks.append(
-            {
-                "task_id": "task_2",
-                "assignee": "Researcher",
-                "instruction": f"{text}\n\n이 질문과 관련된 맥락/원인을 짧게 요약해줘.",
-            }
-        )
-
-    return {"tasks": tasks[:2]}
+    }
 
 
 def _normalize_plan_tasks(payload: Dict[str, Any]) -> List[AgentTask]:

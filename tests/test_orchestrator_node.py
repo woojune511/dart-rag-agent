@@ -44,6 +44,11 @@ class FakeMergeCore:
         return {"final_report": self.final_report}
 
 
+class FailingPlannerCore:
+    def run(self, query: str, *, report_scope=None):
+        raise RuntimeError("planner unavailable")
+
+
 class OrchestratorNodeTests(unittest.TestCase):
     def test_orchestrator_plan_registers_tasks(self) -> None:
         planner = FakePlannerCore(
@@ -83,6 +88,20 @@ class OrchestratorNodeTests(unittest.TestCase):
         self.assertEqual(updates["tasks"]["task_1"]["context_keys"], ["numeric_values"])
         self.assertEqual(updates["tasks"]["task_2"]["context_keys"], ["narrative_evidence"])
         self.assertEqual(updates["execution_trace"], ["Orchestrator planned 2 tasks"])
+
+    def test_orchestrator_fallback_plans_both_generic_workers(self) -> None:
+        node = make_run_orchestrator_plan(FailingPlannerCore())
+        state = build_initial_state("Summarize the report and compute any requested figures.")
+
+        updates = node(state)
+
+        self.assertEqual(set(updates["tasks"].keys()), {"task_1", "task_2"})
+        self.assertEqual(updates["tasks"]["task_1"]["assignee"], "Analyst")
+        self.assertEqual(updates["tasks"]["task_1"]["context_keys"], ["numeric_values"])
+        self.assertIn("numeric, table-backed, or calculation", updates["tasks"]["task_1"]["instruction"])
+        self.assertEqual(updates["tasks"]["task_2"]["assignee"], "Researcher")
+        self.assertEqual(updates["tasks"]["task_2"]["context_keys"], ["narrative_evidence"])
+        self.assertIn("narrative, contextual, or explanatory", updates["tasks"]["task_2"]["instruction"])
 
     def test_orchestrator_merge_synthesizes_final_report(self) -> None:
         merge = FakeMergeCore("최종 보고서")
