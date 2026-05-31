@@ -86,15 +86,17 @@ classify Pydantic `Field(description=...)` text as `schema_description` so
 structured-output contracts are tracked separately from runtime decision
 literals. An evidence prompt-policy follow-up moved compression guidance,
 evidence extraction extra rules, and the evidence extraction prompt template
-into retrieval policy.
+into retrieval policy. A query-focus evidence follow-up moved focus marker
+cleanup patterns and period-comparison count extraction patterns into retrieval
+policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 354 |
-| Literal occurrences | 419 |
-| `runtime_literal` records | 156 |
+| Reviewed records | 346 |
+| Literal occurrences | 409 |
+| `runtime_literal` records | 155 |
 | `schema_description` records | 117 |
-| `regex_or_pattern` records | 60 |
+| `regex_or_pattern` records | 53 |
 | `prompt_or_template` records | 21 |
 
 Top files:
@@ -103,7 +105,7 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
 | `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
-| `src/agent/financial_graph_evidence.py` | 47 | P0: evidence selection and answer assembly must be reviewed first |
+| `src/agent/financial_graph_evidence.py` | 39 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
@@ -243,6 +245,12 @@ For each P0 record, classify it as one of:
   policy. Runtime keeps the generic mechanics: choose guidance by query type
   and operation family, build evidence context, invoke structured extraction,
   and run deterministic fallback only from retrieved source text.
+- `_query_focus_marker_groups()` and
+  `_period_comparison_count_value_from_text()` now read marker cleanup regexes,
+  token extraction regexes, focus label templates, sentence split patterns,
+  and year patterns from retrieval policy. Runtime keeps the generic mechanics:
+  clean query surfaces, dedupe marker variants, locate operand-context
+  sentences, and select source-visible count values for the requested period.
 - `_build_ratio_operands_from_candidates()` no longer carries a fixed
   R&D/revenue component fallback. When row-level percent values are absent, it
   asks the active ontology metric family for ratio component specs and matches

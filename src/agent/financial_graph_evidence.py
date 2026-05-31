@@ -37,8 +37,10 @@ from src.config.retrieval_policy import (
     EVIDENCE_EXTRACTION_POLICY,
     NARRATIVE_RERANK_POLICY,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
+    PERIOD_COMPARISON_COUNT_POLICY,
     QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
+    QUERY_FOCUS_MARKER_POLICY,
     REQUIRED_OPERAND_ASSEMBLY_POLICY,
     QUERY_FOCUS_STOPWORDS,
     SENTENCE_NORMALISATION_POLICY,
@@ -281,9 +283,10 @@ def _period_comparison_count_value_from_text(
     if not target_year:
         return None
 
+    count_policy = dict(PERIOD_COMPARISON_COUNT_POLICY)
     sentences = [
         part.strip()
-        for part in re.split(r"(?<=[.!?。])\s+|(?<=[가-힣])\.(?=(?:20\d{2}|[가-힣]))", normalized)
+        for part in re.split(str(count_policy.get("sentence_split_pattern") or r"$^"), normalized)
         if part.strip()
     ] or [normalized]
     context_indexes = [
@@ -302,8 +305,9 @@ def _period_comparison_count_value_from_text(
         return None
 
     candidates: List[tuple[float, Dict[str, str]]] = []
+    year_pattern = str(count_policy.get("year_pattern") or r"(20\d{2})")
     for index, sentence in enumerate(sentences):
-        period_match = re.search(r"(20\d{2})년?", sentence)
+        period_match = re.search(year_pattern, sentence)
         if not period_match or period_match.group(1) != target_year:
             continue
         if not re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, sentence):
@@ -620,13 +624,14 @@ class FinancialAgentEvidenceMixin:
 
         groups: List[Dict[str, Any]] = []
         seen: set[str] = set()
+        marker_policy = dict(QUERY_FOCUS_MARKER_POLICY)
 
         def _clean_marker(value: str) -> str:
             marker = _normalise_spaces(value)
-            marker = marker.strip("()[]{}'\"“”‘’,.·:;")
-            marker = re.sub(r"^(또는|및|등)\s+", "", marker)
-            marker = re.sub(r"\s+(또는|및|등)$", "", marker)
-            marker = re.sub(r"(에서|으로|로|에게|에는|에|은|는|이|가|을|를|과|와|도)$", "", marker)
+            marker = marker.strip(str(marker_policy.get("strip_chars") or ""))
+            marker = re.sub(str(marker_policy.get("leading_connector_pattern") or r"$^"), "", marker)
+            marker = re.sub(str(marker_policy.get("trailing_connector_pattern") or r"$^"), "", marker)
+            marker = re.sub(str(marker_policy.get("trailing_particle_pattern") or r"$^"), "", marker)
             return marker.strip()
 
         def _is_useful_marker(value: str) -> bool:
@@ -636,11 +641,11 @@ class FinancialAgentEvidenceMixin:
             lowered = marker.lower()
             if lowered in self._QUERY_FOCUS_STOPWORDS:
                 return False
-            if re.fullmatch(r"20\d{2}년?", marker):
+            if re.fullmatch(str(marker_policy.get("year_pattern") or r"$^"), marker):
                 return False
             if marker.isdigit():
                 return False
-            if re.fullmatch(r"[A-Za-z]", marker):
+            if re.fullmatch(str(marker_policy.get("single_letter_pattern") or r"$^"), marker):
                 return False
             if len(marker) < 2:
                 return False
@@ -664,33 +669,33 @@ class FinancialAgentEvidenceMixin:
             seen.add(key)
             groups.append(
                 {
-                    "label": f"query_focus_{len(groups) + 1}",
+                    "label": str(marker_policy.get("label_template") or "{index}").format(index=len(groups) + 1),
                     "variants": cleaned,
                     "phrase": "",
                     "query_focus": True,
                 }
             )
 
-        for match in re.finditer(r"([가-힣A-Za-z0-9\s·./-]{2,40})\(([A-Za-z0-9\s·./-]{2,40})\)", surface):
+        for match in re.finditer(str(marker_policy.get("parenthetical_pair_pattern") or r"$^"), surface):
             left_surface = _clean_marker(match.group(1))
-            left_surface = re.sub(r"^.*(?:과|와|및|또는)\s+", "", left_surface)
-            left_surface = re.sub(r"^.*(?:에서|에는|으로|은|는|이|가|을|를|의)\s+", "", left_surface)
+            for pattern in marker_policy.get("left_context_drop_patterns") or ():
+                left_surface = re.sub(str(pattern), "", left_surface)
             left = _clean_marker(left_surface.split()[-1])
             if len(left_surface.split()) > 1 and re.search(r"[가-힣]", left_surface):
                 left = _clean_marker(left_surface)
             right = _clean_marker(match.group(2))
             _append_group([left, right])
 
-        for quoted in re.findall(r"[\"'“”‘’](.+?)[\"'“”‘’]", surface):
+        for quoted in re.findall(str(marker_policy.get("quoted_pattern") or r"$^"), surface):
             _append_group([quoted])
 
-        for acronym in re.findall(r"\b[A-Z][A-Z0-9]{1,8}\b", surface):
+        for acronym in re.findall(str(marker_policy.get("acronym_pattern") or r"$^"), surface):
             _append_group([acronym])
 
-        for token in re.findall(r"[A-Za-z][A-Za-z0-9./-]{2,}", surface):
+        for token in re.findall(str(marker_policy.get("english_token_pattern") or r"$^"), surface):
             _append_group([token])
 
-        for token in re.findall(r"[가-힣A-Za-z0-9]+", surface):
+        for token in re.findall(str(marker_policy.get("generic_token_pattern") or r"$^"), surface):
             if len(token) < 2:
                 continue
             _append_group([token])

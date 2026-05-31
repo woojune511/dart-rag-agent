@@ -445,7 +445,7 @@
       "fingerprint": "6f16fbc1b56a2d3d",
       "count": 1,
       "first_lines": [
-        4129
+        4134
       ]
     },
     {
@@ -453,10 +453,9 @@
       "text": "(20\\d{2})년?",
       "category": "regex_or_pattern",
       "fingerprint": "b58bee8eb37c98a0",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        66,
-        306
+        68
       ]
     },
     {
@@ -466,11 +465,11 @@
       "fingerprint": "09aadfd07ef92e69",
       "count": 6,
       "first_lines": [
-        2285,
-        2391,
-        2394,
-        2492,
-        2687
+        2290,
+        2396,
+        2399,
+        2497,
+        2692
       ]
     },
     {
@@ -480,27 +479,7 @@
       "fingerprint": "ff18e0673e70c35a",
       "count": 1,
       "first_lines": [
-        2871
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(?<=[.!?。])\\s+|(?<=[가-힣])\\.(?=(?:20\\d{2}|[가-힣]))",
-      "category": "regex_or_pattern",
-      "fingerprint": "2c2a6e757814da30",
-      "count": 1,
-      "first_lines": [
-        286
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "([가-힣A-Za-z0-9\\s·./-]{2,40})\\(([A-Za-z0-9\\s·./-]{2,40})\\)",
-      "category": "regex_or_pattern",
-      "fingerprint": "e4d29498c2931823",
-      "count": 1,
-      "first_lines": [
-        674
+        2876
       ]
     },
     {
@@ -510,7 +489,7 @@
       "fingerprint": "89532be15500cf2d",
       "count": 1,
       "first_lines": [
-        3972
+        3977
       ]
     },
     {
@@ -520,7 +499,7 @@
       "fingerprint": "e511401fe4e90837",
       "count": 1,
       "first_lines": [
-        3948
+        3953
       ]
     },
     {
@@ -530,7 +509,7 @@
       "fingerprint": "c19f6d24f38fc854",
       "count": 1,
       "first_lines": [
-        3980
+        3985
       ]
     },
     {
@@ -540,7 +519,7 @@
       "fingerprint": "aa9188fb0e1d64e9",
       "count": 1,
       "first_lines": [
-        3977
+        3982
       ]
     },
     {
@@ -550,7 +529,7 @@
       "fingerprint": "2b556e1f2949154d",
       "count": 1,
       "first_lines": [
-        3950
+        3955
       ]
     },
     {
@@ -560,17 +539,7 @@
       "fingerprint": "1b816b9c89ecc74f",
       "count": 1,
       "first_lines": [
-        3949
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(에서|으로|로|에게|에는|에|은|는|이|가|을|를|과|와|도)$",
-      "category": "runtime_literal",
-      "fingerprint": "8d24e6fb151ae262",
-      "count": 1,
-      "first_lines": [
-        629
+        3954
       ]
     },
     {
@@ -580,7 +549,7 @@
       "fingerprint": "74ad0fdbe894002d",
       "count": 1,
       "first_lines": [
-        121
+        123
       ]
     },
     {
@@ -590,17 +559,7 @@
       "fingerprint": "fd36e85fe5b4238b",
       "count": 1,
       "first_lines": [
-        3300
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "20\\d{2}년?",
-      "category": "regex_or_pattern",
-      "fingerprint": "d492affa5124aebf",
-      "count": 1,
-      "first_lines": [
-        639
+        3305
       ]
     },
     {
@@ -610,8 +569,8 @@
       "fingerprint": "4ec5a8e849d0dfb3",
       "count": 2,
       "first_lines": [
-        3400,
-        3419
+        3405,
+        3424
       ]
     },
     {
@@ -619,10 +578,9 @@
       "text": "[가-힣A-Za-z0-9]+",
       "category": "regex_or_pattern",
       "fingerprint": "19bc2a3b9de117cd",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        693,
-        1307
+        1312
       ]
     },
     {
@@ -632,7 +590,7 @@
       "fingerprint": "548091b53f9755fa",
       "count": 1,
       "first_lines": [
-        114
+        116
       ]
     },
     {
@@ -642,8 +600,8 @@
       "fingerprint": "38804614940659cb",
       "count": 2,
       "first_lines": [
-        95,
-        679
+        97,
+        684
       ]
     },
     {
@@ -653,8 +611,8 @@
       "fingerprint": "babae2ce22724407",
       "count": 2,
       "first_lines": [
-        2324,
-        2436
+        2329,
+        2441
       ]
     },
     {
@@ -664,17 +622,7 @@
       "fingerprint": "263ff659f2e964c0",
       "count": 1,
       "first_lines": [
-        333
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "\\s+(또는|및|등)$",
-      "category": "regex_or_pattern",
-      "fingerprint": "24c07155b7ae3a31",
-      "count": 1,
-      "first_lines": [
-        628
+        337
       ]
     },
     {
@@ -684,37 +632,7 @@
       "fingerprint": "659b99dfd4b27fb1",
       "count": 1,
       "first_lines": [
-        2324
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "^(또는|및|등)\\s+",
-      "category": "regex_or_pattern",
-      "fingerprint": "f809fb842764a9d4",
-      "count": 1,
-      "first_lines": [
-        627
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "^.*(?:과|와|및|또는)\\s+",
-      "category": "regex_or_pattern",
-      "fingerprint": "4e27fb913750e417",
-      "count": 1,
-      "first_lines": [
-        676
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "^.*(?:에서|에는|으로|은|는|이|가|을|를|의)\\s+",
-      "category": "regex_or_pattern",
-      "fingerprint": "e8c452890e12d2f7",
-      "count": 1,
-      "first_lines": [
-        677
+        2329
       ]
     },
     {
@@ -724,7 +642,7 @@
       "fingerprint": "b8454cb1cc28f184",
       "count": 1,
       "first_lines": [
-        2442
+        2447
       ]
     },
     {
@@ -734,7 +652,7 @@
       "fingerprint": "aa91673e9d03a9c4",
       "count": 1,
       "first_lines": [
-        4314
+        4319
       ]
     },
     {
@@ -744,7 +662,7 @@
       "fingerprint": "3f225931bf63dfdf",
       "count": 1,
       "first_lines": [
-        1873
+        1878
       ]
     },
     {
@@ -754,7 +672,7 @@
       "fingerprint": "c3c0dec6f9f3ba03",
       "count": 1,
       "first_lines": [
-        5323
+        5328
       ]
     },
     {
@@ -764,8 +682,8 @@
       "fingerprint": "066d947debd8d926",
       "count": 2,
       "first_lines": [
-        4358,
-        4589
+        4363,
+        4594
       ]
     },
     {
@@ -775,7 +693,7 @@
       "fingerprint": "7e859c5e0b21d1df",
       "count": 1,
       "first_lines": [
-        4327
+        4332
       ]
     },
     {
@@ -785,11 +703,11 @@
       "fingerprint": "64b3b3b42c1c1156",
       "count": 8,
       "first_lines": [
-        351,
-        421,
-        2505,
-        2719,
-        2778
+        355,
+        425,
+        2510,
+        2724,
+        2783
       ]
     },
     {
@@ -799,7 +717,7 @@
       "fingerprint": "cbef8bf1cbe16aca",
       "count": 1,
       "first_lines": [
-        4939
+        4944
       ]
     },
     {
@@ -809,7 +727,7 @@
       "fingerprint": "13373f573cb885c0",
       "count": 1,
       "first_lines": [
-        5353
+        5358
       ]
     },
     {
@@ -819,7 +737,7 @@
       "fingerprint": "d1ca81ae7e9db2cf",
       "count": 1,
       "first_lines": [
-        4629
+        4634
       ]
     },
     {
@@ -829,7 +747,7 @@
       "fingerprint": "31bd94b73b1b4d9e",
       "count": 1,
       "first_lines": [
-        3301
+        3306
       ]
     },
     {
@@ -839,7 +757,7 @@
       "fingerprint": "512c64ff273cd323",
       "count": 1,
       "first_lines": [
-        4785
+        4790
       ]
     },
     {
@@ -849,7 +767,7 @@
       "fingerprint": "650daf1b818c4e53",
       "count": 1,
       "first_lines": [
-        3301
+        3306
       ]
     },
     {
@@ -859,7 +777,7 @@
       "fingerprint": "6c304d77ae5f30db",
       "count": 1,
       "first_lines": [
-        4318
+        4323
       ]
     },
     {
@@ -869,7 +787,7 @@
       "fingerprint": "c63352d224f2075c",
       "count": 1,
       "first_lines": [
-        4845
+        4850
       ]
     },
     {
@@ -879,7 +797,7 @@
       "fingerprint": "9380b0187803cf93",
       "count": 1,
       "first_lines": [
-        3298
+        3303
       ]
     },
     {
@@ -889,7 +807,7 @@
       "fingerprint": "a8a29dbb183cca91",
       "count": 1,
       "first_lines": [
-        165
+        167
       ]
     },
     {
@@ -899,9 +817,9 @@
       "fingerprint": "eb7179553d154d91",
       "count": 4,
       "first_lines": [
-        3554,
-        3557,
-        3560
+        3559,
+        3562,
+        3565
       ]
     },
     {
@@ -911,7 +829,7 @@
       "fingerprint": "0597b7379ef612cb",
       "count": 1,
       "first_lines": [
-        4090
+        4095
       ]
     },
     {
@@ -921,7 +839,7 @@
       "fingerprint": "954e44b7fdd00208",
       "count": 1,
       "first_lines": [
-        741
+        746
       ]
     },
     {

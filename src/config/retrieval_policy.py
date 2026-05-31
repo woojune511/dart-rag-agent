@@ -922,6 +922,30 @@ EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
 """,
 }
 
+QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
+    "strip_chars": "()[]{}'\"“”‘’,.·:;",
+    "leading_connector_pattern": r"^(또는|및|등)\s+",
+    "trailing_connector_pattern": r"\s+(또는|및|등)$",
+    "trailing_particle_pattern": r"(에서|으로|로|에게|에는|에|은|는|이|가|을|를|과|와|도)$",
+    "year_pattern": r"20\d{2}년?",
+    "single_letter_pattern": r"[A-Za-z]",
+    "parenthetical_pair_pattern": r"([가-힣A-Za-z0-9\s·./-]{2,40})\(([A-Za-z0-9\s·./-]{2,40})\)",
+    "left_context_drop_patterns": (
+        r"^.*(?:과|와|및|또는)\s+",
+        r"^.*(?:에서|에는|으로|은|는|이|가|을|를|의)\s+",
+    ),
+    "quoted_pattern": r"[\"'“”‘’](.+?)[\"'“”‘’]",
+    "acronym_pattern": r"\b[A-Z][A-Z0-9]{1,8}\b",
+    "english_token_pattern": r"[A-Za-z][A-Za-z0-9./-]{2,}",
+    "generic_token_pattern": r"[가-힣A-Za-z0-9]+",
+    "label_template": "query_focus_{index}",
+}
+
+PERIOD_COMPARISON_COUNT_POLICY: Dict[str, Any] = {
+    "sentence_split_pattern": r"(?<=[.!?。])\s+|(?<=[가-힣])\.(?=(?:20\d{2}|[가-힣]))",
+    "year_pattern": r"(20\d{2})년?",
+}
+
 
 NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
