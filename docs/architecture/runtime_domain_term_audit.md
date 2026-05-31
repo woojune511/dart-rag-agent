@@ -119,12 +119,15 @@ query terms and label into helper runtime policy.
 An evidence assembly follow-up moved section-bias penalty markers plus
 quantitative-impact label cleanup and consolidation display text into retrieval
 policy.
+A calculation scope follow-up moved note-context and consolidation section
+markers used by dependency/evidence scope checks onto existing retrieval
+policies.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 217 |
-| Literal occurrences | 250 |
-| `runtime_literal` records | 55 |
+| Reviewed records | 215 |
+| Literal occurrences | 246 |
+| `runtime_literal` records | 53 |
 | `schema_description` records | 117 |
 | `regex_or_pattern` records | 36 |
 | `prompt_or_template` records | 9 |
@@ -135,7 +138,7 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
 | `src/agent/financial_graph_helpers.py` | 32 | P0/P1: remaining records are mostly generic parsing patterns, status labels, and a few candidate scoring labels |
-| `src/agent/financial_graph_calculation.py` | 23 | P0/P1: remaining records are mostly generic numeric parsing and final fallback/status wording |
+| `src/agent/financial_graph_calculation.py` | 21 | P0/P1: remaining records are mostly generic numeric parsing and final fallback/status wording |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_evidence.py` | 13 | P0/P1: remaining records are mostly evidence formatting labels and generic period/value patterns |
 | `src/agent/nodes/dummy_nodes.py` | 8 | P2: MAS skeleton fixtures, not production retrieval policy |

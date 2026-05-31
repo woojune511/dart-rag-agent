@@ -17,7 +17,16 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY, CALCULATION_PROMPT_POLICY, CALCULATION_RENDER_POLICY, CALCULATION_SLOT_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
+from src.config.retrieval_policy import (
+    CALCULATION_FEEDBACK_POLICY,
+    CALCULATION_NARRATIVE_POLICY,
+    CALCULATION_PROMPT_POLICY,
+    CALCULATION_RENDER_POLICY,
+    CALCULATION_SLOT_POLICY,
+    CONSOLIDATION_SCOPE_POLICY,
+    KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
+    OPERAND_CANDIDATE_SCORING_POLICY,
+)
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -820,11 +829,13 @@ class FinancialAgentCalculationMixin:
         ).lower()
         if not row_scope_text:
             return False, ""
-        row_is_note_scoped = "주석" in row_scope_text or "note" in row_scope_text
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+        note_markers = tuple(str(item).lower() for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+        row_is_note_scoped = any(marker in row_scope_text for marker in note_markers) or "note" in row_scope_text
         producer_allows_notes = (
             "notes" in preferred_statement_types
             or any(
-                "주석" in _normalise_spaces(str(section)).lower()
+                any(marker in _normalise_spaces(str(section)).lower() for marker in note_markers)
                 or "note" in _normalise_spaces(str(section)).lower()
                 for section in preferred_sections
             )
@@ -2194,19 +2205,28 @@ class FinancialAgentCalculationMixin:
         def evidence_conflicts_requested_scope(item: Dict[str, Any]) -> bool:
             if desired_consolidation_scope == "unknown":
                 return False
+            scope_policy = dict(CONSOLIDATION_SCOPE_POLICY.get("context_markers") or {})
+            consolidated_markers = tuple(
+                str(marker).lower() for marker in (scope_policy.get("consolidated") or ()) if str(marker)
+            )
             metadata = dict((item or {}).get("metadata") or {})
             scope = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
             section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or ""))
+            section_path_lower = section_path.lower()
             if scope == desired_consolidation_scope:
                 return False
             if desired_consolidation_scope == "consolidated":
                 if scope == "separate":
                     return True
-                return bool(section_path and "연결" not in section_path)
+                return bool(
+                    section_path
+                    and consolidated_markers
+                    and not any(marker in section_path_lower for marker in consolidated_markers)
+                )
             if desired_consolidation_scope == "separate":
                 if scope == "consolidated":
                     return True
-                return bool("연결" in section_path)
+                return any(marker in section_path_lower for marker in consolidated_markers)
             return False
 
         empty_result: Dict[str, Any] = {
