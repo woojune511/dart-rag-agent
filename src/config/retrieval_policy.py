@@ -255,6 +255,22 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
 }
 
 
+CALCULATION_RENDER_POLICY: Dict[str, Any] = {
+    "scope_labels": {"consolidated": "연결기준", "separate": "별도기준"},
+    "difference_default_labels": {
+        "minuend": "기준값",
+        "subtrahend": "차감값",
+        "result": "계산 결과",
+    },
+    "difference_first_sentence_with_prefix": "{prefix} {minuend_label}은 {minuend_value}입니다.",
+    "difference_first_sentence": "{minuend_label}은 {minuend_value}입니다.",
+    "difference_answer_template": (
+        "{first_sentence} {subtrahend_label} 금액은 {subtrahend_value}이며, "
+        "이를 제외한 {result_label}은 {result_value}입니다."
+    ),
+}
+
+
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
         "2021년",

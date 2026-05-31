@@ -17,7 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -4001,20 +4001,38 @@ Ontology Context:
             str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
         )
         scope = _desired_consolidation_scope(query, report_scope or {})
-        scope_text = {"consolidated": "연결기준", "separate": "별도기준"}.get(scope, "")
+        scope_text = dict(CALCULATION_RENDER_POLICY.get("scope_labels") or {}).get(scope, "")
         prefix_parts = [part for part in (company, f"{period}년" if period and not period.endswith("년") else period, scope_text) if part]
         prefix = " ".join(dict.fromkeys(prefix_parts))
 
-        minuend_label = _normalise_spaces(str(minuend.get("label") or "기준값"))
-        subtrahend_label = _normalise_spaces(str(subtrahend.get("label") or "차감값"))
-        result_label = _normalise_spaces(str(result_slot.get("label") or calculation_result.get("metric_label") or "계산 결과"))
+        default_labels = dict(CALCULATION_RENDER_POLICY.get("difference_default_labels") or {})
+        minuend_label = _normalise_spaces(str(minuend.get("label") or default_labels.get("minuend") or ""))
+        subtrahend_label = _normalise_spaces(str(subtrahend.get("label") or default_labels.get("subtrahend") or ""))
+        result_label = _normalise_spaces(
+            str(result_slot.get("label") or calculation_result.get("metric_label") or default_labels.get("result") or "")
+        )
 
         if prefix:
-            first_sentence = f"{prefix} {minuend_label}은 {minuend_value}입니다."
+            first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence_with_prefix") or "")
+            first_sentence = first_sentence_template.format(
+                prefix=prefix,
+                minuend_label=minuend_label,
+                minuend_value=minuend_value,
+            )
         else:
-            first_sentence = f"{minuend_label}은 {minuend_value}입니다."
+            first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence") or "")
+            first_sentence = first_sentence_template.format(
+                minuend_label=minuend_label,
+                minuend_value=minuend_value,
+            )
         return _normalise_spaces(
-            f"{first_sentence} {subtrahend_label} 금액은 {subtrahend_value}이며, 이를 제외한 {result_label}은 {result_value}입니다."
+            str(CALCULATION_RENDER_POLICY.get("difference_answer_template") or "").format(
+                first_sentence=first_sentence,
+                subtrahend_label=subtrahend_label,
+                subtrahend_value=subtrahend_value,
+                result_label=result_label,
+                result_value=result_value,
+            )
         )
 
     def _slot_status(

@@ -44,13 +44,15 @@ markers, ratio row candidate patterns, ratio component percent-value allowance,
 and sentence-normalisation messages into policy/config. The latest calculation
 pass moved growth-narrative explanatory markers, context stopwords, missing
 answer markers, growth intent checks, direction wording, and the numeric
-sentence template into calculation narrative policy.
+sentence template into calculation narrative policy. The latest render pass
+moved slot-based difference answer scope labels, fallback labels, and answer
+templates into calculation render policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 547 |
-| Literal occurrences | 839 |
-| `runtime_literal` records | 445 |
+| Reviewed records | 541 |
+| Literal occurrences | 826 |
+| `runtime_literal` records | 439 |
 | `regex_or_pattern` records | 70 |
 | `prompt_or_template` records | 32 |
 
@@ -60,7 +62,7 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
-| `src/agent/financial_graph_calculation.py` | 73 | P0: numeric execution text is allowed, metric/topic selectors need review |
+| `src/agent/financial_graph_calculation.py` | 67 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
@@ -193,6 +195,11 @@ For each P0 record, classify it as one of:
   keeps the generic mechanics: select material growth slots, score supported
   narrative sentences, preserve evidence-visible values, and validate that the
   aggregate answer contains both the numeric result and narrative support.
+- `_compose_slot_based_difference_answer()` now reads scope labels, fallback
+  operand/result labels, and slot-based difference answer templates from
+  `CALCULATION_RENDER_POLICY`. Runtime keeps only the generic mechanics: pick
+  material minuend/subtrahend/result slots, infer company/period/scope prefix,
+  and preserve rendered slot values.
 
 ## Calculation Hotspots
 
@@ -206,7 +213,6 @@ Top calculation targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_compose_slot_based_difference_answer` | 15 | answer assembly; inspect display templates and sign/role wording |
 | `_adjusted_difference_source_display_unit` | 11 | unit display handling; likely structural unit policy candidate |
 | `_render_calculation_answer` | 10 | final answer rendering; separate templates from execution |
 | `_material_gap_feedback_for_subtask_result` | 9 | planner feedback text; decide config vs schema/status wording |
