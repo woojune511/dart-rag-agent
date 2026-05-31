@@ -203,6 +203,15 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("income_before_income_taxes", concept_keys)
 
 
+    def test_v3_maps_operating_loss_surface_to_operating_income_concept(self) -> None:
+        specs = self.ontology_v3.concept_specs(
+            "2023년 SK온 영업손실의 전체 연결 영업이익 대비 비중을 계산해 줘",
+            intent="comparison",
+        )
+        concept_keys = [spec["concept"] for spec in specs]
+        self.assertIn("operating_income", concept_keys)
+
+
     def test_v3_matches_dart_derived_note_concepts(self) -> None:
         cases = [
             ("2023년 이자비용과 이자수익을 찾아줘", {"interest_expense", "interest_income"}),

@@ -14,11 +14,15 @@ structural/runtime text that cannot reasonably live in a declarative layer.
 ```bash
 python -m src.ops.audit_runtime_domain_terms
 python -m src.ops.audit_runtime_domain_terms --summary
+python -m src.ops.audit_runtime_domain_terms --by-function
 python -m src.ops.audit_runtime_domain_terms --write-baseline
 ```
 
 Use `--write-baseline` only after reviewing why records disappeared or why a
 remaining literal is justified.
+Use `--by-function` when picking the next cleanup target inside a large runtime
+module; it groups reviewed literal occurrences by class/function symbol without
+changing the baseline format.
 
 ## Current Snapshot
 
@@ -26,21 +30,22 @@ Generated on 2026-06-01 after excluding `if __name__ == "__main__"` demo
 blocks and replacing the MAS orchestrator fallback keyword classifier with a
 generic two-worker fallback. The helpers cleanup also removed a company-specific
 operand-label normalization rule and moved calculation section/topic hinting to
-ontology data.
+ontology data. The latest pass moved generic numeric operand surface extraction
+off a hard-coded runtime regex list and onto ontology concept surfaces.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 773 |
-| Literal occurrences | 1,200 |
-| `runtime_literal` records | 653 |
-| `regex_or_pattern` records | 88 |
+| Reviewed records | 762 |
+| Literal occurrences | 1,187 |
+| `runtime_literal` records | 649 |
+| `regex_or_pattern` records | 81 |
 | `prompt_or_template` records | 32 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 272 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 261 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_evidence.py` | 191 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
@@ -95,3 +100,15 @@ For each P0 record, classify it as one of:
   includes the equipment-investment alias needed by that data layer. This
   removed 3 reviewed records and 59 literal occurrences from the runtime
   baseline.
+- `_extract_generic_operand_labels()` no longer carries a hard-coded list of
+  numeric operand regexes for individual financial concepts. It now consumes
+  matched ontology concept surfaces generically, with redundant alias cleanup
+  based on display/parenthetical structure. The operating-loss surface needed by
+  the same concept family lives in the v3 ontology overlay instead of runtime
+  control-flow code. This removed 11 reviewed records and 13 literal
+  occurrences from the runtime baseline.
+- The audit CLI now supports `--by-function`/`--by-symbol`, which reports the
+  function or class scopes that still hold the most reviewed literals. The
+  current top helper targets are `_infer_statement_and_section_hints`,
+  `_extract_segment_labels_from_query`, `_desired_consolidation_scope`, and
+  `_desired_statement_types`.

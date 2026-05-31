@@ -255,11 +255,13 @@
     "operating_income": {
       "display_name": "영업이익",
       "aliases": [
-        "영업손익"
+        "영업손익",
+        "영업손실"
       ],
       "keywords": [
         "영업이익",
-        "영업손익"
+        "영업손익",
+        "영업손실"
       ],
       "unit_family": "KRW",
       "preferred_statement_types": [

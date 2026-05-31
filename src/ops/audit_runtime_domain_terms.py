@@ -54,7 +54,32 @@ def _iter_python_files(project_root: Path, scan_roots: Sequence[str]) -> Iterabl
 
 class _StringLiteralVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
-        self.literals: List[Tuple[int, str]] = []
+        self.literals: List[Tuple[int, str, str]] = []
+        self._scope: List[str] = []
+
+    def _symbol(self) -> str:
+        return ".".join(self._scope) if self._scope else "<module>"
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802 - ast visitor API
+        self._scope.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scope.pop()
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802 - ast visitor API
+        self._scope.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scope.pop()
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802 - ast visitor API
+        self._scope.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scope.pop()
 
     def visit_If(self, node: ast.If) -> None:  # noqa: N802 - ast visitor API
         if _is_main_guard(node.test):
@@ -63,7 +88,7 @@ class _StringLiteralVisitor(ast.NodeVisitor):
 
     def visit_Constant(self, node: ast.Constant) -> None:  # noqa: N802 - ast visitor API
         if isinstance(node.value, str):
-            self.literals.append((int(getattr(node, "lineno", 0) or 0), node.value))
+            self.literals.append((int(getattr(node, "lineno", 0) or 0), node.value, self._symbol()))
         self.generic_visit(node)
 
 
@@ -99,7 +124,7 @@ def collect_runtime_domain_terms(
         tree = ast.parse(source, filename=str(source_path))
         visitor = _StringLiteralVisitor()
         visitor.visit(tree)
-        for line_number, raw_value in visitor.literals:
+        for line_number, raw_value, _symbol in visitor.literals:
             text = normalise_literal(raw_value)
             if not text or not has_reviewed_domain_language(text):
                 continue
@@ -124,6 +149,35 @@ def collect_runtime_domain_terms(
     return sorted(records, key=lambda item: (str(item["path"]), str(item["text"])))
 
 
+def collect_runtime_domain_term_occurrences(
+    project_root: Path | str = PROJECT_ROOT,
+    scan_roots: Sequence[str] = DEFAULT_SCAN_ROOTS,
+) -> List[Dict[str, Any]]:
+    project_path = Path(project_root).resolve()
+    rows: List[Dict[str, Any]] = []
+
+    for source_path in _iter_python_files(project_path, scan_roots):
+        relative = _relative_path(source_path, project_path)
+        source = source_path.read_text(encoding="utf-8-sig")
+        tree = ast.parse(source, filename=str(source_path))
+        visitor = _StringLiteralVisitor()
+        visitor.visit(tree)
+        for line_number, raw_value, symbol in visitor.literals:
+            text = normalise_literal(raw_value)
+            if not text or not has_reviewed_domain_language(text):
+                continue
+            rows.append(
+                {
+                    "path": relative,
+                    "line": line_number,
+                    "symbol": symbol,
+                    "text": text,
+                    "category": classify_literal(raw_value),
+                }
+            )
+    return sorted(rows, key=lambda item: (str(item["path"]), int(item["line"]), str(item["text"])))
+
+
 def summarise_runtime_domain_terms(
     records: Sequence[Mapping[str, Any]],
     *,
@@ -138,6 +192,24 @@ def summarise_runtime_domain_terms(
         "top_paths": [
             {"path": path, "records": count}
             for path, count in by_path.most_common(top_n)
+        ],
+    }
+
+
+def summarise_runtime_domain_terms_by_symbol(
+    occurrences: Sequence[Mapping[str, Any]],
+    *,
+    top_n: int = 20,
+) -> Dict[str, Any]:
+    by_symbol: Counter[Tuple[str, str]] = Counter(
+        (str(item.get("path", "")), str(item.get("symbol", "")))
+        for item in occurrences
+    )
+    return {
+        "occurrence_count": len(occurrences),
+        "top_symbols": [
+            {"path": path, "symbol": symbol, "occurrences": count}
+            for (path, symbol), count in by_symbol.most_common(top_n)
         ],
     }
 
@@ -239,6 +311,19 @@ def _format_summary(summary: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_symbol_summary(summary: Mapping[str, Any]) -> str:
+    lines = [
+        "Runtime domain-language audit by symbol",
+        f"- literal occurrences: {summary.get('occurrence_count', 0)}",
+        "- top symbols:",
+    ]
+    for item in list(summary.get("top_symbols", [])):
+        lines.append(
+            f"  - {item.get('path')}::{item.get('symbol')}: {item.get('occurrences')}"
+        )
+    return "\n".join(lines)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Audit reviewed domain-language string literals in runtime agent code."
@@ -247,6 +332,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--scan-root", action="append", dest="scan_roots")
     parser.add_argument("--write-baseline", action="store_true")
     parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--by-symbol", "--by-function", action="store_true")
     parser.add_argument("--json", action="store_true", dest="json_output")
     args = parser.parse_args(argv)
 
@@ -270,6 +356,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(summary, ensure_ascii=False, indent=2))
         else:
             print(_format_summary(summary))
+        return 0
+
+    if args.by_symbol:
+        occurrences = collect_runtime_domain_term_occurrences(PROJECT_ROOT, scan_roots)
+        summary = summarise_runtime_domain_terms_by_symbol(occurrences)
+        if args.json_output:
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+        else:
+            print(_format_symbol_summary(summary))
         return 0
 
     baseline = load_runtime_domain_term_baseline(baseline_path)

@@ -19,7 +19,7 @@ import json
 import math
 from pathlib import Path
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -1656,25 +1656,6 @@ _GENERIC_RATIO_SHARE_RE = re.compile(
     r"(?P<numerator>[가-힣A-Za-z0-9·/&\-\s\(\)]+?)\s*(?:이|가)\s*차지하는\s*"
     r"(?:비중|비율)"
 )
-_GENERIC_NUMERIC_OPERAND_PATTERNS: List[re.Pattern[str]] = [
-    re.compile(pattern)
-    for pattern in [
-        r"시설투자(?:\((?:CAPEX|CapEx)\))?",
-        r"\bCAPEX\b",
-        r"\bCapEx\b",
-        r"자본적\s*지출",
-        r"법인세비용차감전순(?:이익|손익)",
-        r"외화환산(?:이익|손실)",
-        r"순이자마진",
-        r"\bNIM\b",
-        r"무형자산상각비",
-        r"(?:차량|금융)\s*부문\s*영업이익",
-        r"전체\s*(?:연결\s*)?영업이익",
-        r"연결\s*영업이익",
-        r"영업손실",
-    ]
-]
-
 _GENERIC_PERIOD_COMPARISON_METRIC_RE = re.compile(
     r"(?:20\d{2}년\s*)?"
     r"(?P<label>[가-힣A-Za-z0-9·/&\-\s\(\)]{2,80}?)의\s*"
@@ -1702,6 +1683,74 @@ def _extract_quoted_metric_labels(query: str) -> List[str]:
     return list(dict.fromkeys(labels))
 
 
+def _ontology_operand_surface_candidates(spec: Mapping[str, Any]) -> List[str]:
+    surface_contract = dict(spec.get("surface_contract") or {})
+    candidates: List[str] = [str(spec.get("name") or "").strip()]
+    candidates.extend(str(item).strip() for item in (spec.get("aliases") or []) if str(item).strip())
+    candidates.extend(str(item).strip() for item in (spec.get("keywords") or []) if str(item).strip())
+    candidates.extend(
+        str(item).strip()
+        for item in (surface_contract.get("positive") or [])
+        if str(item).strip()
+    )
+    return list(dict.fromkeys(item for item in candidates if item))
+
+
+def _surface_visible_in_text(surface: str, text: str) -> bool:
+    normalized_surface = _normalise_spaces(surface)
+    if not normalized_surface:
+        return False
+    normalized_text = _normalise_spaces(text)
+    if normalized_surface in normalized_text:
+        return True
+    compact_surface = re.sub(r"\s+", "", normalized_surface)
+    compact_text = re.sub(r"\s+", "", normalized_text)
+    return bool(compact_surface and compact_surface in compact_text)
+
+
+def _drop_redundant_parenthetical_alias_labels(labels: Sequence[str]) -> List[str]:
+    normalized = list(dict.fromkeys(label for label in labels if label))
+    parenthetical_aliases: set[str] = set()
+    for label in normalized:
+        for match in re.finditer(r"\(([^()]+)\)", label):
+            alias = _normalise_spaces(match.group(1))
+            if alias:
+                parenthetical_aliases.add(alias)
+    if not parenthetical_aliases:
+        retained = normalized
+    else:
+        retained = [
+            label
+            for label in normalized
+            if _normalise_spaces(label) not in parenthetical_aliases
+        ]
+
+    deduped: List[str] = []
+    compact_seen: set[str] = set()
+    for label in retained:
+        compact = re.sub(r"\s+", "", _normalise_spaces(label))
+        if compact in compact_seen:
+            continue
+        compact_seen.add(compact)
+        deduped.append(label)
+
+    compact_by_label = {
+        label: re.sub(r"\s+", "", _normalise_spaces(label))
+        for label in deduped
+    }
+    return [
+        label
+        for label, compact in compact_by_label.items()
+        if not any(
+            compact
+            and compact != other_compact
+            and compact in other_compact
+            for other_label, other_compact in compact_by_label.items()
+            if other_label != label
+        )
+    ]
+
+
 def _extract_generic_operand_labels(query: str) -> List[str]:
     text = str(query or "")
     labels: List[str] = []
@@ -1710,27 +1759,25 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
         labels.extend(["유형자산", "무형자산"])
 
     labels.extend(_extract_quoted_metric_labels(text))
-    labels.extend(
-        str(spec.get("name") or "").strip()
-        for spec in _matched_ontology_concept_specs(query)
-        if not bool(spec.get("is_group")) and str(spec.get("name") or "").strip()
-    )
+    for spec in _matched_ontology_concept_specs(query):
+        if bool(spec.get("is_group")):
+            continue
+        visible_surfaces: List[str] = []
+        for surface in _ontology_operand_surface_candidates(spec):
+            if _surface_visible_in_text(surface, text):
+                cleaned = _clean_metric_label(surface)
+                if cleaned:
+                    visible_surfaces.append(cleaned)
+        concept_name = _clean_metric_label(str(spec.get("name") or "").strip())
+        if concept_name and not any(re.search(r"[가-힣]", item) for item in visible_surfaces):
+            labels.append(concept_name)
+        labels.extend(visible_surfaces)
     for match in _GENERIC_PERIOD_COMPARISON_METRIC_RE.finditer(text):
         cleaned = _clean_metric_label(match.group("label"))
         if cleaned:
             labels.append(cleaned)
 
-    for pattern in _GENERIC_NUMERIC_OPERAND_PATTERNS:
-        for match in pattern.finditer(text):
-            cleaned = _clean_metric_label(match.group(0))
-            if cleaned:
-                labels.append(cleaned)
-
-    normalized = list(dict.fromkeys(label for label in labels if label))
-    if any("시설투자" in item for item in normalized):
-        normalized = [item for item in normalized if item not in {"CAPEX", "CapEx"}]
-    if "영업이익" in normalized and any("부문 영업이익" in item for item in normalized):
-        normalized = [item for item in normalized if item != "영업이익"]
+    normalized = _drop_redundant_parenthetical_alias_labels(labels)
     derived_labels = {"총 영업비용", "영업비용률", "순효과"}
     normalized = [item for item in normalized if item not in derived_labels]
     return normalized

@@ -3,10 +3,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from src.ops.audit_runtime_domain_terms import (
+    collect_runtime_domain_term_occurrences,
     collect_runtime_domain_terms,
     compare_runtime_domain_terms,
     load_runtime_domain_term_baseline,
     summarise_runtime_domain_terms,
+    summarise_runtime_domain_terms_by_symbol,
 )
 
 
@@ -82,6 +84,37 @@ class RuntimeDomainTermAuditTests(unittest.TestCase):
         self.assertEqual(summary["literal_count"], 4)
         self.assertEqual(summary["by_category"]["runtime_literal"], 2)
         self.assertEqual(summary["top_paths"], [{"path": "src/agent/a.py", "records": 2}])
+
+    def test_occurrence_summary_groups_literals_by_symbol(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            project_root = Path(tmp_dir)
+            source_dir = project_root / "src" / "agent"
+            source_dir.mkdir(parents=True)
+            (source_dir / "example.py").write_text(
+                "\n".join(
+                    [
+                        'MODULE_VALUE = "\\uc0c1\\uc704"',
+                        "class Example:",
+                        "    def select(self):",
+                        '        return "\\uc120\\ud0dd"',
+                        "    async def resolve(self):",
+                        '        return "\\uc870\\ub9bd"',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            occurrences = collect_runtime_domain_term_occurrences(project_root, ("src/agent",))
+
+        symbols = {(item["symbol"], item["text"]) for item in occurrences}
+        self.assertIn(("<module>", "상위"), symbols)
+        self.assertIn(("Example.select", "선택"), symbols)
+        self.assertIn(("Example.resolve", "조립"), symbols)
+
+        summary = summarise_runtime_domain_terms_by_symbol(occurrences, top_n=2)
+
+        self.assertEqual(summary["occurrence_count"], 3)
+        self.assertEqual(len(summary["top_symbols"]), 2)
 
 
 if __name__ == "__main__":
