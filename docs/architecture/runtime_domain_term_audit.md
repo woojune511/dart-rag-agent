@@ -91,15 +91,18 @@ cleanup patterns and period-comparison count extraction patterns into retrieval
 policy. A dividend/entity evidence follow-up moved dividend amount/ranking
 patterns, dividend policy period scoring markers, entity table number/part
 templates, narrative driver joiners/templates, and required-operand year
-patterns into retrieval policy.
+patterns into retrieval policy. A calculation narrative/slot follow-up moved
+topic particles, prior-period phrase templates, sentence terminal handling,
+period suffix handling, and operand-label cleanup patterns into calculation
+policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 333 |
-| Literal occurrences | 391 |
-| `runtime_literal` records | 149 |
+| Reviewed records | 329 |
+| Literal occurrences | 383 |
+| `runtime_literal` records | 146 |
 | `schema_description` records | 117 |
-| `regex_or_pattern` records | 46 |
+| `regex_or_pattern` records | 45 |
 | `prompt_or_template` records | 21 |
 
 Top files:
@@ -108,7 +111,7 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
 | `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
-| `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
+| `src/agent/financial_graph_calculation.py` | 26 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_evidence.py` | 26 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |

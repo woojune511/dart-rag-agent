@@ -24,14 +24,17 @@ logger = logging.getLogger(__name__)
 
 
 def _topic_particle(value: str) -> str:
+    particles = dict(CALCULATION_NARRATIVE_POLICY.get("topic_particles") or {})
+    with_final = str(particles.get("with_final_consonant") or "")
+    without_final = str(particles.get("without_final_consonant") or "")
     text = _normalise_spaces(str(value or ""))
     if not text:
-        return "은"
+        return with_final
     last = text[-1]
     codepoint = ord(last)
     if 0xAC00 <= codepoint <= 0xD7A3:
-        return "은" if (codepoint - 0xAC00) % 28 else "는"
-    return "는"
+        return with_final if (codepoint - 0xAC00) % 28 else without_final
+    return without_final
 
 
 class FinancialAgentCalculationMixin:
@@ -1384,7 +1387,8 @@ class FinancialAgentCalculationMixin:
             direction_word = str(direction_words.get("growth") or direction_words.get("increase") or "increase")
         else:
             direction_word = str(direction_words.get("increase") or "increase")
-        if current_period and not current_period.endswith("년"):
+        year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
+        if current_period and year_suffix and not current_period.endswith(year_suffix):
             period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_with_year_template") or "").format(
                 period=current_period
             )
@@ -1394,7 +1398,15 @@ class FinancialAgentCalculationMixin:
             )
         else:
             period_prefix = ""
-        prior_phrase = f"{prior_period} {prior_value} 대비 " if prior_value else f"{prior_period} 대비 "
+        if prior_value:
+            prior_phrase = str(CALCULATION_NARRATIVE_POLICY.get("prior_phrase_with_value_template") or "").format(
+                period=prior_period,
+                value=prior_value,
+            )
+        else:
+            prior_phrase = str(CALCULATION_NARRATIVE_POLICY.get("prior_phrase_template") or "").format(
+                period=prior_period
+            )
         numeric_sentence = _normalise_spaces(
             str(CALCULATION_NARRATIVE_POLICY.get("growth_numeric_sentence_template") or "").format(
                 period_prefix=period_prefix,
@@ -1407,8 +1419,10 @@ class FinancialAgentCalculationMixin:
             )
         )
         narrative_sentence, selected_claim_ids = narrative_candidates[0][1], narrative_candidates[0][2]
-        if narrative_sentence and not re.search(r"[.!?。]$", narrative_sentence):
-            narrative_sentence = f"{narrative_sentence}."
+        terminal_pattern = str(CALCULATION_NARRATIVE_POLICY.get("sentence_terminal_pattern") or "")
+        terminal_suffix = str(CALCULATION_NARRATIVE_POLICY.get("sentence_terminal_suffix") or "")
+        if narrative_sentence and terminal_pattern and not re.search(terminal_pattern, narrative_sentence):
+            narrative_sentence = f"{narrative_sentence}{terminal_suffix}"
         return {
             "compressed_answer": _normalise_spaces(f"{numeric_sentence} {narrative_sentence}"),
             "selected_claim_ids": selected_claim_ids,
@@ -1540,14 +1554,25 @@ class FinancialAgentCalculationMixin:
             str(row.get("label") or "").strip(),
             str(row.get("matched_operand_label") or "").strip(),
         ]
+        slot_policy = dict(CALCULATION_SLOT_POLICY)
+        parenthetical_alias_pattern = str(slot_policy.get("parenthetical_alias_pattern") or "")
+        parenthetical_strip_pattern = str(slot_policy.get("parenthetical_strip_pattern") or "")
+        leading_period_strip_pattern = str(slot_policy.get("leading_period_strip_pattern") or "")
         for label_surface in list(operand_aliases):
-            for match in re.finditer(r"\(([^)]{2,80})\)", label_surface):
-                operand_aliases.append(_normalise_spaces(match.group(1)))
-            without_parenthetical = _normalise_spaces(re.sub(r"\([^)]*\)", " ", label_surface))
+            if parenthetical_alias_pattern:
+                for match in re.finditer(parenthetical_alias_pattern, label_surface):
+                    operand_aliases.append(_normalise_spaces(match.group(1)))
+            without_parenthetical = (
+                _normalise_spaces(re.sub(parenthetical_strip_pattern, " ", label_surface))
+                if parenthetical_strip_pattern
+                else _normalise_spaces(label_surface)
+            )
             if without_parenthetical:
                 operand_aliases.append(without_parenthetical)
                 stripped_period = _normalise_spaces(
-                    re.sub(r"^(?:(?:20\d{2}\s*년?)|(?:제\s*\d+\s*기))(?:\s+|$)", " ", without_parenthetical)
+                    re.sub(leading_period_strip_pattern, " ", without_parenthetical)
+                    if leading_period_strip_pattern
+                    else without_parenthetical
                 )
                 if stripped_period:
                     operand_aliases.append(stripped_period)

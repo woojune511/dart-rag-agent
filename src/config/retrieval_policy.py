@@ -512,8 +512,14 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
         "{period_prefix}{metric_label}{topic_particle} {current_value}이며, "
         "{prior_phrase}{growth_value} {direction_word}했습니다."
     ),
+    "prior_phrase_with_value_template": "{period} {value} 대비 ",
+    "prior_phrase_template": "{period} 대비 ",
+    "topic_particles": {"with_final_consonant": "은", "without_final_consonant": "는"},
+    "period_year_suffix": "년",
     "period_prefix_with_year_template": "{period}년 ",
     "period_prefix_template": "{period} ",
+    "sentence_terminal_pattern": r"[.!?。]$",
+    "sentence_terminal_suffix": ".",
 }
 
 
@@ -613,6 +619,9 @@ CALCULATION_SLOT_POLICY: Dict[str, Any] = {
     "period_pattern": r"20\d{2}\s*년?",
     "label_drop_terms": ("총액", "증감률", "증감액", "증가율", "비중", "비율"),
     "label_drop_patterns": (r"(^|\s)부문(?=\s|$)",),
+    "parenthetical_alias_pattern": r"\(([^)]{2,80})\)",
+    "parenthetical_strip_pattern": r"\([^)]*\)",
+    "leading_period_strip_pattern": r"^(?:(?:20\d{2}\s*년?)|(?:제\s*\d+\s*기))(?:\s+|$)",
 }
 
 
