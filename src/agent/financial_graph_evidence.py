@@ -32,8 +32,11 @@ from src.config.retrieval_policy import (
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
+    ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
+    QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
+    REQUIRED_OPERAND_ASSEMBLY_POLICY,
     QUERY_FOCUS_STOPWORDS,
     active_narrative_policies,
     narrative_policy_active,
@@ -2608,6 +2611,32 @@ class FinancialAgentEvidenceMixin:
 
         query_text = _normalise_spaces(query)
         query_years = re.findall(r"(20\d{2}년)", query_text)
+        assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
+        aggregation_stage_labels = {
+            stage: {
+                re.sub(r"\s+", "", _normalise_spaces(str(label)))
+                for label in labels
+                if _normalise_spaces(str(label))
+            }
+            for stage, labels in dict(assembly_policy.get("aggregation_stage_labels") or {}).items()
+        }
+
+        def _aggregation_stage_for_label(row_label: str) -> str:
+            compact_label = re.sub(r"\s+", "", _normalise_spaces(row_label))
+            for stage, labels in aggregation_stage_labels.items():
+                if compact_label in labels:
+                    return str(stage)
+            return "none"
+
+        def _fallback_unit(raw_value: str, context_text: str) -> str:
+            for rule in assembly_policy.get("fallback_unit_rules") or ():
+                terms = tuple(str(term) for term in ((rule or {}).get("surface_terms") or ()))
+                source = str((rule or {}).get("source") or "")
+                haystack = raw_value if source == "raw_value" else context_text
+                if any(term in haystack for term in terms):
+                    return str((rule or {}).get("unit") or "")
+            return ""
+
         prioritized_items = _prioritize_candidate_items(
             candidate_items,
             query=query,
@@ -2645,14 +2674,7 @@ class FinancialAgentEvidenceMixin:
                     )
                 )
                 aggregate_context_match = False
-                compact_row_label = re.sub(r"\s+", "", _normalise_spaces(row_label))
-                aggregate_stage = (
-                    "subtotal"
-                    if compact_row_label == "소계"
-                    else "final"
-                    if compact_row_label in {"합계", "총계", "계"}
-                    else "none"
-                )
+                aggregate_stage = _aggregation_stage_for_label(row_label)
                 if aggregate_stage != "none":
                     binding_policy = dict(operand.get("binding_policy") or {})
                     prefer_value_roles = {
@@ -2768,10 +2790,7 @@ class FinancialAgentEvidenceMixin:
                 if not raw_value and not period_count_context_match:
                     raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
                     if raw_value and not raw_unit:
-                        if "조" in raw_value or "억" in raw_value:
-                            raw_unit = "원"
-                        elif "백만원" in context_text:
-                            raw_unit = "백만원"
+                        raw_unit = _fallback_unit(raw_value, context_text)
 
                 if not raw_value:
                     continue
@@ -2781,21 +2800,13 @@ class FinancialAgentEvidenceMixin:
                     # value.
                     continue
 
-                inline_unit_match = re.fullmatch(
-                    r"(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|백만원|천원|원)",
-                    raw_value,
-                )
+                inline_unit_match = re.fullmatch(str(assembly_policy.get("inline_unit_pattern") or ""), raw_value)
                 if inline_unit_match and not re.search(r"\(\s*" + re.escape(raw_value), raw_row):
                     raw_value = inline_unit_match.group("value")
                     raw_unit = raw_unit or inline_unit_match.group("unit")
 
                 if not raw_unit:
-                    if "조" in raw_value or "억" in raw_value:
-                        raw_unit = "원"
-                    elif "백만원" in context_text:
-                        raw_unit = "백만원"
-                    elif "천원" in context_text:
-                        raw_unit = "천원"
+                    raw_unit = _fallback_unit(raw_value, context_text)
 
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                 if normalized_value is None:
@@ -2823,7 +2834,7 @@ class FinancialAgentEvidenceMixin:
                     "matched_operand_role": str(operand.get("role") or "").strip(),
                     "matched_operand_concept": str(operand.get("concept") or "").strip(),
                     "raw_value": raw_value,
-                    "raw_unit": raw_unit or "원",
+                    "raw_unit": raw_unit or str(assembly_policy.get("default_unit") or ""),
                     "normalized_value": normalized_value,
                     "normalized_unit": normalized_unit,
                     "period": period,
@@ -2833,7 +2844,9 @@ class FinancialAgentEvidenceMixin:
                 }
                 if stated_change_raw_value:
                     row_payload["stated_change_raw_value"] = stated_change_raw_value
-                    row_payload["stated_change_raw_unit"] = stated_change_raw_unit or "%"
+                    row_payload["stated_change_raw_unit"] = stated_change_raw_unit or str(
+                        assembly_policy.get("stated_change_default_unit") or ""
+                    )
                 operand_rows.append(row_payload)
                 break
 
@@ -3260,10 +3273,38 @@ class FinancialAgentEvidenceMixin:
         def _clean_amount(value: str) -> str:
             return value.strip()
 
-        requested_consolidated = "연결" in query_text
+        policy = dict(ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY)
+        requested_consolidated = any(
+            str(term) in query_text
+            for term in (policy.get("consolidated_query_terms") or ())
+        )
         investment_candidates: List[tuple[tuple[int, int, float, int], str, str, str, str, str]] = []
         summary_candidates: List[tuple[tuple[int, int], str, str, str, str]] = []
         supporting_anchors: List[str] = []
+
+        def _section_score(section_path: str, text: str) -> int:
+            score = 0
+            for rule in policy.get("section_score_rules") or ():
+                marker = str((rule or {}).get("text") or "")
+                field = str((rule or {}).get("field") or "")
+                if not marker:
+                    continue
+                haystack = section_path if field == "section_path" else text
+                if marker in haystack:
+                    score += int((rule or {}).get("score") or 0)
+            text_terms, text_score = policy.get("text_score_terms") or ((), 0)
+            if any(str(marker) in text for marker in text_terms):
+                score += int(text_score or 0)
+            negative_rule = dict(policy.get("negative_text_terms_without_anchor") or {})
+            negative_terms = tuple(str(marker) for marker in (negative_rule.get("terms") or ()))
+            negative_anchor = str(negative_rule.get("anchor") or "")
+            if any(marker in text for marker in negative_terms) and negative_anchor not in text:
+                score += int(negative_rule.get("score") or 0)
+            penalty_rule = dict(policy.get("non_consolidated_section_penalty") or {})
+            penalty_marker = str(penalty_rule.get("section_marker") or "")
+            if not requested_consolidated and penalty_marker and penalty_marker in section_path:
+                score += int(penalty_rule.get("score") or 0)
+            return score
 
         def _scan_source_text(
             *,
@@ -3323,23 +3364,11 @@ class FinancialAgentEvidenceMixin:
                     entity_lines.append((line, display_line))
             if not entity_lines:
                 return
-            section_score = 0
-            if "타법인출자" in section_path:
-                section_score += 2
-            if "재무제표 주석" in section_path:
-                section_score += 2
-            if "타법인출자" in text:
-                section_score += 4
-            if any(marker in text for marker in ("투자자산", "관계기업", "공동기업")):
-                section_score += 3
-            if any(marker in text for marker in ("연결대상", "종속기업")) and "타법인출자" not in text:
-                section_score -= 4
-            if not requested_consolidated and "연결재무제표 주석" in section_path:
-                section_score -= 1
+            section_score = _section_score(section_path, text)
             period_score = 1 if str(period_focus or "").lower() == "current" else 0
             for line, display_line in entity_lines:
                 line_numbers = _numbers(line)
-                if "%" in line and any(marker in text for marker in ("소유지분율", "지분율", "장부금액", "투자자산")):
+                if "%" in line and any(marker in text for marker in (policy.get("investment_metric_terms") or ())):
                     percent_values = [value for value in line_numbers if value.endswith("%")]
                     percent = percent_values[-1] if len(percent_values) >= 2 else next(iter(percent_values), "")
                     prior_percent = percent_values[0] if len(percent_values) >= 2 and percent_values[0] != percent else ""
@@ -3356,7 +3385,7 @@ class FinancialAgentEvidenceMixin:
                                 display_line,
                             )
                         )
-                if any(marker in text for marker in ("계속영업손익", "계속영업이익", "계속영업손실", "총포괄손익")):
+                if any(marker in text for marker in (policy.get("summary_metric_terms") or ())):
                     non_percent_numbers = [value for value in line_numbers if not value.endswith("%")]
                     if len(non_percent_numbers) >= 3:
                         continuing = _clean_amount(non_percent_numbers[-3])
@@ -3439,26 +3468,36 @@ class FinancialAgentEvidenceMixin:
             return None
 
         entity_label = next((variant for variant in entity_variants if re.search(r"[A-Za-z]", variant)), entity_variants[0])
+        role_labels = dict(policy.get("role_labels") or {})
+        default_unit = str(policy.get("default_unit") or "")
         sentences: List[str] = []
         if percent or amount:
             parts = []
             if percent:
                 if prior_percent:
-                    parts.append(f"기초 지분율은 {prior_percent}, 기말 지분율은 {percent}")
+                    prior_label = str(role_labels.get("prior_ownership_ratio") or "prior_ownership_ratio")
+                    current_label = str(role_labels.get("ownership_ratio") or "ownership_ratio")
+                    parts.append(f"{prior_label}은 {prior_percent}, {current_label}은 {percent}")
                 else:
-                    parts.append(f"지분율은 {percent}")
+                    current_label = str(role_labels.get("ownership_ratio") or "ownership_ratio")
+                    parts.append(f"{current_label}은 {percent}")
             if amount:
-                parts.append(f"투자장부금액은 {amount}백만원")
-            sentences.append(f"{entity_label}의 " + ", ".join(parts) + "입니다.")
+                amount_label = str(role_labels.get("investment_carrying_amount") or "investment_carrying_amount")
+                parts.append(f"{amount_label}은 {amount}{default_unit}")
+            sentence_template = str(policy.get("investment_sentence_template") or "{entity_label}: {parts}")
+            sentences.append(sentence_template.format(entity_label=entity_label, parts=", ".join(parts)))
         if continuing or total_comprehensive:
             parts = []
             if continuing:
-                continuing_label = "계속영업손실" if str(continuing).strip().startswith("(") else "계속영업손익"
-                parts.append(f"{continuing_label} {continuing}백만원")
+                role_key = "continuing_loss" if str(continuing).strip().startswith("(") else "continuing_profit_loss"
+                continuing_label = str(role_labels.get(role_key) or role_key)
+                parts.append(f"{continuing_label} {continuing}{default_unit}")
             if total_comprehensive:
-                comprehensive_label = "총포괄손실" if str(total_comprehensive).strip().startswith("(") else "총포괄손익"
-                parts.append(f"{comprehensive_label} {total_comprehensive}백만원")
-            sentences.append("요약 손익은 " + ", ".join(parts) + "입니다.")
+                role_key = "total_comprehensive_loss" if str(total_comprehensive).strip().startswith("(") else "total_comprehensive_profit_loss"
+                comprehensive_label = str(role_labels.get(role_key) or role_key)
+                parts.append(f"{comprehensive_label} {total_comprehensive}{default_unit}")
+            sentence_template = str(policy.get("summary_sentence_template") or "{parts}")
+            sentences.append(sentence_template.format(entity_label=entity_label, parts=", ".join(parts)))
         answer = _normalise_spaces(" ".join(sentences))
         if not answer:
             return None
@@ -3470,6 +3509,23 @@ class FinancialAgentEvidenceMixin:
             and str(item.get("evidence_id") or "").strip()
         ]
 
+        def _resolved_period() -> str:
+            candidates: List[Any] = [*re.findall(r"20\d{2}", query_text)]
+            for item in docs or []:
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                metadata = getattr(doc, "metadata", {}) or {}
+                candidates.append(metadata.get("year"))
+            for item in evidence_items or []:
+                metadata = dict((item or {}).get("metadata") or {})
+                candidates.append(metadata.get("year"))
+            for candidate in candidates:
+                match = re.search(r"20\d{2}", str(candidate or ""))
+                if match:
+                    return match.group(0)
+            return str(policy.get("period_fallback") or "")
+
+        period = _resolved_period()
+
         def _operand_row(label: str, raw_value: str, raw_unit: str, role: str, anchor: str) -> Dict[str, Any]:
             normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
             source_row_id = f"{anchor}::{role}" if anchor else ""
@@ -3478,7 +3534,7 @@ class FinancialAgentEvidenceMixin:
                 "matched_operand_role": role,
                 "label": label,
                 "concept": role,
-                "period": "2023",
+                "period": period,
                 "raw_value": raw_value,
                 "raw_unit": raw_unit,
                 "normalized_value": normalized_value,
@@ -3493,15 +3549,17 @@ class FinancialAgentEvidenceMixin:
         primary_anchor = supporting_anchors[0] if supporting_anchors else ""
         summary_anchor = supporting_anchors[-1] if supporting_anchors else primary_anchor
         if prior_percent:
-            calculation_operands.append(_operand_row(f"{entity_label} 기초 지분율", prior_percent.replace("%", ""), "%", "prior_ownership_ratio", primary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} {role_labels.get('prior_ownership_ratio') or 'prior_ownership_ratio'}", prior_percent.replace("%", ""), "%", "prior_ownership_ratio", primary_anchor))
         if percent:
-            calculation_operands.append(_operand_row(f"{entity_label} 기말 지분율", percent.replace("%", ""), "%", "ownership_ratio", primary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} {role_labels.get('ownership_ratio') or 'ownership_ratio'}", percent.replace("%", ""), "%", "ownership_ratio", primary_anchor))
         if amount:
-            calculation_operands.append(_operand_row(f"{entity_label} 투자장부금액", amount, "백만원", "investment_carrying_amount", primary_anchor))
+            calculation_operands.append(_operand_row(f"{entity_label} {role_labels.get('investment_carrying_amount') or 'investment_carrying_amount'}", amount, default_unit, "investment_carrying_amount", primary_anchor))
         if continuing:
-            calculation_operands.append(_operand_row(f"{entity_label} 계속영업손실", continuing, "백만원", "continuing_loss", summary_anchor))
+            role_key = "continuing_loss" if str(continuing).strip().startswith("(") else "continuing_profit_loss"
+            calculation_operands.append(_operand_row(f"{entity_label} {role_labels.get(role_key) or role_key}", continuing, default_unit, role_key, summary_anchor))
         if total_comprehensive:
-            calculation_operands.append(_operand_row(f"{entity_label} 총포괄손실", total_comprehensive, "백만원", "total_comprehensive_loss", summary_anchor))
+            role_key = "total_comprehensive_loss" if str(total_comprehensive).strip().startswith("(") else "total_comprehensive_profit_loss"
+            calculation_operands.append(_operand_row(f"{entity_label} {role_labels.get(role_key) or role_key}", total_comprehensive, default_unit, role_key, summary_anchor))
         components_by_role = {
             str(row.get("matched_operand_role") or row.get("operand_id") or ""): [
                 {
@@ -4667,8 +4725,9 @@ Structured Evidence:
         evidence_items: List[Dict[str, Any]],
     ) -> Optional[Dict[str, Any]]:
         query_text = _normalise_spaces(query)
-        if not any(marker in query_text for marker in ("영향", "분석", "비중", "대비", "차지")):
+        if not any(marker in query_text for marker in QUANTITATIVE_IMPACT_QUERY_TERMS):
             return None
+        policy = dict(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY)
 
         rows: List[Dict[str, Any]] = []
         for item in evidence_items:
@@ -4682,8 +4741,10 @@ Structured Evidence:
             for term in re.findall(r"[\"'“”‘’](.+?)[\"'“”‘’]", query_text)
             if str(term).strip()
         ]
-        primary_denominator_markers = ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계")
-        denominator_markers = primary_denominator_markers + ("자산", "부채", "자본")
+        primary_denominator_markers = tuple(str(marker) for marker in (policy.get("primary_denominator_markers") or ()))
+        denominator_markers = primary_denominator_markers + tuple(
+            str(marker) for marker in (policy.get("denominator_markers") or ())
+        )
 
         def label_matches_query(label: str) -> bool:
             compact = re.sub(r"\s+", "", label)
@@ -4754,19 +4815,40 @@ Structured Evidence:
         numerator_raw = str(numerator.get("raw_value") or "").strip()
         denominator_raw = str(denominator.get("raw_value") or "").strip()
 
-        impact_sentence = "해당 기준 금액에 반영된 항목으로 해석할 수 있습니다."
-        if any(marker in denominator_label for marker in ("원가", "비용")) and "손실" in numerator_label and numerator_value > 0:
-            impact_sentence = f"{denominator_label}에 포함되어 비용을 증가시키고 매출총이익을 압박하는 요인입니다."
-        elif any(marker in denominator_label for marker in ("원가", "비용")):
-            impact_sentence = f"{denominator_label}에 포함되어 해당 비용에 영향을 주는 항목입니다."
+        cost_denominator_markers = tuple(str(marker) for marker in (policy.get("cost_denominator_markers") or ()))
+        loss_markers = tuple(str(marker) for marker in (policy.get("loss_markers") or ()))
+        impact_sentence = str(policy.get("default_impact_sentence") or "")
+        if (
+            any(marker in denominator_label for marker in cost_denominator_markers)
+            and any(marker in numerator_label for marker in loss_markers)
+            and numerator_value > 0
+        ):
+            impact_sentence = str(policy.get("cost_loss_impact_template") or "{denominator_label}").format(
+                denominator_label=denominator_label
+            )
+        elif any(marker in denominator_label for marker in cost_denominator_markers):
+            impact_sentence = str(policy.get("cost_impact_template") or "{denominator_label}").format(
+                denominator_label=denominator_label
+            )
 
         caveat = ""
-        if ("등" in numerator_label or "환입" in numerator_label) and "세부" not in query_text:
-            caveat = " 항목명상 손실, 환입 등의 세부 구성은 이 근거만으로는 분해하지 않습니다."
+        caveat_trigger_terms = tuple(str(marker) for marker in (policy.get("caveat_trigger_terms") or ()))
+        caveat_exception_terms = tuple(str(marker) for marker in (policy.get("caveat_exception_terms") or ()))
+        if any(marker in numerator_label for marker in caveat_trigger_terms) and not any(
+            marker in query_text for marker in caveat_exception_terms
+        ):
+            caveat = str(policy.get("caveat_sentence") or "")
 
-        answer = (
-            f"{scope_prefix}{numerator_label}은 {numerator_raw}{unit_suffix}입니다. "
-            f"{impact_sentence} {denominator_label} {denominator_raw}{unit_suffix} 대비 약 {ratio:.2f}% 규모입니다.{caveat}"
+        answer = str(policy.get("answer_template") or "").format(
+            scope_prefix=scope_prefix,
+            numerator_label=numerator_label,
+            numerator_raw=numerator_raw,
+            unit_suffix=unit_suffix,
+            impact_sentence=impact_sentence,
+            denominator_label=denominator_label,
+            denominator_raw=denominator_raw,
+            ratio=ratio,
+            caveat=caveat,
         )
         supporting_claim_ids = sorted(
             {

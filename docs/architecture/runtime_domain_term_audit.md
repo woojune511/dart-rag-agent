@@ -33,14 +33,16 @@ operand-label normalization rule and moved calculation section/topic hinting to
 ontology data. Later passes moved generic numeric operand surface extraction
 off a hard-coded runtime regex list and onto ontology concept surfaces, then
 moved numeric section hints and segment-label extraction vocabulary into
-retrieval policy/config.
+retrieval policy/config. The latest evidence pass moved quantitative-impact,
+entity-table summary, and required-operand assembly surfaces into retrieval
+policy/config.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 707 |
-| Literal occurrences | 1,072 |
-| `runtime_literal` records | 601 |
-| `regex_or_pattern` records | 74 |
+| Reviewed records | 658 |
+| Literal occurrences | 987 |
+| `runtime_literal` records | 553 |
+| `regex_or_pattern` records | 73 |
 | `prompt_or_template` records | 32 |
 
 Top files:
@@ -48,8 +50,8 @@ Top files:
 | File | Records | Initial disposition |
 | --- | ---: | --- |
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
-| `src/agent/financial_graph_evidence.py` | 173 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
+| `src/agent/financial_graph_evidence.py` | 124 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
@@ -132,6 +134,19 @@ For each P0 record, classify it as one of:
   row labels, default unit, and deterministic answer template from retrieval
   policy config. Runtime still requires structured table row records and a
   source-backed metric cell before it assembles the answer.
+- `_compose_supported_quantitative_impact_answer()` now reads denominator
+  markers, impact/caveat terms, and answer wording from retrieval policy. The
+  runtime path only parses retrieved labeled numeric rows, selects supported
+  numerator/denominator rows, and computes the displayed ratio.
+- `_compose_entity_table_summary_answer()` now reads section scoring rules,
+  entity-table metric terms, role display labels, units, and sentence templates
+  from retrieval policy. Runtime keeps the generic mechanics: scan lines around
+  the requested entity, rank candidates, preserve evidence rows, and project
+  answer slots.
+- `_build_required_operands_from_candidates()` now reads aggregate row labels,
+  inline unit parsing, unit fallback rules, and default units from retrieval
+  policy. Runtime still requires operand surface/structured-cell/prose support
+  before emitting operand rows.
 
 ## Evidence Hotspots
 
@@ -145,8 +160,8 @@ Top evidence targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_compose_supported_quantitative_impact_answer` | 31 | answer wording and slot labels; review for selector leakage |
-| `_compose_entity_table_summary_answer` | 24 | entity/table answer assembly; likely mix of formatting and domain rows |
-| `_build_required_operands_from_candidates` | 23 | operand assembly; prioritize generic contract checks |
-| `_compose_entity_table_summary_answer._scan_source_text` | 20 | text scan helper; separate generic scan rules from table/entity labels |
+| `_compose_business_technology_focus_answer` | 16 | technology-focused narrative assembly; check facet terms stay policy-driven |
+| `_compression_guidance` | 16 | prompt guidance text; mostly validation/compression wording |
+| `_extract_ratio_component_candidates` | 13 | ratio component extraction; inspect unit/row label surfaces |
 | `_build_ratio_operands_from_candidates` | 11 | ratio operand binding; remaining literals are mostly periods/units |
+| `_build_required_operands_from_candidates` | 5 | remaining literals are mostly period/unit mechanics after policy extraction |

@@ -141,6 +141,21 @@ NUMERIC_IMPAIRMENT_LOOKUP_POLICY: Dict[str, Any] = {
     ),
 }
 
+REQUIRED_OPERAND_ASSEMBLY_POLICY: Dict[str, Any] = {
+    "aggregation_stage_labels": {
+        "subtotal": ("소계",),
+        "final": ("합계", "총계", "계"),
+    },
+    "inline_unit_pattern": r"(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|백만원|천원|원)",
+    "fallback_unit_rules": (
+        {"surface_terms": ("조", "억"), "unit": "원", "source": "raw_value"},
+        {"surface_terms": ("백만원",), "unit": "백만원", "source": "context"},
+        {"surface_terms": ("천원",), "unit": "천원", "source": "context"},
+    ),
+    "default_unit": "원",
+    "stated_change_default_unit": "%",
+}
+
 
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
@@ -286,6 +301,54 @@ NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
 )
 
 QUANTITATIVE_IMPACT_QUERY_TERMS = ("영향", "분석", "비중", "대비", "차지")
+
+QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
+    "primary_denominator_markers": ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계"),
+    "denominator_markers": ("자산", "부채", "자본"),
+    "cost_denominator_markers": ("원가", "비용"),
+    "loss_markers": ("손실",),
+    "caveat_trigger_terms": ("등", "환입"),
+    "caveat_exception_terms": ("세부",),
+    "default_impact_sentence": "해당 기준 금액에 반영된 항목으로 해석할 수 있습니다.",
+    "cost_loss_impact_template": "{denominator_label}에 포함되어 비용을 증가시키고 매출총이익을 압박하는 요인입니다.",
+    "cost_impact_template": "{denominator_label}에 포함되어 해당 비용에 영향을 주는 항목입니다.",
+    "caveat_sentence": " 항목명상 손실, 환입 등의 세부 구성은 이 근거만으로는 분해하지 않습니다.",
+    "answer_template": (
+        "{scope_prefix}{numerator_label}은 {numerator_raw}{unit_suffix}입니다. "
+        "{impact_sentence} {denominator_label} {denominator_raw}{unit_suffix} 대비 약 {ratio:.2f}% 규모입니다.{caveat}"
+    ),
+}
+
+ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY: Dict[str, Any] = {
+    "consolidated_query_terms": ("연결",),
+    "section_score_rules": (
+        {"text": "타법인출자", "field": "section_path", "score": 2},
+        {"text": "재무제표 주석", "field": "section_path", "score": 2},
+        {"text": "타법인출자", "field": "text", "score": 4},
+    ),
+    "text_score_terms": (("투자자산", "관계기업", "공동기업"), 3),
+    "negative_text_terms_without_anchor": {
+        "terms": ("연결대상", "종속기업"),
+        "anchor": "타법인출자",
+        "score": -4,
+    },
+    "non_consolidated_section_penalty": {"section_marker": "연결재무제표 주석", "score": -1},
+    "investment_metric_terms": ("소유지분율", "지분율", "장부금액", "투자자산"),
+    "summary_metric_terms": ("계속영업손익", "계속영업이익", "계속영업손실", "총포괄손익"),
+    "default_unit": "백만원",
+    "period_fallback": "",
+    "role_labels": {
+        "prior_ownership_ratio": "기초 지분율",
+        "ownership_ratio": "기말 지분율",
+        "investment_carrying_amount": "투자장부금액",
+        "continuing_profit_loss": "계속영업손익",
+        "continuing_loss": "계속영업손실",
+        "total_comprehensive_profit_loss": "총포괄손익",
+        "total_comprehensive_loss": "총포괄손실",
+    },
+    "investment_sentence_template": "{entity_label}의 {parts}입니다.",
+    "summary_sentence_template": "요약 손익은 {parts}입니다.",
+}
 
 
 NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
