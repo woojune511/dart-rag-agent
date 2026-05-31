@@ -439,6 +439,27 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-06-01 NAV_T2_006 narrative-preservation focused replay:
+  - source store bundle:
+    `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
+  - local output bundle:
+    `benchmarks/results/policy_gate_naver_markerpolicy_evalonly_2026-06-01_fix17/`
+    (local experiment artifact only; do not commit raw results)
+  - scope: NAVER-only store-fixed eval-only for `NAV_T2_006`, covering
+    growth-rate dependency operands plus evidence-backed narrative focus
+    preservation during aggregate answer composition.
+  - result: `faithfulness = 1.0`, `completeness = 1.0`,
+    `calculation_correctness = 1.0`, `unit_consistency_pass = 1.0`,
+    `grounded_rendering_correctness = 1.0`, `context_recall = 1.0`,
+    `retrieval_hit_at_k = 1.0`, and `avg_score = 0.898`.
+  - implementation scope: lookup subtasks preserve structured row units from
+    evidence metadata, dependency operands can be synthesized from sibling
+    lookup outputs when answer slots are absent, and aggregate growth+narrative
+    composition now preserves the focused narrative row's adjacent supported
+    context instead of collapsing it to a single sentence. The runtime still
+    consumes generic policy/config markers and retrieved subtask evidence; no
+    company-, question-, or benchmark-id branch was added.
+
 - 2026-06-01 technology-focus policy extraction replay:
   - source store bundle:
     `benchmarks/results/policy_gate_regression_2026-05-31_2212/`

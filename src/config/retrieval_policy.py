@@ -815,8 +815,10 @@ RECONCILIATION_POLICY: Dict[str, Any] = {
 PLANNING_POLICY: Dict[str, Any] = {
     "money_surface_pattern": (
         r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"
-        r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|억원|백만원|원|%)"
+        r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|억원|백만원|천원|원|%)"
     ),
+    "year_token_pattern": r"20\d{2}",
+    "year_label_token_pattern": r"20\d{2}\s*년?",
     "money_surface_compound_unit_prefix": "조",
     "hybrid_narrative_metric_label": "질문 관련 배경/영향 설명",
     "segment_default_metric_name": "매출액",
@@ -944,6 +946,11 @@ HELPER_RUNTIME_POLICY: Dict[str, Any] = {
         "악화",
         "불구",
         "정책",
+        "impact",
+        "driver",
+        "reason",
+        "explain",
+        "summarize",
     ),
     "legacy_concept_surface_contracts": {
         "income_before_income_taxes": {

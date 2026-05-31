@@ -39,6 +39,8 @@ logger = logging.getLogger(__name__)
 
 
 _MONEY_SURFACE_RE = re.compile(str(PLANNING_POLICY.get("money_surface_pattern") or r"$^"))
+_LOOKUP_YEAR_RE = re.compile(str(PLANNING_POLICY.get("year_token_pattern") or r"$^"))
+_LOOKUP_YEAR_LABEL_RE = re.compile(str(PLANNING_POLICY.get("year_label_token_pattern") or r"$^"))
 
 
 def _slot_has_material(slot: Dict[str, Any]) -> bool:
@@ -78,6 +80,83 @@ def _slot_values_match_operand_unit(values: Dict[str, Any], operand: Dict[str, A
     if not actual_unit or actual_unit == "UNKNOWN":
         return True
     return actual_unit == desired_unit
+
+
+def _lookup_operand_matches_active_task(operand: Dict[str, Any], active_subtask: Dict[str, Any]) -> bool:
+    active_label = _normalise_spaces(str(active_subtask.get("metric_label") or active_subtask.get("query") or ""))
+    operand_label = _normalise_spaces(
+        str(operand.get("label") or operand.get("matched_operand_label") or operand.get("name") or "")
+    )
+    operand_period = _normalise_spaces(str(operand.get("period") or operand.get("period_hint") or ""))
+    active_years = set(_LOOKUP_YEAR_RE.findall(active_label))
+    operand_years = set(_LOOKUP_YEAR_RE.findall(f"{operand_label} {operand_period}"))
+    if active_years and operand_years and not (active_years & operand_years):
+        return False
+    if active_years and not operand_years:
+        return False
+    if active_label and operand_label:
+        if active_label == operand_label or active_label in operand_label or operand_label in active_label:
+            return True
+        active_tokens = {
+            token
+            for token in re.split(r"\s+", active_label)
+            if token and not _LOOKUP_YEAR_LABEL_RE.fullmatch(token)
+        }
+        operand_tokens = {
+            token
+            for token in re.split(r"\s+", operand_label)
+            if token and not _LOOKUP_YEAR_LABEL_RE.fullmatch(token)
+        }
+        return bool(active_tokens & operand_tokens)
+    return True
+
+
+def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[str, Any]) -> Dict[str, Any]:
+    raw_value = _normalise_spaces(str(slot.get("raw_value") or ""))
+    if not raw_value:
+        return slot
+    current_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+    metadata = dict(evidence.get("metadata") or {})
+    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+    if unit_hint and unit_hint != current_unit:
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, unit_hint)
+        if normalized_value is not None:
+            updated = dict(slot)
+            updated["raw_unit"] = unit_hint
+            updated["normalized_value"] = normalized_value
+            updated["normalized_unit"] = normalized_unit
+            updated["rendered_value"] = _normalise_spaces(f"{raw_value}{unit_hint}")
+            return updated
+    if current_unit:
+        return slot
+    text = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in [
+                evidence.get("raw_row_text"),
+                evidence.get("quote_span"),
+                evidence.get("claim"),
+                (evidence.get("metadata") or {}).get("table_value_labels_text"),
+            ]
+        )
+    )
+    if not text or raw_value not in text:
+        return slot
+    match = re.search(rf"{re.escape(raw_value)}\s*([^\s|,)]+)", text)
+    if not match:
+        return slot
+    evidence_unit = _normalise_spaces(match.group(1))
+    if not evidence_unit or evidence_unit == _normalise_spaces(str(slot.get("raw_unit") or "")):
+        return slot
+    normalized_value, normalized_unit = _normalise_operand_value(raw_value, evidence_unit)
+    if normalized_value is None:
+        return slot
+    updated = dict(slot)
+    updated["raw_unit"] = evidence_unit
+    updated["normalized_value"] = normalized_value
+    updated["normalized_unit"] = normalized_unit
+    updated["rendered_value"] = _normalise_spaces(f"{raw_value}{evidence_unit}")
+    return updated
 
 
 def _extract_lookup_slot_from_answer_text(
@@ -120,7 +199,7 @@ def _extract_lookup_slot_from_answer_text(
             "label": _normalise_spaces(str(operand.get("label") or metric_label)),
             "concept": _normalise_spaces(str(operand.get("concept") or "")),
             "role": _normalise_spaces(str(operand.get("role") or "primary_value")) or "primary_value",
-            "period": _normalise_spaces(str(operand.get("period_hint") or "")),
+            "period": _normalise_spaces(str(operand.get("period_hint") or operand.get("period") or "")),
             "status": "ok",
             **values,
             "source_row_id": source_claim_ids[0] if source_claim_ids else "",
@@ -165,7 +244,7 @@ def _extract_lookup_slot_from_answer_text(
         "label": _normalise_spaces(str(operand.get("label") or metric_label)),
         "concept": _normalise_spaces(str(operand.get("concept") or "")),
         "role": _normalise_spaces(str(operand.get("role") or "primary_value")) or "primary_value",
-        "period": _normalise_spaces(str(operand.get("period_hint") or "")),
+        "period": _normalise_spaces(str(operand.get("period_hint") or operand.get("period") or "")),
         "status": "ok",
         **values,
         "source_row_id": source_claim_ids[0] if source_claim_ids else "",
@@ -1525,6 +1604,143 @@ class FinancialAgentPlanningMixin:
         """Project ledger-backed traces into the legacy flat calculation view."""
         return _resolve_runtime_calculation_trace(dict(state))
 
+    def _nested_subtask_rows(self, calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+        rows: List[Dict[str, Any]] = []
+
+        def _walk(current: Dict[str, Any]) -> None:
+            for child in list(current.get("subtask_results") or []):
+                if not isinstance(child, dict):
+                    continue
+                child_row = dict(child)
+                rows.append(child_row)
+                child_result = dict(child_row.get("calculation_result") or {})
+                if child_result:
+                    _walk(child_result)
+
+        _walk(dict(calculation_result or {}))
+        return rows
+
+    def _subtask_row_has_material(self, row: Dict[str, Any]) -> bool:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        for slot_name in ("primary_value", "current_value", "prior_value", "delta_value"):
+            if _slot_has_material(dict(answer_slots.get(slot_name) or {})):
+                return True
+        if str(calculation_result.get("rendered_value") or row.get("answer") or "").strip():
+            return True
+        return bool(list(calculation_result.get("source_row_ids") or []))
+
+    def _subtask_row_operation_family(self, row: Dict[str, Any]) -> str:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        operation_family = _normalise_spaces(
+            str(
+                row.get("operation_family")
+                or answer_slots.get("operation_family")
+                or calculation_result.get("operation_family")
+                or ""
+            )
+        ).lower()
+        if operation_family:
+            return operation_family
+        if calculation_result.get("subtask_results"):
+            return "aggregate_subtasks"
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if metric_family.startswith("concept_"):
+            return metric_family.removeprefix("concept_")
+        return ""
+
+    def _subtask_row_specificity_score(
+        self,
+        row: Dict[str, Any],
+        *,
+        active_subtask: Dict[str, Any],
+    ) -> tuple[int, int, int, int, int, int]:
+        active_task_id = _normalise_spaces(str(active_subtask.get("task_id") or ""))
+        active_metric_family = _normalise_spaces(str(active_subtask.get("metric_family") or "")).lower()
+        active_metric_label = _normalise_spaces(str(active_subtask.get("metric_label") or ""))
+        active_operation = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+
+        task_id = _normalise_spaces(str(row.get("task_id") or ""))
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        metric_label = _normalise_spaces(str(row.get("metric_label") or ""))
+        operation_family = self._subtask_row_operation_family(row)
+        status = _normalise_spaces(
+            str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+        ).lower()
+
+        if active_task_id and task_id and active_task_id != task_id:
+            return (0, 0, 0, 0, 0, 0)
+
+        status_rank = {"ok": 4, "partial": 2, "ready": 2}.get(status, 0)
+        material_rank = 1 if self._subtask_row_has_material(row) else 0
+        operation_rank = 1 if active_operation and operation_family == active_operation else 0
+        non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
+        family_rank = 1 if active_metric_family and metric_family == active_metric_family else 0
+        label_rank = 0
+        if active_metric_label and metric_label:
+            if active_metric_label == metric_label:
+                label_rank = 3
+            elif active_metric_label in metric_label or metric_label in active_metric_label:
+                label_rank = 2
+            else:
+                active_tokens = {token for token in re.split(r"\s+", active_metric_label) if token}
+                row_tokens = {token for token in re.split(r"\s+", metric_label) if token}
+                label_rank = 1 if active_tokens & row_tokens else 0
+        return (status_rank, material_rank, non_aggregate_rank, operation_rank, family_rank, label_rank)
+
+    def _promote_nested_subtask_result_if_more_specific(
+        self,
+        *,
+        active_subtask: Dict[str, Any],
+        answer: str,
+        status: str,
+        calculation_result: Dict[str, Any],
+    ) -> tuple[str, str, Dict[str, Any]]:
+        active_operation = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+        if not active_operation or active_operation == "aggregate_subtasks":
+            return answer, status, calculation_result
+        if not calculation_result.get("subtask_results"):
+            return answer, status, calculation_result
+
+        candidates = []
+        for row in self._nested_subtask_rows(calculation_result):
+            score = self._subtask_row_specificity_score(row, active_subtask=active_subtask)
+            if score[:2] == (0, 0):
+                continue
+            candidates.append((score, row))
+        if not candidates:
+            return answer, status, calculation_result
+
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        best_score, best_row = candidates[0]
+        current_material = self._subtask_row_has_material(
+            {
+                "answer": answer,
+                "status": status,
+                "metric_family": active_subtask.get("metric_family"),
+                "metric_label": active_subtask.get("metric_label"),
+                "operation_family": active_operation,
+                "calculation_result": calculation_result,
+            }
+        )
+        if current_material and best_score[0] < 4:
+            return answer, status, calculation_result
+
+        best_result = dict(best_row.get("calculation_result") or {})
+        if not best_result or self._subtask_row_operation_family(best_row) == "aggregate_subtasks":
+            return answer, status, calculation_result
+        promoted_answer = _normalise_spaces(
+            str(
+                best_row.get("answer")
+                or best_result.get("formatted_result")
+                or best_result.get("rendered_value")
+                or answer
+            )
+        )
+        promoted_status = str(best_row.get("status") or best_result.get("status") or status)
+        return promoted_answer, promoted_status, best_result
+
     def _capture_current_subtask_result(self, state: FinancialAgentState) -> Dict[str, Any]:
         active_subtask = dict(state.get("active_subtask") or {})
         if not active_subtask:
@@ -1537,6 +1753,17 @@ class FinancialAgentPlanningMixin:
         runtime_evidence = [dict(item) for item in (state.get("evidence_items") or [])]
         answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
         selected_claim_ids = list(state.get("selected_claim_ids") or [])
+        status = str(
+            calculation_result.get("status")
+            or reconciliation_result.get("status")
+            or ("ok" if answer else "unknown")
+        )
+        answer, status, calculation_result = self._promote_nested_subtask_result_if_more_specific(
+            active_subtask=active_subtask,
+            answer=answer,
+            status=status,
+            calculation_result=calculation_result,
+        )
         if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary" and runtime_evidence:
             deterministic_dividend_answer = self._compose_dividend_policy_hybrid_answer(
                 query=str(active_subtask.get("query") or state["query"]),
@@ -1553,7 +1780,75 @@ class FinancialAgentPlanningMixin:
                         "formatted_result": answer,
                         "operation_family": "narrative_summary",
                     }
-        if not calculation_operands:
+        primary_before_synthesis = dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})
+        active_operation = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+        active_metric_family = _normalise_spaces(str(active_subtask.get("metric_family") or "")).lower()
+        lookup_subtask_in_loop = active_metric_family == "concept_lookup" and len(list(state.get("calc_subtasks") or [])) > 1
+        if (
+            not _slot_has_material(primary_before_synthesis)
+            and calculation_operands
+            and (active_operation in {"lookup", "single_value"} or lookup_subtask_in_loop)
+        ):
+            matching_operands = [
+                dict(operand)
+                for operand in calculation_operands
+                if _lookup_operand_matches_active_task(dict(operand), active_subtask)
+            ]
+            operand_row = dict(matching_operands[0]) if matching_operands else {}
+        else:
+            operand_row = {}
+        if operand_row:
+            source_ids = [
+                str(source_id).strip()
+                for source_id in [
+                    operand_row.get("source_row_id"),
+                    *(operand_row.get("source_row_ids") or []),
+                ]
+                if str(source_id).strip()
+            ]
+            primary_slot_from_operand = {
+                "status": "ok",
+                "role": "primary_value",
+                "label": _normalise_spaces(
+                    str(operand_row.get("label") or operand_row.get("matched_operand_label") or active_subtask.get("metric_label") or "")
+                ),
+                "concept": _normalise_spaces(
+                    str(operand_row.get("concept") or operand_row.get("matched_operand_concept") or "")
+                ),
+                "period": _normalise_spaces(str(operand_row.get("period") or operand_row.get("period_hint") or "")),
+                "raw_value": _normalise_spaces(str(operand_row.get("raw_value") or operand_row.get("value") or "")),
+                "raw_unit": _normalise_spaces(str(operand_row.get("raw_unit") or "")),
+                "normalized_value": operand_row.get("normalized_value"),
+                "normalized_unit": _normalise_spaces(str(operand_row.get("normalized_unit") or "UNKNOWN")).upper()
+                or "UNKNOWN",
+                "rendered_value": _normalise_spaces(str(operand_row.get("rendered_value") or "")),
+                "source_row_id": source_ids[0] if source_ids else "",
+                "source_row_ids": list(dict.fromkeys(source_ids)),
+                "source_anchor": _normalise_spaces(str(operand_row.get("source_anchor") or "")),
+                "source_claim_ids": list(operand_row.get("source_claim_ids") or []),
+            }
+            rendered_value = _normalise_spaces(str(primary_slot_from_operand.get("rendered_value") or ""))
+            calculation_result = {
+                **calculation_result,
+                "status": "ok",
+                "operation_family": "lookup",
+                "rendered_value": rendered_value,
+                "formatted_result": answer or rendered_value,
+                "source_row_ids": primary_slot_from_operand["source_row_ids"],
+                "answer_slots": validate_answer_slots_payload(
+                    {
+                        **dict(calculation_result.get("answer_slots") or {}),
+                        "operation_family": "lookup",
+                        "primary_value": primary_slot_from_operand,
+                    }
+                ),
+            }
+            primary_before_synthesis = primary_slot_from_operand
+        if (
+            not _slot_has_material(primary_before_synthesis)
+            and (not calculation_operands or not operand_row)
+            and (active_operation in {"lookup", "single_value"} or lookup_subtask_in_loop)
+        ):
             calculation_result = _synthesize_lookup_answer_slot_from_prose(
                 active_subtask=active_subtask,
                 answer=answer,
@@ -1562,11 +1857,28 @@ class FinancialAgentPlanningMixin:
             )
         primary_slot = dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})
         if primary_slot and _slot_has_material(primary_slot):
-            slot_evidence = _lookup_slot_supporting_doc_evidence(
+            primary_source_ids = {
+                str(source_id).strip()
+                for source_id in [
+                    primary_slot.get("source_row_id"),
+                    *(primary_slot.get("source_row_ids") or []),
+                ]
+                if str(source_id).strip()
+            }
+            slot_evidence = next(
+                (
+                    dict(item)
+                    for item in runtime_evidence
+                    if str(item.get("evidence_id") or "").strip() in primary_source_ids
+                ),
+                None,
+            )
+            if not slot_evidence:
+                slot_evidence = _lookup_slot_supporting_doc_evidence(
                 active_subtask=active_subtask,
                 slot=primary_slot,
                 docs=list(state.get("retrieved_docs", []) or []) + list(state.get("seed_retrieved_docs", []) or []),
-            )
+                )
             if slot_evidence:
                 evidence_id = str(slot_evidence.get("evidence_id") or "").strip()
                 existing_ids = {
@@ -1577,12 +1889,47 @@ class FinancialAgentPlanningMixin:
                 if evidence_id:
                     primary_slot.setdefault("source_row_id", evidence_id)
                     primary_slot.setdefault("source_row_ids", [evidence_id])
+                    primary_slot = _refine_lookup_slot_unit_from_evidence(primary_slot, slot_evidence)
+                    if calculation_operands:
+                        refined_operands: List[Dict[str, Any]] = []
+                        primary_ids = {
+                            str(source_id).strip()
+                            for source_id in (primary_slot.get("source_row_ids") or [])
+                            if str(source_id).strip()
+                        }
+                        for operand in calculation_operands:
+                            operand_row = dict(operand)
+                            operand_ids = {
+                                str(source_id).strip()
+                                for source_id in [
+                                    operand_row.get("source_row_id"),
+                                    *(operand_row.get("source_row_ids") or []),
+                                ]
+                                if str(source_id).strip()
+                            }
+                            if (
+                                _normalise_spaces(str(operand_row.get("raw_value") or ""))
+                                == _normalise_spaces(str(primary_slot.get("raw_value") or ""))
+                                and (not primary_ids or not operand_ids or bool(primary_ids & operand_ids))
+                            ):
+                                operand_row["raw_unit"] = _normalise_spaces(str(primary_slot.get("raw_unit") or ""))
+                                operand_row["normalized_value"] = primary_slot.get("normalized_value")
+                                operand_row["normalized_unit"] = _normalise_spaces(
+                                    str(primary_slot.get("normalized_unit") or "UNKNOWN")
+                                ).upper()
+                                operand_row["rendered_value"] = _normalise_spaces(
+                                    str(primary_slot.get("rendered_value") or "")
+                                )
+                            refined_operands.append(operand_row)
+                        calculation_operands = refined_operands
                     if evidence_id not in existing_ids:
                         runtime_evidence.append(slot_evidence)
                     if evidence_id not in selected_claim_ids:
                         selected_claim_ids.append(evidence_id)
                 calculation_result["answer_slots"]["primary_value"] = primary_slot
                 calculation_result["source_row_ids"] = list(primary_slot.get("source_row_ids") or [])
+                if primary_slot.get("rendered_value"):
+                    calculation_result["rendered_value"] = _normalise_spaces(str(primary_slot.get("rendered_value") or ""))
         if primary_slot and not calculation_operands:
             calculation_operands = [
                 {
@@ -1604,6 +1951,7 @@ class FinancialAgentPlanningMixin:
         status = str(
             calculation_result.get("status")
             or reconciliation_result.get("status")
+            or status
             or ("ok" if answer else "unknown")
         )
         return {

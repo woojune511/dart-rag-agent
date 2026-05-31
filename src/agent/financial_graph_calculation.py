@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
+from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     CALCULATION_FEEDBACK_POLICY,
@@ -587,6 +588,57 @@ class FinancialAgentCalculationMixin:
             answer_slots = dict(sibling_result.get("answer_slots") or {})
             source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
             source_slot = dict(answer_slots.get(source_slot_name) or {})
+            if not self._answer_slot_has_material(source_slot):
+                producer_task = self._producer_task_for_dependency_binding(state, binding)
+                if not producer_task:
+                    producer_task = {
+                        "task_id": preferred_task_id,
+                        "metric_family": sibling_row.get("metric_family") or "concept_lookup",
+                        "metric_label": sibling_row.get("metric_label") or binding.get("label") or "",
+                        "operation_family": "lookup",
+                        "required_operands": [dict(binding)],
+                    }
+                synthetic_result = _synthesize_lookup_answer_slot_from_prose(
+                    active_subtask=producer_task,
+                    answer=_normalise_spaces(
+                        str(
+                            sibling_row.get("answer")
+                            or sibling_result.get("formatted_result")
+                            or sibling_result.get("rendered_value")
+                            or ""
+                        )
+                    ),
+                    calculation_result=sibling_result,
+                    selected_claim_ids=[
+                        str(claim_id).strip()
+                        for claim_id in (sibling_row.get("selected_claim_ids") or [])
+                        if str(claim_id).strip()
+                    ],
+                )
+                if synthetic_result:
+                    sibling_result = synthetic_result
+                    answer_slots = dict(sibling_result.get("answer_slots") or {})
+                    source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
+            if not self._answer_slot_has_material(source_slot) and sibling_result.get("result_value") is not None:
+                source_slot = {
+                    "status": "ok",
+                    "role": source_slot_name,
+                    "label": _normalise_spaces(str(binding.get("label") or sibling_row.get("metric_label") or "")),
+                    "concept": _normalise_spaces(str(binding.get("concept") or "")),
+                    "period": _normalise_spaces(str(binding.get("period") or "")),
+                    "raw_value": _normalise_spaces(
+                        str(sibling_result.get("rendered_value") or sibling_result.get("result_value") or "")
+                    ),
+                    "raw_unit": _normalise_spaces(str(sibling_result.get("result_unit") or "")),
+                    "normalized_value": sibling_result.get("result_value"),
+                    "normalized_unit": _normalise_spaces(str(sibling_result.get("normalized_unit") or "UNKNOWN")).upper()
+                    or "UNKNOWN",
+                    "rendered_value": _normalise_spaces(
+                        str(sibling_result.get("rendered_value") or sibling_result.get("result_value") or "")
+                    ),
+                    "source_anchor": _normalise_spaces(str(sibling_result.get("source_anchor") or "")),
+                    "source_row_ids": list(sibling_result.get("source_row_ids") or []),
+                }
             if not self._answer_slot_has_material(source_slot):
                 continue
             if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row):
@@ -1162,6 +1214,53 @@ class FinancialAgentCalculationMixin:
             terms.append(cleaned)
         return list(dict.fromkeys(terms))
 
+    def _narrative_focus_variants(self, query: str) -> List[str]:
+        generic_terms = {
+            _normalise_spaces(str(item)).lower()
+            for item in (
+                tuple(CALCULATION_NARRATIVE_POLICY.get("growth_generic_focus_terms") or ())
+                + tuple(CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
+            )
+            if _normalise_spaces(str(item))
+        }
+        variants: List[str] = []
+        for term in self._narrative_context_terms(query):
+            cleaned = _normalise_spaces(str(term))
+            if not cleaned or cleaned.lower() in generic_terms:
+                continue
+            candidates = [cleaned]
+            candidates.extend(
+                _normalise_spaces(match)
+                for match in re.findall(r"\(([^)]+)\)", cleaned)
+                if _normalise_spaces(match)
+            )
+            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
+            if outside_parentheses:
+                candidates.append(outside_parentheses)
+            for candidate in candidates:
+                if len(candidate) < 2:
+                    continue
+                if candidate.lower() in generic_terms:
+                    continue
+                variants.append(candidate)
+        return list(dict.fromkeys(variants))
+
+    def _parenthetical_focus_variants(self, query: str) -> List[str]:
+        variants: List[str] = []
+        for term in self._narrative_context_terms(query):
+            cleaned = _normalise_spaces(str(term))
+            if not cleaned or "(" not in cleaned:
+                continue
+            variants.extend(
+                _normalise_spaces(match)
+                for match in re.findall(r"\(([^)]+)\)", cleaned)
+                if _normalise_spaces(match)
+            )
+            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
+            if outside_parentheses:
+                variants.append(outside_parentheses)
+        return list(dict.fromkeys(variant for variant in variants if len(variant) >= 2))
+
     def _narrative_context_sentence_from_evidence(
         self,
         query: str,
@@ -1303,6 +1402,116 @@ class FinancialAgentCalculationMixin:
         candidates.sort(key=lambda item: item[0], reverse=True)
         return candidates
 
+    def _narrative_row_focus_sentence(
+        self,
+        *,
+        ordered_results: List[Dict[str, Any]],
+        focus_variants: List[str],
+    ) -> Optional[tuple[int, str, List[str]]]:
+        if not focus_variants:
+            return None
+        for row in ordered_results or []:
+            operation_family = self._aggregate_result_operation_family(row)
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if operation_family != "narrative_summary" and metric_family != "narrative_summary":
+                continue
+            claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
+            sentences = re.split(r"(?<=[.!??])\s+", _normalise_spaces(str(row.get("answer") or "")))
+            for sentence in sentences:
+                cleaned = _normalise_spaces(sentence)
+                if not cleaned:
+                    continue
+                haystack = cleaned.lower()
+                if any(variant.lower() in haystack for variant in focus_variants):
+                    return (0, cleaned, claim_ids)
+        return None
+
+    def _answer_covers_narrative_context(self, answer: str, context: str) -> bool:
+        answer_text = _normalise_spaces(str(answer or "")).lower()
+        context_text = _normalise_spaces(str(context or ""))
+        if not context_text:
+            return True
+        if context_text.lower() in answer_text:
+            return True
+        sentences = [
+            _normalise_spaces(sentence)
+            for sentence in re.split(r"(?<=[.!??])\s+", context_text)
+            if _normalise_spaces(sentence)
+        ]
+        for sentence in sentences:
+            sentence_text = sentence.lower()
+            if sentence_text in answer_text:
+                continue
+            tokens = [
+                token.lower()
+                for token in re.findall(r"[\w()]+", sentence, flags=re.UNICODE)
+                if len(token) >= 3 and not re.fullmatch(r"\d+(?:\.\d+)?", token)
+            ]
+            if not tokens:
+                return False
+            covered = sum(1 for token in tokens if token in answer_text)
+            if covered / max(len(tokens), 1) < 0.75:
+                return False
+        return True
+
+    def _narrative_row_focus_context(
+        self,
+        *,
+        query: str,
+        ordered_results: List[Dict[str, Any]],
+        focus_variants: List[str],
+        max_sentences: int = 2,
+    ) -> Optional[tuple[int, str, List[str]]]:
+        if not focus_variants:
+            return None
+        query_terms = self._narrative_context_terms(query)
+        impact_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ()))
+        for row in ordered_results or []:
+            operation_family = self._aggregate_result_operation_family(row)
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if operation_family != "narrative_summary" and metric_family != "narrative_summary":
+                continue
+            claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
+            sentences = [
+                _normalise_spaces(sentence)
+                for sentence in re.split(r"(?<=[.!??])\s+", _normalise_spaces(str(row.get("answer") or "")))
+                if _normalise_spaces(sentence)
+            ]
+            focus_indexes = [
+                index
+                for index, sentence in enumerate(sentences)
+                if any(variant.lower() in sentence.lower() for variant in focus_variants)
+            ]
+            if not focus_indexes:
+                continue
+            selected: List[str] = []
+            selected_indexes: set[int] = set()
+
+            def _select(index: int) -> None:
+                if index in selected_indexes or index < 0 or index >= len(sentences):
+                    return
+                selected_indexes.add(index)
+                selected.append(sentences[index])
+
+            focus_index = focus_indexes[0]
+            _select(focus_index)
+            ordered_indexes = [
+                *range(focus_index + 1, len(sentences)),
+                *range(0, focus_index),
+            ]
+            for index in ordered_indexes:
+                if len(selected) >= max_sentences:
+                    break
+                if index in selected_indexes:
+                    continue
+                sentence = sentences[index]
+                haystack = sentence.lower()
+                if any(term.lower() in haystack for term in query_terms) or any(marker in sentence for marker in impact_markers):
+                    _select(index)
+            if selected:
+                return (0, _normalise_spaces(" ".join(selected)), claim_ids)
+        return None
+
     def _compose_growth_narrative_answer(
         self,
         *,
@@ -1371,11 +1580,28 @@ class FinancialAgentCalculationMixin:
         if not growth_value or not current_value or not metric_label:
             return None
         required_displays = [value for value in (current_value, prior_value, growth_value) if value]
+        focus_variants = self._narrative_focus_variants(query)
+        focus_required_variants = self._parenthetical_focus_variants(query) or focus_variants
+        answer_has_focus = not focus_required_variants or any(
+            variant.lower() in existing_answer_text.lower()
+            for variant in focus_required_variants
+        )
+        row_focus_context = self._narrative_row_focus_context(
+            query=query,
+            ordered_results=ordered_results,
+            focus_variants=focus_required_variants or focus_variants,
+        )
+        answer_has_row_context = not row_focus_context or self._answer_covers_narrative_context(
+            existing_answer_text,
+            row_focus_context[1],
+        )
         if (
             not answer_is_truncated
             and not answer_has_missing_claim
             and required_displays
             and all(value in existing_answer_text for value in required_displays)
+            and answer_has_focus
+            and answer_has_row_context
         ):
             return None
 
@@ -1429,7 +1655,47 @@ class FinancialAgentCalculationMixin:
                 direction_word=direction_word,
             )
         )
-        narrative_sentence, selected_claim_ids = narrative_candidates[0][1], narrative_candidates[0][2]
+        existing_context = f"{existing_answer_text} {numeric_sentence}".lower()
+        uncovered_focus_variants = [
+            variant
+            for variant in focus_variants
+            if variant.lower() not in existing_context
+        ]
+        chosen_candidate = narrative_candidates[0]
+        if row_focus_context and not self._answer_covers_narrative_context(existing_answer_text, row_focus_context[1]):
+            chosen_candidate = row_focus_context
+        elif uncovered_focus_variants:
+            parenthetical_variants = [
+                variant
+                for variant in self._parenthetical_focus_variants(query)
+                if variant.lower() not in existing_context
+            ]
+            row_focus_candidate = self._narrative_row_focus_sentence(
+                ordered_results=ordered_results,
+                focus_variants=parenthetical_variants,
+            )
+            if row_focus_candidate:
+                chosen_candidate = row_focus_candidate
+            elif not parenthetical_variants:
+                scored_candidates = []
+                for candidate in narrative_candidates:
+                    candidate_text = candidate[1].lower()
+                    hits = [
+                        variant
+                        for variant in uncovered_focus_variants
+                        if variant.lower() in candidate_text
+                    ]
+                    scored_candidates.append((sum(len(hit) for hit in hits), candidate))
+                scored_candidates.sort(key=lambda item: item[0], reverse=True)
+                if scored_candidates and scored_candidates[0][0] > 0:
+                    chosen_candidate = scored_candidates[0][1]
+        if uncovered_focus_variants and chosen_candidate == narrative_candidates[0]:
+            for candidate in narrative_candidates:
+                candidate_text = candidate[1].lower()
+                if any(variant.lower() in candidate_text for variant in uncovered_focus_variants):
+                    chosen_candidate = candidate
+                    break
+        narrative_sentence, selected_claim_ids = chosen_candidate[1], chosen_candidate[2]
         terminal_pattern = str(CALCULATION_NARRATIVE_POLICY.get("sentence_terminal_pattern") or "")
         terminal_suffix = str(CALCULATION_NARRATIVE_POLICY.get("sentence_terminal_suffix") or "")
         if narrative_sentence and terminal_pattern and not re.search(terminal_pattern, narrative_sentence):
@@ -1471,7 +1737,16 @@ class FinancialAgentCalculationMixin:
             for term in self._narrative_context_terms(query_text)
             if term not in generic_terms and len(term) >= 2
         ]
-        if focus_terms and not any(term.lower() in answer_text.lower() for term in focus_terms):
+        parenthetical_focus_terms = self._parenthetical_focus_variants(query_text)
+        required_focus_terms = parenthetical_focus_terms or focus_terms
+        if required_focus_terms and not any(term.lower() in answer_text.lower() for term in required_focus_terms):
+            return False
+        row_focus_context = self._narrative_row_focus_context(
+            query=query_text,
+            ordered_results=ordered_results,
+            focus_variants=required_focus_terms,
+        )
+        if row_focus_context and not self._answer_covers_narrative_context(answer_text, row_focus_context[1]):
             return False
 
         has_growth_row = any(
@@ -5327,6 +5602,7 @@ class FinancialAgentCalculationMixin:
         )
         composition_selected_claim_ids: List[str] = []
         calculation_projection_override: Optional[Dict[str, Any]] = None
+        narrative_answer_locked = False
         if growth_narrative_answer:
             final_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or "")) or final_answer
             composition_selected_claim_ids.extend(
@@ -5334,9 +5610,14 @@ class FinancialAgentCalculationMixin:
                 for claim_id in (growth_narrative_answer.get("selected_claim_ids") or [])
                 if str(claim_id).strip()
             )
+            narrative_answer_locked = self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=final_answer,
+                ordered_results=ordered_results,
+            )
             planner_feedback = ""
             deterministic_feedback = ""
-        if entity_table_answer:
+        if entity_table_answer and not narrative_answer_locked:
             final_answer = _normalise_spaces(str(entity_table_answer.get("compressed_answer") or "")) or final_answer
             composition_selected_claim_ids.extend(
                 str(claim_id).strip()
@@ -5354,7 +5635,7 @@ class FinancialAgentCalculationMixin:
             docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
             evidence_items=aggregate_evidence_items,
         )
-        if business_focus_answer:
+        if business_focus_answer and not narrative_answer_locked:
             final_answer = _normalise_spaces(str(business_focus_answer.get("compressed_answer") or "")) or final_answer
             composition_selected_claim_ids.extend(
                 str(claim_id).strip()
@@ -5379,6 +5660,44 @@ class FinancialAgentCalculationMixin:
                 calculation_projection_override = None
                 planner_feedback = ""
                 deterministic_feedback = ""
+        if not deterministic_feedback:
+            augmented_answer = self._augment_narrative_answer_with_supported_drivers(
+                final_answer,
+                aggregate_evidence_items,
+                query=str(state.get("query") or ""),
+            )
+            if augmented_answer and augmented_answer != final_answer:
+                final_answer = augmented_answer
+                composition_selected_claim_ids = self._expand_selected_claim_ids_for_narrative_drivers(
+                    composition_selected_claim_ids,
+                    aggregate_evidence_items,
+                    query=str(state.get("query") or ""),
+                )
+        if not self._answer_satisfies_growth_narrative_intent(
+            query=str(state.get("query") or ""),
+            answer=final_answer,
+            ordered_results=ordered_results,
+        ):
+            repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
+                query=str(state.get("query") or ""),
+                ordered_results=ordered_results,
+                existing_answer=final_answer,
+                evidence_items=aggregate_evidence_items,
+            )
+            repaired_answer = _normalise_spaces(
+                str((repaired_growth_narrative_answer or {}).get("compressed_answer") or "")
+            )
+            if repaired_answer and self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=repaired_answer,
+                ordered_results=ordered_results,
+            ):
+                final_answer = repaired_answer
+                composition_selected_claim_ids = [
+                    str(claim_id).strip()
+                    for claim_id in ((repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [])
+                    if str(claim_id).strip()
+                ]
         if numeric_answer_locked:
             final_answer = complete_numeric_answer
             composition_selected_claim_ids = []
