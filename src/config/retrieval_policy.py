@@ -272,6 +272,31 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "adjusted_difference_exclusion_pattern": r"차감(?!전)",
     "source_display_units": ("천원", "백만원"),
     "converted_display_units": ("원", "억원", "조원"),
+    "direction_hints": {
+        "growth_rate": {"positive": "증가", "negative": "감소", "zero": "변동 없음"},
+        "subtract": {"positive": "더 큽니다", "negative": "더 작습니다", "zero": "동일합니다"},
+    },
+    "insufficient_evidence_fallback": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+    "low_api_generation_skipped_fallback": "질문에 필요한 수치를 계산했지만 자연어 답변 생성을 생략했습니다.",
+    "render_generation_failed_fallback": "질문에 필요한 수치를 계산했지만 자연어 답변을 생성하지 못했습니다.",
+    "renderer_prompt_template": (
+        "당신은 한국 기업 공시(DART) 계산 결과를 사용자 친화적인 한국어로 렌더링하는 분석가입니다.\n\n"
+        "[렌더링 규칙]\n"
+        "- CalculationResult의 rendered_value를 그대로 사용하세요. 숫자를 다시 계산하거나 형식을 바꾸지 마세요.\n"
+        "- CalculationResult의 answer_slots가 있으면 rendered_value/series보다 먼저 참고해 현재값, 전기값, 증감값, 주된 결과값을 파악하세요.\n"
+        "- components_by_role에 subtrahend가 있고 그 rendered_value가 음수처럼 보여도, 서술에서는 절댓값을 차감하는 표현을 우선 사용하세요. \"-X를 차감\"처럼 이중 음수 표현을 만들지 마세요.\n"
+        "- operand label에 포함된 연도·기간 정보(예: '2024년', '2023년', '1분기')는 반드시 그대로 유지하세요. '2024년 영업이익'을 '영업이익'으로 줄이지 마세요.\n"
+        "- direction_hint가 제공된 경우, 그 단어를 그대로 사용하세요. 임의로 '변동', '차이' 등 중립적 표현으로 바꾸지 마세요.\n"
+        "- time_series 해석(상승·하락·반등 등)은 series 또는 derived_metrics의 수치 변화를 근거로 표현하세요.\n"
+        "- 데이터에 없는 새로운 연도, 금액, 비율을 만들지 마세요.\n"
+        "- 질문에 직접 답하는 1~2문장만 작성하세요.\n\n"
+        "질문:\n{query}\n\n"
+        "Direction Hint (방향 판단 결과, 비어 있으면 무시):\n{direction_hint}\n\n"
+        "CalculationPlan:\n{plan_json}\n\n"
+        "CalculationResult:\n{result_json}\n\n"
+        "Operands:\n{operands_json}\n\n"
+        "반드시 final_answer만 채우세요.\n"
+    ),
 }
 
 

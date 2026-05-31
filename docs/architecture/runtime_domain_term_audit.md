@@ -48,15 +48,17 @@ sentence template into calculation narrative policy. The latest render pass
 moved slot-based difference answer scope labels, fallback labels, and answer
 templates into calculation render policy. A display-unit follow-up moved
 adjusted-difference trigger markers and source/converted display-unit sets into
+calculation render policy. A renderer follow-up moved direction hints,
+calculation-render fallback messages, and the structured renderer prompt into
 calculation render policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 537 |
-| Literal occurrences | 815 |
-| `runtime_literal` records | 435 |
+| Reviewed records | 534 |
+| Literal occurrences | 805 |
+| `runtime_literal` records | 433 |
 | `regex_or_pattern` records | 70 |
-| `prompt_or_template` records | 32 |
+| `prompt_or_template` records | 31 |
 
 Top files:
 
@@ -65,7 +67,7 @@ Top files:
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
-| `src/agent/financial_graph_calculation.py` | 63 | P0: numeric execution text is allowed, metric/topic selectors need review |
+| `src/agent/financial_graph_calculation.py` | 60 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
@@ -207,6 +209,11 @@ For each P0 record, classify it as one of:
   units from `CALCULATION_RENDER_POLICY`. Runtime keeps the generic mechanics:
   inspect active task text, compare operand units, and preserve the source unit
   when all operands agree or when converted KRW display units are mixed in.
+- `_render_calculation_answer()` now reads direction hints, fallback messages,
+  and the structured renderer prompt from `CALCULATION_RENDER_POLICY`. Runtime
+  keeps the generic mechanics: resolve trace state, remove duplicate negative
+  signs when a direction hint is present, call deterministic fallbacks, and
+  preserve the rendered calculation result in runtime trace.
 
 ## Calculation Hotspots
 
@@ -220,7 +227,6 @@ Top calculation targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_render_calculation_answer` | 10 | final answer rendering; separate templates from execution |
 | `_material_gap_feedback_for_subtask_result` | 9 | planner feedback text; decide config vs schema/status wording |
 | `_render_grounded_operand_display` | 9 | display formatting; likely unit/period mechanics |
 | `_slot_metric_keys` | 8 | slot normalization terms; move metric suffixes to policy if selector-like |
