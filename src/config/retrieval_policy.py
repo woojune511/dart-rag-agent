@@ -823,6 +823,12 @@ ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY: Dict[str, Any] = {
     },
     "investment_sentence_template": "{entity_label}의 {parts}입니다.",
     "summary_sentence_template": "요약 손익은 {parts}입니다.",
+    "number_pattern": r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?",
+    "part_templates": {
+        "prior_current_ratio": "{prior_label}은 {prior_percent}, {current_label}은 {percent}",
+        "current_ratio": "{current_label}은 {percent}",
+        "amount": "{amount_label}은 {amount}{unit}",
+    },
 }
 
 EVIDENCE_COMPRESSION_GUIDANCE_POLICY: Dict[str, Any] = {
@@ -866,6 +872,10 @@ EVIDENCE_COMPRESSION_GUIDANCE_POLICY: Dict[str, Any] = {
         "sparse": "근거가 제한적입니다. evidence에 직접 적힌 claim과 quote_span만 사용하세요.",
         "conflicting": "근거가 서로 상충하면 충돌을 명시하세요.",
     },
+    "driver_phrase_joiner": ", ",
+    "driver_pair_joiner": "와",
+    "driver_final_joiner": ", 그리고 ",
+    "driver_addition_template": "또한 {clause}도 실적 성장에 기여했습니다.",
 }
 
 EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
@@ -944,6 +954,28 @@ QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
 PERIOD_COMPARISON_COUNT_POLICY: Dict[str, Any] = {
     "sentence_split_pattern": r"(?<=[.!?。])\s+|(?<=[가-힣])\.(?=(?:20\d{2}|[가-힣]))",
     "year_pattern": r"(20\d{2})년?",
+}
+
+DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
+    "amount_patterns": (
+        r"(\d+\s*조\s*\d{1,3}(?:,\d{3})?\s*억원)",
+        r"(\d{1,3}(?:,\d{3})+\s*억원)",
+        r"(\d{1,3}(?:,\d{3})+\s*백만원)",
+    ),
+    "rank_patterns": {
+        "trillion_eok": r"(\d+)\s*조(?:\s*(\d{1,3}(?:,\d{3})?))?\s*억원",
+        "eok": r"(\d{1,3}(?:,\d{3})+)\s*억원",
+        "million_krw": r"(\d{1,3}(?:,\d{3})+)\s*백만원",
+    },
+    "million_krw_to_eok_divisor": 100.0,
+    "trillion_to_eok_multiplier": 10000,
+    "clause_split_pattern": r"(?<=[.!?])\s+|\n+",
+    "clause_max_chars": 240,
+    "year_pattern": r"(20\d{2})년",
+    "year_prefix_template": "{year}년 ",
+    "preferred_policy_period_markers": ("2024", "2026"),
+    "stale_policy_period_markers": ("2021", "2023"),
+    "payout_priority_section_terms": ("이사의 경영진단",),
 }
 
 

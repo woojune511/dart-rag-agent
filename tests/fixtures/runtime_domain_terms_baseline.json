@@ -440,22 +440,12 @@
     },
     {
       "path": "src/agent/financial_graph_evidence.py",
-      "text": "(20\\d{2})년",
-      "category": "regex_or_pattern",
-      "fingerprint": "6f16fbc1b56a2d3d",
-      "count": 1,
-      "first_lines": [
-        4134
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
       "text": "(20\\d{2})년?",
       "category": "regex_or_pattern",
       "fingerprint": "b58bee8eb37c98a0",
       "count": 1,
       "first_lines": [
-        68
+        69
       ]
     },
     {
@@ -463,13 +453,13 @@
       "text": "(20\\d{2}년)",
       "category": "regex_or_pattern",
       "fingerprint": "09aadfd07ef92e69",
-      "count": 6,
+      "count": 5,
       "first_lines": [
-        2290,
-        2396,
-        2399,
-        2497,
-        2692
+        2291,
+        2397,
+        2400,
+        2498,
+        2694
       ]
     },
     {
@@ -479,67 +469,7 @@
       "fingerprint": "ff18e0673e70c35a",
       "count": 1,
       "first_lines": [
-        2876
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(\\d+)\\s*조(?:\\s*(\\d{1,3}(?:,\\d{3})?))?\\s*억원",
-      "category": "regex_or_pattern",
-      "fingerprint": "89532be15500cf2d",
-      "count": 1,
-      "first_lines": [
-        3977
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(\\d+\\s*조\\s*\\d{1,3}(?:,\\d{3})?\\s*억원)",
-      "category": "regex_or_pattern",
-      "fingerprint": "e511401fe4e90837",
-      "count": 1,
-      "first_lines": [
-        3953
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(\\d{1,3}(?:,\\d{3})+)\\s*백만원",
-      "category": "regex_or_pattern",
-      "fingerprint": "c19f6d24f38fc854",
-      "count": 1,
-      "first_lines": [
-        3985
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(\\d{1,3}(?:,\\d{3})+)\\s*억원",
-      "category": "regex_or_pattern",
-      "fingerprint": "aa9188fb0e1d64e9",
-      "count": 1,
-      "first_lines": [
-        3982
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(\\d{1,3}(?:,\\d{3})+\\s*백만원)",
-      "category": "regex_or_pattern",
-      "fingerprint": "2b556e1f2949154d",
-      "count": 1,
-      "first_lines": [
-        3955
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "(\\d{1,3}(?:,\\d{3})+\\s*억원)",
-      "category": "regex_or_pattern",
-      "fingerprint": "1b816b9c89ecc74f",
-      "count": 1,
-      "first_lines": [
-        3954
+        2878
       ]
     },
     {
@@ -549,17 +479,7 @@
       "fingerprint": "74ad0fdbe894002d",
       "count": 1,
       "first_lines": [
-        123
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": ", 그리고",
-      "category": "runtime_literal",
-      "fingerprint": "fd36e85fe5b4238b",
-      "count": 1,
-      "first_lines": [
-        3305
+        124
       ]
     },
     {
@@ -569,8 +489,8 @@
       "fingerprint": "4ec5a8e849d0dfb3",
       "count": 2,
       "first_lines": [
-        3405,
-        3424
+        3411,
+        3430
       ]
     },
     {
@@ -580,7 +500,7 @@
       "fingerprint": "19bc2a3b9de117cd",
       "count": 1,
       "first_lines": [
-        1312
+        1313
       ]
     },
     {
@@ -590,7 +510,7 @@
       "fingerprint": "548091b53f9755fa",
       "count": 1,
       "first_lines": [
-        116
+        117
       ]
     },
     {
@@ -600,8 +520,8 @@
       "fingerprint": "38804614940659cb",
       "count": 2,
       "first_lines": [
-        97,
-        684
+        98,
+        685
       ]
     },
     {
@@ -611,8 +531,8 @@
       "fingerprint": "babae2ce22724407",
       "count": 2,
       "first_lines": [
-        2329,
-        2441
+        2330,
+        2442
       ]
     },
     {
@@ -622,7 +542,7 @@
       "fingerprint": "263ff659f2e964c0",
       "count": 1,
       "first_lines": [
-        337
+        338
       ]
     },
     {
@@ -632,7 +552,7 @@
       "fingerprint": "659b99dfd4b27fb1",
       "count": 1,
       "first_lines": [
-        2329
+        2330
       ]
     },
     {
@@ -642,7 +562,7 @@
       "fingerprint": "b8454cb1cc28f184",
       "count": 1,
       "first_lines": [
-        2447
+        2448
       ]
     },
     {
@@ -652,7 +572,7 @@
       "fingerprint": "aa91673e9d03a9c4",
       "count": 1,
       "first_lines": [
-        4319
+        4350
       ]
     },
     {
@@ -662,7 +582,7 @@
       "fingerprint": "3f225931bf63dfdf",
       "count": 1,
       "first_lines": [
-        1878
+        1879
       ]
     },
     {
@@ -672,7 +592,7 @@
       "fingerprint": "c3c0dec6f9f3ba03",
       "count": 1,
       "first_lines": [
-        5328
+        5359
       ]
     },
     {
@@ -682,8 +602,8 @@
       "fingerprint": "066d947debd8d926",
       "count": 2,
       "first_lines": [
-        4363,
-        4594
+        4394,
+        4625
       ]
     },
     {
@@ -693,7 +613,7 @@
       "fingerprint": "7e859c5e0b21d1df",
       "count": 1,
       "first_lines": [
-        4332
+        4363
       ]
     },
     {
@@ -701,13 +621,13 @@
       "text": "년",
       "category": "runtime_literal",
       "fingerprint": "64b3b3b42c1c1156",
-      "count": 8,
+      "count": 7,
       "first_lines": [
-        355,
-        425,
-        2510,
-        2724,
-        2783
+        356,
+        426,
+        2511,
+        2726,
+        2785
       ]
     },
     {
@@ -717,7 +637,7 @@
       "fingerprint": "cbef8bf1cbe16aca",
       "count": 1,
       "first_lines": [
-        4944
+        4975
       ]
     },
     {
@@ -727,7 +647,7 @@
       "fingerprint": "13373f573cb885c0",
       "count": 1,
       "first_lines": [
-        5358
+        5389
       ]
     },
     {
@@ -737,17 +657,7 @@
       "fingerprint": "d1ca81ae7e9db2cf",
       "count": 1,
       "first_lines": [
-        4634
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "도 실적 성장에 기여했습니다.",
-      "category": "runtime_literal",
-      "fingerprint": "31bd94b73b1b4d9e",
-      "count": 1,
-      "first_lines": [
-        3306
+        4665
       ]
     },
     {
@@ -757,17 +667,7 @@
       "fingerprint": "512c64ff273cd323",
       "count": 1,
       "first_lines": [
-        4790
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "또한",
-      "category": "runtime_literal",
-      "fingerprint": "650daf1b818c4e53",
-      "count": 1,
-      "first_lines": [
-        3306
+        4821
       ]
     },
     {
@@ -777,7 +677,7 @@
       "fingerprint": "6c304d77ae5f30db",
       "count": 1,
       "first_lines": [
-        4323
+        4354
       ]
     },
     {
@@ -787,17 +687,7 @@
       "fingerprint": "c63352d224f2075c",
       "count": 1,
       "first_lines": [
-        4850
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "와",
-      "category": "runtime_literal",
-      "fingerprint": "9380b0187803cf93",
-      "count": 1,
-      "first_lines": [
-        3303
+        4881
       ]
     },
     {
@@ -807,29 +697,7 @@
       "fingerprint": "a8a29dbb183cca91",
       "count": 1,
       "first_lines": [
-        167
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "은",
-      "category": "runtime_literal",
-      "fingerprint": "eb7179553d154d91",
-      "count": 4,
-      "first_lines": [
-        3559,
-        3562,
-        3565
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "이사의 경영진단",
-      "category": "runtime_literal",
-      "fingerprint": "0597b7379ef612cb",
-      "count": 1,
-      "first_lines": [
-        4095
+        168
       ]
     },
     {
@@ -839,7 +707,7 @@
       "fingerprint": "954e44b7fdd00208",
       "count": 1,
       "first_lines": [
-        746
+        747
       ]
     },
     {

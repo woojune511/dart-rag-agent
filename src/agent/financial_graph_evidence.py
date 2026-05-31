@@ -33,6 +33,7 @@ from src.config.retrieval_policy import (
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY,
+    DIVIDEND_POLICY_ASSEMBLY_POLICY,
     EVIDENCE_COMPRESSION_GUIDANCE_POLICY,
     EVIDENCE_EXTRACTION_POLICY,
     NARRATIVE_RERANK_POLICY,
@@ -2689,8 +2690,9 @@ class FinancialAgentEvidenceMixin:
             return []
 
         query_text = _normalise_spaces(query)
-        query_years = re.findall(r"(20\d{2}년)", query_text)
         assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
+        year_pattern_text = str(assembly_policy.get("ratio_year_pattern") or r"(20\d{2}년)")
+        query_years = re.findall(year_pattern_text, query_text)
         aggregation_stage_labels = {
             stage: {
                 re.sub(r"\s+", "", _normalise_spaces(str(label)))
@@ -2725,7 +2727,7 @@ class FinancialAgentEvidenceMixin:
         )
         operand_rows: List[Dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
-        year_pattern = re.compile(r"(20\d{2}년)")
+        year_pattern = re.compile(year_pattern_text)
 
         for operand in required_operands:
             label_name = str(operand.get("label") or operand.get("name") or operand.get("concept") or "").strip()
@@ -3297,13 +3299,16 @@ class FinancialAgentEvidenceMixin:
         if not phrases:
             return draft
 
+        guidance_policy = dict(EVIDENCE_COMPRESSION_GUIDANCE_POLICY)
         if len(phrases) == 1:
             clause = phrases[0]
         elif len(phrases) == 2:
-            clause = f"{phrases[0]}와 {phrases[1]}"
+            clause = f"{phrases[0]}{guidance_policy.get('driver_pair_joiner') or ''} {phrases[1]}"
         else:
-            clause = ", ".join(phrases[:-1]) + f", 그리고 {phrases[-1]}"
-        addition = f"또한 {clause}도 실적 성장에 기여했습니다."
+            phrase_joiner = str(guidance_policy.get("driver_phrase_joiner") or ", ")
+            final_joiner = str(guidance_policy.get("driver_final_joiner") or ", ")
+            clause = phrase_joiner.join(phrases[:-1]) + f"{final_joiner}{phrases[-1]}"
+        addition = str(guidance_policy.get("driver_addition_template") or "{clause}").format(clause=clause)
         if addition in draft:
             return draft
         return f"{draft} {addition}".strip()
@@ -3347,7 +3352,8 @@ class FinancialAgentEvidenceMixin:
             )
 
         def _numbers(text: str) -> List[str]:
-            return re.findall(r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?", text)
+            policy = dict(ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY)
+            return re.findall(str(policy.get("number_pattern") or r"$^"), text)
 
         def _clean_amount(value: str) -> str:
             return value.strip()
@@ -3548,6 +3554,7 @@ class FinancialAgentEvidenceMixin:
 
         entity_label = next((variant for variant in entity_variants if re.search(r"[A-Za-z]", variant)), entity_variants[0])
         role_labels = dict(policy.get("role_labels") or {})
+        part_templates = dict(policy.get("part_templates") or {})
         default_unit = str(policy.get("default_unit") or "")
         sentences: List[str] = []
         if percent or amount:
@@ -3556,13 +3563,31 @@ class FinancialAgentEvidenceMixin:
                 if prior_percent:
                     prior_label = str(role_labels.get("prior_ownership_ratio") or "prior_ownership_ratio")
                     current_label = str(role_labels.get("ownership_ratio") or "ownership_ratio")
-                    parts.append(f"{prior_label}은 {prior_percent}, {current_label}은 {percent}")
+                    parts.append(
+                        str(part_templates.get("prior_current_ratio") or "{prior_label} {prior_percent} {current_label} {percent}").format(
+                            prior_label=prior_label,
+                            prior_percent=prior_percent,
+                            current_label=current_label,
+                            percent=percent,
+                        )
+                    )
                 else:
                     current_label = str(role_labels.get("ownership_ratio") or "ownership_ratio")
-                    parts.append(f"{current_label}은 {percent}")
+                    parts.append(
+                        str(part_templates.get("current_ratio") or "{current_label} {percent}").format(
+                            current_label=current_label,
+                            percent=percent,
+                        )
+                    )
             if amount:
                 amount_label = str(role_labels.get("investment_carrying_amount") or "investment_carrying_amount")
-                parts.append(f"{amount_label}은 {amount}{default_unit}")
+                parts.append(
+                    str(part_templates.get("amount") or "{amount_label} {amount}{unit}").format(
+                        amount_label=amount_label,
+                        amount=amount,
+                        unit=default_unit,
+                    )
+                )
             sentence_template = str(policy.get("investment_sentence_template") or "{entity_label}: {parts}")
             sentences.append(sentence_template.format(entity_label=entity_label, parts=", ".join(parts)))
         if continuing or total_comprehensive:
@@ -3949,11 +3974,8 @@ class FinancialAgentEvidenceMixin:
         surface = _normalise_spaces(str(text or ""))
         if not surface:
             return ""
-        patterns = (
-            r"(\d+\s*조\s*\d{1,3}(?:,\d{3})?\s*억원)",
-            r"(\d{1,3}(?:,\d{3})+\s*억원)",
-            r"(\d{1,3}(?:,\d{3})+\s*백만원)",
-        )
+        policy = dict(DIVIDEND_POLICY_ASSEMBLY_POLICY)
+        patterns = tuple(str(pattern) for pattern in (policy.get("amount_patterns") or ()) if str(pattern))
         for pattern in patterns:
             match = re.search(pattern, surface)
             if match:
@@ -3974,36 +3996,41 @@ class FinancialAgentEvidenceMixin:
         surface = self._extract_dividend_amount_surface(text)
         if not surface:
             return float("-inf")
-        jo_match = re.search(r"(\d+)\s*조(?:\s*(\d{1,3}(?:,\d{3})?))?\s*억원", surface)
+        policy = dict(DIVIDEND_POLICY_ASSEMBLY_POLICY)
+        rank_patterns = dict(policy.get("rank_patterns") or {})
+        jo_match = re.search(str(rank_patterns.get("trillion_eok") or r"$^"), surface)
         if jo_match:
             jo = int(jo_match.group(1))
             eok = int((jo_match.group(2) or "0").replace(",", ""))
-            return float(jo * 10000 + eok)
-        eok_match = re.search(r"(\d{1,3}(?:,\d{3})+)\s*억원", surface)
+            return float(jo * float(policy.get("trillion_to_eok_multiplier") or 10000) + eok)
+        eok_match = re.search(str(rank_patterns.get("eok") or r"$^"), surface)
         if eok_match:
             return float(int(eok_match.group(1).replace(",", "")))
-        million_match = re.search(r"(\d{1,3}(?:,\d{3})+)\s*백만원", surface)
+        million_match = re.search(str(rank_patterns.get("million_krw") or r"$^"), surface)
         if million_match:
-            return float(int(million_match.group(1).replace(",", "")) / 100.0)
+            return float(int(million_match.group(1).replace(",", "")) / float(policy.get("million_krw_to_eok_divisor") or 100.0))
         return float("-inf")
 
     def _extract_dividend_policy_clause(self, text: str, *, preferred_markers: Optional[List[str]] = None) -> str:
         surface = _normalise_spaces(str(text or ""))
         if not surface:
             return ""
+        policy = dict(DIVIDEND_POLICY_ASSEMBLY_POLICY)
+        clause_max_chars = int(policy.get("clause_max_chars") or 240)
         fragments = [
             _normalise_spaces(fragment)
-            for fragment in re.split(r"(?<=[.!?])\s+|\n+", surface)
+            for fragment in re.split(str(policy.get("clause_split_pattern") or r"$^"), surface)
             if _normalise_spaces(fragment)
         ]
         if preferred_markers:
             for fragment in fragments:
                 if any(marker in fragment for marker in preferred_markers):
-                    return fragment[:240]
+                    return fragment[:clause_max_chars]
+        preferred_period_markers = tuple(str(item) for item in (policy.get("preferred_policy_period_markers") or ()) if str(item))
         for fragment in fragments:
-            if "2024" in fragment and "2026" in fragment:
-                return fragment[:240]
-        return surface[:240]
+            if preferred_period_markers and all(marker in fragment for marker in preferred_period_markers):
+                return fragment[:clause_max_chars]
+        return surface[:clause_max_chars]
 
     def _compose_dividend_policy_hybrid_answer(
         self,
@@ -4033,6 +4060,7 @@ class FinancialAgentEvidenceMixin:
             "payout_sentence_template",
             "policy_sentence_prefix",
         )
+        dividend_policy = dict(DIVIDEND_POLICY_ASSEMBLY_POLICY)
         payout_terms = policy_terms_by_key["payout_terms"]
         payout_deemphasis_terms = policy_terms_by_key["payout_deemphasis_terms"]
         policy_terms = policy_terms_by_key["policy_terms"]
@@ -4092,7 +4120,7 @@ class FinancialAgentEvidenceMixin:
                         payout_score += 4.0
                     if any(term in combined_text for term in outflow_terms):
                         payout_score += 2.0
-                    if "이사의 경영진단" in section_hint:
+                    if any(term.lower() in section_hint for term in (dividend_policy.get("payout_priority_section_terms") or ())):
                         payout_score += 1.0
                     if any(term in combined_text for term in table_policy_terms):
                         payout_score -= 4.0
@@ -4110,9 +4138,12 @@ class FinancialAgentEvidenceMixin:
                 clause = self._extract_dividend_policy_clause(combined_text, preferred_markers=policy_preferred_terms)
                 if clause:
                     policy_score = 0.0
-                    if "2024" in clause and "2026" in clause:
+                    preferred_period_markers = tuple(str(item) for item in (dividend_policy.get("preferred_policy_period_markers") or ()) if str(item))
+                    stale_period_markers = tuple(str(item) for item in (dividend_policy.get("stale_policy_period_markers") or ()) if str(item))
+                    preferred_period_hit = bool(preferred_period_markers) and all(marker in clause for marker in preferred_period_markers)
+                    if preferred_period_hit:
                         policy_score += 5.0
-                    if "2021" in clause and "2023" in clause and not ("2024" in clause and "2026" in clause):
+                    if stale_period_markers and all(marker in clause for marker in stale_period_markers) and not preferred_period_hit:
                         policy_score -= 2.0
                     if any(marker in clause for marker in regular_terms):
                         policy_score += 2.0
@@ -4131,9 +4162,9 @@ class FinancialAgentEvidenceMixin:
         if not payout_amount or not policy_clause:
             return None
 
-        year_match = re.search(r"(20\d{2})년", _normalise_spaces(query))
+        year_match = re.search(str(dividend_policy.get("year_pattern") or r"$^"), _normalise_spaces(query))
         year = year_match.group(1) if year_match else ""
-        year_prefix = f"{year}년 " if year else ""
+        year_prefix = str(dividend_policy.get("year_prefix_template") or "{year} ").format(year=year) if year else ""
         payout_sentence = _normalise_spaces(
             (payout_sentence_template or "{year_prefix}{amount}").format(
                 year_prefix=year_prefix,
