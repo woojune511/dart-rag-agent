@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Sequence
+from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 
 KOREAN_PERIOD_PREFIX_RE_FRAGMENT = r"(?:20\d{2}년|당기|전기|전년)"
@@ -23,6 +23,81 @@ KOREAN_PERCENT_METRIC_HINT_TERMS = (
     "증감률",
     "변동률",
 )
+
+FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES: Tuple[Dict[str, Any], ...] = (
+    {
+        "markers": ("재무상태표",),
+        "statement_types": ("balance_sheet", "summary_financials"),
+        "preferred_sections": ("연결 재무상태표", "재무상태표"),
+    },
+    {
+        "markers": ("손익계산서", "포괄손익계산서"),
+        "statement_types": ("income_statement", "summary_financials", "segment_note"),
+        "preferred_sections": ("연결 손익계산서", "손익계산서", "포괄손익계산서"),
+    },
+    {
+        "markers": ("현금흐름표",),
+        "statement_types": ("cash_flow", "summary_financials"),
+        "preferred_sections": ("현금흐름표", "현금흐름표 (연결)"),
+    },
+    {
+        "markers": ("주석",),
+        "statement_types": ("notes",),
+        "preferred_sections": ("연결재무제표 주석", "재무제표 주석"),
+    },
+)
+
+FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES: Tuple[Dict[str, Any], ...] = (
+    {
+        "markers": ("부채비율", "유동비율", "자산총계", "부채총계", "자본총계", "유동자산", "유동부채"),
+        "statement_types": ("balance_sheet", "summary_financials"),
+    },
+    {
+        "markers": ("이익률", "ROE", "ROA"),
+        "statement_types": ("income_statement", "summary_financials", "segment_note"),
+    },
+    {
+        "markers": ("영업활동현금흐름", "투자활동현금흐름", "재무활동현금흐름", "FCF", "현금흐름"),
+        "statement_types": ("cash_flow", "summary_financials"),
+    },
+)
+
+FINANCIAL_SEGMENT_SECTION_HINT_POLICY: Dict[str, Any] = {
+    "markers": ("부문", "segment", "세그먼트"),
+    "statement_types": ("segment_note",),
+    "preferred_sections": ("부문정보", "영업부문", "영업실적"),
+}
+
+CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
+    "query_markers": {
+        "consolidated": ("연결",),
+        "separate": ("별도",),
+    },
+    "metadata_values": {
+        "consolidated": ("연결", "consolidated", "consolidation"),
+        "separate": ("별도", "separate", "standalone", "non-consolidated", "nonconsolidated"),
+    },
+    "default_consolidated_markers": (
+        "재무제표",
+        "주석",
+        "손익계산서",
+        "포괄손익계산서",
+        "재무상태표",
+        "현금흐름표",
+        "자본변동표",
+        "매출",
+        "매출원가",
+        "영업이익",
+        "당기순이익",
+        "자산",
+        "부채",
+        "자본",
+        "비용",
+        "원가",
+        "수익",
+        "이익",
+    ),
+}
 
 KOREAN_SEGMENT_LABEL_REPORT_TERMS = (
     "사업보고서",

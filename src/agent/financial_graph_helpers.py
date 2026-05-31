@@ -23,6 +23,10 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
+    CONSOLIDATION_SCOPE_POLICY,
+    FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
+    FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
+    FINANCIAL_SEGMENT_SECTION_HINT_POLICY,
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_COUNT_UNITS,
@@ -1069,16 +1073,10 @@ def _matched_ontology_concept_specs(query: str, topic: str = "") -> List[Dict[st
 def _desired_statement_types(query: str, topic: str) -> List[str]:
     text = _normalise_spaces(f"{query} {topic}")
     desired: List[str] = []
-    if "재무상태표" in text:
-        desired.extend(["balance_sheet", "summary_financials"])
-    if "손익계산서" in text or "포괄손익계산서" in text:
-        desired.extend(["income_statement", "summary_financials", "segment_note"])
-    if "현금흐름표" in text:
-        desired.extend(["cash_flow", "summary_financials"])
-    if "주석" in text:
-        desired.extend(["notes"])
-    if any(keyword in text for keyword in ("부채비율", "유동비율", "자산총계", "부채총계", "자본총계", "유동자산", "유동부채")):
-        desired.extend(["balance_sheet", "summary_financials"])
+    for policy in (*FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES, *FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES):
+        markers = tuple(str(item) for item in (policy.get("markers") or ()) if str(item))
+        if any(marker in text for marker in markers):
+            desired.extend(str(item).strip() for item in (policy.get("statement_types") or ()) if str(item).strip())
     for spec in _matched_ontology_concept_specs(query, topic):
         desired.extend(str(item).strip() for item in (spec.get("preferred_statement_types") or []) if str(item).strip())
         for member_spec in (spec.get("member_specs") or []):
@@ -1087,47 +1085,22 @@ def _desired_statement_types(query: str, topic: str) -> List[str]:
                 for item in (dict(member_spec).get("preferred_statement_types") or [])
                 if str(item).strip()
             )
-    if any(keyword in text for keyword in ("이익률", "ROE", "ROA")):
-        desired.extend(["income_statement", "summary_financials", "segment_note"])
-    if any(keyword in text for keyword in ("영업활동현금흐름", "투자활동현금흐름", "재무활동현금흐름", "FCF", "현금흐름")):
-        desired.extend(["cash_flow", "summary_financials"])
     return list(dict.fromkeys(desired))
 
 
 def _desired_consolidation_scope(query: str, report_scope: Dict[str, Any]) -> str:
     text = _normalise_spaces(query)
-    if "연결" in text:
-        return "consolidated"
-    if "별도" in text:
-        return "separate"
+    query_markers = dict(CONSOLIDATION_SCOPE_POLICY.get("query_markers") or {})
+    for scope, markers in query_markers.items():
+        if any(str(marker) and str(marker) in text for marker in markers or ()):
+            return str(scope)
     scope_value = _normalise_spaces(str((report_scope or {}).get("consolidation") or "")).lower()
-    if scope_value in {"연결", "consolidated", "consolidation"}:
-        return "consolidated"
-    if scope_value in {"별도", "separate", "standalone", "non-consolidated", "nonconsolidated"}:
-        return "separate"
-    if any(
-        marker in text
-        for marker in (
-            "재무제표",
-            "주석",
-            "손익계산서",
-            "포괄손익계산서",
-            "재무상태표",
-            "현금흐름표",
-            "자본변동표",
-            "매출",
-            "매출원가",
-            "영업이익",
-            "당기순이익",
-            "자산",
-            "부채",
-            "자본",
-            "비용",
-            "원가",
-            "수익",
-            "이익",
-        )
-    ):
+    metadata_values = dict(CONSOLIDATION_SCOPE_POLICY.get("metadata_values") or {})
+    for scope, values in metadata_values.items():
+        if scope_value in {str(value).lower() for value in values or ()}:
+            return str(scope)
+    default_markers = tuple(str(item) for item in (CONSOLIDATION_SCOPE_POLICY.get("default_consolidated_markers") or ()))
+    if any(marker in text for marker in default_markers):
         return "consolidated"
     return "unknown"
 
@@ -2109,20 +2082,24 @@ def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]
     ontology = get_financial_ontology()
     statement_types = _desired_statement_types(query, query)
     preferred_sections: List[str] = []
-    if "손익계산서" in text or "포괄손익계산서" in text:
-        preferred_sections.extend(["연결 손익계산서", "손익계산서", "포괄손익계산서"])
-    if "재무상태표" in text:
-        preferred_sections.extend(["연결 재무상태표", "재무상태표"])
-    if "현금흐름표" in text:
-        preferred_sections.extend(["현금흐름표", "현금흐름표 (연결)"])
-    if "주석" in text:
-        preferred_sections.extend(["연결재무제표 주석", "재무제표 주석"])
-        if "notes" not in statement_types:
-            statement_types.append("notes")
-    if any(keyword in text for keyword in ("부문", "segment", "세그먼트")):
-        preferred_sections.extend(["부문정보", "영업부문", "영업실적"])
-        if "segment_note" not in statement_types:
-            statement_types.append("segment_note")
+    for policy in FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES:
+        markers = tuple(str(item) for item in (policy.get("markers") or ()) if str(item))
+        if not any(marker in text for marker in markers):
+            continue
+        preferred_sections.extend(str(item).strip() for item in (policy.get("preferred_sections") or ()) if str(item).strip())
+        for statement_type in policy.get("statement_types") or ():
+            if str(statement_type) not in statement_types:
+                statement_types.append(str(statement_type))
+    segment_markers = tuple(str(item) for item in (FINANCIAL_SEGMENT_SECTION_HINT_POLICY.get("markers") or ()) if str(item))
+    if any(marker in text for marker in segment_markers):
+        preferred_sections.extend(
+            str(item).strip()
+            for item in (FINANCIAL_SEGMENT_SECTION_HINT_POLICY.get("preferred_sections") or ())
+            if str(item).strip()
+        )
+        for statement_type in FINANCIAL_SEGMENT_SECTION_HINT_POLICY.get("statement_types") or ():
+            if str(statement_type) not in statement_types:
+                statement_types.append(str(statement_type))
     preferred_sections.extend(ontology.preferred_sections(query, query, "comparison"))
     numeric_hint_policies = active_numeric_section_hint_policies(text)
     preferred_sections.extend(numeric_section_policy_preferred_sections(numeric_hint_policies))
