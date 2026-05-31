@@ -450,6 +450,11 @@ REQUIRED_OPERAND_ASSEMBLY_POLICY: Dict[str, Any] = {
 
 NARRATIVE_RERANK_POLICY: Dict[str, Any] = {
     "causal_markers": ("영향", "기여", "편입효과", "배경", "요인", "성장"),
+    "lower_priority_section_markers_by_query_type": {
+        "numeric_fact": ("주석",),
+        "trend": ("주석",),
+    },
+    "lower_priority_section_penalty": -0.12,
 }
 
 
@@ -1128,10 +1133,12 @@ QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
     "focus_stopwords": ("2023년", "규모를", "찾고", "이것이", "미친", "분석해"),
     "primary_denominator_markers": ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계"),
     "denominator_markers": ("자산", "부채", "자본"),
+    "label_drop_terms": ("등",),
     "cost_denominator_markers": ("원가", "비용"),
     "loss_markers": ("손실",),
     "caveat_trigger_terms": ("등", "환입"),
     "caveat_exception_terms": ("세부",),
+    "consolidated_scope_prefix": "연결 기준 ",
     "default_impact_sentence": "해당 기준 금액에 반영된 항목으로 해석할 수 있습니다.",
     "cost_loss_impact_template": "{denominator_label}에 포함되어 비용을 증가시키고 매출총이익을 압박하는 요인입니다.",
     "cost_impact_template": "{denominator_label}에 포함되어 해당 비용에 영향을 주는 항목입니다.",

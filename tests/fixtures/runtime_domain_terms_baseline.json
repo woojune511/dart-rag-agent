@@ -261,11 +261,11 @@
       "fingerprint": "09aadfd07ef92e69",
       "count": 5,
       "first_lines": [
-        2290,
-        2396,
-        2399,
-        2497,
-        2693
+        2297,
+        2403,
+        2406,
+        2504,
+        2700
       ]
     },
     {
@@ -275,7 +275,7 @@
       "fingerprint": "ff18e0673e70c35a",
       "count": 1,
       "first_lines": [
-        2877
+        2884
       ]
     },
     {
@@ -285,8 +285,8 @@
       "fingerprint": "4ec5a8e849d0dfb3",
       "count": 2,
       "first_lines": [
-        3410,
-        3429
+        3417,
+        3436
       ]
     },
     {
@@ -296,7 +296,7 @@
       "fingerprint": "19bc2a3b9de117cd",
       "count": 1,
       "first_lines": [
-        1312
+        1319
       ]
     },
     {
@@ -317,8 +317,8 @@
       "fingerprint": "babae2ce22724407",
       "count": 2,
       "first_lines": [
-        2329,
-        2441
+        2336,
+        2448
       ]
     },
     {
@@ -338,7 +338,7 @@
       "fingerprint": "659b99dfd4b27fb1",
       "count": 1,
       "first_lines": [
-        2329
+        2336
       ]
     },
     {
@@ -348,7 +348,7 @@
       "fingerprint": "b8454cb1cc28f184",
       "count": 1,
       "first_lines": [
-        2447
+        2454
       ]
     },
     {
@@ -358,7 +358,7 @@
       "fingerprint": "3f225931bf63dfdf",
       "count": 1,
       "first_lines": [
-        1878
+        1885
       ]
     },
     {
@@ -368,7 +368,7 @@
       "fingerprint": "066d947debd8d926",
       "count": 1,
       "first_lines": [
-        4621
+        4628
       ]
     },
     {
@@ -380,39 +380,9 @@
       "first_lines": [
         355,
         425,
-        2510,
-        2725,
-        2784
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "등",
-      "category": "runtime_literal",
-      "fingerprint": "512c64ff273cd323",
-      "count": 1,
-      "first_lines": [
-        4789
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "연결 기준",
-      "category": "runtime_literal",
-      "fingerprint": "c63352d224f2075c",
-      "count": 1,
-      "first_lines": [
-        4849
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "주석",
-      "category": "runtime_literal",
-      "fingerprint": "954e44b7fdd00208",
-      "count": 1,
-      "first_lines": [
-        746
+        2517,
+        2732,
+        2791
       ]
     },
     {

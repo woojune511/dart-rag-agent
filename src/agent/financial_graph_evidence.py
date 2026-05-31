@@ -742,9 +742,16 @@ class FinancialAgentEvidenceMixin:
             if needle.lower() in lowered:
                 bias += weight
                 break
-        # 주석 섹션은 numeric_fact/trend에서 본문 재무제표보다 유용도가 낮으므로 페널티
-        if "주석" in lowered and query_type in self._TABLE_PREFERRED_TYPES:
-            bias -= 0.12
+        rerank_policy = dict(NARRATIVE_RERANK_POLICY)
+        lower_priority_markers = tuple(
+            str(marker)
+            for marker in (
+                dict(rerank_policy.get("lower_priority_section_markers_by_query_type") or {}).get(query_type) or ()
+            )
+            if str(marker)
+        )
+        if any(marker.lower() in lowered for marker in lower_priority_markers):
+            bias += float(rerank_policy.get("lower_priority_section_penalty") or 0.0)
         return bias
 
     def _rerank_docs(self, docs, state: FinancialAgentState):
@@ -4786,7 +4793,8 @@ class FinancialAgentEvidenceMixin:
         def label_matches_query(label: str) -> bool:
             compact = re.sub(r"\s+", "", label)
             base_compact = re.sub(r"\([^)]*\)", "", compact)
-            base_compact = base_compact.replace("등", "")
+            for drop_term in tuple(str(term) for term in (policy.get("label_drop_terms") or ()) if str(term)):
+                base_compact = base_compact.replace(drop_term, "")
             if base_compact and base_compact in query_compact:
                 return True
             if any(term and (term in compact or compact in term) for term in quoted_terms):
@@ -4846,7 +4854,11 @@ class FinancialAgentEvidenceMixin:
         ratio = numerator_value / denominator_value * 100.0
         unit = str(numerator.get("unit") or denominator.get("unit") or "").strip()
         unit_suffix = unit if unit else ""
-        scope_prefix = "연결 기준 " if str(numerator.get("metadata", {}).get("consolidation_scope") or "") == "consolidated" else ""
+        scope_prefix = (
+            str(policy.get("consolidated_scope_prefix") or "")
+            if str(numerator.get("metadata", {}).get("consolidation_scope") or "") == "consolidated"
+            else ""
+        )
         numerator_label = str(numerator.get("label") or "").strip()
         denominator_label = str(denominator.get("label") or "").strip()
         numerator_raw = str(numerator.get("raw_value") or "").strip()
