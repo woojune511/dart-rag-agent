@@ -2010,3 +2010,49 @@ Dataset contract follow-up:
   `retrieval_hit_at_k = 1.000`, `citation_coverage = 1.000`,
   `entity_coverage = 1.000`, `grounded_rendering_correctness = 1.000`,
   `avg_score = 0.939`, `error_rate = 0.0%`.
+
+## 2026-06-01 Hyundai Marker Policy Eval-Only
+
+Purpose:
+
+- Verify that the runtime marker cleanup passes did not regress the Hyundai
+  policy-driven questions.
+- Specifically cover the recent move of note/consolidation scope checks and
+  evidence assembly display markers from runtime code into retrieval policy.
+
+Command:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.run_eval_only `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --source-output-dir benchmarks/results/policy_gate_regression_2026-05-31_2212 `
+  --output-dir benchmarks/results/policy_gate_hyundai_markerpolicy_evalonly_2026-06-01 `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --experiment-id structural_selective_v2_prefix_2500_320
+```
+
+Result:
+
+- Strict vector health check: passed with `result_count = 1`.
+- Store-fixed eval-only aggregate over the Hyundai policy questions:
+  - `faithfulness = 1.000`
+  - `answer_relevancy = 0.853`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `ndcg_at_5 = 1.308`
+  - `context_precision_at_5 = 0.800`
+  - `section_match_rate = 0.8375`
+  - `citation_coverage = 1.000`
+  - `entity_coverage = 0.800`
+  - `completeness = 1.000`
+  - `refusal_accuracy = 1.000`
+  - `operand_selection_correctness = 1.000`
+  - `grounded_rendering_correctness = 1.000`
+  - `calculation_correctness = 1.000`
+  - `avg_score = 0.948`
+  - `error_rate = 0.0%`
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_hyundai_markerpolicy_evalonly_2026-06-01/`
+  is a local benchmark artifact and should not be committed.
