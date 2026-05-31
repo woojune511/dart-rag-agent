@@ -8,6 +8,8 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 
+from src.config.retrieval_policy import CONTEXTUAL_INGEST_POLICY
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONTEXT_MAX_WORKERS = max(4, min(12, (os.cpu_count() or 4) * 2))
@@ -48,6 +50,13 @@ def _extract_usage_counts(response: Any) -> Dict[str, int]:
     }
 
 
+def _context_block_type_label(metadata: dict) -> str:
+    labels = CONTEXTUAL_INGEST_POLICY["block_type_labels"]
+    if metadata.get("block_type") == "table":
+        return str(labels["table"])
+    return str(labels["paragraph"])
+
+
 class FinancialAgentContextualMixin:
     def ingest(self, chunks: List) -> None:
         if not chunks:
@@ -59,58 +68,48 @@ class FinancialAgentContextualMixin:
         logger.info("[ingest] indexed %s chunks", len(chunks))
 
     def _generate_context(self, text: str, metadata: dict) -> str:
-        """청크 1개에 대해 LLM으로 1문장 컨텍스트 설명 생성."""
-        company = metadata.get("company", "?")
-        year = metadata.get("year", "?")
-        section_path = metadata.get("section_path", metadata.get("section", "?"))
-        block_type = "표" if metadata.get("block_type") == "table" else "단락"
-        preview = re.sub(r"\s+", " ", text[:400]).strip()
-
-        prompt = (
-            f"다음은 {company} {year}년 사업보고서의 [{section_path}] 섹션에서 발췌한 {block_type}입니다.\n"
-            f"이 내용이 전체 문서 맥락에서 어떤 정보를 담고 있는지 한국어로 한 문장(50자 이내)으로만 설명하세요.\n\n"
-            f"내용:\n{preview}"
-        )
+        """Generate one concise context sentence for a chunk."""
+        prompt = self._build_context_prompt(text, metadata)
         try:
             response = self.llm.invoke(prompt)
             return response.content.strip()
         except Exception as exc:
             logger.warning("Context generation failed: %s", exc)
-            return f"{company} {year}년 사업보고서 / {section_path} / {block_type}"
+            return self._fallback_context(metadata)
 
     def _fallback_context(self, metadata: dict) -> str:
-        company = metadata.get("company", "?")
-        year = metadata.get("year", "?")
-        section_path = metadata.get("section_path", metadata.get("section", "?"))
-        block_type = "표" if metadata.get("block_type") == "table" else "단락"
-        return f"{company} {year}년 사업보고서 / {section_path} / {block_type}"
+        return str(CONTEXTUAL_INGEST_POLICY["fallback_context_template"]).format(
+            company=metadata.get("company", "?"),
+            year=metadata.get("year", "?"),
+            section_path=metadata.get("section_path", metadata.get("section", "?")),
+            block_type=_context_block_type_label(metadata),
+        )
 
     def _build_context_prompt(self, text: str, metadata: dict) -> str:
-        company = metadata.get("company", "?")
-        year = metadata.get("year", "?")
-        section_path = metadata.get("section_path", metadata.get("section", "?"))
-        block_type = "표" if metadata.get("block_type") == "table" else "단락"
-        preview = re.sub(r"\s+", " ", text[:400]).strip()
-        return (
-            f"다음은 {company} {year}년 사업보고서의 [{section_path}] 섹션에서 발췌한 {block_type}입니다.\n"
-            f"이 내용이 전체 문서 맥락에서 어떤 정보를 담고 있는지 한국어로 한 문장(50자 이내)으로만 설명하세요.\n\n"
-            f"내용:\n{preview}"
+        preview_chars = int(CONTEXTUAL_INGEST_POLICY["preview_chars"])
+        preview = re.sub(r"\s+", " ", text[:preview_chars]).strip()
+        return str(CONTEXTUAL_INGEST_POLICY["context_prompt_template"]).format(
+            company=metadata.get("company", "?"),
+            year=metadata.get("year", "?"),
+            section_path=metadata.get("section_path", metadata.get("section", "?")),
+            block_type=_context_block_type_label(metadata),
+            preview=preview,
         )
 
     def _build_index_prefix(self, metadata: dict, context: str) -> str:
-        company = metadata.get("company", "?")
-        year = metadata.get("year", "?")
-        report_type = metadata.get("report_type", "?")
         section = metadata.get("section", "?")
-        section_path = metadata.get("section_path", section)
-        block_type = "표" if metadata.get("block_type") == "table" else "단락"
+        values = {
+            "context": context.strip(),
+            "company": metadata.get("company", "?"),
+            "year": metadata.get("year", "?"),
+            "report_type": metadata.get("report_type", "?"),
+            "section": section,
+            "section_path": metadata.get("section_path", section),
+            "block_type": _context_block_type_label(metadata),
+        }
         return "\n".join(
-            [
-                context.strip(),
-                f"{company} {year} {report_type}",
-                f"섹션: {section_path}",
-                f"분류: {section} / {block_type}",
-            ]
+            str(template).format(**values)
+            for template in CONTEXTUAL_INGEST_POLICY["index_prefix_templates"]
         )
 
     def _resolve_context_workers(self, max_workers: Optional[int], total: int) -> int:
@@ -135,7 +134,7 @@ class FinancialAgentContextualMixin:
         max_workers: Optional[int] = None,
         batch_size: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Contextual Retrieval + Parent-child 방식으로 청크를 인덱싱한다."""
+        """Index chunks with contextual retrieval and parent-child storage."""
         if not chunks:
             logger.warning("[contextual_ingest] chunks are empty.")
             return {

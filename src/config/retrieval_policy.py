@@ -68,6 +68,26 @@ FINANCIAL_SEGMENT_SECTION_HINT_POLICY: Dict[str, Any] = {
     "preferred_sections": ("부문정보", "영업부문", "영업실적"),
 }
 
+CONTEXTUAL_INGEST_POLICY: Dict[str, Any] = {
+    "preview_chars": 400,
+    "block_type_labels": {
+        "table": "표",
+        "paragraph": "단락",
+    },
+    "context_prompt_template": (
+        "다음은 {company} {year}년 사업보고서의 [{section_path}] 섹션에서 발췌한 {block_type}입니다.\n"
+        "이 내용이 전체 문서 맥락에서 어떤 정보를 담고 있는지 한국어로 한 문장(50자 이내)으로만 설명하세요.\n\n"
+        "내용:\n{preview}"
+    ),
+    "fallback_context_template": "{company} {year}년 사업보고서 / {section_path} / {block_type}",
+    "index_prefix_templates": (
+        "{context}",
+        "{company} {year} {report_type}",
+        "섹션: {section_path}",
+        "분류: {section} / {block_type}",
+    ),
+}
+
 CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
     "query_markers": {
         "consolidated": ("연결",),

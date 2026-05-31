@@ -108,15 +108,18 @@ extractor prompts plus direct-numeric fallback messages, aggregate-result
 patterns, and sentence-check reasons into evidence runtime policy.
 A calculation prompt follow-up moved operand extraction, formula planning, and
 aggregate synthesis prompts into calculation prompt policy.
+A contextual ingest follow-up moved context-generation prompts, fallback
+context text, index-prefix templates, and block-type display labels into
+contextual ingest policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 236 |
-| Literal occurrences | 284 |
-| `runtime_literal` records | 72 |
+| Reviewed records | 225 |
+| Literal occurrences | 262 |
+| `runtime_literal` records | 63 |
 | `schema_description` records | 117 |
-| `regex_or_pattern` records | 37 |
-| `prompt_or_template` records | 10 |
+| `regex_or_pattern` records | 36 |
+| `prompt_or_template` records | 9 |
 
 Top files:
 
@@ -127,7 +130,6 @@ Top files:
 | `src/agent/financial_graph_calculation.py` | 23 | P0/P1: remaining records are mostly generic numeric parsing and final fallback/status wording |
 | `src/agent/financial_graph_evidence.py` | 16 | P0/P1: remaining records are mostly evidence formatting labels and generic period/value patterns |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
-| `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
 | `src/agent/nodes/dummy_nodes.py` | 8 | P2: MAS skeleton fixtures, not production retrieval policy |
 | `src/agent/financial_graph_reconciliation.py` | 4 | P1: remaining records are final reconciliation status/message surfaces |
 | `src/routing/types.py` | 4 | P1: schema field descriptions |
@@ -141,7 +143,6 @@ Top files:
    `financial_graph_helpers.py`, `financial_graph_evidence.py`,
    `financial_graph_calculation.py`, `financial_graph_planning.py`.
 2. P1 schema/prompt/message paths:
-   `financial_graph_contextual.py`,
    `financial_graph_reconciliation.py`, `critic_node.py`,
    `researcher_node.py`, `routing/types.py`.
 3. P2 fixture or skeleton paths:
