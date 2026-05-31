@@ -33,11 +33,13 @@ from src.config.retrieval_policy import (
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY,
+    NARRATIVE_RERANK_POLICY,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
     QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     REQUIRED_OPERAND_ASSEMBLY_POLICY,
     QUERY_FOCUS_STOPWORDS,
+    SENTENCE_NORMALISATION_POLICY,
     active_narrative_policies,
     narrative_policy_active,
     narrative_policy_driver_groups,
@@ -170,12 +172,19 @@ def _numeric_extractor_query_for_state(state: FinancialAgentState) -> str:
 def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> bool:
     if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
         return True
+    assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
+    token_split_pattern = str(assembly_policy.get("lookup_surface_token_split_pattern") or r"[\s/|,()]+")
+    blocked_tokens = {
+        str(token)
+        for token in (assembly_policy.get("lookup_surface_blocked_tokens") or ())
+        if str(token)
+    }
     compact_line = re.sub(r"\s+", "", _normalise_spaces(line))
     for needle in _operand_needles(operand):
         tokens = [
             token
-            for token in re.split(r"[\s/|,()]+", _normalise_spaces(needle))
-            if token and token not in {"부문", "부", "기준", "연결", "별도", "당기", "전기"}
+            for token in re.split(token_split_pattern, _normalise_spaces(needle))
+            if token and token not in blocked_tokens
         ]
         if len(tokens) >= 2 and all(re.sub(r"\s+", "", token) in compact_line for token in tokens):
             return True
@@ -826,7 +835,7 @@ class FinancialAgentEvidenceMixin:
                     boosted += 0.12
                 elif block_type == "table":
                     boosted -= 0.14
-                causal_markers = ("영향", "기여", "편입효과", "배경", "요인", "성장")
+                causal_markers = tuple(str(item) for item in (NARRATIVE_RERANK_POLICY.get("causal_markers") or ()))
                 if any(marker in body_text or marker in section_path for marker in causal_markers):
                     boosted += 0.08
                 if query_focus_markers:
@@ -877,6 +886,7 @@ class FinancialAgentEvidenceMixin:
             "liquidity_context_terms",
             "outflow_terms",
             "policy_section_terms",
+            "policy_period_markers",
         )
         causal_markers = policy_terms_by_key["causal_terms"]
         realized_markers = policy_terms_by_key["realized_terms"]
@@ -888,6 +898,7 @@ class FinancialAgentEvidenceMixin:
         dividend_liquidity_context_terms = policy_terms_by_key["liquidity_context_terms"]
         dividend_outflow_terms = policy_terms_by_key["outflow_terms"]
         dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
+        dividend_policy_period_markers = policy_terms_by_key["policy_period_markers"]
         driver_groups = self._narrative_driver_groups(query)
         query_focus_markers = self._query_focus_markers(query)
         active_subtask = dict(state.get("active_subtask") or {})
@@ -1284,10 +1295,15 @@ class FinancialAgentEvidenceMixin:
 
         quantitative_impact_query = any(marker in query for marker in QUANTITATIVE_IMPACT_QUERY_TERMS)
         if quantitative_impact_query:
+            quantitative_focus_stopwords = {
+                str(item)
+                for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("focus_stopwords") or ())
+                if str(item)
+            }
             focus_terms = [
                 term
                 for term in re.findall(r"[가-힣A-Za-z0-9]+", query)
-                if len(term) >= 3 and term not in {"2023년", "규모를", "찾고", "이것이", "미친", "분석해"}
+                if len(term) >= 3 and term not in quantitative_focus_stopwords
             ]
             for focus_term in list(dict.fromkeys(focus_terms))[:6]:
                 if any(focus_term in _doc_surface(item[0] if isinstance(item, (tuple, list)) else item) for item in selected):
@@ -1344,7 +1360,10 @@ class FinancialAgentEvidenceMixin:
                     any(marker in text for marker in dividend_policy_terms)
                     and (
                         any(term in section_path for term in dividend_policy_section_terms)
-                        or ("2024" in text and "2026" in text)
+                        or (
+                            bool(dividend_policy_period_markers)
+                            and all(marker in text for marker in dividend_policy_period_markers)
+                        )
                     )
                 )
 
@@ -2252,12 +2271,20 @@ class FinancialAgentEvidenceMixin:
 
         metric_patterns: List[str] = get_financial_ontology().row_patterns(query, topic, "comparison")
         if not metric_patterns:
-            metric_patterns.extend([r"비율", r"비중", r"이익률"])
+            metric_patterns.extend(
+                str(pattern)
+                for pattern in (REQUIRED_OPERAND_ASSEMBLY_POLICY.get("ratio_row_fallback_patterns") or ())
+                if str(pattern)
+            )
 
         candidates: List[Dict[str, Any]] = []
         seen_keys: set[tuple[str, str]] = set()
-        year_pattern = re.compile(r"(20\d{2}년|제\d+기|당기|전기)")
-        percent_pattern = re.compile(r"[\d,.]+%")
+        year_pattern = re.compile(
+            str(REQUIRED_OPERAND_ASSEMBLY_POLICY.get("ratio_period_pattern") or r"(20\d{2}년)")
+        )
+        percent_pattern = re.compile(
+            str(REQUIRED_OPERAND_ASSEMBLY_POLICY.get("ratio_percent_pattern") or r"[\d,.]+%")
+        )
 
         for index, (doc, _score) in enumerate(retrieved_docs[: min(8, len(retrieved_docs))], start=1):
             metadata = dict(doc.metadata or {})
@@ -2358,11 +2385,25 @@ class FinancialAgentEvidenceMixin:
 
         candidates: List[Dict[str, Any]] = []
         seen_keys: set[tuple[str, str, str]] = set()
-        year_pattern = re.compile(r"(20\d{2}년|제\d+기|당기|전기)")
-        query_years = re.findall(r"20\d{2}년", combined_query)
+        year_pattern = re.compile(
+            str(REQUIRED_OPERAND_ASSEMBLY_POLICY.get("ratio_period_pattern") or r"(20\d{2}년)")
+        )
+        query_year_pattern = re.compile(
+            str(REQUIRED_OPERAND_ASSEMBLY_POLICY.get("ratio_year_pattern") or r"(20\d{2}년)")
+        )
+        percent_value_allowed_concepts = {
+            str(item).strip()
+            for item in (
+                REQUIRED_OPERAND_ASSEMBLY_POLICY.get("ratio_component_percent_value_allowed_concepts")
+                or ()
+            )
+            if str(item).strip()
+        }
+        query_years = query_year_pattern.findall(combined_query)
 
         for spec in specs:
             metric_name = str(spec.get("metric_name") or "")
+            concept_key = str(spec.get("concept") or "").strip()
             preferred_sections = list(spec.get("preferred_sections") or [])
             patterns = list(spec.get("patterns") or [])
             surfaces = list(spec.get("surfaces") or [])
@@ -2388,7 +2429,7 @@ class FinancialAgentEvidenceMixin:
                     raw_value, raw_unit = _extract_value_near_match(text, match.start(), match.end())
                     if not raw_value:
                         continue
-                    if metric_name != "매출액" and "%" in raw_value:
+                    if "%" in raw_value and concept_key not in percent_value_allowed_concepts:
                         continue
                     source_context = f"[표: {section_path}]"
                     years = []
@@ -2445,7 +2486,15 @@ class FinancialAgentEvidenceMixin:
             return []
 
         query_text = _normalise_spaces(query)
-        query_years = re.findall(r"(20\d{2}년)", query_text)
+        assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
+        year_pattern = re.compile(str(assembly_policy.get("ratio_year_pattern") or r"(20\d{2}년)"))
+        percent_pattern = re.compile(str(assembly_policy.get("ratio_percent_pattern") or r"[\d,.]+%"))
+        ratio_unit = str(assembly_policy.get("ratio_unit") or "%")
+        ratio_label = str(assembly_policy.get("ratio_label") or "ratio")
+        component_value_pattern = str(assembly_policy.get("ratio_component_value_pattern") or r"[\d,]+")
+        subject_after_context_pattern = str(assembly_policy.get("subject_after_context_pattern") or "")
+        default_unit = str(assembly_policy.get("default_unit") or "")
+        query_years = year_pattern.findall(query_text)
         prioritized_items = _prioritize_candidate_items(
             candidate_items,
             query=query,
@@ -2453,6 +2502,16 @@ class FinancialAgentEvidenceMixin:
             report_scope=dict(report_scope or {}),
             query_years=[int(year.replace("년", "")) for year in query_years],
         )
+
+        def _fallback_unit(raw_value: str, context_text: str) -> str:
+            for rule in assembly_policy.get("fallback_unit_rules") or ():
+                terms = tuple(str(term) for term in ((rule or {}).get("surface_terms") or ()))
+                source = str((rule or {}).get("source") or "")
+                haystack = raw_value if source == "raw_value" else context_text
+                if any(term in haystack for term in terms):
+                    return str((rule or {}).get("unit") or "")
+            return ""
+
         required_operands = [dict(item) for item in (required_operands or [])]
         if required_operands:
             def _period_count_item_priority(item: Dict[str, Any]) -> tuple[int, int]:
@@ -2484,10 +2543,8 @@ class FinancialAgentEvidenceMixin:
                 )
                 subject_after_context = int(
                     bool(
-                        re.search(
-                            r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
-                            re.sub(r"\s+", "", text),
-                        )
+                        subject_after_context_pattern
+                        and re.search(subject_after_context_pattern, re.sub(r"\s+", "", text))
                     )
                 )
                 return matched_operands, subject_after_context
@@ -2495,8 +2552,6 @@ class FinancialAgentEvidenceMixin:
             prioritized_items = sorted(prioritized_items, key=_period_count_item_priority, reverse=True)
         operand_rows: List[Dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
-        percent_pattern = re.compile(r"[\d,.]+%")
-        year_pattern = re.compile(r"(20\d{2}년)")
 
         # 1) row-level percent operands with header context
         for item in prioritized_items:
@@ -2521,15 +2576,15 @@ class FinancialAgentEvidenceMixin:
                 if key in seen:
                     continue
                 seen.add(key)
-                normalized_value, normalized_unit = _normalise_operand_value(raw_value, "%")
+                normalized_value, normalized_unit = _normalise_operand_value(raw_value, ratio_unit)
                 operand_rows.append(
                     {
                         "operand_id": f"op_{len(operand_rows) + 1:03d}",
                         "evidence_id": item.get("evidence_id"),
                         "source_anchor": item.get("source_anchor"),
-                        "label": f"{period} 비율".strip(),
+                        "label": f"{period} {ratio_label}".strip(),
                         "raw_value": raw_value,
-                        "raw_unit": "%",
+                        "raw_unit": ratio_unit,
                         "normalized_value": normalized_value,
                         "normalized_unit": normalized_unit,
                         "period": period,
@@ -2586,11 +2641,11 @@ class FinancialAgentEvidenceMixin:
                 raw_value = _normalise_spaces(str(item.get("matched_value") or ""))
                 raw_unit = str(item.get("matched_unit") or "")
                 if not raw_value:
-                    value_match = re.search(r"[\d,]+(?:\s*조\s*[\d,]+\s*억(?:원)?)?|[\d,]+", raw_row)
+                    value_match = re.search(component_value_pattern, raw_row)
                     if not value_match:
                         continue
                     raw_value = value_match.group(0)
-                    raw_unit = "원" if "조" in raw_value or "억" in raw_value else ("백만원" if "백만원" in raw_row else "")
+                    raw_unit = _fallback_unit(raw_value, raw_row)
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                 if normalized_value is None:
                     continue
@@ -2601,7 +2656,7 @@ class FinancialAgentEvidenceMixin:
                         "source_anchor": item.get("source_anchor"),
                         "label": f"{period} {label_name}".strip(),
                         "raw_value": raw_value,
-                        "raw_unit": raw_unit or "원",
+                        "raw_unit": raw_unit or default_unit,
                         "normalized_value": normalized_value,
                         "normalized_unit": normalized_unit,
                         "period": period,
@@ -4175,13 +4230,7 @@ class FinancialAgentEvidenceMixin:
 
     def _is_intro_sentence(self, sentence: str) -> bool:
         lowered = _normalise_spaces(sentence).lower()
-        intro_patterns = (
-            "다음과 같습니다",
-            "다음과 같",
-            "주요 재무 리스크는",
-            "주요 사업은",
-            "영위하는 주요 사업은",
-        )
+        intro_patterns = tuple(str(item) for item in (SENTENCE_NORMALISATION_POLICY.get("intro_patterns") or ()))
         return any(pattern in lowered for pattern in intro_patterns)
 
     def _normalise_sentence_checks(
@@ -4232,7 +4281,7 @@ class FinancialAgentEvidenceMixin:
 
             if verdict == "keep" and not supporting_claim_ids:
                 verdict = "drop_unsupported"
-                reason = reason or "근거 claim이 연결되지 않음"
+                reason = reason or str(SENTENCE_NORMALISATION_POLICY.get("missing_support_reason") or "")
 
             support_text = self._sentence_support_text(supporting_claim_ids, evidence_lookup)
             support_tokens = _tokenize_terms(support_text)
@@ -4251,10 +4300,10 @@ class FinancialAgentEvidenceMixin:
             if verdict == "keep" and self._is_intro_sentence(sentence) and index < len(raw_checks) - 1:
                 if query_type in {"business_overview", "risk"} and supporting_claim_ids:
                     verdict = "keep"
-                    reason = reason or "요약형 질문의 도입 문장으로 유지"
+                    reason = reason or str(SENTENCE_NORMALISATION_POLICY.get("summary_intro_reason") or "")
                 else:
                     verdict = "drop_redundant"
-                    reason = reason or "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거"
+                    reason = reason or str(SENTENCE_NORMALISATION_POLICY.get("redundant_intro_reason") or "")
 
             if verdict == "keep" and previous_keep_signature and tuple(supporting_claim_ids) == previous_keep_signature:
                 overlap = len(sentence_tokens & previous_keep_tokens) / max(len(sentence_tokens | previous_keep_tokens), 1)
@@ -4268,7 +4317,7 @@ class FinancialAgentEvidenceMixin:
 
             if verdict == "drop_redundant" and query_type in {"business_overview", "risk"} and self._is_intro_sentence(sentence) and supporting_claim_ids:
                 verdict = "keep"
-                reason = reason or "요약형 질문의 도입 문장으로 유지"
+                reason = reason or str(SENTENCE_NORMALISATION_POLICY.get("summary_intro_reason") or "")
 
             if verdict == "keep" and query_type in {"business_overview", "risk"} and support_tokens:
                 if overlap_ratio < 0.2 and len(sentence_tokens) >= 5 and len(supporting_claim_ids) <= 1:

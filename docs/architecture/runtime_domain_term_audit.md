@@ -36,14 +36,19 @@ moved numeric section hints and segment-label extraction vocabulary into
 retrieval policy/config. The latest evidence pass moved quantitative-impact,
 entity-table summary, and required-operand assembly surfaces into retrieval
 policy/config, then moved technology-focus assembly wording and ratio component
-candidate scoring surfaces into policy/ontology-driven data.
+candidate scoring surfaces into policy/ontology-driven data. The most recent
+pass moved lookup surface token handling and ratio operand assembly patterns
+into required-operand assembly policy. A follow-up pass moved narrative rerank
+causal markers, quantitative-impact focus stopwords, dividend policy period
+markers, ratio row candidate patterns, ratio component percent-value allowance,
+and sentence-normalisation messages into policy/config.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 639 |
-| Literal occurrences | 964 |
-| `runtime_literal` records | 533 |
-| `regex_or_pattern` records | 74 |
+| Reviewed records | 601 |
+| Literal occurrences | 922 |
+| `runtime_literal` records | 498 |
+| `regex_or_pattern` records | 71 |
 | `prompt_or_template` records | 32 |
 
 Top files:
@@ -53,7 +58,7 @@ Top files:
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
-| `src/agent/financial_graph_evidence.py` | 105 | P0: evidence selection and answer assembly must be reviewed first |
+| `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
@@ -157,6 +162,27 @@ For each P0 record, classify it as one of:
   scoring branches for R&D or revenue rows. Candidate scoring now boosts query
   year matches and the ontology component surfaces already used to find the
   candidate row.
+- `_lookup_line_matches_operand_surface()` now reads token splitting and blocked
+  surface tokens from required-operand assembly policy. Runtime keeps only the
+  generic check that enough operand surface fragments appear on the same line.
+- `_build_ratio_operands_from_candidates()` now reads percent/year/value
+  patterns, ratio label/unit text, subject-after-context priority, and unit
+  fallback rules from required-operand assembly policy. Runtime still selects
+  row-level percentages or ontology-defined ratio components from retrieved
+  candidates.
+- `_rerank_docs()` now reads narrative causal marker boosts from retrieval
+  policy instead of carrying a local keyword tuple.
+- `_select_narrative_summary_docs()` now reads quantitative-impact focus
+  stopwords and dividend-policy period markers from policy/config. Runtime keeps
+  the generic fill mechanics for missing focused evidence.
+- `_extract_ratio_row_candidates()` now reads fallback ratio row patterns and
+  period/percent parsing patterns from required-operand assembly policy.
+- `_extract_ratio_component_candidates()` now gates percent-valued component
+  candidates by ontology concept keys configured in required-operand assembly
+  policy, instead of a metric-name branch.
+- `_normalise_sentence_checks()` and `_is_intro_sentence()` now read intro
+  patterns and fallback reason text from sentence-normalisation policy. Runtime
+  keeps verdict validation and evidence-overlap checks as code.
 
 ## Evidence Hotspots
 
@@ -171,9 +197,10 @@ Top evidence targets for the next cleanup are:
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
 | `_compression_guidance` | 16 | prompt guidance text; mostly validation/compression wording |
-| `_build_ratio_operands_from_candidates` | 11 | ratio operand binding; remaining literals are mostly periods/units |
-| `_normalise_sentence_checks` | 8 | validation verdict text; likely schema/control labels |
-| `_lookup_line_matches_operand_surface` | 7 | lookup matching helper; inspect remaining row/unit surfaces |
-| `_select_narrative_summary_docs` | 7 | retrieval selection; ensure remaining terms are policy-driven |
-| `_rerank_docs` | 6 | retrieval rerank; check generic bias vs policy terms |
+| `_query_focus_marker_groups` | 5 | marker extraction; likely stopword/config boundary review |
 | `_build_required_operands_from_candidates` | 5 | remaining literals are mostly period/unit mechanics after policy extraction |
+| `_period_comparison_count_value_from_text` | 4 | period/count regex mechanics; check whether existing period fragments cover it |
+| `_extract_ratio_component_candidates` | 4 | candidate row extraction; remaining literals are mostly generic numeric surfaces |
+| `_augment_narrative_answer_with_supported_drivers` | 4 | answer support assembly; inspect policy-driven driver wording |
+| `_compose_entity_table_summary_answer` | 4 | mostly policy-backed entity table assembly, remaining mechanics need review |
+| `_normalise_sentence_checks` | 4 | validation verdict labels and schema/control checks |

@@ -154,6 +154,36 @@ REQUIRED_OPERAND_ASSEMBLY_POLICY: Dict[str, Any] = {
     ),
     "default_unit": "원",
     "stated_change_default_unit": "%",
+    "lookup_surface_token_split_pattern": r"[\s/|,()]+",
+    "lookup_surface_blocked_tokens": ("부문", "부", "기준", "연결", "별도", "당기", "전기"),
+    "ratio_percent_pattern": r"[\d,.]+%",
+    "ratio_year_pattern": r"(20\d{2}년)",
+    "ratio_label": "비율",
+    "ratio_unit": "%",
+    "ratio_component_value_pattern": r"[\d,]+(?:\s*조\s*[\d,]+\s*억(?:원)?)?|[\d,]+",
+    "ratio_row_fallback_patterns": (r"비율", r"비중", r"이익률"),
+    "ratio_period_pattern": r"(20\d{2}년|제\d+기|당기|전기)",
+    "ratio_component_percent_value_allowed_concepts": ("revenue",),
+    "subject_after_context_pattern": r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
+}
+
+
+NARRATIVE_RERANK_POLICY: Dict[str, Any] = {
+    "causal_markers": ("영향", "기여", "편입효과", "배경", "요인", "성장"),
+}
+
+
+SENTENCE_NORMALISATION_POLICY: Dict[str, Any] = {
+    "intro_patterns": (
+        "다음과 같습니다",
+        "다음과 같",
+        "주요 재무 리스크는",
+        "주요 사업은",
+        "영위하는 주요 사업은",
+    ),
+    "missing_support_reason": "근거 claim이 연결되지 않음",
+    "summary_intro_reason": "요약형 질문의 도입 문장으로 유지",
+    "redundant_intro_reason": "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거",
 }
 
 
@@ -303,6 +333,7 @@ NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
 QUANTITATIVE_IMPACT_QUERY_TERMS = ("영향", "분석", "비중", "대비", "차지")
 
 QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
+    "focus_stopwords": ("2023년", "규모를", "찾고", "이것이", "미친", "분석해"),
     "primary_denominator_markers": ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계"),
     "denominator_markers": ("자산", "부채", "자본"),
     "cost_denominator_markers": ("원가", "비용"),
@@ -503,6 +534,7 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "outflow_terms": ("유출",),
         "table_policy_terms": ("현금배당금총액", "배당성향"),
         "policy_section_terms": ("배당에 관한 사항",),
+        "policy_period_markers": ("2024", "2026"),
         "cash_generation_terms": ("잉여현금흐름", "free cash flow"),
         "payout_amount_patterns": (
             r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d+\s*조(?:\s*\d{1,3}(?:,\d{3})?)?\s*억원)",
