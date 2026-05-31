@@ -1662,6 +1662,71 @@ Artifact policy:
   and replay summaries are local benchmark artifacts and should not be
   committed.
 
+## 2026-06-01 Remaining Policy Gate Store-Fixed Replay
+
+Purpose:
+
+- After the Hyundai targeted closure, replay the remaining policy-driven gate
+  company runs against the latest committed runtime/evaluator without rebuilding
+  stores.
+- Keep this as a store-fixed current-code check, not a new official full
+  reingest.
+
+Command:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.run_eval_only `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --source-output-dir benchmarks/results/policy_gate_regression_2026-05-31_2212 `
+  --output-dir benchmarks/results/policy_gate_rest_evalonly_2026-06-01_0000 `
+  --company-run-id <naver|lge|samsung>_2023_policy_driven_runtime_gate `
+  --experiment-id structural_selective_v2_prefix_2500_320
+```
+
+Result:
+
+- `NAV_T2_006`:
+  - `faithfulness = 1.0`
+  - `answer_relevancy = 0.824`
+  - `context_recall = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `section_match_rate = 0.875`
+  - `citation_coverage = 0.667`
+  - `entity_coverage = 0.75`
+  - `completeness = 1.0`
+  - `avg_score = 0.894`
+  - answer covers `41.4%`, Poshmark 체질 개선 / 연결 편입 효과,
+    스마트스토어 and 브랜드스토어 성장.
+- `LGE_T1_051`:
+  - `faithfulness = 1.0`
+  - `answer_relevancy = 0.933`
+  - `context_recall = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `section_match_rate = 1.0`
+  - `citation_coverage = 1.0`
+  - `entity_coverage = 0.833`
+  - `completeness = 1.0`
+  - `avg_score = 0.989`
+  - answer covers `2,163,234백만원`, `6,769억원`, and
+    `1,486,334백만원`.
+- `SAM_T2_078`:
+  - `faithfulness = 1.0`
+  - `answer_relevancy = 0.913`
+  - `context_recall = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `section_match_rate = 0.8`
+  - `citation_coverage = 1.0`
+  - `entity_coverage = 1.0`
+  - `completeness = 1.0`
+  - `avg_score = 0.952`
+  - answer covers `28,352,769백만원`, Harman 전장 사업 방향, digital
+    cockpit / car audio, wireless/display IT integration, and SDV focus.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_rest_evalonly_2026-06-01_0000/` is local
+  experiment material and should not be committed.
+
 ## 2026-05-29 Hyundai Policy Gate Replay
 
 Purpose:

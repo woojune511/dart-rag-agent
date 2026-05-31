@@ -439,6 +439,29 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-06-01 remaining-company store-fixed replay:
+  - source store bundle:
+    `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
+  - output bundle:
+    `benchmarks/results/policy_gate_rest_evalonly_2026-06-01_0000/`
+  - scope: `NAVER 2023`, `LG에너지솔루션 2023`, `삼성전자 2023` with
+    current runtime/evaluator and existing stores.
+  - `NAV_T2_006`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    `avg_score = 0.894`; answer covers `41.4%`, Poshmark 체질 개선 /
+    연결 편입 효과, 스마트스토어, and 브랜드스토어 growth.
+  - `LGE_T1_051`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    `avg_score = 0.989`; answer covers `2,163,234백만원`,
+    `6,769억원`, and `1,486,334백만원`.
+  - `SAM_T2_078`: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    `entity_coverage = 1.0`, `avg_score = 0.952`; answer covers
+    `28,352,769백만원`, Harman 전장 사업 방향, IT 기술 접목, and SDV
+    focus.
+  - artifact policy: the replay bundle is local experiment material and should
+    not be committed.
+
 - 2026-05-31 Hyundai targeted refresh:
   - output bundles:
     `benchmarks/results/policy_gate_hyundai_markerclean_2026-05-31_2315/`
