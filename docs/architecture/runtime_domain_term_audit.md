@@ -50,12 +50,14 @@ templates into calculation render policy. A display-unit follow-up moved
 adjusted-difference trigger markers and source/converted display-unit sets into
 calculation render policy. A renderer follow-up moved direction hints,
 calculation-render fallback messages, and the structured renderer prompt into
-calculation render policy.
+calculation render policy. A grounded-display follow-up moved normalized-unit
+groups, KRW display units, and embedded-unit markers into calculation render
+policy.
 
 | Metric | Count |
 | --- | ---: |
 | Reviewed records | 534 |
-| Literal occurrences | 805 |
+| Literal occurrences | 796 |
 | `runtime_literal` records | 433 |
 | `regex_or_pattern` records | 70 |
 | `prompt_or_template` records | 31 |
@@ -214,6 +216,11 @@ For each P0 record, classify it as one of:
   keeps the generic mechanics: resolve trace state, remove duplicate negative
   signs when a direction hint is present, call deterministic fallbacks, and
   preserve the rendered calculation result in runtime trace.
+- `_render_grounded_operand_display()` now reads count/percent normalized-unit
+  groups, KRW normalized/display units, and embedded-unit markers from
+  `CALCULATION_RENDER_POLICY`. Runtime keeps the generic mechanics: preserve
+  evidence-visible raw values when they already carry a unit and append source
+  units only when needed.
 
 ## Calculation Hotspots
 
@@ -228,10 +235,11 @@ Top calculation targets for the next cleanup are:
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
 | `_material_gap_feedback_for_subtask_result` | 9 | planner feedback text; decide config vs schema/status wording |
-| `_render_grounded_operand_display` | 9 | display formatting; likely unit/period mechanics |
 | `_slot_metric_keys` | 8 | slot normalization terms; move metric suffixes to policy if selector-like |
 | `_refine_operand_precision_from_evidence_table` | 8 | evidence table unit precision; likely unit policy candidate |
 | `_coerce_sign_aware_subtraction_answer` | 8 | sign-aware answer rewrite; inspect templates and evidence preservation |
+| `_infer_dependency_row_unit` | 7 | dependency unit normalization; likely shared unit policy candidate |
+| `_verify_calculation_answer` | 7 | answer verification prompt/messages; separate templates from checks |
 
 ## Evidence Hotspots
 

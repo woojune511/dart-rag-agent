@@ -3870,15 +3870,31 @@ Ontology Context:
         raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
         raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
         normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
-        if normalized_unit in {"COUNT", "PERCENT", "%", "퍼센트"} and raw_value:
+        count_or_percent_units = {
+            str(item).upper()
+            for item in (CALCULATION_RENDER_POLICY.get("count_or_percent_normalized_units") or ())
+            if str(item)
+        }
+        krw_normalized_unit = str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "").upper()
+        krw_display_units = {
+            str(item)
+            for item in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
+            if str(item)
+        }
+        embedded_unit_markers = tuple(
+            str(item)
+            for item in (CALCULATION_RENDER_POLICY.get("value_embedded_unit_markers") or ())
+            if str(item)
+        )
+        if normalized_unit in count_or_percent_units and raw_value:
             if raw_unit and raw_unit in raw_value:
                 return raw_value
             return f"{raw_value}{raw_unit}" if raw_unit else raw_value
-        if normalized_unit != "KRW" or not raw_value or not raw_unit:
+        if normalized_unit != krw_normalized_unit or not raw_value or not raw_unit:
             return ""
-        if raw_unit not in {"원", "천원", "백만원", "억원", "조원"}:
+        if raw_unit not in krw_display_units:
             return ""
-        if any(token in raw_value for token in ("원", "억", "조", "%")):
+        if any(token in raw_value for token in embedded_unit_markers):
             return raw_value
         return f"{raw_value}{raw_unit}"
 

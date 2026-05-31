@@ -272,6 +272,10 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "adjusted_difference_exclusion_pattern": r"차감(?!전)",
     "source_display_units": ("천원", "백만원"),
     "converted_display_units": ("원", "억원", "조원"),
+    "count_or_percent_normalized_units": ("COUNT", "PERCENT", "%", "퍼센트"),
+    "krw_normalized_unit": "KRW",
+    "krw_display_units": ("원", "천원", "백만원", "억원", "조원"),
+    "value_embedded_unit_markers": ("원", "억", "조", "%"),
     "direction_hints": {
         "growth_rate": {"positive": "증가", "negative": "감소", "zero": "변동 없음"},
         "subtract": {"positive": "더 큽니다", "negative": "더 작습니다", "zero": "동일합니다"},
