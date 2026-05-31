@@ -66,13 +66,17 @@ policies, segment section hint policy, numeric statement hint policies, and
 consolidation scope markers into retrieval policy. A helper scoring follow-up
 moved numeric unit normalization policy, generic metric alias substitutions,
 operation-family query markers, percent-point detection markers, and
-structured-cell affinity terms into retrieval policy.
+structured-cell affinity terms into retrieval policy. A ratio/period helper
+follow-up moved metric topic extraction terms, ratio percent query markers,
+generic operand label expansions/drop labels, period-focus markers, explicit
+ratio definition markers/templates, and operand candidate scoring penalty
+terms into retrieval policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 454 |
-| Literal occurrences | 612 |
-| `runtime_literal` records | 357 |
+| Reviewed records | 431 |
+| Literal occurrences | 565 |
+| `runtime_literal` records | 334 |
 | `regex_or_pattern` records | 67 |
 | `prompt_or_template` records | 30 |
 
@@ -80,7 +84,7 @@ Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 174 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 151 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
@@ -145,9 +149,9 @@ For each P0 record, classify it as one of:
 - The audit CLI now supports `--by-function`/`--by-symbol`, which reports the
   function or class scopes that still hold the most reviewed literals. The
   current top helper targets are module-level constants,
-  `_build_explicit_ratio_definition_task`, `_score_operand_candidate`,
-  `_metric_terms_from_topic`, `_extract_generic_operand_labels`, and
-  `_infer_period_focus`.
+  `_score_structured_cell`, `_candidate_satisfies_direct_acceptance_contract`,
+  `_infer_generic_unit_family`, `_build_concept_metric_label`, and
+  `_extract_value_near_match`.
 - `_infer_statement_and_section_hints()` no longer carries concept-specific
   section branches for pretax income, foreign-currency translation, borrowings,
   CAPEX, or operating expense. Runtime now merges generic document-structure
@@ -168,6 +172,14 @@ For each P0 record, classify it as one of:
   policy. Runtime keeps the generic mechanics: parse numeric text, apply
   configured substitutions, classify operation families, and score structured
   cell/header affinity.
+- `_metric_terms_from_topic()`, `_is_ratio_percent_query()`,
+  `_extract_generic_operand_labels()`, `_build_explicit_ratio_definition_task()`,
+  `_infer_period_focus()`, and canonical-row sections of
+  `_score_operand_candidate()` now read metric topic terms, ratio markers,
+  operand label expansions/drop labels, explicit ratio-definition markers and
+  templates, period-focus markers, and row scoring penalty terms from retrieval
+  policy. Runtime keeps the generic mechanics: match configured marker groups,
+  build operand specs, infer period focus, and score evidence candidates.
 - `_extract_segment_labels_from_query()` now consumes segment markers,
   stopwords, split patterns, and token patterns from retrieval policy config.
   The runtime function keeps the generic extraction mechanics: normalize,

@@ -24,10 +24,12 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     CONSOLIDATION_SCOPE_POLICY,
+    EXPLICIT_RATIO_DEFINITION_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
     FINANCIAL_SEGMENT_SECTION_HINT_POLICY,
     GENERIC_METRIC_ALIAS_SUBSTITUTIONS,
+    GENERIC_OPERAND_LABEL_POLICY,
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_COUNT_UNITS,
@@ -48,9 +50,13 @@ from src.config.retrieval_policy import (
     KOREAN_SEGMENT_LABEL_SPLIT_RE_FRAGMENT,
     KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS,
     KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT,
+    METRIC_TOPIC_EXTRACTION_TERMS,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
     OPERATION_FAMILY_QUERY_POLICIES,
+    OPERAND_CANDIDATE_SCORING_POLICY,
+    PERIOD_FOCUS_POLICY,
     PERCENT_POINT_DIFFERENCE_POLICY,
+    RATIO_PERCENT_QUERY_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
     active_numeric_section_hint_policies,
     active_narrative_policies,
@@ -1034,24 +1040,13 @@ def _strip_rerank_metadata(text: str) -> str:
 
 def _metric_terms_from_topic(topic: str) -> set[str]:
     text = _normalise_spaces(topic)
-    known_terms = [
-        "영업이익",
-        "매출",
-        "연구개발비",
-        "연구개발",
-        "당기순이익",
-        "순이익",
-        "설비투자",
-        "투자",
-        "비용",
-        "수익",
-    ]
+    known_terms = [str(item) for item in METRIC_TOPIC_EXTRACTION_TERMS if str(item)]
     return {term for term in known_terms if term in text}
 
 
 def _is_ratio_percent_query(text: str) -> bool:
     normalized = _normalise_spaces(text)
-    return any(keyword in normalized for keyword in ("비율", "비중", "%", "%p", "이익률", "차지"))
+    return any(keyword in normalized for keyword in (RATIO_PERCENT_QUERY_POLICY.get("markers") or ()))
 
 
 def _matched_ontology_concept_specs(query: str, topic: str = "") -> List[Dict[str, Any]]:
@@ -1737,8 +1732,10 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
     text = str(query or "")
     labels: List[str] = []
 
-    if "유·무형자산" in text or "유/무형자산" in text:
-        labels.extend(["유형자산", "무형자산"])
+    for expansion in GENERIC_OPERAND_LABEL_POLICY.get("compound_label_expansions") or ():
+        markers = tuple(str(item) for item in (dict(expansion).get("markers") or ()) if str(item))
+        if any(marker in text for marker in markers):
+            labels.extend(str(item) for item in (dict(expansion).get("labels") or ()) if str(item))
 
     labels.extend(_extract_quoted_metric_labels(text))
     for spec in _matched_ontology_concept_specs(query):
@@ -1760,7 +1757,7 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
             labels.append(cleaned)
 
     normalized = _drop_redundant_parenthetical_alias_labels(labels)
-    derived_labels = {"총 영업비용", "영업비용률", "순효과"}
+    derived_labels = {str(item) for item in (GENERIC_OPERAND_LABEL_POLICY.get("derived_labels_to_drop") or ())}
     normalized = [item for item in normalized if item not in derived_labels]
     return normalized
 
@@ -2965,9 +2962,12 @@ def _build_explicit_ratio_definition_task(
 ) -> Optional[Dict[str, Any]]:
     text = _normalise_spaces(query)
     compact_text = re.sub(r"\s+", "", text)
-    if not compact_text or "대비" not in compact_text:
+    ratio_policy = dict(EXPLICIT_RATIO_DEFINITION_POLICY)
+    definition_marker = str(ratio_policy.get("definition_marker") or "")
+    ratio_markers = tuple(str(item) for item in (ratio_policy.get("ratio_markers") or ()) if str(item))
+    if not compact_text or not definition_marker or definition_marker not in compact_text:
         return None
-    if not any(marker in compact_text for marker in ("비율", "비중", "퍼센트", "%")):
+    if not any(marker in compact_text for marker in ratio_markers):
         return None
 
     mentions: List[Dict[str, Any]] = []
@@ -2997,12 +2997,12 @@ def _build_explicit_ratio_definition_task(
     if len(mentions) < 2:
         return None
 
-    for ratio_match in re.finditer("대비", compact_text):
+    for ratio_match in re.finditer(re.escape(definition_marker), compact_text):
         marker_start = ratio_match.start()
         marker_end = ratio_match.end()
         next_ratio_terms = [
             index
-            for term in ("비율", "비중", "퍼센트", "%")
+            for term in ratio_markers
             for index in [compact_text.find(term, marker_end)]
             if index >= 0
         ]
@@ -3052,7 +3052,10 @@ def _build_explicit_ratio_definition_task(
         denominator_label = str(denominator.get("name") or "").strip()
         numerator_label = str(numerator.get("name") or "").strip()
         metric_label = (
-            f"{denominator_label} 대비 {numerator_label} 비율"
+            str(ratio_policy.get("metric_label_template") or "").format(
+                denominator_label=denominator_label,
+                numerator_label=numerator_label,
+            )
             if denominator_label and numerator_label
             else _build_concept_metric_label(query, [numerator, denominator], "ratio")
         )
@@ -3066,7 +3069,7 @@ def _build_explicit_ratio_definition_task(
         )
         if task:
             task["planner_evidence"] = {
-                "ratio_definition_marker": "대비",
+                "ratio_definition_marker": definition_marker,
                 "denominator_concept": str(denominator.get("concept") or "").strip(),
                 "numerator_concept": str(numerator.get("concept") or "").strip(),
             }
@@ -4056,11 +4059,12 @@ def _annotate_task_dependencies(
 
 def _infer_period_focus(query: str, default_value: str = "unknown") -> str:
     text = _normalise_spaces(query)
-    if any(keyword in text for keyword in ("전기", "전년", "이전 연도", "직전 연도")):
+    period_policy = dict(PERIOD_FOCUS_POLICY)
+    if any(keyword in text for keyword in (period_policy.get("prior_markers") or ())):
         return "prior"
-    if any(keyword in text for keyword in ("당기", "금년", "현재 연도", "이번 연도")):
+    if any(keyword in text for keyword in (period_policy.get("current_markers") or ())):
         return "current"
-    explicit_years = list(dict.fromkeys(re.findall(r"20\d{2}", text)))
+    explicit_years = list(dict.fromkeys(re.findall(str(period_policy.get("explicit_year_pattern") or r"$^"), text)))
     if len(explicit_years) == 1:
         return "current"
     return default_value or "unknown"
@@ -6828,14 +6832,20 @@ def _score_operand_candidate(
     )
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
     if _lookup_prefers_canonical_statement_rows(operand):
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
         canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
         canonical_section_hit = bool(canonical_sections) and any(
             _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
             for section_term in canonical_sections
             if _normalise_spaces(section_term)
         )
-        note_context = "주석" in local_heading or "주석" in section_path
-        allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+        note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+        note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
+        allows_note_canonical = any(
+            marker in _normalise_spaces(section)
+            for marker in note_markers
+            for section in canonical_sections
+        )
         if statement_type == "income_statement":
             score += 1.0
         elif statement_type == "summary_financials":
@@ -6859,11 +6869,13 @@ def _score_operand_candidate(
             )
             if part
         )
-        if any(token in related_party_context for token in ("특수관계자", "관계기업", "공동기업")):
+        related_party_terms = tuple(str(item) for item in (scoring_policy.get("related_party_penalty_terms") or ()) if str(item))
+        if any(token in related_party_context for token in related_party_terms):
             score -= 3.0
         stripped_row_label = _strip_financial_label_annotations(row_label)
         stripped_needles = {_strip_financial_label_annotations(needle) for needle in _operand_needles(operand)}
-        if stripped_row_label and "등" in stripped_row_label and stripped_row_label not in stripped_needles:
+        generic_suffix_terms = tuple(str(item) for item in (scoring_policy.get("generic_suffix_penalty_terms") or ()) if str(item))
+        if stripped_row_label and any(token in stripped_row_label for token in generic_suffix_terms) and stripped_row_label not in stripped_needles:
             score -= 1.5
 
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()

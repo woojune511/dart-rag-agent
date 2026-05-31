@@ -142,6 +142,48 @@ STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "aggregate_tokens": ("합계", "총계", "소계", "계"),
 }
 
+METRIC_TOPIC_EXTRACTION_TERMS = (
+    "영업이익",
+    "매출",
+    "연구개발비",
+    "연구개발",
+    "당기순이익",
+    "순이익",
+    "설비투자",
+    "투자",
+    "비용",
+    "수익",
+)
+
+RATIO_PERCENT_QUERY_POLICY: Dict[str, Any] = {
+    "markers": ("비율", "비중", "%", "%p", "이익률", "차지"),
+}
+
+GENERIC_OPERAND_LABEL_POLICY: Dict[str, Any] = {
+    "compound_label_expansions": (
+        {"markers": ("유·무형자산", "유/무형자산"), "labels": ("유형자산", "무형자산")},
+    ),
+    "derived_labels_to_drop": ("총 영업비용", "영업비용률", "순효과"),
+}
+
+PERIOD_FOCUS_POLICY: Dict[str, Any] = {
+    "prior_markers": ("전기", "전년", "이전 연도", "직전 연도"),
+    "current_markers": ("당기", "금년", "현재 연도", "이번 연도"),
+    "explicit_year_pattern": r"20\d{2}",
+}
+
+EXPLICIT_RATIO_DEFINITION_POLICY: Dict[str, Any] = {
+    "definition_marker": "대비",
+    "ratio_markers": ("비율", "비중", "퍼센트", "%"),
+    "metric_label_template": "{denominator_label} 대비 {numerator_label} 비율",
+}
+
+OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
+    "note_context_markers": ("주석",),
+    "related_party_penalty_terms": ("특수관계자", "관계기업", "공동기업"),
+    "generic_suffix_penalty_terms": ("등",),
+}
+
 KOREAN_SEGMENT_LABEL_REPORT_TERMS = (
     "사업보고서",
     "반기보고서",
