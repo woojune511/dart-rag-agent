@@ -30,9 +30,25 @@ from src.config.retrieval_policy import (
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     KOREAN_PERIOD_RATE_METRIC_SUFFIX_RE_FRAGMENT,
+    KOREAN_SEGMENT_LABEL_ANCHORS,
+    KOREAN_SEGMENT_LABEL_BLOCKED_EXACT_LABELS,
+    KOREAN_SEGMENT_LABEL_BLOCKED_TOKENS,
+    KOREAN_SEGMENT_LABEL_BOUNDARIES,
+    KOREAN_SEGMENT_LABEL_MARKERS,
+    KOREAN_SEGMENT_LABEL_PAREN_RE_FRAGMENT,
+    KOREAN_SEGMENT_LABEL_PERIOD_PREFIX_RE_FRAGMENT,
+    KOREAN_SEGMENT_LABEL_PERIOD_RE_FRAGMENT,
+    KOREAN_SEGMENT_LABEL_REPORT_TERMS,
+    KOREAN_SEGMENT_LABEL_SCOPE_TOKENS,
+    KOREAN_SEGMENT_LABEL_SPLIT_RE_FRAGMENT,
+    KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS,
+    KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT,
+    active_numeric_section_hint_policies,
     active_narrative_policies,
     narrative_policy_preferred_sections,
     narrative_policy_terms,
+    numeric_section_policy_preferred_sections,
+    numeric_section_policy_statement_types,
 )
 from src.agent.financial_graph_models import validate_answer_slots_payload
 from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
@@ -2090,6 +2106,7 @@ def _augment_generic_operand_with_concept(
 
 def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]]:
     text = _normalise_spaces(query)
+    ontology = get_financial_ontology()
     statement_types = _desired_statement_types(query, query)
     preferred_sections: List[str] = []
     if "손익계산서" in text or "포괄손익계산서" in text:
@@ -2106,28 +2123,12 @@ def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]
         preferred_sections.extend(["부문정보", "영업부문", "영업실적"])
         if "segment_note" not in statement_types:
             statement_types.append("segment_note")
-    if any(keyword in text for keyword in ("법인세비용차감전순이익", "법인세비용차감전순손익")):
-        preferred_sections.extend(["법인세비용", "연결 손익계산서", "포괄손익계산서"])
-        if "notes" not in statement_types:
-            statement_types.append("notes")
-        if "summary_financials" not in statement_types:
-            statement_types.append("summary_financials")
-    if any(keyword in text for keyword in ("외화환산이익", "외화환산손실", "환율 변동", "외화환산")):
-        preferred_sections.extend(["현금흐름표 (연결)", "현금흐름표", "금융손익 (연결)", "외화환산"])
-        if "cash_flow" not in statement_types:
-            statement_types.append("cash_flow")
-        if "notes" not in statement_types:
-            statement_types.append("notes")
-    if any(keyword in text for keyword in ("단기차입금", "장기차입금", "유동성장기차입금", "차입금", "사채")):
-        preferred_sections.extend(["차입금 및 사채", "단기차입금", "장기차입금", "사채", "연결재무제표 주석"])
-        if "notes" not in statement_types:
-            statement_types.append("notes")
-    if any(keyword in text for keyword in ("시설투자", "capex", "자본적 지출")):
-        preferred_sections.extend(["원재료 및 생산설비", "시설투자", "사업의 내용"])
-    if any(keyword in text for keyword in ("영업비용", "종업원급여", "인건비")):
-        preferred_sections.extend(["영업비용", "연결재무제표 주석", "재무제표 주석", "연결 손익계산서", "손익계산서"])
-        if "notes" not in statement_types:
-            statement_types.append("notes")
+    preferred_sections.extend(ontology.preferred_sections(query, query, "comparison"))
+    numeric_hint_policies = active_numeric_section_hint_policies(text)
+    preferred_sections.extend(numeric_section_policy_preferred_sections(numeric_hint_policies))
+    for statement_type in numeric_section_policy_statement_types(numeric_hint_policies):
+        if statement_type not in statement_types:
+            statement_types.append(statement_type)
     active_policies = active_narrative_policies(text)
     preferred_sections.extend(narrative_policy_preferred_sections(active_policies))
     for statement_type in narrative_policy_terms(active_policies, "statement_types"):
@@ -2722,52 +2723,27 @@ def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any])
     blocked_tokens = {
         str(report_scope.get("company") or "").strip(),
         str(report_scope.get("report_type") or "").strip(),
-        "사업보고서",
-        "반기보고서",
-        "분기보고서",
-        "연결",
-        "별도",
-        "매출",
-        "부문",
-        "세그먼트",
-        "segment",
+        *KOREAN_SEGMENT_LABEL_REPORT_TERMS,
+        *KOREAN_SEGMENT_LABEL_SCOPE_TOKENS,
+        *KOREAN_SEGMENT_LABEL_BLOCKED_TOKENS,
     }
-    blocked_exact_labels = {
-        "대비",
-        "전년",
-        "전기",
-        "당기",
-        "증가율",
-        "감소율",
-        "성장률",
-        "변화율",
-        "결제액",
-        "영업수익",
-        "매출액",
-        "매출",
-        "이것",
-        "이것이",
-        "그것",
-        "그것이",
-        "해당",
-        "해당 금액",
-    }
+    blocked_exact_labels = set(KOREAN_SEGMENT_LABEL_BLOCKED_EXACT_LABELS)
 
     def _valid_label(label: str) -> str:
         normalized = _normalise_spaces(label)
-        normalized = _normalise_spaces(re.sub(r"^20\d{2}년\s*", "", normalized))
-        normalized = _normalise_spaces(re.sub(r"\b(?:전년|전기|당기)\s*$", "", normalized))
+        normalized = _normalise_spaces(re.sub(KOREAN_SEGMENT_LABEL_PERIOD_PREFIX_RE_FRAGMENT, "", normalized))
+        normalized = _normalise_spaces(re.sub(KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT, "", normalized))
         if not normalized:
             return ""
         if normalized in blocked_tokens:
             return ""
         if normalized in blocked_exact_labels:
             return ""
-        if "부문" in normalized or "세그먼트" in normalized:
+        if any(marker in normalized for marker in KOREAN_SEGMENT_LABEL_MARKERS if marker != "segment"):
             return ""
-        if any(token in normalized for token in ("사업보고서", "반기보고서", "분기보고서")):
+        if any(token in normalized for token in KOREAN_SEGMENT_LABEL_REPORT_TERMS):
             return ""
-        if re.fullmatch(r"20\d{2}(?:년)?", normalized):
+        if re.fullmatch(KOREAN_SEGMENT_LABEL_PERIOD_RE_FRAGMENT, normalized):
             return ""
         if len(normalized) > 40:
             return ""
@@ -2775,34 +2751,29 @@ def _extract_segment_labels_from_query(query: str, report_scope: Dict[str, Any])
 
     labels: List[str] = []
 
-    if any(marker in text for marker in ("부문", "세그먼트", "segment")):
-        for match in re.finditer(r"(?:부문|세그먼트|segment)\s*\(([^)]{1,30})\)", text, flags=re.IGNORECASE):
+    if any(marker in text for marker in KOREAN_SEGMENT_LABEL_MARKERS):
+        for match in re.finditer(KOREAN_SEGMENT_LABEL_PAREN_RE_FRAGMENT, text, flags=re.IGNORECASE):
             normalized = _valid_label(match.group(1))
             if normalized:
                 labels.append(normalized)
         segment_anchor = ""
-        for marker in ("부문의", "부문", "세그먼트의", "세그먼트", "segment"):
+        for marker in KOREAN_SEGMENT_LABEL_ANCHORS:
             if marker in text:
                 segment_anchor = marker
                 break
         if segment_anchor:
             prefix = text.split(segment_anchor, 1)[0].strip()
-            for boundary in ("에서", "중", "내", ":"):
+            for boundary in KOREAN_SEGMENT_LABEL_BOUNDARIES:
                 if boundary in prefix:
                     prefix = prefix.rsplit(boundary, 1)[-1].strip()
             prefix = re.sub(r"\b20\d{2}\b", " ", prefix)
-            raw_parts = re.split(r"\s*(?:와|과|및|,|/|·|\+)\s*", prefix)
+            raw_parts = re.split(KOREAN_SEGMENT_LABEL_SPLIT_RE_FRAGMENT, prefix)
             for part in raw_parts:
                 normalized = _valid_label(part)
                 if normalized:
                     labels.append(normalized)
 
-    token_patterns = (
-        r"([A-Za-z0-9가-힣&/\-]{1,20})\s*부문",
-        r"([A-Za-z0-9가-힣&/\-]{1,20})\s*세그먼트",
-        r"([A-Za-z0-9가-힣&/\-]{1,20})\s*매출",
-    )
-    for pattern in token_patterns:
+    for pattern in KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS:
         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
             normalized = _valid_label(match.group(1))
             if normalized:

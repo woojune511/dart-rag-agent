@@ -24,6 +24,109 @@ KOREAN_PERCENT_METRIC_HINT_TERMS = (
     "변동률",
 )
 
+KOREAN_SEGMENT_LABEL_REPORT_TERMS = (
+    "사업보고서",
+    "반기보고서",
+    "분기보고서",
+)
+
+KOREAN_SEGMENT_LABEL_SCOPE_TOKENS = (
+    "연결",
+    "별도",
+)
+
+KOREAN_SEGMENT_LABEL_MARKERS = (
+    "부문",
+    "세그먼트",
+    "segment",
+)
+
+KOREAN_SEGMENT_LABEL_ANCHORS = (
+    "부문의",
+    "부문",
+    "세그먼트의",
+    "세그먼트",
+    "segment",
+)
+
+KOREAN_SEGMENT_LABEL_BOUNDARIES = (
+    "에서",
+    "중",
+    "내",
+    ":",
+)
+
+KOREAN_SEGMENT_LABEL_BLOCKED_TOKENS = (
+    "매출",
+    "부문",
+    "세그먼트",
+    "segment",
+)
+
+KOREAN_SEGMENT_LABEL_BLOCKED_EXACT_LABELS = (
+    "대비",
+    "전년",
+    "전기",
+    "당기",
+    "증가율",
+    "감소율",
+    "성장률",
+    "변화율",
+    "결제액",
+    "영업수익",
+    "매출액",
+    "매출",
+    "이것",
+    "이것이",
+    "그것",
+    "그것이",
+    "해당",
+    "해당 금액",
+)
+
+KOREAN_SEGMENT_LABEL_PERIOD_PREFIX_RE_FRAGMENT = r"^20\d{2}년\s*"
+KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT = r"\b(?:전년|전기|당기)\s*$"
+KOREAN_SEGMENT_LABEL_PERIOD_RE_FRAGMENT = r"20\d{2}(?:년)?"
+KOREAN_SEGMENT_LABEL_PAREN_RE_FRAGMENT = r"(?:부문|세그먼트|segment)\s*\(([^)]{1,30})\)"
+KOREAN_SEGMENT_LABEL_SPLIT_RE_FRAGMENT = r"\s*(?:와|과|및|,|/|·|\+)\s*"
+KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS = (
+    r"([A-Za-z0-9가-힣&/\-]{1,20})\s*부문",
+    r"([A-Za-z0-9가-힣&/\-]{1,20})\s*세그먼트",
+    r"([A-Za-z0-9가-힣&/\-]{1,20})\s*매출",
+)
+
+NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
+    {
+        "name": "income_before_income_taxes",
+        "trigger_terms": ("법인세비용차감전순이익", "법인세비용차감전순손익"),
+        "preferred_sections": ("법인세비용", "연결 손익계산서", "포괄손익계산서"),
+        "statement_types": ("notes", "summary_financials"),
+    },
+    {
+        "name": "foreign_currency_translation",
+        "trigger_terms": ("외화환산이익", "외화환산손실", "환율 변동", "외화환산"),
+        "preferred_sections": ("현금흐름표 (연결)", "현금흐름표", "금융손익 (연결)", "외화환산"),
+        "statement_types": ("cash_flow", "notes"),
+    },
+    {
+        "name": "borrowings",
+        "trigger_terms": ("단기차입금", "장기차입금", "유동성장기차입금", "차입금", "사채"),
+        "preferred_sections": ("차입금 및 사채", "단기차입금", "장기차입금", "사채", "연결재무제표 주석"),
+        "statement_types": ("notes",),
+    },
+    {
+        "name": "capital_expenditure",
+        "trigger_terms": ("시설투자", "capex", "자본적 지출"),
+        "preferred_sections": ("원재료 및 생산설비", "시설투자", "사업의 내용"),
+    },
+    {
+        "name": "operating_expense",
+        "trigger_terms": ("영업비용", "종업원급여", "인건비"),
+        "preferred_sections": ("영업비용", "연결재무제표 주석", "재무제표 주석", "연결 손익계산서", "손익계산서"),
+        "statement_types": ("notes",),
+    },
+)
+
 
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
@@ -428,6 +531,18 @@ def narrative_policy_matches(query: str, policy: Dict[str, Any]) -> bool:
 
 def active_narrative_policies(query: str) -> List[Dict[str, Any]]:
     return [policy for policy in NARRATIVE_RETRIEVAL_POLICIES if narrative_policy_matches(query, policy)]
+
+
+def active_numeric_section_hint_policies(query: str) -> List[Dict[str, Any]]:
+    return [policy for policy in NUMERIC_SECTION_HINT_POLICIES if narrative_policy_matches(query, policy)]
+
+
+def numeric_section_policy_preferred_sections(policies: Sequence[Dict[str, Any]]) -> List[str]:
+    return narrative_policy_terms(policies, "preferred_sections")
+
+
+def numeric_section_policy_statement_types(policies: Sequence[Dict[str, Any]]) -> List[str]:
+    return narrative_policy_terms(policies, "statement_types")
 
 
 def narrative_policy_active(policies: Sequence[Dict[str, Any]], name: str) -> bool:

@@ -30,22 +30,24 @@ Generated on 2026-06-01 after excluding `if __name__ == "__main__"` demo
 blocks and replacing the MAS orchestrator fallback keyword classifier with a
 generic two-worker fallback. The helpers cleanup also removed a company-specific
 operand-label normalization rule and moved calculation section/topic hinting to
-ontology data. The latest pass moved generic numeric operand surface extraction
-off a hard-coded runtime regex list and onto ontology concept surfaces.
+ontology data. Later passes moved generic numeric operand surface extraction
+off a hard-coded runtime regex list and onto ontology concept surfaces, then
+moved numeric section hints and segment-label extraction vocabulary into
+retrieval policy/config.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 762 |
-| Literal occurrences | 1,187 |
-| `runtime_literal` records | 649 |
-| `regex_or_pattern` records | 81 |
+| Reviewed records | 725 |
+| Literal occurrences | 1,103 |
+| `runtime_literal` records | 619 |
+| `regex_or_pattern` records | 74 |
 | `prompt_or_template` records | 32 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 261 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_evidence.py` | 191 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
@@ -112,3 +114,31 @@ For each P0 record, classify it as one of:
   current top helper targets are `_infer_statement_and_section_hints`,
   `_extract_segment_labels_from_query`, `_desired_consolidation_scope`, and
   `_desired_statement_types`.
+- `_infer_statement_and_section_hints()` no longer carries concept-specific
+  section branches for pretax income, foreign-currency translation, borrowings,
+  CAPEX, or operating expense. Runtime now merges generic document-structure
+  hints with ontology preferred sections and named numeric section hint policies
+  from retrieval config. This keeps legacy/experimental ontology profiles from
+  changing planner status while still avoiding runtime domain branches.
+- `_extract_segment_labels_from_query()` now consumes segment markers,
+  stopwords, split patterns, and token patterns from retrieval policy config.
+  The runtime function keeps the generic extraction mechanics: normalize,
+  reject blocked labels, split near a segment anchor, and dedupe.
+
+## Evidence Hotspots
+
+The current evidence-module audit was inspected with:
+
+```bash
+python -m src.ops.audit_runtime_domain_terms --by-function --scan-root src/agent/financial_graph_evidence.py
+```
+
+Top evidence targets for the next cleanup are:
+
+| Symbol | Occurrences | Initial read |
+| --- | ---: | --- |
+| `_compose_supported_quantitative_impact_answer` | 31 | answer wording and slot labels; review for selector leakage |
+| `_compose_entity_table_summary_answer` | 24 | entity/table answer assembly; likely mix of formatting and domain rows |
+| `_supplement_numeric_impairment_lookup` | 24 | high-risk supplement path; verify it uses structured rows/evidence rather than topic fallback |
+| `_build_required_operands_from_candidates` | 23 | operand assembly; prioritize generic contract checks |
+| `_build_ratio_operands_from_candidates` | 18 | ratio operand binding; review after helpers cleanup stabilizes |
