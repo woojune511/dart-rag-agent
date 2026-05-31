@@ -77,6 +77,10 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
         "consolidated": ("연결", "consolidated", "consolidation"),
         "separate": ("별도", "separate", "standalone", "non-consolidated", "nonconsolidated"),
     },
+    "query_prefix_labels": {
+        "consolidated": "연결기준",
+        "separate": "별도기준",
+    },
     "default_consolidated_markers": (
         "재무제표",
         "주석",
@@ -171,6 +175,9 @@ GENERIC_OPERAND_LABEL_POLICY: Dict[str, Any] = {
         {"markers": ("유·무형자산", "유/무형자산"), "labels": ("유형자산", "무형자산")},
     ),
     "derived_labels_to_drop": ("총 영업비용", "영업비용률", "순효과"),
+    "cleanup_boundaries": ("에서", "기준", "관련"),
+    "cleanup_suffix_pattern": r"(?:금액|수치|총액|규모|비중|비율|증감액|증감폭|순효과)\s*$",
+    "leading_year_pattern": r"^[0-9]{4}년\s*",
 }
 
 GENERIC_UNIT_FAMILY_POLICY: Dict[str, Any] = {
@@ -187,6 +194,18 @@ CONCEPT_METRIC_LABEL_POLICY: Dict[str, Any] = {
         "growth_rate": "{label} 증가율",
     },
     "fallback_label": "개념 기반 수치",
+}
+
+GENERIC_PERIOD_OPERAND_POLICY: Dict[str, Any] = {
+    "current_period_hint": "당기",
+    "prior_period_hint": "전기",
+    "current_label_template": "{period_hint} {label}",
+    "prior_label_template": "{period_hint} {label}",
+    "year_label_template": "{year}년 {label}",
+    "year_suffix_template": "{year}년",
+    "prior_period_hints": ("전기", "전년", "직전 연도", "이전 연도"),
+    "comparison_markers": ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이"),
+    "fallback_metric_label": "수치 계산",
 }
 
 TASK_CONSTRAINT_POLICY: Dict[str, Any] = {
@@ -218,6 +237,18 @@ VALUE_NEAR_MATCH_POLICY: Dict[str, Any] = {
     "million_krw_unit": "백만원",
     "composite_krw_markers": ("조", "억"),
     "composite_krw_unit": "원",
+}
+
+KOREAN_WON_COMPACT_FORMAT_POLICY: Dict[str, Any] = {
+    "hundred_million_threshold": 100_000_000,
+    "trillion_scale": 1_0000_0000_0000,
+    "hundred_million_scale": 100_000_000,
+    "ten_thousand_scale": 10_000,
+    "trillion_suffix": "조",
+    "hundred_million_suffix": "억원",
+    "ten_thousand_suffix": "만원",
+    "base_suffix": "원",
+    "zero_hundred_million_label": "0억원",
 }
 
 KOREAN_SEGMENT_LABEL_REPORT_TERMS = (

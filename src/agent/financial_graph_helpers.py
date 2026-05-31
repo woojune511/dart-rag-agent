@@ -31,7 +31,9 @@ from src.config.retrieval_policy import (
     CONCEPT_METRIC_LABEL_POLICY,
     GENERIC_METRIC_ALIAS_SUBSTITUTIONS,
     GENERIC_OPERAND_LABEL_POLICY,
+    GENERIC_PERIOD_OPERAND_POLICY,
     GENERIC_UNIT_FAMILY_POLICY,
+    KOREAN_WON_COMPACT_FORMAT_POLICY,
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_COUNT_UNITS,
@@ -997,29 +999,33 @@ def _extract_period_sort_key(period: str) -> int:
 
 
 def _format_korean_won_compact(value: float) -> str:
-    # 1억 이상이면 억 단위에서 반올림, 미만이면 원 단위 그대로
-    if abs(value) >= 100_000_000:
-        amount = int(round(abs(value) / 100_000_000)) * 100_000_000
+    format_policy = dict(KOREAN_WON_COMPACT_FORMAT_POLICY)
+    threshold = int(format_policy.get("hundred_million_threshold") or 100_000_000)
+    hundred_million_scale = int(format_policy.get("hundred_million_scale") or threshold)
+    if abs(value) >= threshold:
+        amount = int(round(abs(value) / hundred_million_scale)) * hundred_million_scale
     else:
         amount = int(round(abs(value)))
     negative = value < 0
-    jo = amount // 1_0000_0000_0000
-    amount %= 1_0000_0000_0000
-    eok = amount // 100_000_000
-    amount %= 100_000_000
-    man = amount // 10_000
+    trillion_scale = int(format_policy.get("trillion_scale") or 1_0000_0000_0000)
+    ten_thousand_scale = int(format_policy.get("ten_thousand_scale") or 10_000)
+    jo = amount // trillion_scale
+    amount %= trillion_scale
+    eok = amount // hundred_million_scale
+    amount %= hundred_million_scale
+    man = amount // ten_thousand_scale
 
     parts: List[str] = []
     if jo:
-        parts.append(f"{jo}조")
+        parts.append(f"{jo}{format_policy.get('trillion_suffix') or ''}")
     if eok:
-        parts.append(f"{eok:,}억원")
+        parts.append(f"{eok:,}{format_policy.get('hundred_million_suffix') or ''}")
     elif jo:
-        parts.append("0억원")
+        parts.append(str(format_policy.get("zero_hundred_million_label") or "0"))
     elif man:
-        parts.append(f"{man:,}만원")
+        parts.append(f"{man:,}{format_policy.get('ten_thousand_suffix') or ''}")
     else:
-        parts.append(f"{int(round(abs(value))):,}원")
+        parts.append(f"{int(round(abs(value))):,}{format_policy.get('base_suffix') or ''}")
 
     rendered = " ".join(parts)
     return f"-{rendered}" if negative else rendered
@@ -1648,11 +1654,12 @@ _GENERIC_PERIOD_COMPARISON_METRIC_RE = re.compile(
 
 def _clean_metric_label(label: str) -> str:
     text = _normalise_spaces(str(label or ""))
-    text = re.sub(r"^[0-9]{4}년\s*", "", text)
-    for boundary in ("에서", "기준", "관련"):
+    label_policy = dict(GENERIC_OPERAND_LABEL_POLICY)
+    text = re.sub(str(label_policy.get("leading_year_pattern") or r"$^"), "", text)
+    for boundary in label_policy.get("cleanup_boundaries") or ():
         if boundary in text:
             text = text.rsplit(boundary, 1)[-1].strip()
-    text = re.sub(r"(?:금액|수치|총액|규모|비중|비율|증감액|증감폭|순효과)\s*$", "", text).strip()
+    text = re.sub(str(label_policy.get("cleanup_suffix_pattern") or r"$^"), "", text).strip()
     return text
 
 
@@ -1857,7 +1864,8 @@ def _query_requests_narrative_context(query: str) -> bool:
 
 def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
     text = _normalise_spaces(query)
-    comparison_markers = ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이")
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    comparison_markers = tuple(str(item) for item in (period_policy.get("comparison_markers") or ()) if str(item))
     if not any(marker in text for marker in comparison_markers):
         return False
     distinct = [label for label in operand_labels if label]
@@ -2149,6 +2157,12 @@ def _build_generic_required_operands(
 
     operand_labels = _extract_generic_operand_labels(query)
     if _is_single_metric_period_comparison(query, operand_labels):
+        period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+        current_hint = str(period_policy.get("current_period_hint") or "current")
+        prior_hint = str(period_policy.get("prior_period_hint") or "prior")
+        year_label_template = str(period_policy.get("year_label_template") or "{year} {label}")
+        current_label_template = str(period_policy.get("current_label_template") or "{period_hint} {label}")
+        prior_label_template = str(period_policy.get("prior_label_template") or "{period_hint} {label}")
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
         aliases = _build_generic_metric_aliases(base_label)
         unit_family = _infer_generic_unit_family(base_label)
@@ -2160,7 +2174,7 @@ def _build_generic_required_operands(
             return [
                 _augment_generic_operand_with_concept(
                     {
-                        "label": f"{current_year}년 {base_label}",
+                        "label": year_label_template.format(year=current_year, label=base_label),
                         "aliases": aliases,
                         "role": "current_period",
                         "required": True,
@@ -2171,7 +2185,7 @@ def _build_generic_required_operands(
                 ),
                 _augment_generic_operand_with_concept(
                     {
-                        "label": f"{prior_year}년 {base_label}",
+                        "label": year_label_template.format(year=prior_year, label=base_label),
                         "aliases": aliases,
                         "role": "prior_period",
                         "required": True,
@@ -2184,22 +2198,22 @@ def _build_generic_required_operands(
         return [
             _augment_generic_operand_with_concept(
                 {
-                    "label": f"당기 {base_label}",
+                    "label": current_label_template.format(period_hint=current_hint, label=base_label),
                     "aliases": aliases,
                     "role": "current_period",
                     "required": True,
-                    "period_hint": "당기",
+                    "period_hint": current_hint,
                     "unit_family": unit_family,
                 },
                 concept_spec=concept_spec,
             ),
             _augment_generic_operand_with_concept(
                 {
-                    "label": f"전기 {base_label}",
+                    "label": prior_label_template.format(period_hint=prior_hint, label=base_label),
                     "aliases": aliases,
                     "role": "prior_period",
                     "required": True,
-                    "period_hint": "전기",
+                    "period_hint": prior_hint,
                     "unit_family": unit_family,
                 },
                 concept_spec=concept_spec,
@@ -2232,7 +2246,8 @@ def _infer_generic_metric_label(query: str, topic: str) -> str:
     operand_labels = _extract_generic_operand_labels(query)
     if operand_labels:
         return operand_labels[0]
-    return _clean_metric_label(topic) or "수치 계산"
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    return _clean_metric_label(topic) or str(period_policy.get("fallback_metric_label") or "")
 
 
 def _build_generic_retrieval_queries(
@@ -2284,11 +2299,13 @@ def _build_generic_retrieval_queries(
     fallback_period_focus = str((constraints or {}).get("period_focus") or "unknown").strip()
 
     def _year_for_operand(operand: Dict[str, Any]) -> str:
+        period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+        prior_period_hints = set(str(item) for item in (period_policy.get("prior_period_hints") or ()) if str(item))
         if not year.isdigit():
             return year
         role = str(operand.get("role") or "").strip()
         period_hint = str(operand.get("period_hint") or "").strip()
-        if role == "prior_period" or period_hint in {"전기", "전년", "직전 연도", "이전 연도"}:
+        if role == "prior_period" or period_hint in prior_period_hints:
             return str(int(year) - 1)
         if role == "current_period":
             return year
@@ -2297,19 +2314,23 @@ def _build_generic_retrieval_queries(
         return year
 
     def _prefix_for_operand(operand: Dict[str, Any]) -> str:
+        period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+        year_suffix_template = str(period_policy.get("year_suffix_template") or "{year}")
+        current_hint = str(period_policy.get("current_period_hint") or "current")
+        prior_hint = str(period_policy.get("prior_period_hint") or "prior")
         operand_year = _year_for_operand(operand)
         pieces: List[str] = []
         if operand_year:
-            pieces.append(f"{operand_year}년")
+            pieces.append(year_suffix_template.format(year=operand_year))
         period_hint = str(operand.get("period_hint") or "").strip()
         role = str(operand.get("role") or "").strip()
         if not period_hint:
             if role == "current_period":
-                period_hint = "당기"
+                period_hint = current_hint
             elif role == "prior_period":
-                period_hint = "전기"
+                period_hint = prior_hint
         normalized_period_hint = _normalise_spaces(period_hint)
-        if operand_year and normalized_period_hint in {operand_year, f"{operand_year}년"}:
+        if operand_year and normalized_period_hint in {operand_year, year_suffix_template.format(year=operand_year)}:
             period_hint = ""
         if period_hint:
             pieces.append(period_hint)
@@ -2339,14 +2360,31 @@ def _build_generic_retrieval_queries(
                 str(left.get("label") or "")
             )
             if shared_label:
-                compact_bits = [bit for bit in (f"{left_year}년" if left_year else "", f"{right_year}년" if right_year else "", shared_label) if bit]
+                year_suffix_template = str(dict(GENERIC_PERIOD_OPERAND_POLICY).get("year_suffix_template") or "{year}")
+                compact_bits = [
+                    bit
+                    for bit in (
+                        year_suffix_template.format(year=left_year) if left_year else "",
+                        year_suffix_template.format(year=right_year) if right_year else "",
+                        shared_label,
+                    )
+                    if bit
+                ]
                 queries.append(_collapse_duplicate_query_tokens(" ".join(compact_bits)))
                 for section in preferred_sections[:2]:
                     queries.append(_collapse_duplicate_query_tokens(f"{' '.join(compact_bits)} {section}"))
                 for alias in list(left.get("aliases") or [])[:2]:
                     alias_text = _strip_leading_period_prefix(str(alias).strip())
                     if alias_text and alias_text != shared_label:
-                        alias_bits = [bit for bit in (f"{left_year}년" if left_year else "", f"{right_year}년" if right_year else "", alias_text) if bit]
+                        alias_bits = [
+                            bit
+                            for bit in (
+                                year_suffix_template.format(year=left_year) if left_year else "",
+                                year_suffix_template.format(year=right_year) if right_year else "",
+                                alias_text,
+                            )
+                            if bit
+                        ]
                         queries.append(_collapse_duplicate_query_tokens(" ".join(alias_bits)))
                         for section in preferred_sections[:2]:
                             queries.append(_collapse_duplicate_query_tokens(f"{' '.join(alias_bits)} {section}"))
@@ -2518,6 +2556,12 @@ def _build_concept_period_operands(
     query: str,
     report_scope: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    current_hint = str(period_policy.get("current_period_hint") or "current")
+    prior_hint = str(period_policy.get("prior_period_hint") or "prior")
+    year_label_template = str(period_policy.get("year_label_template") or "{year} {label}")
+    current_label_template = str(period_policy.get("current_label_template") or "{period_hint} {label}")
+    prior_label_template = str(period_policy.get("prior_label_template") or "{period_hint} {label}")
     label = str(spec.get("name") or "").strip()
     concept = str(spec.get("concept") or "").strip()
     aliases = list(dict.fromkeys([label, *(spec.get("aliases") or [])]))
@@ -2532,7 +2576,7 @@ def _build_concept_period_operands(
         prior_year = year_tokens[1] if len(year_tokens) > 1 else current_year - 1
         return [
             {
-                "label": f"{current_year}년 {label}",
+                "label": year_label_template.format(year=current_year, label=label),
                 "concept": concept,
                 "aliases": aliases,
                 "keywords": keywords,
@@ -2546,7 +2590,7 @@ def _build_concept_period_operands(
                 "surface_contract": surface_contract,
             },
             {
-                "label": f"{prior_year}년 {label}",
+                "label": year_label_template.format(year=prior_year, label=label),
                 "concept": concept,
                 "aliases": aliases,
                 "keywords": keywords,
@@ -2562,13 +2606,13 @@ def _build_concept_period_operands(
         ]
     return [
         {
-            "label": f"당기 {label}",
+            "label": current_label_template.format(period_hint=current_hint, label=label),
             "concept": concept,
             "aliases": aliases,
             "keywords": keywords,
             "role": "current_period",
             "required": True,
-            "period_hint": "당기",
+            "period_hint": current_hint,
             "preferred_sections": preferred_sections,
             "preferred_statement_types": preferred_statement_types,
             "binding_policy": binding_policy,
@@ -2576,13 +2620,13 @@ def _build_concept_period_operands(
             "surface_contract": surface_contract,
         },
         {
-            "label": f"전기 {label}",
+            "label": prior_label_template.format(period_hint=prior_hint, label=label),
             "concept": concept,
             "aliases": aliases,
             "keywords": keywords,
             "role": "prior_period",
             "required": True,
-            "period_hint": "전기",
+            "period_hint": prior_hint,
             "preferred_sections": preferred_sections,
             "preferred_statement_types": preferred_statement_types,
             "binding_policy": binding_policy,
@@ -4444,6 +4488,12 @@ def _query_years_from_state(state: Dict[str, Any]) -> List[int]:
 
 
 def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str:
+    focus_policy = dict(PERIOD_FOCUS_POLICY)
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    current_markers = tuple(str(item) for item in (focus_policy.get("current_markers") or ()) if str(item))
+    prior_markers = tuple(str(item) for item in (focus_policy.get("prior_markers") or ()) if str(item))
+    current_hint = str(period_policy.get("current_period_hint") or "current")
+    prior_hint = str(period_policy.get("prior_period_hint") or "prior")
     headers = [str(item).strip() for item in (cell.get("column_headers") or []) if str(item).strip()]
     report_year: Optional[int] = None
     for raw_year in (cell.get("_report_year"), cell.get("report_year"), cell.get("year")):
@@ -4459,14 +4509,14 @@ def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], p
             if any(year_text in header for header in headers):
                 return year_text
     header_text = " ".join(headers)
-    if period_focus == "current" and any(token in header_text for token in ("당기", "현재")):
+    if period_focus == "current" and any(token in header_text for token in current_markers):
         if report_year is not None:
             return str(report_year)
-        return "당기"
-    if period_focus == "prior" and any(token in header_text for token in ("전기", "이전")):
+        return current_hint
+    if period_focus == "prior" and any(token in header_text for token in prior_markers):
         if report_year is not None:
             return str(report_year - 1)
-        return "전기"
+        return prior_hint
     fiscal_rank = _structured_cell_fiscal_rank(cell)
     if fiscal_rank is not None and (report_year is not None or query_years):
         current_year = report_year if report_year is not None else max(query_years)
@@ -7059,13 +7109,16 @@ def _build_reconciliation_retry_queries(
     operand_map = {str(item.get("label") or "").strip(): item for item in required_operands if str(item.get("label") or "").strip()}
 
     prefixes: List[str] = []
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    year_suffix_template = str(period_policy.get("year_suffix_template") or "{year}")
     if years:
-        prefixes.append(f"{years[0]}년")
+        prefixes.append(year_suffix_template.format(year=years[0]))
     consolidation_scope = str(constraints.get("consolidation_scope") or "unknown").strip()
+    scope_prefix_labels = dict(CONSOLIDATION_SCOPE_POLICY.get("query_prefix_labels") or {})
     if consolidation_scope == "consolidated":
-        prefixes.append("연결기준")
+        prefixes.append(str(scope_prefix_labels.get("consolidated") or ""))
     elif consolidation_scope == "separate":
-        prefixes.append("별도기준")
+        prefixes.append(str(scope_prefix_labels.get("separate") or ""))
 
     queries: List[str] = []
     for operand_label in missing_operands:

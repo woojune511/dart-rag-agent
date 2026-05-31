@@ -74,21 +74,24 @@ terms into retrieval policy. A structured-cell/value helper follow-up moved
 generic unit-family markers, concept metric label templates, segment-scope
 markers, structured-cell period scoring markers, direct-acceptance period
 presence checks, note-context markers, and nearby value/unit extraction
-patterns into retrieval policy.
+patterns into retrieval policy. A period-operand helper follow-up moved metric
+label cleanup boundaries, period operand label templates, comparison markers,
+KRW compact-format labels/scales, and reconciliation query scope prefixes into
+retrieval policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 417 |
-| Literal occurrences | 527 |
-| `runtime_literal` records | 322 |
-| `regex_or_pattern` records | 65 |
+| Reviewed records | 399 |
+| Literal occurrences | 478 |
+| `runtime_literal` records | 306 |
+| `regex_or_pattern` records | 63 |
 | `prompt_or_template` records | 30 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 137 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 119 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
@@ -198,6 +201,16 @@ For each P0 record, classify it as one of:
   render concept labels from ordered ontology specs, score table headers,
   validate selected-cell period compatibility, and preserve evidence-visible
   nearby values.
+- `_format_korean_won_compact()`, `_clean_metric_label()`,
+  `_is_single_metric_period_comparison()`,
+  `_build_generic_required_operands()`, `_build_concept_period_operands()`,
+  `_structured_cell_period_text()`, `_build_generic_retrieval_queries()`, and
+  `_build_reconciliation_retry_queries()` now read KRW compact-format labels,
+  metric cleanup boundaries, period operand templates/hints, comparison
+  markers, year suffix templates, and consolidation query prefixes from
+  retrieval policy. Runtime keeps the generic mechanics: normalize labels,
+  build current/prior operands, derive year-aware query surfaces, and assemble
+  retry queries from missing operands.
 - `_build_ratio_operands_from_candidates()` no longer carries a fixed
   R&D/revenue component fallback. When row-level percent values are absent, it
   asks the active ontology metric family for ratio component specs and matches
