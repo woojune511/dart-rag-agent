@@ -10,6 +10,12 @@ logic. If a term is needed because DART disclosures use that vocabulary, put it
 in this policy layer or the ontology, then cover it with a regression test or
 benchmark profile.
 
+`src/ops/audit_runtime_domain_terms.py` freezes the currently reviewed Korean
+string literals in high-risk runtime paths (`src/agent`, `src/routing`). It is a
+tripwire, not a license to keep adding terms in code: new literals should first
+be moved to ontology/policy/config, and only structural or otherwise justified
+runtime text should be added to the reviewed baseline.
+
 ## Policy Objects
 
 Each object in `NARRATIVE_RETRIEVAL_POLICIES` represents one reusable retrieval
@@ -52,8 +58,10 @@ inline `if "term" in query` branches in runtime code.
 Policy changes should use the smallest applicable check first:
 
 1. Unit test for the policy helper or deterministic composer behavior.
-2. Targeted replay for a changed question.
-3. `benchmarks/profiles/curated_policy_driven_runtime_gate.json` when policy
+2. `python -m src.ops.audit_runtime_domain_terms` when the change touches
+   `src/agent` or `src/routing`.
+3. Targeted replay for a changed question.
+4. `benchmarks/profiles/curated_policy_driven_runtime_gate.json` when policy
    vocabulary affects retrieval, evidence selection, or deterministic
    composition.
-4. Broader curated gates only after the focused gate is clean.
+5. Broader curated gates only after the focused gate is clean.

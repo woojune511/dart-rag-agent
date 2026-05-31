@@ -18,6 +18,7 @@
 - If graph expansion or reranking pushes a relevant raw chunk out of the visible `retrieved_docs` window, the runtime may still use `seed_retrieved_docs` as candidate evidence when the chunk satisfies the active task's generic required-operand contract. This is evidence preservation, not a license to add topic-specific fallback rules.
 - If a source sentence already states a derived numeric display such as a year-over-year percentage, preserve that source-stated display alongside the deterministic formula trace. Keep the calculated value in trace metadata when it differs because of rounding or source display precision.
 - Any PR/change that adds domain terms to runtime code must explain why the same behavior cannot be represented in ontology/policy/config. If that explanation is weak, stop and refactor the design.
+- Before committing changes under `src/agent` or `src/routing`, run `python -m src.ops.audit_runtime_domain_terms`. Unexpected literals must be moved to ontology/policy/config or deliberately added to the reviewed baseline with rationale.
 
 1. **Benchmark를 답안지로 쓰지 않는다.**
    - 특정 회사, 특정 질문, 특정 평가 row를 맞추기 위한 runtime branch를 추가하지 않는다.
@@ -75,6 +76,7 @@
 4. **Verify**
    - 최소 관련 test를 먼저 돌린다.
    - 그 다음 `python -m unittest discover -s tests`를 돌릴 수 있으면 돌린다.
+   - `src/agent` 또는 `src/routing` 런타임 변경은 broader test 전에 `python -m src.ops.audit_runtime_domain_terms`를 돌린다.
    - benchmark가 필요하면 focused/eval-only를 우선한다.
 
 5. **Report**
