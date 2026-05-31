@@ -1529,48 +1529,54 @@ class FinancialAgentEvidenceMixin:
             if preferred_sections:
                 enriched_query = f"{enriched_query} {' '.join(preferred_sections)}".strip()
             search_k = effective_k * 4
-            executed_queries.append(
-                {
-                    "source": "primary",
-                    "base_query": base_query,
-                    "executed_query": enriched_query,
-                    "k": search_k,
-                    "where_filter": where_filter,
-                }
-            )
+            query_trace = {
+                "source": "primary",
+                "base_query": base_query,
+                "executed_query": enriched_query,
+                "k": search_k,
+                "where_filter": where_filter,
+            }
+            executed_queries.append(query_trace)
             batch_docs = self.vsm.search(enriched_query, k=search_k, where_filter=where_filter)
+            search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
+            if isinstance(search_telemetry, dict) and search_telemetry:
+                query_trace["search_telemetry"] = dict(search_telemetry)
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
             for focused_query in focused_operand_queries[:8]:
                 search_k = max(effective_k * 2, 8)
-                executed_queries.append(
-                    {
-                        "source": "operand_focus",
-                        "base_query": focused_query,
-                        "executed_query": focused_query,
-                        "k": search_k,
-                        "where_filter": where_filter,
-                    }
-                )
+                query_trace = {
+                    "source": "operand_focus",
+                    "base_query": focused_query,
+                    "executed_query": focused_query,
+                    "k": search_k,
+                    "where_filter": where_filter,
+                }
+                executed_queries.append(query_trace)
                 focused_docs.extend(self.vsm.search(focused_query, k=search_k, where_filter=where_filter))
+                search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
+                if isinstance(search_telemetry, dict) and search_telemetry:
+                    query_trace["search_telemetry"] = dict(search_telemetry)
             if focused_docs:
                 docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries[:3]:
                 search_k = max(effective_k * 2, 8)
-                executed_queries.append(
-                    {
-                        "source": "retry",
-                        "base_query": retry_query,
-                        "executed_query": retry_query,
-                        "k": search_k,
-                        "where_filter": where_filter,
-                    }
-                )
+                query_trace = {
+                    "source": "retry",
+                    "base_query": retry_query,
+                    "executed_query": retry_query,
+                    "k": search_k,
+                    "where_filter": where_filter,
+                }
+                executed_queries.append(query_trace)
                 retry_docs.extend(self.vsm.search(retry_query, k=search_k, where_filter=where_filter))
+                search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
+                if isinstance(search_telemetry, dict) and search_telemetry:
+                    query_trace["search_telemetry"] = dict(search_telemetry)
             if retry_docs:
                 docs = self._merge_retry_candidates(docs, retry_docs)
         supplemental_docs = self._supplement_section_seed_docs(state)

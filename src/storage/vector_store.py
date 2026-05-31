@@ -249,6 +249,10 @@ def _freeze_filter(where_filter: Optional[dict]) -> Hashable:
     return where_filter
 
 
+def _elapsed_sec(started_at: float) -> float:
+    return round(time.perf_counter() - started_at, 6)
+
+
 class VectorStoreManager:
     def __init__(
         self,
@@ -276,6 +280,7 @@ class VectorStoreManager:
         self.chroma_hnsw_sync_threshold = max(self.chroma_hnsw_batch_size, DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD)
         self._vector_capacity_cooldown_until = 0.0
         self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
+        self.last_search_telemetry: Dict[str, Any] = {}
         self.embedding_spec = get_embedding_runtime_spec(
             provider=self.embedding_provider,
             model_name=self.embedding_model_name,
@@ -761,6 +766,7 @@ class VectorStoreManager:
         on_progress=None,
     ) -> Dict[str, Any]:
         """Add document chunks to the vector store."""
+        started_at = time.perf_counter()
         if not chunks:
             logger.warning("No chunks provided to add_documents.")
             return {
@@ -769,12 +775,14 @@ class VectorStoreManager:
                 "skipped_chunks": 0,
                 "batch_count": 0,
                 "resume_enabled": bool(resume),
+                "elapsed_sec": _elapsed_sec(started_at),
             }
 
         if len(chunks) != len(metadatas):
             raise ValueError("chunks and metadatas must have the same length.")
 
         effective_batch_size = max(int(batch_size or 0), 1)
+        prepare_started = time.perf_counter()
         prepared: List[tuple[str, dict, str]] = []
         seen_input_chunk_uids: set[str] = set()
         duplicate_input_count = 0
@@ -787,15 +795,19 @@ class VectorStoreManager:
             if chunk_uid:
                 seen_input_chunk_uids.add(chunk_uid)
             prepared.append((text, normalized_metadata, chunk_uid))
+        prepare_sec = _elapsed_sec(prepare_started)
 
         existing_chunk_uids: set[str] = set()
+        resume_lookup_sec = 0.0
         if resume:
+            resume_started = time.perf_counter()
             rcept_nos = {
                 str(metadata.get("rcept_no")).strip()
                 for _, metadata, _ in prepared
                 if str(metadata.get("rcept_no", "")).strip()
             }
             existing_chunk_uids = self.list_indexed_chunk_uids(rcept_no=next(iter(rcept_nos)) if len(rcept_nos) == 1 else None)
+            resume_lookup_sec = _elapsed_sec(resume_started)
 
         pending = [
             (text, metadata, chunk_uid)
@@ -818,6 +830,9 @@ class VectorStoreManager:
                 "skipped_chunks": skipped_chunks,
                 "batch_count": 0,
                 "resume_enabled": bool(resume),
+                "elapsed_sec": _elapsed_sec(started_at),
+                "prepare_sec": prepare_sec,
+                "resume_lookup_sec": resume_lookup_sec,
             }
 
         logger.info(
@@ -841,7 +856,9 @@ class VectorStoreManager:
             # table sidecars while preserving progress heartbeats.
             all_texts = [text for text, _, _ in pending]
             all_metadatas = [metadata for _, metadata, _ in pending]
+            graph_started = time.perf_counter()
             self._update_structure_graph(all_texts, all_metadatas)
+            structure_graph_update_sec = _elapsed_sec(graph_started)
             batch_count = (len(pending) + effective_batch_size - 1) // effective_batch_size
             added_count = 0
             for start in range(0, len(pending), effective_batch_size):
@@ -849,7 +866,9 @@ class VectorStoreManager:
                 added_count += len(batch)
                 if on_progress:
                     on_progress(added_count, len(pending))
+            bm25_started = time.perf_counter()
             self._init_bm25()
+            bm25_build_sec = _elapsed_sec(bm25_started)
             logger.info("Successfully updated structure graph and BM25 index without vector embeddings.")
             return {
                 "requested_chunks": len(chunks),
@@ -858,10 +877,19 @@ class VectorStoreManager:
                 "batch_count": batch_count,
                 "resume_enabled": bool(resume),
                 "vector_add_skipped": True,
+                "elapsed_sec": _elapsed_sec(started_at),
+                "prepare_sec": prepare_sec,
+                "resume_lookup_sec": resume_lookup_sec,
+                "structure_graph_update_sec": structure_graph_update_sec,
+                "vector_add_sec": 0.0,
+                "persist_sec": 0.0,
+                "bm25_build_sec": bm25_build_sec,
             }
 
         batch_count = 0
         added_count = 0
+        vector_add_sec = 0.0
+        structure_graph_update_sec = 0.0
         for start in range(0, len(pending), effective_batch_size):
             batch = pending[start : start + effective_batch_size]
             batch_texts = [text for text, _, _ in batch]
@@ -870,9 +898,12 @@ class VectorStoreManager:
             max_attempts = max(1, int(getattr(self, "vector_add_max_retries", 1) or 1))
             for attempt in range(1, max_attempts + 1):
                 try:
+                    vector_started = time.perf_counter()
                     self.vector_store.add_texts(texts=batch_texts, metadatas=chroma_metadatas)
+                    vector_add_sec += time.perf_counter() - vector_started
                     break
                 except Exception as exc:
+                    vector_add_sec += time.perf_counter() - vector_started
                     if attempt >= max_attempts or not _is_transient_vector_add_error(exc):
                         raise
                     sleep_sec = float(getattr(self, "vector_add_retry_sleep_sec", 0.0) or 0.0) * attempt
@@ -887,13 +918,19 @@ class VectorStoreManager:
                     )
                     if sleep_sec > 0:
                         time.sleep(sleep_sec)
+            graph_started = time.perf_counter()
             self._update_structure_graph(batch_texts, batch_metadatas)
+            structure_graph_update_sec += time.perf_counter() - graph_started
             batch_count += 1
             added_count += len(batch)
             if on_progress:
                 on_progress(added_count, len(pending))
+        persist_started = time.perf_counter()
         self.persist()
+        persist_sec = _elapsed_sec(persist_started)
+        bm25_started = time.perf_counter()
         self._init_bm25()
+        bm25_build_sec = _elapsed_sec(bm25_started)
         logger.info("Successfully added documents and updated BM25 index.")
         return {
             "requested_chunks": len(chunks),
@@ -902,6 +939,13 @@ class VectorStoreManager:
             "batch_count": batch_count,
             "resume_enabled": bool(resume),
             "vector_add_skipped": False,
+            "elapsed_sec": _elapsed_sec(started_at),
+            "prepare_sec": prepare_sec,
+            "resume_lookup_sec": resume_lookup_sec,
+            "structure_graph_update_sec": round(structure_graph_update_sec, 6),
+            "vector_add_sec": round(vector_add_sec, 6),
+            "persist_sec": persist_sec,
+            "bm25_build_sec": bm25_build_sec,
         }
 
     def get_structure_node(self, chunk_uid: str) -> Optional[Dict[str, Any]]:
@@ -1021,57 +1065,97 @@ class VectorStoreManager:
     def search(self, query: str, k: int = 5, k_rrf: int = 60, where_filter: dict = None):
         """Perform Hybrid Search (Vector + BM25) with Reciprocal Rank Fusion."""
         logger.info("Hybrid Searching for: %r | filter=%s", query, where_filter)
+        started_at = time.perf_counter()
+        telemetry: Dict[str, Any] = {
+            "query": query,
+            "k": int(k),
+            "k_rrf": int(k_rrf),
+            "where_filter_present": where_filter is not None,
+            "retrieval_mode": "hybrid",
+            "cache_hit": False,
+            "vector_attempted": False,
+            "vector_search_sec": 0.0,
+            "vector_result_count": 0,
+            "vector_skipped_reason": None,
+            "bm25_search_sec": 0.0,
+            "bm25_result_count": 0,
+            "bm25_doc_count": len(getattr(self, "bm25_docs", []) or []),
+            "rrf_merge_sec": 0.0,
+            "result_count": 0,
+        }
 
         cache_key = self._search_cache_key(query, k=k, k_rrf=k_rrf, where_filter=where_filter)
         cached = self._get_cached_search(cache_key)
         if cached is not None:
             logger.info("Search cache hit for %r | filter=%s", query, where_filter)
+            telemetry["cache_hit"] = True
+            telemetry["retrieval_mode"] = "cache"
+            telemetry["result_count"] = len(cached)
+            telemetry["total_sec"] = _elapsed_sec(started_at)
+            self.last_search_telemetry = telemetry
             return cached
 
         vector_results = []
         if self.force_bm25_only:
             logger.info("Skipping vector search for %r because force_bm25_only is enabled.", query)
+            telemetry["retrieval_mode"] = "bm25_only"
+            telemetry["vector_skipped_reason"] = "force_bm25_only"
         elif self.allow_query_embedding_fallback and self.in_capacity_cooldown():
             logger.info(
                 "Skipping vector search for %r because capacity cooldown is active for %.1fs more.",
                 query,
                 max(0.0, float(self._vector_capacity_cooldown_until) - time.time()),
             )
+            telemetry["retrieval_mode"] = "bm25_only"
+            telemetry["vector_skipped_reason"] = "capacity_cooldown"
         else:
             try:
+                telemetry["vector_attempted"] = True
+                vector_started = time.perf_counter()
                 vector_results = self.vector_store.similarity_search_with_score(
                     query,
                     k=k * 2,
                     filter=where_filter,
                 )
+                telemetry["vector_search_sec"] = _elapsed_sec(vector_started)
                 vector_results = [
                     (self._hydrate_document_from_structure_graph(doc), score)
                     for doc, score in vector_results
                 ]
+                telemetry["vector_result_count"] = len(vector_results)
             except Exception as exc:
+                telemetry["vector_search_sec"] = _elapsed_sec(vector_started)
                 if self.allow_query_embedding_fallback and (
                     _is_embedding_capacity_error(exc) or _is_vector_store_read_error(exc)
                 ):
                     if _is_embedding_capacity_error(exc):
                         self._open_capacity_cooldown(exc)
+                        telemetry["vector_skipped_reason"] = "embedding_capacity_error"
                     else:
                         logger.warning(
                             "Vector search unavailable for %r; falling back to BM25-only search: %s",
                             query,
                             exc,
                         )
+                        telemetry["vector_skipped_reason"] = "vector_store_read_error"
+                    telemetry["retrieval_mode"] = "bm25_fallback"
                     vector_results = []
                 elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
+                    vector_started = time.perf_counter()
                     vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
+                    telemetry["vector_search_sec"] += _elapsed_sec(vector_started)
                     vector_results = [
                         (self._hydrate_document_from_structure_graph(doc), score)
                         for doc, score in vector_results
                     ]
+                    telemetry["vector_result_count"] = len(vector_results)
+                    telemetry["vector_skipped_reason"] = "filtered_search_failed_unfiltered_retry"
                 else:
                     raise
 
         bm25_results = []
         if self.bm25:
+            bm25_started = time.perf_counter()
             tokenized_query = _tokenize_ko(query)
             bm25_scores = self.bm25.get_scores(tokenized_query)
             top_n = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[: k * 3]
@@ -1084,7 +1168,10 @@ class VectorStoreManager:
                     continue
                 doc = Document(page_content=self.bm25_docs[idx], metadata=metadata)
                 bm25_results.append((doc, bm25_scores[idx]))
+            telemetry["bm25_search_sec"] = _elapsed_sec(bm25_started)
+            telemetry["bm25_result_count"] = len(bm25_results)
 
+        merge_started = time.perf_counter()
         rrf_scores: Dict[str, float] = {}
         doc_map: Dict[str, Document] = {}
 
@@ -1100,6 +1187,10 @@ class VectorStoreManager:
 
         sorted_rrf = sorted(rrf_scores.items(), key=lambda item: item[1], reverse=True)
         results = [(doc_map[doc_id], rrf_score) for doc_id, rrf_score in sorted_rrf[:k]]
+        telemetry["rrf_merge_sec"] = _elapsed_sec(merge_started)
+        telemetry["result_count"] = len(results)
+        telemetry["total_sec"] = _elapsed_sec(started_at)
+        self.last_search_telemetry = telemetry
         self._store_cached_search(cache_key, results)
         return results
 

@@ -73,6 +73,32 @@ skips evaluator LLM judges, evaluator embedding metrics, semantic/LLM router
 fallback, and calculation-path LLM fallbacks where deterministic artifacts are
 available.
 
+## Latency telemetry
+
+Benchmark result traces include coarse phase timing (`parse`, `ingest`, and
+per-question `latency_sec`) plus retrieval-level timing inside
+`retrieval_debug_trace.executed_queries[].search_telemetry`.
+
+Use these fields to classify slow runs before changing retrieval policy:
+
+- `retrieval_mode`: `hybrid`, `bm25_only`, `bm25_fallback`, or `cache`
+- `vector_search_sec`: vector query and query-embedding time observed by the
+  vector store call
+- `bm25_search_sec`: local BM25 scoring and top-k filtering time
+- `rrf_merge_sec`: hybrid result merge time
+- `structure_graph_update_sec`: ingest-side structure graph update and save
+  time returned by `add_documents`
+- `bm25_build_sec`: ingest-side BM25 index rebuild time returned by
+  `add_documents`
+- `vector_add_sec`: ingest-side vector add / embedding call time returned by
+  `add_documents`
+- `store_add_elapsed_sec`: total ingest-side `add_documents` time, separate
+  from the broader profile-level ingest `elapsed_sec`
+
+Do not infer that a slow question is a BM25 problem from `latency_sec` alone.
+If `bm25_search_sec` is small but `latency_sec` is large, investigate runtime
+workflow, dependency synthesis, reconciliation, or answer formatting instead.
+
 ## Recommended invocation
 
 Full gate run:

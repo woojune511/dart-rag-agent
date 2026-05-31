@@ -19,6 +19,7 @@ from src.ops.benchmark_runner import (
     _cache_meta_is_completed,
     _ensure_benchmark_report_path,
     _inventory_eval_examples,
+    _merge_resume_metrics,
     _normalise_path,
     _run_ingest,
     _store_signature_matches,
@@ -172,6 +173,10 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(result["added_chunks"], 2)
         self.assertEqual(result["batch_count"], 2)
         self.assertTrue(result["vector_add_skipped"])
+        self.assertEqual(result["vector_add_sec"], 0.0)
+        self.assertIn("structure_graph_update_sec", result)
+        self.assertIn("bm25_build_sec", result)
+        self.assertIn("elapsed_sec", result)
         self.assertEqual(manager.vector_store.add_calls, [])
         manager._update_structure_graph.assert_called_once()
         self.assertEqual(manager._update_structure_graph.call_args.args[0], ["a", "b"])
@@ -202,6 +207,27 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(result["added_chunks"], 1)
         self.assertEqual(result["skipped_chunks"], 1)
         self.assertEqual(manager.vector_store.add_calls, [])
+
+    def test_merge_resume_metrics_preserves_store_timing(self) -> None:
+        merged = _merge_resume_metrics(
+            {"mode": "plain", "elapsed_sec": 10.0},
+            {
+                "added_chunks": 3,
+                "skipped_chunks": 1,
+                "batch_count": 2,
+                "elapsed_sec": 1.25,
+                "structure_graph_update_sec": 0.4,
+                "bm25_build_sec": 0.2,
+                "vector_add_sec": 0.0,
+                "vector_add_skipped": True,
+            },
+        )
+
+        self.assertEqual(merged["store_add_elapsed_sec"], 1.25)
+        self.assertEqual(merged["structure_graph_update_sec"], 0.4)
+        self.assertEqual(merged["bm25_build_sec"], 0.2)
+        self.assertEqual(merged["vector_add_sec"], 0.0)
+        self.assertTrue(merged["vector_add_skipped"])
 
     def test_cache_meta_completed_distinguishes_in_progress(self) -> None:
         self.assertTrue(_cache_meta_is_completed({"status": "completed"}))

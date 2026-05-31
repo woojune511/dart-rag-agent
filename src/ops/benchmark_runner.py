@@ -721,6 +721,20 @@ def _merge_resume_metrics(metrics: Dict[str, Any], add_metrics: Dict[str, Any]) 
     merged["resume_added_chunks"] = int(add_metrics.get("added_chunks", 0) or 0)
     merged["resume_skipped_chunks"] = int(add_metrics.get("skipped_chunks", 0) or 0)
     merged["resume_batch_count"] = int(add_metrics.get("batch_count", 0) or 0)
+    if "elapsed_sec" in add_metrics:
+        merged["store_add_elapsed_sec"] = float(add_metrics.get("elapsed_sec", 0.0) or 0.0)
+    for key in (
+        "prepare_sec",
+        "resume_lookup_sec",
+        "structure_graph_update_sec",
+        "vector_add_sec",
+        "persist_sec",
+        "bm25_build_sec",
+    ):
+        if key in add_metrics:
+            merged[key] = float(add_metrics.get(key, 0.0) or 0.0)
+    if "vector_add_skipped" in add_metrics:
+        merged["vector_add_skipped"] = bool(add_metrics.get("vector_add_skipped", False))
     return merged
 
 

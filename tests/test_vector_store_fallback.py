@@ -153,6 +153,10 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertEqual(vector_store.calls, 0)
         self.assertEqual(len(results), 1)
         self.assertIn("9,490,410", results[0][0].page_content)
+        self.assertEqual(manager.last_search_telemetry["retrieval_mode"], "bm25_only")
+        self.assertEqual(manager.last_search_telemetry["vector_skipped_reason"], "force_bm25_only")
+        self.assertEqual(manager.last_search_telemetry["bm25_result_count"], 1)
+        self.assertGreaterEqual(manager.last_search_telemetry["total_sec"], 0.0)
 
     def test_search_falls_back_to_bm25_when_hnsw_reader_is_unavailable(self) -> None:
         manager = self._build_manager(
@@ -378,6 +382,9 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertEqual(vector_store.calls, 1)
         self.assertEqual(len(first_results), 1)
         self.assertEqual(len(second_results), 1)
+        self.assertTrue(manager.last_search_telemetry["cache_hit"])
+        self.assertEqual(manager.last_search_telemetry["retrieval_mode"], "cache")
+        self.assertEqual(manager.last_search_telemetry["result_count"], 1)
         self.assertEqual(first_results[0][0].page_content, second_results[0][0].page_content)
 
 
