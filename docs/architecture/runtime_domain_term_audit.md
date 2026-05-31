@@ -100,12 +100,15 @@ missing-info templates, and supplemental section scoring terms into
 reconciliation policy. A planning follow-up moved concept planner prompts and
 few-shots, planner mode rules, money-surface parsing policy, narrative metric
 labels, and segment default labels into planning policy/config.
+A helper policy follow-up moved narrative-context hints, legacy concept surface
+contracts, generic table-column labels, non-value/aggregate row labels, and
+segment context scoring terms into helper runtime policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 306 |
-| Literal occurrences | 356 |
-| `runtime_literal` records | 134 |
+| Reviewed records | 249 |
+| Literal occurrences | 298 |
+| `runtime_literal` records | 77 |
 | `schema_description` records | 117 |
 | `regex_or_pattern` records | 39 |
 | `prompt_or_template` records | 16 |
@@ -115,7 +118,7 @@ Top files:
 | File | Records | Initial disposition |
 | --- | ---: | --- |
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
-| `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 37 | P0/P1: remaining records are mostly generic parsing patterns, status labels, and a few candidate scoring labels |
 | `src/agent/financial_graph_calculation.py` | 26 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_evidence.py` | 26 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |

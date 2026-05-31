@@ -34,6 +34,7 @@ from src.config.retrieval_policy import (
     GENERIC_OPERAND_LABEL_POLICY,
     GENERIC_PERIOD_OPERAND_POLICY,
     GENERIC_UNIT_FAMILY_POLICY,
+    HELPER_RUNTIME_POLICY,
     KOREAN_WON_COMPACT_FORMAT_POLICY,
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
@@ -1828,40 +1829,12 @@ def _infer_generic_unit_family(label: str) -> str:
     return ""
 
 
-_NARRATIVE_CONTEXT_HINTS = (
-    "요약",
-    "원인",
-    "배경",
-    "설명",
-    "사례",
-    "영향",
-    "전략",
-    "리스크",
-    "의미를",
-    "의미는",
-    "의미가",
-    "왜",
-    "어떤",
-    "어떻게",
-    "적용",
-    "관리 방안",
-    "관리 전략",
-    "관리 현황",
-    "어떻게 관리",
-    "대응",
-    "기여",
-    "업황",
-    "악화",
-    "불구",
-    "정책",
-)
-
-
 def _query_requests_narrative_context(query: str) -> bool:
     normalized = _normalise_spaces(str(query or "")).lower()
     if not normalized:
         return False
-    return any(token in normalized for token in _NARRATIVE_CONTEXT_HINTS)
+    narrative_hints = tuple(str(item) for item in (HELPER_RUNTIME_POLICY.get("narrative_context_hints") or ()) if str(item))
+    return any(token in normalized for token in narrative_hints)
 
 
 def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
@@ -3343,7 +3316,14 @@ def _build_heuristic_numeric_task(
         "consolidation_scope": _desired_consolidation_scope(query, report_scope),
         "period_focus": _infer_period_focus(query, "unknown"),
         "entity_scope": "company",
-        "segment_scope": "segment" if "부문" in _normalise_spaces(query) else "none",
+        "segment_scope": (
+            "segment"
+            if any(
+                str(marker) and str(marker) in _normalise_spaces(query)
+                for marker in (TASK_CONSTRAINT_POLICY.get("segment_markers") or ())
+            )
+            else "none"
+        ),
     }
     constraints["period_focus"] = _task_period_focus_from_operands(
         operation_family,
@@ -4670,7 +4650,8 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
     if not headers:
         return 0.0
 
-    non_generic_headers = [header for header in headers if header not in _GENERIC_COLUMN_HEADERS]
+    generic_headers = _generic_column_headers()
+    non_generic_headers = [header for header in headers if header not in generic_headers]
     last_header = non_generic_headers[-1] if non_generic_headers else headers[-1]
     needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
     if not needles:
@@ -4753,26 +4734,6 @@ def _operand_needles(operand: Dict[str, Any]) -> List[str]:
     return [needle for needle in [label, *aliases] if needle]
 
 
-_LEGACY_CONCEPT_SURFACE_CONTRACTS: Dict[str, Dict[str, List[str]]] = {
-    "income_before_income_taxes": {
-        "positive": [
-            "법인세비용차감전순이익",
-            "법인세비용차감전순손익",
-            "법인세비용 차감 전 순이익",
-            "법인세비용 차감 전 순손익",
-            "세전이익",
-            "세전순이익",
-        ],
-        "negative": [
-            "계속영업순이익",
-            "계속영업순손익",
-            "당기순이익",
-            "당기순손익",
-        ],
-    }
-}
-
-
 def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
     explicit_contract = dict(operand.get("surface_contract") or {})
     if explicit_contract:
@@ -4782,11 +4743,15 @@ def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
         }
 
     concept_key = _normalise_spaces(str(operand.get("concept") or ""))
-    if concept_key and concept_key in _LEGACY_CONCEPT_SURFACE_CONTRACTS:
-        return dict(_LEGACY_CONCEPT_SURFACE_CONTRACTS[concept_key])
+    legacy_contracts = {
+        str(key): dict(value or {})
+        for key, value in dict(HELPER_RUNTIME_POLICY.get("legacy_concept_surface_contracts") or {}).items()
+    }
+    if concept_key and concept_key in legacy_contracts:
+        return dict(legacy_contracts[concept_key])
 
     needles = " ".join(_operand_needles(operand))
-    for contract in _LEGACY_CONCEPT_SURFACE_CONTRACTS.values():
+    for contract in legacy_contracts.values():
         positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
         if any(_normalise_spaces(term) in _normalise_spaces(needles) for term in positive_terms):
             return dict(contract)
@@ -5275,14 +5240,8 @@ def _format_structured_candidate_row_text(
     return " | ".join(row_parts)
 
 
-_GENERIC_COLUMN_HEADERS = {
-    "구분",
-    "항목",
-    "내용",
-    "세부항목",
-    "비고",
-    "차입금명칭",
-}
+def _generic_column_headers() -> set[str]:
+    return set(str(item) for item in (HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()) if str(item))
 
 
 def _build_table_value_reconciliation_candidates(
@@ -5418,7 +5377,8 @@ def _column_candidate_label(column_headers: List[str]) -> str:
     cleaned = [_normalise_spaces(header) for header in column_headers if _normalise_spaces(header)]
     if not cleaned:
         return ""
-    filtered = [header for header in cleaned if header not in _GENERIC_COLUMN_HEADERS]
+    generic_headers = _generic_column_headers()
+    filtered = [header for header in cleaned if header not in generic_headers]
     target = filtered[-1] if filtered else cleaned[-1]
     if re.fullmatch(r"20\d{2}(?:년)?", target):
         return ""
@@ -5806,26 +5766,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-_NON_VALUE_ROW_LABELS = {
-    "범위",
-    "하위범위",
-    "상위범위",
-    "범위 합계",
-}
-
-_BALANCE_SHEET_AGGREGATE_LABELS = {
-    "자산총계",
-    "부채총계",
-    "자본총계",
-    "유동자산",
-    "비유동자산",
-    "유형자산",
-    "무형자산",
-    "유동부채",
-    "비유동부채",
-}
-
-
 def _candidate_value_role(candidate: Dict[str, Any]) -> str:
     metadata = dict(candidate.get("metadata") or {})
     explicit = _normalise_spaces(str(metadata.get("value_role") or ""))
@@ -5931,7 +5871,8 @@ def _candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
 def _candidate_is_descriptor_row(candidate: Dict[str, Any]) -> bool:
     metadata = dict(candidate.get("metadata") or {})
     row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
-    if row_label in _NON_VALUE_ROW_LABELS:
+    non_value_row_labels = set(str(item) for item in (HELPER_RUNTIME_POLICY.get("non_value_row_labels") or ()) if str(item))
+    if row_label in non_value_row_labels:
         return True
 
     structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
@@ -5941,7 +5882,7 @@ def _candidate_is_descriptor_row(candidate: Dict[str, Any]) -> bool:
     row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
     if row_text and "|" in row_text:
         parts = [part.strip() for part in row_text.split("|")]
-        if parts and _normalise_spaces(parts[0]) in _NON_VALUE_ROW_LABELS:
+        if parts and _normalise_spaces(parts[0]) in non_value_row_labels:
             numeric_parts = [part for part in parts[1:] if re.search(r"\d", part)]
             if not numeric_parts:
                 return True
@@ -5952,7 +5893,12 @@ def _candidate_is_descriptor_row(candidate: Dict[str, Any]) -> bool:
 def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
     needles.discard("")
-    return any(needle in _BALANCE_SHEET_AGGREGATE_LABELS for needle in needles)
+    aggregate_labels = set(
+        re.sub(r"\s+", "", _normalise_spaces(str(item)))
+        for item in (HELPER_RUNTIME_POLICY.get("balance_sheet_aggregate_labels") or ())
+        if str(item)
+    )
+    return any(needle in aggregate_labels for needle in needles)
 
 
 def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
@@ -6161,7 +6107,12 @@ def _candidate_segment_binding_bonus(
     context_text = " ".join(part for part in (local_heading, section_path) if part)
     if matches_segment:
         score += 5.0
-        if any(token in context_text for token in ("매출 및 수주상황", "부문", "세그먼트", "segment")):
+        segment_context_terms = tuple(
+            str(item)
+            for item in (HELPER_RUNTIME_POLICY.get("segment_context_bonus_terms") or ())
+            if str(item)
+        )
+        if any(token in context_text for token in segment_context_terms):
             score += 1.5
         if statement_type in {"notes", "mda"}:
             score += 0.75

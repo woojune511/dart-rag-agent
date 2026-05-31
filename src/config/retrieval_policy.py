@@ -815,6 +815,69 @@ PLANNING_POLICY: Dict[str, Any] = {
 }
 
 
+HELPER_RUNTIME_POLICY: Dict[str, Any] = {
+    "narrative_context_hints": (
+        "요약",
+        "원인",
+        "배경",
+        "설명",
+        "사례",
+        "영향",
+        "전략",
+        "리스크",
+        "의미를",
+        "의미는",
+        "의미가",
+        "왜",
+        "어떤",
+        "어떻게",
+        "적용",
+        "관리 방안",
+        "관리 전략",
+        "관리 현황",
+        "어떻게 관리",
+        "대응",
+        "기여",
+        "업황",
+        "악화",
+        "불구",
+        "정책",
+    ),
+    "legacy_concept_surface_contracts": {
+        "income_before_income_taxes": {
+            "positive": (
+                "법인세비용차감전순이익",
+                "법인세비용차감전순손익",
+                "법인세비용 차감 전 순이익",
+                "법인세비용 차감 전 순손익",
+                "세전이익",
+                "세전순이익",
+            ),
+            "negative": (
+                "계속영업순이익",
+                "계속영업순손익",
+                "당기순이익",
+                "당기순손익",
+            ),
+        }
+    },
+    "non_value_row_labels": ("범위", "하위범위", "상위범위", "범위 합계"),
+    "generic_column_headers": ("구분", "항목", "내용", "세부항목", "비고", "차입금명칭"),
+    "balance_sheet_aggregate_labels": (
+        "자산총계",
+        "부채총계",
+        "자본총계",
+        "유동자산",
+        "비유동자산",
+        "유형자산",
+        "무형자산",
+        "유동부채",
+        "비유동부채",
+    ),
+    "segment_context_bonus_terms": ("매출 및 수주상황", "부문", "세그먼트", "segment"),
+}
+
+
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
         "2021년",
