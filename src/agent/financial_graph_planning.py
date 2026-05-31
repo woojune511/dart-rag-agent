@@ -25,6 +25,7 @@ from src.agent.financial_graph_models import (
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     NARRATIVE_BASE_RETRIEVAL_SUFFIXES,
+    PLANNING_POLICY,
     active_narrative_policies,
     narrative_policy_preferred_sections,
     narrative_policy_query_suffixes,
@@ -37,10 +38,7 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 
-_MONEY_SURFACE_RE = re.compile(
-    r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"
-    r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|억원|백만원|원|%)"
-)
+_MONEY_SURFACE_RE = re.compile(str(PLANNING_POLICY.get("money_surface_pattern") or r"$^"))
 
 
 def _slot_has_material(slot: Dict[str, Any]) -> bool:
@@ -60,7 +58,8 @@ def _money_match_to_slot_values(match: re.Match[str]) -> Dict[str, Any]:
         raw_number = raw_number[1:]
     raw_unit = _normalise_spaces(match.group("unit"))
     rendered_value = _normalise_spaces(f"{raw_number}{raw_unit}")
-    normalized_input = rendered_value if raw_unit.startswith("조") else raw_number
+    compound_unit_prefix = str(PLANNING_POLICY.get("money_surface_compound_unit_prefix") or "")
+    normalized_input = rendered_value if compound_unit_prefix and raw_unit.startswith(compound_unit_prefix) else raw_number
     normalized_value, normalized_unit = _normalise_operand_value(normalized_input, raw_unit)
     return {
         "raw_value": raw_number,
@@ -403,7 +402,7 @@ def _build_hybrid_narrative_subtask(
     return {
         "task_id": next_task_id,
         "metric_family": "narrative_summary",
-        "metric_label": "질문 관련 배경/영향 설명",
+        "metric_label": str(PLANNING_POLICY.get("hybrid_narrative_metric_label") or ""),
         "query": query,
         "operation_family": "narrative_summary",
         "required_operands": [],
@@ -563,7 +562,7 @@ def _llm_plan_preserves_analysis_shape(base_plan: Dict[str, Any], llm_plan: Dict
 
 def _attach_segment_label_to_resolved_spec(spec: Dict[str, Any], segment_label: str) -> Dict[str, Any]:
     updated = dict(spec)
-    base_name = str(updated.get("name") or "").strip() or "매출액"
+    base_name = str(updated.get("name") or "").strip() or str(PLANNING_POLICY.get("segment_default_metric_name") or "")
     updated["name"] = f"{segment_label} {base_name}".strip()
     aliases = list(updated.get("aliases") or [])
     updated["aliases"] = list(dict.fromkeys([updated["name"], segment_label, base_name, *aliases]))
@@ -583,10 +582,10 @@ def _apply_segment_labels_to_llm_resolved_specs(
 ) -> List[Dict[str, Any]]:
     """Recover segment-scoped operand identity when the LLM only emits repeated concepts.
 
-    The structured planner often emits `revenue` twice for queries like
-    "SDC와 Harman 부문의 매출 합계". We keep the operation-family/role signal from
-    the LLM, but re-attach segment labels from the original query/metric label so
-    downstream grounding can distinguish SDC from Harman instead of binding the
+    The structured planner can emit the same concept more than once for a
+    segment-scoped query. Keep the operation-family/role signal from the LLM,
+    but re-attach segment labels from the original query/metric label so
+    downstream grounding can distinguish segment rows instead of binding the
     same company-total row twice.
     """
     specs = [dict(spec) for spec in (resolved_specs or [])]
@@ -817,127 +816,12 @@ class FinancialAgentPlanningMixin:
                 )
             )
         mode_specific_rules = (
-            "- 현재는 replan mode입니다. planner_feedback를 읽고, 기존 task는 유지한 채 누락된 재료를 찾기 위한 추가 task만 만드세요.\n"
-            "- 기존 task와 실질적으로 같은 task를 다시 만들지 마세요.\n"
-            "- planner_feedback가 이미 확보된 기존 task로 해결된다면 tasks를 비워 둘 수 있습니다."
+            str(PLANNING_POLICY.get("concept_planner_replan_rules") or "")
             if replan_mode
-            else "- 현재는 initial mode입니다. 원본 질문을 풀기 위한 전체 재료 수집 계획을 세우세요."
+            else str(PLANNING_POLICY.get("concept_planner_initial_rule") or "")
         )
         prompt = ChatPromptTemplate.from_template(
-            """당신은 DART 재무 질문 planner입니다.
-질문을 직접 답하지 말고, 아래 ontology concept만 사용해서 계산 계획으로 바꾸세요.
-
-허용 operation_family:
-{allowed_operations}
-
-role 규칙:
-- ratio: numerator_1, numerator_2, ... / denominator_1, denominator_2, ...
-- sum: addend_1, addend_2, ...
-- difference: minuend, subtrahend 또는 current_period, prior_period
-- growth_rate: current_period, prior_period
-- lookup/single_value: role은 비워도 됨
-
-planner_guidance.intent_cues:
-{intent_cues}
-
-available concepts:
-{concept_catalog}
-
-현재 planning mode:
-{planning_mode}
-
-현재 planner_feedback:
-{planner_feedback}
-
-기존 task 요약:
-{existing_tasks}
-
-중요 규칙:
-- ontology에 [group]으로 표시된 concept는 축약 표현입니다. planner는 group을 그대로 쓰거나, 그 group이 expands_to로 가리키는 atomic concept 전부를 써도 됩니다.
-- 다만 최종 task는 질문에 필요한 모든 atomic 의미를 빠뜨리지 않아야 합니다. 예를 들어 "유·무형자산"이면 유형자산과 무형자산이 모두 포함되어야 합니다.
-- 질문이 여러 지표를 "각각" 계산하라고 하면 tasks를 여러 개로 나누세요.
-- planner의 목적은 최종 문장을 줄이는 것이 아니라, 질문에 답하는 데 필요한 재료(raw value, period pair, derived metric)를 빠짐없이 확보하는 것입니다.
-- 사용자가 특정 연도/기간의 값을 "추출", "제시", "보여", "알려" 달라고 했으면 그 raw value를 위한 lookup task를 만드세요.
-- 사용자가 raw value와 파생 계산(증감액, 증가율, 비율 등)을 함께 요구하면, lookup task와 calculation task를 모두 만들어도 됩니다.
-- difference 또는 growth_rate task는 계산 재료를 모으는 역할이지, 그 task 하나가 최종 답변의 모든 노출 요구를 대신한다고 가정하지 마세요.
-- lookup은 단일 값 조회나, 다른 계산 task와 별도로 원문 질문이 직접 요구한 raw 값을 확보할 때 사용하세요.
-- benchmark 전용 metric family 이름에 의존하지 말고, operation과 concept 조합으로 task를 만드세요.
-- 사업/부문/제품/브랜드(SDC, Harman 등)는 company로 보지 말고 report_scope의 company 안에서 분석할 segment로 다루세요.
-- 여러 concept를 각각 더해야 하는 질문이면 먼저 필요한 lookup task를 만들고, 이후 sum task에서 concept addend 역할(addend_1, addend_2, ...)로 묶으세요.
-- concept는 available concepts 안의 key만 써야 합니다.
-- 질문에 명시되지 않은 company/year는 report_scope 기본값을 따른다고 가정하세요.
-{mode_specific_rules}
-
-few-shot 예시 1:
-질문: 2023년 연결기준 부채비율을 계산해 줘.
-출력:
-tasks = [
-  {{ metric_label: "부채비율", operation_family: "ratio", operands: [
-    {{ concept: "total_liabilities", role: "numerator_1" }},
-    {{ concept: "total_equity", role: "denominator_1" }}
-  ]}}
-]
-
-few-shot 예시 2:
-질문: 2023년 연결기준 부채비율과 유동비율을 각각 계산해 줘.
-출력:
-tasks = [
-  {{ metric_label: "부채비율", operation_family: "ratio", operands: [
-    {{ concept: "total_liabilities", role: "numerator_1" }},
-    {{ concept: "total_equity", role: "denominator_1" }}
-  ]}},
-  {{ metric_label: "유동비율", operation_family: "ratio", operands: [
-    {{ concept: "current_assets", role: "numerator_1" }},
-    {{ concept: "current_liabilities", role: "denominator_1" }}
-  ]}}
-]
-
-few-shot 예시 3:
-질문: 2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금의 비중을 계산해 줘.
-출력:
-tasks = [
-  {{ metric_label: "유·무형자산 대비 차입금 비중", operation_family: "ratio", operands: [
-    {{ concept: "short_term_borrowings", role: "numerator_1" }},
-    {{ concept: "long_term_borrowings", role: "numerator_2" }},
-    {{ concept: "bonds_payable", role: "numerator_3" }},
-    {{ concept: "property_plant_equipment", role: "denominator_1" }},
-    {{ concept: "intangible_assets", role: "denominator_2" }}
-  ]}}
-]
-
-few-shot 예시 4:
-질문: 2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고, 전년 대비 증감액을 계산해 줘.
-출력:
-tasks = [
-  {{ metric_label: "2023년 법인세비용차감전순이익", operation_family: "lookup", operands: [
-    {{ concept: "income_before_income_taxes", role: "current_period" }}
-  ]}},
-  {{ metric_label: "법인세비용차감전순이익 증감액", operation_family: "difference", operands: [
-    {{ concept: "income_before_income_taxes", role: "current_period" }},
-    {{ concept: "income_before_income_taxes", role: "prior_period" }}
-  ]}}
-]
-설명:
-- 원문 질문이 2023년 raw value와 전년 대비 증감액을 모두 요구하므로, raw value lookup과 difference 계산 재료를 모두 확보합니다.
-
-질문:
-{query}
-
-topic:
-{topic}
-
-intent:
-{intent}
-
-report_scope:
-{report_scope}
-
-Also return:
-- companies: normalized company list for this question
-- years: normalized relevant years
-- topic: a concise topic string for retrieval/ranking
-- section_filter: a single best section hint when one section is strongly dominant, otherwise null
-"""
+            str(PLANNING_POLICY.get("concept_planner_prompt_template") or "")
         )
         structured_llm = self.llm.with_structured_output(ConceptPlannerOutput)
         try:

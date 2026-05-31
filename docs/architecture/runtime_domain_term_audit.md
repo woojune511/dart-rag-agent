@@ -97,16 +97,18 @@ period suffix handling, and operand-label cleanup patterns into calculation
 policy. A reconciliation follow-up moved candidate rerank prompts, reflection
 planner prompts, retry-objective query markers, period/unit cleanup patterns,
 missing-info templates, and supplemental section scoring terms into
-reconciliation policy.
+reconciliation policy. A planning follow-up moved concept planner prompts and
+few-shots, planner mode rules, money-surface parsing policy, narrative metric
+labels, and segment default labels into planning policy/config.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 314 |
-| Literal occurrences | 364 |
-| `runtime_literal` records | 138 |
+| Reviewed records | 306 |
+| Literal occurrences | 356 |
+| `runtime_literal` records | 134 |
 | `schema_description` records | 117 |
-| `regex_or_pattern` records | 40 |
-| `prompt_or_template` records | 19 |
+| `regex_or_pattern` records | 39 |
+| `prompt_or_template` records | 16 |
 
 Top files:
 
@@ -118,12 +120,12 @@ Top files:
 | `src/agent/financial_graph_evidence.py` | 26 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
-| `src/agent/financial_graph_planning.py` | 8 | P0/P1: planning hints and query text need review |
 | `src/agent/nodes/dummy_nodes.py` | 8 | P2: MAS skeleton fixtures, not production retrieval policy |
 | `src/agent/financial_graph_reconciliation.py` | 4 | P1: remaining records are final reconciliation status/message surfaces |
 | `src/routing/types.py` | 4 | P1: schema field descriptions |
 | `src/agent/nodes/orchestrator_node.py` | 3 | P1: prompt/fallback answer text; keyword fallback removed |
 | `src/agent/nodes/researcher_node.py` | 2 | P1: refusal text |
+| `src/routing/query_router.py` | 1 | P1: remaining record is generic routing fallback text |
 
 ## Review Priority
 
