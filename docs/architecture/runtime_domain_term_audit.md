@@ -111,12 +111,15 @@ aggregate synthesis prompts into calculation prompt policy.
 A contextual ingest follow-up moved context-generation prompts, fallback
 context text, index-prefix templates, and block-type display labels into
 contextual ingest policy.
+A helper scoring follow-up moved remaining note-context and consolidation
+heading markers used by operand candidate scoring/canonical selection onto
+existing retrieval policies.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 225 |
-| Literal occurrences | 262 |
-| `runtime_literal` records | 63 |
+| Reviewed records | 222 |
+| Literal occurrences | 255 |
+| `runtime_literal` records | 60 |
 | `schema_description` records | 117 |
 | `regex_or_pattern` records | 36 |
 | `prompt_or_template` records | 9 |
@@ -126,7 +129,7 @@ Top files:
 | File | Records | Initial disposition |
 | --- | ---: | --- |
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
-| `src/agent/financial_graph_helpers.py` | 37 | P0/P1: remaining records are mostly generic parsing patterns, status labels, and a few candidate scoring labels |
+| `src/agent/financial_graph_helpers.py` | 34 | P0/P1: remaining records are mostly generic parsing patterns, status labels, and a few candidate scoring labels |
 | `src/agent/financial_graph_calculation.py` | 23 | P0/P1: remaining records are mostly generic numeric parsing and final fallback/status wording |
 | `src/agent/financial_graph_evidence.py` | 16 | P0/P1: remaining records are mostly evidence formatting labels and generic period/value patterns |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |

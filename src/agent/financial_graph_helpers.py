@@ -1510,8 +1510,14 @@ def _candidate_is_canonical_statement_winner(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
-    note_context = "주석" in local_heading or "주석" in section_path
-    allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+    note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
+    allows_note_canonical = any(
+        marker in _normalise_spaces(section)
+        for marker in note_markers
+        for section in canonical_sections
+    )
     if note_context and not allows_note_canonical:
         return False
     if canonical_sections and not canonical_statement_type_hit and not any(
@@ -6972,14 +6978,20 @@ def _score_operand_candidate(
         elif candidate_consolidation != "unknown":
             score -= 2.0
         elif desired_consolidation == "consolidated":
-            if "연결" in local_heading:
+            context_markers = dict(CONSOLIDATION_SCOPE_POLICY.get("context_markers") or {})
+            consolidated_markers = tuple(str(item) for item in (context_markers.get("consolidated") or ()) if str(item))
+            separate_markers = tuple(str(item) for item in (context_markers.get("separate") or ()) if str(item))
+            if any(marker in local_heading for marker in consolidated_markers):
                 score += 1.5
-            elif "별도" in local_heading:
+            elif any(marker in local_heading for marker in separate_markers):
                 score -= 1.5
         elif desired_consolidation == "separate":
-            if "별도" in local_heading:
+            context_markers = dict(CONSOLIDATION_SCOPE_POLICY.get("context_markers") or {})
+            consolidated_markers = tuple(str(item) for item in (context_markers.get("consolidated") or ()) if str(item))
+            separate_markers = tuple(str(item) for item in (context_markers.get("separate") or ()) if str(item))
+            if any(marker in local_heading for marker in separate_markers):
                 score += 1.5
-            elif "연결" in local_heading:
+            elif any(marker in local_heading for marker in consolidated_markers):
                 score -= 1.5
 
     if desired_period_focus == "current":

@@ -422,7 +422,7 @@
       "fingerprint": "3aa50a1e3dd9f9bb",
       "count": 1,
       "first_lines": [
-        1897
+        1903
       ]
     },
     {
@@ -432,7 +432,7 @@
       "fingerprint": "564f631ce587bad3",
       "count": 1,
       "first_lines": [
-        1651
+        1657
       ]
     },
     {
@@ -442,7 +442,7 @@
       "fingerprint": "d0a68f122e79f782",
       "count": 1,
       "first_lines": [
-        3183
+        3189
       ]
     },
     {
@@ -452,7 +452,7 @@
       "fingerprint": "8d15177a51f8ea8a",
       "count": 1,
       "first_lines": [
-        4969
+        4975
       ]
     },
     {
@@ -472,7 +472,7 @@
       "fingerprint": "5628c40169405e6d",
       "count": 1,
       "first_lines": [
-        1646
+        1652
       ]
     },
     {
@@ -502,7 +502,7 @@
       "fingerprint": "83911fa4e645ea8f",
       "count": 1,
       "first_lines": [
-        5383
+        5389
       ]
     },
     {
@@ -512,7 +512,7 @@
       "fingerprint": "5eba65865611eed0",
       "count": 1,
       "first_lines": [
-        4997
+        5003
       ]
     },
     {
@@ -522,7 +522,7 @@
       "fingerprint": "76ace638702d5adb",
       "count": 1,
       "first_lines": [
-        4948
+        4954
       ]
     },
     {
@@ -542,8 +542,8 @@
       "fingerprint": "9cf50dedd1cb1438",
       "count": 2,
       "first_lines": [
-        1766,
-        2257
+        1772,
+        2263
       ]
     },
     {
@@ -553,7 +553,7 @@
       "fingerprint": "c5b5314c80a4a20a",
       "count": 1,
       "first_lines": [
-        4909
+        4915
       ]
     },
     {
@@ -573,7 +573,7 @@
       "fingerprint": "508662ee99ee39e5",
       "count": 1,
       "first_lines": [
-        4973
+        4979
       ]
     },
     {
@@ -583,7 +583,7 @@
       "fingerprint": "892b7fc8fe5550be",
       "count": 1,
       "first_lines": [
-        4960
+        4966
       ]
     },
     {
@@ -593,7 +593,7 @@
       "fingerprint": "04e17ed82b398fc3",
       "count": 1,
       "first_lines": [
-        4919
+        4925
       ]
     },
     {
@@ -603,7 +603,7 @@
       "fingerprint": "a06423b14a7b545a",
       "count": 1,
       "first_lines": [
-        5196
+        5202
       ]
     },
     {
@@ -623,7 +623,7 @@
       "fingerprint": "67d9a377415a4102",
       "count": 1,
       "first_lines": [
-        3469
+        3475
       ]
     },
     {
@@ -633,8 +633,8 @@
       "fingerprint": "35a271eee58bd814",
       "count": 2,
       "first_lines": [
-        2273,
-        3468
+        2279,
+        3474
       ]
     },
     {
@@ -654,8 +654,8 @@
       "fingerprint": "745a89e03fd65f22",
       "count": 2,
       "first_lines": [
-        2669,
-        2670
+        2675,
+        2676
       ]
     },
     {
@@ -665,7 +665,7 @@
       "fingerprint": "72724782b14e8e90",
       "count": 1,
       "first_lines": [
-        3253
+        3259
       ]
     },
     {
@@ -675,18 +675,7 @@
       "fingerprint": "b58bf3474c1f8004",
       "count": 1,
       "first_lines": [
-        3253
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "별도",
-      "category": "runtime_literal",
-      "fingerprint": "87fbe0d0fcf83eee",
-      "count": 2,
-      "first_lines": [
-        6977,
-        6980
+        3259
       ]
     },
     {
@@ -696,10 +685,10 @@
       "fingerprint": "3df3bf753756b486",
       "count": 4,
       "first_lines": [
-        4788,
-        4799,
-        4846,
-        4873
+        4794,
+        4805,
+        4852,
+        4879
       ]
     },
     {
@@ -709,18 +698,7 @@
       "fingerprint": "25f17ac6aad50c38",
       "count": 1,
       "first_lines": [
-        4956
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "연결",
-      "category": "runtime_literal",
-      "fingerprint": "e5acc1fdc14952ad",
-      "count": 2,
-      "first_lines": [
-        6975,
-        6982
+        4962
       ]
     },
     {
@@ -740,7 +718,7 @@
       "fingerprint": "d65f8e3db10c2030",
       "count": 1,
       "first_lines": [
-        4531
+        4537
       ]
     },
     {
@@ -750,7 +728,7 @@
       "fingerprint": "29c0f2198b3be826",
       "count": 1,
       "first_lines": [
-        4956
+        4962
       ]
     },
     {
@@ -760,18 +738,7 @@
       "fingerprint": "94aa3d2d8aebe64d",
       "count": 1,
       "first_lines": [
-        3469
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "주석",
-      "category": "runtime_literal",
-      "fingerprint": "5f08390be02f9462",
-      "count": 3,
-      "first_lines": [
-        1513,
-        1514
+        3475
       ]
     },
     {
@@ -781,7 +748,7 @@
       "fingerprint": "a047042ed1b71ebd",
       "count": 1,
       "first_lines": [
-        7155
+        7167
       ]
     },
     {
@@ -791,8 +758,8 @@
       "fingerprint": "f6848141f3363895",
       "count": 2,
       "first_lines": [
-        7153,
-        7154
+        7165,
+        7166
       ]
     },
     {
