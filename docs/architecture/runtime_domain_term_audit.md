@@ -70,21 +70,25 @@ structured-cell affinity terms into retrieval policy. A ratio/period helper
 follow-up moved metric topic extraction terms, ratio percent query markers,
 generic operand label expansions/drop labels, period-focus markers, explicit
 ratio definition markers/templates, and operand candidate scoring penalty
-terms into retrieval policy.
+terms into retrieval policy. A structured-cell/value helper follow-up moved
+generic unit-family markers, concept metric label templates, segment-scope
+markers, structured-cell period scoring markers, direct-acceptance period
+presence checks, note-context markers, and nearby value/unit extraction
+patterns into retrieval policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 431 |
-| Literal occurrences | 565 |
-| `runtime_literal` records | 334 |
-| `regex_or_pattern` records | 67 |
+| Reviewed records | 417 |
+| Literal occurrences | 527 |
+| `runtime_literal` records | 322 |
+| `regex_or_pattern` records | 65 |
 | `prompt_or_template` records | 30 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 151 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 137 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
@@ -184,6 +188,16 @@ For each P0 record, classify it as one of:
   stopwords, split patterns, and token patterns from retrieval policy config.
   The runtime function keeps the generic extraction mechanics: normalize,
   reject blocked labels, split near a segment anchor, and dedupe.
+- `_infer_generic_unit_family()`, `_build_concept_metric_label()`,
+  `_build_concept_task_constraints()`, `_score_structured_cell()`,
+  `_candidate_satisfies_direct_acceptance_contract()`, and
+  `_extract_value_near_match()` now read unit-family markers, metric label
+  templates, segment markers, period-scoring markers, direct-acceptance period
+  patterns, note-context markers, and value/unit extraction patterns from
+  retrieval policy. Runtime keeps the generic mechanics: infer unit family,
+  render concept labels from ordered ontology specs, score table headers,
+  validate selected-cell period compatibility, and preserve evidence-visible
+  nearby values.
 - `_build_ratio_operands_from_candidates()` no longer carries a fixed
   R&D/revenue component fallback. When row-level percent values are absent, it
   asks the active ontology metric family for ratio component specs and matches

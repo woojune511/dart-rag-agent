@@ -142,6 +142,13 @@ STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "aggregate_tokens": ("합계", "총계", "소계", "계"),
 }
 
+STRUCTURED_CELL_PERIOD_SCORING_POLICY: Dict[str, Any] = {
+    "current_positive_markers": ("당기", "현재"),
+    "current_negative_markers": ("전기", "이전"),
+    "prior_positive_markers": ("전기", "이전"),
+    "prior_negative_markers": ("당기", "현재"),
+}
+
 METRIC_TOPIC_EXTRACTION_TERMS = (
     "영업이익",
     "매출",
@@ -166,10 +173,31 @@ GENERIC_OPERAND_LABEL_POLICY: Dict[str, Any] = {
     "derived_labels_to_drop": ("총 영업비용", "영업비용률", "순효과"),
 }
 
+GENERIC_UNIT_FAMILY_POLICY: Dict[str, Any] = {
+    "count_markers": ("대수", "수량", "건수", "인원수", "직원수", "회원수", "판매량"),
+}
+
+CONCEPT_METRIC_LABEL_POLICY: Dict[str, Any] = {
+    "label_joiner": " + ",
+    "operation_templates": {
+        "ratio": "{labels_joined} 비율",
+        "sum": "{labels_joined} 합계",
+        "difference_two": "{first_label}과 {second_label} 차이",
+        "difference_one": "{label} 차이",
+        "growth_rate": "{label} 증가율",
+    },
+    "fallback_label": "개념 기반 수치",
+}
+
+TASK_CONSTRAINT_POLICY: Dict[str, Any] = {
+    "segment_markers": ("부문",),
+}
+
 PERIOD_FOCUS_POLICY: Dict[str, Any] = {
     "prior_markers": ("전기", "전년", "이전 연도", "직전 연도"),
     "current_markers": ("당기", "금년", "현재 연도", "이번 연도"),
     "explicit_year_pattern": r"20\d{2}",
+    "period_presence_pattern": r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기",
 }
 
 EXPLICIT_RATIO_DEFINITION_POLICY: Dict[str, Any] = {
@@ -182,6 +210,14 @@ OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "note_context_markers": ("주석",),
     "related_party_penalty_terms": ("특수관계자", "관계기업", "공동기업"),
     "generic_suffix_penalty_terms": ("등",),
+}
+
+VALUE_NEAR_MATCH_POLICY: Dict[str, Any] = {
+    "value_pattern": r"([\d,]+\s*조\s*[\d,]+\s*억(?:\s*원)?|[\d,]+\s*억(?:\s*원)?|[\d,]+\s*백만원|[\d,.]+%)",
+    "percent_markers": ("%",),
+    "million_krw_unit": "백만원",
+    "composite_krw_markers": ("조", "억"),
+    "composite_krw_unit": "원",
 }
 
 KOREAN_SEGMENT_LABEL_REPORT_TERMS = (

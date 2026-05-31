@@ -28,8 +28,10 @@ from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
     FINANCIAL_SEGMENT_SECTION_HINT_POLICY,
+    CONCEPT_METRIC_LABEL_POLICY,
     GENERIC_METRIC_ALIAS_SUBSTITUTIONS,
     GENERIC_OPERAND_LABEL_POLICY,
+    GENERIC_UNIT_FAMILY_POLICY,
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_COUNT_UNITS,
@@ -58,6 +60,9 @@ from src.config.retrieval_policy import (
     PERCENT_POINT_DIFFERENCE_POLICY,
     RATIO_PERCENT_QUERY_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
+    STRUCTURED_CELL_PERIOD_SCORING_POLICY,
+    TASK_CONSTRAINT_POLICY,
+    VALUE_NEAR_MATCH_POLICY,
     active_numeric_section_hint_policies,
     active_narrative_policies,
     narrative_policy_preferred_sections,
@@ -1807,7 +1812,9 @@ def _infer_generic_unit_family(label: str) -> str:
     if _label_implies_percent_metric(normalized):
         return "PERCENT"
     compact = re.sub(r"\s+", "", normalized)
-    if any(token in compact for token in ("대수", "수량", "건수", "인원수", "직원수", "회원수", "판매량")):
+    unit_policy = dict(GENERIC_UNIT_FAMILY_POLICY)
+    count_markers = tuple(str(item) for item in (unit_policy.get("count_markers") or ()) if str(item))
+    if any(token in compact for token in count_markers):
         return "COUNT"
     return ""
 
@@ -2915,19 +2922,26 @@ def _build_concept_metric_label(
 ) -> str:
     ordered_specs = _order_concept_specs_by_query(concept_specs, query)
     labels = [str(spec.get("name") or "").strip() for spec in ordered_specs if str(spec.get("name") or "").strip()]
+    label_policy = dict(CONCEPT_METRIC_LABEL_POLICY)
+    templates = dict(label_policy.get("operation_templates") or {})
+    label_joiner = str(label_policy.get("label_joiner") or " + ")
+    labels_joined = label_joiner.join(labels)
     if operation_family == "ratio" and labels:
-        return f"{' + '.join(labels)} 비율"
+        return str(templates.get("ratio") or "{labels_joined}").format(labels_joined=labels_joined)
     if operation_family == "sum" and labels:
-        return f"{' + '.join(labels)} 합계"
+        return str(templates.get("sum") or "{labels_joined}").format(labels_joined=labels_joined)
     if operation_family == "difference" and labels:
         if len(labels) >= 2:
-            return f"{labels[0]}과 {labels[1]} 차이"
-        return f"{labels[0]} 차이"
+            return str(templates.get("difference_two") or "{first_label} {second_label}").format(
+                first_label=labels[0],
+                second_label=labels[1],
+            )
+        return str(templates.get("difference_one") or "{label}").format(label=labels[0])
     if operation_family == "growth_rate" and labels:
-        return f"{labels[0]} 증가율"
+        return str(templates.get("growth_rate") or "{label}").format(label=labels[0])
     if labels:
         return labels[0]
-    return _clean_metric_label(query) or "개념 기반 수치"
+    return _clean_metric_label(query) or str(label_policy.get("fallback_label") or "")
 
 
 def _build_concept_task_constraints(
@@ -2945,11 +2959,14 @@ def _build_concept_task_constraints(
     period_focus = _infer_period_focus(query, str(defaults.get("period_focus") or "unknown"))
     if operand_specs:
         period_focus = _task_period_focus_from_operands(operation_family, operand_specs, period_focus)
+    constraint_policy = dict(TASK_CONSTRAINT_POLICY)
+    segment_markers = tuple(str(item) for item in (constraint_policy.get("segment_markers") or ()) if str(item))
+    normalized_query = _normalise_spaces(query)
     return {
         "consolidation_scope": str(consolidation_scope or "unknown"),
         "period_focus": str(period_focus or "unknown"),
         "entity_scope": str(defaults.get("entity_scope") or "company"),
-        "segment_scope": "segment" if "부문" in _normalise_spaces(query) else "none",
+        "segment_scope": "segment" if any(marker in normalized_query for marker in segment_markers) else "none",
     }
 
 
@@ -4638,15 +4655,16 @@ def _score_structured_cell(
         for index, year in enumerate(query_years):
             if str(year) in header_text:
                 score += 10.0 - index
+    period_policy = dict(STRUCTURED_CELL_PERIOD_SCORING_POLICY)
     if period_focus == "current":
-        if any(token in header_text for token in ("당기", "현재")):
+        if any(token in header_text for token in period_policy.get("current_positive_markers") or ()):
             score += 4.0
-        if any(token in header_text for token in ("전기", "이전")):
+        if any(token in header_text for token in period_policy.get("current_negative_markers") or ()):
             score -= 1.0
     elif period_focus == "prior":
-        if any(token in header_text for token in ("전기", "이전")):
+        if any(token in header_text for token in period_policy.get("prior_positive_markers") or ()):
             score += 4.0
-        if any(token in header_text for token in ("당기", "현재")):
+        if any(token in header_text for token in period_policy.get("prior_negative_markers") or ()):
             score -= 1.0
     if operand:
         score += _structured_cell_operand_affinity(cell, operand)
@@ -6351,6 +6369,11 @@ def _candidate_satisfies_direct_acceptance_contract(
         str((constraints or {}).get("period_focus") or "unknown").strip(),
     )
     if selected_cell:
+        period_policy = dict(PERIOD_FOCUS_POLICY)
+        period_presence_pattern = str(period_policy.get("period_presence_pattern") or period_policy.get("explicit_year_pattern") or r"$^")
+        current_markers = tuple(str(item) for item in (period_policy.get("current_markers") or ()) if str(item))
+        prior_markers = tuple(str(item) for item in (period_policy.get("prior_markers") or ()) if str(item))
+        explicit_year_pattern = str(period_policy.get("explicit_year_pattern") or r"20\d{2}")
         period_text = _structured_cell_period_text(
             selected_cell,
             query_years,
@@ -6361,7 +6384,7 @@ def _candidate_satisfies_direct_acceptance_contract(
             return False
         if desired_period_focus == "prior" and candidate_period_focus == "current":
             return False
-        if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period_text):
+        if not re.search(period_presence_pattern, period_text):
             report_year: Optional[int] = None
             for raw_year in (
                 selected_cell.get("_report_year"),
@@ -6382,15 +6405,15 @@ def _candidate_satisfies_direct_acceptance_contract(
                     period_text = str(report_year)
         normalized_period = _normalise_spaces(period_text)
         if desired_period_focus == "current" and normalized_period and any(
-            token in normalized_period for token in ("전기", "이전")
+            token in normalized_period for token in prior_markers
         ):
             return False
         if desired_period_focus == "prior" and normalized_period and any(
-            token in normalized_period for token in ("당기", "현재")
+            token in normalized_period for token in current_markers
         ):
             return False
         target_years = _operand_target_years(operand, query_years)
-        explicit_years = [int(token) for token in re.findall(r"20\d{2}", period_text or "")]
+        explicit_years = [int(token) for token in re.findall(explicit_year_pattern, period_text or "")]
         if target_years and explicit_years and not any(year in explicit_years for year in target_years):
             return False
 
@@ -6416,8 +6439,14 @@ def _candidate_satisfies_direct_acceptance_contract(
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
     if operation_family in {"lookup", "single_value"} and _lookup_prefers_canonical_statement_rows(operand):
         canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
-        note_context = "주석" in local_heading or "주석" in section_path
-        allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+        note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+        note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
+        allows_note_canonical = any(
+            marker in _normalise_spaces(section)
+            for section in canonical_sections
+            for marker in note_markers
+        )
         canonical_statement_type_hit = (
             bool(canonical_types)
             and statement_type in canonical_types
@@ -7493,19 +7522,21 @@ def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional
     if not tail:
         return None, ""
     tail = _normalise_spaces(tail)
-    match = re.search(
-        r"([\d,]+\s*조\s*[\d,]+\s*억(?:\s*원)?|[\d,]+\s*억(?:\s*원)?|[\d,]+\s*백만원|[\d,.]+%)",
-        tail,
-    )
+    value_policy = dict(VALUE_NEAR_MATCH_POLICY)
+    match = re.search(str(value_policy.get("value_pattern") or r"$^"), tail)
     if not match:
         return None, ""
     raw_value = _normalise_spaces(match.group(1))
-    if "%" in raw_value:
-        return raw_value, "%"
-    if "백만원" in raw_value:
-        return raw_value.replace("백만원", "").strip(), "백만원"
-    if "조" in raw_value or "억" in raw_value:
-        return raw_value, "원"
+    percent_markers = tuple(str(item) for item in (value_policy.get("percent_markers") or ()) if str(item))
+    million_krw_unit = str(value_policy.get("million_krw_unit") or "")
+    composite_markers = tuple(str(item) for item in (value_policy.get("composite_krw_markers") or ()) if str(item))
+    composite_unit = str(value_policy.get("composite_krw_unit") or "")
+    if any(marker in raw_value for marker in percent_markers):
+        return raw_value, percent_markers[0] if percent_markers else ""
+    if million_krw_unit and million_krw_unit in raw_value:
+        return raw_value.replace(million_krw_unit, "").strip(), million_krw_unit
+    if any(marker in raw_value for marker in composite_markers):
+        return raw_value, composite_unit
     return raw_value, ""
 
 
