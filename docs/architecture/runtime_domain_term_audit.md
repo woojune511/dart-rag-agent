@@ -35,14 +35,15 @@ off a hard-coded runtime regex list and onto ontology concept surfaces, then
 moved numeric section hints and segment-label extraction vocabulary into
 retrieval policy/config. The latest evidence pass moved quantitative-impact,
 entity-table summary, and required-operand assembly surfaces into retrieval
-policy/config.
+policy/config, then moved technology-focus assembly wording and ratio component
+candidate scoring surfaces into policy/ontology-driven data.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 658 |
-| Literal occurrences | 987 |
-| `runtime_literal` records | 553 |
-| `regex_or_pattern` records | 73 |
+| Reviewed records | 639 |
+| Literal occurrences | 964 |
+| `runtime_literal` records | 533 |
+| `regex_or_pattern` records | 74 |
 | `prompt_or_template` records | 32 |
 
 Top files:
@@ -51,8 +52,8 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
-| `src/agent/financial_graph_evidence.py` | 124 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
+| `src/agent/financial_graph_evidence.py` | 105 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
@@ -147,6 +148,15 @@ For each P0 record, classify it as one of:
   inline unit parsing, unit fallback rules, and default units from retrieval
   policy. Runtime still requires operand surface/structured-cell/prose support
   before emitting operand rows.
+- `_compose_business_technology_focus_answer()` now reads R&D amount selection
+  terms, output labels, unit text, and sentence templates from the active
+  narrative policy. Runtime only locates the requested entity, matches configured
+  facets, extracts evidence-visible numeric surfaces, and assembles policy
+  templates.
+- `_extract_ratio_component_candidates()` no longer carries metric-name-specific
+  scoring branches for R&D or revenue rows. Candidate scoring now boosts query
+  year matches and the ontology component surfaces already used to find the
+  candidate row.
 
 ## Evidence Hotspots
 
@@ -160,8 +170,10 @@ Top evidence targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_compose_business_technology_focus_answer` | 16 | technology-focused narrative assembly; check facet terms stay policy-driven |
 | `_compression_guidance` | 16 | prompt guidance text; mostly validation/compression wording |
-| `_extract_ratio_component_candidates` | 13 | ratio component extraction; inspect unit/row label surfaces |
 | `_build_ratio_operands_from_candidates` | 11 | ratio operand binding; remaining literals are mostly periods/units |
+| `_normalise_sentence_checks` | 8 | validation verdict text; likely schema/control labels |
+| `_lookup_line_matches_operand_surface` | 7 | lookup matching helper; inspect remaining row/unit surfaces |
+| `_select_narrative_summary_docs` | 7 | retrieval selection; ensure remaining terms are policy-driven |
+| `_rerank_docs` | 6 | retrieval rerank; check generic bias vs policy terms |
 | `_build_required_operands_from_candidates` | 5 | remaining literals are mostly period/unit mechanics after policy extraction |

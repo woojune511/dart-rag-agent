@@ -2329,22 +2329,43 @@ class FinancialAgentEvidenceMixin:
         if _is_percent_point_difference_query(combined_query):
             return []
 
-        specs: List[tuple[str, List[str], List[str]]] = []
+        specs: List[Dict[str, Any]] = []
         ontology_specs = get_financial_ontology().component_specs(query, topic, "comparison")
         for spec in ontology_specs:
             metric_name = str(spec.get("name") or "")
             preferred_sections = list(spec.get("preferred_sections") or [])
-            patterns = [re.escape(keyword) for keyword in (spec.get("keywords") or [])]
+            surfaces = [
+                str(item).strip()
+                for item in [
+                    metric_name,
+                    *(spec.get("aliases") or []),
+                    *(spec.get("keywords") or []),
+                ]
+                if str(item).strip()
+            ]
+            patterns = [re.escape(keyword) for keyword in surfaces]
             if metric_name and patterns:
-                specs.append((metric_name, preferred_sections, patterns))
+                specs.append(
+                    {
+                        "metric_name": metric_name,
+                        "preferred_sections": preferred_sections,
+                        "patterns": patterns,
+                        "surfaces": list(dict.fromkeys(surfaces)),
+                    }
+                )
         if not specs:
             return []
 
         candidates: List[Dict[str, Any]] = []
         seen_keys: set[tuple[str, str, str]] = set()
         year_pattern = re.compile(r"(20\d{2}년|제\d+기|당기|전기)")
+        query_years = re.findall(r"20\d{2}년", combined_query)
 
-        for metric_name, preferred_sections, patterns in specs:
+        for spec in specs:
+            metric_name = str(spec.get("metric_name") or "")
+            preferred_sections = list(spec.get("preferred_sections") or [])
+            patterns = list(spec.get("patterns") or [])
+            surfaces = list(spec.get("surfaces") or [])
             best_candidate: Optional[Dict[str, Any]] = None
             best_score = -1
             for index, (doc, _score) in enumerate(retrieved_docs[: min(16, len(retrieved_docs))], start=1):
@@ -2382,13 +2403,9 @@ class FinancialAgentEvidenceMixin:
                     score = 0
                     if any(section_term in section_path for section_term in preferred_sections[:1]):
                         score += 3
-                    if "2024년" in row_text:
+                    if query_years and any(year in row_text for year in query_years):
                         score += 2
-                    if metric_name in row_text:
-                        score += 2
-                    if metric_name == "연구개발비용" and any(alias in row_text for alias in ("총계", "연구개발비용", "연구개발비")):
-                        score += 2
-                    if metric_name == "매출액" and any(alias in row_text for alias in ("매출액", "당기매출액", "수익")):
+                    if any(surface in row_text for surface in surfaces):
                         score += 2
                     candidate = {
                         "evidence_id": f"ev_component_{metric_name}_{index:03d}_{len(candidates) + 1:03d}",
@@ -3690,7 +3707,30 @@ class FinancialAgentEvidenceMixin:
         active_policies = self._active_narrative_policies_for_query(query_text)
         if not narrative_policy_active(active_policies, "technology_focus"):
             return None
+        technology_policy = next(
+            (dict(policy) for policy in active_policies if str(policy.get("name") or "") == "technology_focus"),
+            {},
+        )
         technology_facets = self._narrative_policy_facets_for_query(query_text, "technology_facets")
+
+        def _policy_terms(key: str) -> List[str]:
+            return [
+                str(item).strip()
+                for item in tuple(technology_policy.get(key, ()) or ())
+                if str(item).strip()
+            ]
+
+        def _first_policy_term(key: str, default: str = "") -> str:
+            terms = _policy_terms(key)
+            return terms[0] if terms else default
+
+        def _first_policy_number(key: str, default: int = 0) -> int:
+            for item in tuple(technology_policy.get(key, ()) or ()):
+                try:
+                    return int(item)
+                except (TypeError, ValueError):
+                    continue
+            return default
 
         entity = ""
         for group in self._query_focus_marker_groups(query_text):
@@ -3728,15 +3768,18 @@ class FinancialAgentEvidenceMixin:
 
         rnd_amount = ""
         rnd_candidates: List[tuple[int, str]] = []
+        rnd_subject_terms = _policy_terms("rnd_subject_terms")
+        rnd_context_terms = _policy_terms("rnd_context_terms")
+        rnd_min_value = _first_policy_number("rnd_min_value", 0)
         for line in re.split(r"[\n。.!?]", "\n".join(part for part in text_parts if part)):
             line_text = _normalise_spaces(line)
-            if "연구개발" not in line_text:
+            if rnd_subject_terms and not any(term in line_text for term in rnd_subject_terms):
                 continue
-            if not any(marker in line_text for marker in ("비용", "총액", "계", "누계", "백만원")):
+            if rnd_context_terms and not any(marker in line_text for marker in rnd_context_terms):
                 continue
             for value in re.findall(r"\d{1,3}(?:,\d{3})+", line_text):
                 numeric = int(value.replace(",", ""))
-                if numeric >= 1_000_000:
+                if numeric >= rnd_min_value:
                     rnd_candidates.append((numeric, value))
         if rnd_candidates:
             rnd_amount = max(rnd_candidates, key=lambda item: item[0])[1]
@@ -3758,10 +3801,26 @@ class FinancialAgentEvidenceMixin:
 
         sentences: List[str] = []
         if rnd_amount:
-            sentences.append(f"2023년 연결 연구개발비용 총액은 {rnd_amount}백만원입니다.")
+            year_match = re.search(r"20\d{2}", query_text)
+            year_label = f"{year_match.group(0)}년 " if year_match else ""
+            scope_label = _first_policy_term("scope_terms", "")
+            scope_label = f"{scope_label} " if scope_label and scope_label in query_text else ""
+            metric_label = _first_policy_term("rnd_metric_label", "")
+            unit = _first_policy_term("rnd_unit", "")
+            template = _first_policy_term("rnd_sentence_template", "{amount}{unit}")
+            sentences.append(
+                template.format(
+                    year_label=year_label,
+                    scope_label=scope_label,
+                    metric_label=metric_label,
+                    amount=rnd_amount,
+                    unit=unit,
+                )
+            )
         else:
             existing_first = re.split(r"(?<=[.!?。])\s+", _normalise_spaces(existing_answer))[0]
-            if "연구개발" in existing_first:
+            reuse_terms = _policy_terms("existing_answer_reuse_terms")
+            if any(term in existing_first for term in reuse_terms):
                 sentences.append(existing_first)
 
         business_parts: List[str] = []
@@ -3776,9 +3835,13 @@ class FinancialAgentEvidenceMixin:
             if str(facet.get("product_phrase") or "").strip()
         ]
         if products:
-            business_parts.append(", ".join(products) + " 등 전장제품")
+            product_joiner = _first_policy_term("product_phrase_joiner", ", ")
+            product_suffix = _first_policy_term("product_phrase_suffix", "")
+            business_parts.append(product_joiner.join(products) + (f" {product_suffix}" if product_suffix else ""))
         if business_parts:
-            sentences.append(f"{entity} 부문의 전장 사업 방향은 " + "과 ".join(business_parts) + "을 중심으로 합니다.")
+            business_joiner = _first_policy_term("business_phrase_joiner", " ")
+            template = _first_policy_term("business_sentence_template", "{entity}: {parts}")
+            sentences.append(template.format(entity=entity, parts=business_joiner.join(business_parts)))
 
         focus_parts = [
             str(facet.get("focus_phrase") or "")
@@ -3786,7 +3849,9 @@ class FinancialAgentEvidenceMixin:
             if str(facet.get("focus_phrase") or "").strip()
         ]
         if focus_parts:
-            sentences.append("주요 기술 초점은 " + "하고, ".join(focus_parts) + "하는 데 있습니다.")
+            focus_joiner = _first_policy_term("focus_phrase_joiner", " ")
+            template = _first_policy_term("focus_sentence_template", "{parts}")
+            sentences.append(template.format(entity=entity, parts=focus_joiner.join(focus_parts)))
 
         answer = _normalise_spaces(" ".join(sentences))
         if not answer or entity not in answer:
