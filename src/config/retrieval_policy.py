@@ -304,6 +304,21 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
 }
 
 
+CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
+    "default_metric_label": "계산 결과",
+    "lookup_missing_template": "{metric_label} direct value가 누락되었습니다.",
+    "missing_period_value_template": "{period} 값",
+    "default_current_period": "current",
+    "default_prior_period": "prior",
+    "difference_missing_result_label": "증감값",
+    "growth_missing_result_label": "증감률",
+    "missing_material_template": "{metric_label} 계산에 필요한 {missing_labels}이 누락되었습니다.",
+    "missing_material_joiner": " / ",
+    "missing_result_template": "{metric_label} 계산 결과가 누락되었습니다.",
+    "generic_missing_material_template": "{metric_label} 계산에 필요한 재료가 누락되었습니다.",
+}
+
+
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
         "2021년",

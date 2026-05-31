@@ -17,7 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
+from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -879,8 +879,15 @@ class FinancialAgentCalculationMixin:
         )
 
     def _material_gap_feedback_for_subtask_result(self, row: Dict[str, Any]) -> str:
+        feedback_policy = dict(CALCULATION_FEEDBACK_POLICY)
         metric_label = _normalise_spaces(
-            str(row.get("metric_label") or row.get("answer") or row.get("task_id") or "계산 결과")
+            str(
+                row.get("metric_label")
+                or row.get("answer")
+                or row.get("task_id")
+                or feedback_policy.get("default_metric_label")
+                or ""
+            )
         )
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or {})
@@ -931,7 +938,7 @@ class FinancialAgentCalculationMixin:
 
         if operation_family in {"lookup", "single_value"}:
             if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
-                return f"{metric_label} direct value가 누락되었습니다."
+                return str(feedback_policy.get("lookup_missing_template") or "").format(metric_label=metric_label)
             return ""
 
         if operation_family in {"difference", "growth_rate"}:
@@ -940,25 +947,44 @@ class FinancialAgentCalculationMixin:
             primary_slot = dict(answer_slots.get("primary_value") or {})
             missing_labels: List[str] = []
             if not self._answer_slot_has_material(current_slot):
-                missing_labels.append(f"{str(current_slot.get('period') or calculation_result.get('current_period') or 'current')} 값")
+                period = str(
+                    current_slot.get("period")
+                    or calculation_result.get("current_period")
+                    or feedback_policy.get("default_current_period")
+                    or ""
+                )
+                missing_labels.append(
+                    str(feedback_policy.get("missing_period_value_template") or "").format(period=period)
+                )
             if not self._answer_slot_has_material(prior_slot):
-                missing_labels.append(f"{str(prior_slot.get('period') or calculation_result.get('prior_period') or 'prior')} 값")
+                period = str(
+                    prior_slot.get("period")
+                    or calculation_result.get("prior_period")
+                    or feedback_policy.get("default_prior_period")
+                    or ""
+                )
+                missing_labels.append(
+                    str(feedback_policy.get("missing_period_value_template") or "").format(period=period)
+                )
             if operation_family == "difference":
                 if not self._answer_slot_has_material(dict(answer_slots.get("delta_value") or primary_slot)):
-                    missing_labels.append("증감값")
+                    missing_labels.append(str(feedback_policy.get("difference_missing_result_label") or ""))
             else:
                 if not self._answer_slot_has_material(primary_slot):
                     if not (status == "ok" and rendered_material and re.search(r"\d", rendered_material)):
-                        missing_labels.append("증감률")
+                        missing_labels.append(str(feedback_policy.get("growth_missing_result_label") or ""))
             if missing_labels:
-                return f"{metric_label} 계산에 필요한 {' / '.join(missing_labels)}이 누락되었습니다."
+                return str(feedback_policy.get("missing_material_template") or "").format(
+                    metric_label=metric_label,
+                    missing_labels=str(feedback_policy.get("missing_material_joiner") or "").join(missing_labels),
+                )
             return ""
 
         if operation_family in {"ratio", "sum"}:
             if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
                 if status == "ok" and rendered_material and re.search(r"\d", rendered_material):
                     return ""
-                return f"{metric_label} 계산 결과가 누락되었습니다."
+                return str(feedback_policy.get("missing_result_template") or "").format(metric_label=metric_label)
             return ""
 
         return ""
@@ -993,9 +1019,16 @@ class FinancialAgentCalculationMixin:
                         continue
                     return gap
                 metric_label = _normalise_spaces(
-                    str(row.get("metric_label") or row.get("task_id") or "계산 결과")
+                    str(
+                        row.get("metric_label")
+                        or row.get("task_id")
+                        or CALCULATION_FEEDBACK_POLICY.get("default_metric_label")
+                        or ""
+                    )
                 )
-                generic_gap = f"{metric_label} 계산에 필요한 재료가 누락되었습니다."
+                generic_gap = str(CALCULATION_FEEDBACK_POLICY.get("generic_missing_material_template") or "").format(
+                    metric_label=metric_label
+                )
                 if self._feedback_gap_is_satisfied_by_derived_slots(generic_gap, ordered_results):
                     continue
                 return generic_gap
