@@ -452,7 +452,7 @@
       "fingerprint": "8d15177a51f8ea8a",
       "count": 1,
       "first_lines": [
-        4975
+        4983
       ]
     },
     {
@@ -502,7 +502,7 @@
       "fingerprint": "83911fa4e645ea8f",
       "count": 1,
       "first_lines": [
-        5389
+        5397
       ]
     },
     {
@@ -512,7 +512,7 @@
       "fingerprint": "5eba65865611eed0",
       "count": 1,
       "first_lines": [
-        5003
+        5011
       ]
     },
     {
@@ -522,7 +522,7 @@
       "fingerprint": "76ace638702d5adb",
       "count": 1,
       "first_lines": [
-        4954
+        4962
       ]
     },
     {
@@ -553,7 +553,7 @@
       "fingerprint": "c5b5314c80a4a20a",
       "count": 1,
       "first_lines": [
-        4915
+        4923
       ]
     },
     {
@@ -573,7 +573,7 @@
       "fingerprint": "508662ee99ee39e5",
       "count": 1,
       "first_lines": [
-        4979
+        4987
       ]
     },
     {
@@ -583,7 +583,7 @@
       "fingerprint": "892b7fc8fe5550be",
       "count": 1,
       "first_lines": [
-        4966
+        4974
       ]
     },
     {
@@ -593,7 +593,7 @@
       "fingerprint": "04e17ed82b398fc3",
       "count": 1,
       "first_lines": [
-        4925
+        4933
       ]
     },
     {
@@ -603,7 +603,7 @@
       "fingerprint": "a06423b14a7b545a",
       "count": 1,
       "first_lines": [
-        5202
+        5210
       ]
     },
     {
@@ -623,7 +623,7 @@
       "fingerprint": "67d9a377415a4102",
       "count": 1,
       "first_lines": [
-        3475
+        3483
       ]
     },
     {
@@ -634,7 +634,7 @@
       "count": 2,
       "first_lines": [
         2279,
-        3474
+        3482
       ]
     },
     {
@@ -660,35 +660,15 @@
     },
     {
       "path": "src/agent/financial_graph_helpers.py",
-      "text": "매출",
-      "category": "runtime_literal",
-      "fingerprint": "72724782b14e8e90",
-      "count": 1,
-      "first_lines": [
-        3259
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "매출액",
-      "category": "runtime_literal",
-      "fingerprint": "b58bf3474c1f8004",
-      "count": 1,
-      "first_lines": [
-        3259
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
       "text": "부채",
       "category": "runtime_literal",
       "fingerprint": "3df3bf753756b486",
       "count": 4,
       "first_lines": [
-        4794,
-        4805,
-        4852,
-        4879
+        4802,
+        4813,
+        4860,
+        4887
       ]
     },
     {
@@ -698,7 +678,7 @@
       "fingerprint": "25f17ac6aad50c38",
       "count": 1,
       "first_lines": [
-        4962
+        4970
       ]
     },
     {
@@ -718,7 +698,7 @@
       "fingerprint": "d65f8e3db10c2030",
       "count": 1,
       "first_lines": [
-        4537
+        4545
       ]
     },
     {
@@ -728,7 +708,7 @@
       "fingerprint": "29c0f2198b3be826",
       "count": 1,
       "first_lines": [
-        4962
+        4970
       ]
     },
     {
@@ -738,7 +718,7 @@
       "fingerprint": "94aa3d2d8aebe64d",
       "count": 1,
       "first_lines": [
-        3475
+        3483
       ]
     },
     {
@@ -748,7 +728,7 @@
       "fingerprint": "a047042ed1b71ebd",
       "count": 1,
       "first_lines": [
-        7167
+        7175
       ]
     },
     {
@@ -758,8 +738,8 @@
       "fingerprint": "f6848141f3363895",
       "count": 2,
       "first_lines": [
-        7165,
-        7166
+        7173,
+        7174
       ]
     },
     {

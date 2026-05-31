@@ -972,6 +972,10 @@ HELPER_RUNTIME_POLICY: Dict[str, Any] = {
         "비유동부채",
     ),
     "segment_context_bonus_terms": ("매출 및 수주상황", "부문", "세그먼트", "segment"),
+    "entity_scoped_default_metric": {
+        "query_terms": ("매출",),
+        "label": "매출액",
+    },
 }
 
 

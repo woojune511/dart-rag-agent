@@ -3256,7 +3256,15 @@ def _build_entity_scoped_concept_specs(
     if operation_family in {"growth_rate", "lookup", "single_value"} and len(labels) < 1:
         return []
 
-    base_label = "매출액" if "매출" in _normalise_spaces(query) else _infer_generic_metric_label(query, "")
+    default_metric_policy = dict(HELPER_RUNTIME_POLICY.get("entity_scoped_default_metric") or {})
+    default_metric_terms = tuple(str(item) for item in (default_metric_policy.get("query_terms") or ()) if str(item))
+    default_metric_label = str(default_metric_policy.get("label") or "").strip()
+    normalized_query = _normalise_spaces(query)
+    base_label = (
+        default_metric_label
+        if default_metric_label and any(term in normalized_query for term in default_metric_terms)
+        else _infer_generic_metric_label(query, "")
+    )
     concept_spec = _infer_generic_concept_spec(base_label, ontology)
     if not concept_spec:
         return []
