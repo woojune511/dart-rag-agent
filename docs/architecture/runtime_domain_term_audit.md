@@ -94,16 +94,19 @@ templates, narrative driver joiners/templates, and required-operand year
 patterns into retrieval policy. A calculation narrative/slot follow-up moved
 topic particles, prior-period phrase templates, sentence terminal handling,
 period suffix handling, and operand-label cleanup patterns into calculation
-policy.
+policy. A reconciliation follow-up moved candidate rerank prompts, reflection
+planner prompts, retry-objective query markers, period/unit cleanup patterns,
+missing-info templates, and supplemental section scoring terms into
+reconciliation policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 329 |
-| Literal occurrences | 383 |
-| `runtime_literal` records | 146 |
+| Reviewed records | 314 |
+| Literal occurrences | 364 |
+| `runtime_literal` records | 138 |
 | `schema_description` records | 117 |
-| `regex_or_pattern` records | 45 |
-| `prompt_or_template` records | 21 |
+| `regex_or_pattern` records | 40 |
+| `prompt_or_template` records | 19 |
 
 Top files:
 
@@ -113,11 +116,11 @@ Top files:
 | `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_calculation.py` | 26 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_evidence.py` | 26 | P0: evidence selection and answer assembly must be reviewed first |
-| `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
 | `src/agent/financial_graph_planning.py` | 8 | P0/P1: planning hints and query text need review |
 | `src/agent/nodes/dummy_nodes.py` | 8 | P2: MAS skeleton fixtures, not production retrieval policy |
+| `src/agent/financial_graph_reconciliation.py` | 4 | P1: remaining records are final reconciliation status/message surfaces |
 | `src/routing/types.py` | 4 | P1: schema field descriptions |
 | `src/agent/nodes/orchestrator_node.py` | 3 | P1: prompt/fallback answer text; keyword fallback removed |
 | `src/agent/nodes/researcher_node.py` | 2 | P1: refusal text |

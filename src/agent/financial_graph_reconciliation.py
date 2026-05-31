@@ -18,6 +18,7 @@ from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import _coerce_lookup_magnitude_value
 from src.agent.financial_graph_models import FinancialAgentState, ReconciliationCandidateRerank, ReflectionQueryPlan
 from src.config import get_financial_ontology
+from src.config.retrieval_policy import RECONCILIATION_POLICY
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -47,12 +48,21 @@ class FinancialAgentReconciliationMixin:
                 "concept_single_value",
             }:
                 continue
-            metric_label = re.sub(r"^(?:20\d{2}\s*년?)\s+", "", str(current.get("metric_label") or "").strip())
+            period_prefix_pattern = str(RECONCILIATION_POLICY.get("lookup_surface_period_prefix_pattern") or "")
+            metric_label = (
+                re.sub(period_prefix_pattern, "", str(current.get("metric_label") or "").strip())
+                if period_prefix_pattern
+                else str(current.get("metric_label") or "").strip()
+            )
             if metric_label:
                 surfaces.append(metric_label)
             for operand in list(current.get("required_operands") or []):
                 operand_data = dict(operand or {})
-                label = re.sub(r"^(?:20\d{2}\s*년?)\s+", "", str(operand_data.get("label") or "").strip())
+                label = (
+                    re.sub(period_prefix_pattern, "", str(operand_data.get("label") or "").strip())
+                    if period_prefix_pattern
+                    else str(operand_data.get("label") or "").strip()
+                )
                 if label:
                     surfaces.append(label)
                 surfaces.extend(
@@ -102,8 +112,10 @@ class FinancialAgentReconciliationMixin:
         selected_cell: Dict[str, Any],
     ) -> str:
         desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
+        policy = dict(RECONCILIATION_POLICY)
+        percent_unit = str(policy.get("percent_unit") or "")
         if desired_unit_family == "PERCENT":
-            if "%" in str(raw_unit or ""):
+            if percent_unit and percent_unit in str(raw_unit or ""):
                 return raw_unit
             label_surfaces = " ".join(
                 part
@@ -117,13 +129,15 @@ class FinancialAgentReconciliationMixin:
                 if part
             )
             if _label_implies_percent_metric(label_surfaces):
-                return "%"
+                return percent_unit
         candidate_metadata = dict(candidate.get("metadata") or {})
         statement_type = str(candidate_metadata.get("statement_type") or "").strip().lower()
         current_unit = str(raw_unit or "").strip()
-        if current_unit in {"", "원", "KRW"}:
+        ambiguous_units = {str(item) for item in (policy.get("ambiguous_krw_units") or ())}
+        note_statement_type = str(policy.get("note_statement_type") or "")
+        if current_unit in ambiguous_units:
             resolved_local_unit = _resolve_candidate_local_unit_hint(candidate, raw_value)
-            if resolved_local_unit and (current_unit == "" or statement_type == "notes"):
+            if resolved_local_unit and (current_unit == "" or statement_type == note_statement_type):
                 return resolved_local_unit
         return raw_unit
 
@@ -161,7 +175,8 @@ class FinancialAgentReconciliationMixin:
         effective_period_focus = _operand_period_focus(operand, period_focus)
         operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
         period = _structured_cell_period_text(cell, query_years, effective_period_focus)
-        if not re.search(r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기", period):
+        period_presence_pattern = str(RECONCILIATION_POLICY.get("period_presence_pattern") or "")
+        if period_presence_pattern and not re.search(period_presence_pattern, period):
             report_year: Optional[int] = None
             for raw_year in (cell.get("_report_year"), cell.get("report_year"), cell.get("year")):
                 try:
@@ -314,12 +329,13 @@ class FinancialAgentReconciliationMixin:
         if len(operand_rows) < 2:
             return operand_rows
 
-        ambiguous_units = {"", "원", "KRW"}
+        ambiguous_units = {str(item) for item in (RECONCILIATION_POLICY.get("ambiguous_krw_units") or ())}
+        note_statement_type = str(RECONCILIATION_POLICY.get("note_statement_type") or "")
         rows = [dict(row) for row in operand_rows]
         block_groups: Dict[str, List[Dict[str, Any]]] = {}
 
         for row in rows:
-            if str(row.get("statement_type") or "").strip().lower() != "notes":
+            if str(row.get("statement_type") or "").strip().lower() != note_statement_type:
                 continue
             evidence_id = str(row.get("evidence_id") or "").strip()
             candidate = candidate_map.get(evidence_id) or {}
@@ -784,24 +800,7 @@ class FinancialAgentReconciliationMixin:
 
         structured_llm = self.llm.with_structured_output(ReconciliationCandidateRerank)
         prompt = ChatPromptTemplate.from_template(
-            """당신은 재무 계산 후보 재정렬기입니다.
-질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.
-
-우선순위:
-1. 직접 숫자 값이 있는 표 row
-2. 질문의 연결/별도, 기간, statement_type에 맞는 근거
-3. narrative paragraph보다 table row / structured row
-4. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.
-
-질문:
-{query}
-
-target operand:
-{operand_label}
-
-candidate options:
-{options}
-"""
+            str(RECONCILIATION_POLICY.get("candidate_rerank_prompt_template") or "")
         )
         try:
             reranked: ReconciliationCandidateRerank = (prompt | structured_llm).invoke(
@@ -1525,7 +1524,12 @@ candidate options:
 
             text = _normalise_spaces("\n".join(part for part in (local_heading, table_context, row_labels, body_text) if part))
             score = 0.02
-            if "연구개발 활동" in section_path or "연구개발활동" in section_path:
+            bonus_terms = tuple(
+                str(item)
+                for item in (RECONCILIATION_POLICY.get("supplemental_section_bonus_terms") or ())
+                if str(item)
+            )
+            if bonus_terms and any(term in section_path for term in bonus_terms):
                 score += 0.03
             if ratio_query and metric_patterns and any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in metric_patterns):
                 score += 0.04
@@ -1568,7 +1572,8 @@ candidate options:
             display_name = str(metric_info.get("display_name") or "").strip()
             if display_name and _is_ratio_percent_query(query):
                 if years:
-                    inferred.extend(f"{year}년 {display_name}" for year in years)
+                    year_template = str(RECONCILIATION_POLICY.get("missing_info_year_template") or "{year} {label}")
+                    inferred.extend(year_template.format(year=year, label=display_name) for year in years)
                 else:
                     inferred.append(display_name)
             for component in (metric_info.get("components") or {}).values():
@@ -1576,18 +1581,23 @@ candidate options:
                 if not component_name:
                     continue
                 if years:
-                    inferred.extend(f"{year}년 {component_name}" for year in years)
+                    year_template = str(RECONCILIATION_POLICY.get("missing_info_year_template") or "{year} {label}")
+                    inferred.extend(year_template.format(year=year, label=component_name) for year in years)
                 else:
                     inferred.append(component_name)
 
         if not inferred and years:
-            inferred.extend(f"{year}년 {topic}" for year in years)
+            year_template = str(RECONCILIATION_POLICY.get("missing_info_year_template") or "{year} {label}")
+            inferred.extend(year_template.format(year=year, label=topic) for year in years)
         if not inferred:
             inferred.append(topic)
 
         cleaned_inferred: List[str] = []
         for item in inferred:
-            cleaned = _normalise_spaces(re.sub(r"(비교|차이|대비|합계)\s*$", "", str(item or "")))
+            cleanup_pattern = str(RECONCILIATION_POLICY.get("missing_info_suffix_cleanup_pattern") or "")
+            cleaned = _normalise_spaces(
+                re.sub(cleanup_pattern, "", str(item or "")) if cleanup_pattern else str(item or "")
+            )
             if cleaned:
                 cleaned_inferred.append(cleaned)
         inferred = cleaned_inferred or inferred
@@ -1607,7 +1617,10 @@ candidate options:
             )
             filtered: List[str] = []
             for candidate in inferred:
-                candidate_tokens = [token for token in re.findall(r"[가-힣A-Za-z0-9]+", candidate) if len(token) >= 2]
+                token_pattern = str(RECONCILIATION_POLICY.get("missing_info_token_pattern") or "")
+                candidate_tokens = [
+                    token for token in re.findall(token_pattern, candidate) if len(token) >= 2
+                ] if token_pattern else []
                 if candidate_tokens and all(token in operand_text for token in candidate_tokens):
                     continue
                 filtered.append(candidate)
@@ -1782,7 +1795,13 @@ candidate options:
 
         ratio_query = _is_ratio_percent_query(query)
         percent_point_query = _is_percent_point_difference_query(query)
-        sum_query = any(token in query for token in ["합계", "합산", "합친", "합한"])
+        sum_markers = tuple(
+            str(item)
+            for item in (RECONCILIATION_POLICY.get("reflection_sum_query_markers") or ())
+            if str(item)
+        )
+        sum_query = bool(sum_markers and any(token in query for token in sum_markers))
+        binding_query_pattern = str(RECONCILIATION_POLICY.get("reflection_binding_query_pattern") or "")
         fallback_retry_objective = "generic_retry"
         if percent_point_query:
             fallback_retry_objective = "find_direct_row"
@@ -1792,7 +1811,7 @@ candidate options:
             fallback_retry_objective = "find_missing_values"
         elif years and len(years) > 1:
             fallback_retry_objective = "resolve_binding"
-        elif re.search(r"\bvs\b|와|과", query):
+        elif binding_query_pattern and re.search(binding_query_pattern, query):
             fallback_retry_objective = "resolve_binding"
         elif not operands:
             fallback_retry_objective = "find_missing_values"
@@ -1862,66 +1881,7 @@ candidate options:
             }
 
         structured_llm = self.llm.with_structured_output(ReflectionQueryPlan)
-        prompt = ChatPromptTemplate.from_template(
-            """당신은 재무 RAG 에이전트의 reflection planner 입니다.
-현재 검색/계산이 실패했을 때, 무엇이 부족한지 진단하고 retrieval-friendly 재검색 쿼리를 1~3개 설계하세요.
-
-목표:
-- 사용자 질문의 의도를 유지한 채
-- 현재 파이프라인이 다시 검색했을 때 누락된 피연산자나 비율 행을 찾기 쉬운 쿼리로 재정의하세요.
-
-규칙:
-- status는 재검색이 의미 있으면 ready, 아니면 skip.
-- retry_strategy는 아래 셋 중 하나만 고르세요.
-  - retry_retrieval: 재검색을 더 시도한다
-  - synthesize_from_task_outputs: 이미 확보한 sibling task output만으로 계산을 시도하고, broad retrieval fallback은 피한다
-  - stop_insufficient: 현재 근거로는 더 진행해도 의미가 낮다
-- retry_objective는 이번 재검색의 목적만 고르세요.
-  - find_missing_values: 필요한 값 일부가 빠졌음
-  - find_direct_row: 질문이 요구하는 직접적인 row/요약값을 찾고 싶음
-  - resolve_binding: 기간/대상/레이블 연결을 더 명확히 하고 싶음
-  - generic_retry: 위 셋으로 충분히 설명되지 않음
-- missing_info에는 현재 컨텍스트에 부족한 정보만 적으세요.
-- subqueries는 1~3개만 만드세요.
-- 각 subquery는 자연어 장문이 아니라 retrieval-friendly keyword query여야 합니다.
-- subquery에는 가능한 한 회사명, 연도, 부족한 metric/entity, 짧은 섹션 힌트를 포함하세요.
-- 질문이 %p 차이나 두 비율 비교라면, 먼저 같은 metric의 기간별/대상별 비율 row를 찾는 쿼리를 우선하세요.
-- 질문이 비율/이익률 계산인데 비율 row가 없으면, 분자/분모 component를 각각 찾는 쿼리를 만드세요.
-- 질문이 합계라면, 합쳐야 하는 구성 항목별 수치를 따로 찾는 쿼리를 만드세요.
-- preferred_sections는 재검색에서 특히 유력한 섹션 힌트만 짧게 넣으세요.
-- 기존 seed sections에 이미 충분히 있는 정보를 그대로 반복하지 말고, 부족한 부분을 겨냥하세요.
-- 하드 필터는 코드가 따로 처리하므로, 기업/연도는 query text에 포함하되 너무 장황하게 쓰지 마세요.
-- derived task가 sibling lookup output에 의존하는 상황이면 retry_retrieval보다 synthesize_from_task_outputs를 우선 검토하세요.
-
-질문: {query}
-의도: {intent}
-주제: {topic}
-기업: {companies}
-연도: {years}
-
-현재 실패 추정:
-- fallback_retry_objective={retry_objective}
-- missing_info(heuristic)={missing_info}
-
-Ontology Context:
-{ontology_context}
-
-현재 확보한 피연산자:
-{operands}
-
-현재 계산 계획:
-{plan_text}
-
-현재 계산 결과:
-{calc_result_text}
-
-현재 seed sections:
-{seed_sections}
-
-참고용 heuristic retry plan:
-{heuristic_plan}
-"""
-        )
+        prompt = ChatPromptTemplate.from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
         try:
             reflection_plan: ReflectionQueryPlan = (prompt | structured_llm).invoke(
                 {

@@ -640,6 +640,76 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 }
 
 
+RECONCILIATION_POLICY: Dict[str, Any] = {
+    "lookup_surface_period_prefix_pattern": r"^(?:20\d{2}\s*년?)\s+",
+    "period_presence_pattern": r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기",
+    "percent_unit": "%",
+    "ambiguous_krw_units": ("", "원", "KRW"),
+    "note_statement_type": "notes",
+    "candidate_rerank_prompt_template": (
+        "당신은 재무 계산 후보 재정렬기입니다.\n"
+        "질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.\n\n"
+        "우선순위:\n"
+        "1. 직접 숫자 값이 있는 표 row\n"
+        "2. 질문의 연결/별도, 기간, statement_type에 맞는 근거\n"
+        "3. narrative paragraph보다 table row / structured row\n"
+        "4. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.\n\n"
+        "질문:\n{query}\n\n"
+        "target operand:\n{operand_label}\n\n"
+        "candidate options:\n{options}\n"
+    ),
+    "supplemental_section_bonus_terms": ("연구개발 활동", "연구개발활동"),
+    "missing_info_year_template": "{year}년 {label}",
+    "missing_info_suffix_cleanup_pattern": r"(비교|차이|대비|합계)\s*$",
+    "missing_info_token_pattern": r"[가-힣A-Za-z0-9]+",
+    "reflection_sum_query_markers": ("합계", "합산", "합친", "합한"),
+    "reflection_binding_query_pattern": r"\bvs\b|와|과",
+    "reflection_prompt_template": (
+        "당신은 재무 RAG 에이전트의 reflection planner 입니다.\n"
+        "현재 검색/계산이 실패했을 때, 무엇이 부족한지 진단하고 retrieval-friendly 재검색 쿼리를 1~3개 설계하세요.\n\n"
+        "목표:\n"
+        "- 사용자 질문의 의도를 유지한 채\n"
+        "- 현재 파이프라인이 다시 검색했을 때 누락된 피연산자나 비율 행을 찾기 쉬운 쿼리로 재정의하세요.\n\n"
+        "규칙:\n"
+        "- status는 재검색이 의미 있으면 ready, 아니면 skip.\n"
+        "- retry_strategy는 아래 셋 중 하나만 고르세요.\n"
+        "  - retry_retrieval: 재검색을 더 시도한다\n"
+        "  - synthesize_from_task_outputs: 이미 확보한 sibling task output만으로 계산을 시도하고, broad retrieval fallback은 피한다\n"
+        "  - stop_insufficient: 현재 근거로는 더 진행해도 의미가 낮다\n"
+        "- retry_objective는 이번 재검색의 목적만 고르세요.\n"
+        "  - find_missing_values: 필요한 값 일부가 빠졌음\n"
+        "  - find_direct_row: 질문이 요구하는 직접적인 row/요약값을 찾고 싶음\n"
+        "  - resolve_binding: 기간/대상/레이블 연결을 더 명확히 하고 싶음\n"
+        "  - generic_retry: 위 셋으로 충분히 설명되지 않음\n"
+        "- missing_info에는 현재 컨텍스트에 부족한 정보만 적으세요.\n"
+        "- subqueries는 1~3개만 만드세요.\n"
+        "- 각 subquery는 자연어 장문이 아니라 retrieval-friendly keyword query여야 합니다.\n"
+        "- subquery에는 가능한 한 회사명, 연도, 부족한 metric/entity, 짧은 섹션 힌트를 포함하세요.\n"
+        "- 질문이 %p 차이나 두 비율 비교라면, 먼저 같은 metric의 기간별/대상별 비율 row를 찾는 쿼리를 우선하세요.\n"
+        "- 질문이 비율/이익률 계산인데 비율 row가 없으면, 분자/분모 component를 각각 찾는 쿼리를 만드세요.\n"
+        "- 질문이 합계라면, 합쳐야 하는 구성 항목별 수치를 따로 찾는 쿼리를 만드세요.\n"
+        "- preferred_sections는 재검색에서 특히 유력한 섹션 힌트만 짧게 넣으세요.\n"
+        "- 기존 seed sections에 이미 충분히 있는 정보를 그대로 반복하지 말고, 부족한 부분을 겨냥하세요.\n"
+        "- 하드 필터는 코드가 따로 처리하므로, 기업/연도는 query text에 포함하되 너무 장황하게 쓰지 마세요.\n"
+        "- derived task가 sibling lookup output에 의존하는 상황이면 retry_retrieval보다 synthesize_from_task_outputs를 우선 검토하세요.\n\n"
+        "질문: {query}\n"
+        "의도: {intent}\n"
+        "주제: {topic}\n"
+        "기업: {companies}\n"
+        "연도: {years}\n\n"
+        "현재 실패 추정:\n"
+        "- fallback_retry_objective={retry_objective}\n"
+        "- missing_info(heuristic)={missing_info}\n\n"
+        "Ontology Context:\n{ontology_context}\n\n"
+        "현재 확보한 피연산자:\n{operands}\n\n"
+        "현재 계산 계획:\n{plan_text}\n\n"
+        "현재 계산 결과:\n{calc_result_text}\n\n"
+        "현재 seed sections:\n{seed_sections}\n\n"
+        "참고용 heuristic retry plan:\n{heuristic_plan}\n"
+    ),
+}
+
+
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
         "2021년",
