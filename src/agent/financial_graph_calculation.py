@@ -1352,7 +1352,7 @@ class FinancialAgentCalculationMixin:
         metric_label = _normalise_spaces(
             str(current_slot.get("label") or primary_slot.get("label") or growth_row.get("metric_label") or "")
         )
-        metric_label = re.sub(r"20\d{2}\s*년?", " ", metric_label)
+        metric_label = re.sub(str(CALCULATION_SLOT_POLICY.get("period_pattern") or r"$^"), " ", metric_label)
         metric_label = _normalise_spaces(metric_label)
         if not growth_value or not current_value or not metric_label:
             return None
@@ -1384,7 +1384,16 @@ class FinancialAgentCalculationMixin:
             direction_word = str(direction_words.get("growth") or direction_words.get("increase") or "increase")
         else:
             direction_word = str(direction_words.get("increase") or "increase")
-        period_prefix = f"{current_period}년 " if current_period and not current_period.endswith("년") else f"{current_period} " if current_period else ""
+        if current_period and not current_period.endswith("년"):
+            period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_with_year_template") or "").format(
+                period=current_period
+            )
+        elif current_period:
+            period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_template") or "").format(
+                period=current_period
+            )
+        else:
+            period_prefix = ""
         prior_phrase = f"{prior_period} {prior_value} 대비 " if prior_value else f"{prior_period} 대비 "
         numeric_sentence = _normalise_spaces(
             str(CALCULATION_NARRATIVE_POLICY.get("growth_numeric_sentence_template") or "").format(
@@ -3861,13 +3870,7 @@ Ontology Context:
 
     def _format_calculation_value_in_display_unit(self, value: float, display_unit: str) -> str:
         unit = _normalise_spaces(str(display_unit or ""))
-        scale_by_unit = {
-            "원": 1.0,
-            "천원": 1_000.0,
-            "백만원": 1_000_000.0,
-            "억원": 100_000_000.0,
-            "조원": 1_000_000_000_000.0,
-        }
+        scale_by_unit = dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})
         scale = scale_by_unit.get(unit)
         if not scale:
             return ""

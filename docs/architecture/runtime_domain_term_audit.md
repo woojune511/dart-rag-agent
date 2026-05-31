@@ -59,13 +59,15 @@ terms, dependency unit groups, KRW magnitude markers, direction hints, and the
 verification prompt into calculation policy. A sign/ratio rendering follow-up
 moved sign-aware subtraction replacement templates, ratio compact answer
 wording, ratio period patterns, and ambiguous KRW unit coercion rules into
-calculation render policy.
+calculation render policy. A growth/display follow-up moved growth narrative
+period-prefix templates and KRW display-unit scale factors into calculation
+policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 506 |
-| Literal occurrences | 739 |
-| `runtime_literal` records | 407 |
+| Reviewed records | 504 |
+| Literal occurrences | 732 |
+| `runtime_literal` records | 405 |
 | `regex_or_pattern` records | 69 |
 | `prompt_or_template` records | 30 |
 
@@ -76,7 +78,7 @@ Top files:
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
-| `src/agent/financial_graph_calculation.py` | 32 | P0: numeric execution text is allowed, metric/topic selectors need review |
+| `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
@@ -248,6 +250,12 @@ For each P0 record, classify it as one of:
   generic mechanics: collect negative subtrahend slots, preserve rendered
   ratio values, and use evidence table unit hints only when a bare numeric
   surface would otherwise carry an ambiguous KRW unit.
+- `_compose_growth_narrative_answer()` and
+  `_format_calculation_value_in_display_unit()` now read growth period-prefix
+  templates and KRW display-unit scale factors from calculation policy. Runtime
+  keeps the generic mechanics: remove period text from metric labels, preserve
+  source-stated growth values, and render numeric values in the requested
+  display unit.
 
 ## Calculation Hotspots
 
@@ -261,9 +269,8 @@ Top calculation targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_compose_growth_narrative_answer` | 5 | growth answer validation/composition; check remaining selector-like text |
-| `_format_calculation_value_in_display_unit` | 5 | display-unit formatting; check if remaining unit vocabulary belongs in policy |
 | `_topic_particle` | 4 | Korean particle helper; likely generic answer wording |
+| `_compose_growth_narrative_answer` | 3 | remaining growth answer validation/composition; mostly generic direction-state handling |
 | `_refine_operand_precision_from_evidence_table` | 3 | remaining structured-table field/period handling; mostly generic |
 | `_build_deterministic_ontology_plan` | 3 | formula planner prompt; likely prompt/config boundary review |
 | `_execute_calculation` | 3 | numeric execution labels/messages; check if generic execution text |

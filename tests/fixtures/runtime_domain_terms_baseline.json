@@ -31,10 +31,9 @@
       "text": "20\\d{2}\\s*년?",
       "category": "regex_or_pattern",
       "fingerprint": "a8a093c7e803f64e",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        310,
-        1355
+        310
       ]
     },
     {
@@ -54,7 +53,7 @@
       "fingerprint": "7eedf3c80dbfb201",
       "count": 1,
       "first_lines": [
-        2522
+        2531
       ]
     },
     {
@@ -74,7 +73,7 @@
       "fingerprint": "f85e12eabd11e967",
       "count": 1,
       "first_lines": [
-        1541
+        1550
       ]
     },
     {
@@ -84,7 +83,7 @@
       "fingerprint": "e0672f42e76a8987",
       "count": 1,
       "first_lines": [
-        4634
+        4637
       ]
     },
     {
@@ -112,11 +111,11 @@
       "text": "년",
       "category": "runtime_literal",
       "fingerprint": "17fe383876fff52a",
-      "count": 5,
+      "count": 4,
       "first_lines": [
         1387,
-        4094,
-        5720
+        4097,
+        5723
       ]
     },
     {
@@ -137,7 +136,7 @@
       "fingerprint": "8c7e3ede0fa967ac",
       "count": 1,
       "first_lines": [
-        5458
+        5461
       ]
     },
     {
@@ -147,7 +146,7 @@
       "fingerprint": "c117f7b0d39ae37e",
       "count": 1,
       "first_lines": [
-        5279
+        5282
       ]
     },
     {
@@ -157,7 +156,7 @@
       "fingerprint": "6056043e50ba39d6",
       "count": 1,
       "first_lines": [
-        3706
+        3715
       ]
     },
     {
@@ -167,7 +166,7 @@
       "fingerprint": "12584e4ab2fc29fb",
       "count": 1,
       "first_lines": [
-        3010
+        3019
       ]
     },
     {
@@ -177,7 +176,7 @@
       "fingerprint": "8ffe65028e5adab3",
       "count": 2,
       "first_lines": [
-        1388
+        1397
       ]
     },
     {
@@ -185,21 +184,10 @@
       "text": "백만원",
       "category": "runtime_literal",
       "fingerprint": "5b9aca9efa1cb642",
-      "count": 3,
+      "count": 2,
       "first_lines": [
-        1625,
-        3867,
-        4227
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "억원",
-      "category": "runtime_literal",
-      "fingerprint": "e55582e95ffe1d94",
-      "count": 1,
-      "first_lines": [
-        3868
+        1634,
+        4230
       ]
     },
     {
@@ -209,7 +197,7 @@
       "fingerprint": "00537036c11979e5",
       "count": 1,
       "first_lines": [
-        2036
+        2045
       ]
     },
     {
@@ -219,8 +207,8 @@
       "fingerprint": "24fd49b30d078436",
       "count": 2,
       "first_lines": [
-        2171,
-        2175
+        2180,
+        2184
       ]
     },
     {
@@ -228,10 +216,9 @@
       "text": "원",
       "category": "runtime_literal",
       "fingerprint": "7ca792d9bb061cde",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1716,
-        3865
+        1725
       ]
     },
     {
@@ -252,17 +239,7 @@
       "fingerprint": "de4d14c45b9e10fd",
       "count": 1,
       "first_lines": [
-        2018
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "조원",
-      "category": "runtime_literal",
-      "fingerprint": "2081f077f4407ea5",
-      "count": 1,
-      "first_lines": [
-        3869
+        2027
       ]
     },
     {
@@ -272,7 +249,7 @@
       "fingerprint": "cb4958652000269f",
       "count": 1,
       "first_lines": [
-        1810
+        1819
       ]
     },
     {
@@ -293,7 +270,7 @@
       "fingerprint": "5cc7250da5f208a1",
       "count": 1,
       "first_lines": [
-        4635
+        4638
       ]
     },
     {
@@ -303,7 +280,7 @@
       "fingerprint": "0b992c4a6917dad0",
       "count": 1,
       "first_lines": [
-        4485
+        4488
       ]
     },
     {
@@ -313,7 +290,7 @@
       "fingerprint": "23ab25b3ab77e604",
       "count": 1,
       "first_lines": [
-        5463
+        5466
       ]
     },
     {
@@ -321,11 +298,10 @@
       "text": "천원",
       "category": "runtime_literal",
       "fingerprint": "9e011f27d9f7b129",
-      "count": 3,
+      "count": 2,
       "first_lines": [
-        1625,
-        3866,
-        4227
+        1634,
+        4230
       ]
     },
     {
@@ -335,10 +311,10 @@
       "fingerprint": "bd1699610adad626",
       "count": 4,
       "first_lines": [
-        1998,
-        3852,
-        3928,
-        4664
+        2007,
+        3861,
+        3931,
+        4667
       ]
     },
     {

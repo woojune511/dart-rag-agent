@@ -252,6 +252,8 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
         "{period_prefix}{metric_label}{topic_particle} {current_value}이며, "
         "{prior_phrase}{growth_value} {direction_word}했습니다."
     ),
+    "period_prefix_with_year_template": "{period}년 ",
+    "period_prefix_template": "{period} ",
 }
 
 
@@ -276,6 +278,13 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "percent_display_units": ("%", "%p"),
     "krw_normalized_unit": "KRW",
     "krw_display_units": ("원", "천원", "백만원", "억원", "조원"),
+    "krw_display_unit_scales": {
+        "원": 1.0,
+        "천원": 1_000.0,
+        "백만원": 1_000_000.0,
+        "억원": 100_000_000.0,
+        "조원": 1_000_000_000_000.0,
+    },
     "count_display_units": ("개", "명"),
     "value_embedded_unit_markers": ("원", "억", "조", "%"),
     "krw_value_magnitude_markers": ("억", "조"),
