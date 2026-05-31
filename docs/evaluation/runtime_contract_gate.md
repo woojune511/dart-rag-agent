@@ -439,6 +439,32 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-06-01 evidence assembly policy extraction replay:
+  - source store bundle:
+    `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
+  - local output bundle:
+    `benchmarks/results/policy_gate_evidence_policy_evalonly_2026-06-01_0143/`
+    (deleted after recording this summary; raw result artifacts are not a
+    source commit target)
+  - implementation commit: `f46be1f` (`Move evidence assembly terms to policy`)
+  - scope: store-fixed eval-only over `NAVER 2023`, `현대자동차 2023`,
+    `LG에너지솔루션 2023`, and `삼성전자 2023` with current
+    runtime/evaluator.
+  - aggregate signal: all four company runs have
+    `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`, and
+    `error_rate = 0.0%`.
+  - per-company `avg_score`:
+    - `NAV_T2_006`: `0.899`
+    - `HYU_T2_010` / `HYU_T3_072`: `0.951`
+    - `LGE_T1_051`: `0.981`, with `numeric_pass_rate = 1.0`
+    - `SAM_T2_078`: `0.952`, with `entity_coverage = 1.0`
+  - implementation scope: quantitative-impact denominator/caveat wording,
+    entity-table summary section/metric/role labels, and required-operand
+    aggregate/unit surfaces now live in retrieval policy config; runtime keeps
+    the generic row scanning, slot projection, and evidence-preservation
+    mechanics.
+
 - 2026-06-01 remaining-company store-fixed replay:
   - source store bundle:
     `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
