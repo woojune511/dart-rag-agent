@@ -836,14 +836,16 @@ class VectorStoreManager:
                 "Skipping vector add for %s chunks because skip_vector_add is enabled; building BM25 from structure graph.",
                 len(pending),
             )
-            batch_count = 0
+            # BM25-only diagnostic stores do not need per-batch durable graph
+            # writes. Saving once avoids repeatedly serialising large structured
+            # table sidecars while preserving progress heartbeats.
+            all_texts = [text for text, _, _ in pending]
+            all_metadatas = [metadata for _, metadata, _ in pending]
+            self._update_structure_graph(all_texts, all_metadatas)
+            batch_count = (len(pending) + effective_batch_size - 1) // effective_batch_size
             added_count = 0
             for start in range(0, len(pending), effective_batch_size):
                 batch = pending[start : start + effective_batch_size]
-                batch_texts = [text for text, _, _ in batch]
-                batch_metadatas = [metadata for _, metadata, _ in batch]
-                self._update_structure_graph(batch_texts, batch_metadatas)
-                batch_count += 1
                 added_count += len(batch)
                 if on_progress:
                     on_progress(added_count, len(pending))

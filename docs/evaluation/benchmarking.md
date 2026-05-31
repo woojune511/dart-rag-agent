@@ -210,6 +210,10 @@ Heartbeat details의 `eval_event`, `question_id`, `question_index`로 현재
 권장 기준:
 
 - `results.json`이 생기면 성공/실패 내용을 분석한다.
+- Multi-company run의 top-level `results.json`은 aggregate manifest다.
+  전체 상태는 `run_status`, `completed_companies`, `pending_companies`,
+  `cross_company_summary`를 보고, 문항별 trace는 각 회사 하위 디렉터리의
+  `results.json`을 본다.
 - 로그 크기, store/cache 파일 mtime, 프로세스 CPU/IO 중 하나라도 계속
   움직이면 ingest/store 구축 중으로 분류한다.
 - 5분 이상 `results.json`도 없고 heartbeat도 없으면 중단하고 환경/실행

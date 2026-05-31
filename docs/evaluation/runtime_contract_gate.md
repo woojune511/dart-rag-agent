@@ -174,6 +174,9 @@ Last checked: 2026-05-31.
     - `cross_company_summary.md` reports 4 / 4 company runs with 0 full-eval
       fails and 0 critical misses
     - API calls / estimated cost: `0 / $0.0000`
+    - top-level `results.json` is a multi-company manifest; use
+      `cross_company_summary.md` for aggregate status and each
+      `<company>/results.json` for per-question traces
   - Timeout note:
     - KBF initially exceeded the old 5-minute no-result stop window because a
       fresh output directory had no reusable KBF store and store construction /
@@ -181,6 +184,9 @@ Last checked: 2026-05-31.
     - the fresh official run again spent most of its time in KBF store
       construction (`ingest = 1428.606s`) but heartbeat progress continued to
       advance and the run completed successfully
+    - follow-up implementation reduced BM25-only fresh ingest write
+      amplification by saving the structure graph once per `add_documents`
+      call instead of once per resume batch
     - a shell wrapper timeout can fire before the runner process finishes; if
       the heartbeat process is still alive, continue monitoring the existing
       run instead of starting a second one

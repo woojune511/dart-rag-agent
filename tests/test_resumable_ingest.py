@@ -170,9 +170,11 @@ class ResumableIngestTests(unittest.TestCase):
         )
 
         self.assertEqual(result["added_chunks"], 2)
+        self.assertEqual(result["batch_count"], 2)
         self.assertTrue(result["vector_add_skipped"])
         self.assertEqual(manager.vector_store.add_calls, [])
-        self.assertEqual(manager._update_structure_graph.call_count, 2)
+        manager._update_structure_graph.assert_called_once()
+        self.assertEqual(manager._update_structure_graph.call_args.args[0], ["a", "b"])
         manager._init_bm25.assert_called_once()
         self.assertEqual(progress_events, [(0, 2), (1, 2), (2, 2)])
 
