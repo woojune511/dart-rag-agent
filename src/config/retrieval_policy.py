@@ -273,9 +273,12 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "source_display_units": ("천원", "백만원"),
     "converted_display_units": ("원", "억원", "조원"),
     "count_or_percent_normalized_units": ("COUNT", "PERCENT", "%", "퍼센트"),
+    "percent_display_units": ("%", "%p"),
     "krw_normalized_unit": "KRW",
     "krw_display_units": ("원", "천원", "백만원", "억원", "조원"),
+    "count_display_units": ("개", "명"),
     "value_embedded_unit_markers": ("원", "억", "조", "%"),
+    "krw_value_magnitude_markers": ("억", "조"),
     "direction_hints": {
         "growth_rate": {"positive": "증가", "negative": "감소", "zero": "변동 없음"},
         "subtract": {"positive": "더 큽니다", "negative": "더 작습니다", "zero": "동일합니다"},
@@ -301,6 +304,33 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
         "Operands:\n{operands_json}\n\n"
         "반드시 final_answer만 채우세요.\n"
     ),
+    "verification_prompt_template": (
+        "당신은 재무 계산 답변 검증기입니다.\n"
+        "사용자에게 내보내기 직전의 계산 답변이 질문, 계산 결과, 피연산자와 모순이 없는지 검토하세요.\n\n"
+        "규칙:\n"
+        "- 새로운 숫자, 연도, 단위, 근거를 추가하지 마세요.\n"
+        "- 계산 결과와 질문 의도에 맞는다면 verdict=keep.\n"
+        "- 숫자, 단위, 방향, 비교 관계가 어긋나면 verdict=rewrite 로 두고 1~2문장으로 바로잡으세요.\n"
+        "- 답변이 계산 결과와 크게 모순되거나 불필요한 내용을 덧붙였으면 verdict=fallback 으로 두고 deterministic fallback과 같은 뜻으로 작성하세요.\n"
+        "- CalculationResult.answer_slots가 있으면 그 슬롯을 기준으로 답변이 질문 요구사항을 충족하는지 판단하세요.\n"
+        "- final_answer는 rendered_value와 direction_hint를 벗어나지 마세요.\n"
+        "- %p 질문이면 %p를 유지하세요.\n"
+        "- 단일 값 조회 질문이면 계산 과정 설명을 길게 덧붙이지 마세요.\n\n"
+        "질문:\n{query}\n\n"
+        "현재 답변:\n{answer}\n\n"
+        "Deterministic Fallback:\n{fallback}\n\n"
+        "Direction Hint:\n{direction_hint}\n\n"
+        "CalculationPlan:\n{plan_json}\n\n"
+        "CalculationResult:\n{result_json}\n\n"
+        "Operands:\n{operands_json}\n"
+    ),
+}
+
+
+CALCULATION_SLOT_POLICY: Dict[str, Any] = {
+    "period_pattern": r"20\d{2}\s*년?",
+    "label_drop_terms": ("총액", "증감률", "증감액", "증가율", "비중", "비율"),
+    "label_drop_patterns": (r"(^|\s)부문(?=\s|$)",),
 }
 
 

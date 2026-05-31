@@ -17,7 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
+from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY, CALCULATION_SLOT_POLICY, KOREAN_PERIOD_PREFIX_RE_FRAGMENT
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -52,10 +52,14 @@ class FinancialAgentCalculationMixin:
             keys.add(concept)
         label = _normalise_spaces(str(slot.get("label") or ""))
         if label:
-            label = re.sub(r"20\d{2}\s*년?", " ", label)
-            for needle in ("총액", "증감률", "증감액", "증가율", "비중", "비율"):
+            slot_policy = dict(CALCULATION_SLOT_POLICY)
+            period_pattern = str(slot_policy.get("period_pattern") or "")
+            if period_pattern:
+                label = re.sub(period_pattern, " ", label)
+            for needle in tuple(slot_policy.get("label_drop_terms") or ()):
                 label = label.replace(needle, " ")
-            label = re.sub(r"(^|\s)부문(?=\s|$)", " ", label)
+            for pattern in tuple(slot_policy.get("label_drop_patterns") or ()):
+                label = re.sub(str(pattern), " ", label)
             label = label.replace("(", " ").replace(")", " ")
             label = _normalise_spaces(label)
             if label:
@@ -70,9 +74,11 @@ class FinancialAgentCalculationMixin:
         if period:
             return period
         label = _normalise_spaces(str(slot.get("label") or ""))
-        match = re.search(r"20\d{2}\s*년?", label)
-        if match:
-            return _normalise_spaces(match.group(0))
+        period_pattern = str(CALCULATION_SLOT_POLICY.get("period_pattern") or "")
+        if period_pattern:
+            match = re.search(period_pattern, label)
+            if match:
+                return _normalise_spaces(match.group(0))
         return ""
 
     def _period_match_key(self, value: str) -> str:
@@ -122,7 +128,10 @@ class FinancialAgentCalculationMixin:
             self._period_match_key(period)
             for period in [
                 self._slot_period_hint(target_slot),
-                *(match.group(0) for match in re.finditer(r"20\d{2}\s*년?", metric_label)),
+                *(
+                    match.group(0)
+                    for match in re.finditer(str(CALCULATION_SLOT_POLICY.get("period_pattern") or r"$^"), metric_label)
+                ),
             ]
             if self._period_match_key(period)
         }
@@ -527,11 +536,12 @@ class FinancialAgentCalculationMixin:
         )
         normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "UNKNOWN")).upper() or "UNKNOWN"
         if normalized_unit == "UNKNOWN":
-            if raw_unit in {"%", "%p"}:
+            render_policy = dict(CALCULATION_RENDER_POLICY)
+            if raw_unit in set(render_policy.get("percent_display_units") or ()):
                 normalized_unit = "PERCENT"
-            elif raw_unit in {"원", "천원", "백만원", "억원", "조원"}:
-                normalized_unit = "KRW"
-            elif raw_unit in {"개", "명"}:
+            elif raw_unit in set(render_policy.get("krw_display_units") or ()):
+                normalized_unit = str(render_policy.get("krw_normalized_unit") or "KRW").upper()
+            elif raw_unit in set(render_policy.get("count_display_units") or ()):
                 normalized_unit = "COUNT"
         return raw_unit, normalized_unit
 
@@ -1499,7 +1509,10 @@ class FinancialAgentCalculationMixin:
             return row
 
         target_values: List[float] = []
-        if raw_unit in {"억원", "조원", "원"} or any(unit in raw_value for unit in ("억", "조")):
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        if raw_unit in set(render_policy.get("converted_display_units") or ()) or any(
+            unit in raw_value for unit in tuple(render_policy.get("krw_value_magnitude_markers") or ())
+        ):
             target_values.append(float(normalized_value))
 
         operand_aliases = [
@@ -5024,10 +5037,16 @@ Ontology Context:
         rendered_value = str(calculation_result.get("rendered_value") or "").strip()
         operation = str(plan.get("operation") or "")
         result_val = float(calculation_result.get("result_value") or 0)
-        if operation == "growth_rate":
-            direction_hint = "증가" if result_val > 0 else "감소" if result_val < 0 else "변동 없음"
-        elif operation == "subtract":
-            direction_hint = "더 큽니다" if result_val > 0 else "더 작습니다" if result_val < 0 else "동일합니다"
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        direction_policy = dict((render_policy.get("direction_hints") or {}).get(operation) or {})
+        if direction_policy:
+            direction_hint = (
+                str(direction_policy.get("positive") or "")
+                if result_val > 0
+                else str(direction_policy.get("negative") or "")
+                if result_val < 0
+                else str(direction_policy.get("zero") or "")
+            )
         else:
             direction_hint = ""
         if getattr(self, "low_api_debug", False):
@@ -5050,40 +5069,7 @@ Ontology Context:
 
         structured_llm = self.llm.with_structured_output(CalculationVerificationOutput)
         prompt = ChatPromptTemplate.from_template(
-            """당신은 재무 계산 답변 검증기입니다.
-사용자에게 내보내기 직전의 계산 답변이 질문, 계산 결과, 피연산자와 모순이 없는지 검토하세요.
-
-규칙:
-- 새로운 숫자, 연도, 단위, 근거를 추가하지 마세요.
-- 계산 결과와 질문 의도에 맞는다면 verdict=keep.
-- 숫자, 단위, 방향, 비교 관계가 어긋나면 verdict=rewrite 로 두고 1~2문장으로 바로잡으세요.
-- 답변이 계산 결과와 크게 모순되거나 불필요한 내용을 덧붙였으면 verdict=fallback 으로 두고 deterministic fallback과 같은 뜻으로 작성하세요.
-- CalculationResult.answer_slots가 있으면 그 슬롯을 기준으로 답변이 질문 요구사항을 충족하는지 판단하세요.
-- final_answer는 rendered_value와 direction_hint를 벗어나지 마세요.
-- %p 질문이면 %p를 유지하세요.
-- 단일 값 조회 질문이면 계산 과정 설명을 길게 덧붙이지 마세요.
-
-질문:
-{query}
-
-현재 답변:
-{answer}
-
-Deterministic Fallback:
-{fallback}
-
-Direction Hint:
-{direction_hint}
-
-CalculationPlan:
-{plan_json}
-
-CalculationResult:
-{result_json}
-
-Operands:
-{operands_json}
-"""
+            str(render_policy.get("verification_prompt_template") or "")
         )
         try:
             verified: CalculationVerificationOutput = (prompt | structured_llm).invoke(

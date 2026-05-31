@@ -54,15 +54,17 @@ calculation render policy. A grounded-display follow-up moved normalized-unit
 groups, KRW display units, and embedded-unit markers into calculation render
 policy. A feedback-policy follow-up moved planner feedback fallback labels,
 missing-slot labels, joiners, and feedback templates into calculation feedback
-policy.
+policy. The latest slot/unit/verification pass moved calculation slot cleanup
+terms, dependency unit groups, KRW magnitude markers, direction hints, and the
+verification prompt into calculation policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 528 |
-| Literal occurrences | 785 |
-| `runtime_literal` records | 427 |
-| `regex_or_pattern` records | 70 |
-| `prompt_or_template` records | 31 |
+| Reviewed records | 511 |
+| Literal occurrences | 756 |
+| `runtime_literal` records | 412 |
+| `regex_or_pattern` records | 69 |
+| `prompt_or_template` records | 30 |
 
 Top files:
 
@@ -71,7 +73,7 @@ Top files:
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
-| `src/agent/financial_graph_calculation.py` | 54 | P0: numeric execution text is allowed, metric/topic selectors need review |
+| `src/agent/financial_graph_calculation.py` | 37 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
@@ -228,6 +230,14 @@ For each P0 record, classify it as one of:
   joiners, and feedback templates from `CALCULATION_FEEDBACK_POLICY`. Runtime
   keeps the generic mechanics: inspect operation family, status, answer slots,
   and rendered material before reporting which required material is absent.
+- `_slot_metric_keys()`, `_slot_period_hint()`,
+  `_refine_operand_precision_from_evidence_table()`,
+  `_infer_dependency_row_unit()`, and `_verify_calculation_answer()` now read
+  slot cleanup terms, period patterns, display-unit groups, KRW magnitude
+  markers, direction hints, and the verification prompt from calculation
+  policy. Runtime keeps the generic mechanics: normalize labels, infer units
+  from declared unit groups, preserve finer evidence-table cells, and verify
+  that rendered answers still match calculation traces.
 
 ## Calculation Hotspots
 
@@ -241,14 +251,13 @@ Top calculation targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_slot_metric_keys` | 8 | slot normalization terms; move metric suffixes to policy if selector-like |
-| `_refine_operand_precision_from_evidence_table` | 8 | evidence table unit precision; likely unit policy candidate |
 | `_coerce_sign_aware_subtraction_answer` | 8 | sign-aware answer rewrite; inspect templates and evidence preservation |
-| `_infer_dependency_row_unit` | 7 | dependency unit normalization; likely shared unit policy candidate |
-| `_verify_calculation_answer` | 7 | answer verification prompt/messages; separate templates from checks |
 | `_compose_growth_narrative_answer` | 5 | growth answer validation/composition; check remaining selector-like text |
 | `_coerce_operand_unit_from_evidence` | 5 | evidence unit coercion; likely shared unit policy candidate |
 | `_format_calculation_value_in_display_unit` | 5 | display-unit formatting; check if remaining unit vocabulary belongs in policy |
+| `_topic_particle` | 4 | Korean particle helper; likely generic answer wording |
+| `_compact_ratio_answer` | 4 | ratio answer compaction; inspect templates and unit display terms |
+| `_refine_operand_precision_from_evidence_table` | 3 | remaining structured-table field/period handling; mostly generic |
 
 ## Evidence Hotspots
 
