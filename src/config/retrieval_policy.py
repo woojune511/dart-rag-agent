@@ -127,6 +127,20 @@ NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
     },
 )
 
+NUMERIC_IMPAIRMENT_LOOKUP_POLICY: Dict[str, Any] = {
+    "trigger_terms": ("손상", "환입"),
+    "confirmation_terms": ("발생 여부", "손상차손", "손상 여부", "환입"),
+    "total_row_labels": ("기말금액", "당기말", "당기말금액", "기말 장부금액", "기말장부금액"),
+    "adjustment_row_labels": ("손상 및 환입", "손상차손", "손상", "손상손실", "손상차손 및 환입"),
+    "default_unit": "천원",
+    "default_adjustment_label": "손상 및 환입",
+    "answer_template": (
+        "{report_year_label}연결재무제표 주석 기준 {metric_label} 총액은 {total_value}{total_unit}입니다. "
+        "또한 {adjustment_label} 금액이 {adjustment_value}{adjustment_unit}으로 표시되어 있어 "
+        "당기에 {metric_label} 손상차손이 발생한 것으로 확인됩니다."
+    ),
+}
+
 
 QUERY_FOCUS_STOPWORDS = frozenset(
     {

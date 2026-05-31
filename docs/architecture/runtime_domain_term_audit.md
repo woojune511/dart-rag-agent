@@ -37,9 +37,9 @@ retrieval policy/config.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 725 |
-| Literal occurrences | 1,103 |
-| `runtime_literal` records | 619 |
+| Reviewed records | 707 |
+| Literal occurrences | 1,072 |
+| `runtime_literal` records | 601 |
 | `regex_or_pattern` records | 74 |
 | `prompt_or_template` records | 32 |
 
@@ -48,7 +48,7 @@ Top files:
 | File | Records | Initial disposition |
 | --- | ---: | --- |
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
-| `src/agent/financial_graph_evidence.py` | 191 | P0: evidence selection and answer assembly must be reviewed first |
+| `src/agent/financial_graph_evidence.py` | 173 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
@@ -124,6 +124,14 @@ For each P0 record, classify it as one of:
   stopwords, split patterns, and token patterns from retrieval policy config.
   The runtime function keeps the generic extraction mechanics: normalize,
   reject blocked labels, split near a segment anchor, and dedupe.
+- `_build_ratio_operands_from_candidates()` no longer carries a fixed
+  R&D/revenue component fallback. When row-level percent values are absent, it
+  asks the active ontology metric family for ratio component specs and matches
+  candidate rows against those configured component surfaces.
+- `_supplement_numeric_impairment_lookup()` now reads its trigger terms, table
+  row labels, default unit, and deterministic answer template from retrieval
+  policy config. Runtime still requires structured table row records and a
+  source-backed metric cell before it assembles the answer.
 
 ## Evidence Hotspots
 
@@ -139,6 +147,6 @@ Top evidence targets for the next cleanup are:
 | --- | ---: | --- |
 | `_compose_supported_quantitative_impact_answer` | 31 | answer wording and slot labels; review for selector leakage |
 | `_compose_entity_table_summary_answer` | 24 | entity/table answer assembly; likely mix of formatting and domain rows |
-| `_supplement_numeric_impairment_lookup` | 24 | high-risk supplement path; verify it uses structured rows/evidence rather than topic fallback |
 | `_build_required_operands_from_candidates` | 23 | operand assembly; prioritize generic contract checks |
-| `_build_ratio_operands_from_candidates` | 18 | ratio operand binding; review after helpers cleanup stabilizes |
+| `_compose_entity_table_summary_answer._scan_source_text` | 20 | text scan helper; separate generic scan rules from table/entity labels |
+| `_build_ratio_operands_from_candidates` | 11 | ratio operand binding; remaining literals are mostly periods/units |

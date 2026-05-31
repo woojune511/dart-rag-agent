@@ -32,6 +32,7 @@ from src.config.retrieval_policy import (
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
+    NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_STOPWORDS,
     active_narrative_policies,
@@ -2531,15 +2532,29 @@ class FinancialAgentEvidenceMixin:
                     return filtered[:1]
             return operand_rows[:1]
 
-        # 2) component-based operands (e.g. 연구개발비용, 매출액)
+        # 2) component-based operands from the active ontology metric family.
         if _is_percent_point_difference_query(query_text):
             return []
 
-        metric_specs = [
-            ("연구개발비용", ("연구개발비용", "연구개발비")),
-            ("매출액", ("매출액", "당기매출액", "수익")),
-        ]
-        for label_name, aliases in metric_specs:
+        ontology = get_financial_ontology()
+        best_metric = ontology.best_metric_family(query, topic, "comparison")
+        metric_key = str((best_metric or {}).get("key") or "").strip()
+        metric_specs = []
+        if metric_key and ontology.formula_family_for_metric(metric_key) == "ratio":
+            metric_specs = ontology.build_operand_spec(metric_key)
+        for spec in metric_specs:
+            label_name = str(spec.get("label") or spec.get("name") or spec.get("concept") or "").strip()
+            aliases = [
+                str(item).strip()
+                for item in [
+                    label_name,
+                    *(spec.get("aliases") or []),
+                    *(spec.get("keywords") or []),
+                ]
+                if str(item).strip()
+            ]
+            if not label_name or not aliases:
+                continue
             for item in prioritized_items:
                 raw_row = _normalise_spaces(str(item.get("raw_row_text") or item.get("claim") or ""))
                 if not raw_row or not any(alias in raw_row for alias in aliases):
@@ -5014,9 +5029,20 @@ Structured Evidence:
         lowered_query = query.lower()
         if not query:
             return None
-        if "손상" not in lowered_query and "환입" not in lowered_query:
+        policy = dict(NUMERIC_IMPAIRMENT_LOOKUP_POLICY)
+        trigger_terms = [
+            _normalise_spaces(str(item))
+            for item in (policy.get("trigger_terms") or [])
+            if _normalise_spaces(str(item))
+        ]
+        confirmation_terms = [
+            _normalise_spaces(str(item))
+            for item in (policy.get("confirmation_terms") or [])
+            if _normalise_spaces(str(item))
+        ]
+        if not any(term in lowered_query for term in trigger_terms):
             return None
-        if not any(marker in lowered_query for marker in ("발생 여부", "손상차손", "손상 여부", "환입")):
+        if not any(marker in lowered_query for marker in confirmation_terms):
             return None
 
         aliases: List[str] = []
@@ -5026,8 +5052,16 @@ Structured Evidence:
         if not aliases:
             return None
 
-        total_row_labels = {"기말금액", "당기말", "당기말금액", "기말 장부금액", "기말장부금액"}
-        impairment_row_labels = {"손상 및 환입", "손상차손", "손상", "손상손실", "손상차손 및 환입"}
+        total_row_labels = {
+            _normalise_spaces(str(item))
+            for item in (policy.get("total_row_labels") or [])
+            if _normalise_spaces(str(item))
+        }
+        impairment_row_labels = {
+            _normalise_spaces(str(item))
+            for item in (policy.get("adjustment_row_labels") or [])
+            if _normalise_spaces(str(item))
+        }
         total_hit: Optional[Dict[str, Any]] = None
         impairment_hit: Optional[Dict[str, Any]] = None
 
@@ -5066,7 +5100,7 @@ Structured Evidence:
                 row_records = json.loads(row_records_json)
             except json.JSONDecodeError:
                 continue
-            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or "")) or "천원"
+            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or "")) or str(policy.get("default_unit") or "")
             anchor = self._build_source_anchor(metadata)
             for record in row_records:
                 row_label = _normalise_spaces(str(record.get("row_label") or ""))
@@ -5103,14 +5137,31 @@ Structured Evidence:
         if not total_hit or not impairment_hit:
             return None
 
+        def _report_year_label() -> str:
+            report_scope = dict(state.get("report_scope") or {})
+            candidates = [
+                report_scope.get("year"),
+                total_hit.get("metadata", {}).get("year"),
+                impairment_hit.get("metadata", {}).get("year"),
+            ]
+            candidates.extend(re.findall(r"20\d{2}", query))
+            for candidate in candidates:
+                match = re.search(r"20\d{2}", str(candidate or ""))
+                if match:
+                    return f"{match.group(0)}년 "
+            return ""
+
         metric_label = aliases[0]
         impairment_value = _normalise_spaces(str(impairment_hit.get("value_text") or ""))
-        answer = (
-            f"2023년 연결재무제표 주석 기준 {metric_label} 총액은 "
-            f"{total_hit.get('value_text')}{total_hit.get('unit_hint') or ''}입니다. "
-            f"또한 {impairment_hit.get('row_label') or '손상 및 환입'} 금액이 "
-            f"{impairment_value}{impairment_hit.get('unit_hint') or ''}으로 표시되어 있어 "
-            f"당기에 {metric_label} 손상차손이 발생한 것으로 확인됩니다."
+        answer_template = str(policy.get("answer_template") or "")
+        answer = answer_template.format(
+            report_year_label=_report_year_label(),
+            metric_label=metric_label,
+            total_value=total_hit.get("value_text") or "",
+            total_unit=total_hit.get("unit_hint") or "",
+            adjustment_label=impairment_hit.get("row_label") or str(policy.get("default_adjustment_label") or ""),
+            adjustment_value=impairment_value,
+            adjustment_unit=impairment_hit.get("unit_hint") or "",
         )
         evidence_items = [
             {
