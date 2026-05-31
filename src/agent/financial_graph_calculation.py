@@ -426,7 +426,10 @@ class FinancialAgentCalculationMixin:
             "원인",
             "요인",
             "영향",
-            "의미",
+            "의미를",
+            "의미는",
+            "의미가",
+            "어떤 의미",
             "해석",
             "분석",
             "평가",
@@ -2147,15 +2150,31 @@ class FinancialAgentCalculationMixin:
                 )
             else:
                 evidence_items = list(reconciliation_evidence)
+                existing_surface_keys = {
+                    (
+                        str(existing.get("evidence_id") or "").strip(),
+                        str(existing.get("source_anchor") or "").strip(),
+                        _normalise_spaces(
+                            str(
+                                existing.get("raw_row_text")
+                                or existing.get("quote_span")
+                                or existing.get("claim")
+                                or ""
+                            )
+                        ),
+                    )
+                    for existing in evidence_items
+                }
                 for item in surface_contract_evidence:
                     evidence_id = str(item.get("evidence_id") or "").strip()
                     source_anchor = str(item.get("source_anchor") or "").strip()
-                    if any(
-                        evidence_id and evidence_id == str(existing.get("evidence_id") or "").strip()
-                        or source_anchor and source_anchor == str(existing.get("source_anchor") or "").strip()
-                        for existing in evidence_items
-                    ):
+                    row_text = _normalise_spaces(
+                        str(item.get("raw_row_text") or item.get("quote_span") or item.get("claim") or "")
+                    )
+                    surface_key = (evidence_id, source_anchor, row_text)
+                    if surface_key in existing_surface_keys:
                         continue
+                    existing_surface_keys.add(surface_key)
                     evidence_items.append(item)
                 evidence_bullets = [
                     f"- {item.get('source_anchor')} {str(item.get('raw_row_text') or item.get('quote_span') or item.get('claim') or '')[:180]} ({'reconciled' if item in reconciliation_evidence else 'surface-contract'})"
@@ -2245,13 +2264,19 @@ class FinancialAgentCalculationMixin:
                     if self._dependency_binding_identity(binding) not in direct_resolved_keys
                 ]
         has_retrieved_docs_for_dependency_fallback = bool(retrieved_docs or seed_retrieved_docs)
+        has_active_reconciliation_fallback = bool(reconciliation_evidence)
         allow_dependency_retry_fallback = (
             operation_family in {"ratio", "difference"}
             and bool(missing_dependency_bindings)
-            and not bool(rejected_dependency_scope_rows)
             and (
-                int(state.get("reconciliation_retry_count") or 0) > 0
-                or has_retrieved_docs_for_dependency_fallback
+                has_active_reconciliation_fallback
+                or (
+                    not bool(rejected_dependency_scope_rows)
+                    and (
+                        int(state.get("reconciliation_retry_count") or 0) > 0
+                        or has_retrieved_docs_for_dependency_fallback
+                    )
+                )
             )
         )
         if allow_dependency_retry_fallback:
@@ -2633,7 +2658,7 @@ class FinancialAgentCalculationMixin:
 
             def _filter_dependency_scoped_low_api_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 nonlocal rejected_dependency_scope_rows
-                if not missing_dependency_bindings:
+                if not missing_dependency_bindings or has_active_reconciliation_fallback:
                     return [dict(row) for row in rows]
                 filtered_rows, rejected_rows = self._filter_direct_rows_by_dependency_producer_scope(
                     state,
@@ -2685,6 +2710,140 @@ class FinancialAgentCalculationMixin:
                 operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
                 operand_rows = _filter_supported_low_api_rows(operand_rows)
                 missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            if missing_required:
+                candidate_probe_items: List[Dict[str, Any]] = []
+                reconciliation_candidates = self._build_reconciliation_candidates(state)
+                for candidate in reconciliation_candidates:
+                    candidate_metadata = dict(candidate.get("metadata") or {})
+                    raw_row_text = _normalise_spaces(
+                        str(candidate_metadata.get("row_text") or candidate.get("text") or "")
+                    )
+                    if not raw_row_text or not any(
+                        _candidate_matches_operand(candidate, operand)
+                        for operand in missing_required
+                    ):
+                        continue
+                    candidate_probe_items.append(
+                        {
+                            "evidence_id": f"recon_probe::{candidate.get('candidate_id')}",
+                            "source_anchor": str(candidate.get("source_anchor") or "").strip(),
+                            "claim": str(candidate.get("text") or raw_row_text),
+                            "quote_span": raw_row_text[:240],
+                            "raw_row_text": raw_row_text,
+                            "support_level": "direct",
+                            "question_relevance": "high",
+                            "metadata": candidate_metadata,
+                        }
+                    )
+                if candidate_probe_items:
+                    candidate_fallback_rows = self._build_required_operands_from_candidates(
+                        candidate_probe_items,
+                        required_operands=missing_required,
+                        query=query,
+                        topic=state.get("topic") or "",
+                        report_scope=dict(state.get("report_scope") or {}),
+                    )
+                    operand_rows = _merge_operand_rows(
+                        operand_rows,
+                        candidate_fallback_rows,
+                        required_operands=required_operands,
+                    )
+                    operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
+                    operand_rows = _filter_supported_low_api_rows(operand_rows)
+                    missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+                logger.info(
+                    "[calc_operands] candidate probe candidates=%s items=%s rows=%s missing_after=%s",
+                    len(reconciliation_candidates),
+                    len(candidate_probe_items),
+                    len(candidate_fallback_rows) if candidate_probe_items else 0,
+                    len(missing_required or []),
+                )
+            if missing_required and (retrieved_docs or seed_retrieved_docs):
+                doc_probe_items: List[Dict[str, Any]] = []
+                seen_doc_ids: set[str] = set()
+                for index, (doc, _score) in enumerate(list(retrieved_docs or []) + list(seed_retrieved_docs or []), start=1):
+                    metadata = dict(getattr(doc, "metadata", {}) or {})
+                    doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or index).strip()
+                    if doc_id and doc_id in seen_doc_ids:
+                        continue
+                    if doc_id:
+                        seen_doc_ids.add(doc_id)
+                    text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
+                    text = _strip_rerank_metadata(text) or text
+                    if not text or not any(
+                        (
+                            _operand_text_match(text, operand)
+                            or _text_has_positive_surface(text, operand)
+                        )
+                        and not _text_has_negative_surface(text, operand)
+                        for operand in missing_required
+                    ):
+                        continue
+                    anchor = self._build_source_anchor(metadata)
+                    row_candidates = _build_table_row_reconciliation_candidates(
+                        candidate_id_prefix=f"ev_required_doc_{index:03d}",
+                        anchor=anchor,
+                        table_text=text,
+                        metadata=metadata,
+                    )
+                    row_probe_items: List[Dict[str, Any]] = []
+                    for candidate in row_candidates:
+                        candidate_metadata = dict(candidate.get("metadata") or {})
+                        row_text = _normalise_spaces(
+                            str(candidate_metadata.get("row_text") or candidate.get("text") or "")
+                        )
+                        if not row_text or not any(
+                            (
+                                _operand_text_match(row_text, operand)
+                                or _text_has_positive_surface(row_text, operand)
+                            )
+                            and not _text_has_negative_surface(row_text, operand)
+                            for operand in missing_required
+                        ):
+                            continue
+                        row_probe_items.append(
+                            {
+                                "evidence_id": str(candidate.get("candidate_id") or f"ev_required_doc_{index:03d}"),
+                                "source_anchor": anchor,
+                                "claim": str(candidate.get("text") or row_text),
+                                "quote_span": row_text[:240],
+                                "raw_row_text": row_text,
+                                "support_level": "direct",
+                                "question_relevance": "high",
+                                "metadata": candidate_metadata,
+                            }
+                        )
+                    if row_probe_items:
+                        doc_probe_items.extend(row_probe_items)
+                    else:
+                        doc_probe_items.append(
+                            {
+                                "evidence_id": f"ev_required_doc_{index:03d}",
+                                "source_anchor": anchor,
+                                "claim": text,
+                                "quote_span": text[:240],
+                                "raw_row_text": text,
+                                "support_level": "direct",
+                                "question_relevance": "high",
+                                "metadata": metadata,
+                            }
+                        )
+                if doc_probe_items:
+                    doc_fallback_rows = self._build_required_operands_from_candidates(
+                        doc_probe_items,
+                        required_operands=missing_required,
+                        query=query,
+                        topic=state.get("topic") or "",
+                        report_scope=dict(state.get("report_scope") or {}),
+                    )
+                    operand_rows = _merge_operand_rows(
+                        operand_rows,
+                        doc_fallback_rows,
+                        required_operands=required_operands,
+                    )
+                    operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
+                    operand_rows = _filter_supported_low_api_rows(operand_rows)
+                    missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
                 ratio_fallback_rows = self._build_ratio_operands_from_candidates(
                     [item for item in evidence_items if item.get("raw_row_text")],
@@ -2705,6 +2864,9 @@ class FinancialAgentCalculationMixin:
                     row for row in operand_rows
                     if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
                 ]
+            operand_rows = [dict(row) for row in operand_rows]
+            for index, row in enumerate(operand_rows, start=1):
+                row["operand_id"] = f"op_{index:03d}"
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             coverage = "sufficient" if operand_rows and not missing_required else "partial" if operand_rows else "missing"
             artifacts = list(state.get("artifacts") or [])
@@ -2955,6 +3117,98 @@ Structured Evidence:
                 ),
             }
 
+    def _operation_plan_guard(
+        self,
+        *,
+        plan: Dict[str, Any],
+        operands: List[Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+        operation_family: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Reject executable plans that do not bind distinct required roles."""
+        family = str(operation_family or plan.get("operation") or "").strip().lower()
+        if family not in {"ratio", "difference", "growth_rate"}:
+            return None
+
+        operand_by_id = {
+            str(row.get("operand_id") or "").strip(): row
+            for row in operands
+            if str(row.get("operand_id") or "").strip()
+        }
+        ordered_ids = [
+            str(operand_id or "").strip()
+            for operand_id in (plan.get("ordered_operand_ids") or [])
+            if str(operand_id or "").strip() in operand_by_id
+        ]
+        if not ordered_ids:
+            ordered_ids = [
+                str(binding.get("operand_id") or "").strip()
+                for binding in (plan.get("variable_bindings") or [])
+                if str(binding.get("operand_id") or "").strip() in operand_by_id
+            ]
+        unique_ids = list(dict.fromkeys(ordered_ids))
+        missing_info: List[str] = []
+
+        if len(unique_ids) < 2:
+            missing_info.append("distinct_operands")
+
+        selected_rows = [operand_by_id[operand_id] for operand_id in unique_ids]
+        if family == "ratio" and required_operands:
+            missing_required = _missing_required_operands(required_operands, selected_rows)
+            missing_info.extend(
+                _normalise_spaces(str(item.get("label") or item.get("role") or item.get("concept") or "operand"))
+                for item in missing_required
+            )
+
+        if family == "ratio":
+            numerator_ids: set[str] = set()
+            denominator_ids: set[str] = set()
+            ratio_requirements = [
+                dict(item)
+                for item in required_operands
+                if str(item.get("role") or "").strip().startswith(("numerator", "denominator"))
+            ]
+            for row in selected_rows:
+                operand_id = str(row.get("operand_id") or "").strip()
+                row_role = str(row.get("matched_operand_role") or "").strip()
+                if row_role.startswith("numerator"):
+                    numerator_ids.add(operand_id)
+                elif row_role.startswith("denominator"):
+                    denominator_ids.add(operand_id)
+                elif ratio_requirements:
+                    for requirement in ratio_requirements:
+                        role = str(requirement.get("role") or "").strip()
+                        if _operand_row_matches_requirement(row, requirement):
+                            if role.startswith("numerator"):
+                                numerator_ids.add(operand_id)
+                            elif role.startswith("denominator"):
+                                denominator_ids.add(operand_id)
+
+            if not numerator_ids:
+                missing_info.append("numerator")
+            if not denominator_ids:
+                missing_info.append("denominator")
+            if numerator_ids and denominator_ids and not (numerator_ids - denominator_ids or denominator_ids - numerator_ids):
+                missing_info.append("distinct_ratio_roles")
+
+        if not missing_info:
+            return None
+
+        missing_info = list(dict.fromkeys(item for item in missing_info if item))
+        return {
+            "status": "incomplete",
+            "mode": "none",
+            "operation": "none",
+            "ordered_operand_ids": [],
+            "variable_bindings": [],
+            "formula": "",
+            "pairwise_formula": "",
+            "result_unit": "",
+            "operation_text": "",
+            "explanation": "operation plan does not satisfy required operand bindings",
+            "missing_info": missing_info,
+        }
+
     def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Translate normalized operands into an executable calculation plan."""
         runtime_trace = _resolve_runtime_calculation_trace(dict(state))
@@ -2991,6 +3245,46 @@ Structured Evidence:
                     calculation_result={},
                 ),
             }
+
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if isinstance(item, dict) and bool(item.get("required", True))
+        ]
+        if required_operands and operation_family in {"ratio", "difference", "growth_rate", "sum"}:
+            missing_required = _missing_required_operands(required_operands, operands)
+            if missing_required:
+                missing_labels = [
+                    _normalise_spaces(str(item.get("label") or item.get("role") or item.get("concept") or "operand"))
+                    for item in missing_required
+                ]
+                incomplete_plan = {
+                    "status": "incomplete",
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "formula": "",
+                    "pairwise_formula": "",
+                    "result_unit": "",
+                    "operation_text": "",
+                    "explanation": "missing required operands",
+                    "missing_info": missing_labels,
+                }
+                return {
+                    "missing_info": missing_labels,
+                    "planner_debug_trace": {
+                        "llm_invoked": False,
+                        "guard_applied": True,
+                        "reason": "missing_required_operands",
+                        "missing_info": missing_labels,
+                    },
+                    **_runtime_trace_state_update(
+                        state,
+                        calculation_plan=incomplete_plan,
+                        calculation_result={},
+                    ),
+                }
 
         query_text = _normalise_spaces(query)
         ontology = get_financial_ontology()
@@ -3051,6 +3345,30 @@ Structured Evidence:
 
         deterministic_operation_plan = self._build_deterministic_operation_plan(state, operands)
         if deterministic_operation_plan:
+            guarded_plan = self._operation_plan_guard(
+                plan=deterministic_operation_plan,
+                operands=operands,
+                required_operands=required_operands,
+                operation_family=operation_family,
+            )
+            if guarded_plan:
+                return {
+                    "missing_info": list(guarded_plan.get("missing_info") or []),
+                    "planner_debug_trace": {
+                        "active_metric_family": metric_key,
+                        "ontology_context": "deterministic_operation_plan_guard",
+                        "llm_invoked": False,
+                        "guard_applied": True,
+                        "reason": "invalid_required_operand_bindings",
+                        "raw_plan": deterministic_operation_plan,
+                        "missing_info": list(guarded_plan.get("missing_info") or []),
+                    },
+                    **_runtime_trace_state_update(
+                        state,
+                        calculation_plan=guarded_plan,
+                        calculation_result={},
+                    ),
+                }
             logger.info(
                 "[formula_plan] deterministic op-family mode=%s op=%s vars=%s",
                 deterministic_operation_plan.get("mode"),
@@ -3140,6 +3458,30 @@ Structured Evidence:
 
         deterministic_plan = self._build_deterministic_ontology_plan(state, operands)
         if deterministic_plan:
+            guarded_plan = self._operation_plan_guard(
+                plan=deterministic_plan,
+                operands=operands,
+                required_operands=required_operands,
+                operation_family=operation_family,
+            )
+            if guarded_plan:
+                return {
+                    "missing_info": list(guarded_plan.get("missing_info") or []),
+                    "planner_debug_trace": {
+                        "active_metric_family": metric_key,
+                        "ontology_context": "deterministic_ontology_plan_guard",
+                        "llm_invoked": False,
+                        "guard_applied": True,
+                        "reason": "invalid_required_operand_bindings",
+                        "raw_plan": deterministic_plan,
+                        "missing_info": list(guarded_plan.get("missing_info") or []),
+                    },
+                    **_runtime_trace_state_update(
+                        state,
+                        calculation_plan=guarded_plan,
+                        calculation_result={},
+                    ),
+                }
             logger.info(
                 "[formula_plan] deterministic mode=%s op=%s vars=%s",
                 deterministic_plan.get("mode"),
@@ -3333,6 +3675,17 @@ Ontology Context:
                     plan_data["missing_info"] = self._infer_missing_info(state, operands)
             if _should_coerce_percent_point_unit(query_text, operands, plan_data):
                 plan_data["result_unit"] = "%p"
+            guarded_plan = self._operation_plan_guard(
+                plan=plan_data,
+                operands=operands,
+                required_operands=required_operands,
+                operation_family=operation_family,
+            )
+            guard_applied = False
+            raw_plan_data = dict(plan_data)
+            if guarded_plan:
+                plan_data = guarded_plan
+                guard_applied = True
             logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
             artifacts = list(state.get("artifacts") or [])
             tasks = list(state.get("tasks") or [])
@@ -3362,8 +3715,10 @@ Ontology Context:
                 "planner_debug_trace": {
                     **planner_trace_base,
                     "llm_invoked": True,
-                    "guard_applied": False,
-                    "raw_plan": plan_data,
+                    "guard_applied": guard_applied,
+                    "reason": "invalid_required_operand_bindings" if guard_applied else "",
+                    "raw_plan": raw_plan_data if guard_applied else plan_data,
+                    "guarded_plan": plan_data if guard_applied else {},
                 },
                 "tasks": tasks,
                 "artifacts": artifacts,
@@ -3991,7 +4346,7 @@ Ontology Context:
         selected_evidence_ids: List[str] = []
         source_normalized_unit = ""
 
-        def _fail(status: str, reason: str) -> Dict[str, Any]:
+        def _fail(status: str, reason: str, calculation_plan: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
             fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
             failure_slots = self._build_answer_slots(
                 active_subtask=active_subtask,
@@ -4021,6 +4376,7 @@ Ontology Context:
                 "sentence_checks": [],
                 **_runtime_trace_state_update(
                     state,
+                    **({"calculation_plan": calculation_plan} if calculation_plan is not None else {}),
                     calculation_result={
                         "status": status,
                         "result_value": None,
@@ -4040,6 +4396,28 @@ Ontology Context:
 
         if not ordered_ids:
             ordered_ids = [str(binding.get("operand_id") or "") for binding in variable_bindings]
+
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if isinstance(item, dict) and bool(item.get("required", True))
+        ]
+        guarded_plan = self._operation_plan_guard(
+            plan={
+                **plan,
+                "ordered_operand_ids": ordered_ids,
+                "variable_bindings": variable_bindings,
+            },
+            operands=runtime_operands,
+            required_operands=required_operands,
+            operation_family=operation_family,
+        )
+        if guarded_plan:
+            return _fail(
+                "insufficient_operands",
+                "operation plan does not satisfy required operand bindings",
+                calculation_plan=guarded_plan,
+            )
 
         ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
@@ -5198,7 +5576,8 @@ Subtask Results JSON:
         if bool(state.get("subtask_loop_complete")):
             return "aggregate_subtasks"
         active_subtask = dict(state.get("active_subtask") or {})
-        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary":
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation in {"lookup", "single_value", "narrative_summary"}:
             return "retrieve"
         return "reconcile_plan"
 

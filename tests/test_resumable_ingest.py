@@ -93,6 +93,7 @@ class ResumableIngestTests(unittest.TestCase):
         manager._init_bm25 = Mock()
         manager.allow_query_embedding_fallback = True
         manager.force_bm25_only = False
+        manager.skip_vector_add = False
         manager.bm25 = None
         manager.bm25_docs = []
         manager.bm25_metadatas = []
@@ -151,6 +152,54 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(progress_events, [(0, 3), (2, 3), (3, 3)])
         self.assertEqual(manager._update_structure_graph.call_count, 2)
         manager._init_bm25.assert_called_once()
+
+    def test_add_documents_can_skip_vector_add_for_bm25_only_debug_store(self) -> None:
+        manager = self._make_manager()
+        manager.skip_vector_add = True
+        progress_events = []
+
+        result = manager.add_documents(
+            ["a", "b"],
+            [
+                {"chunk_uid": "r1::chunk:1", "rcept_no": "r1"},
+                {"chunk_uid": "r1::chunk:2", "rcept_no": "r1"},
+            ],
+            resume=False,
+            batch_size=1,
+            on_progress=lambda current, total: progress_events.append((current, total)),
+        )
+
+        self.assertEqual(result["added_chunks"], 2)
+        self.assertTrue(result["vector_add_skipped"])
+        self.assertEqual(manager.vector_store.add_calls, [])
+        self.assertEqual(manager._update_structure_graph.call_count, 2)
+        manager._init_bm25.assert_called_once()
+        self.assertEqual(progress_events, [(0, 2), (1, 2), (2, 2)])
+
+    def test_skip_vector_add_resume_reads_existing_structure_graph_uids(self) -> None:
+        manager = self._make_manager()
+        manager.skip_vector_add = True
+        manager._structure_graph = {
+            "nodes": {
+                "r1::chunk:1": {
+                    "metadata": {"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}
+                }
+            }
+        }
+
+        result = manager.add_documents(
+            ["old", "new"],
+            [
+                {"chunk_uid": "r1::chunk:1", "rcept_no": "r1"},
+                {"chunk_uid": "r1::chunk:2", "rcept_no": "r1"},
+            ],
+            resume=True,
+            batch_size=8,
+        )
+
+        self.assertEqual(result["added_chunks"], 1)
+        self.assertEqual(result["skipped_chunks"], 1)
+        self.assertEqual(manager.vector_store.add_calls, [])
 
     def test_cache_meta_completed_distinguishes_in_progress(self) -> None:
         self.assertTrue(_cache_meta_is_completed({"status": "completed"}))

@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -38,6 +39,14 @@ class _StubLLM:
 class SubtaskLoopTests(unittest.TestCase):
     def setUp(self) -> None:
         self.agent = FinancialAgent.__new__(FinancialAgent)
+
+    def test_ratio_definition_phrase_does_not_request_explanatory_context(self) -> None:
+        self.assertFalse(
+            self.agent._query_requests_explanatory_context(
+                "2023년 CIR을 계산해 줘. 여기서 CIR은 A 대비 B 비율을 의미한다."
+            )
+        )
+        self.assertTrue(self.agent._query_requests_explanatory_context("2023년 CIR의 의미를 설명해 줘."))
 
     def test_dependency_rows_preserve_sibling_operand_source_anchor(self) -> None:
         state = {
@@ -273,6 +282,25 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         self.assertEqual(self.agent._route_after_numeric_extractor(state), "reconcile_plan")
+
+    def test_lookup_subtask_routes_to_fresh_retrieval_after_advance(self) -> None:
+        state = {
+            "query": "2023년 두 개념의 비율을 계산해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "operation_family": "lookup"},
+                {"task_id": "task_2", "operation_family": "lookup"},
+                {"task_id": "task_3", "operation_family": "ratio"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "operation_family": "lookup",
+            },
+            "retrieved_docs": [(object(), 1.0)],
+            "evidence_status": "missing",
+        }
+
+        self.assertEqual(self.agent._route_after_advance_subtask(state), "retrieve")
 
     def test_lookup_subtask_routes_to_numeric_extractor_even_when_top_level_intent_is_qa(self) -> None:
         state = {
@@ -884,6 +912,249 @@ class SubtaskLoopTests(unittest.TestCase):
             ["numerator_1", "denominator_1"],
         )
 
+    def test_low_api_doc_probe_expands_table_rows_for_missing_ratio_operand(self) -> None:
+        table_object = {
+            "table_id": "example-table",
+            "statement_type": "mda",
+            "consolidation_scope": "unknown",
+            "unit_hint": "원",
+            "period_labels": ["2023", "2022"],
+            "rows": [
+                {
+                    "row_label": "operating profit",
+                    "row_headers": ["operating profit"],
+                    "cells": [
+                        {
+                            "column_headers": ["2023"],
+                            "value_text": "1,000",
+                            "unit_hint": "원",
+                        },
+                        {
+                            "column_headers": ["2022"],
+                            "value_text": "900",
+                            "unit_hint": "원",
+                        },
+                    ],
+                }
+            ],
+        }
+        state = {
+            "query": "Calculate expense as a share of 2023 operating profit.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "ExampleCo", "year": 2023},
+            "topic": "expense ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "expense ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "expense", "concept": "expense", "role": "numerator_1"},
+                    {"label": "operating profit", "concept": "operating_profit", "role": "denominator_1"},
+                ],
+                "depends_on": ["task_expense", "task_profit"],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense",
+                        "period": "2023",
+                        "label": "expense",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "operating_profit",
+                        "period": "2023",
+                        "label": "operating profit",
+                        "preferred_task_id": "task_profit",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_expense",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 expense",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "expense",
+                                "concept": "expense",
+                                "period": "2023",
+                                "raw_value": "250",
+                                "raw_unit": "원",
+                                "normalized_value": 250.0,
+                                "normalized_unit": "KRW",
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="Metric | 2023 | 2022\noperating profit | 1,000 | 900",
+                        metadata={
+                            "block_type": "paragraph",
+                            "table_source_id": "example-table",
+                            "table_object_json": json.dumps(table_object),
+                            "unit_hint": "원",
+                        },
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        self.agent.low_api_debug = True
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
+
+        extracted = self.agent._extract_calculation_operands(state)
+
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertCountEqual(
+            [row.get("matched_operand_role") for row in extracted["calculation_operands"]],
+            ["numerator_1", "denominator_1"],
+        )
+        self.assertEqual(
+            len({row.get("operand_id") for row in extracted["calculation_operands"]}),
+            2,
+        )
+        denominator = next(
+            row
+            for row in extracted["calculation_operands"]
+            if row.get("matched_operand_role") == "denominator_1"
+        )
+        self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(denominator["matched_operand_concept"], "operating_profit")
+
+    def test_ratio_missing_dependency_binding_can_use_active_reconciliation_evidence(self) -> None:
+        state = {
+            "query": "Calculate expense as a share of operating profit.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "ExampleCo", "year": 2023},
+            "topic": "expense ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "expense ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "expense", "concept": "expense", "role": "numerator_1"},
+                    {"label": "operating profit", "concept": "operating_profit", "role": "denominator_1"},
+                ],
+                "depends_on": ["task_expense", "task_profit"],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense",
+                        "period": "2023",
+                        "label": "expense",
+                        "preferred_task_id": "task_expense",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "operating_profit",
+                        "period": "2023",
+                        "label": "operating profit",
+                        "preferred_task_id": "task_profit",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "ready",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        self.agent.low_api_debug = True
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: [
+            {
+                "evidence_id": "ev_profit",
+                "source_anchor": "[ExampleCo | 2023]",
+                "claim": "operating profit | 1,000",
+                "raw_row_text": "operating profit | 1,000",
+                "metadata": {"statement_type": "income_statement"},
+            },
+            {
+                "evidence_id": "ev_expense",
+                "source_anchor": "[ExampleCo | 2023]",
+                "claim": "expense | 250",
+                "raw_row_text": "expense | 250",
+                "metadata": {"statement_type": "income_statement"},
+            },
+        ]
+        self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: [
+            {
+                "operand_id": "op_001",
+                "evidence_id": "ev_expense",
+                "label": "expense",
+                "raw_value": "250",
+                "raw_unit": "",
+                "normalized_value": 250.0,
+                "normalized_unit": "NUMBER",
+                "period": "2023",
+                "matched_operand_label": "expense",
+                "matched_operand_concept": "expense",
+                "matched_operand_role": "numerator_1",
+            },
+            {
+                "operand_id": "op_002",
+                "evidence_id": "ev_profit",
+                "label": "operating profit",
+                "raw_value": "1,000",
+                "raw_unit": "",
+                "normalized_value": 1000.0,
+                "normalized_unit": "NUMBER",
+                "period": "2023",
+                "matched_operand_label": "operating profit",
+                "matched_operand_concept": "operating_profit",
+                "matched_operand_role": "denominator_1",
+            },
+        ]
+        self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
+
+        extracted = self.agent._extract_calculation_operands(state)
+
+        self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(len(extracted["calculation_operands"]), 2)
+
     def test_ratio_dependency_fallback_rejects_rows_outside_producer_statement_scope(self) -> None:
         state = {
             "query": "Calculate the ratio using values from the income statement.",
@@ -1370,6 +1641,82 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated["answer"], "")
         self.assertEqual(updated["resolved_calculation_trace"]["calculation_operands"], [])
         self.assertEqual(updated["structured_result"], {})
+
+    def test_capture_active_subtask_does_not_reuse_sibling_aggregate_projection(self) -> None:
+        state = {
+            "query": "2023년 두 개념의 비율을 계산해 줘.",
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 두 번째 개념",
+                "operation_family": "lookup",
+                "query": "2023년 두 번째 개념을 찾아줘.",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 첫 번째 개념",
+                    "answer": "첫 번째 개념은 100억원입니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "첫 번째 개념",
+                                "raw_value": "100",
+                                "raw_unit": "억원",
+                                "normalized_value": 10000000000,
+                                "normalized_unit": "KRW",
+                            },
+                        },
+                    },
+                }
+            ],
+            "calculation_result": {
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [
+                        {
+                            "task_id": "task_1",
+                            "metric_label": "2023년 첫 번째 개념",
+                            "rendered_value": "100억원",
+                        }
+                    ],
+                },
+                "status": "partial",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [],
+                "calculation_plan": {"mode": "aggregate_subtasks"},
+                "calculation_result": {
+                    "answer_slots": {
+                        "operation_family": "aggregate_subtasks",
+                        "subtask_results": [
+                            {
+                                "task_id": "task_1",
+                                "metric_label": "2023년 첫 번째 개념",
+                                "rendered_value": "100억원",
+                            }
+                        ],
+                    },
+                    "status": "partial",
+                },
+            },
+            "answer": "",
+            "compressed_answer": "",
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        captured = self.agent._capture_current_subtask_result(state)
+
+        self.assertEqual(captured["task_id"], "task_2")
+        self.assertEqual(captured["calculation_result"], {})
+        self.assertEqual(captured["calculation_operands"], [])
 
     def test_aggregate_subtasks_joins_answers_in_task_order(self) -> None:
         state = {

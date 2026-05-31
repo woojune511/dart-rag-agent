@@ -396,6 +396,7 @@ def _project_task_trace_from_state(
     )
 
     if task_id and task_id == active_task_id:
+        suppress_aggregate_fallback = False
         active_trace = _normalise_resolved_calculation_trace(state)
         if not active_trace:
             active_trace = _resolve_runtime_calculation_trace(state)
@@ -422,8 +423,16 @@ def _project_task_trace_from_state(
         if active_trace_operation == "aggregate_subtasks" and not prefer_live_state:
             if calculation_operands or calculation_plan or calculation_result:
                 active_trace = {}
+                suppress_aggregate_fallback = True
             elif state.get("calculation_operands") or state.get("calculation_plan") or state.get("calculation_result"):
-                prefer_live_state = True
+                # Aggregate projections summarize already-finished siblings.
+                # They must not be captured as the current active task's own
+                # result when that task did not produce material yet.
+                if live_state_operation and live_state_operation != "aggregate_subtasks":
+                    prefer_live_state = True
+                else:
+                    active_trace = {}
+                    suppress_aggregate_fallback = True
         if prefer_live_state and state.get("calculation_operands"):
             calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
         elif active_trace.get("calculation_operands"):
@@ -434,7 +443,7 @@ def _project_task_trace_from_state(
                     or []
                 )
             ]
-        elif not calculation_operands:
+        elif not calculation_operands and not suppress_aggregate_fallback:
             calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
         if prefer_live_state and state.get("calculation_plan"):
             calculation_plan = dict(state.get("calculation_plan") or {})
@@ -442,7 +451,7 @@ def _project_task_trace_from_state(
             calculation_plan = dict(
                 active_trace.get("calculation_plan")
             )
-        elif not calculation_plan:
+        elif not calculation_plan and not suppress_aggregate_fallback:
             calculation_plan = dict(state.get("calculation_plan") or {})
         if prefer_live_state and live_state_result:
             calculation_result = live_state_result
@@ -450,7 +459,7 @@ def _project_task_trace_from_state(
             calculation_result = dict(
                 active_trace.get("calculation_result")
             )
-        elif not calculation_result:
+        elif not calculation_result and not suppress_aggregate_fallback:
             calculation_result = dict(state.get("calculation_result") or {})
         if not reconciliation_result:
             reconciliation_result = dict(state.get("reconciliation_result") or {})
@@ -1774,12 +1783,17 @@ _NARRATIVE_CONTEXT_HINTS = (
     "영향",
     "전략",
     "리스크",
-    "의미",
+    "의미를",
+    "의미는",
+    "의미가",
     "왜",
     "어떤",
     "어떻게",
     "적용",
-    "관리",
+    "관리 방안",
+    "관리 전략",
+    "관리 현황",
+    "어떻게 관리",
     "대응",
     "기여",
     "업황",
@@ -2944,6 +2958,124 @@ def _build_concept_task_constraints(
     }
 
 
+def _build_explicit_ratio_definition_task(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+    concept_specs: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    text = _normalise_spaces(query)
+    compact_text = re.sub(r"\s+", "", text)
+    if not compact_text or "대비" not in compact_text:
+        return None
+    if not any(marker in compact_text for marker in ("비율", "비중", "퍼센트", "%")):
+        return None
+
+    mentions: List[Dict[str, Any]] = []
+    seen_mentions: set[tuple[str, int, int]] = set()
+    for spec in concept_specs:
+        concept_key = _normalise_spaces(str(spec.get("concept") or ""))
+        if not concept_key:
+            continue
+        base_label = str(spec.get("name") or "").strip()
+        for surface in _metric_scope_surfaces(spec, base_label):
+            compact_surface = re.sub(r"\s+", "", _normalise_spaces(surface))
+            if len(compact_surface) < 2:
+                continue
+            for match in re.finditer(re.escape(compact_surface), compact_text, flags=re.IGNORECASE):
+                key = (concept_key, match.start(), match.end())
+                if key in seen_mentions:
+                    continue
+                seen_mentions.add(key)
+                mentions.append(
+                    {
+                        "start": match.start(),
+                        "end": match.end(),
+                        "length": match.end() - match.start(),
+                        "spec": dict(spec),
+                    }
+                )
+    if len(mentions) < 2:
+        return None
+
+    for ratio_match in re.finditer("대비", compact_text):
+        marker_start = ratio_match.start()
+        marker_end = ratio_match.end()
+        next_ratio_terms = [
+            index
+            for term in ("비율", "비중", "퍼센트", "%")
+            for index in [compact_text.find(term, marker_end)]
+            if index >= 0
+        ]
+        ratio_end = min(next_ratio_terms) if next_ratio_terms else len(compact_text)
+        left_candidates = [item for item in mentions if int(item["end"]) <= marker_start]
+        right_candidates = [
+            item
+            for item in mentions
+            if int(item["start"]) >= marker_end and int(item["start"]) <= ratio_end
+        ]
+        if not left_candidates or not right_candidates:
+            continue
+        right_concepts = {
+            _normalise_spaces(str(dict(item.get("spec") or {}).get("concept") or ""))
+            for item in right_candidates
+            if _normalise_spaces(str(dict(item.get("spec") or {}).get("concept") or ""))
+        }
+        if len(right_concepts) > 1:
+            # Multi-component right-hand sides need the generic operand builder so
+            # sums such as "A 대비 B, C, D 비중" keep every required numerator.
+            continue
+        left = sorted(
+            left_candidates,
+            key=lambda item: (marker_start - int(item["end"]), -int(item["length"])),
+        )[0]
+        right = sorted(
+            right_candidates,
+            key=lambda item: (int(item["start"]) - marker_end, -int(item["length"])),
+        )[0]
+        left_spec = dict(left.get("spec") or {})
+        right_spec = dict(right.get("spec") or {})
+        if _normalise_spaces(str(left_spec.get("concept") or "")) == _normalise_spaces(
+            str(right_spec.get("concept") or "")
+        ):
+            continue
+
+        denominator = {**left_spec, "role": "denominator_1"}
+        numerator = {**right_spec, "role": "numerator_1"}
+        operand_specs = _build_concept_required_operands(
+            query,
+            report_scope,
+            [denominator, numerator],
+            "ratio",
+        )
+        if not operand_specs:
+            continue
+        denominator_label = str(denominator.get("name") or "").strip()
+        numerator_label = str(numerator.get("name") or "").strip()
+        metric_label = (
+            f"{denominator_label} 대비 {numerator_label} 비율"
+            if denominator_label and numerator_label
+            else _build_concept_metric_label(query, [numerator, denominator], "ratio")
+        )
+        task = _compose_concept_numeric_task(
+            query=query,
+            report_scope=report_scope,
+            ontology=ontology,
+            metric_label=metric_label,
+            operation_family="ratio",
+            operand_specs=operand_specs,
+        )
+        if task:
+            task["planner_evidence"] = {
+                "ratio_definition_marker": "대비",
+                "denominator_concept": str(denominator.get("concept") or "").strip(),
+                "numerator_concept": str(numerator.get("concept") or "").strip(),
+            }
+            return task
+    return None
+
+
 def _build_concept_numeric_task(
     *,
     query: str,
@@ -2952,6 +3084,14 @@ def _build_concept_numeric_task(
     ontology: Any,
     concept_specs: List[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
+    explicit_ratio_task = _build_explicit_ratio_definition_task(
+        query=query,
+        report_scope=report_scope,
+        ontology=ontology,
+        concept_specs=concept_specs,
+    )
+    if explicit_ratio_task:
+        return explicit_ratio_task
     analysis_task = _build_concept_analysis_task(
         query=query,
         report_scope=report_scope,
@@ -4658,6 +4798,10 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
         row_unit_family = _normalise_spaces(str(row_unit_family or "")).upper()
     operand_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
     operand_label = _normalise_spaces(str(operand.get("label") or ""))
+    if row_unit_family == "PERCENT" and operand_unit_family in {"KRW", "CURRENCY", "MONEY", "AMOUNT"}:
+        return True
+    if row_unit_family in {"KRW", "CURRENCY", "MONEY", "AMOUNT"} and operand_unit_family == "PERCENT":
+        return True
     if (
         row_unit_family == "PERCENT"
         and operand_unit_family != "PERCENT"

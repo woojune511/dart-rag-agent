@@ -3692,6 +3692,68 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(primary_value["raw_unit"], "천원")
         self.assertEqual(primary_value["rendered_value"], "2,526,280천원")
 
+    def test_ratio_calculation_rejects_duplicate_operand_binding(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "Calculate the ratio between two required values.",
+                "active_subtask": {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "required ratio",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {
+                            "label": "numerator value",
+                            "concept": "numerator_value",
+                            "role": "numerator_1",
+                            "required": True,
+                        },
+                        {
+                            "label": "denominator value",
+                            "concept": "denominator_value",
+                            "role": "denominator_1",
+                            "required": True,
+                        },
+                    ],
+                },
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["op_001", "op_001"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_001"},
+                    ],
+                    "formula": "(A / B) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "row_001",
+                        "label": "numerator value",
+                        "matched_operand_label": "numerator value",
+                        "matched_operand_concept": "numerator_value",
+                        "matched_operand_role": "numerator_1",
+                        "raw_value": "250",
+                        "raw_unit": "",
+                        "normalized_value": 250.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2023",
+                    }
+                ],
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        self.assertEqual(result["calculation_result"]["status"], "insufficient_operands")
+        self.assertEqual(result["calculation_plan"]["status"], "incomplete")
+        self.assertEqual(result["calculation_plan"]["mode"], "none")
+        self.assertIn("denominator", result["calculation_plan"]["missing_info"])
+
     def test_operand_requirement_rejects_surrogate_metric_label(self) -> None:
         operand = {
             "label": "2023년 법인세비용차감전순이익",

@@ -324,6 +324,33 @@ Latest verification:
   - `numeric_equivalence = 1.0` and `numeric_grounding = 1.0` for all seven
     questions
 
+2026-05-31 focused triage update:
+
+- `KAB_T1_066` was rechecked with the low-API numeric loop before rerunning the
+  full focused gate.
+- The failure split was:
+  - calculation safety: stale ratio plans could bind the same operand twice
+  - evidence preservation: a required denominator row was present in structured
+    reconciliation candidates, but not in the compact evidence window
+  - operand identity: fallback rows needed fresh operand IDs before formula
+    planning
+- Runtime changes are intentionally generic:
+  - executable ratio, difference, and growth-rate plans must bind distinct
+    required operands
+  - low-API missing-required recovery may promote already-built reconciliation
+    row candidates when they satisfy the active operand contract
+  - retrieved table chunks may be expanded into row-level candidates before
+    operand extraction, so a relevant raw row is not lost after rerank/summary
+    compression
+- Focused result:
+  - `KAB_T1_066` now closes with `numeric_final_judgement = PASS`
+  - calculated result: `37.47%`
+  - validation used `--low-api-debug --numeric-fast-gate`
+- Keep this as a focused canary result, not an official full-gate refresh. Run
+  the full `curated_concept_runtime_gap_gate` only after 2-3 focused closures or
+  when changing ontology, structured row binding, dependency binding, or formula
+  planning broadly.
+
 Recommended invocation:
 
 ```powershell

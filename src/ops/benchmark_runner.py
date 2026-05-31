@@ -3596,6 +3596,7 @@ def run_screening_experiment(
         embedding_model_name=embedding_model_name,
         allow_query_embedding_fallback=allow_retrieval_fallback or _low_api_retrieval_enabled(full_eval_config),
         force_bm25_only=_low_api_retrieval_enabled(full_eval_config),
+        skip_vector_add=_low_api_retrieval_enabled(full_eval_config),
     )
     agent = FinancialAgent(
         vsm,

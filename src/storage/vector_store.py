@@ -258,6 +258,7 @@ class VectorStoreManager:
         embedding_model_name: str = DEFAULT_EMBEDDING_MODEL,
         allow_query_embedding_fallback: bool = True,
         force_bm25_only: bool = False,
+        skip_vector_add: bool = False,
     ):
         self.persist_directory = persist_directory
         os.makedirs(self.persist_directory, exist_ok=True)
@@ -266,6 +267,7 @@ class VectorStoreManager:
         self.embedding_model_name = embedding_model_name
         self.allow_query_embedding_fallback = bool(allow_query_embedding_fallback)
         self.force_bm25_only = bool(force_bm25_only)
+        self.skip_vector_add = bool(skip_vector_add)
         self.vector_capacity_cooldown_sec = max(0.0, float(os.getenv("DART_VECTOR_CAPACITY_COOLDOWN_SEC", "90") or 90))
         self.search_cache_size = max(0, int(os.getenv("DART_RETRIEVAL_SEARCH_CACHE_SIZE", "256") or 256))
         self.vector_add_max_retries = max(1, int(os.getenv("DART_VECTOR_ADD_MAX_RETRIES", "4") or 4))
@@ -711,13 +713,29 @@ class VectorStoreManager:
 
     def is_indexed(self, rcept_no: str) -> bool:
         """Return whether the filing is already indexed."""
+        if getattr(self, "skip_vector_add", False):
+            return bool(self._structure_graph_chunk_uids(rcept_no=rcept_no))
         try:
             result = self.vector_store.get(where={"rcept_no": rcept_no}, limit=1)
             return len(result.get("ids") or []) > 0
         except Exception:
             return False
 
+    def _structure_graph_chunk_uids(self, *, rcept_no: Optional[str] = None) -> set[str]:
+        indexed: set[str] = set()
+        for chunk_uid, node in dict((self._structure_graph or {}).get("nodes", {}) or {}).items():
+            metadata = dict((node or {}).get("metadata") or {})
+            if rcept_no and str(metadata.get("rcept_no", "")) != str(rcept_no):
+                continue
+            resolved_uid = _chunk_uid_from_metadata(metadata) or str(chunk_uid or "").strip()
+            if resolved_uid:
+                indexed.add(resolved_uid)
+        return indexed
+
     def list_indexed_chunk_uids(self, *, rcept_no: Optional[str] = None) -> set[str]:
+        if getattr(self, "skip_vector_add", False):
+            return self._structure_graph_chunk_uids(rcept_no=rcept_no)
+
         where_filter = {"rcept_no": rcept_no} if rcept_no else None
         try:
             result = self.vector_store.get(where=where_filter)
@@ -812,6 +830,34 @@ class VectorStoreManager:
         )
         if on_progress:
             on_progress(0, len(pending))
+
+        if getattr(self, "skip_vector_add", False):
+            logger.info(
+                "Skipping vector add for %s chunks because skip_vector_add is enabled; building BM25 from structure graph.",
+                len(pending),
+            )
+            batch_count = 0
+            added_count = 0
+            for start in range(0, len(pending), effective_batch_size):
+                batch = pending[start : start + effective_batch_size]
+                batch_texts = [text for text, _, _ in batch]
+                batch_metadatas = [metadata for _, metadata, _ in batch]
+                self._update_structure_graph(batch_texts, batch_metadatas)
+                batch_count += 1
+                added_count += len(batch)
+                if on_progress:
+                    on_progress(added_count, len(pending))
+            self._init_bm25()
+            logger.info("Successfully updated structure graph and BM25 index without vector embeddings.")
+            return {
+                "requested_chunks": len(chunks),
+                "added_chunks": len(pending),
+                "skipped_chunks": skipped_chunks,
+                "batch_count": batch_count,
+                "resume_enabled": bool(resume),
+                "vector_add_skipped": True,
+            }
+
         batch_count = 0
         added_count = 0
         for start in range(0, len(pending), effective_batch_size):
@@ -853,6 +899,7 @@ class VectorStoreManager:
             "skipped_chunks": skipped_chunks,
             "batch_count": batch_count,
             "resume_enabled": bool(resume),
+            "vector_add_skipped": False,
         }
 
     def get_structure_node(self, chunk_uid: str) -> Optional[Dict[str, Any]]:

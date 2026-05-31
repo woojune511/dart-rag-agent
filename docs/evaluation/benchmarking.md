@@ -1009,6 +1009,12 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
 - Do not include contextual selective in `--low-api-debug`, single-question
   canary loops, or routine runtime contract triage; use structural stores and
   replay/eval-only first.
+- If a focused low-API run fails, classify the trace first as retrieval,
+  dependency/synthesis, calculation safety, or answer formatting before
+  considering any contextual ingest comparison.
+- Prefer replay for cases that are already closed, such as multi-entity
+  grounding regressions; do not spend API or ingest time rerunning contextual
+  selective just to reconfirm a deterministic replay.
 - In practice this means:
   - `curated_runtime_contract_gate` runs structural-only by default
   - `curated_multi_entity_grounding_gate` runs structural-only by default

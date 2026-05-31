@@ -2329,6 +2329,14 @@ class SemanticNumericPlanTests(unittest.TestCase):
                     ("selling_general_administrative_expense", "numerator_1"),
                 ],
             ),
+            (
+                "2023년 CIR을 계산해 줘. 여기서 CIR은 수익성 표의 '경비차감전영업이익(A)' 대비 '판매비와관리비(E)' 비율을 의미한다.",
+                "ratio",
+                [
+                    ("pre_expense_operating_profit", "denominator_1"),
+                    ("selling_general_administrative_expense", "numerator_1"),
+                ],
+            ),
         ]
 
         for query, operation_family, expected_operands in cases:
@@ -2341,6 +2349,16 @@ class SemanticNumericPlanTests(unittest.TestCase):
                     [(row["concept"], row["role"]) for row in task["required_operands"]],
                     expected_operands,
                 )
+
+    def test_ratio_definition_phrase_does_not_append_narrative_subtask(self) -> None:
+        plan = self._build_v3_concept_plan(
+            "2023년 CIR을 계산해 줘. 여기서 CIR은 수익성 표의 '경비차감전영업이익(A)' 대비 '판매비와관리비(E)' 비율을 의미한다."
+        )
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        self.assertFalse(
+            any(str(task.get("operation_family") or "") == "narrative_summary" for task in plan["tasks"])
+        )
 
     def test_concept_only_ontology_matches_inventory_loss_lookup_variants(self) -> None:
         plan = self._build_v3_concept_plan(

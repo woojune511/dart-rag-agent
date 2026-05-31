@@ -2713,14 +2713,22 @@ class FinancialAgentEvidenceMixin:
                         )
                         selected_cell = ranked_cells[0] if ranked_cells else None
                         if selected_cell:
-                            raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
-                            raw_unit = str(selected_cell.get("unit_hint") or raw_unit or "")
-                            if not period:
-                                period = _structured_cell_period_text(
-                                    selected_cell,
-                                    target_years,
-                                    "unknown",
-                                )
+                            selected_score = _score_structured_cell(
+                                selected_cell,
+                                query_years=target_years,
+                                period_focus="unknown",
+                                operand=operand,
+                            )
+                            selected_row_label = _normalise_spaces(str(selected_cell.get("row_label") or ""))
+                            if selected_score > 0 or _operand_text_match(selected_row_label, operand):
+                                raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
+                                raw_unit = str(selected_cell.get("unit_hint") or raw_unit or "")
+                                if not period:
+                                    period = _structured_cell_period_text(
+                                        selected_cell,
+                                        target_years,
+                                        "unknown",
+                                    )
 
                 if not raw_value:
                     prose_value = _period_comparison_count_value_from_text(
@@ -2745,6 +2753,11 @@ class FinancialAgentEvidenceMixin:
                             raw_unit = "백만원"
 
                 if not raw_value:
+                    continue
+                if re.fullmatch(r"(?:19|20)\d{2}\s*년?", raw_value):
+                    # A period header can be the first numeric token in a wide
+                    # table fragment; do not treat that header as the operand's
+                    # value.
                     continue
 
                 inline_unit_match = re.fullmatch(
@@ -4333,13 +4346,14 @@ class FinancialAgentEvidenceMixin:
                 )
             return bullets, items
 
-        if getattr(self, "low_api_debug", False) and direct_numeric_grounding:
+        if getattr(self, "low_api_debug", False):
             fallback, fallback_items = _deterministic_fallback(docs)
             fallback_items = self._filter_evidence_items_for_required_operands(fallback_items, state)
-            fallback_items = self._restrict_direct_numeric_evidence_items(
-                fallback_items,
-                preserve_narrative_context=preserve_narrative_context,
-            )
+            if direct_numeric_grounding:
+                fallback_items = self._restrict_direct_numeric_evidence_items(
+                    fallback_items,
+                    preserve_narrative_context=preserve_narrative_context,
+                )
             fallback_bullets = [
                 f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
                 for item in fallback_items
@@ -4470,6 +4484,24 @@ class FinancialAgentEvidenceMixin:
         selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
         guidance = self._compression_guidance(query_type, query, coverage)
+
+        if getattr(self, "low_api_debug", False):
+            selected_claim_ids = [
+                str(item.get("evidence_id") or "").strip()
+                for item in selected_evidence
+                if str(item.get("evidence_id") or "").strip()
+            ]
+            draft_points = [
+                _normalise_spaces(str(item.get("claim") or item.get("quote_span") or ""))
+                for item in selected_evidence
+            ]
+            draft_points = [point for point in dict.fromkeys(draft_points) if point][:4]
+            compressed_answer = " ".join(draft_points).strip()
+            return {
+                "selected_claim_ids": selected_claim_ids,
+                "draft_points": draft_points,
+                "compressed_answer": compressed_answer,
+            }
 
         structured_llm = self.llm.with_structured_output(CompressionOutput)
         prompt = ChatPromptTemplate.from_template(
@@ -4735,6 +4767,27 @@ Structured Evidence:
         if not selected_evidence:
             selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
+
+        if getattr(self, "low_api_debug", False):
+            selected_ids = [
+                str(item.get("evidence_id") or "").strip()
+                for item in selected_evidence
+                if str(item.get("evidence_id") or "").strip()
+            ]
+            return self._normalise_sentence_checks(
+                query_type=query_type,
+                compressed_answer=compressed_answer,
+                sentence_checks=[
+                    {
+                        "sentence": compressed_answer,
+                        "verdict": "keep",
+                        "reason": "low_api_debug_validation_skipped",
+                        "supporting_claim_ids": selected_ids,
+                    }
+                ],
+                selected_claim_ids=selected_ids,
+                evidence_items=selected_evidence,
+            )
 
         structured_llm = self.llm.with_structured_output(ValidationOutput)
         validator_prompt = ChatPromptTemplate.from_template(
