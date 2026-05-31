@@ -103,15 +103,18 @@ labels, and segment default labels into planning policy/config.
 A helper policy follow-up moved narrative-context hints, legacy concept surface
 contracts, generic table-column labels, non-value/aggregate row labels, and
 segment context scoring terms into helper runtime policy.
+An evidence prompt/message follow-up moved compression, validation, and numeric
+extractor prompts plus direct-numeric fallback messages, aggregate-result
+patterns, and sentence-check reasons into evidence runtime policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 249 |
-| Literal occurrences | 298 |
-| `runtime_literal` records | 77 |
+| Reviewed records | 239 |
+| Literal occurrences | 287 |
+| `runtime_literal` records | 72 |
 | `schema_description` records | 117 |
-| `regex_or_pattern` records | 39 |
-| `prompt_or_template` records | 16 |
+| `regex_or_pattern` records | 37 |
+| `prompt_or_template` records | 13 |
 
 Top files:
 
@@ -120,7 +123,7 @@ Top files:
 | `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
 | `src/agent/financial_graph_helpers.py` | 37 | P0/P1: remaining records are mostly generic parsing patterns, status labels, and a few candidate scoring labels |
 | `src/agent/financial_graph_calculation.py` | 26 | P0: numeric execution text is allowed, metric/topic selectors need review |
-| `src/agent/financial_graph_evidence.py` | 26 | P0: evidence selection and answer assembly must be reviewed first |
+| `src/agent/financial_graph_evidence.py` | 16 | P0/P1: remaining records are mostly evidence formatting labels and generic period/value patterns |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
 | `src/agent/nodes/dummy_nodes.py` | 8 | P2: MAS skeleton fixtures, not production retrieval policy |

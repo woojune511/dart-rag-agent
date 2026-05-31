@@ -1179,6 +1179,91 @@ EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
 """,
 }
 
+EVIDENCE_RUNTIME_POLICY: Dict[str, Any] = {
+    "location_subject_pattern": r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
+    "lookup_aggregate_result_pattern": (
+        r"(차이|차액|격차|합계|합산|더한|더하면|총합|차감|뺀|비율|비중|성장률|증가율|감소율|몇\s*배|더\s*(?:큽|작|많|적))"
+    ),
+    "direct_numeric_lookup_instruction": (
+        "{focused} 원문 수치만 찾으세요. "
+        "차이, 합계, 비율, 증감액 같은 계산 결과가 아니라 해당 항목 자체의 값을 추출하세요."
+    ),
+    "numeric_not_found_answer": "관련 공시 문서에서 요청한 수치를 찾지 못했습니다.",
+    "no_direct_evidence_answer": (
+        "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. "
+        "공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다."
+    ),
+    "duplicate_claim_reason": "같은 claim을 반복 설명함",
+    "aggregate_supported_reason": "여러 evidence의 합집합을 요약한 supported 문장",
+    "overextended_reason": "근거 claim보다 과도하게 일반화되거나 확장됨",
+    "compression_prompt_template": (
+        "당신은 한국 기업 공시(DART) 분석 전문가입니다.\n"
+        "아래 structured evidence를 질문 범위에 맞게 압축해 typed output을 만드세요.\n\n"
+        "Compression 규칙:\n"
+        "- evidence에 없는 내용은 추가하지 마세요.\n"
+        "- 먼저 question_relevance가 high인 evidence만으로 답 구성을 시도하세요.\n"
+        "- claim을 기본 단위로 사용하고, 필요할 때만 quote_span의 원문 표현을 그대로 가져오세요.\n"
+        "- allowed_terms에 없는 새로운 분류명이나 핵심 용어는 만들지 마세요.\n"
+        "- 질문이 요구하지 않은 배경 설명, 예시, 장황한 연결 문장은 넣지 마세요.\n"
+        "- 가능한 한 중복 claim을 합치고, 같은 사실은 한 번만 말하세요.\n"
+        "- draft_answer와 draft_points 안에 `[회사 | 연도 | ...]` 형태의 source_anchor 원문을 절대 그대로 쓰지 마세요. 출처 추적은 selected_claim_ids로만 수행합니다.\n"
+        "{coverage_note}\n\n"
+        "질문 유형 지침:\n{instruction}\n\n"
+        "출력 형식 지침:\n{output_style}\n\n"
+        "Structured Evidence:\n{evidence}\n\n"
+        "질문: {query}\n\n"
+        "반드시 다음 필드를 채우세요.\n"
+        "- selected_claim_ids: 실제로 사용한 evidence_id만\n"
+        "- draft_points: 중복을 제거한 핵심 포인트 목록\n"
+        "- draft_answer: 사용자에게 보여줄 짧은 초안 답변\n"
+    ),
+    "validation_prompt_template": (
+        "다음 답변 초안을 structured evidence와 대조해 문장 단위로 검증하고 typed output을 만드세요.\n\n"
+        "Validator 규칙:\n"
+        "- 새 정보는 절대 추가하지 마세요.\n"
+        "- 근거로 뒷받침되지 않는 문장, 구, 세부사항만 삭제하거나 더 짧게 축소하세요.\n"
+        "- 질문에 직접 필요하지 않은 배경 설명은 삭제하세요.\n"
+        "- 숫자, 단위, 비율은 evidence의 quote_span 또는 claim 표기를 그대로 유지하세요.\n"
+        "- risk: evidence에 없는 상위 taxonomy나 재분류를 만들지 마세요.\n"
+        "- business_overview / risk: 여러 evidence에 흩어진 정보를 하나의 문장이나 bullet로 종합한 경우, 각 표현이 evidence 합집합으로 뒷받침되면 supported로 판단하세요.\n"
+        "- business_overview / risk: 특정 문장이 단일 evidence와 1:1로 대응하지 않아도, supporting_claim_ids의 합집합이 그 문장을 직접 지지하면 keep 할 수 있습니다.\n"
+        "- duplicated claim은 하나만 남기세요.\n"
+        "- 가능한 한 기존 source_anchor는 유지하세요.\n"
+        "- 초안을 문장 단위로 나눈 뒤 각 문장을 아래 verdict 중 하나로 판정하세요.\n"
+        "  - keep\n"
+        "  - drop_overextended\n"
+        "  - drop_unsupported\n"
+        "  - drop_redundant\n"
+        "- supporting_claim_ids에는 그 문장을 직접 지지하는 evidence_id만 넣으세요.\n"
+        "- keep가 아닌 문장은 unsupported_sentences에도 넣으세요.\n"
+        "- kept_claim_ids / dropped_claim_ids는 sentence_checks와 일관되게 작성하세요.\n"
+        "- final_answer는 keep verdict를 받은 문장만 자연스럽게 이어 붙인 결과여야 합니다.\n"
+        "- keep 문장이 하나도 없으면, 질문에 직접 답할 수 있는 근거를 찾지 못했다는 짧은 문장만 남기세요.\n\n"
+        "질문 유형: {query_type}\n"
+        "질문: {query}\n\n"
+        "Structured Evidence:\n{evidence}\n\n"
+        "초안 답변:\n{answer}\n\n"
+        "반드시 다음 필드를 채우세요.\n"
+        "- kept_claim_ids: 최종 답변에 실제로 남긴 evidence_id\n"
+        "- dropped_claim_ids: 제거한 evidence_id\n"
+        "- unsupported_sentences: 삭제하거나 축소한 문장/구\n"
+        "- sentence_checks: 각 문장에 대한 verdict, reason, supporting_claim_ids\n"
+        "- final_answer: 최종 사용자 답변\n"
+    ),
+    "numeric_extractor_prompt_template": (
+        "당신은 재무 데이터 전문 분석가입니다.\n"
+        "아래 질문에 답하기 위해 공시 문서 컨텍스트에서 정확한 수치를 추출하세요.\n\n"
+        "지시사항:\n"
+        "1. 표(Table)에서 행과 열의 교차점을 정확히 확인하세요.\n"
+        "2. 당기/전기, 연결/별도, 금액 단위를 최우선으로 확인하세요.\n"
+        "3. raw_value는 문서에서 찾은 숫자를 변환 없이 그대로 적으세요.\n"
+        "4. final_value는 raw_value와 unit을 바탕으로 질문에 직접 답하는 자연스러운 한국어 한 문장으로 작성하세요.\n"
+        "5. 수치를 찾지 못한 경우 raw_value와 final_value를 빈 문자열로 두세요.\n\n"
+        "질문: {query}\n\n"
+        "컨텍스트:\n{context}\n"
+    ),
+}
+
 QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "strip_chars": "()[]{}'\"“”‘’,.·:;",
     "leading_connector_pattern": r"^(또는|및|등)\s+",
