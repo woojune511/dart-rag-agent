@@ -460,6 +460,133 @@ def _ensure_period_count_operand_docs(
 class FinancialAgentEvidenceMixin:
     _QUERY_FOCUS_STOPWORDS = QUERY_FOCUS_STOPWORDS
 
+    def _ensure_preferred_operand_section_docs(
+        self,
+        docs: List[tuple[Document, float]],
+        reranked: List[tuple[Document, float]],
+        active_subtask: Dict[str, Any],
+        effective_k: int,
+    ) -> List[tuple[Document, float]]:
+        required_operands = [
+            dict(item)
+            for item in (active_subtask.get("required_operands") or [])
+            if isinstance(item, dict)
+        ]
+        if not required_operands or not reranked or effective_k <= 0:
+            return list(docs or [])[:effective_k]
+
+        preferred_statement_types = [
+            _normalise_spaces(str(item))
+            for item in (active_subtask.get("preferred_statement_types") or [])
+            if _normalise_spaces(str(item))
+        ]
+        preferred_sections = [
+            _normalise_spaces(str(item))
+            for item in (active_subtask.get("preferred_sections") or [])
+            if _normalise_spaces(str(item))
+        ]
+        for operand in required_operands:
+            preferred_statement_types.extend(
+                _normalise_spaces(str(item))
+                for item in (operand.get("preferred_statement_types") or [])
+                if _normalise_spaces(str(item))
+            )
+            preferred_sections.extend(
+                _normalise_spaces(str(item))
+                for item in (operand.get("preferred_sections") or [])
+                if _normalise_spaces(str(item))
+            )
+        preferred_statement_types = list(dict.fromkeys(preferred_statement_types))
+        preferred_sections = list(dict.fromkeys(preferred_sections))
+        if not preferred_statement_types and not preferred_sections:
+            return list(docs or [])[:effective_k]
+
+        operand_needles_by_role = [
+            [
+                _normalise_spaces(str(needle))
+                for needle in _operand_needles(operand)
+                if _normalise_spaces(str(needle))
+            ]
+            for operand in required_operands
+        ]
+        operand_needles_by_role = [needles for needles in operand_needles_by_role if needles]
+        if not operand_needles_by_role:
+            return list(docs or [])[:effective_k]
+
+        def _doc_key(item: tuple[Document, float]) -> str:
+            doc = item[0]
+            metadata = getattr(doc, "metadata", {}) or {}
+            return str(metadata.get("chunk_uid") or metadata.get("chunk_id") or metadata.get("id") or id(doc))
+
+        def _doc_surface(doc: Document) -> str:
+            metadata = getattr(doc, "metadata", {}) or {}
+            return _normalise_spaces(
+                " ".join(
+                    str(part or "")
+                    for part in (
+                        metadata.get("section_path"),
+                        metadata.get("section"),
+                        metadata.get("local_heading"),
+                        metadata.get("table_context"),
+                        metadata.get("table_row_labels_text"),
+                        doc.page_content,
+                    )
+                )
+            )
+
+        def _candidate_priority(item: tuple[Document, float]) -> tuple[int, int, int, int, float]:
+            doc, score = item
+            metadata = getattr(doc, "metadata", {}) or {}
+            if str(metadata.get("block_type") or "").strip().lower() != "table":
+                return (0, 0, 0, 0, float(score or 0.0))
+            surface = _doc_surface(doc)
+            if not surface:
+                return (0, 0, 0, 1, float(score or 0.0))
+            covered_operands = sum(
+                1
+                for needles in operand_needles_by_role
+                if any(needle and needle in surface for needle in needles)
+            )
+            if covered_operands <= 0:
+                return (0, 0, 0, 1, float(score or 0.0))
+            statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+            statement_match = int(bool(preferred_statement_types and statement_type in preferred_statement_types))
+            section_surface = _normalise_spaces(
+                " ".join(
+                    str(part or "")
+                    for part in (
+                        metadata.get("section_path"),
+                        metadata.get("section"),
+                        metadata.get("local_heading"),
+                        metadata.get("table_context"),
+                    )
+                )
+            )
+            section_match = int(
+                bool(preferred_sections)
+                and any(section and section in section_surface for section in preferred_sections)
+            )
+            if preferred_statement_types and preferred_sections and not (statement_match or section_match):
+                return (0, 0, 0, 1, float(score or 0.0))
+            if preferred_statement_types and not preferred_sections and not statement_match:
+                return (0, 0, 0, 1, float(score or 0.0))
+            if preferred_sections and not preferred_statement_types and not section_match:
+                return (0, 0, 0, 1, float(score or 0.0))
+            return (statement_match, section_match, covered_operands, 1, float(score or 0.0))
+
+        selected = list(docs or [])[:effective_k]
+        selected_keys = {_doc_key(item) for item in selected}
+        candidate_items = [item for item in reranked if _doc_key(item) not in selected_keys]
+        if not candidate_items:
+            return selected
+        best_candidate = max(candidate_items, key=_candidate_priority)
+        best_priority = _candidate_priority(best_candidate)
+        if best_priority[:3] == (0, 0, 0):
+            return selected
+
+        merged = [best_candidate] + [item for item in selected if _doc_key(item) != _doc_key(best_candidate)]
+        return merged[:effective_k]
+
     def _active_narrative_policies_for_query(self, query: str) -> List[Dict[str, Any]]:
         return list(active_narrative_policies(str(query or "")))
 
@@ -1529,6 +1656,7 @@ class FinancialAgentEvidenceMixin:
         ]
         if required_operands and operation_family != "narrative_summary":
             docs = _ensure_period_count_operand_docs(docs, reranked, required_operands, effective_k)
+            docs = self._ensure_preferred_operand_section_docs(docs, reranked, active_subtask, effective_k)
         selected_chunks: List[Dict[str, Any]] = []
         for rank, item in enumerate(docs, start=1):
             doc, score = item

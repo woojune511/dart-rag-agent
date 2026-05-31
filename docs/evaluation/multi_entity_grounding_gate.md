@@ -112,9 +112,11 @@ Historical answer replay, with no agent rerun:
 
 ## Latest validation notes
 
-- Last checked: 2026-05-30
+- Last checked: 2026-05-31
 - Historical replay source for `comparison_002`:
   - `benchmarks/results/dev_math_focus_evalonly_2026-04-28/삼성전자-2024/results.json`
+- Latest replay output:
+  - `benchmarks/results/replay_multi_entity_manual_2026-05-31/`
 - Replay result:
   - `comparison_002 = PASS`
   - `numeric_equivalence = 1.0`

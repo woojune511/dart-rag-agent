@@ -30,6 +30,12 @@ class _StaticVSM:
         return list(self.docs)
 
 
+class _BM25OnlyVSM:
+    def __init__(self, docs, metadatas) -> None:
+        self.bm25_docs = docs
+        self.bm25_metadatas = metadatas
+
+
 class RetrievalScopeTests(unittest.TestCase):
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(
@@ -289,6 +295,151 @@ class RetrievalScopeTests(unittest.TestCase):
             [chunk["chunk_uid"] for chunk in result["retrieval_debug_trace"]["selected_chunks"]],
             ["table-low", "para-high"],
         )
+
+    def test_preferred_operand_section_doc_is_preserved_over_higher_scored_noncanonical_table(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        preferred_table = (
+            Document(
+                page_content="revenue | 1,000\ncost | 800\nadmin expense | 100",
+                metadata={
+                    "chunk_id": "preferred-income",
+                    "block_type": "table",
+                    "statement_type": "income_statement",
+                    "section_path": "Financial statements > Income statement",
+                    "table_context": "Income statement",
+                    "table_row_labels_text": "revenue cost admin expense",
+                },
+            ),
+            0.10,
+        )
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="cost | 8\nadmin expense | 1",
+                        metadata={
+                            "chunk_id": "notes-high",
+                            "block_type": "table",
+                            "statement_type": "notes",
+                            "section_path": "Financial statements > Notes",
+                            "table_context": "Notes",
+                            "table_row_labels_text": "cost admin expense",
+                        },
+                    ),
+                    0.99,
+                ),
+                (
+                    Document(
+                        page_content="general paragraph",
+                        metadata={"chunk_id": "para-high", "block_type": "paragraph"},
+                    ),
+                    0.98,
+                ),
+                preferred_table,
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "Calculate the expense ratio.",
+                "active_subtask": {
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {
+                            "label": "cost",
+                            "role": "numerator_1",
+                            "preferred_statement_types": ["income_statement"],
+                            "preferred_sections": ["Income statement"],
+                        },
+                        {
+                            "label": "admin expense",
+                            "role": "numerator_2",
+                            "preferred_statement_types": ["income_statement"],
+                            "preferred_sections": ["Income statement"],
+                        },
+                        {
+                            "label": "revenue",
+                            "role": "denominator_1",
+                            "preferred_statement_types": ["income_statement"],
+                            "preferred_sections": ["Income statement"],
+                        },
+                    ],
+                    "preferred_statement_types": ["income_statement"],
+                    "preferred_sections": ["Income statement"],
+                },
+                "report_scope": {},
+                "companies": [],
+                "years": [],
+                "section_filter": None,
+                "intent": "comparison",
+                "query_type": "comparison",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        selected_ids = [doc.metadata.get("chunk_id") for doc, _score in result["retrieved_docs"]]
+        self.assertIn("preferred-income", selected_ids)
+        self.assertEqual(selected_ids[0], "preferred-income")
+
+    def test_supplemental_seed_uses_preferred_statement_type_with_operand_coverage(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            docs=[
+                "revenue | 1,000\ncost | 800\nadmin expense | 100",
+                "unrelated table",
+            ],
+            metadatas=[
+                {
+                    "chunk_uid": "income-table",
+                    "company": "ExampleCo",
+                    "year": 2023,
+                    "block_type": "table",
+                    "statement_type": "income_statement",
+                    "section_path": "Financial statements",
+                    "table_context": "Financial statements",
+                    "table_row_labels_text": "revenue cost admin expense",
+                },
+                {
+                    "chunk_uid": "other-table",
+                    "company": "ExampleCo",
+                    "year": 2023,
+                    "block_type": "table",
+                    "statement_type": "notes",
+                    "section_path": "Notes",
+                    "table_context": "Notes",
+                    "table_row_labels_text": "other",
+                },
+            ],
+        )
+
+        docs = agent._supplement_section_seed_docs(
+            {
+                "query": "손익계산서 비용률",
+                "topic": "손익계산서 비용률",
+                "intent": "comparison",
+                "query_type": "comparison",
+                "companies": ["ExampleCo"],
+                "years": [2023],
+                "active_subtask": {
+                    "preferred_statement_types": ["income_statement"],
+                    "required_operands": [
+                        {"label": "revenue", "preferred_statement_types": ["income_statement"]},
+                        {"label": "cost", "preferred_statement_types": ["income_statement"]},
+                        {"label": "admin expense", "preferred_statement_types": ["income_statement"]},
+                    ],
+                },
+            }
+        )
+
+        self.assertTrue(docs)
+        self.assertEqual(docs[0][0].metadata["chunk_uid"], "income-table")
 
 if __name__ == "__main__":
     unittest.main()

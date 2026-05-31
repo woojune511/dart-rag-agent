@@ -1505,6 +1505,7 @@ def _candidate_is_canonical_statement_winner(
     canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
     if canonical_types and statement_type not in canonical_types:
         return False
+    canonical_statement_type_hit = bool(canonical_types) and statement_type in canonical_types and statement_type not in {"notes", "unknown"}
     local_heading = _normalise_spaces(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
@@ -1513,7 +1514,7 @@ def _candidate_is_canonical_statement_winner(
     allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
     if note_context and not allows_note_canonical:
         return False
-    if canonical_sections and not any(
+    if canonical_sections and not canonical_statement_type_hit and not any(
         _normalise_spaces(section) in local_heading or _normalise_spaces(section) in section_path
         for section in canonical_sections
         if _normalise_spaces(section)
@@ -6270,6 +6271,11 @@ def _candidate_satisfies_direct_acceptance_contract(
         canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
         note_context = "주석" in local_heading or "주석" in section_path
         allows_note_canonical = any("주석" in _normalise_spaces(section) for section in canonical_sections)
+        canonical_statement_type_hit = (
+            bool(canonical_types)
+            and statement_type in canonical_types
+            and statement_type not in {"notes", "unknown"}
+        )
         canonical_section_hit = bool(canonical_sections) and any(
             _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
             for section_term in canonical_sections
@@ -6279,7 +6285,7 @@ def _candidate_satisfies_direct_acceptance_contract(
             return False
         if note_context and not allows_note_canonical and not canonical_section_hit:
             return False
-        if canonical_sections and (local_heading or section_path) and not canonical_section_hit:
+        if canonical_sections and (local_heading or section_path) and not canonical_section_hit and not canonical_statement_type_hit:
             return False
     if _is_balance_sheet_aggregate_operand(operand):
         if statement_type == "notes" and value_role == "detail":

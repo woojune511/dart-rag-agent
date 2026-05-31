@@ -320,34 +320,159 @@ class FinancialAgentCalculationMixin:
                     return True
         return False
 
+    def _row_is_narrative_summary(self, row: Dict[str, Any]) -> bool:
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        operation_family = self._aggregate_result_operation_family(row)
+        return metric_family == "narrative_summary" or operation_family == "narrative_summary"
+
+    def _unresolved_structured_numeric_gap(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        for row in ordered_results:
+            if self._row_is_narrative_summary(row):
+                continue
+            operation_family = self._aggregate_result_operation_family(row)
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if operation_family not in {"lookup", "single_value", "ratio", "sum", "difference", "growth_rate"}:
+                if not metric_family.startswith("concept_"):
+                    continue
+            status = str(
+                row.get("status")
+                or (row.get("calculation_result") or {}).get("status")
+                or ""
+            ).strip().lower()
+            gap = self._material_gap_feedback_for_subtask_result(row)
+            if not gap and status and status != "ok":
+                metric_label = _normalise_spaces(
+                    str(row.get("metric_label") or row.get("task_id") or "계산 결과")
+                )
+                gap = f"{metric_label} 계산에 필요한 재료가 누락되었습니다."
+            if not gap:
+                continue
+            if (
+                self._sibling_lookup_gap_is_satisfied(row, ordered_results)
+                or self._lookup_gap_is_satisfied_by_sibling_slots(row, ordered_results)
+                or self._feedback_gap_is_satisfied_by_derived_slots(gap, ordered_results)
+            ):
+                continue
+            return gap
+        return ""
+
+    def _safe_partial_answer_for_numeric_gap(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        safe_parts: List[str] = []
+        for row in ordered_results:
+            if self._row_is_narrative_summary(row):
+                continue
+            status = str(
+                row.get("status")
+                or (row.get("calculation_result") or {}).get("status")
+                or ""
+            ).strip().lower()
+            if status != "ok":
+                continue
+            if self._material_gap_feedback_for_subtask_result(row):
+                continue
+            answer = _normalise_spaces(str(row.get("answer") or ""))
+            if not answer:
+                calculation_result = dict(row.get("calculation_result") or {})
+                answer = _normalise_spaces(
+                    str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
+                )
+            if answer:
+                safe_parts.append(answer)
+        return " ".join(dict.fromkeys(safe_parts)).strip()
+
+    def _preferred_complete_numeric_answer(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        for row in reversed(ordered_results):
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
+                continue
+            status = _normalise_spaces(
+                str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer = _normalise_spaces(
+                str(
+                    calculation_result.get("formatted_result")
+                    or calculation_result.get("rendered_value")
+                    or row.get("answer")
+                    or ""
+                )
+            )
+            if answer:
+                return answer
+        return ""
+
+    def _query_requests_explanatory_context(
+        self,
+        query: str,
+    ) -> bool:
+        text = _normalise_spaces(str(query or "")).lower()
+        if not text:
+            return False
+        explanatory_markers = (
+            "설명",
+            "배경",
+            "이유",
+            "원인",
+            "요인",
+            "영향",
+            "의미",
+            "해석",
+            "분석",
+            "평가",
+            "왜",
+            "why",
+            "explain",
+            "reason",
+            "driver",
+            "impact",
+        )
+        return any(marker in text for marker in explanatory_markers)
+
+    def _answer_reuses_narrative_summary_text(
+        self,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text:
+            return False
+        for row in ordered_results:
+            if not self._row_is_narrative_summary(row):
+                continue
+            narrative_answer = _normalise_spaces(str(row.get("answer") or ""))
+            if len(narrative_answer) < 20 or not re.search(r"\d", narrative_answer):
+                continue
+            if narrative_answer in answer_text or answer_text in narrative_answer:
+                return True
+        return False
+
     def _preferred_aggregate_fallback_answer(
         self,
         ordered_results: List[Dict[str, Any]],
         default_answer: str,
     ) -> str:
-        if getattr(self, "low_api_debug", False):
-            for row in reversed(ordered_results):
-                operation_family = self._aggregate_result_operation_family(row)
-                status = _normalise_spaces(
-                    str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
-                ).lower()
-                if operation_family in {"ratio", "sum", "difference", "growth_rate"} and status == "ok":
-                    calculation_result = dict(row.get("calculation_result") or {})
-                    answer = _normalise_spaces(
-                        str(
-                            calculation_result.get("formatted_result")
-                            or calculation_result.get("rendered_value")
-                            or row.get("answer")
-                            or ""
-                        )
-                    )
-                    if answer:
-                        return answer
+        if self._unresolved_structured_numeric_gap(ordered_results):
+            safe_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            return safe_answer
+
+        has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
+        complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+        if has_narrative_summary and complete_numeric_answer:
+            return complete_numeric_answer
 
         for row in ordered_results:
-            sibling_metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-            sibling_operation_family = self._aggregate_result_operation_family(row)
-            if sibling_metric_family != "narrative_summary" and sibling_operation_family != "narrative_summary":
+            if not self._row_is_narrative_summary(row):
                 continue
             sibling_answer = _normalise_spaces(str(row.get("answer") or ""))
             if sibling_answer and re.search(r"\d", sibling_answer):
@@ -584,6 +709,174 @@ class FinancialAgentCalculationMixin:
                 resolved_keys.add(binding_key)
         return resolved_keys
 
+    def _producer_task_for_dependency_binding(
+        self,
+        state: FinancialAgentState,
+        binding: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+        if not preferred_task_id:
+            return {}
+        for task in list(state.get("calc_subtasks") or []):
+            task_row = dict(task or {})
+            if _normalise_spaces(str(task_row.get("task_id") or "")) == preferred_task_id:
+                return task_row
+        for task in list((dict(state.get("semantic_plan") or {}).get("tasks") or [])):
+            task_row = dict(task or {})
+            if _normalise_spaces(str(task_row.get("task_id") or "")) == preferred_task_id:
+                return task_row
+        return {}
+
+    def _producer_statement_types_for_dependency_binding(
+        self,
+        state: FinancialAgentState,
+        binding: Dict[str, Any],
+    ) -> List[str]:
+        producer_task = self._producer_task_for_dependency_binding(state, binding)
+        if not producer_task:
+            return []
+        preferred_types: List[str] = []
+        binding_role = _normalise_spaces(str(binding.get("role") or ""))
+        binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
+        for operand in list(producer_task.get("required_operands") or []):
+            operand_row = dict(operand or {})
+            operand_role = _normalise_spaces(str(operand_row.get("role") or ""))
+            operand_concept = _normalise_spaces(str(operand_row.get("concept") or ""))
+            if binding_role and operand_role and binding_role != operand_role:
+                continue
+            if binding_concept and operand_concept and binding_concept != operand_concept:
+                continue
+            preferred_types.extend(
+                _normalise_spaces(str(item))
+                for item in list(operand_row.get("preferred_statement_types") or [])
+                if _normalise_spaces(str(item))
+            )
+        preferred_types.extend(
+            _normalise_spaces(str(item))
+            for item in list(producer_task.get("preferred_statement_types") or [])
+            if _normalise_spaces(str(item))
+        )
+        return list(dict.fromkeys(preferred_types))
+
+    def _producer_sections_for_dependency_binding(
+        self,
+        state: FinancialAgentState,
+        binding: Dict[str, Any],
+    ) -> List[str]:
+        producer_task = self._producer_task_for_dependency_binding(state, binding)
+        if not producer_task:
+            return []
+        preferred_sections: List[str] = []
+        binding_role = _normalise_spaces(str(binding.get("role") or ""))
+        binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
+        for operand in list(producer_task.get("required_operands") or []):
+            operand_row = dict(operand or {})
+            operand_role = _normalise_spaces(str(operand_row.get("role") or ""))
+            operand_concept = _normalise_spaces(str(operand_row.get("concept") or ""))
+            if binding_role and operand_role and binding_role != operand_role:
+                continue
+            if binding_concept and operand_concept and binding_concept != operand_concept:
+                continue
+            preferred_sections.extend(
+                _normalise_spaces(str(item))
+                for item in list(operand_row.get("preferred_sections") or [])
+                if _normalise_spaces(str(item))
+            )
+        preferred_sections.extend(
+            _normalise_spaces(str(item))
+            for item in list(producer_task.get("preferred_sections") or [])
+            if _normalise_spaces(str(item))
+        )
+        return list(dict.fromkeys(preferred_sections))
+
+    def _dependency_row_violates_producer_scope(
+        self,
+        row: Dict[str, Any],
+        *,
+        preferred_statement_types: List[str],
+        preferred_sections: List[str],
+    ) -> tuple[bool, str]:
+        row_statement_type = _normalise_spaces(str(row.get("statement_type") or ""))
+        if (
+            preferred_statement_types
+            and row_statement_type
+            and row_statement_type not in preferred_statement_types
+        ):
+            return True, "statement_type"
+
+        row_scope_text = _normalise_spaces(
+            " ".join(
+                str(row.get(key) or "")
+                for key in ("source_anchor", "table_source_id", "source_context")
+            )
+        ).lower()
+        if not row_scope_text:
+            return False, ""
+        row_is_note_scoped = "주석" in row_scope_text or "note" in row_scope_text
+        producer_allows_notes = (
+            "notes" in preferred_statement_types
+            or any(
+                "주석" in _normalise_spaces(str(section)).lower()
+                or "note" in _normalise_spaces(str(section)).lower()
+                for section in preferred_sections
+            )
+        )
+        if row_is_note_scoped and not producer_allows_notes:
+            return True, "section_scope"
+        return False, ""
+
+    def _filter_direct_rows_by_dependency_producer_scope(
+        self,
+        state: FinancialAgentState,
+        *,
+        bindings: List[Dict[str, Any]],
+        operand_rows: List[Dict[str, Any]],
+    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        if not bindings or not operand_rows:
+            return list(operand_rows or []), []
+        filtered_rows: List[Dict[str, Any]] = []
+        rejected_rows: List[Dict[str, Any]] = []
+        for row in list(operand_rows or []):
+            row_data = dict(row or {})
+            matching_binding = next(
+                (
+                    dict(binding)
+                    for binding in bindings
+                    if _operand_row_matches_requirement(row_data, dict(binding))
+                ),
+                {},
+            )
+            if not matching_binding:
+                filtered_rows.append(row_data)
+                continue
+            preferred_statement_types = self._producer_statement_types_for_dependency_binding(
+                state,
+                matching_binding,
+            )
+            preferred_sections = self._producer_sections_for_dependency_binding(
+                state,
+                matching_binding,
+            )
+            violates_scope, reject_reason = self._dependency_row_violates_producer_scope(
+                row_data,
+                preferred_statement_types=preferred_statement_types,
+                preferred_sections=preferred_sections,
+            )
+            if violates_scope:
+                rejected_rows.append(
+                    {
+                        "binding": matching_binding,
+                        "row": row_data,
+                        "reject_reason": reject_reason,
+                        "preferred_statement_types": preferred_statement_types,
+                        "preferred_sections": preferred_sections,
+                        "row_statement_type": _normalise_spaces(str(row_data.get("statement_type") or "")),
+                    }
+                )
+                continue
+            filtered_rows.append(row_data)
+        return filtered_rows, rejected_rows
+
     def _dependency_binding_identity(self, binding: Dict[str, Any]) -> tuple[str, str]:
         return (
             _normalise_spaces(str(binding.get("label") or "")),
@@ -596,6 +889,19 @@ class FinancialAgentCalculationMixin:
         )
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or {})
+        status = str(
+            row.get("status")
+            or calculation_result.get("status")
+            or ""
+        ).strip().lower()
+        rendered_material = _normalise_spaces(
+            str(
+                calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or row.get("answer")
+                or ""
+            )
+        )
         operation_family = str(
             answer_slots.get("operation_family")
             or ((row.get("calculation_plan") or {}).get("operation_family"))
@@ -604,6 +910,10 @@ class FinancialAgentCalculationMixin:
         ).strip().lower()
         if not operation_family:
             operation_family = str((row.get("calculation_plan") or {}).get("operation") or "").strip().lower()
+        if not operation_family:
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if metric_family.startswith("concept_"):
+                operation_family = metric_family.removeprefix("concept_")
 
         if operation_family == "aggregate_subtasks":
             nested_results = list(
@@ -643,13 +953,16 @@ class FinancialAgentCalculationMixin:
                     missing_labels.append("증감값")
             else:
                 if not self._answer_slot_has_material(primary_slot):
-                    missing_labels.append("증감률")
+                    if not (status == "ok" and rendered_material and re.search(r"\d", rendered_material)):
+                        missing_labels.append("증감률")
             if missing_labels:
                 return f"{metric_label} 계산에 필요한 {' / '.join(missing_labels)}이 누락되었습니다."
             return ""
 
         if operation_family in {"ratio", "sum"}:
             if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+                if status == "ok" and rendered_material and re.search(r"\d", rendered_material):
+                    return ""
                 return f"{metric_label} 계산 결과가 누락되었습니다."
             return ""
 
@@ -677,7 +990,6 @@ class FinancialAgentCalculationMixin:
                 if (
                     self._sibling_lookup_gap_is_satisfied(row, ordered_results)
                     or self._lookup_gap_is_satisfied_by_sibling_slots(row, ordered_results)
-                    or self._narrative_summary_gap_is_satisfied(row, ordered_results)
                 ):
                     continue
                 gap = self._material_gap_feedback_for_subtask_result(row)
@@ -697,7 +1009,6 @@ class FinancialAgentCalculationMixin:
             if gap and (
                 self._sibling_lookup_gap_is_satisfied(row, ordered_results)
                 or self._lookup_gap_is_satisfied_by_sibling_slots(row, ordered_results)
-                or self._narrative_summary_gap_is_satisfied(row, ordered_results)
                 or self._feedback_gap_is_satisfied_by_derived_slots(gap, ordered_results)
             ):
                 continue
@@ -1883,6 +2194,8 @@ class FinancialAgentCalculationMixin:
         dependency_rows = list(dependency_state.get("rows") or [])
         dependency_bindings = list(dependency_state.get("bindings") or [])
         dependency_resolved_keys = set(dependency_state.get("resolved_keys") or set())
+        missing_dependency_bindings = list(dependency_state.get("missing_bindings") or [])
+        rejected_dependency_scope_rows: List[Dict[str, Any]] = []
         retry_strategy = self._active_retry_strategy(state)
         synthesis_only_retry = (
             retry_strategy == "synthesize_from_task_outputs"
@@ -1895,6 +2208,12 @@ class FinancialAgentCalculationMixin:
                 required_operands=required_operands,
             )
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
+        if missing_dependency_bindings and direct_structured_rows:
+            direct_structured_rows, rejected_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
+                state,
+                bindings=missing_dependency_bindings,
+                operand_rows=direct_structured_rows,
+            )
         dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
         direct_dependency_fill_allowed = operation_family in {"difference", "growth_rate"}
         if dependency_binding_keys and direct_structured_rows:
@@ -1914,7 +2233,6 @@ class FinancialAgentCalculationMixin:
                     continue
                 filtered_rows.append(row)
             direct_structured_rows = filtered_rows
-        missing_dependency_bindings = list(dependency_state.get("missing_bindings") or [])
         if direct_dependency_fill_allowed and missing_dependency_bindings and direct_structured_rows:
             direct_resolved_keys = self._direct_rows_resolved_dependency_keys(
                 missing_dependency_bindings,
@@ -1930,6 +2248,7 @@ class FinancialAgentCalculationMixin:
         allow_dependency_retry_fallback = (
             operation_family in {"ratio", "difference"}
             and bool(missing_dependency_bindings)
+            and not bool(rejected_dependency_scope_rows)
             and (
                 int(state.get("reconciliation_retry_count") or 0) > 0
                 or has_retrieved_docs_for_dependency_fallback
@@ -1956,6 +2275,7 @@ class FinancialAgentCalculationMixin:
                     "retry_strategy": retry_strategy,
                     "dependency_operands": dependency_rows,
                     "missing_dependency_bindings": missing_dependency_bindings,
+                    "rejected_dependency_scope_rows": rejected_dependency_scope_rows,
                     "operands": direct_structured_rows,
                 },
                 "evidence_items": evidence_items,
@@ -2263,6 +2583,13 @@ class FinancialAgentCalculationMixin:
                 topic=topic,
                 report_scope=report_scope,
             )
+            if missing_dependency_bindings and deterministic_required_rows:
+                deterministic_required_rows, rejected_rows = self._filter_direct_rows_by_dependency_producer_scope(
+                    state,
+                    bindings=missing_dependency_bindings,
+                    operand_rows=deterministic_required_rows,
+                )
+                rejected_dependency_scope_rows.extend(rejected_rows)
             if deterministic_required_rows:
                 direct_structured_rows = _merge_operand_rows(
                     direct_structured_rows,
@@ -2304,6 +2631,18 @@ class FinancialAgentCalculationMixin:
                         filtered.append(candidate)
                 return filtered
 
+            def _filter_dependency_scoped_low_api_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                nonlocal rejected_dependency_scope_rows
+                if not missing_dependency_bindings:
+                    return [dict(row) for row in rows]
+                filtered_rows, rejected_rows = self._filter_direct_rows_by_dependency_producer_scope(
+                    state,
+                    bindings=missing_dependency_bindings,
+                    operand_rows=rows,
+                )
+                rejected_dependency_scope_rows.extend(rejected_rows)
+                return filtered_rows
+
             operand_rows = list(direct_structured_rows)
             if deterministic_required_rows:
                 operand_rows = _merge_operand_rows(
@@ -2311,6 +2650,7 @@ class FinancialAgentCalculationMixin:
                     operand_rows,
                     required_operands=required_operands,
                 )
+            operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
             operand_rows = _filter_supported_low_api_rows(operand_rows)
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and surface_contract_evidence:
@@ -2326,6 +2666,7 @@ class FinancialAgentCalculationMixin:
                     surface_fallback_rows,
                     required_operands=required_operands,
                 )
+                operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
                 operand_rows = _filter_supported_low_api_rows(operand_rows)
                 missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding:
@@ -2341,6 +2682,7 @@ class FinancialAgentCalculationMixin:
                     generic_fallback_rows,
                     required_operands=required_operands,
                 )
+                operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
                 operand_rows = _filter_supported_low_api_rows(operand_rows)
                 missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
@@ -2356,6 +2698,7 @@ class FinancialAgentCalculationMixin:
                     ratio_fallback_rows,
                     required_operands=required_operands,
                 )
+                operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
                 operand_rows = _filter_supported_low_api_rows(operand_rows)
             if _is_percent_point_difference_query(query):
                 operand_rows = [
@@ -2395,6 +2738,7 @@ class FinancialAgentCalculationMixin:
                     "source": "low_api_debug_deterministic_operands",
                     "llm_invoked": False,
                     "direct_structured_rows": direct_structured_rows,
+                    "rejected_dependency_scope_rows": rejected_dependency_scope_rows,
                     "missing_required": missing_required,
                     "operands": operand_rows,
                 },
@@ -4425,6 +4769,14 @@ Operands:
             str(state.get("answer") or state.get("compressed_answer") or "")
         )
         fallback_answer = self._preferred_aggregate_fallback_answer(ordered_results, fallback_answer)
+        complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+        has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
+        numeric_answer_locked = bool(
+            has_narrative_summary
+            and
+            complete_numeric_answer
+            and not self._query_requests_explanatory_context(str(state.get("query") or ""))
+        )
         final_answer = fallback_answer
         planner_feedback = ""
         deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
@@ -4511,6 +4863,13 @@ Subtask Results JSON:
                 planner_feedback = _normalise_spaces(str(synthesized.planner_feedback or ""))
             except Exception as exc:
                 logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
+        if (
+            deterministic_feedback
+            and self._unresolved_structured_numeric_gap(ordered_results)
+            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
+        ):
+            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            final_answer = safe_partial_answer or ""
         final_answer = self._coerce_sign_aware_subtraction_answer(
             final_answer,
             calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
@@ -4525,11 +4884,12 @@ Subtask Results JSON:
             final_answer = slot_based_difference_answer
             planner_feedback = ""
             deterministic_feedback = ""
-        final_answer = self._include_narrative_context_if_needed(
-            final_answer,
-            query=str(state.get("query") or ""),
-            narrative_context=narrative_context,
-        )
+        if not deterministic_feedback:
+            final_answer = self._include_narrative_context_if_needed(
+                final_answer,
+                query=str(state.get("query") or ""),
+                narrative_context=narrative_context,
+            )
         growth_narrative_answer = self._compose_growth_narrative_answer(
             query=str(state.get("query") or ""),
             ordered_results=ordered_results,
@@ -4595,6 +4955,12 @@ Subtask Results JSON:
                 calculation_projection_override = None
                 planner_feedback = ""
                 deterministic_feedback = ""
+        if numeric_answer_locked:
+            final_answer = complete_numeric_answer
+            composition_selected_claim_ids = []
+            calculation_projection_override = None
+            planner_feedback = ""
+            deterministic_feedback = ""
         # Prefer the deterministic structured-material check over a stale
         # deterministic hint, but preserve independent synthesizer feedback for
         # replan/budget-exhausted cases.

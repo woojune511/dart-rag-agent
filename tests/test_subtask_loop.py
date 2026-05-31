@@ -884,6 +884,164 @@ class SubtaskLoopTests(unittest.TestCase):
             ["numerator_1", "denominator_1"],
         )
 
+    def test_ratio_dependency_fallback_rejects_rows_outside_producer_statement_scope(self) -> None:
+        state = {
+            "query": "Calculate the ratio using values from the income statement.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "ExampleCo", "year": 2023},
+            "topic": "expense ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "expense ratio",
+                "query": "Calculate the ratio using values from the income statement.",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "cost", "concept": "cost_of_sales", "role": "numerator_1"},
+                    {"label": "revenue", "concept": "revenue", "role": "denominator_1"},
+                ],
+                "depends_on": ["task_cost", "task_revenue"],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "cost_of_sales",
+                        "period": "2023",
+                        "label": "cost",
+                        "preferred_task_id": "task_cost",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "label": "revenue",
+                        "preferred_task_id": "task_revenue",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "calc_subtasks": [
+                {
+                    "task_id": "task_cost",
+                    "operation_family": "lookup",
+                    "preferred_statement_types": ["income_statement"],
+                    "required_operands": [
+                        {
+                            "label": "cost",
+                            "concept": "cost_of_sales",
+                            "role": "numerator_1",
+                            "preferred_statement_types": ["income_statement"],
+                        }
+                    ],
+                },
+                {
+                    "task_id": "task_revenue",
+                    "operation_family": "lookup",
+                    "preferred_statement_types": ["income_statement"],
+                    "required_operands": [
+                        {
+                            "label": "revenue",
+                            "concept": "revenue",
+                            "role": "denominator_1",
+                            "preferred_statement_types": ["income_statement"],
+                        }
+                    ],
+                },
+                {
+                    "task_id": "task_ratio",
+                    "operation_family": "ratio",
+                },
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_revenue",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 revenue",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "1,000",
+                                "raw_unit": "백만원",
+                                "normalized_value": 1000000000.0,
+                                "normalized_unit": "KRW",
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="cost | 100\nrevenue | 1,000",
+                        metadata={"block_type": "table", "statement_type": "notes"},
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_001",
+                "evidence_id": "value:cost",
+                "label": "2023 cost",
+                "raw_value": "100",
+                "raw_unit": "백만원",
+                "normalized_value": 100000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "statement_type": "income_statement",
+                "source_anchor": "[ExampleCo | 2023 | Financial statement notes]",
+                "matched_operand_label": "cost",
+                "matched_operand_concept": "cost_of_sales",
+                "matched_operand_role": "numerator_1",
+            },
+            {
+                "operand_id": "op_002",
+                "evidence_id": "value:revenue",
+                "label": "2023 revenue",
+                "raw_value": "1,000",
+                "raw_unit": "백만원",
+                "normalized_value": 1000000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "statement_type": "income_statement",
+                "matched_operand_label": "revenue",
+                "matched_operand_concept": "revenue",
+                "matched_operand_role": "denominator_1",
+            },
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+
+        extracted = self.agent._extract_calculation_operands(state)
+
+        self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
+        self.assertEqual(len(extracted["calculation_operands"]), 1)
+        self.assertEqual(extracted["calculation_operands"][0]["matched_operand_role"], "denominator_1")
+        rejected = extracted["calculation_debug_trace"]["rejected_dependency_scope_rows"]
+        self.assertEqual(len(rejected), 1)
+        self.assertEqual(rejected[0]["reject_reason"], "section_scope")
+
     def test_growth_rate_direct_rows_can_fill_missing_task_output_binding(self) -> None:
         state = {
             "query": "2023년 시설투자(CAPEX) 총액의 전년 대비 증감률을 계산해 줘.",
@@ -1393,7 +1551,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(len(projection["calculation_operands"]), 1)
         self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
 
-    def test_aggregate_subtasks_prefers_narrative_summary_fallback_over_partial_failures(self) -> None:
+    def test_aggregate_subtasks_does_not_use_narrative_text_for_numeric_gaps(self) -> None:
         self.agent.llm = None
         state = {
             "query": "2023년 총 영업비용과 영업비용률을 계산해 줘.",
@@ -1447,11 +1605,63 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        self.assertEqual(
-            updated["answer"],
-            "매출원가는 129,179,183 백만원입니다. 판매비와관리비는 18,357,495 백만원입니다. 총 영업비용은 147,536,678 백만원입니다. 매출액 대비 영업비용률은 약 90.70%입니다.",
-        )
-        self.assertEqual(updated["planner_feedback"], "")
+        self.assertEqual(updated["answer"], "질문에 필요한 수치를 끝내 충분히 확보하지 못했습니다.")
+        self.assertIn("매출원가", updated["planner_feedback"])
+        self.assertNotIn("90.70%", updated["answer"])
+
+    def test_aggregate_subtasks_prefers_complete_numeric_result_over_narrative_summary(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "2023년 연결기준 판매비와관리비를 포함한 비용률을 계산해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_ratio", "metric_label": "비용률", "operation_family": "ratio"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "metric_label": "질문 관련 배경/영향 설명", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "operation_family": "narrative_summary",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "비용률",
+                    "answer": "90.7%",
+                    "status": "ok",
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "90.7%",
+                        "formatted_result": "90.7%",
+                        "source_row_ids": ["task_output:task_3", "task_output:task_4", "task_output:task_5"],
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "rendered_value": "90.7%",
+                                "normalized_value": 90.7,
+                                "normalized_unit": "PERCENT",
+                            },
+                        },
+                    },
+                }
+            ],
+            "answer": "서술형 근거 문장이 277.94%를 잘못 말합니다.",
+            "compressed_answer": "서술형 근거 문장이 277.94%를 잘못 말합니다.",
+            "selected_claim_ids": ["narrative_ev"],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["answer"], "90.7%")
+        self.assertEqual(updated["calculation_result"]["formatted_result"], "90.7%")
+        self.assertNotIn("277.94%", updated["answer"])
 
     def test_narrative_summary_gap_check_handles_wrapped_lookup_rows(self) -> None:
         rows = [

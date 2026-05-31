@@ -1455,7 +1455,27 @@ candidate options:
         section_terms = _supplement_section_terms_for_query(query, topic, intent)
         section_terms.extend(_active_preferred_sections(state, query, topic, intent))
         section_terms = list(dict.fromkeys(term for term in section_terms if term))
-        if not section_terms:
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operand_needles = [
+            _normalise_spaces(needle)
+            for operand in (active_subtask.get("required_operands") or [])
+            for needle in _operand_needles(dict(operand))
+            if _normalise_spaces(needle)
+        ]
+        active_operand_needles = list(dict.fromkeys(active_operand_needles))
+        active_preferred_statement_types = [
+            _normalise_spaces(str(item))
+            for item in (active_subtask.get("preferred_statement_types") or [])
+            if _normalise_spaces(str(item))
+        ]
+        for operand in (active_subtask.get("required_operands") or []):
+            active_preferred_statement_types.extend(
+                _normalise_spaces(str(item))
+                for item in (dict(operand or {}).get("preferred_statement_types") or [])
+                if _normalise_spaces(str(item))
+            )
+        active_preferred_statement_types = list(dict.fromkeys(active_preferred_statement_types))
+        if not section_terms and not (active_preferred_statement_types and active_operand_needles):
             return []
 
         companies = {str(company).lower() for company in (state.get("companies") or [])}
@@ -1467,13 +1487,6 @@ candidate options:
         for spec in ontology.component_specs(query, topic, intent):
             metric_patterns.extend(re.escape(keyword) for keyword in spec.get("keywords", []))
         metric_patterns = list(dict.fromkeys(metric_patterns))
-        active_operand_needles = [
-            _normalise_spaces(needle)
-            for operand in (dict(state.get("active_subtask") or {}).get("required_operands") or [])
-            for needle in _operand_needles(dict(operand))
-            if _normalise_spaces(needle)
-        ]
-        active_operand_needles = list(dict.fromkeys(active_operand_needles))
 
         supplemented: List[tuple[Document, float]] = []
         seen_chunk_uids: set[str] = set()
@@ -1485,7 +1498,17 @@ candidate options:
             body_text = _normalise_spaces(str(body or ""))
             table_context = _normalise_spaces(str(metadata.get("table_context") or ""))
             section_surface = " ".join(part for part in (section_path, local_heading, table_context, row_labels, body_text[:800]) if part)
-            if not any(term in section_surface for term in section_terms):
+            section_match = any(term in section_surface for term in section_terms)
+            statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+            preferred_statement_match = bool(
+                active_preferred_statement_types
+                and statement_type in active_preferred_statement_types
+            )
+            operand_surface_match = bool(
+                active_operand_needles
+                and any(needle in section_surface for needle in active_operand_needles)
+            )
+            if not section_match and not (preferred_statement_match and operand_surface_match):
                 continue
             company = str(metadata.get("company", "")).lower()
             if companies and company not in companies and not any(target in company or company in target for target in companies):
@@ -1510,6 +1533,11 @@ candidate options:
                 score += 0.06
             if active_operand_needles and any(needle in text for needle in active_operand_needles):
                 score += 0.08
+            if preferred_statement_match and operand_surface_match:
+                score += 0.12
+            if active_operand_needles:
+                covered_needles = sum(1 for needle in active_operand_needles if needle in text)
+                score += min(0.06, covered_needles * 0.01)
 
             supplemented.append((Document(page_content=str(body or ""), metadata=metadata), score))
 

@@ -2658,6 +2658,59 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
+    def test_lookup_direct_acceptance_allows_statement_type_when_section_is_parent_financial_statement(self) -> None:
+        operand = {
+            "label": "2023년 매출원가",
+            "concept": "cost_of_sales",
+            "aliases": ["매출원가", "매출 원가", "cost of sales"],
+            "role": "primary_value",
+            "unit_family": "KRW",
+            "binding_policy": {
+                "prefer_period_focus": "current",
+                "prefer_consolidation_scope": "consolidated",
+            },
+            "surface_contract": {
+                "positive": ["매출원가", "매출 원가"],
+                "negative": ["매출액", "영업비용", "판매비와관리비"],
+            },
+        }
+        selected_cell = {
+            "column_headers": ["제 56 기", "당기", "2023"],
+            "value_text": "129,179,183",
+            "unit_hint": "백만원",
+            "_report_year": 2023,
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "매출원가 | 129,179,183",
+            "metadata": {
+                "semantic_label": "매출원가",
+                "row_label": "매출원가",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "period_focus": "multi_period",
+                "period_labels": ["당기", "2023", "2022", "2021"],
+                "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                "table_context": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                "year": 2023,
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "unit_hint": "백만원",
+            },
+        }
+
+        self.assertTrue(
+            _candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+                query_years=[2023],
+                operation_family="lookup",
+                selected_cell=selected_cell,
+                report_scope={"company": "현대자동차", "year": 2023, "report_type": "사업보고서", "rcept_no": "20240313001451"},
+            )
+        )
+
     def test_lookup_direct_acceptance_requires_row_local_segment_surface(self) -> None:
         operand = {
             "label": "2023년 커머스 매출액",

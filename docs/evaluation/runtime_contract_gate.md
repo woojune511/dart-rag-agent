@@ -225,6 +225,30 @@ Last checked: 2026-05-31.
   - Use historical replay for routine regression; do not rerun the live agent
     unless multi-entity routing, retrieval, reconciliation, or calculation
     code changed.
+- `MIX_T1_064`
+  - Command shape:
+    - `benchmark_runner --eval-only --question-id MIX_T1_064 --low-api-debug`
+  - Diagnostic result:
+    - `answer = 90.7%`
+    - `numeric_final_judgement = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+  - Failure class:
+    - no longer a current retrieval/dependency/formatting blocker
+    - previous residual was structural evidence preservation plus numeric
+      synthesis ordering: the correct financial-statement table seed could be
+      pushed out of the visible reranked window, and an incidental
+      narrative-summary sibling could overwrite a complete deterministic
+      numeric ratio
+    - fixed by generic runtime rules:
+      - required-operand seed docs may be promoted when parser metadata and
+        operand coverage satisfy the active task contract
+      - non-note canonical `statement_type` can prove structured evidence
+        scope even when the section path is only the parent statement section
+      - narrative summary text cannot satisfy unresolved numeric gaps, and a
+        complete deterministic numeric result wins unless the query explicitly
+        requests explanatory context
 
 ## Related canary
 

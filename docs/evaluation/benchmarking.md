@@ -1061,6 +1061,35 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
     - `numeric_retrieval_support = 1.0`
     - `numeric_final_judgement = PASS`
 
+### 2026-05-31 MIX_T1_064 structural follow-up
+
+- The composed-ratio row is now closed by deterministic numeric execution, not
+  by accepting an incidental narrative-summary fallback.
+- Runtime hardening validated by this row:
+  - seed evidence that was present before expansion/rerank can be preserved
+    when it satisfies the active task's required operand contract and preferred
+    parser metadata such as statement type
+  - canonical structured table evidence can be accepted when a non-note
+    `statement_type` proves the scope even if the section path is only the
+    parent financial-statement section
+  - numeric gaps cannot be satisfied by narrative-summary text, and a complete
+    deterministic ratio/sum/difference/growth result is preferred over
+    incidental narrative text unless the user explicitly asks for explanatory
+    context
+- Latest focused low-API eval-only result:
+  - command shape:
+    `benchmark_runner --eval-only --question-id MIX_T1_064 --low-api-debug`
+  - answer: `90.7%`
+  - `numeric_equivalence = 1.0`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  - `numeric_final_judgement = PASS`
+- Cost note:
+  - this check should stay a focused canary until two or three similar fixes
+    have accumulated; then run the curated runtime gate once
+  - do not use `contextual_selective_v2_prefix_2500_320` for routine triage
+    unless structural-vs-contextual arbitration is explicitly needed
+
 ## 2026-05-26 Hybrid mixed query runtime
 
 - `NAV_T2_006` is now treated as a true hybrid query in the direct
