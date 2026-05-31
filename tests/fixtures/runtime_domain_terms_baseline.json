@@ -54,7 +54,7 @@
       "fingerprint": "7eedf3c80dbfb201",
       "count": 1,
       "first_lines": [
-        2503
+        2522
       ]
     },
     {
@@ -74,7 +74,7 @@
       "fingerprint": "f85e12eabd11e967",
       "count": 1,
       "first_lines": [
-        1529
+        1541
       ]
     },
     {
@@ -84,7 +84,7 @@
       "fingerprint": "e0672f42e76a8987",
       "count": 1,
       "first_lines": [
-        4619
+        4634
       ]
     },
     {
@@ -112,12 +112,11 @@
       "text": "년",
       "category": "runtime_literal",
       "fingerprint": "17fe383876fff52a",
-      "count": 6,
+      "count": 5,
       "first_lines": [
         1387,
-        1739,
-        4079,
-        5705
+        4094,
+        5720
       ]
     },
     {
@@ -138,7 +137,7 @@
       "fingerprint": "8c7e3ede0fa967ac",
       "count": 1,
       "first_lines": [
-        5443
+        5458
       ]
     },
     {
@@ -148,7 +147,7 @@
       "fingerprint": "c117f7b0d39ae37e",
       "count": 1,
       "first_lines": [
-        5264
+        5279
       ]
     },
     {
@@ -158,7 +157,7 @@
       "fingerprint": "6056043e50ba39d6",
       "count": 1,
       "first_lines": [
-        3687
+        3706
       ]
     },
     {
@@ -168,7 +167,7 @@
       "fingerprint": "12584e4ab2fc29fb",
       "count": 1,
       "first_lines": [
-        2991
+        3010
       ]
     },
     {
@@ -183,46 +182,14 @@
     },
     {
       "path": "src/agent/financial_graph_calculation.py",
-      "text": "를 차감",
-      "category": "runtime_literal",
-      "fingerprint": "e3738b3e016b6410",
-      "count": 2,
-      "first_lines": [
-        4005
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "만큼 차감",
-      "category": "runtime_literal",
-      "fingerprint": "2cfbef1fae8fa2d8",
-      "count": 4,
-      "first_lines": [
-        4006,
-        4007
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
       "text": "백만원",
       "category": "runtime_literal",
       "fingerprint": "5b9aca9efa1cb642",
-      "count": 4,
+      "count": 3,
       "first_lines": [
-        1478,
-        1613,
-        3848,
-        4212
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "비율",
-      "category": "runtime_literal",
-      "fingerprint": "dfcdfb6818ebafff",
-      "count": 1,
-      "first_lines": [
-        1724
+        1625,
+        3867,
+        4227
       ]
     },
     {
@@ -230,10 +197,9 @@
       "text": "억원",
       "category": "runtime_literal",
       "fingerprint": "e55582e95ffe1d94",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1478,
-        3849
+        3868
       ]
     },
     {
@@ -243,7 +209,7 @@
       "fingerprint": "00537036c11979e5",
       "count": 1,
       "first_lines": [
-        2017
+        2036
       ]
     },
     {
@@ -253,8 +219,8 @@
       "fingerprint": "24fd49b30d078436",
       "count": 2,
       "first_lines": [
-        2152,
-        2156
+        2171,
+        2175
       ]
     },
     {
@@ -262,11 +228,10 @@
       "text": "원",
       "category": "runtime_literal",
       "fingerprint": "7ca792d9bb061cde",
-      "count": 3,
+      "count": 2,
       "first_lines": [
-        1478,
-        1704,
-        3846
+        1716,
+        3865
       ]
     },
     {
@@ -274,21 +239,10 @@
       "text": "은",
       "category": "runtime_literal",
       "fingerprint": "6950c21cbb3dc670",
-      "count": 3,
-      "first_lines": [
-        29,
-        33,
-        1741
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "을 차감",
-      "category": "runtime_literal",
-      "fingerprint": "ef96444e507843e2",
       "count": 2,
       "first_lines": [
-        4004
+        29,
+        33
       ]
     },
     {
@@ -298,17 +252,7 @@
       "fingerprint": "de4d14c45b9e10fd",
       "count": 1,
       "first_lines": [
-        1999
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
-      "text": "입니다.",
-      "category": "runtime_literal",
-      "fingerprint": "8eaef015ead0564b",
-      "count": 1,
-      "first_lines": [
-        1741
+        2018
       ]
     },
     {
@@ -316,10 +260,9 @@
       "text": "조원",
       "category": "runtime_literal",
       "fingerprint": "2081f077f4407ea5",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1478,
-        3850
+        3869
       ]
     },
     {
@@ -329,7 +272,7 @@
       "fingerprint": "cb4958652000269f",
       "count": 1,
       "first_lines": [
-        1791
+        1810
       ]
     },
     {
@@ -350,7 +293,7 @@
       "fingerprint": "5cc7250da5f208a1",
       "count": 1,
       "first_lines": [
-        4620
+        4635
       ]
     },
     {
@@ -360,7 +303,7 @@
       "fingerprint": "0b992c4a6917dad0",
       "count": 1,
       "first_lines": [
-        4470
+        4485
       ]
     },
     {
@@ -370,7 +313,7 @@
       "fingerprint": "23ab25b3ab77e604",
       "count": 1,
       "first_lines": [
-        5448
+        5463
       ]
     },
     {
@@ -378,12 +321,11 @@
       "text": "천원",
       "category": "runtime_literal",
       "fingerprint": "9e011f27d9f7b129",
-      "count": 4,
+      "count": 3,
       "first_lines": [
-        1478,
-        1613,
-        3847,
-        4212
+        1625,
+        3866,
+        4227
       ]
     },
     {
@@ -393,10 +335,10 @@
       "fingerprint": "bd1699610adad626",
       "count": 4,
       "first_lines": [
-        1979,
-        3833,
-        3909,
-        4649
+        1998,
+        3852,
+        3928,
+        4664
       ]
     },
     {

@@ -1474,8 +1474,20 @@ class FinancialAgentCalculationMixin:
         normalized_hint = _normalise_spaces(unit_hint).lower()
         if normalized_current == normalized_hint:
             return current_unit
-        bare_numeric = bool(re.fullmatch(r"[\(\)\-]?\d[\d,]*(?:\.\d+)?", str(raw_value or "").strip()))
-        if bare_numeric and normalized_current in {"원", "krw"} and normalized_hint in {"천원", "백만원", "억원", "조원"}:
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        bare_numeric_pattern = str(render_policy.get("operand_unit_bare_numeric_pattern") or "")
+        bare_numeric = bool(bare_numeric_pattern and re.fullmatch(bare_numeric_pattern, str(raw_value or "").strip()))
+        ambiguous_krw_units = {
+            _normalise_spaces(str(item)).lower()
+            for item in (render_policy.get("operand_unit_ambiguous_krw_units") or ())
+            if str(item).strip()
+        }
+        krw_display_units = {
+            _normalise_spaces(str(item)).lower()
+            for item in (render_policy.get("krw_display_units") or ())
+            if str(item).strip()
+        }
+        if bare_numeric and normalized_current in ambiguous_krw_units and normalized_hint in krw_display_units:
             return unit_hint
         return current_unit
 
@@ -1721,7 +1733,8 @@ class FinancialAgentCalculationMixin:
                 answer_slots.get("metric_label")
                 or (state.get("active_subtask") or {}).get("metric_label")
                 or (state.get("active_subtask") or {}).get("task_id")
-                or "비율"
+                or CALCULATION_RENDER_POLICY.get("ratio_default_metric_label")
+                or ""
             )
         )
         primary_value = dict(answer_slots.get("primary_value") or {})
@@ -1735,10 +1748,16 @@ class FinancialAgentCalculationMixin:
                 if period and period not in periods:
                     periods.append(period)
         period_prefix = ""
-        if len(periods) == 1 and re.fullmatch(r"20\d{2}", periods[0]):
-            period_prefix = f"{periods[0]}년 "
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        period_pattern = str(render_policy.get("ratio_year_period_pattern") or "")
+        if len(periods) == 1 and period_pattern and re.fullmatch(period_pattern, periods[0]):
+            period_prefix = str(render_policy.get("ratio_period_prefix_template") or "").format(period=periods[0])
         if metric_label and rendered_value:
-            return f"{period_prefix}{metric_label}은 {rendered_value}입니다."
+            return str(render_policy.get("ratio_answer_template") or "").format(
+                period_prefix=period_prefix,
+                metric_label=metric_label,
+                rendered_value=rendered_value,
+            )
         return rendered_value or metric_label
 
     def _build_deterministic_lookup_plan(
@@ -3999,14 +4018,10 @@ Ontology Context:
             positive = str(row.get("positive") or "").strip()
             if not negative or not positive or negative == positive:
                 continue
-            replacements = [
-                (f"{label} {negative}", f"{label} {positive}"),
-                (f"{negative}을 차감", f"{positive}을 차감"),
-                (f"{negative}를 차감", f"{positive}를 차감"),
-                (f"{negative} 만큼 차감", f"{positive} 만큼 차감"),
-                (f"{negative}만큼 차감", f"{positive}만큼 차감"),
-            ]
-            for source, target in replacements:
+            replacements = tuple(CALCULATION_RENDER_POLICY.get("sign_aware_subtraction_replacements") or ())
+            for source_template, target_template in replacements:
+                source = str(source_template or "").format(label=label, negative=negative, positive=positive)
+                target = str(target_template or "").format(label=label, negative=negative, positive=positive)
                 rewritten = rewritten.replace(source, target)
         return _normalise_spaces(rewritten)
 
