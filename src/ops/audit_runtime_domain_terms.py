@@ -31,7 +31,9 @@ def has_reviewed_domain_language(value: str) -> bool:
     return bool(_HANGUL_RE.search(value))
 
 
-def classify_literal(value: str) -> str:
+def classify_literal(value: str, *, literal_context: str = "") -> str:
+    if literal_context == "schema_description":
+        return "schema_description"
     if "\n" in value or len(value) > 120:
         return "prompt_or_template"
     if _REGEX_HINTS_RE.search(value):
@@ -54,8 +56,9 @@ def _iter_python_files(project_root: Path, scan_roots: Sequence[str]) -> Iterabl
 
 class _StringLiteralVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
-        self.literals: List[Tuple[int, str, str]] = []
+        self.literals: List[Tuple[int, str, str, str]] = []
         self._scope: List[str] = []
+        self._literal_context: List[str] = []
 
     def _symbol(self) -> str:
         return ".".join(self._scope) if self._scope else "<module>"
@@ -86,10 +89,42 @@ class _StringLiteralVisitor(ast.NodeVisitor):
             return
         self.generic_visit(node)
 
+    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast visitor API
+        if _call_name(node.func) != "Field":
+            self.generic_visit(node)
+            return
+
+        for arg in node.args:
+            self.visit(arg)
+        for keyword in node.keywords:
+            if keyword.arg in {"description", "title"}:
+                self._literal_context.append("schema_description")
+                try:
+                    self.visit(keyword.value)
+                finally:
+                    self._literal_context.pop()
+            else:
+                self.visit(keyword.value)
+
     def visit_Constant(self, node: ast.Constant) -> None:  # noqa: N802 - ast visitor API
         if isinstance(node.value, str):
-            self.literals.append((int(getattr(node, "lineno", 0) or 0), node.value, self._symbol()))
+            self.literals.append(
+                (
+                    int(getattr(node, "lineno", 0) or 0),
+                    node.value,
+                    self._symbol(),
+                    self._literal_context[-1] if self._literal_context else "",
+                )
+            )
         self.generic_visit(node)
+
+
+def _call_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return ""
 
 
 def _is_main_guard(node: ast.AST) -> bool:
@@ -124,7 +159,7 @@ def collect_runtime_domain_terms(
         tree = ast.parse(source, filename=str(source_path))
         visitor = _StringLiteralVisitor()
         visitor.visit(tree)
-        for line_number, raw_value, _symbol in visitor.literals:
+        for line_number, raw_value, _symbol, literal_context in visitor.literals:
             text = normalise_literal(raw_value)
             if not text or not has_reviewed_domain_language(text):
                 continue
@@ -134,7 +169,7 @@ def collect_runtime_domain_terms(
                 grouped[key] = {
                     "path": relative,
                     "text": text,
-                    "category": classify_literal(raw_value),
+                    "category": classify_literal(raw_value, literal_context=literal_context),
                     "fingerprint": fingerprint,
                     "count": 0,
                 }
@@ -162,7 +197,7 @@ def collect_runtime_domain_term_occurrences(
         tree = ast.parse(source, filename=str(source_path))
         visitor = _StringLiteralVisitor()
         visitor.visit(tree)
-        for line_number, raw_value, symbol in visitor.literals:
+        for line_number, raw_value, symbol, literal_context in visitor.literals:
             text = normalise_literal(raw_value)
             if not text or not has_reviewed_domain_language(text):
                 continue
@@ -172,7 +207,7 @@ def collect_runtime_domain_term_occurrences(
                     "line": line_number,
                     "symbol": symbol,
                     "text": text,
-                    "category": classify_literal(raw_value),
+                    "category": classify_literal(raw_value, literal_context=literal_context),
                 }
             )
     return sorted(rows, key=lambda item: (str(item["path"]), int(item["line"]), str(item["text"])))

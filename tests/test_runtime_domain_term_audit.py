@@ -71,6 +71,28 @@ class RuntimeDomainTermAuditTests(unittest.TestCase):
 
         self.assertEqual([item["text"] for item in records], ["런타임"])
 
+    def test_collector_classifies_pydantic_field_descriptions_as_schema(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            project_root = Path(tmp_dir)
+            source_dir = project_root / "src" / "agent"
+            source_dir.mkdir(parents=True)
+            (source_dir / "models.py").write_text(
+                "\n".join(
+                    [
+                        "from pydantic import Field",
+                        'value = Field(description="스키마 설명")',
+                        'RUNTIME_VALUE = "런타임"',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            records = collect_runtime_domain_terms(project_root, ("src/agent",))
+
+        categories = {item["text"]: item["category"] for item in records}
+        self.assertEqual(categories["스키마 설명"], "schema_description")
+        self.assertEqual(categories["런타임"], "runtime_literal")
+
     def test_summary_counts_records_by_category_and_path(self) -> None:
         records = [
             {"path": "src/agent/a.py", "category": "runtime_literal", "count": 2},

@@ -81,21 +81,25 @@ retrieval policy. A candidate-scoring helper follow-up moved concept ratio
 result-unit markers, metric-task query templates, aggregate row-stage tokens,
 candidate explicit-year period markers, consolidation context markers, CAPEX
 source-priority surfaces, balance-sheet scope markers, and delta-row markers
-into retrieval policy.
+into retrieval policy. A schema-audit follow-up taught the audit scanner to
+classify Pydantic `Field(description=...)` text as `schema_description` so
+structured-output contracts are tracked separately from runtime decision
+literals.
 
 | Metric | Count |
 | --- | ---: |
 | Reviewed records | 374 |
 | Literal occurrences | 439 |
-| `runtime_literal` records | 283 |
-| `regex_or_pattern` records | 61 |
-| `prompt_or_template` records | 30 |
+| `runtime_literal` records | 170 |
+| `schema_description` records | 117 |
+| `regex_or_pattern` records | 60 |
+| `prompt_or_template` records | 27 |
 
 Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
+| `src/agent/financial_graph_models.py` | 113 | P1: all current records classify as schema descriptions; keep as structured-output contract unless text starts steering runtime selection |
 | `src/agent/financial_graph_helpers.py` | 94 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 30 | P0: numeric execution text is allowed, metric/topic selectors need review |
@@ -114,7 +118,7 @@ Top files:
    `financial_graph_helpers.py`, `financial_graph_evidence.py`,
    `financial_graph_calculation.py`, `financial_graph_planning.py`.
 2. P1 schema/prompt/message paths:
-   `financial_graph_models.py`, `financial_graph_contextual.py`,
+   `financial_graph_contextual.py`,
    `financial_graph_reconciliation.py`, `critic_node.py`,
    `researcher_node.py`, `routing/types.py`.
 3. P2 fixture or skeleton paths:
@@ -225,6 +229,12 @@ For each P0 record, classify it as one of:
   delta-row markers from retrieval policy. Runtime keeps the generic mechanics:
   infer result units, build canonical task text, map period hints, classify
   aggregate rows, infer candidate years, and score source priority.
+- The audit scanner now classifies Pydantic `Field(description=...)` and
+  `Field(title=...)` literals as `schema_description`. This keeps
+  `financial_graph_models.py` visible in the debt ledger while separating
+  schema guidance from runtime control-flow vocabulary. The current
+  `financial_graph_models.py` records are all schema descriptions, so no
+  model-file domain terms were moved into policy in this pass.
 - `_build_ratio_operands_from_candidates()` no longer carries a fixed
   R&D/revenue component fallback. When row-level percent values are absent, it
   asks the active ontology metric family for ratio component specs and matches

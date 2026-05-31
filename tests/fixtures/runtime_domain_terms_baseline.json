@@ -2078,7 +2078,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "A, B, C ... 같은 변수만 사용한 안전한 계산식",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "0141ae748d184abe",
       "count": 1,
       "first_lines": [
@@ -2088,7 +2088,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "CalculationResult와 operand labels만 사용해 작성한 최종 답변",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "9586b0bb222fdbd8",
       "count": 1,
       "first_lines": [
@@ -2098,7 +2098,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "consumer operand role. 예: current_period, prior_period",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "cedf362f1581cc23",
       "count": 1,
       "first_lines": [
@@ -2108,7 +2108,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "direct=직접 근거, partial=부분 근거, context=배경 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "a1a5a23304f2e2f1",
       "count": 1,
       "first_lines": [
@@ -2118,7 +2118,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "numerator, denominator 등 역할",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "410e019a7fcd6113",
       "count": 1,
       "first_lines": [
@@ -2128,7 +2128,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "numerator_1, denominator_1, addend_1, current_period 등",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "f4fc62339d34967c",
       "count": 1,
       "first_lines": [
@@ -2138,7 +2138,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "planner가 이렇게 분해한 이유",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "deda3f29289c4726",
       "count": 1,
       "first_lines": [
@@ -2148,7 +2148,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "planner가 정리한 핵심 주제",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "fdf5a4640453ec46",
       "count": 1,
       "first_lines": [
@@ -2158,7 +2158,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "planner가 질문에서 파악한 기업명 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "0d539cc5ea9686a5",
       "count": 1,
       "first_lines": [
@@ -2168,7 +2168,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "planner가 질문에서 파악한 연도 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "3463f799f2656c89",
       "count": 1,
       "first_lines": [
@@ -2178,7 +2178,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "planner가 추론한 주요 섹션 힌트",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "48df41cb7f46befe",
       "count": 1,
       "first_lines": [
@@ -2188,7 +2188,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "produced period hint. 예: 2023",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "dce6e05c351991cf",
       "count": 1,
       "first_lines": [
@@ -2198,7 +2198,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "producer answer_slots에서 읽을 slot 이름",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "211a2306515ad339",
       "count": 1,
       "first_lines": [
@@ -2208,7 +2208,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "ratio, sum, difference, growth_rate 같은 planner-level generic operation",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "64cb635ca1630ee9",
       "count": 1,
       "first_lines": [
@@ -2218,7 +2218,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "renderer/synthesizer/evaluator가 공통으로 읽는 answer-friendly structured result slots. typed union으로 검증된 payload를 dict로 직렬화해 저장한다. 예: primary_value, current_value, prior_value, delta_value, components_by_role",
-      "category": "prompt_or_template",
+      "category": "schema_description",
       "fingerprint": "adef41d62fd3b4e6",
       "count": 1,
       "first_lines": [
@@ -2228,7 +2228,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "required period hint. 예: 2023, 2022",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "adb613ab7f917119",
       "count": 1,
       "first_lines": [
@@ -2238,7 +2238,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "retrieval executor가 그대로 사용할 1~3개의 재검색 쿼리",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "cf8faf8536c79426",
       "count": 1,
       "first_lines": [
@@ -2248,7 +2248,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "slot role. 예: primary_value, current_value, prior_value",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "7e34016e64dc8636",
       "count": 1,
       "first_lines": [
@@ -2258,7 +2258,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "structured evidence만으로 압축한 답변 초안",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "66802846b097f47d",
       "count": 1,
       "first_lines": [
@@ -2268,7 +2268,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "time_series 모드에서 PREV와 CURR 두 변수로 인접 시점 변화를 계산하는 식",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "ea0f03e837103a2f",
       "count": 1,
       "first_lines": [
@@ -2278,7 +2278,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "검증 과정에서 제거한 evidence_id 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "cfc7c4a98f002641",
       "count": 1,
       "first_lines": [
@@ -2288,7 +2288,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "검증 후 최종 답변에 남긴 evidence_id 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "b03e678cbe5fabb3",
       "count": 1,
       "first_lines": [
@@ -2298,7 +2298,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "검증 후 최종 사용자 답변",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "37c72737101404f0",
       "count": 1,
       "first_lines": [
@@ -2308,7 +2308,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "검증을 거친 최종 답변",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "f762f9e8cf99a8cc",
       "count": 1,
       "first_lines": [
@@ -2318,7 +2318,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "결과를 만든 evidence row/candidate id",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "ebcb0def605a476f",
       "count": 1,
       "first_lines": [
@@ -2328,7 +2328,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "계산 계획이 완결되었는지 여부. 부족한 정보가 있으면 incomplete",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "38ac4f3cc5f1a4c5",
       "count": 1,
       "first_lines": [
@@ -2338,7 +2338,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "계산 과정에서 파생된 보조 지표",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e2e2bc2fae4cea6d",
       "count": 1,
       "first_lines": [
@@ -2348,7 +2348,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "계산 또는 실패 이유 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "bfe1c0db89b4bb40",
       "count": 1,
       "first_lines": [
@@ -2358,7 +2358,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "계산 수행 상태",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "c25fb633acb10c72",
       "count": 1,
       "first_lines": [
@@ -2368,7 +2368,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "계산용 고유 피연산자 ID. 예: op_001",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "37f485306cc9387c",
       "count": 1,
       "first_lines": [
@@ -2378,7 +2378,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "계획 수립에 필요한데 현재 컨텍스트에 없는 정보 목록. 예: 2023년 연구개발비용",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "9e82bab1d7960cca",
       "count": 1,
       "first_lines": [
@@ -2388,7 +2388,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "관련 섹션 레이블 하나. 예: 리스크, 재무제표, 연결재무제표, 요약재무, 재무주석, 사업개요, 주요제품, 원재료, 매출현황, 연구개발, 경영진단, 임원현황, 이사회, 주주현황, 계열회사. 단, 두 개 이상의 서로 다른 섹션 데이터가 모두 필요한 질문(비율·비중·이익률 등 분자/분모가 다른 섹션에 있는 경우)은 None을 반환하세요.",
-      "category": "prompt_or_template",
+      "category": "schema_description",
       "fingerprint": "e025dd192adc38a6",
       "count": 1,
       "first_lines": [
@@ -2398,7 +2398,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "근거 부족 또는 과잉 설명으로 제거한 문장 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "76d67b11853e5342",
       "count": 1,
       "first_lines": [
@@ -2408,7 +2408,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "근거 출처 앵커",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "2513ab0733c5ef60",
       "count": 1,
       "first_lines": [
@@ -2418,7 +2418,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]",
-      "category": "regex_or_pattern",
+      "category": "schema_description",
       "fingerprint": "c4c3bab7a75712ae",
       "count": 1,
       "first_lines": [
@@ -2428,7 +2428,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "기간/항목별 계산 입력 시계열 또는 순서 데이터",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "adb13527ef0b1006",
       "count": 1,
       "first_lines": [
@@ -2438,7 +2438,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "단일 계산인지, 시계열 계산인지, 계산 불가인지",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "8f5dfd6ccdcbb6e7",
       "count": 1,
       "first_lines": [
@@ -2448,7 +2448,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "답변 렌더링에 바로 쓸 수 있는 값 표현",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "798741e8bf387d15",
       "count": 1,
       "first_lines": [
@@ -2458,7 +2458,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "답변 초안에 실제로 사용한 evidence_id 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e94d8d8e72aa7fa5",
       "count": 1,
       "first_lines": [
@@ -2468,7 +2468,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "대표 evidence source anchor",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "b8203d07bec9a4d8",
       "count": 1,
       "first_lines": [
@@ -2478,7 +2478,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "대표 source row/candidate id",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "99f675b634fc6c8f",
       "count": 1,
       "first_lines": [
@@ -2488,7 +2488,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "문서에서 읽은 원본 숫자 문자열. 예: 174조 8,877억원, 16.2, 228",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "76d2261a17f986dc",
       "count": 1,
       "first_lines": [
@@ -2498,7 +2498,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "문서에서 찾은 원본 숫자 텍스트 그대로 (예: '300,870,903'). 단위 변환 금지.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "b8542decc23d86c7",
       "count": 1,
       "first_lines": [
@@ -2508,7 +2508,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "문장별 검증 결과. sentence, verdict, reason, supporting_claim_ids를 포함",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "48f9a4d60d7c5668",
       "count": 1,
       "first_lines": [
@@ -2518,7 +2518,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "반드시 필요한 피연산자인지 여부",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "c008fa327bc4963e",
       "count": 1,
       "first_lines": [
@@ -2528,7 +2528,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "발견한 문제 목록. 예: wrong_unit, wrong_direction, extra_claim",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "445eedbda8ab91c2",
       "count": 1,
       "first_lines": [
@@ -2538,7 +2538,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "사용자 응답에 들어갈 값 표현",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "3e874bbd3563e104",
       "count": 1,
       "first_lines": [
@@ -2548,7 +2548,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "사용자 친화적 값 레이블",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "6be593de51fb0858",
       "count": 1,
       "first_lines": [
@@ -2558,7 +2558,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "사용자에게 보일 계산 라벨",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "cea0822ca328e6df",
       "count": 1,
       "first_lines": [
@@ -2568,7 +2568,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "선택 이유를 간단히 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "97ac0a0ee12a54a7",
       "count": 1,
       "first_lines": [
@@ -2578,7 +2578,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "수식에서 사용할 변수명. 예: A, B, C",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "f445eb5f6c6d2996",
       "count": 1,
       "first_lines": [
@@ -2588,7 +2588,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "수식에서 사용할 변수와 operand_id의 매핑",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "53f40bc0cb9a49b1",
       "count": 1,
       "first_lines": [
@@ -2598,7 +2598,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "실제로 계획된 subtask metric family 목록. multi-metric 질문에서는 이 필드를 source of truth로 본다.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "3c8d777f52bfd827",
       "count": 1,
       "first_lines": [
@@ -2608,7 +2608,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "실패 대응 전략. 재검색을 계속할지, 기존 task output으로 합성할지, 근거 부족으로 중단할지 선택한다.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "3b11388102fadb0a",
       "count": 1,
       "first_lines": [
@@ -2618,7 +2618,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "역할 group별 피연산자/구성요소 슬롯",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "42f95d3a44d593db",
       "count": 1,
       "first_lines": [
@@ -2628,7 +2628,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "역할별 피연산자/구성요소 슬롯",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "da9f09257ed2011d",
       "count": 1,
       "first_lines": [
@@ -2638,7 +2638,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "연산 순서가 중요한 경우를 위해 순서를 보존한 피연산자 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "32d9e1cd6c0f6a37",
       "count": 1,
       "first_lines": [
@@ -2648,7 +2648,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "연산 순서를 사람이 읽을 수 있게 표현한 짧은 설명. 예: current_year - previous_year",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "cff6ba479ac77fb1",
       "count": 1,
       "first_lines": [
@@ -2658,7 +2658,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "왜 이 재검색 계획을 세웠는지 한 문장 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "bb535d102645359e",
       "count": 1,
       "first_lines": [
@@ -2668,7 +2668,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "원문에서 발췌한 짧은 근거 구간",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e30814637cc5898f",
       "count": 1,
       "first_lines": [
@@ -2678,7 +2678,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "원문에서 읽은 원본 단위",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "a3cd874b5c566529",
       "count": 1,
       "first_lines": [
@@ -2688,7 +2688,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "원문에서 읽은 원본 숫자 문자열",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "d58540515c8566e1",
       "count": 1,
       "first_lines": [
@@ -2698,7 +2698,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "원본 숫자의 단위. 예: 조원, 억원, 백만원, %, 개",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "97e2c4141c8e4db6",
       "count": 1,
       "first_lines": [
@@ -2708,7 +2708,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "원본 질문과 subtask 결과를 종합해 작성한 최종 답변",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "45ed1478aa30d2ae",
       "count": 1,
       "first_lines": [
@@ -2718,7 +2718,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 result slot 집합이 대응하는 metric label",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "86f304d80383c2db",
       "count": 1,
       "first_lines": [
@@ -2728,7 +2728,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 result 전체를 지지하는 source row/candidate ids",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "18d86fe81a6c8bfb",
       "count": 1,
       "first_lines": [
@@ -2738,7 +2738,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 값의 출처 row/candidate id 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "569bcf9652f7ac4e",
       "count": 1,
       "first_lines": [
@@ -2748,7 +2748,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 값이 대응하는 기간 라벨",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "5f81aeef4769a603",
       "count": 1,
       "first_lines": [
@@ -2758,7 +2758,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 변수에 바인딩할 operand_id",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "ff17b643d7c0fd73",
       "count": 1,
       "first_lines": [
@@ -2768,7 +2768,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 숫자가 대응하는 기간/기수. 예: 2024년, 2023년, 당기, 전기",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "c1d75d6d48696f04",
       "count": 1,
       "first_lines": [
@@ -2778,7 +2778,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 숫자가 추출된 evidence_id",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "8abd59482439bc8f",
       "count": 1,
       "first_lines": [
@@ -2788,7 +2788,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 슬롯 값의 상태. missing이면 synthesizer/evaluator가 재료 부족으로 해석한다.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "56e18292de03d0df",
       "count": 1,
       "first_lines": [
@@ -2798,7 +2798,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 연산을 선택한 이유를 한 문장으로 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "b9a6b81ab24e0f2d",
       "count": 1,
       "first_lines": [
@@ -2808,7 +2808,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이 입력을 우선 채워야 하는 producer task id",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "0ee3ac4b8bbbf851",
       "count": 1,
       "first_lines": [
@@ -2818,7 +2818,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "이번 retry의 목적. 세부 연산 분류보다 재검색 목적만 나타낸다",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "400ff510151ad437",
       "count": 1,
       "first_lines": [
@@ -2828,7 +2828,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "입력 해석 우선순위. 예: task_output, retrieval",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "eb2df47a6a3c3533",
       "count": 1,
       "first_lines": [
@@ -2838,7 +2838,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "재검색 계획을 만들 수 있으면 ready, 그렇지 않으면 skip",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "cf70ecb7899e32b4",
       "count": 1,
       "first_lines": [
@@ -2848,7 +2848,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "재검색에서 우선적으로 참고할 섹션 힌트",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "d277916b16a913eb",
       "count": 1,
       "first_lines": [
@@ -2858,7 +2858,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "정규화 단위 기준 계산 결과",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "0fd27548600d30a0",
       "count": 1,
       "first_lines": [
@@ -2868,7 +2868,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "정규화된 단위 계열",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "c6cc48e4bdb49286",
       "count": 2,
       "first_lines": [
@@ -2879,7 +2879,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "정규화된 숫자 값",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "4bc3e89f90390751",
       "count": 1,
       "first_lines": [
@@ -2889,7 +2889,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "증감 계산 결과 정규화 값",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "f3b127734b9c914b",
       "count": 1,
       "first_lines": [
@@ -2899,7 +2899,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "직전 기간 라벨",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "9dcedac4edf9628e",
       "count": 1,
       "first_lines": [
@@ -2909,7 +2909,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "직전 기간 정규화 값",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "146b962f906cdeb8",
       "count": 1,
       "first_lines": [
@@ -2919,7 +2919,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문 계산에 필요한 피연산자를 충분히 찾았는지 여부",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "22a3d4abeadbfd7c",
       "count": 1,
       "first_lines": [
@@ -2929,7 +2929,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문과 operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬한 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "aa3f22bfe527ac95",
       "count": 1,
       "first_lines": [
@@ -2939,7 +2939,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문과의 직접 관련도",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "ab0969f9fedec8ed",
       "count": 1,
       "first_lines": [
@@ -2949,7 +2949,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문에 대한 최종 답변 문장. raw_value와 unit을 바탕으로 자연스러운 한국어 한 문장으로 작성.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "da5e56e75af6575c",
       "count": 1,
       "first_lines": [
@@ -2959,7 +2959,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문에 등장한 기업명 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "7032a4a2075ea2e6",
       "count": 1,
       "first_lines": [
@@ -2969,7 +2969,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문에 등장한 연도 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "0d31b44d3952cb21",
       "count": 1,
       "first_lines": [
@@ -2979,7 +2979,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문에 직접적으로 도움이 되는 근거 진술",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "62390fa181d3081e",
       "count": 1,
       "first_lines": [
@@ -2989,7 +2989,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문의 핵심 분석 주제",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "4e19683588a1b363",
       "count": 1,
       "first_lines": [
@@ -2999,7 +2999,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문이 요구하는 기준(연결/별도)을 확인하고, 문서의 기준과 일치하는지 판단",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "46b1914b59cc800b",
       "count": 1,
       "first_lines": [
@@ -3009,7 +3009,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "질문이 요구하는 연도/기수(예: 2024년, 당기, 제56기)를 확인하고, 문서(표)에서 해당 기간의 열을 찾았는지 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e603ae210366f507",
       "count": 1,
       "first_lines": [
@@ -3019,7 +3019,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "찾아야 하는 피연산자 대표 라벨",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "6ee6e86d5f8b9e7e",
       "count": 1,
       "first_lines": [
@@ -3029,7 +3029,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "최종 답변 단위",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "aecd1ba2cf1504ee",
       "count": 1,
       "first_lines": [
@@ -3039,7 +3039,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "최종 답변에 사용할 단위. 예: 억원, 원, %, 개",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "0197dcd805d927f8",
       "count": 1,
       "first_lines": [
@@ -3049,7 +3049,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "최종 답변에서 사용해도 되는 핵심 용어 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "2cd0148985b70af0",
       "count": 1,
       "first_lines": [
@@ -3059,7 +3059,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "최종 초안으로 압축하기 전 핵심 포인트 목록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "a9cedee6be461204",
       "count": 1,
       "first_lines": [
@@ -3069,7 +3069,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "추가 검색/정합성 판단용 키워드",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "7ac51c52490bdecd",
       "count": 1,
       "first_lines": [
@@ -3079,7 +3079,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "코드에서 다시 검증 가능한 기본 단위 값. KRW는 원, PERCENT는 퍼센트포인트, COUNT는 절대 개수 기준.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e10dab58ac4b5726",
       "count": 1,
       "first_lines": [
@@ -3089,7 +3089,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "특정 연도/기간 힌트가 있으면 기록",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "2b3b6aa880837822",
       "count": 1,
       "first_lines": [
@@ -3099,7 +3099,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "평가/로그용 연산 힌트. 예: subtract, growth_rate, time_series_trend",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "5e765ebec78b533d",
       "count": 1,
       "first_lines": [
@@ -3109,7 +3109,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "프레젠테이션 계층에서 바로 사용할 수 있는 렌더링 결과",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "397fdfa40cf96f79",
       "count": 1,
       "first_lines": [
@@ -3119,7 +3119,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "피연산자의 의미 있는 레이블. 예: DX부문 매출, DS부문 매출, 2024년 영업이익",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "fb707978c40b52c7",
       "count": 1,
       "first_lines": [
@@ -3129,7 +3129,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "해당 근거가 속한 상위 범주 레이블. 예: '시장위험', 'DS부문'. 문서에 명시된 상위 범주가 없으면 None.",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "2f9f9a61c06462ec",
       "count": 1,
       "first_lines": [
@@ -3139,7 +3139,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "해당 숫자가 있는 표나 문단에 명시된 금액 단위 (예: 원, 천원, 백만원, 억원, %)",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e33a3c96e4ee1749",
       "count": 1,
       "first_lines": [
@@ -3149,7 +3149,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "허용 가능한 동의어/대체 라벨",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e31d727ade78a02a",
       "count": 1,
       "first_lines": [
@@ -3159,7 +3159,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "현재 계산 답변을 유지할지, 짧게 고쳐쓸지, deterministic fallback으로 돌릴지",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "bf63ee5679890bbc",
       "count": 1,
       "first_lines": [
@@ -3169,7 +3169,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "현재 기간 라벨",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "01ee197a51729d5e",
       "count": 1,
       "first_lines": [
@@ -3179,7 +3179,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "현재 기간 정규화 값",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "e54bc6ccc9dc9b9d",
       "count": 1,
       "first_lines": [
@@ -3189,7 +3189,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "현재 재료만으로는 원본 질문을 완전히 충족하지 못할 때 planner가 추가로 모아야 할 재료를 한 문장으로 설명",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "d436a9b4e52efd17",
       "count": 1,
       "first_lines": [
@@ -3199,7 +3199,7 @@
     {
       "path": "src/agent/financial_graph_models.py",
       "text": "현재 컨텍스트에서 부족한 정보 조각",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "8e9b37c70270f3eb",
       "count": 1,
       "first_lines": [
@@ -3766,7 +3766,7 @@
     {
       "path": "src/routing/types.py",
       "text": "0.0~1.0 범위의 분류 확신도",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "9de6daca3063b1c2",
       "count": 1,
       "first_lines": [
@@ -3776,7 +3776,7 @@
     {
       "path": "src/routing/types.py",
       "text": "numeric_fact=특정 수치·금액·비율을 묻는 질의 (매출, 영업이익, 부채비율, R&D 비용 등), business_overview=사업 구조·주요 사업·서비스·제품·고객군 등 기업 개요 설명 질의, risk=리스크 요인·위험 관리·파생거래 등 리스크 분석 질의, comparison=두 기업 또는 두 항목 간 비교 질의, trend=시계열 변화·추이·성장률·전년 대비 변화 질의, qa=위 유형에 해당하지 않는 일반 사실·설명 질의",
-      "category": "prompt_or_template",
+      "category": "schema_description",
       "fingerprint": "16fcfd59a289a912",
       "count": 1,
       "first_lines": [
@@ -3786,7 +3786,7 @@
     {
       "path": "src/routing/types.py",
       "text": "retrieval 및 reranking에서 우선할 evidence 형식",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "f3413a17dfe69c48",
       "count": 1,
       "first_lines": [
@@ -3796,7 +3796,7 @@
     {
       "path": "src/routing/types.py",
       "text": "최종 routing confidence",
-      "category": "runtime_literal",
+      "category": "schema_description",
       "fingerprint": "6e1519424af82131",
       "count": 1,
       "first_lines": [
