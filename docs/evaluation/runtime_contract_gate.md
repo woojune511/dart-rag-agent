@@ -439,6 +439,26 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-06-01 technology-focus policy extraction replay:
+  - source store bundle:
+    `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
+  - local output bundle:
+    `benchmarks/results/policy_gate_technology_policy_evalonly_2026-06-01_0221/`
+    (deleted after recording this summary; raw result artifacts are not a
+    source commit target)
+  - implementation commit: `63ede63` (`Move technology focus terms to policy`)
+  - scope: Samsung-only store-fixed eval-only for `SAM_T2_078`, covering
+    technology-focus narrative assembly and the R&D amount surface used in the
+    mixed numeric/narrative answer.
+  - result: `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    `avg_score = 0.952`, and `error_rate = 0.0%`.
+  - implementation scope: R&D amount selection terms, output labels, unit text,
+    sentence templates, and phrase joiners now come from the active
+    technology-focus narrative policy; ratio component candidate scoring uses
+    ontology component surfaces and query-year matching instead of metric-name
+    branches.
+
 - 2026-06-01 evidence assembly policy extraction replay:
   - source store bundle:
     `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
