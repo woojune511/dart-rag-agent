@@ -421,17 +421,14 @@ class FinancialOntologyManager:
 
     def preferred_sections(self, query: str, topic: str = "", intent: str = "") -> List[str]:
         sections: List[str] = []
-        metric_matches = self.match_metric_families(query, topic, intent)
-        if metric_matches:
-            for metric in metric_matches:
-                sections.extend(str(section).strip() for section in metric.get("preferred_sections", []) if str(section).strip())
-        else:
-            for concept in self.match_concepts(query, topic, intent):
-                sections.extend(
-                    str(section).strip()
-                    for section in concept.get("preferred_sections", [])
-                    if str(section).strip()
-                )
+        for metric in self.match_metric_families(query, topic, intent):
+            sections.extend(str(section).strip() for section in metric.get("preferred_sections", []) if str(section).strip())
+        for concept in self.match_concepts(query, topic, intent):
+            sections.extend(
+                str(section).strip()
+                for section in concept.get("preferred_sections", [])
+                if str(section).strip()
+            )
         return _dedupe_preserve_order(sections)
 
     def supplement_sections(self, query: str, topic: str = "", intent: str = "") -> List[str]:
@@ -442,16 +439,13 @@ class FinancialOntologyManager:
 
     def query_hints(self, query: str, topic: str = "", intent: str = "") -> List[str]:
         hints: List[str] = []
-        metric_matches = self.match_metric_families(query, topic, intent)
-        if metric_matches:
-            for metric in metric_matches:
-                hints.extend(str(hint).strip() for hint in metric.get("query_hints", []) if str(hint).strip())
-                components = dict(metric.get("components") or {})
-                for component in components.values():
-                    hints.extend(self._component_aliases(component))
-        else:
-            for concept in self.match_concepts(query, topic, intent):
-                hints.extend(self._concept_aliases(concept))
+        for metric in self.match_metric_families(query, topic, intent):
+            hints.extend(str(hint).strip() for hint in metric.get("query_hints", []) if str(hint).strip())
+            components = dict(metric.get("components") or {})
+            for component in components.values():
+                hints.extend(self._component_aliases(component))
+        for concept in self.match_concepts(query, topic, intent):
+            hints.extend(self._concept_aliases(concept))
         return _dedupe_preserve_order(hints)
 
     def row_patterns(self, query: str, topic: str = "", intent: str = "") -> List[str]:

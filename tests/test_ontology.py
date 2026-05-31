@@ -149,6 +149,18 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("IRA Tax Credit", ampc["aliases"])
         self.assertIn("이사의 경영진단 및 분석의견", ampc["preferred_sections"])
 
+    def test_v3_maps_equipment_investment_alias_to_capex_concept(self) -> None:
+        specs = self.ontology_v3.concept_specs(
+            "2023\ub144 \uc124\ube44\ud22c\uc790 \ucd1d\uc561\uc744 \ucc3e\uc544\uc918.",
+            intent="comparison",
+        )
+        concept_keys = [spec["concept"] for spec in specs]
+
+        self.assertIn("capital_expenditure_total", concept_keys)
+        capex = next(spec for spec in specs if spec["concept"] == "capital_expenditure_total")
+        self.assertIn("\uc124\ube44\ud22c\uc790", capex["aliases"])
+        self.assertIn("\uc6d0\uc7ac\ub8cc \ubc0f \uc0dd\uc0b0\uc124\ube44", capex["preferred_sections"])
+
     def test_v3_ampc_concept_does_not_match_general_ira_policy_context(self) -> None:
         specs = self.ontology_v3.concept_specs(
             "인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",

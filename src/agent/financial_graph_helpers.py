@@ -7449,21 +7449,7 @@ def _deterministic_reconcile_task(
 def _preferred_calc_sections(query: str, topic: str, intent: str) -> List[str]:
     if intent not in {"comparison", "trend"}:
         return []
-    text = _normalise_spaces(f"{query} {topic}")
-    preferred: List[str] = []
-    ontology_sections = get_financial_ontology().preferred_sections(query, topic, intent)
-    preferred.extend(ontology_sections)
-    if "연구개발" in text:
-        preferred.extend(["연구개발 활동", "요약재무정보"])
-    if "영업이익" in text or "당기순이익" in text or "순이익" in text:
-        preferred.extend(["요약재무정보", "손익계산서"])
-    if "매출" in text or "수익" in text:
-        preferred.extend(["매출 및 수주상황", "손익계산서", "요약재무정보"])
-    if any(keyword in text for keyword in ("부채비율", "유동비율", "자산총계", "부채총계", "자본총계", "유동자산", "유동부채")):
-        preferred.extend(["재무상태표", "요약재무정보", "위험관리 및 파생거래"])
-    if _is_ratio_percent_query(text):
-        preferred.extend(["요약재무정보", "손익계산서", "재무상태표"])
-    return list(dict.fromkeys(preferred))
+    return get_financial_ontology().preferred_sections(query, topic, intent)
 
 
 def _is_percent_point_difference_query(text: str) -> bool:
@@ -7564,24 +7550,10 @@ def _active_preferred_statement_types(state: Dict[str, Any], query: str, topic: 
 
 
 def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
-    text = _normalise_spaces(topic)
     hints: List[str] = []
     if intent not in {"comparison", "trend"}:
         return " ".join(dict.fromkeys(hints))
     hints.extend(get_financial_ontology().query_hints(query, topic, intent))
-    if "영업이익" in text or "당기순이익" in text or "순이익" in text:
-        hints.extend(["손익계산서", "요약재무정보"])
-    if "매출" in text or "수익" in text:
-        hints.extend(["매출 및 수주상황", "손익계산서"])
-    if any(keyword in text for keyword in ("부채비율", "유동비율", "자산총계", "부채총계", "자본총계", "유동자산", "유동부채")):
-        hints.extend(["재무상태표", "요약재무정보", "부채총계", "자본총계", "유동자산", "유동부채"])
-    if "연구개발" in text:
-        hints.append("연구개발")
-        # R&D 비중/비율 질문은 분모(총 매출)가 요약재무정보에 있으므로 함께 힌트 추가
-        if any(kw in text for kw in ("비중", "비율", "이익률", "차지")):
-            hints.append("요약재무정보")
-    if "설비투자" in text or "투자" in text:
-        hints.extend(["요약재무정보", "재무제표"])
     return " ".join(dict.fromkeys(hints))
 
 

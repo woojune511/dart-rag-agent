@@ -3616,7 +3616,7 @@
       "fingerprint": "26995d4b00c65666",
       "count": 1,
       "first_lines": [
-        7518
+        7504
       ]
     },
     {
@@ -3888,7 +3888,7 @@
       "fingerprint": "79fbecf73e2b78d9",
       "count": 1,
       "first_lines": [
-        7478
+        7464
       ]
     },
     {
@@ -4156,13 +4156,11 @@
       "text": "당기순이익",
       "category": "runtime_literal",
       "fingerprint": "46f9c73c6dfa5391",
-      "count": 5,
+      "count": 3,
       "first_lines": [
         1029,
         1105,
-        4686,
-        7458,
-        7572
+        4686
       ]
     },
     {
@@ -4264,7 +4262,7 @@
       "text": "매출",
       "category": "runtime_literal",
       "fingerprint": "72724782b14e8e90",
-      "count": 8,
+      "count": 6,
       "first_lines": [
         1026,
         1102,
@@ -4278,11 +4276,9 @@
       "text": "매출 및 수주상황",
       "category": "runtime_literal",
       "fingerprint": "4c2fe9ecc5404f25",
-      "count": 3,
+      "count": 1,
       "first_lines": [
-        6071,
-        7461,
-        7575
+        6071
       ]
     },
     {
@@ -4314,7 +4310,7 @@
       "fingerprint": "e6940e36c2c101ad",
       "count": 1,
       "first_lines": [
-        7483
+        7469
       ]
     },
     {
@@ -4324,7 +4320,7 @@
       "fingerprint": "edc7953d71df7b63",
       "count": 1,
       "first_lines": [
-        7484
+        7470
       ]
     },
     {
@@ -4407,8 +4403,8 @@
       "count": 4,
       "first_lines": [
         901,
-        7526,
-        7527
+        7512,
+        7513
       ]
     },
     {
@@ -4501,7 +4497,7 @@
       "count": 2,
       "first_lines": [
         6609,
-        7482
+        7468
       ]
     },
     {
@@ -4511,7 +4507,7 @@
       "fingerprint": "5ea73f7c0b39135c",
       "count": 1,
       "first_lines": [
-        7481
+        7467
       ]
     },
     {
@@ -4623,11 +4619,9 @@
       "text": "부채비율",
       "category": "runtime_literal",
       "fingerprint": "a31a71b5075c0fa5",
-      "count": 3,
+      "count": 1,
       "first_lines": [
-        1064,
-        7462,
-        7576
+        1064
       ]
     },
     {
@@ -4635,13 +4629,10 @@
       "text": "부채총계",
       "category": "runtime_literal",
       "fingerprint": "6605a2817f7ccb95",
-      "count": 5,
+      "count": 2,
       "first_lines": [
         1064,
-        5734,
-        7462,
-        7576,
-        7577
+        5734
       ]
     },
     {
@@ -4682,7 +4673,7 @@
       "fingerprint": "47b9d33664cf491b",
       "count": 1,
       "first_lines": [
-        7479
+        7465
       ]
     },
     {
@@ -4721,7 +4712,7 @@
       "text": "비율",
       "category": "runtime_literal",
       "fingerprint": "38fd7fcf44d7e1a5",
-      "count": 8,
+      "count": 7,
       "first_lines": [
         1041,
         2936,
@@ -4735,13 +4726,12 @@
       "text": "비중",
       "category": "runtime_literal",
       "fingerprint": "ab1f31ac3ad16d31",
-      "count": 5,
+      "count": 4,
       "first_lines": [
         1041,
         2984,
         3019,
-        7473,
-        7581
+        7459
       ]
     },
     {
@@ -4832,10 +4822,9 @@
       "text": "설비투자",
       "category": "runtime_literal",
       "fingerprint": "59bb8929a5ab9e73",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1031,
-        7583
+        1031
       ]
     },
     {
@@ -4932,7 +4921,7 @@
       "text": "손익계산서",
       "category": "runtime_literal",
       "fingerprint": "71df561a7d5e5069",
-      "count": 10,
+      "count": 5,
       "first_lines": [
         1058,
         1097,
@@ -4956,13 +4945,11 @@
       "text": "수익",
       "category": "runtime_literal",
       "fingerprint": "4ef85c6b3fc004e5",
-      "count": 5,
+      "count": 3,
       "first_lines": [
         1034,
         1111,
-        4611,
-        7460,
-        7574
+        4611
       ]
     },
     {
@@ -4992,13 +4979,12 @@
       "text": "순이익",
       "category": "runtime_literal",
       "fingerprint": "5dea9de4cf0aaef4",
-      "count": 6,
+      "count": 4,
       "first_lines": [
         1030,
         1918,
         1919,
-        1921,
-        7458
+        1921
       ]
     },
     {
@@ -5114,7 +5100,7 @@
       "first_lines": [
         886,
         4908,
-        7528
+        7514
       ]
     },
     {
@@ -5244,22 +5230,9 @@
       "text": "연구개발",
       "category": "runtime_literal",
       "fingerprint": "357c6a3e7080b357",
-      "count": 4,
-      "first_lines": [
-        1028,
-        7456,
-        7578,
-        7579
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "연구개발 활동",
-      "category": "runtime_literal",
-      "fingerprint": "bc452d5ad79f53a0",
       "count": 1,
       "first_lines": [
-        7457
+        1028
       ]
     },
     {
@@ -5339,13 +5312,12 @@
       "text": "영업이익",
       "category": "runtime_literal",
       "fingerprint": "c308f17e6338b98b",
-      "count": 6,
+      "count": 4,
       "first_lines": [
         1025,
         1104,
         1732,
-        1733,
-        7458
+        1733
       ]
     },
     {
@@ -5431,20 +5403,6 @@
     },
     {
       "path": "src/agent/financial_graph_helpers.py",
-      "text": "요약재무정보",
-      "category": "runtime_literal",
-      "fingerprint": "1e745ee7fa8c54ab",
-      "count": 9,
-      "first_lines": [
-        7457,
-        7459,
-        7461,
-        7463,
-        7465
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
       "text": "원",
       "category": "runtime_literal",
       "fingerprint": "50aefa605fd7348b",
@@ -5452,7 +5410,7 @@
       "first_lines": [
         899,
         998,
-        7529
+        7515
       ]
     },
     {
@@ -5488,16 +5446,6 @@
     },
     {
       "path": "src/agent/financial_graph_helpers.py",
-      "text": "위험관리 및 파생거래",
-      "category": "runtime_literal",
-      "fingerprint": "7163019f7ae17ebc",
-      "count": 1,
-      "first_lines": [
-        7463
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_helpers.py",
       "text": "유/무형자산",
       "category": "runtime_literal",
       "fingerprint": "7571558a8f6d9f3d",
@@ -5521,13 +5469,10 @@
       "text": "유동부채",
       "category": "runtime_literal",
       "fingerprint": "be68f4968e4a91d8",
-      "count": 5,
+      "count": 2,
       "first_lines": [
         1064,
-        5740,
-        7462,
-        7576,
-        7577
+        5740
       ]
     },
     {
@@ -5535,11 +5480,9 @@
       "text": "유동비율",
       "category": "runtime_literal",
       "fingerprint": "2641eafb110ffb37",
-      "count": 3,
+      "count": 1,
       "first_lines": [
-        1064,
-        7462,
-        7576
+        1064
       ]
     },
     {
@@ -5557,13 +5500,10 @@
       "text": "유동자산",
       "category": "runtime_literal",
       "fingerprint": "bd42173db47cd10e",
-      "count": 5,
+      "count": 2,
       "first_lines": [
         1064,
-        5736,
-        7462,
-        7576,
-        7577
+        5736
       ]
     },
     {
@@ -5665,12 +5605,11 @@
       "text": "이익률",
       "category": "runtime_literal",
       "fingerprint": "de4f8786b3b20361",
-      "count": 4,
+      "count": 3,
       "first_lines": [
         1041,
         1074,
-        7473,
-        7581
+        7459
       ]
     },
     {
@@ -5773,13 +5712,10 @@
       "text": "자본총계",
       "category": "runtime_literal",
       "fingerprint": "0b11d9de5d886e0b",
-      "count": 5,
+      "count": 2,
       "first_lines": [
         1064,
-        5735,
-        7462,
-        7576,
-        7577
+        5735
       ]
     },
     {
@@ -5797,12 +5733,10 @@
       "text": "자산총계",
       "category": "runtime_literal",
       "fingerprint": "ff46adea9754b644",
-      "count": 4,
+      "count": 2,
       "first_lines": [
         1064,
-        5733,
-        7462,
-        7576
+        5733
       ]
     },
     {
@@ -5821,13 +5755,12 @@
       "text": "재무상태표",
       "category": "runtime_literal",
       "fingerprint": "bc793fa20738dd61",
-      "count": 7,
+      "count": 4,
       "first_lines": [
         1056,
         1099,
         2050,
-        2051,
-        7463
+        2051
       ]
     },
     {
@@ -5835,10 +5768,9 @@
       "text": "재무제표",
       "category": "runtime_literal",
       "fingerprint": "be9748f5fa366cba",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1095,
-        7584
+        1095
       ]
     },
     {
@@ -5968,7 +5900,7 @@
         888,
         990,
         4908,
-        7528
+        7514
       ]
     },
     {
@@ -6066,7 +5998,7 @@
       "count": 2,
       "first_lines": [
         6609,
-        7480
+        7466
       ]
     },
     {
@@ -6130,7 +6062,7 @@
         2396,
         2941,
         2942,
-        7477
+        7463
       ]
     },
     {
@@ -6168,10 +6100,9 @@
       "text": "차지",
       "category": "runtime_literal",
       "fingerprint": "2dc6e5480016dbcb",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1041,
-        7581
+        1041
       ]
     },
     {
@@ -6221,10 +6152,9 @@
       "text": "투자",
       "category": "runtime_literal",
       "fingerprint": "0cb4d6cd2ed73353",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        1032,
-        7583
+        1032
       ]
     },
     {

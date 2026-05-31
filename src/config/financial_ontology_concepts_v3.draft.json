@@ -974,6 +974,7 @@
       "display_name": "시설투자(CAPEX)",
       "aliases": [
         "시설투자",
+        "설비투자",
         "CAPEX",
         "CapEx",
         "시설투자 총액",
@@ -982,6 +983,7 @@
       "keywords": [
         "시설투자(CAPEX)",
         "시설투자",
+        "설비투자",
         "CAPEX",
         "CapEx",
         "시설투자 총액",
@@ -1007,10 +1009,11 @@
       },
       "surface_contract": {
         "positive": [
-          "시설투자",
-          "CAPEX",
-          "CapEx",
-          "자본적 지출"
+        "시설투자",
+        "설비투자",
+        "CAPEX",
+        "CapEx",
+        "자본적 지출"
         ],
         "negative": [
           "유형자산의 취득",

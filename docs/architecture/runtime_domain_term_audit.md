@@ -25,13 +25,14 @@ remaining literal is justified.
 Generated on 2026-06-01 after excluding `if __name__ == "__main__"` demo
 blocks and replacing the MAS orchestrator fallback keyword classifier with a
 generic two-worker fallback. The helpers cleanup also removed a company-specific
-operand-label normalization rule.
+operand-label normalization rule and moved calculation section/topic hinting to
+ontology data.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 776 |
-| Literal occurrences | 1,259 |
-| `runtime_literal` records | 656 |
+| Reviewed records | 773 |
+| Literal occurrences | 1,200 |
+| `runtime_literal` records | 653 |
 | `regex_or_pattern` records | 88 |
 | `prompt_or_template` records | 32 |
 
@@ -39,7 +40,7 @@ Top files:
 
 | File | Records | Initial disposition |
 | --- | ---: | --- |
-| `src/agent/financial_graph_helpers.py` | 275 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
+| `src/agent/financial_graph_helpers.py` | 272 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_evidence.py` | 191 | P0: evidence selection and answer assembly must be reviewed first |
 | `src/agent/financial_graph_calculation.py` | 127 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
@@ -87,3 +88,10 @@ For each P0 record, classify it as one of:
   company/entity prefix when followed by a year, preserving the same display
   behavior without company-specific vocabulary. This removed one reviewed
   regex record from the baseline.
+- `src/agent/financial_graph_helpers.py` now resolves calculation preferred
+  sections and retrieval hints from ontology instead of appending runtime
+  keyword branches for common financial metrics. The ontology manager now
+  merges metric-family and concept priors generically, and the CAPEX concept
+  includes the equipment-investment alias needed by that data layer. This
+  removed 3 reviewed records and 59 literal occurrences from the runtime
+  baseline.
