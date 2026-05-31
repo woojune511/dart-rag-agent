@@ -1,9 +1,12 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from src.ops.audit_runtime_domain_terms import (
     collect_runtime_domain_terms,
     compare_runtime_domain_terms,
     load_runtime_domain_term_baseline,
+    summarise_runtime_domain_terms,
 )
 
 
@@ -45,6 +48,40 @@ class RuntimeDomainTermAuditTests(unittest.TestCase):
                 }
             ],
         )
+
+    def test_collector_ignores_main_guard_demo_literals(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            project_root = Path(tmp_dir)
+            source_dir = project_root / "src" / "agent"
+            source_dir.mkdir(parents=True)
+            (source_dir / "example.py").write_text(
+                '\n'.join(
+                    [
+                        'VISIBLE = "런타임"',
+                        'if __name__ == "__main__":',
+                        '    print("데모")',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            records = collect_runtime_domain_terms(project_root, ("src/agent",))
+
+        self.assertEqual([item["text"] for item in records], ["런타임"])
+
+    def test_summary_counts_records_by_category_and_path(self) -> None:
+        records = [
+            {"path": "src/agent/a.py", "category": "runtime_literal", "count": 2},
+            {"path": "src/agent/a.py", "category": "regex_or_pattern", "count": 1},
+            {"path": "src/routing/b.py", "category": "runtime_literal", "count": 1},
+        ]
+
+        summary = summarise_runtime_domain_terms(records, top_n=1)
+
+        self.assertEqual(summary["record_count"], 3)
+        self.assertEqual(summary["literal_count"], 4)
+        self.assertEqual(summary["by_category"]["runtime_literal"], 2)
+        self.assertEqual(summary["top_paths"], [{"path": "src/agent/a.py", "records": 2}])
 
 
 if __name__ == "__main__":

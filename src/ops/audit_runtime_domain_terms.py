@@ -7,7 +7,7 @@ import ast
 import hashlib
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
@@ -56,10 +56,33 @@ class _StringLiteralVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
         self.literals: List[Tuple[int, str]] = []
 
+    def visit_If(self, node: ast.If) -> None:  # noqa: N802 - ast visitor API
+        if _is_main_guard(node.test):
+            return
+        self.generic_visit(node)
+
     def visit_Constant(self, node: ast.Constant) -> None:  # noqa: N802 - ast visitor API
         if isinstance(node.value, str):
             self.literals.append((int(getattr(node, "lineno", 0) or 0), node.value))
         self.generic_visit(node)
+
+
+def _is_main_guard(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Compare):
+        return False
+    if len(node.ops) != 1 or not isinstance(node.ops[0], ast.Eq):
+        return False
+    if len(node.comparators) != 1:
+        return False
+
+    left = node.left
+    right = node.comparators[0]
+    return (
+        isinstance(left, ast.Name)
+        and left.id == "__name__"
+        and isinstance(right, ast.Constant)
+        and right.value == "__main__"
+    )
 
 
 def collect_runtime_domain_terms(
@@ -99,6 +122,24 @@ def collect_runtime_domain_terms(
         lines = sorted(set(lines_by_key[key]))
         records.append({**record, "first_lines": lines[:5]})
     return sorted(records, key=lambda item: (str(item["path"]), str(item["text"])))
+
+
+def summarise_runtime_domain_terms(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    top_n: int = 12,
+) -> Dict[str, Any]:
+    by_category = Counter(str(item.get("category", "")) for item in records)
+    by_path = Counter(str(item.get("path", "")) for item in records)
+    return {
+        "record_count": len(records),
+        "literal_count": sum(int(item.get("count", 0) or 0) for item in records),
+        "by_category": dict(sorted(by_category.items())),
+        "top_paths": [
+            {"path": path, "records": count}
+            for path, count in by_path.most_common(top_n)
+        ],
+    }
 
 
 def load_runtime_domain_term_baseline(path: Path | str = DEFAULT_BASELINE_PATH) -> List[Dict[str, Any]]:
@@ -183,6 +224,21 @@ def _format_diff(diff: Mapping[str, Sequence[Mapping[str, Any]]]) -> str:
     return "\n".join(lines)
 
 
+def _format_summary(summary: Mapping[str, Any]) -> str:
+    lines = [
+        "Runtime domain-language audit summary",
+        f"- reviewed records: {summary.get('record_count', 0)}",
+        f"- literal occurrences: {summary.get('literal_count', 0)}",
+        "- by category:",
+    ]
+    for category, count in dict(summary.get("by_category", {})).items():
+        lines.append(f"  - {category}: {count}")
+    lines.append("- top paths:")
+    for item in list(summary.get("top_paths", [])):
+        lines.append(f"  - {item.get('path')}: {item.get('records')}")
+    return "\n".join(lines)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Audit reviewed domain-language string literals in runtime agent code."
@@ -190,6 +246,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--baseline", default=str(DEFAULT_BASELINE_PATH))
     parser.add_argument("--scan-root", action="append", dest="scan_roots")
     parser.add_argument("--write-baseline", action="store_true")
+    parser.add_argument("--summary", action="store_true")
     parser.add_argument("--json", action="store_true", dest="json_output")
     args = parser.parse_args(argv)
 
@@ -205,6 +262,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps({"baseline": str(baseline_path), "record_count": len(current)}, ensure_ascii=False))
         else:
             print(f"Wrote {len(current)} reviewed runtime domain-language literals to {baseline_path}")
+        return 0
+
+    if args.summary:
+        summary = summarise_runtime_domain_terms(current)
+        if args.json_output:
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+        else:
+            print(_format_summary(summary))
         return 0
 
     baseline = load_runtime_domain_term_baseline(baseline_path)

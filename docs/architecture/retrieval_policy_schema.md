@@ -15,6 +15,8 @@ string literals in high-risk runtime paths (`src/agent`, `src/routing`). It is a
 tripwire, not a license to keep adding terms in code: new literals should first
 be moved to ontology/policy/config, and only structural or otherwise justified
 runtime text should be added to the reviewed baseline.
+The current baseline and reduction priority are tracked in
+`docs/architecture/runtime_domain_term_audit.md`.
 
 ## Policy Objects
 
