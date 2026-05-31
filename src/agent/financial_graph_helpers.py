@@ -1774,6 +1774,18 @@ def _label_implies_percent_metric(label: str) -> bool:
     )
 
 
+def _infer_generic_unit_family(label: str) -> str:
+    normalized = _normalise_spaces(str(label or ""))
+    if not normalized:
+        return ""
+    if _label_implies_percent_metric(normalized):
+        return "PERCENT"
+    compact = re.sub(r"\s+", "", normalized)
+    if any(token in compact for token in ("대수", "수량", "건수", "인원수", "직원수", "회원수", "판매량")):
+        return "COUNT"
+    return ""
+
+
 _NARRATIVE_CONTEXT_HINTS = (
     "요약",
     "원인",
@@ -2104,7 +2116,7 @@ def _build_generic_required_operands(
                         "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
                         "role": role,
                         "required": True,
-                        "unit_family": "PERCENT" if _label_implies_percent_metric(label) else "",
+                        "unit_family": _infer_generic_unit_family(label),
                         "preferred_statement_types": list(preferred_statement_types),
                         "preferred_sections": list(preferred_sections),
                         "binding_policy": binding_policy,
@@ -2119,7 +2131,7 @@ def _build_generic_required_operands(
     if _is_single_metric_period_comparison(query, operand_labels):
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
         aliases = _build_generic_metric_aliases(base_label)
-        unit_family = "PERCENT" if _label_implies_percent_metric(base_label) else ""
+        unit_family = _infer_generic_unit_family(base_label)
         concept_spec = _infer_generic_concept_spec(base_label, ontology)
         year_tokens = _extract_year_tokens(query, report_scope)
         if year_tokens:
@@ -2185,7 +2197,7 @@ def _build_generic_required_operands(
                     "aliases": list(dict.fromkeys(alias for alias in aliases if alias)),
                     "role": "",
                     "required": True,
-                    "unit_family": "PERCENT" if _label_implies_percent_metric(label) else "",
+                    "unit_family": _infer_generic_unit_family(label),
                 },
                 concept_spec=concept_spec,
             )

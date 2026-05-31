@@ -76,7 +76,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(result["active_subtask"]["operation_family"], "lookup")
         self.assertTrue(any("영향" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"]))
         self.assertTrue(
-            any("연결 편입 효과" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
+            any("Poshmark 연결 편입효과" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
         )
         self.assertTrue(
             any("영업수익 증가" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
@@ -1846,6 +1846,37 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(rows[1]["raw_unit"], "만 대")
         self.assertEqual(rows[1]["normalized_value"], 781000.0)
 
+    def test_count_operand_rejects_currency_table_values(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_wrong_unit",
+                    "source_anchor": "[테스트 | 2023 | II. 사업의 내용]",
+                    "claim": "수주잔고 | 금액 | -31",
+                    "matched_value": "-31",
+                    "matched_unit": "백만원",
+                    "metadata": {
+                        "section_path": "II. 사업의 내용",
+                        "table_header_context": "수주잔고 | 금액",
+                        "unit_hint": "백만원",
+                    },
+                },
+            ],
+            required_operands=[
+                {
+                    "label": "2023년 지역 시장 판매대수",
+                    "role": "current_period",
+                    "period_hint": "2023",
+                    "unit_family": "COUNT",
+                },
+            ],
+            query="2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"company": "테스트", "year": 2023},
+        )
+
+        self.assertEqual(rows, [])
+
     def test_period_count_operand_docs_are_kept_in_final_window(self) -> None:
         required_operands = [
             {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
@@ -2180,14 +2211,42 @@ class SemanticNumericPlanTests(unittest.TestCase):
         task = plan["tasks"][0]
         self.assertEqual(task["operation_family"], "growth_rate")
         self.assertEqual(
-            [(row["label"], row["role"], row.get("period_hint")) for row in task["required_operands"]],
+            [(row["label"], row["role"], row.get("period_hint"), row.get("unit_family")) for row in task["required_operands"]],
             [
-                ("2023년 미국 시장 판매대수", "current_period", "2023"),
-                ("2022년 미국 시장 판매대수", "prior_period", "2022"),
+                ("2023년 미국 시장 판매대수", "current_period", "2023", "COUNT"),
+                ("2022년 미국 시장 판매대수", "prior_period", "2022", "COUNT"),
             ],
         )
         retrieval_queries = task.get("retrieval_queries") or []
         self.assertTrue(any("2023년 2022년 미국 시장 판매대수" in query for query in retrieval_queries))
+
+    def test_policy_context_summary_does_not_add_unrelated_consolidation_suffixes(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        result = agent._plan_semantic_numeric_tasks(
+            {
+                "query": (
+                    "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, "
+                    "사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘."
+                ),
+                "query_type": "trend",
+                "intent": "trend",
+                "topic": "미국 시장 판매대수 성장률 및 보호무역주의 정책 대응",
+                "report_scope": {"company": "테스트", "year": 2023, "report_type": "사업보고서"},
+                "target_metric_family": "",
+                "target_metric_family_hint": "",
+                "tasks": [],
+                "artifacts": [],
+            }
+        )
+
+        queries = [
+            str(query)
+            for task in result["calc_subtasks"]
+            for query in (task.get("retrieval_queries") or [])
+        ]
+        self.assertFalse(any("연결 편입" in query for query in queries))
+        self.assertFalse(any("영업수익 증가" in query for query in queries))
 
     def test_segment_sum_llm_override_is_rejected_when_shape_degrades(self) -> None:
         base_plan = {

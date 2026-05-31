@@ -18,6 +18,9 @@ from src.ops.evaluator import (
     _compute_runtime_evidence_section_match_rate,
     _contains_section,
     _compute_numeric_result_correctness,
+    _compute_operand_selection_correctness,
+    _compute_unit_consistency_pass,
+    _normalise_math_operand_value,
     _numeric_values_equivalent,
     _operand_matches,
     EvalExample,
@@ -1034,6 +1037,49 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(resolved[0]["normalized_value"], 1.83)
         self.assertEqual(resolved[1]["source_row_id"], "row_2022")
         self.assertEqual(resolved[1]["normalized_value"], 1.73)
+
+    def test_count_scaled_units_match_expected_operands(self) -> None:
+        self.assertEqual(_normalise_math_operand_value("87.0", "만대"), (870000.0, "COUNT"))
+        self.assertEqual(_normalise_math_operand_value("87.0", "만 대"), (870000.0, "COUNT"))
+        example = EvalExample(
+            id="Q",
+            question="",
+            ground_truth="",
+            company="테스트",
+            year=2023,
+            section="",
+            expected_operands=[
+                {"label": "2023년 미국 판매대수", "period": "2023", "raw_value": "87.0", "raw_unit": "만대"},
+                {"label": "2022년 미국 판매대수", "period": "2022", "raw_value": "78.1", "raw_unit": "만대"},
+            ],
+        )
+        operands = [
+            {
+                "operand_id": "current_period",
+                "matched_operand_role": "current_period",
+                "label": "2023년 미국 시장 판매대수",
+                "period": "2023년",
+                "raw_value": "87.0",
+                "raw_unit": "만 대",
+                "normalized_value": 870000.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "operand_id": "prior_period",
+                "matched_operand_role": "prior_period",
+                "label": "2022년 미국 시장 판매대수",
+                "period": "2022년",
+                "raw_value": "78.1",
+                "raw_unit": "만 대",
+                "normalized_value": 781000.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+        plan = {"ordered_operand_ids": ["current_period", "prior_period"]}
+
+        self.assertTrue(_operand_matches(example.expected_operands[0], operands[0]))
+        self.assertEqual(_compute_operand_selection_correctness(example, operands), 1.0)
+        self.assertEqual(_compute_unit_consistency_pass(operands, plan), 1.0)
 
     def test_resolve_evaluator_operands_flattens_aggregate_subtask_answer_slots(self) -> None:
         operands = [

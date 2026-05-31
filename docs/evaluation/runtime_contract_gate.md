@@ -439,6 +439,32 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-05-31 Hyundai targeted refresh:
+  - output bundles:
+    `benchmarks/results/policy_gate_hyundai_markerclean_2026-05-31_2315/`
+    and
+    `benchmarks/results/policy_gate_hyundai_slottrace_evalonly_2026-05-31_2335/`
+  - scope: `hyundai_2023_policy_driven_runtime_gate` with
+    `structural_selective_v2_prefix_2500_320`
+  - store-fixed eval-only aggregate:
+    `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    `grounded_rendering_correctness = 1.0`,
+    `calculation_correctness = 1.0`, `avg_score = 0.952`,
+    `error_rate = 0.0%`
+  - `HYU_T2_010`: answer covers `87.0만 대`, `78.1만 대`,
+    `11.5%`, IRA / 핵심원자재법 / 보호무역주의 대응 필요성; the
+    query bundle no longer contains unrelated `연결 편입효과` suffixes.
+  - deterministic replay after evaluator count-unit normalization gives
+    `HYU_T2_010` `operand_selection_correctness = 1.0` and
+    `unit_consistency_pass = 1.0`.
+  - implementation scope: broad impact retrieval policy was narrowed, count
+    operand unit-family checks were added, growth+narrative aggregation now
+    preserves evidence-visible slot displays, and evaluator normalization now
+    treats scaled count units such as `만대` / `만 대` consistently.
+  - artifact policy: all result directories above are local experiment material
+    and should not be committed.
+
 - 2026-05-30 refresh:
   - output bundle: `benchmarks/results/policy_gate_refresh_2026-05-30/`
   - completed company runs: `NAVER 2023`, `현대자동차 2023`,

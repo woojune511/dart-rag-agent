@@ -2785,6 +2785,15 @@ class FinancialAgentEvidenceMixin:
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                 if normalized_value is None:
                     continue
+                desired_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+                observed_unit_family = _normalise_spaces(str(normalized_unit or "")).upper()
+                if (
+                    desired_unit_family in {"KRW", "USD", "COUNT", "PERCENT"}
+                    and observed_unit_family
+                    and observed_unit_family != "UNKNOWN"
+                    and observed_unit_family != desired_unit_family
+                ):
+                    continue
 
                 key = (str(item.get("source_anchor") or ""), label_name, period)
                 if key in seen:

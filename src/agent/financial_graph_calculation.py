@@ -22,6 +22,18 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
 
+
+def _topic_particle(value: str) -> str:
+    text = _normalise_spaces(str(value or ""))
+    if not text:
+        return "은"
+    last = text[-1]
+    codepoint = ord(last)
+    if 0xAC00 <= codepoint <= 0xD7A3:
+        return "은" if (codepoint - 0xAC00) % 28 else "는"
+    return "는"
+
+
 class FinancialAgentCalculationMixin:
     def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
         if not isinstance(slot, dict) or not slot:
@@ -420,6 +432,7 @@ class FinancialAgentCalculationMixin:
         if not text:
             return False
         explanatory_markers = (
+            "요약",
             "설명",
             "배경",
             "이유",
@@ -1264,8 +1277,10 @@ class FinancialAgentCalculationMixin:
     ) -> Optional[Dict[str, Any]]:
         if not _query_requests_narrative_context(query):
             return None
-        if not self._answer_looks_truncated(existing_answer):
-            return None
+        existing_answer_text = _normalise_spaces(str(existing_answer or ""))
+        missing_markers = ("확인하지 못", "찾을 수 없", "제공되지 않았", "계산할 수 없습니다", "충분히 확보하지 못", "누락")
+        answer_has_missing_claim = any(marker in existing_answer_text for marker in missing_markers)
+        answer_is_truncated = self._answer_looks_truncated(existing_answer)
 
         growth_row: Optional[Dict[str, Any]] = None
         growth_slots: Dict[str, Any] = {}
@@ -1307,6 +1322,7 @@ class FinancialAgentCalculationMixin:
         prior_slot = growth_slots["prior_value"]
         growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
         current_value = _normalise_spaces(str(current_slot.get("rendered_value") or current_slot.get("raw_value") or ""))
+        prior_value = _normalise_spaces(str(prior_slot.get("rendered_value") or prior_slot.get("raw_value") or ""))
         prior_period = _normalise_spaces(str(prior_slot.get("period") or "전년"))
         current_period = _normalise_spaces(str(current_slot.get("period") or primary_slot.get("period") or ""))
         metric_label = _normalise_spaces(
@@ -1315,6 +1331,14 @@ class FinancialAgentCalculationMixin:
         metric_label = re.sub(r"20\d{2}\s*년?", " ", metric_label)
         metric_label = _normalise_spaces(metric_label)
         if not growth_value or not current_value or not metric_label:
+            return None
+        required_displays = [value for value in (current_value, prior_value, growth_value) if value]
+        if (
+            not answer_is_truncated
+            and not answer_has_missing_claim
+            and required_displays
+            and all(value in existing_answer_text for value in required_displays)
+        ):
             return None
 
         direction = _normalise_spaces(str(primary_slot.get("direction") or primary_slot.get("direction_hint") or "")).lower()
@@ -1326,8 +1350,9 @@ class FinancialAgentCalculationMixin:
                 direction = "decrease" if growth_value.startswith("-") else "increase"
         direction_word = "감소" if direction == "decrease" else ("성장" if "매출" in metric_label else "증가")
         period_prefix = f"{current_period}년 " if current_period and not current_period.endswith("년") else f"{current_period} " if current_period else ""
+        prior_phrase = f"{prior_period} {prior_value} 대비 " if prior_value else f"{prior_period} 대비 "
         numeric_sentence = _normalise_spaces(
-            f"{period_prefix}{metric_label}은 {current_value}으로, {prior_period} 대비 {growth_value} {direction_word}했습니다."
+            f"{period_prefix}{metric_label}{_topic_particle(metric_label)} {current_value}이며, {prior_phrase}{growth_value} {direction_word}했습니다."
         )
         narrative_sentence, selected_claim_ids = narrative_candidates[0][1], narrative_candidates[0][2]
         if narrative_sentence and not re.search(r"[.!?。]$", narrative_sentence):
@@ -4172,9 +4197,15 @@ Ontology Context:
             )
         )
         for row in ordered_operands:
+            row_normalized_unit = str(row.get("normalized_unit") or "").strip().upper()
+            preserve_growth_source_display = family == "growth_rate" and row_normalized_unit not in {"", "KRW"}
             slot = self._build_operand_value_slot(
                 row,
-                preserve_source_display=family in {"lookup", "single_value"} or preserve_difference_source_display,
+                preserve_source_display=(
+                    family in {"lookup", "single_value"}
+                    or preserve_difference_source_display
+                    or preserve_growth_source_display
+                ),
             )
             role = str(slot.get("role") or "operand")
             components_by_role.setdefault(role, []).append(slot)

@@ -1577,6 +1577,91 @@ Artifact policy:
 - `benchmarks/results/policy_gate_refresh_2026-05-30/` is a local benchmark
   artifact and should not be committed.
 
+## 2026-05-31 Hyundai Policy Gate Targeted Refresh
+
+Purpose:
+
+- Recheck `HYU_T2_010` after removing broad impact-policy query suffixes that
+  pushed unrelated `연결 편입효과` terms into policy/context questions.
+- Keep the fix within the AGENTS domain boundary: no company/question-specific
+  runtime branch, and no new domain keyword bundle in agent control flow.
+- Verify that count operands preserve source displays such as `87.0만 대` while
+  evaluator normalization treats `만대` / `만 대` as the same scaled count unit.
+
+Commands:
+
+```powershell
+.\scripts\run_policy_driven_gate.ps1 `
+  -OutputDir benchmarks/results/policy_gate_hyundai_markerclean_2026-05-31_2315 `
+  -CompanyRunId hyundai_2023_policy_driven_runtime_gate `
+  -SingleProcess
+
+.\.venv\Scripts\python.exe -m src.ops.run_eval_only `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --source-output-dir benchmarks/results/policy_gate_hyundai_markerclean_2026-05-31_2315 `
+  --output-dir benchmarks/results/policy_gate_hyundai_slottrace_evalonly_2026-05-31_2335 `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --experiment-id structural_selective_v2_prefix_2500_320
+
+.\.venv\Scripts\python.exe -m src.ops.replay_full_eval_from_results `
+  --source-results benchmarks/results/policy_gate_hyundai_slottrace_evalonly_2026-05-31_2335/현대자동차-2023/results.json `
+  --dataset-path benchmarks/datasets/single_doc_eval_full.curated.json `
+  --output-dir benchmarks/results/policy_gate_hyundai_slottrace_replay_2026-05-31_2345
+```
+
+Result:
+
+- Store-fixed eval-only aggregate over the Hyundai policy questions:
+  - `faithfulness = 1.0`
+  - `answer_relevancy = 0.872`
+  - `context_recall = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `section_match_rate = 0.8375`
+  - `citation_coverage = 1.0`
+  - `entity_coverage = 0.8`
+  - `completeness = 1.0`
+  - `grounded_rendering_correctness = 1.0`
+  - `calculation_correctness = 1.0`
+  - `avg_score = 0.952`
+  - `error_rate = 0.0%`
+- `HYU_T2_010`:
+  - final answer covers `87.0만 대`, `78.1만 대`, `11.5%`, and
+    IRA / 핵심원자재법 / 보호무역주의 대응 필요성.
+  - `retrieval_debug_trace.query_bundle` contains only the original question;
+    unrelated `연결 편입효과` / `영업수익 증가` suffixes are gone.
+  - replayed deterministic metrics after evaluator count-unit normalization:
+    `operand_selection_correctness = 1.0`, `unit_consistency_pass = 1.0`,
+    `numeric_equivalence = 1.0`, `numeric_retrieval_support = 1.0`,
+    `calculation_correctness = 1.0`.
+
+Implementation notes:
+
+- Broad `impact_context` no longer injects acquisition/consolidation query
+  suffixes. Acquisition-specific behavior remains represented by the dedicated
+  policy profile instead of the broad impact policy.
+- Generic numeric planning now infers count unit families for count-like labels,
+  and required-operand selection rejects candidate rows whose normalized unit
+  family conflicts with the required operand.
+- Growth+narrative aggregation preserves evidence-visible current/prior/source
+  stated displays and replaces stale missing-context text only when structured
+  slots and narrative evidence already satisfy the mixed intent.
+- Evaluator normalization now handles scaled count units (`천/만/백만` + count
+  unit) so benchmark expected operands like `만대` match runtime evidence units
+  like `만 대`.
+
+Validation:
+
+- `python -m unittest tests.test_evaluator_runtime_projection tests.test_operation_contracts tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_growth_narrative_replaces_stale_missing_context`
+  passed: `169` tests.
+- `python -m unittest discover -s tests` passed: `530` tests.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_hyundai_markerclean_2026-05-31_2315/`,
+  `benchmarks/results/policy_gate_hyundai_slottrace_evalonly_2026-05-31_2335/`,
+  and replay summaries are local benchmark artifacts and should not be
+  committed.
+
 ## 2026-05-29 Hyundai Policy Gate Replay
 
 Purpose:

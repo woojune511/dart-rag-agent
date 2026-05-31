@@ -598,15 +598,33 @@ def _normalise_math_operand_value(raw_value: str, raw_unit: str) -> Tuple[Option
         "달러": 1.0,
         "백만달러": 1_000_000.0,
     }
-    count_units = {"개", "명", "곳", "사"}
+    count_scale = {
+        "개": 1.0,
+        "명": 1.0,
+        "곳": 1.0,
+        "사": 1.0,
+        "대": 1.0,
+        "천개": 1_000.0,
+        "천명": 1_000.0,
+        "천곳": 1_000.0,
+        "천대": 1_000.0,
+        "만개": 10_000.0,
+        "만명": 10_000.0,
+        "만곳": 10_000.0,
+        "만대": 10_000.0,
+        "백만개": 1_000_000.0,
+        "백만명": 1_000_000.0,
+        "백만곳": 1_000_000.0,
+        "백만대": 1_000_000.0,
+    }
     percent_units = {"%", "퍼센트"}
 
     if unit in krw_scale:
         return value * krw_scale[unit], "KRW"
     if unit in usd_scale:
         return value * usd_scale[unit], "USD"
-    if unit in count_units:
-        return value, "COUNT"
+    if unit in count_scale:
+        return value * count_scale[unit], "COUNT"
     if unit in percent_units:
         return value, "PERCENT"
     return value, "UNKNOWN"

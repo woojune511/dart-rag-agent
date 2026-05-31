@@ -1898,6 +1898,108 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(len(projection["calculation_operands"]), 1)
         self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
 
+    def test_aggregate_growth_narrative_replaces_stale_missing_context(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": (
+                "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산하고, "
+                "정책 대응 필요성을 요약해 줘."
+            ),
+            "calc_subtasks": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "지역 시장 판매대수",
+                    "operation_family": "growth_rate",
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "operation_family": "narrative_summary",
+                },
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "operation_family": "narrative_summary",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "지역 시장 판매대수",
+                    "answer": (
+                        "2023년 지역 시장 판매대수는 2022년 78.1만 대에서 2023년 87.0만 대로 증가하여 "
+                        "전년 대비 11.5% 증가했습니다. 정책 대응 필요성에 대한 정보는 제공되지 않았습니다."
+                    ),
+                    "status": "ok",
+                    "calculation_plan": {"status": "ok", "operation": "growth_rate"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": (
+                            "2023년 지역 시장 판매대수는 2022년 78.1만 대에서 2023년 87.0만 대로 증가하여 "
+                            "전년 대비 11.5% 증가했습니다. 정책 대응 필요성에 대한 정보는 제공되지 않았습니다."
+                        ),
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "지역 시장 판매대수",
+                                "normalized_value": 11.5,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "11.5%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "role": "current_value",
+                                "label": "2023년 지역 시장 판매대수",
+                                "period": "2023년",
+                                "raw_value": "87.0",
+                                "raw_unit": "만 대",
+                                "normalized_value": 870000.0,
+                                "normalized_unit": "COUNT",
+                                "rendered_value": "87.0만 대",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "role": "prior_value",
+                                "label": "2022년 지역 시장 판매대수",
+                                "period": "2022년",
+                                "raw_value": "78.1",
+                                "raw_unit": "만 대",
+                                "normalized_value": 781000.0,
+                                "normalized_unit": "COUNT",
+                                "rendered_value": "78.1만 대",
+                            },
+                        },
+                    },
+                }
+            ],
+            "answer": "정책 변화에 적극적인 대응이 필요한 상황입니다.",
+            "compressed_answer": "정책 변화에 적극적인 대응이 필요한 상황입니다.",
+            "selected_claim_ids": ["ev_policy"],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_policy",
+                    "claim": "정책 변화에 적극적인 대응이 필요한 상황입니다.",
+                    "support_level": "direct",
+                }
+            ],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("11.5%", updated["answer"])
+        self.assertIn("지역 시장 판매대수는 87.0만 대", updated["answer"])
+        self.assertIn("정책 변화에 적극적인 대응이 필요한 상황", updated["answer"])
+        self.assertNotIn("제공되지 않았", updated["answer"])
+
     def test_aggregate_subtasks_does_not_use_narrative_text_for_numeric_gaps(self) -> None:
         self.agent.llm = None
         state = {

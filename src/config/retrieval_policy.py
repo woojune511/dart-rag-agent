@@ -175,18 +175,14 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
         "name": "impact_context",
         "trigger_terms": ("영향", "기여", "원인", "요약", "인수"),
-        "retrieval_query_suffixes": (
-            "연결 편입 효과 성장 기여",
-            "연결 편입효과 영업수익 증가",
-        ),
         "preferred_sections": (
             "IV. 이사의 경영진단 및 분석의견",
             "재무상태 및 영업실적",
             "나. 영업실적",
         ),
-        "focus_terms": ("영향", "기여", "편입효과", "성장", "인수", "연결 편입"),
-        "causal_terms": ("영향", "기여", "편입효과", "성장", "인수", "연결 편입"),
-        "realized_terms": ("전년 대비", "연결 편입", "편입효과"),
+        "focus_terms": ("영향", "기여", "성장", "인수"),
+        "causal_terms": ("영향", "기여", "성장", "인수"),
+        "realized_terms": ("전년 대비",),
         "penalty_terms": (
             "주요계약 및 연구개발활동",
             "경영상의 주요 계약",

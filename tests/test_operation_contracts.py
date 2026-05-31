@@ -3504,6 +3504,14 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["result_value"], 11.5)
         self.assertEqual(calc["answer_slots"]["current_value"]["rendered_value"], "87.0만 대")
         self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "78.1만 대")
+        self.assertEqual(
+            calc["answer_slots"]["components_by_role"]["current_period"][0]["rendered_value"],
+            "87.0만 대",
+        )
+        self.assertEqual(
+            calc["answer_slots"]["components_by_role"]["prior_period"][0]["rendered_value"],
+            "78.1만 대",
+        )
         self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
         self.assertTrue(calc["derived_metrics"]["source_stated_result_used"])
 
