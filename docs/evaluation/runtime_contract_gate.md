@@ -187,14 +187,25 @@ Last checked: 2026-05-31.
 - `SKH_T1_060`
   - Command shape:
     - `benchmark_runner --eval-only --question-id SKH_T1_060 --low-api-debug`
+  - 2026-05-31 fresh-output focused run:
+    - `benchmark_runner --config benchmarks/profiles/curated_runtime_contract_gate.json --output-dir benchmarks/results/skh_t1_060_low_api_2026-05-31 --company-run-id skh_2023_runtime_contract_gate --question-id SKH_T1_060 --low-api-debug --numeric-fast-gate --progress-heartbeat-sec 10 --heartbeat-log <path>`
   - Diagnostic result:
     - `answer = 42.02%`
     - `numeric_final_judgement = PASS`
     - `numeric_equivalence = 1.0`
     - `numeric_grounding = 1.0`
     - `numeric_retrieval_support = 1.0`
+    - `retrieval_hit_at_k = 1.0`
+    - `resolved_operand_count = 5`
+    - API calls / estimated cost: `0 / $0.0000`
   - Failure class:
     - not a current retrieval/dependency blocker
+    - latest focused run binds the five required operands through task outputs
+      and plans `((short-term borrowings + long-term borrowings + bonds) /
+      (PPE + intangible assets)) * 100`
+    - low-API answer text is intentionally terse because render/verification
+      LLM calls are disabled; judge the diagnostic by
+      `resolved_calculation_trace` and numeric gate fields
     - previous low-API residual was deterministic operand binding: a broad
       table context allowed one row/value to be reused for a different required
       operand
@@ -225,6 +236,12 @@ Last checked: 2026-05-31.
   - Use historical replay for routine regression; do not rerun the live agent
     unless multi-entity routing, retrieval, reconciliation, or calculation
     code changed.
+  - 2026-05-31 current-code replay:
+    - `benchmarks/results/replay_multi_entity_manual_2026-05-31-current/`
+    - `comparison_002 = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
 - `MIX_T1_064`
   - Command shape:
     - `benchmark_runner --eval-only --question-id MIX_T1_064 --low-api-debug`

@@ -117,6 +117,8 @@ Historical answer replay, with no agent rerun:
   - `benchmarks/results/dev_math_focus_evalonly_2026-04-28/삼성전자-2024/results.json`
 - Latest replay output:
   - `benchmarks/results/replay_multi_entity_manual_2026-05-31/`
+  - current-code replay refresh:
+    `benchmarks/results/replay_multi_entity_manual_2026-05-31-current/`
 - Replay result:
   - `comparison_002 = PASS`
   - `numeric_equivalence = 1.0`
