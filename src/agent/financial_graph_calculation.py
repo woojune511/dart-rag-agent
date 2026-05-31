@@ -3825,9 +3825,11 @@ Ontology Context:
                 for key in ("query", "metric_label", "operation_text", "task_id")
             )
         )
+        query_terms = tuple(str(item) for item in (CALCULATION_RENDER_POLICY.get("adjusted_difference_query_terms") or ()))
+        exclusion_pattern = str(CALCULATION_RENDER_POLICY.get("adjusted_difference_exclusion_pattern") or r"$^")
         if not (
-            any(marker in query_text for marker in ("제외", "실질", "조정"))
-            or re.search(r"차감(?!전)", query_text)
+            any(marker in query_text for marker in query_terms)
+            or re.search(exclusion_pattern, query_text)
         ):
             return ""
         raw_units = [
@@ -3837,10 +3839,20 @@ Ontology Context:
         ]
         if not raw_units or len(raw_units) != len(ordered_operands):
             return ""
-        if len(set(raw_units)) == 1 and raw_units[0] in {"천원", "백만원"}:
+        source_display_units = {
+            str(item)
+            for item in (CALCULATION_RENDER_POLICY.get("source_display_units") or ())
+            if str(item)
+        }
+        converted_display_units = {
+            str(item)
+            for item in (CALCULATION_RENDER_POLICY.get("converted_display_units") or ())
+            if str(item)
+        }
+        if len(set(raw_units)) == 1 and raw_units[0] in source_display_units:
             return raw_units[0]
-        source_units = [unit for unit in raw_units if unit in {"천원", "백만원"}]
-        if len(set(source_units)) == 1 and any(unit in {"원", "억원", "조원"} for unit in raw_units):
+        source_units = [unit for unit in raw_units if unit in source_display_units]
+        if len(set(source_units)) == 1 and any(unit in converted_display_units for unit in raw_units):
             return source_units[0]
         return ""
 

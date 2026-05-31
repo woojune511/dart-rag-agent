@@ -268,6 +268,10 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
         "{first_sentence} {subtrahend_label} 금액은 {subtrahend_value}이며, "
         "이를 제외한 {result_label}은 {result_value}입니다."
     ),
+    "adjusted_difference_query_terms": ("제외", "실질", "조정"),
+    "adjusted_difference_exclusion_pattern": r"차감(?!전)",
+    "source_display_units": ("천원", "백만원"),
+    "converted_display_units": ("원", "억원", "조원"),
 }
 
 

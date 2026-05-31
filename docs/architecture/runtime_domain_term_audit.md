@@ -46,13 +46,15 @@ pass moved growth-narrative explanatory markers, context stopwords, missing
 answer markers, growth intent checks, direction wording, and the numeric
 sentence template into calculation narrative policy. The latest render pass
 moved slot-based difference answer scope labels, fallback labels, and answer
-templates into calculation render policy.
+templates into calculation render policy. A display-unit follow-up moved
+adjusted-difference trigger markers and source/converted display-unit sets into
+calculation render policy.
 
 | Metric | Count |
 | --- | ---: |
-| Reviewed records | 541 |
-| Literal occurrences | 826 |
-| `runtime_literal` records | 439 |
+| Reviewed records | 537 |
+| Literal occurrences | 815 |
+| `runtime_literal` records | 435 |
 | `regex_or_pattern` records | 70 |
 | `prompt_or_template` records | 32 |
 
@@ -62,8 +64,8 @@ Top files:
 | --- | ---: | --- |
 | `src/agent/financial_graph_helpers.py` | 224 | P0: likely mix of generic mechanisms, unit labels, and domain terms |
 | `src/agent/financial_graph_models.py` | 113 | P1: mostly schema descriptions and structured-output guidance |
-| `src/agent/financial_graph_calculation.py` | 67 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_evidence.py` | 67 | P0: evidence selection and answer assembly must be reviewed first |
+| `src/agent/financial_graph_calculation.py` | 63 | P0: numeric execution text is allowed, metric/topic selectors need review |
 | `src/agent/financial_graph_reconciliation.py` | 19 | P1: check generic missing-value messages vs selection terms |
 | `src/agent/nodes/critic_node.py` | 14 | P1: mostly validation messages and unit display checks |
 | `src/agent/financial_graph_contextual.py` | 11 | P1: prompt/context templates |
@@ -200,6 +202,11 @@ For each P0 record, classify it as one of:
   `CALCULATION_RENDER_POLICY`. Runtime keeps only the generic mechanics: pick
   material minuend/subtrahend/result slots, infer company/period/scope prefix,
   and preserve rendered slot values.
+- `_adjusted_difference_source_display_unit()` now reads adjusted-difference
+  trigger markers, exclusion regex, source display units, and converted display
+  units from `CALCULATION_RENDER_POLICY`. Runtime keeps the generic mechanics:
+  inspect active task text, compare operand units, and preserve the source unit
+  when all operands agree or when converted KRW display units are mixed in.
 
 ## Calculation Hotspots
 
@@ -213,7 +220,6 @@ Top calculation targets for the next cleanup are:
 
 | Symbol | Occurrences | Initial read |
 | --- | ---: | --- |
-| `_adjusted_difference_source_display_unit` | 11 | unit display handling; likely structural unit policy candidate |
 | `_render_calculation_answer` | 10 | final answer rendering; separate templates from execution |
 | `_material_gap_feedback_for_subtask_result` | 9 | planner feedback text; decide config vs schema/status wording |
 | `_render_grounded_operand_display` | 9 | display formatting; likely unit/period mechanics |
