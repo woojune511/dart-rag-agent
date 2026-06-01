@@ -180,6 +180,73 @@ Implementation boundary:
 - Direct lookup answers preserve source table units for grounded table values,
   which avoids evaluator failures caused by rounded compact display units.
 
+## 2026-06-01 Runtime Promotion Check
+
+After closing the remaining `SAM_T2_002` aggregate rendering issue, the concept
+planner shadow was rerun to check whether the planner shape is ready for a
+limited runtime promotion.
+
+Commands:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.compare_concept_planner_shadow `
+  --profile benchmarks\profiles\concept_planner_canary.json `
+  --output benchmarks\results\tmp_concept_planner_canary_2026-06-01.json
+
+.\.venv\Scripts\python.exe -m src.ops.compare_concept_planner_shadow `
+  --profile benchmarks\profiles\curated_concept_planner_shadow.json `
+  --output benchmarks\results\tmp_curated_concept_planner_shadow_2026-06-01.json
+
+.\.venv\Scripts\python.exe -m unittest `
+  tests.test_concept_runtime_contracts `
+  tests.test_semantic_numeric_plan `
+  tests.test_operation_contracts
+```
+
+Planner-only results:
+
+- `concept_planner_canary.json`:
+  - cases: `6`
+  - changed vs legacy: `6 / 6`
+  - legacy status: `ok = 5`, `heuristic_fallback = 1`
+  - concept status: `concept_fallback = 6`
+  - concept task families: `concept_ratio = 5`, `concept_difference = 2`,
+    `concept_lookup = 1`
+  - missing required operand concepts: `0`
+- `curated_concept_planner_shadow.json`:
+  - cases: `11`
+  - changed vs legacy: `11 / 11`
+  - legacy status: `ok = 6`, `heuristic_fallback = 5`
+  - concept status: `concept_fallback = 11`
+  - concept task families: `concept_difference = 6`, `concept_ratio = 5`,
+    `concept_lookup = 2`, `concept_sum = 1`
+  - missing required operand concepts: `0`
+
+Validation:
+
+- `tests.test_concept_runtime_contracts`,
+  `tests.test_semantic_numeric_plan`, and `tests.test_operation_contracts`
+  passed: `202` tests.
+
+Promotion verdict:
+
+- The concept planner is a **limited runtime-promotion candidate** for numeric
+  planning because every curated shadow case now produces explicit
+  concept/operation/operand-role tasks and none falls back to general search.
+- It should not be promoted as a broad runtime default yet. The current shadow
+  check is planner-only; it does not prove retrieval, reconciliation, answer
+  rendering, or evaluator behavior.
+- The next validation step is an end-to-end, store-fixed runtime gate on the
+  same families that recently closed: `NAV_T1_071`, `KBF_T1_017`,
+  `MIX_T1_021`, `SKH_T1_060`, and the implicit ratio/FCF prompts where stores
+  are available.
+
+Artifact policy:
+
+- `benchmarks/results/tmp_concept_planner_canary_2026-06-01.json` and
+  `benchmarks/results/tmp_curated_concept_planner_shadow_2026-06-01.json` are
+  local planner-shadow outputs and should not be committed.
+
 ## How To Interpret It
 
 Good signs:

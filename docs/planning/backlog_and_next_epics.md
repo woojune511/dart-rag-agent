@@ -140,6 +140,10 @@ runtime contract를 고정하는 선행 작업으로 본다.
   갖고도 최종 답변에서 operand 값을 누락하는 경우를 드러냈고, 이제
   sibling `task_output:*` lookup slot을 이용한 generic complete-growth
   rendering으로 닫혔다
+- 2026-06-01 concept planner shadow check에서 curated 11개 모두
+  concept/operation/operand-role task를 만들었고, required operand concept
+  누락은 0건이었다. 다만 planner-only 결과이므로 broad default 전환 전에
+  store-fixed end-to-end runtime gate가 필요하다
 - 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하는 것이다
 
 종료 조건:
@@ -366,7 +370,7 @@ runtime contract를 고정하는 선행 작업으로 본다.
 
 ## 현재 추천 우선순위
 
-1. concept-only planner runtime promotion check
+1. concept-only planner store-fixed runtime promotion gate
 2. contextual arbitration / benchmark maintenance
 3. broader curated gate maintenance residual review
 4. internal compatibility mirror cleanup

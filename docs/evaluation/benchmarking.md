@@ -665,6 +665,16 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
   재료 수집 구조와 end-to-end answer contract가 함께 닫혔다.
 - 따라서 이 canary의 현재 역할은 **planner default 승격 판단 전 quick shadow compare**
   이다.
+- 2026-06-01 runtime promotion check:
+  - `concept_planner_canary.json`: `6 / 6` cases changed vs legacy, all
+    concept status `concept_fallback`, missing required operand concepts `0`
+  - `curated_concept_planner_shadow.json`: `11 / 11` cases changed vs legacy,
+    all concept status `concept_fallback`, missing required operand concepts `0`
+  - concept task families covered `concept_ratio`, `concept_difference`,
+    `concept_lookup`, and `concept_sum`
+  - verdict: limited runtime-promotion candidate for numeric planning, but not
+    a broad default until the same families pass an end-to-end store-fixed
+    runtime gate
 
 ### Math focus dataset
 
