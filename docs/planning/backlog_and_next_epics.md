@@ -136,6 +136,10 @@ runtime contract를 고정하는 선행 작업으로 본다.
   aggregate evidence propagation이 함께 닫혔다
 - `answer_slots`와 deterministic gap checker가 들어와,
   aggregate 단계가 `primary/current/prior/delta` 누락을 structured하게 먼저 판단할 수 있게 됐다
+- `SAM_T2_002`는 `growth_rate` aggregate가 current/prior/result 슬롯을 모두
+  갖고도 최종 답변에서 operand 값을 누락하는 경우를 드러냈고, 이제
+  sibling `task_output:*` lookup slot을 이용한 generic complete-growth
+  rendering으로 닫혔다
 - 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하는 것이다
 
 종료 조건:
@@ -362,9 +366,9 @@ runtime contract를 고정하는 선행 작업으로 본다.
 
 ## 현재 추천 우선순위
 
-1. broader curated gate maintenance
-2. concept-only planner runtime promotion check
-3. contextual arbitration / benchmark maintenance
+1. concept-only planner runtime promotion check
+2. contextual arbitration / benchmark maintenance
+3. broader curated gate maintenance residual review
 4. internal compatibility mirror cleanup
 5. table payload sidecar / store-size cleanup
 6. MAS skeleton과 artifact schema productization

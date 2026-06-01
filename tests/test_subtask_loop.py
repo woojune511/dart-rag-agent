@@ -3654,6 +3654,118 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("41.4%", updated["answer"])
         self.assertIn("Poshmark", updated["answer"])
 
+    def test_aggregate_subtasks_repairs_growth_answer_omitting_operand_values(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 연결기준 시설투자(CAPEX) 총액 증감률은 0.0026% 감소했습니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 시설투자(CAPEX) 총액을 찾고, 전년(2022년) 대비 증감률을 계산해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_2"},
+                {"task_id": "task_3"},
+                {"task_id": "task_4"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 시설투자(CAPEX) 총액",
+                    "answer": "2023년 시설투자(CAPEX) 총액은 531,139억원입니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "period": "2023",
+                                "label": "2023 시설투자(CAPEX)",
+                                "rendered_value": "531,139억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022년 시설투자(CAPEX)",
+                    "answer": "2022년 시설투자(CAPEX)는 531,153억원입니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "period": "2022",
+                                "label": "시설투자(CAPEX)",
+                                "rendered_value": "531,153억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "시설투자(CAPEX) 총액 증감률",
+                    "answer": "2023년 연결기준 시설투자(CAPEX) 총액 증감률은 0.0026% 감소했습니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "0.0026%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "period": "2023",
+                                "normalized_value": -0.0026357,
+                                "rendered_value": "-0.0026%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "period": "2023",
+                                "label": "시설투자(CAPEX) 총액",
+                                "rendered_value": "53조 1,139억원",
+                                "source_row_id": "task_output:task_1",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "period": "2022",
+                                "label": "시설투자(CAPEX) 총액",
+                                "rendered_value": "53조 1,153억원",
+                                "source_row_id": "task_output:task_2",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_4",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경",
+                    "answer": "2023년 업황 악화에도 불구하고 시설투자가 집행되었습니다.",
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_feedback"], "")
+        self.assertIn("531,139억원", updated["answer"])
+        self.assertIn("531,153억원", updated["answer"])
+        self.assertIn("0.0026% 감소", updated["answer"])
+        self.assertNotIn("53조 1,139억원", updated["answer"])
+
     def test_policy_growth_cases_do_not_use_case_specific_composer(self) -> None:
         self.assertFalse(hasattr(self.agent, "_compose_sales_growth_policy_answer"))
 

@@ -529,6 +529,27 @@ Current gate status:
   - artifact policy: the replay bundle is local experiment material and should
     not be committed.
 
+- 2026-06-01 `SAM_T2_002` growth aggregate rendering fix:
+  - output bundle:
+    `benchmarks/results/tmp_samsung_multi_report_sam_t2_002_2026-05-22/`
+  - scope: Samsung multi-report focused eval-only for `SAM_T2_002`, using the
+    existing structural selective store.
+  - failure classification: not a retrieval miss. The structured runtime trace
+    had the current value, prior value, and growth-rate result; the final
+    aggregate answer omitted the current/prior operand values.
+  - implementation scope: generic `growth_rate` aggregate rendering from
+    `answer_slots` plus sibling `task_output:*` lookup slots. This preserves
+    source-display values and avoids benchmark/company-specific branches.
+  - focused eval-only after the fix:
+    `numeric_final_judgement = PASS`, `numeric_equivalence = 1.0`,
+    `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`,
+    `faithfulness = 1.0`, `retrieval_hit_at_k = 1.0`, `avg_score = 0.791`.
+  - validation guard: `tests.test_subtask_loop`,
+    `tests.test_aggregate_subtask_projection`,
+    `tests.test_evaluator_runtime_projection`, and
+    `tests.test_benchmark_runner_runtime_projection` passed (`102` tests);
+    runtime domain-language audit also passed.
+
 - 2026-05-31 Hyundai targeted refresh:
   - output bundles:
     `benchmarks/results/policy_gate_hyundai_markerclean_2026-05-31_2315/`

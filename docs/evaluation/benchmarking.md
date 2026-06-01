@@ -2056,3 +2056,81 @@ Artifact policy:
 
 - `benchmarks/results/policy_gate_hyundai_markerpolicy_evalonly_2026-06-01/`
   is a local benchmark artifact and should not be committed.
+
+## 2026-06-01 SAM_T2_002 Growth Aggregate Rendering Fix
+
+Purpose:
+
+- Close the remaining focused `SAM_T2_002` failure without adding a
+  benchmark/company-specific runtime rule.
+- Verify whether the failure was caused by retrieval/evidence coverage or by
+  final aggregate rendering.
+
+Diagnosis:
+
+- The structured subtask results already contained all required numeric
+  material:
+  - 2023 CAPEX current value: `531,139억원`
+  - 2022 CAPEX prior value: `531,153억원`
+  - growth result: `0.0026% 감소`
+- The failing answer only rendered the growth-rate sentence, omitting the
+  current/prior operand values. That made `numeric_equivalence = 0.0` and
+  `numeric_final_judgement = FAIL` even though operand grounding and retrieval
+  support were present.
+
+Implementation:
+
+- Added a generic `growth_rate` aggregate rendering repair that reads
+  `answer_slots` and sibling `task_output:*` lookup slots.
+- The repair is gated to aggregate answers that include narrative subtasks, so
+  pure numeric growth answers keep their existing behavior.
+- The change uses operation/slot provenance only; no Samsung, CAPEX,
+  benchmark-id, or report-specific branch was added.
+
+Validation:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest `
+  tests.test_subtask_loop `
+  tests.test_aggregate_subtask_projection `
+  tests.test_evaluator_runtime_projection `
+  tests.test_benchmark_runner_runtime_projection
+
+.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms --summary
+
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_multi_report_smoke.json `
+  --output-dir benchmarks\results\tmp_samsung_multi_report_sam_t2_002_2026-05-22 `
+  --company-run-id samsung_2023_multi_report `
+  --eval-only `
+  --question-id SAM_T2_002 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\tmp_samsung_multi_report_sam_t2_002_2026-05-22\sam_t2_002_growth_render_fix_2026-06-01.heartbeat.jsonl
+```
+
+Result:
+
+- Unit subset: `102` tests passed.
+- Runtime domain-language audit: passed; reviewed records `215`, literal
+  occurrences `246`.
+- Focused eval-only:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.000`
+  - `answer_relevancy = 0.833`
+  - `context_recall = 0.800`
+  - `retrieval_hit_at_k = 1.000`
+  - `section_match_rate = 0.444`
+  - `citation_coverage = 0.667`
+  - `entity_coverage = 0.800`
+  - `completeness = 0.700`
+  - `numeric_equivalence = 1.000`
+  - `numeric_grounding = 1.000`
+  - `numeric_retrieval_support = 1.000`
+  - `latency_sec = 167.413`
+- Current final answer shape:
+  `2023년 시설투자(CAPEX)는 531,139억원이며, 2022년 531,153억원 대비 0.0026% 감소했습니다.`
+
+Artifact policy:
+
+- `benchmarks/results/tmp_samsung_multi_report_sam_t2_002_2026-05-22/` is a
+  local focused benchmark artifact and should not be committed.

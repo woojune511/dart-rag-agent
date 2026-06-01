@@ -434,6 +434,10 @@ class FinancialAgentCalculationMixin:
             if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
                 continue
             calculation_result = dict(row.get("calculation_result") or {})
+            if operation_family == "growth_rate":
+                answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
+                if answer:
+                    return answer
             answer = _normalise_spaces(
                 str(
                     calculation_result.get("formatted_result")
@@ -445,6 +449,162 @@ class FinancialAgentCalculationMixin:
             if answer:
                 return answer
         return ""
+
+    def _slot_display_from_source_task(
+        self,
+        slot: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        source_task_id = _normalise_spaces(str(slot.get("source_task_id") or ""))
+        if not source_task_id:
+            source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
+            if source_row_id.startswith("task_output:"):
+                source_task_id = source_row_id.split(":", 1)[1]
+        if not source_task_id:
+            return ""
+        source_slot_name = _normalise_spaces(str(slot.get("source_slot") or "primary_value")) or "primary_value"
+        for row in ordered_results:
+            if _normalise_spaces(str(row.get("task_id") or "")) != source_task_id:
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
+            if self._answer_slot_has_material(source_slot):
+                return _normalise_spaces(
+                    str(source_slot.get("rendered_value") or source_slot.get("raw_value") or "")
+                )
+        return ""
+
+    def _growth_slot_display_value(
+        self,
+        slot: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        source_display = self._slot_display_from_source_task(slot, ordered_results)
+        if source_display:
+            return source_display
+        return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+
+    def _compose_complete_growth_numeric_answer(
+        self,
+        row: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        if self._aggregate_result_operation_family(row) != "growth_rate":
+            return ""
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+        if not self._answer_slot_has_material(primary_slot):
+            return ""
+
+        growth_value = _normalise_spaces(str(calculation_result.get("rendered_value") or ""))
+        if not growth_value:
+            growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
+        current_value = self._growth_slot_display_value(current_slot, ordered_results)
+        prior_value = self._growth_slot_display_value(prior_slot, ordered_results)
+        if not (growth_value and current_value and prior_value):
+            return ""
+
+        metric_label = _normalise_spaces(
+            str(current_slot.get("label") or primary_slot.get("label") or row.get("metric_label") or "")
+        )
+        metric_label = re.sub(str(CALCULATION_SLOT_POLICY.get("period_pattern") or r"$^"), " ", metric_label)
+        metric_label = _normalise_spaces(metric_label)
+        if not metric_label:
+            return ""
+
+        current_period = _normalise_spaces(str(current_slot.get("period") or primary_slot.get("period") or ""))
+        prior_period = _normalise_spaces(
+            str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
+        )
+        direction = _normalise_spaces(str(primary_slot.get("direction") or primary_slot.get("direction_hint") or "")).lower()
+        if not direction:
+            normalized_value = primary_slot.get("normalized_value")
+            if normalized_value is not None:
+                try:
+                    direction = "decrease" if float(normalized_value) < 0 else "increase"
+                except (TypeError, ValueError):
+                    direction = ""
+            if not direction:
+                direction = "decrease" if str(primary_slot.get("rendered_value") or "").strip().startswith("-") else "increase"
+        direction_words = dict(CALCULATION_NARRATIVE_POLICY.get("direction_words") or {})
+        growth_direction_metric_terms = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_direction_metric_terms") or ())
+            if str(item)
+        )
+        if direction == "decrease":
+            direction_word = str(direction_words.get("decrease") or "decrease")
+        elif any(term in metric_label for term in growth_direction_metric_terms):
+            direction_word = str(direction_words.get("growth") or direction_words.get("increase") or "increase")
+        else:
+            direction_word = str(direction_words.get("increase") or "increase")
+
+        year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
+        if current_period and year_suffix and not current_period.endswith(year_suffix):
+            period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_with_year_template") or "").format(
+                period=current_period
+            )
+        elif current_period:
+            period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_template") or "").format(
+                period=current_period
+            )
+        else:
+            period_prefix = ""
+        prior_period_display = prior_period
+        if prior_period_display and year_suffix and re.fullmatch(r"\d{4}", prior_period_display):
+            prior_period_display = f"{prior_period_display}{year_suffix}"
+        prior_phrase = str(CALCULATION_NARRATIVE_POLICY.get("prior_phrase_with_value_template") or "").format(
+            period=prior_period_display,
+            value=prior_value,
+        )
+        return _normalise_spaces(
+            str(CALCULATION_NARRATIVE_POLICY.get("growth_numeric_sentence_template") or "").format(
+                period_prefix=period_prefix,
+                metric_label=metric_label,
+                topic_particle=_topic_particle(metric_label),
+                current_value=current_value,
+                prior_phrase=prior_phrase,
+                growth_value=self._absolute_display_value(growth_value),
+                direction_word=direction_word,
+            )
+        )
+
+    def _ensure_complete_growth_numeric_answer(
+        self,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        for row in reversed(ordered_results):
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
+            if not complete_answer:
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            required_values = [
+                self._growth_slot_display_value(dict(answer_slots.get("current_value") or {}), ordered_results),
+                self._growth_slot_display_value(dict(answer_slots.get("prior_value") or {}), ordered_results),
+                _normalise_spaces(str(calculation_result.get("rendered_value") or "")),
+            ]
+            required_values = [value for value in required_values if value]
+            if required_values and all(value in answer_text for value in required_values):
+                return answer_text
+            extra_sentences: List[str] = []
+            for sentence in re.split(r"(?<=[.!?。])\s+", answer_text):
+                cleaned = _normalise_spaces(sentence)
+                if not cleaned or cleaned in complete_answer:
+                    continue
+                if any(value and value in cleaned for value in required_values):
+                    continue
+                extra_sentences.append(cleaned)
+            return _normalise_spaces(" ".join([complete_answer, *extra_sentences]))
+        return answer_text
 
     def _query_requests_explanatory_context(
         self,
@@ -5583,6 +5743,8 @@ class FinancialAgentCalculationMixin:
             final_answer = slot_based_difference_answer
             planner_feedback = ""
             deterministic_feedback = ""
+        if has_narrative_summary:
+            final_answer = self._ensure_complete_growth_numeric_answer(final_answer, ordered_results)
         if not deterministic_feedback:
             final_answer = self._include_narrative_context_if_needed(
                 final_answer,
