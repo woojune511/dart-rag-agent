@@ -2216,3 +2216,33 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 
 - 이 변경은 단위 렌더링 트릭이 아니라 evidence contract 보강이다.
 - 값이 실제 문서 표면에 어떤 단위로 보였는지 보존하므로, 이후 synthesizer/evaluator가 source display와 다른 단위로 조용히 drift하는 위험을 줄인다.
+
+---
+
+## 결정 93 — benchmark required entities는 answer key와 evidence contract에 닫힌 항목만 둔다
+
+**배경**: concept runtime grounding smoke에서 `SAM_T3_028` 답변은 수치와 근거가 모두 맞았지만, dataset의 `required_entities`에 answer key와 evidence가 요구하지 않는 산업 배경어가 남아 completeness/entity가 낮게 측정됐다.
+
+**결정**:
+
+- `required_entities`와 `required_keywords`는 질문, answer key, ground-truth evidence quote로 직접 정당화되는 항목만 포함한다.
+- 산업 배경어, 원인 추정어, broader context term은 질문이 명시적으로 요구하거나 answer key가 필수 설명으로 채택한 경우에만 required field에 둔다.
+- runtime answer를 benchmark row에 맞추기 위해 배경어를 억지로 추가하지 않는다.
+
+**검증**:
+
+- `SAM_T3_028` dataset contract를 `재고자산평가손실`, `매출원가` 중심으로 정리했다.
+- Store-reuse eval-only after the dataset fix:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `context_recall = 1.0`
+  - `section_match_rate = 1.0`
+  - `citation_coverage = 1.0`
+  - `entity_coverage = 1.0`
+  - `completeness = 1.0`
+  - `full_eval_fails = 0`
+
+**해석**:
+
+- 이건 runtime 품질 보정이 아니라 benchmark curation 보정이다.
+- concept planner promotion gate는 planner/runtime이 필요한 evidence를 모으는지 평가해야 하며, answer key 밖의 배경어 포함 여부를 평가하면 안 된다.

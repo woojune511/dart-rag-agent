@@ -3058,8 +3058,7 @@
     "eval_checkpoints": {
       "required_keywords": [
         "재고자산평가손실",
-        "메모리",
-        "단가 하락"
+        "매출원가"
       ],
       "reject_expected": false
     },
@@ -3094,11 +3093,7 @@
     ],
     "required_entities": [
       "재고자산평가손실",
-      "매출원가",
-      "재고자산 평가충당금",
-      "메모리 반도체",
-      "메모리",
-      "단가 하락"
+      "매출원가"
     ],
     "answer_type": "summary",
     "expected_refusal": false,

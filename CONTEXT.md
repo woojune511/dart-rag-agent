@@ -30,6 +30,15 @@
     concept-shaped plan을 냈다. legacy는 `ok=6`, `heuristic_fallback=5`,
     concept path는 `concept_fallback=11`이다. 이것은 승격 완료가 아니라
     runtime gate에서 grounding 영향만 따로 볼 수 있는 promotion candidate다.
+  - concept runtime grounding gate 첫 smoke로 `SAM_T3_028`를 store-reuse
+    eval-only까지 확인했다.
+    - 초기 runtime answer는 numeric/grounding은 `PASS`였지만 dataset의
+      required entity에 answer key/evidence에 없는 산업 배경어
+      (`메모리`, `단가 하락`, `재고자산 평가충당금`)가 남아 completeness/entity가
+      낮게 나왔다.
+    - dataset contract를 answer key/evidence에 맞춰 `재고자산평가손실`,
+      `매출원가`로 좁힌 뒤 재실행 결과: numeric/faithfulness/recall/
+      completeness/entity/citation 모두 `1.0`, full-eval fail `0`.
 
 - Runtime domain-vocabulary boundary has been tightened again.
   - Benchmark-shaped deterministic runtime code for the Hyundai US-sales policy

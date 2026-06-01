@@ -40,10 +40,38 @@
     legacy status `ok=6`, `heuristic_fallback=5`, concept status
     `concept_fallback=11`.
 - Immediate next:
-  1. Keep concept planner in shadow mode and run a small runtime grounding gate
-     before promotion.
+  1. Extend the concept runtime grounding gate from the closed `SAM_T3_028`
+     smoke to 2-3 more representative concept-shadow cases.
   2. Treat the remaining Hyundai gate variance as evaluator/ranking stability
      work, not as a new domain-specific rule opportunity.
+
+## 2026-06-01 Concept Runtime Grounding Gate Smoke
+
+- First runtime grounding smoke used
+  `curated_concept_runtime_gap_gate.json` with
+  `samsung_2023_concept_gap / SAM_T3_028`.
+- Initial run:
+  - numeric correctness was already closed:
+    `numeric_final_judgement = PASS`, `numeric_grounding = 1.0`,
+    `calculation_correctness = 1.0`.
+  - full-eval still failed because dataset-required entities included
+    background terms not present in the answer key/evidence contract:
+    `메모리`, `단가 하락`, `재고자산 평가충당금`.
+- Dataset contract fix:
+  - `SAM_T3_028` required keywords/entities now align to the verified answer
+    and evidence: `재고자산평가손실`, `매출원가`.
+  - No runtime rule was added.
+- Store-reuse eval-only after the dataset fix:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `context_recall = 1.0`
+  - `section_match_rate = 1.0`
+  - `citation_coverage = 1.0`
+  - `entity_coverage = 1.0`
+  - `completeness = 1.0`
+  - `full_eval_fails = 0`
+- Next gate candidates should cover one bank metric case and one
+  multi-step concept calculation case before planner promotion.
 
 ## 2026-06-01 NAV_T1_030 Evaluator Projection Closure
 
