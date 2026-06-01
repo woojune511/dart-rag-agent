@@ -2019,6 +2019,20 @@ class FinancialAgentCalculationMixin:
             evidence_item=evidence_item,
         )
         if surface_unit:
+            surface_value, surface_family = _normalise_operand_value(raw_value or "1", surface_unit)
+            current_value, current_family = _normalise_operand_value(raw_value or "1", current_unit)
+            hint_value, hint_family = _normalise_operand_value(raw_value or "1", unit_hint)
+            surface_family = _normalise_spaces(str(surface_family or "")).upper()
+            current_family = _normalise_spaces(str(current_family or "")).upper()
+            hint_family = _normalise_spaces(str(hint_family or "")).upper()
+            known_current_family = current_unit and current_family and current_family != "UNKNOWN"
+            known_hint_family = unit_hint and hint_family and hint_family != "UNKNOWN"
+            known_surface_family = surface_family and surface_family != "UNKNOWN" and surface_value is not None
+            if known_surface_family and (
+                (known_current_family and current_value is not None and surface_family != current_family)
+                or (known_hint_family and hint_value is not None and surface_family != hint_family)
+            ):
+                return current_unit or unit_hint
             return surface_unit
         if not unit_hint:
             return current_unit

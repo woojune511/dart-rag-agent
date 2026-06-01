@@ -421,6 +421,46 @@ Latest verification:
   a runtime default until the remaining CEL blockers close through generic
   operand/evidence-source contracts and the focused gate is rerun.
 
+2026-06-02 focused blocker update (CEL_T1_013):
+
+- `CEL_T1_013` is closed in the focused low-API concept-runtime gate.
+- Failure class:
+  - not retrieval coverage and not formula arithmetic
+  - the relevant R&D table already contained both the total R&D denominator
+    and the capitalized-development-cost numerator
+  - broad concept aliases could still direct-bind unrelated table columns or
+    older fiscal-ordinal tables before the more specific ontology surface was
+    selected
+  - surface unit inference could also overwrite a known KRW table unit when a
+    bare value was followed by a longer Korean word beginning with a count unit
+- Runtime changes are generic:
+  - surface evidence cannot override an existing structured unit when the
+    normalized unit families conflict
+  - ontology concepts may require their `surface_contract.positive` terms for
+    direct structured matching; runtime code consumes that declaration without
+    adding topic-specific branches
+  - required-operand assembly applies the same positive-surface requirement and
+    extracts values from the matching table-value line, not merely a broad
+    alias elsewhere in the table context
+  - when multiple current-period table candidates satisfy the same surface
+    contract, higher DART fiscal ordinals are preferred as the current table
+    shape before older repeated tables
+- Focused validation:
+  - command shape:
+    - `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --company-run-id celltrion_2023_concept_gap --question-id CEL_T1_013 --low-api-debug --progress-heartbeat-sec 30 --heartbeat-log <path>`
+  - local output bundle:
+    `benchmarks/results/concept_gap_cel_t1_013_low_api_fix8_2026-06-02/`
+    (local experiment artifact only; do not commit raw results)
+  - result:
+    - `numeric_final_judgement = PASS`
+    - final operands: `342,736,271` and `181,624,107` thousand KRW
+    - final calculation result: `52.99%`
+- Remaining runtime blocker:
+  - `CEL_T3_040`: wrong value-source selection for inventory valuation
+    loss/reversal rows.
+- Promotion verdict remains unchanged until the remaining CEL blocker closes
+  and the focused gate is rerun.
+
 2026-06-01 full sweep update:
 
 - The curated gate was rerun through the reusable profile and produced clean

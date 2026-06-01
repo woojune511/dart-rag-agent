@@ -13,7 +13,7 @@
       "fingerprint": "767bc6f818fc96e2",
       "count": 1,
       "first_lines": [
-        313
+        315
       ]
     },
     {
@@ -23,7 +23,7 @@
       "fingerprint": "6606787fbeb83141",
       "count": 1,
       "first_lines": [
-        1254
+        1592
       ]
     },
     {
@@ -33,7 +33,7 @@
       "fingerprint": "a8a093c7e803f64e",
       "count": 1,
       "first_lines": [
-        322
+        324
       ]
     },
     {
@@ -43,7 +43,7 @@
       "fingerprint": "856229ecec7673f5",
       "count": 1,
       "first_lines": [
-        1147
+        1438
       ]
     },
     {
@@ -53,7 +53,7 @@
       "fingerprint": "7eedf3c80dbfb201",
       "count": 1,
       "first_lines": [
-        2576
+        3239
       ]
     },
     {
@@ -63,7 +63,7 @@
       "fingerprint": "07925292e7605acd",
       "count": 1,
       "first_lines": [
-        274
+        276
       ]
     },
     {
@@ -73,7 +73,7 @@
       "fingerprint": "e0672f42e76a8987",
       "count": 1,
       "first_lines": [
-        4628
+        5304
       ]
     },
     {
@@ -83,7 +83,7 @@
       "fingerprint": "dfdd54a0011319cd",
       "count": 1,
       "first_lines": [
-        381
+        383
       ]
     },
     {
@@ -93,7 +93,7 @@
       "fingerprint": "7bbeb54c9d720cd2",
       "count": 1,
       "first_lines": [
-        383
+        385
       ]
     },
     {
@@ -103,8 +103,8 @@
       "fingerprint": "17fe383876fff52a",
       "count": 3,
       "first_lines": [
-        4088,
-        5679
+        4759,
+        6406
       ]
     },
     {
@@ -114,7 +114,7 @@
       "fingerprint": "8c7e3ede0fa967ac",
       "count": 1,
       "first_lines": [
-        5417
+        6144
       ]
     },
     {
@@ -124,8 +124,8 @@
       "fingerprint": "5b9aca9efa1cb642",
       "count": 2,
       "first_lines": [
-        1670,
-        4221
+        2312,
+        4897
       ]
     },
     {
@@ -135,7 +135,7 @@
       "fingerprint": "00537036c11979e5",
       "count": 1,
       "first_lines": [
-        2081
+        2731
       ]
     },
     {
@@ -145,7 +145,7 @@
       "fingerprint": "7ca792d9bb061cde",
       "count": 1,
       "first_lines": [
-        1761
+        2403
       ]
     },
     {
@@ -155,7 +155,7 @@
       "fingerprint": "de4d14c45b9e10fd",
       "count": 1,
       "first_lines": [
-        2063
+        2713
       ]
     },
     {
@@ -165,7 +165,7 @@
       "fingerprint": "cb4958652000269f",
       "count": 1,
       "first_lines": [
-        1855
+        2497
       ]
     },
     {
@@ -175,7 +175,7 @@
       "fingerprint": "5cc7250da5f208a1",
       "count": 1,
       "first_lines": [
-        4629
+        5305
       ]
     },
     {
@@ -185,7 +185,7 @@
       "fingerprint": "0b992c4a6917dad0",
       "count": 1,
       "first_lines": [
-        4479
+        5155
       ]
     },
     {
@@ -195,7 +195,7 @@
       "fingerprint": "23ab25b3ab77e604",
       "count": 1,
       "first_lines": [
-        5422
+        6149
       ]
     },
     {
@@ -205,8 +205,8 @@
       "fingerprint": "9e011f27d9f7b129",
       "count": 2,
       "first_lines": [
-        1670,
-        4221
+        2312,
+        4897
       ]
     },
     {
@@ -216,10 +216,10 @@
       "fingerprint": "bd1699610adad626",
       "count": 4,
       "first_lines": [
-        2043,
-        3852,
-        3922,
-        4658
+        2693,
+        4502,
+        4585,
+        5334
       ]
     },
     {
@@ -253,7 +253,7 @@
       "fingerprint": "ff18e0673e70c35a",
       "count": 1,
       "first_lines": [
-        2884
+        2958
       ]
     },
     {
@@ -263,8 +263,8 @@
       "fingerprint": "4ec5a8e849d0dfb3",
       "count": 2,
       "first_lines": [
-        3417,
-        3436
+        3491,
+        3510
       ]
     },
     {
@@ -346,7 +346,7 @@
       "fingerprint": "066d947debd8d926",
       "count": 1,
       "first_lines": [
-        4628
+        4702
       ]
     },
     {
@@ -360,7 +360,17 @@
         425,
         2517,
         2732,
-        2791
+        2827
+      ]
+    },
+    {
+      "path": "src/agent/financial_graph_evidence.py",
+      "text": "제\\s*(\\d+)\\s*기",
+      "category": "regex_or_pattern",
+      "fingerprint": "60ec60244136737d",
+      "count": 1,
+      "first_lines": [
+        2750
       ]
     },
     {
@@ -370,7 +380,7 @@
       "fingerprint": "3aa50a1e3dd9f9bb",
       "count": 1,
       "first_lines": [
-        1903
+        2015
       ]
     },
     {
@@ -380,7 +390,7 @@
       "fingerprint": "564f631ce587bad3",
       "count": 1,
       "first_lines": [
-        1657
+        1769
       ]
     },
     {
@@ -390,7 +400,7 @@
       "fingerprint": "d0a68f122e79f782",
       "count": 1,
       "first_lines": [
-        3189
+        3314
       ]
     },
     {
@@ -400,7 +410,7 @@
       "fingerprint": "8d15177a51f8ea8a",
       "count": 1,
       "first_lines": [
-        4983
+        5152
       ]
     },
     {
@@ -410,17 +420,17 @@
       "fingerprint": "3f041c51b081a96d",
       "count": 1,
       "first_lines": [
-        200
+        221
       ]
     },
     {
       "path": "src/agent/financial_graph_helpers.py",
-      "text": "(?P<denominator>[가-힣A-Za-z0-9·/&\\-\\s\\(\\)]+?)\\s*중\\s*(?P<numerator>[가-힣A-Za-z0-9·/&\\-\\s\\(\\)]+?)\\s*(?:이|가)\\s*차지하는\\s*(?:비중|비율)",
+      "text": "(?P<denominator>[가-힣A-Za-z0-9·/&\\-\\s\\(\\)]+?)\\s*중\\s*(?P<numerator>[가-힣A-Za-z0-9·/&\\-\\s\\(\\)]+?)\\s*(?:(?:이|가)\\s*차지하는\\s*)?(?:의\\s*)?(?:비중|비율)",
       "category": "prompt_or_template",
-      "fingerprint": "5628c40169405e6d",
+      "fingerprint": "dcaf0fd6f11dfe0e",
       "count": 1,
       "first_lines": [
-        1652
+        1763
       ]
     },
     {
@@ -430,7 +440,7 @@
       "fingerprint": "579e64c9085b58f1",
       "count": 1,
       "first_lines": [
-        896
+        920
       ]
     },
     {
@@ -440,7 +450,7 @@
       "fingerprint": "fb88d9b6042a4ab8",
       "count": 1,
       "first_lines": [
-        903
+        927
       ]
     },
     {
@@ -450,7 +460,7 @@
       "fingerprint": "83911fa4e645ea8f",
       "count": 1,
       "first_lines": [
-        5397
+        5566
       ]
     },
     {
@@ -460,7 +470,7 @@
       "fingerprint": "5eba65865611eed0",
       "count": 1,
       "first_lines": [
-        5011
+        5180
       ]
     },
     {
@@ -470,7 +480,7 @@
       "fingerprint": "76ace638702d5adb",
       "count": 1,
       "first_lines": [
-        4962
+        5131
       ]
     },
     {
@@ -480,7 +490,7 @@
       "fingerprint": "f2804fadf9da1dbe",
       "count": 1,
       "first_lines": [
-        188
+        190
       ]
     },
     {
@@ -490,8 +500,8 @@
       "fingerprint": "9cf50dedd1cb1438",
       "count": 2,
       "first_lines": [
-        1772,
-        2263
+        1884,
+        2375
       ]
     },
     {
@@ -501,7 +511,7 @@
       "fingerprint": "c5b5314c80a4a20a",
       "count": 1,
       "first_lines": [
-        4923
+        5092
       ]
     },
     {
@@ -511,7 +521,7 @@
       "fingerprint": "b3a08ce09d2c8846",
       "count": 1,
       "first_lines": [
-        181
+        183
       ]
     },
     {
@@ -521,7 +531,7 @@
       "fingerprint": "508662ee99ee39e5",
       "count": 1,
       "first_lines": [
-        4987
+        5156
       ]
     },
     {
@@ -531,7 +541,7 @@
       "fingerprint": "892b7fc8fe5550be",
       "count": 1,
       "first_lines": [
-        4974
+        5143
       ]
     },
     {
@@ -541,7 +551,7 @@
       "fingerprint": "04e17ed82b398fc3",
       "count": 1,
       "first_lines": [
-        4933
+        5102
       ]
     },
     {
@@ -551,7 +561,7 @@
       "fingerprint": "a06423b14a7b545a",
       "count": 1,
       "first_lines": [
-        5210
+        5379
       ]
     },
     {
@@ -561,7 +571,7 @@
       "fingerprint": "9d38cab54d22f5c5",
       "count": 1,
       "first_lines": [
-        1040
+        1150
       ]
     },
     {
@@ -571,7 +581,7 @@
       "fingerprint": "67d9a377415a4102",
       "count": 1,
       "first_lines": [
-        3483
+        3608
       ]
     },
     {
@@ -581,8 +591,8 @@
       "fingerprint": "35a271eee58bd814",
       "count": 2,
       "first_lines": [
-        2279,
-        3482
+        2391,
+        3607
       ]
     },
     {
@@ -592,7 +602,7 @@
       "fingerprint": "f22c656be12d3f6d",
       "count": 1,
       "first_lines": [
-        997
+        1107
       ]
     },
     {
@@ -602,8 +612,8 @@
       "fingerprint": "745a89e03fd65f22",
       "count": 2,
       "first_lines": [
-        2675,
-        2676
+        2787,
+        2788
       ]
     },
     {
@@ -613,10 +623,10 @@
       "fingerprint": "3df3bf753756b486",
       "count": 4,
       "first_lines": [
-        4802,
-        4813,
-        4860,
-        4887
+        4971,
+        4982,
+        5029,
+        5056
       ]
     },
     {
@@ -626,7 +636,7 @@
       "fingerprint": "25f17ac6aad50c38",
       "count": 1,
       "first_lines": [
-        4970
+        5139
       ]
     },
     {
@@ -636,7 +646,7 @@
       "fingerprint": "3b842ac261c59c9e",
       "count": 1,
       "first_lines": [
-        999
+        1109
       ]
     },
     {
@@ -646,7 +656,7 @@
       "fingerprint": "d65f8e3db10c2030",
       "count": 1,
       "first_lines": [
-        4545
+        4687
       ]
     },
     {
@@ -656,7 +666,7 @@
       "fingerprint": "29c0f2198b3be826",
       "count": 1,
       "first_lines": [
-        4970
+        5139
       ]
     },
     {
@@ -666,7 +676,7 @@
       "fingerprint": "94aa3d2d8aebe64d",
       "count": 1,
       "first_lines": [
-        3483
+        3608
       ]
     },
     {
@@ -676,7 +686,7 @@
       "fingerprint": "a047042ed1b71ebd",
       "count": 1,
       "first_lines": [
-        7175
+        7355
       ]
     },
     {
@@ -686,8 +696,8 @@
       "fingerprint": "f6848141f3363895",
       "count": 2,
       "first_lines": [
-        7173,
-        7174
+        7353,
+        7354
       ]
     },
     {

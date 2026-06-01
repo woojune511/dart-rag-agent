@@ -1761,7 +1761,8 @@ def _query_component_match_count(
 _QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“”‘’「」『』]+)['"“”‘’「」『』]""")
 _GENERIC_RATIO_SHARE_RE = re.compile(
     r"(?P<denominator>[가-힣A-Za-z0-9·/&\-\s\(\)]+?)\s*중\s*"
-    r"(?P<numerator>[가-힣A-Za-z0-9·/&\-\s\(\)]+?)\s*(?:이|가)\s*차지하는\s*"
+    r"(?P<numerator>[가-힣A-Za-z0-9·/&\-\s\(\)]+?)\s*"
+    r"(?:(?:이|가)\s*차지하는\s*)?(?:의\s*)?"
     r"(?:비중|비율)"
 )
 _GENERIC_PERIOD_COMPARISON_METRIC_RE = re.compile(
@@ -2969,6 +2970,15 @@ def _build_concept_required_operands(
             role_hints = _assign_ratio_roles_to_concepts(query, ordered_specs)
         if not any(role.startswith("numerator") for role in role_hints) or not any(role.startswith("denominator") for role in role_hints):
             return []
+        if _extract_generic_ratio_operand_specs(query) and any(not role for role in role_hints):
+            paired = [
+                (spec, role)
+                for spec, role in zip(ordered_specs, role_hints)
+                if role.startswith("numerator") or role.startswith("denominator")
+            ]
+            if paired:
+                ordered_specs = [spec for spec, _role in paired]
+                role_hints = [role for _spec, role in paired]
 
     if operation_family == "sum" and len(ordered_specs) == 1:
         ordered_specs = _expand_segment_sum_specs(ordered_specs, query, report_scope)
@@ -3057,7 +3067,11 @@ def _build_concept_metric_label(
     operation_family: str,
 ) -> str:
     ordered_specs = _order_concept_specs_by_query(concept_specs, query)
-    labels = [str(spec.get("name") or "").strip() for spec in ordered_specs if str(spec.get("name") or "").strip()]
+    labels = [
+        str(spec.get("name") or spec.get("label") or "").strip()
+        for spec in ordered_specs
+        if str(spec.get("name") or spec.get("label") or "").strip()
+    ]
     label_policy = dict(CONCEPT_METRIC_LABEL_POLICY)
     templates = dict(label_policy.get("operation_templates") or {})
     label_joiner = str(label_policy.get("label_joiner") or " + ")
@@ -3266,7 +3280,7 @@ def _build_concept_numeric_task(
     operand_specs = _build_concept_required_operands(query, report_scope, concept_specs, operation_family)
     if not operand_specs:
         return None
-    metric_label = _build_concept_metric_label(query, concept_specs, operation_family)
+    metric_label = _build_concept_metric_label(query, operand_specs, operation_family)
     return _compose_concept_numeric_task(
         query=query,
         report_scope=report_scope,
@@ -4019,8 +4033,8 @@ def _build_lookup_producer_task_from_binding(
     preferred_sections = list(
         dict.fromkeys(
             [
-                *list(operand.get("preferred_sections") or []),
                 *list(consumer_task.get("preferred_sections") or []),
+                *list(operand.get("preferred_sections") or []),
             ]
         )
     )
@@ -4418,6 +4432,23 @@ def _build_semantic_numeric_plan(
         planner_notes.append("entity_scoped_concept_fallback")
     if strong_metric_keys and concept_specs:
         planner_notes.append("metric_match_preferred_over_concept")
+    if not target_metric_family and concept_specs and strong_metric_keys and _extract_generic_ratio_operand_specs(query):
+        concept_task = _build_concept_numeric_task(
+            query=query,
+            topic=topic,
+            report_scope=report_scope,
+            ontology=ontology,
+            concept_specs=concept_specs,
+        )
+        if concept_task:
+            return {
+                "status": "concept_fallback",
+                "fallback_to_general_search": False,
+                "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
+                "tasks": [concept_task],
+                "planner_notes": planner_notes
+                + ["explicit_ratio_concept_preferred", "planner_fallback:explicit_ratio_concept_preferred"],
+            }
     if not target_metric_family and concept_specs and not strong_metric_keys:
         concept_task = _build_concept_numeric_task(
             query=query,
@@ -4906,6 +4937,33 @@ def _text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
 def _text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
     contract = _operand_surface_contract(operand)
     return _text_has_contract_term(text, list(contract.get("negative") or []))
+
+
+def _candidate_has_required_surface_contract(
+    candidate: Dict[str, Any],
+    operand: Dict[str, Any],
+    *,
+    selected_cell: Optional[Dict[str, Any]] = None,
+) -> bool:
+    contract = _operand_surface_contract(operand)
+    positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
+    if not positive_terms:
+        return True
+
+    metadata = dict(candidate.get("metadata") or {})
+    surfaces = [
+        str(metadata.get("semantic_label") or "").strip(),
+        str(metadata.get("row_label") or "").strip(),
+        str(metadata.get("aggregate_label") or "").strip(),
+        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
+        " ".join(str(item).strip() for item in ((selected_cell or {}).get("column_headers") or []) if str(item).strip()),
+        str(metadata.get("table_row_labels_text") or "").strip(),
+        str(metadata.get("table_value_labels_text") or "").strip(),
+        str(metadata.get("row_text") or "").strip(),
+        str(candidate.get("text") or "").strip(),
+    ]
+    return any(_text_has_contract_term(surface, positive_terms) for surface in surfaces if surface)
 
 
 def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
@@ -6580,6 +6638,17 @@ def _candidate_satisfies_direct_acceptance_contract(
         explicit_years = [int(token) for token in re.findall(explicit_year_pattern, period_text or "")]
         if target_years and explicit_years and not any(year in explicit_years for year in target_years):
             return False
+
+    binding_policy = dict(operand.get("binding_policy") or {})
+    if bool(
+        binding_policy.get("require_surface_contract_for_direct_match")
+        or binding_policy.get("require_surface_contract_for_direct_lookup")
+    ) and not _candidate_has_required_surface_contract(
+        candidate,
+        operand,
+        selected_cell=selected_cell,
+    ):
+        return False
 
     if operation_family in {"lookup", "single_value"}:
         desired_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()

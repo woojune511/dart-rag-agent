@@ -1169,6 +1169,7 @@
       "aliases": [
         "개발비",
         "무형자산(개발비)",
+        "개발비(무형자산)",
         "무형자산 개발비",
         "자본화 개발비",
         "자본화된 연구개발비"
@@ -1177,9 +1178,25 @@
         "자본화된 개발비",
         "자본화 개발비",
         "무형자산(개발비)",
+        "개발비(무형자산)",
         "개발비",
         "자본화"
       ],
+      "binding_policy": {
+        "require_surface_contract_for_direct_match": true,
+        "require_surface_contract_for_direct_lookup": true
+      },
+      "surface_contract": {
+        "positive": [
+          "자본화된 개발비",
+          "자본화 개발비",
+          "자본화된 연구개발비",
+          "무형자산(개발비)",
+          "개발비(무형자산)",
+          "무형자산 개발비"
+        ],
+        "negative": []
+      },
       "unit_family": "KRW",
       "preferred_statement_types": [
         "notes",

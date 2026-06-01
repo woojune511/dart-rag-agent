@@ -2731,6 +2731,32 @@ class FinancialAgentEvidenceMixin:
             report_scope=dict(report_scope or {}),
             query_years=[int(year.replace("년", "")) for year in query_years],
         )
+        if query_years:
+            def _candidate_current_period_priority(item: Dict[str, Any]) -> tuple[int, int]:
+                metadata = dict(item.get("metadata") or {})
+                surface = _normalise_spaces(
+                    " ".join(
+                        str(part or "")
+                        for part in (
+                            metadata.get("table_header_context"),
+                            metadata.get("table_summary_text"),
+                            item.get("raw_row_text"),
+                            item.get("claim"),
+                        )
+                        if str(part or "").strip()
+                    )
+                )
+                fiscal_ordinals: List[int] = []
+                for token in re.findall(r"제\s*(\d+)\s*기", surface):
+                    try:
+                        fiscal_ordinals.append(int(token))
+                    except (TypeError, ValueError):
+                        continue
+                period_focus = _normalise_spaces(str(metadata.get("period_focus") or "")).lower()
+                current_bonus = 1 if period_focus == "current" else 0
+                return current_bonus, max(fiscal_ordinals or [0])
+
+            prioritized_items = sorted(prioritized_items, key=_candidate_current_period_priority, reverse=True)
         operand_rows: List[Dict[str, Any]] = []
         seen: set[tuple[str, str, str]] = set()
         year_pattern = re.compile(year_pattern_text)
@@ -2782,6 +2808,16 @@ class FinancialAgentEvidenceMixin:
                     _text_has_positive_surface(context_text or raw_row, operand)
                     and not _text_has_negative_surface(context_text or raw_row, operand)
                 )
+                binding_policy = dict(operand.get("binding_policy") or {})
+                requires_surface_contract = bool(
+                    binding_policy.get("require_surface_contract_for_direct_match")
+                    or binding_policy.get("require_surface_contract_for_direct_lookup")
+                )
+                if (
+                    requires_surface_contract
+                    and not surface_contract_match
+                ):
+                    continue
                 period_count_context_match = (
                     bool(re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, context_text or raw_row))
                     and bool(re.search(_COUNT_VALUE_UNIT_RE, context_text or raw_row))
@@ -2800,6 +2836,16 @@ class FinancialAgentEvidenceMixin:
                     for cell in parsed_cells
                 )
                 raw_row_direct_match = _operand_text_match(raw_row, operand) or _text_has_positive_surface(raw_row, operand)
+                table_value_context_raw = str(metadata.get("table_value_labels_text") or "")
+                table_value_context = _normalise_spaces(table_value_context_raw)
+                table_value_context_match = bool(table_value_context) and (
+                    _text_has_positive_surface(table_value_context, operand)
+                    if requires_surface_contract
+                    else (
+                        _operand_text_match(table_value_context, operand)
+                        or _text_has_positive_surface(table_value_context, operand)
+                    )
+                )
                 raw_row_matches_other_required = any(
                     other_operand is not operand
                     and (
@@ -2808,7 +2854,7 @@ class FinancialAgentEvidenceMixin:
                     )
                     for other_operand in required_operands
                 )
-                if not raw_row_direct_match and raw_row_matches_other_required:
+                if not raw_row_direct_match and raw_row_matches_other_required and not table_value_context_match:
                     continue
                 if (
                     not _operand_text_match(raw_row, operand)
@@ -2816,6 +2862,7 @@ class FinancialAgentEvidenceMixin:
                     and not surface_contract_match
                     and not period_count_context_match
                     and not cell_context_match
+                    and not table_value_context_match
                 ):
                     continue
 
@@ -2828,6 +2875,33 @@ class FinancialAgentEvidenceMixin:
                 raw_unit = str(item.get("matched_unit") or "")
                 stated_change_raw_value = ""
                 stated_change_raw_unit = ""
+
+                if not raw_value:
+                    if table_value_context_match:
+                        for context_line in table_value_context_raw.splitlines():
+                            normalized_line = _normalise_spaces(context_line)
+                            if not normalized_line:
+                                continue
+                            line_matches_operand = (
+                                _text_has_positive_surface(normalized_line, operand)
+                                if requires_surface_contract
+                                else (
+                                    _operand_text_match(normalized_line, operand)
+                                    or _text_has_positive_surface(normalized_line, operand)
+                                )
+                            )
+                            if not line_matches_operand:
+                                continue
+                            raw_value = _extract_numeric_value_after_operand_text(normalized_line, operand)
+                            if raw_value:
+                                break
+                        if not raw_value:
+                            raw_value = _extract_numeric_value_after_operand_text(table_value_context, operand)
+                        if raw_value and not raw_unit:
+                            raw_unit = str(metadata.get("unit_hint") or "") or _fallback_unit(
+                                raw_value,
+                                table_value_context,
+                            )
 
                 if not raw_value:
                     if parsed_cells:
