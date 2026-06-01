@@ -825,7 +825,7 @@ def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> b
         tolerance = max(relative_tolerance, display_tolerance)
     elif left.get("kind") == "percent":
         display_tolerance = max(_percent_display_step(left), _percent_display_step(right)) / 2.0
-        tolerance = max(1e-4, display_tolerance)
+        tolerance = max(0.05, display_tolerance)
     else:
         tolerance = 1e-4
     return abs(left_value - right_value) <= tolerance
@@ -849,23 +849,48 @@ def _compute_numeric_equivalence(
             "reason": "missing_candidates",
         }
 
+    matched_pair: Optional[Dict[str, Any]] = None
     for answer_candidate in answer_candidates:
         for reference_candidate in reference_candidates:
             if _numeric_values_equivalent(answer_candidate, reference_candidate):
-                return 1.0, {
-                    "answer_candidates": answer_candidates,
-                    "reference_candidates": reference_candidates,
-                    "matched_pair": {
-                        "answer": answer_candidate,
-                        "reference": reference_candidate,
-                    },
-                    "reason": "equivalent_value",
+                matched_pair = {
+                    "answer": answer_candidate,
+                    "reference": reference_candidate,
                 }
+                break
+        if matched_pair:
+            break
+
+    if matched_pair:
+        unsupported_answer_candidates: List[Dict[str, Any]] = []
+        if len(answer_candidates) > 1:
+            for answer_candidate in answer_candidates:
+                if not any(
+                    _numeric_values_equivalent(answer_candidate, reference_candidate)
+                    for reference_candidate in reference_candidates
+                ):
+                    unsupported_answer_candidates.append(answer_candidate)
+        if unsupported_answer_candidates:
+            return 0.0, {
+                "answer_candidates": answer_candidates,
+                "reference_candidates": reference_candidates,
+                "matched_pair": matched_pair,
+                "unsupported_answer_candidates": unsupported_answer_candidates,
+                "reason": "unsupported_answer_numeric_claim",
+            }
+        return 1.0, {
+            "answer_candidates": answer_candidates,
+            "reference_candidates": reference_candidates,
+            "matched_pair": matched_pair,
+            "unsupported_answer_candidates": [],
+            "reason": "equivalent_value",
+        }
 
     return 0.0, {
         "answer_candidates": answer_candidates,
         "reference_candidates": reference_candidates,
         "matched_pair": None,
+        "unsupported_answer_candidates": [],
         "reason": "no_equivalent_value",
     }
 

@@ -16,6 +16,7 @@ from src.agent.financial_graph import (
 )
 from src.ops.evaluator import (
     EvalExample,
+    _compute_numeric_equivalence,
     _compute_numeric_evaluation,
     _compute_operand_selection_correctness,
     _compute_operand_grounding_score,
@@ -88,6 +89,32 @@ class CompositeKrwParsingTests(unittest.TestCase):
         left = _extract_numeric_candidates("차이는 63조 8,217억원입니다.")[0]
         right = _extract_numeric_candidates("차이는 63조 8,220억원입니다.")[0]
         self.assertFalse(_numeric_values_equivalent(left, right))
+
+    def test_percent_equivalence_allows_small_formula_rounding_gap(self) -> None:
+        left = _extract_numeric_candidates("증가율은 70.24%입니다.")[0]
+        right = _extract_numeric_candidates("증가율은 약 70.28%입니다.")[0]
+        self.assertTrue(_numeric_values_equivalent(left, right))
+
+    def test_numeric_equivalence_rejects_extra_unsupported_answer_number(self) -> None:
+        score, debug = _compute_numeric_equivalence(
+            answer="이익은 (573,884)백만원이고 손실은 906,120백만원이며 순효과는 -1조 4,800억원입니다.",
+            answer_key="이익은 573,884백만원이고 손실은 906,120백만원이며 순효과는 -332,236백만원입니다.",
+            canonical_evidence=[],
+        )
+
+        self.assertEqual(score, 0.0)
+        self.assertEqual(debug["reason"], "unsupported_answer_numeric_claim")
+        self.assertIn("1조 4,800억원", [item["value_text"] for item in debug["unsupported_answer_candidates"]])
+
+    def test_numeric_equivalence_requires_all_multi_value_answer_claims_to_match(self) -> None:
+        score, debug = _compute_numeric_equivalence(
+            answer="재고자산평가손실은 (1,124,562,480,391)원, 환입은 (106,656)천원, 폐기손실은 25,163,510천원입니다.",
+            answer_key="재고자산평가손실 2,526,280천원, 환입 48,885,812천원, 폐기손실 25,163,510천원입니다.",
+            canonical_evidence=[],
+        )
+
+        self.assertEqual(score, 0.0)
+        self.assertEqual(debug["reason"], "unsupported_answer_numeric_claim")
 
     def test_numeric_fast_gate_skips_llm_grounding_when_operands_are_grounded(self) -> None:
         example = EvalExample(

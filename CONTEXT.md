@@ -39,17 +39,30 @@
     - dataset contract를 answer key/evidence에 맞춰 `재고자산평가손실`,
       `매출원가`로 좁힌 뒤 재실행 결과: numeric/faithfulness/recall/
       completeness/entity/citation 모두 `1.0`, full-eval fail `0`.
-  - concept runtime gap gate 7문항 전체도 실행 완료했다.
+  - concept runtime gap gate 7문항 전체도 실행 완료했고, 1차 blocker
+    triage를 evaluator부터 닫았다.
     - clean pass: `SAM_T3_028`, `POS_T1_057`, `KAB_T1_066`
-    - promotion blockers / triage 대상: `KBF_T2_018`, `SKH_T3_080`,
-      `CEL_T1_013`, `CEL_T3_040`
-    - aggregate: 6 company bundles screen pass, full-eval fail 3, critical
-      miss 0, avg numeric 0.750, avg completeness 0.717, avg faithfulness
-      0.775, avg recall 0.972.
+    - `KBF_T2_018`는 answer/evidence가 complete였고 numeric gap은
+      `70.24%` vs answer-key `70.28%`의 formula/display rounding
+      차이였다. percent numeric equivalence는 0.05 percentage-point
+      tolerance를 허용하도록 조정했고 store-reuse eval-only에서
+      `numeric_final_judgement = PASS`, faithfulness/recall/completeness
+      `1.0`을 확인했다.
+    - numeric evaluator는 multi-value answer에서 한 숫자만 answer key와
+      맞아도 PASS가 나던 false positive를 차단한다. answer numeric claim이
+      answer key나 canonical evidence numeric candidate 어느 쪽에도 맞지
+      않으면 `unsupported_answer_numeric_claim`으로 FAIL 처리한다.
+    - 남은 runtime blockers: `SKH_T3_080`(parenthesized gain sign/value와
+      net-effect binding), `CEL_T1_013`(capitalized development cost operand
+      missing), `CEL_T3_040`(inventory valuation loss/reversal value-source
+      selection).
+    - 재채점 결과 `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`는 모두
+      numeric FAIL로 정렬됐다. 이것은 승격 blocker가 evaluator noise가
+      아니라 runtime evidence/operand binding 문제임을 보여준다.
     - 결론: concept-only planner default 승격은 아직 보류다. 다음 작업은
-      새 runtime rule 추가가 아니라 실패 문항을 numeric evaluator mismatch,
-      operand/sign binding, missing concept/evidence, dataset contract 중 어느
-      층인지 분리하는 것이다.
+      새 runtime rule 추가가 아니라 `SKH_T3_080`, `CEL_T1_013`,
+      `CEL_T3_040`를 각각 sign/operand/evidence-source binding 층에서
+      일반화 가능한 계약으로 닫는 것이다.
 
 - Runtime domain-vocabulary boundary has been tightened again.
   - Benchmark-shaped deterministic runtime code for the Hyundai US-sales policy

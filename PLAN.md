@@ -107,6 +107,42 @@
   - Next work is failure-layer classification, not new benchmark-specific
     runtime rules.
 
+## 2026-06-01 Numeric Evaluator Blocker Triage
+
+- Closed the evaluator-side part of the concept runtime gap gate.
+- `KBF_T2_018`:
+  - Classified as numeric evaluator tolerance / answer-key formula-display
+    mismatch, not a runtime operand failure.
+  - Answer used `70.24%`; answer key expects about `70.28%`.
+  - Percent equivalence now allows a small `0.05` percentage-point rounding
+    tolerance.
+  - Store-reuse eval-only now passes with `numeric_final_judgement = PASS`,
+    faithfulness `1.0`, recall `1.0`, completeness `1.0`.
+- Multi-value numeric false-positive guard:
+  - Numeric equivalence no longer passes a multi-value answer just because one
+    answer number matches one reference number.
+  - If any answer numeric claim is unsupported by the answer key or canonical
+    evidence candidates, the evaluator returns
+    `unsupported_answer_numeric_claim`.
+- Rechecked remaining blockers with store-reuse eval-only:
+  - `SKH_T3_080`: `numeric_final_judgement = FAIL`; runtime still binds a
+    parenthesized foreign-currency translation gain and computes the wrong net
+    effect.
+  - `CEL_T1_013`: `numeric_final_judgement = FAIL`; runtime still misses the
+    capitalized development cost operand and refuses the requested ratio.
+  - `CEL_T3_040`: `numeric_final_judgement = FAIL`; runtime still selects wrong
+    inventory valuation loss/reversal values while one disposal-loss value is
+    correct.
+- Immediate next:
+  1. Fix `SKH_T3_080` through generic signed amount / parenthetical value
+     handling and dependency binding, not a foreign-currency-specific branch.
+  2. Fix `CEL_T1_013` by improving concept/evidence binding for capitalized
+     development cost through ontology/policy/structured evidence.
+  3. Fix `CEL_T3_040` by tightening generic row/value-source selection for
+     multi-value inventory-style lookups.
+  4. Re-run the remaining three store-reuse eval-only checks, then the 7-question
+     gate only after focused closures.
+
 ## 2026-06-01 NAV_T1_030 Evaluator Projection Closure
 
 - `NAV_T1_030` is closed after separating answer correctness from evaluator

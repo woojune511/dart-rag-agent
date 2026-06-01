@@ -160,7 +160,7 @@ Runtime follow-up:
 - The expanded probe showed where concept coverage was missing or weak, but it
   did not by itself prove retrieval, structured row binding, or final numeric
   grounding.
-- The 2026-05-28 runtime gap gate rerun covered the seven closed gap cases:
+- The 2026-05-28 runtime gap gate rerun covered the seven then-closed gap cases:
   `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`, `POS_T1_057`,
   `KAB_T1_066`, and `SAM_T3_028`.
 - Result:
@@ -169,6 +169,11 @@ Runtime follow-up:
   - all seven had `numeric_grounding = 1.0`
 - The reusable gate profile is now
   `benchmarks/profiles/curated_concept_runtime_gap_gate.json`.
+- A 2026-06-01 reusable-profile rerun changed the promotion interpretation:
+  `KBF_T2_018` is now closed as a small percent-rounding evaluator issue, while
+  `SKH_T3_080`, `CEL_T1_013`, and `CEL_T3_040` remain runtime blockers after
+  tightening multi-value numeric equivalence. Concept-only planner promotion is
+  still blocked until those three close through generic runtime contracts.
 
 Implementation boundary:
 

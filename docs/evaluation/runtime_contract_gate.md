@@ -380,6 +380,28 @@ Latest verification:
   - `numeric_equivalence = 1.0` and `numeric_grounding = 1.0` for all seven
     questions
 
+2026-06-01 full sweep update:
+
+- The curated gate was rerun through the reusable profile and produced clean
+  passes for `SAM_T3_028`, `POS_T1_057`, and `KAB_T1_066`.
+- `KBF_T2_018` was reclassified as an evaluator tolerance issue: the runtime
+  answer `70.24%` and answer-key value about `70.28%` differ only by small
+  formula/display rounding. Percent equivalence now allows a `0.05`
+  percentage-point gap, and store-reuse eval-only passes.
+- The evaluator now guards multi-value numeric answers against false positives:
+  a response cannot pass just because one numeric claim matches one reference
+  number if other answer numeric claims are unsupported by the answer key or
+  canonical evidence candidates.
+- After that evaluator fix, these are the remaining runtime blockers:
+  - `SKH_T3_080`: signed/parenthesized foreign-currency translation gain and
+    downstream net-effect binding.
+  - `CEL_T1_013`: missing capitalized-development-cost operand binding.
+  - `CEL_T3_040`: wrong value-source selection for inventory valuation
+    loss/reversal rows.
+- Promotion verdict remains unchanged: do not promote concept-only planning as
+  a runtime default until the remaining blockers close through generic
+  sign/operand/evidence-source contracts.
+
 2026-05-31 focused triage update:
 
 - `KAB_T1_066` was rechecked with the low-API numeric loop before rerunning the
