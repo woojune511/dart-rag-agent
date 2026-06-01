@@ -380,6 +380,59 @@ Latest verification:
   - `numeric_equivalence = 1.0` and `numeric_grounding = 1.0` for all seven
     questions
 
+2026-06-02 full refresh:
+
+- Profile:
+  - `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
+- Output directory:
+  - `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-02_042728/`
+    (local experiment artifact only; do not commit raw results)
+- Command shape:
+  - `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-02_042728 --eval-only --progress-heartbeat-sec 30 --heartbeat-log <path>`
+- Result:
+  - all seven full-evaluation questions finished with
+    `numeric_final_judgement = PASS`
+  - question ids: `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`,
+    `POS_T1_057`, `KAB_T1_066`, `SAM_T3_028`
+  - company summary reports 6 / 6 company runs with 0 full-eval fails and 0
+    critical misses; this is a company-run count, while the full-evaluation
+    question set contains 7 questions because Celltrion carries two focused
+    questions
+  - aggregate summary:
+    - `full_numeric_pass_rate = 1.000`
+    - `full_completeness = 1.000`
+    - `full_faithfulness = 1.000`
+    - average `full_context_recall = 0.917`
+- Residual found and closed during refresh:
+  - the first full-path refresh still exposed a `CEL_T3_040` table-family
+    selection issue: low-API planning was closed, but the full agent path could
+    retrieve the right sibling table row for one lookup slot while earlier
+    lookup slots remained marked as missing or selected the wrong sibling value
+  - the fix stays generic:
+    - split multi-concept lookup tasks now carry sibling lookup surfaces from
+      the other lookup slots so reconciliation can prefer table families that
+      contain the requested row family
+    - aggregate assembly can recover failed lookup slots from already retrieved
+      structured table evidence when that evidence contains the active operand
+      surface and the sibling surfaces required by the task contract
+    - deterministic lookup-list rendering is limited to aggregate answers made
+      only from lookup/single-value tasks, so ratio/sum/growth aggregates keep
+      their existing task-order answer composition
+  - confirmed `CEL_T3_040` full-path answer values:
+    - inventory valuation loss: `2,526,280` thousand KRW
+    - inventory valuation loss reversal: `48,885,812` thousand KRW
+    - inventory disposal loss: `25,163,510` thousand KRW
+- Promotion interpretation:
+  - the concept runtime gap gate is clean as a focused gate
+  - keep it separate from the default five-question smoke gate, but run it
+    before landing changes to ontology-driven lookup planning, structured row
+    binding, sibling evidence recovery, or aggregate numeric rendering
+
+The focused blocker notes below are chronological triage records. Any
+"remaining blocker" or "promotion verdict" statement inside those notes should
+be read as the status at that point in time; the 2026-06-02 full refresh above
+is the current confirmation for the seven-question concept runtime gap gate.
+
 2026-06-02 focused blocker update:
 
 - `SKH_T3_080` is closed in the focused low-API concept-runtime gate.
@@ -460,6 +513,57 @@ Latest verification:
     loss/reversal rows.
 - Promotion verdict remains unchanged until the remaining CEL blocker closes
   and the focused gate is rerun.
+
+2026-06-02 focused blocker update (CEL_T3_040):
+
+- `CEL_T3_040` is closed in the focused low-API concept-runtime gate.
+- Failure class:
+  - not retrieval coverage and not missing ontology; the inventory valuation
+    loss, reversal, and disposal-loss concepts were already present in the
+    ontology
+  - the router classified the question as `qa`, so concept-only numeric lookup
+    planning did not run even though ontology concepts and numeric unit
+    families were available
+  - once planned, multiple direct lookup concepts needed independent task-ledger
+    entries so downstream lookup binding could select one grounded row/value per
+    concept instead of treating the request as one multi-operand formula
+  - aggregate answer selection needed to prefer grounded lookup slots over raw
+    narrative table text
+- Runtime changes are generic:
+  - ontology-backed `qa` queries may be promoted to numeric lookup planning only
+    when the active retrieval policy declares generic lookup markers, allowed
+    operation families, and numeric unit families
+  - multi-concept direct lookups are split into one concept task per operand,
+    preserving concept constraints, section/type priors, and retrieval queries
+  - aggregate composition renders successful lookup slots as a deterministic
+    list before falling back to raw narrative/table text
+  - ontology concepts may require their full surface contract for direct lookup,
+    which prevents short generic row labels from binding unrelated sibling rows
+- Focused validation:
+  - command shape:
+    - `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --company-run-id celltrion_2023_concept_gap --question-id CEL_T3_040 --low-api-debug --progress-heartbeat-sec 30 --heartbeat-log <path>`
+  - local output bundle:
+    `benchmarks/results/concept_gap_cel_t3_040_low_api_fix4_2026-06-02/`
+    (local experiment artifact only; do not commit raw results)
+  - result:
+    - `numeric_final_judgement = PASS`
+    - `faithfulness = 1.0`
+    - `answer_relevancy = 1.0`
+    - `context_recall = 1.0`
+    - `retrieval_hit_at_k = 1.0`
+    - `citation_coverage = 1.0`
+    - `entity_coverage = 1.0`
+    - `completeness = 1.0`
+    - `numeric_pass_rate = 1.0`
+    - `avg_score = 0.976`
+    - final answer:
+      `재고자산평가손실 2,526,280천원, 재고자산평가손실환입 48,885,812천원, 재고자산폐기손실 25,163,510천원입니다.`
+- Remaining runtime blockers:
+  - none in the current focused low-API CEL blocker set.
+- Promotion verdict:
+  - the focused low-API blocker set is closed; use the 2026-06-02 full refresh
+    above as the official seven-question confirmation before relying on these
+    concept-runtime changes.
 
 2026-06-01 full sweep update:
 

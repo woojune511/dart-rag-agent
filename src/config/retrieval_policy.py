@@ -585,6 +585,9 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "ratio_year_period_pattern": r"20\d{2}",
     "ratio_period_prefix_template": "{period}년 ",
     "ratio_answer_template": "{period_prefix}{metric_label}은 {rendered_value}입니다.",
+    "lookup_list_item_template": "{label} {value}",
+    "lookup_list_separator": ", ",
+    "lookup_list_answer_template": "{items}입니다.",
     "sign_aware_subtraction_replacements": (
         ("{label} {negative}", "{label} {positive}"),
         ("{label} 금액은 {negative}", "{label} 금액은 {positive}"),
@@ -825,6 +828,16 @@ PLANNING_POLICY: Dict[str, Any] = {
     "money_surface_compound_unit_prefix": "조",
     "hybrid_narrative_metric_label": "질문 관련 배경/영향 설명",
     "segment_default_metric_name": "매출액",
+    "qa_numeric_lookup_intent_override": {
+        "enabled": True,
+        "source_intents": ("qa",),
+        "target_intent": "numeric_fact",
+        "operation_families": ("lookup", "single_value"),
+        "unit_families": ("KRW", "USD", "COUNT", "PERCENT"),
+        "query_markers": ("금액", "수치", "규모", "값", "찾", "알려", "제시", "보여", "추출", "요약"),
+        "minimum_concepts": 1,
+        "planner_note": "qa_numeric_lookup_promoted_by_ontology",
+    },
     "concept_planner_replan_rules": (
         "- 현재는 replan mode입니다. planner_feedback를 읽고, 기존 task는 유지한 채 누락된 재료를 찾기 위한 추가 task만 만드세요.\n"
         "- 기존 task와 실질적으로 같은 task를 다시 만들지 마세요.\n"

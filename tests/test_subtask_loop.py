@@ -2198,6 +2198,199 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated["calculation_result"]["formatted_result"], "90.7%")
         self.assertNotIn("277.94%", updated["answer"])
 
+    def test_aggregate_subtasks_prefers_lookup_list_over_raw_narrative_table(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "2023년 여러 금액을 찾아 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "항목 A", "operation_family": "lookup"},
+                {"task_id": "task_2", "metric_family": "concept_lookup", "metric_label": "항목 B", "operation_family": "lookup"},
+                {"task_id": "task_3", "metric_family": "narrative_summary", "metric_label": "질문 관련 배경/영향 설명", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 2,
+            "active_subtask": {
+                "task_id": "task_3",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "operation_family": "narrative_summary",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "항목 A",
+                    "answer": "100천원",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "100천원",
+                        "formatted_result": "100천원",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "항목 A",
+                                "rendered_value": "100천원",
+                                "normalized_value": 100000.0,
+                                "normalized_unit": "KRW",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "항목 B",
+                    "answer": "(200)천원",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "(200)천원",
+                        "formatted_result": "(200)천원",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "항목 B",
+                                "rendered_value": "(200)천원",
+                                "normalized_value": 200000.0,
+                                "normalized_unit": "KRW",
+                            },
+                        },
+                    },
+                },
+            ],
+            "answer": "원문 표 전체 999천원 888천원",
+            "compressed_answer": "원문 표 전체 999천원 888천원",
+            "selected_claim_ids": ["narrative_ev"],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["answer"], "항목 A 100천원, 항목 B 200천원입니다.")
+        self.assertNotIn("999천원", updated["answer"])
+
+    def test_aggregate_subtasks_recovers_failed_lookup_from_sibling_table_evidence(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "2023년 재고자산평가손실, 환입, 폐기손실 금액을 찾아 요약해 줘.",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "재고자산평가손실",
+                    "operation_family": "lookup",
+                    "sibling_lookup_surfaces": ["재고자산평가손실환입", "재고자산폐기손실"],
+                    "required_operands": [
+                        {
+                            "label": "재고자산평가손실",
+                            "concept": "inventory_valuation_loss",
+                            "role": "operand",
+                            "aliases": [],
+                            "surface_contract": {"positive": ["재고자산평가손실"]},
+                        }
+                    ],
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "재고자산평가손실환입",
+                    "operation_family": "lookup",
+                    "sibling_lookup_surfaces": ["재고자산평가손실", "재고자산폐기손실"],
+                    "required_operands": [
+                        {
+                            "label": "재고자산평가손실환입",
+                            "concept": "inventory_valuation_loss_reversal",
+                            "role": "operand",
+                            "aliases": [],
+                            "surface_contract": {"positive": ["재고자산평가손실환입"]},
+                        }
+                    ],
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "재고자산폐기손실",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "재고자산폐기손실",
+                            "concept": "inventory_disposal_loss",
+                            "role": "operand",
+                        }
+                    ],
+                },
+            ],
+            "active_subtask_index": 2,
+            "active_subtask": {"task_id": "task_3", "operation_family": "lookup"},
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "재고자산평가손실",
+                    "operation_family": "lookup",
+                    "status": "insufficient_operands",
+                    "answer": "재고자산평가손실 계산에 필요한 값을 확인하지 못했습니다.",
+                    "calculation_result": {},
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "재고자산평가손실환입",
+                    "operation_family": "lookup",
+                    "status": "insufficient_operands",
+                    "answer": "재고자산평가손실환입 계산에 필요한 값을 확인하지 못했습니다.",
+                    "calculation_result": {},
+                },
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "25,163,510천원",
+                "formatted_result": "재고자산폐기손실 25,163,510천원",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "재고자산폐기손실",
+                        "concept": "inventory_disposal_loss",
+                        "raw_value": "25,163,510",
+                        "raw_unit": "천원",
+                        "normalized_value": 25163510000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "25,163,510천원",
+                    },
+                },
+            },
+            "answer": "재고자산폐기손실 25,163,510천원",
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_table",
+                    "source_anchor": "[셀트리온 | 2023 | 주석]",
+                    "metadata": {
+                        "year": 2023,
+                        "statement_type": "notes",
+                        "unit_hint": "천원",
+                        "table_value_labels_text": (
+                            "재고자산평가손실 2,526,280\n"
+                            "재고자산평가손실환입 (48,885,812)\n"
+                            "재고자산폐기손실 25,163,510"
+                        ),
+                    },
+                }
+            ],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(
+            updated["answer"],
+            "재고자산평가손실 2,526,280천원, 재고자산평가손실환입 48,885,812천원, 재고자산폐기손실 25,163,510천원입니다.",
+        )
+
     def test_narrative_summary_gap_check_handles_wrapped_lookup_rows(self) -> None:
         rows = [
             {

@@ -82,6 +82,62 @@ class SemanticNumericPlanTests(unittest.TestCase):
             any("영업수익 증가" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
         )
 
+    def test_qa_routed_ontology_numeric_lookup_promotes_to_numeric_plan(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "2023년 재고자산평가손실, 환입, 폐기손실 금액을 찾아 요약해 줘.",
+                    "query_type": "qa",
+                    "intent": "qa",
+                    "topic": "재고자산 관련 평가손실과 환입 및 폐기손실 금액",
+                    "report_scope": {"company": "셀트리온", "year": 2023, "report_type": "사업보고서"},
+                    "planner_mode": "initial",
+                    "planner_feedback": "",
+                    "plan_loop_count": 0,
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "companies": ["셀트리온"],
+                    "years": [2023],
+                    "section_filter": None,
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertFalse(result["semantic_plan"]["fallback_to_general_search"])
+        self.assertIn("qa_numeric_lookup_promoted_by_ontology", result["semantic_plan"]["planner_notes"])
+        numeric_tasks = [
+            task
+            for task in result["calc_subtasks"]
+            if str(task.get("operation_family") or "") != "narrative_summary"
+        ]
+        self.assertTrue(numeric_tasks)
+        concepts = [
+            str(operand.get("concept") or "")
+            for task in numeric_tasks
+            for operand in (task.get("required_operands") or [])
+        ]
+        self.assertEqual(
+            concepts,
+            [
+                "inventory_valuation_loss",
+                "inventory_valuation_loss_reversal",
+                "inventory_disposal_loss",
+            ],
+        )
+        self.assertEqual(result["calc_subtasks"][-1]["operation_family"], "narrative_summary")
+
     def test_general_ira_policy_context_does_not_open_ampc_concept_task(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager
@@ -2425,16 +2481,26 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
 
         self.assertEqual(plan["status"], "concept_fallback")
-        task = plan["tasks"][0]
-        self.assertEqual(task["operation_family"], "single_value")
+        tasks = plan["tasks"]
+        self.assertEqual([task["operation_family"] for task in tasks], ["lookup", "lookup", "lookup"])
         self.assertEqual(
-            [row["concept"] for row in task["required_operands"]],
+            [
+                task["required_operands"][0]["concept"]
+                for task in tasks
+            ],
             [
                 "inventory_valuation_loss",
                 "inventory_valuation_loss_reversal",
                 "inventory_disposal_loss",
             ],
         )
+        labels = [task["required_operands"][0]["label"] for task in tasks]
+        for index, task in enumerate(tasks):
+            sibling_surfaces = set(task.get("sibling_lookup_surfaces") or [])
+            self.assertNotIn(labels[index], sibling_surfaces)
+            for sibling_index, label in enumerate(labels):
+                if sibling_index != index:
+                    self.assertIn(label, sibling_surfaces)
 
     def test_parenthetical_inventory_adjustment_impact_builds_ratio_task(self) -> None:
         plan = self._build_v3_concept_plan(

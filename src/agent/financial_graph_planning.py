@@ -585,6 +585,63 @@ def _push_narrative_tasks_after_numeric(tasks: List[Dict[str, Any]]) -> List[Dic
     narrative_tasks = [task for task in ordered if _is_narrative_summary_task(task)]
     return numeric_tasks + narrative_tasks
 
+
+def _qa_numeric_lookup_intent_override(query: str, topic: str, intent: str) -> tuple[str, str]:
+    policy = dict(PLANNING_POLICY.get("qa_numeric_lookup_intent_override") or {})
+    if not bool(policy.get("enabled", False)):
+        return intent, ""
+
+    source_intents = {
+        _normalise_spaces(str(item))
+        for item in (policy.get("source_intents") or ())
+        if _normalise_spaces(str(item))
+    }
+    normalized_intent = _normalise_spaces(intent or "qa")
+    if normalized_intent not in source_intents:
+        return intent, ""
+
+    normalized_query = _normalise_spaces(query)
+    markers = tuple(str(item).strip() for item in (policy.get("query_markers") or ()) if str(item).strip())
+    if markers and not any(marker in normalized_query for marker in markers):
+        return intent, ""
+
+    ontology = get_financial_ontology()
+    operation_family = _infer_operation_family_from_query(query, ontology)
+    allowed_operations = {
+        _normalise_spaces(str(item))
+        for item in (policy.get("operation_families") or ())
+        if _normalise_spaces(str(item))
+    }
+    if allowed_operations and _normalise_spaces(operation_family) not in allowed_operations:
+        return intent, ""
+
+    concept_specs = ontology.concept_specs(query, topic, str(policy.get("target_intent") or "numeric_fact"))
+    try:
+        minimum_concepts = int(policy.get("minimum_concepts") or 1)
+    except (TypeError, ValueError):
+        minimum_concepts = 1
+    if len(concept_specs) < max(1, minimum_concepts):
+        return intent, ""
+
+    allowed_unit_families = {
+        _normalise_spaces(str(item)).upper()
+        for item in (policy.get("unit_families") or ())
+        if _normalise_spaces(str(item))
+    }
+    if allowed_unit_families:
+        matched_units = {
+            _normalise_spaces(str(spec.get("unit_family") or "")).upper()
+            for spec in concept_specs
+            if _normalise_spaces(str(spec.get("unit_family") or ""))
+        }
+        if not matched_units.intersection(allowed_unit_families):
+            return intent, ""
+
+    target_intent = str(policy.get("target_intent") or "numeric_fact").strip() or "numeric_fact"
+    planner_note = str(policy.get("planner_note") or "qa_numeric_lookup_promoted").strip()
+    return target_intent, planner_note
+
+
 def _llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
     """Reject LLM overrides that destroy deterministic segment-sum structure."""
     base_tasks = [dict(task) for task in (base_plan.get("tasks") or [])]
@@ -1251,6 +1308,16 @@ class FinancialAgentPlanningMixin:
             or state.get("target_metric_family")
             or ""
         )
+        intent_override_note = ""
+        if intent not in {"comparison", "trend", "numeric_fact"}:
+            original_intent = str(intent or "qa").strip() or "qa"
+            intent, intent_override_note = _qa_numeric_lookup_intent_override(query, topic, original_intent)
+            if intent_override_note:
+                logger.info(
+                    "[semantic_plan] promoted intent %s -> %s via ontology numeric lookup contract",
+                    original_intent,
+                    intent,
+                )
 
         if intent not in {"comparison", "trend", "numeric_fact"}:
             return {
@@ -1337,6 +1404,7 @@ class FinancialAgentPlanningMixin:
                 if str(task.get("metric_family") or "").strip()
             ]
             planner_notes = list(dict.fromkeys([
+                *([intent_override_note] if intent_override_note else []),
                 *list(existing_plan.get("planner_notes") or []),
                 "planner_replan",
                 *(list((llm_plan or {}).get("planner_notes") or [])),
@@ -1473,6 +1541,8 @@ class FinancialAgentPlanningMixin:
                     planner_notes = list(plan.get("planner_notes") or [])
                     planner_notes.append("concept_llm_plan_rejected_shape")
                     plan["planner_notes"] = list(dict.fromkeys(planner_notes))
+        if intent_override_note:
+            plan["planner_notes"] = list(dict.fromkeys([intent_override_note, *list(plan.get("planner_notes") or [])]))
         logical_tasks = [dict(task) for task in (plan.get("tasks") or [])]
         logical_tasks = _append_hybrid_narrative_task(
             logical_tasks,

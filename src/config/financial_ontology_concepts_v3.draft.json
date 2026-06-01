@@ -1316,6 +1316,20 @@
           "재고자산평가손실 등"
         ]
       },
+      "binding_policy": {
+        "require_surface_contract_for_direct_lookup": true,
+        "prefer_value_roles": [
+          "aggregate"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal"
+        ],
+        "avoid_value_roles": [
+          "adjustment"
+        ]
+      },
       "lookup_hints": {
         "coerce_parenthesized_negative_to_positive_magnitude": true,
         "magnitude_surface_tokens": [
@@ -1364,6 +1378,20 @@
         ],
         "negative": [
           "재고자산평가손실 등"
+        ]
+      },
+      "binding_policy": {
+        "require_surface_contract_for_direct_lookup": true,
+        "prefer_value_roles": [
+          "aggregate"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal"
+        ],
+        "avoid_value_roles": [
+          "adjustment"
         ]
       },
       "lookup_hints": {

@@ -421,6 +421,207 @@ class FinancialAgentCalculationMixin:
                 safe_parts.append(answer)
         return " ".join(dict.fromkeys(safe_parts)).strip()
 
+    def _compose_lookup_list_numeric_answer(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        lookup_result_count = 0
+        items: List[str] = []
+        for row in ordered_results:
+            if self._row_is_narrative_summary(row):
+                continue
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family not in {"lookup", "single_value"}:
+                return ""
+            lookup_result_count += 1
+            status = _normalise_spaces(
+                str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            primary_slot = dict(answer_slots.get("primary_value") or {})
+            value = _normalise_spaces(
+                str(
+                    primary_slot.get("rendered_value")
+                    or calculation_result.get("formatted_result")
+                    or calculation_result.get("rendered_value")
+                    or row.get("answer")
+                    or ""
+                )
+            )
+            try:
+                normalized_value = float(primary_slot.get("normalized_value"))
+            except (TypeError, ValueError):
+                normalized_value = None
+            if normalized_value is not None and normalized_value >= 0 and value.startswith("("):
+                value = _normalise_spaces(value[1:].replace(")", "", 1))
+            label = _normalise_spaces(
+                str(primary_slot.get("label") or row.get("metric_label") or "")
+            )
+            if not label or not value:
+                continue
+            item_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_item_template") or "{label} {value}")
+            items.append(_normalise_spaces(item_template.format(label=label, value=value)))
+        items = list(dict.fromkeys(item for item in items if item))
+        if lookup_result_count < 2 or len(items) < 2:
+            return ""
+        separator = str(CALCULATION_RENDER_POLICY.get("lookup_list_separator") or ", ")
+        answer_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_answer_template") or "{items}")
+        return _normalise_spaces(answer_template.format(items=separator.join(items)))
+
+    def _lookup_value_from_table_label_metadata(
+        self,
+        operand: Dict[str, Any],
+        evidence_item: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        metadata = dict(evidence_item.get("metadata") or {})
+        value_labels_text = _normalise_spaces(str(metadata.get("table_value_labels_text") or ""))
+        if not value_labels_text:
+            return {}
+        surface_contract = dict(operand.get("surface_contract") or {})
+        surfaces = list(
+            dict.fromkeys(
+                str(item).strip()
+                for item in (
+                    [operand.get("label")]
+                    + list(operand.get("aliases") or [])
+                    + list(surface_contract.get("positive") or [])
+                )
+                if str(item or "").strip()
+            )
+        )
+        if not surfaces:
+            return {}
+        value_pattern = r"\(?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*\)?"
+        for line in str(metadata.get("table_value_labels_text") or "").splitlines():
+            normalized_line = _normalise_spaces(line)
+            if not normalized_line:
+                continue
+            for surface in sorted(surfaces, key=len, reverse=True):
+                normalized_surface = _normalise_spaces(surface)
+                if not normalized_surface:
+                    continue
+                match = re.search(
+                    rf"(?<!\S){re.escape(normalized_surface)}\s+(?P<value>{value_pattern})(?!\S)",
+                    normalized_line,
+                )
+                if not match:
+                    continue
+                raw_value = _normalise_spaces(match.group("value")).replace(" ", "")
+                raw_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+                normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+                if normalized_value is None:
+                    continue
+                record = {
+                    "status": "ok",
+                    "role": str(operand.get("role") or "operand").strip() or "operand",
+                    "label": str(operand.get("label") or normalized_surface).strip(),
+                    "concept": str(operand.get("concept") or "").strip(),
+                    "period": str(metadata.get("year") or ""),
+                    "raw_value": raw_value,
+                    "raw_unit": raw_unit,
+                    "normalized_value": normalized_value,
+                    "normalized_unit": normalized_unit,
+                    "rendered_value": _normalise_spaces(f"{raw_value}{raw_unit}") if raw_unit else raw_value,
+                    "source_row_id": str(evidence_item.get("evidence_id") or "").strip(),
+                    "source_row_ids": [str(evidence_item.get("evidence_id") or "").strip()],
+                    "source_anchor": evidence_item.get("source_anchor"),
+                }
+                return _coerce_lookup_magnitude_record(
+                    record,
+                    evidence_item,
+                    concept=str(operand.get("concept") or ""),
+                    statement_type=str(metadata.get("statement_type") or ""),
+                    row_label=str(operand.get("label") or normalized_surface),
+                    semantic_label=normalized_line,
+                )
+        return {}
+
+    def _recover_lookup_results_from_sibling_table_evidence(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        state: FinancialAgentState,
+    ) -> List[Dict[str, Any]]:
+        task_by_id = {
+            str(task.get("task_id") or ""): dict(task)
+            for task in (state.get("calc_subtasks") or [])
+            if str(task.get("task_id") or "").strip()
+        }
+        evidence_pool: List[Dict[str, Any]] = []
+        for row in ordered_results:
+            evidence_pool.extend(dict(item) for item in (row.get("runtime_evidence") or []) if isinstance(item, dict))
+        evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
+        if not evidence_pool:
+            return ordered_results
+
+        recovered_results: List[Dict[str, Any]] = []
+        for row in ordered_results:
+            task = task_by_id.get(str(row.get("task_id") or "")) or {}
+            operation_family = _normalise_spaces(
+                str(row.get("operation_family") or task.get("operation_family") or "")
+            ).lower()
+            status = _normalise_spaces(
+                str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if operation_family not in {"lookup", "single_value"} or status == "ok":
+                recovered_results.append(row)
+                continue
+            operands = [dict(item) for item in (task.get("required_operands") or []) if bool(item.get("required", True))]
+            if len(operands) != 1:
+                recovered_results.append(row)
+                continue
+            operand = operands[0]
+            sibling_surfaces = [
+                _normalise_spaces(str(item))
+                for item in (task.get("sibling_lookup_surfaces") or [])
+                if _normalise_spaces(str(item))
+            ]
+            recovered_slot: Dict[str, Any] = {}
+            for evidence_item in evidence_pool:
+                metadata = dict(evidence_item.get("metadata") or {})
+                table_value_labels = _normalise_spaces(str(metadata.get("table_value_labels_text") or ""))
+                if not table_value_labels:
+                    continue
+                if sibling_surfaces and not any(surface in table_value_labels for surface in sibling_surfaces):
+                    continue
+                recovered_slot = self._lookup_value_from_table_label_metadata(operand, evidence_item)
+                if recovered_slot:
+                    break
+            if not recovered_slot:
+                recovered_results.append(row)
+                continue
+            rendered_value = _normalise_spaces(str(recovered_slot.get("rendered_value") or ""))
+            label = _normalise_spaces(str(recovered_slot.get("label") or row.get("metric_label") or ""))
+            calculation_result = {
+                "status": "ok",
+                "result_value": recovered_slot.get("normalized_value"),
+                "result_unit": recovered_slot.get("raw_unit") or recovered_slot.get("normalized_unit"),
+                "rendered_value": rendered_value,
+                "formatted_result": _normalise_spaces(f"{label} {rendered_value}") if label and rendered_value else rendered_value,
+                "source_row_ids": list(recovered_slot.get("source_row_ids") or []),
+                "answer_slots": {
+                    "metric_label": label,
+                    "operation_family": "lookup",
+                    "primary_value": recovered_slot,
+                    "source_row_ids": list(recovered_slot.get("source_row_ids") or []),
+                },
+                "explanation": "lookup result recovered from sibling table evidence.",
+            }
+            recovered_results.append(
+                {
+                    **dict(row),
+                    "status": "ok",
+                    "answer": str(calculation_result.get("formatted_result") or ""),
+                    "calculation_result": calculation_result,
+                    "answer_slots": calculation_result["answer_slots"],
+                    "runtime_evidence": list(row.get("runtime_evidence") or []),
+                    "recovered_from_sibling_table_evidence": True,
+                }
+            )
+        return recovered_results
+
     def _preferred_complete_numeric_answer(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -5900,6 +6101,7 @@ class FinancialAgentCalculationMixin:
             key=lambda row: (order_map.get(str(row.get("task_id") or ""), 10_000), str(row.get("task_id") or "")),
         )
         ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        ordered_results = self._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
         answer_parts = [
             _normalise_spaces(str(row.get("answer") or ""))
             for row in ordered_results
@@ -5911,6 +6113,9 @@ class FinancialAgentCalculationMixin:
         fallback_answer = self._preferred_aggregate_fallback_answer(ordered_results, fallback_answer)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
+        lookup_list_answer = self._compose_lookup_list_numeric_answer(ordered_results)
+        if lookup_list_answer:
+            fallback_answer = lookup_list_answer
         numeric_answer_locked = bool(
             has_narrative_summary
             and

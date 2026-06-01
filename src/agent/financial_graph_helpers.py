@@ -3973,6 +3973,108 @@ def _compose_concept_numeric_task(
     }
 
 
+def _split_multi_lookup_concept_task(
+    task: Dict[str, Any],
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    ontology: Any,
+) -> List[Dict[str, Any]]:
+    operation_family = _normalise_spaces(str(task.get("operation_family") or "")).lower()
+    if operation_family not in {"lookup", "single_value"}:
+        return [dict(task)]
+    operand_specs = [dict(item) for item in (task.get("required_operands") or [])]
+    if len(operand_specs) <= 1:
+        return [dict(task)]
+
+    sibling_surfaces_by_index: Dict[int, List[str]] = {}
+    for index, current_operand in enumerate(operand_specs):
+        current_surfaces: List[str] = []
+        for other_index, operand in enumerate(operand_specs):
+            if other_index == index:
+                continue
+            surface_contract = dict(operand.get("surface_contract") or {})
+            current_surfaces.extend(
+                str(item).strip()
+                for item in (
+                    [operand.get("label")]
+                    + list(operand.get("aliases") or [])
+                    + list(surface_contract.get("positive") or [])
+                )
+                if str(item or "").strip()
+            )
+        sibling_surfaces_by_index[index] = list(dict.fromkeys(current_surfaces))
+
+    split_tasks: List[Dict[str, Any]] = []
+    for zero_based_index, operand in enumerate(operand_specs):
+        index = zero_based_index + 1
+        metric_label = str(operand.get("label") or task.get("metric_label") or "").strip()
+        constraints = _build_concept_task_constraints(
+            query,
+            report_scope,
+            ontology,
+            operand_specs=[operand],
+            operation_family="lookup",
+        )
+        preferred_statement_types = list(
+            dict.fromkeys(
+                [
+                    *list(operand.get("preferred_statement_types") or []),
+                    *list(task.get("preferred_statement_types") or []),
+                ]
+            )
+        )
+        preferred_sections = list(
+            dict.fromkeys(
+                [
+                    *list(operand.get("preferred_sections") or []),
+                    *list(task.get("preferred_sections") or []),
+                ]
+            )
+        )
+        retrieval_queries = _build_generic_retrieval_queries(
+            query=query,
+            metric_label=metric_label,
+            operand_specs=[operand],
+            preferred_sections=preferred_sections,
+            report_scope=report_scope,
+            constraints=constraints,
+        )
+        task_query = _build_metric_task_query(
+            original_query=query,
+            metric_label=metric_label,
+            constraints=constraints,
+            operand_specs=[operand],
+            report_scope=report_scope,
+        )
+        sibling_lookup_surfaces = list(
+            dict.fromkeys(
+                [
+                    *list(task.get("sibling_lookup_surfaces") or []),
+                    *sibling_surfaces_by_index.get(zero_based_index, []),
+                ]
+            )
+        )
+        split_tasks.append(
+            {
+                **dict(task),
+                "task_id": f"task_{index}",
+                "metric_family": "concept_lookup",
+                "metric_label": metric_label,
+                "query": task_query,
+                "operation_family": "lookup",
+                "result_unit": "",
+                "required_operands": [operand],
+                "preferred_statement_types": preferred_statement_types,
+                "preferred_sections": preferred_sections,
+                "retrieval_queries": retrieval_queries,
+                "constraints": constraints,
+                "sibling_lookup_surfaces": sibling_lookup_surfaces,
+            }
+        )
+    return split_tasks
+
+
 def _infer_concept_ratio_result_unit(query: str, metric_label: str, operation_family: str) -> str:
     if _normalise_spaces(operation_family) != "ratio":
         return ""
@@ -4441,11 +4543,21 @@ def _build_semantic_numeric_plan(
             concept_specs=concept_specs,
         )
         if concept_task:
+            concept_tasks = _split_multi_lookup_concept_task(
+                concept_task,
+                query=query,
+                report_scope=report_scope,
+                ontology=ontology,
+            )
             return {
                 "status": "concept_fallback",
                 "fallback_to_general_search": False,
-                "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
-                "tasks": [concept_task],
+                "planned_metric_families": [
+                    str(task.get("metric_family") or "").strip()
+                    for task in concept_tasks
+                    if str(task.get("metric_family") or "").strip()
+                ],
+                "tasks": concept_tasks,
                 "planner_notes": planner_notes
                 + ["explicit_ratio_concept_preferred", "planner_fallback:explicit_ratio_concept_preferred"],
             }
@@ -4458,11 +4570,21 @@ def _build_semantic_numeric_plan(
             concept_specs=concept_specs,
         )
         if concept_task:
+            concept_tasks = _split_multi_lookup_concept_task(
+                concept_task,
+                query=query,
+                report_scope=report_scope,
+                ontology=ontology,
+            )
             return {
                 "status": "concept_fallback",
                 "fallback_to_general_search": False,
-                "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
-                "tasks": [concept_task],
+                "planned_metric_families": [
+                    str(task.get("metric_family") or "").strip()
+                    for task in concept_tasks
+                    if str(task.get("metric_family") or "").strip()
+                ],
+                "tasks": concept_tasks,
                 "planner_notes": planner_notes + ["concept_first_preferred", "planner_fallback:concept_first_preferred"],
             }
     if target_metric_family:
@@ -4494,11 +4616,21 @@ def _build_semantic_numeric_plan(
             concept_specs=concept_specs,
         )
         if concept_task:
+            concept_tasks = _split_multi_lookup_concept_task(
+                concept_task,
+                query=query,
+                report_scope=report_scope,
+                ontology=ontology,
+            )
             return {
                 "status": "concept_fallback",
                 "fallback_to_general_search": False,
-                "planned_metric_families": [str(concept_task.get("metric_family") or "").strip()],
-                "tasks": [concept_task],
+                "planned_metric_families": [
+                    str(task.get("metric_family") or "").strip()
+                    for task in concept_tasks
+                    if str(task.get("metric_family") or "").strip()
+                ],
+                "tasks": concept_tasks,
                 "planner_notes": planner_notes + ["concept_numeric_task", "planner_fallback:concept_numeric_task"],
             }
         heuristic_task = _build_heuristic_numeric_task(
