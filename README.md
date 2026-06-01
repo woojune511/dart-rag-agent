@@ -1,5 +1,7 @@
 # DART Multi-Agent Financial Analysis Lab
 
+Current gate and portfolio status: [docs/overview/project_status.md](docs/overview/project_status.md)
+
 DART 전자공시 문서를 테스트베드로 삼아, **금융 문서용 multi-agent system**을 설계하고 검증하는 프로젝트입니다.  
 단순한 “공시 QA 챗봇”보다, 아래 질문에 답하는 것이 현재 목표입니다.
 

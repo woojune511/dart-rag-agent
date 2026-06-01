@@ -83,6 +83,26 @@
    - 무엇을 바꿨는지, 어떤 원칙 때문에 그렇게 했는지, 어떤 검증을 했는지 짧게 보고한다.
    - benchmark가 실패/중단되면 코드 실패인지 환경/시간/store 문제인지 구분한다.
 
+## Gate And Artifact Hygiene
+
+- Prefer store-fixed `--eval-only` refreshes before paying for fresh ingest.
+  Fresh ingest is reserved for parser/ingest/cache-signature changes or when
+  the stored bundle is missing or stale.
+- Always run benchmark refreshes with
+  `--progress-heartbeat-sec <seconds> --heartbeat-log <path>` when the run can
+  take more than a few minutes.
+- Treat `numeric_final_judgement = null` as not-applicable, not failure, for
+  narrative or mixed questions when faithfulness, completeness, retrieval, and
+  error-rate signals are healthy.
+- Keep only representative benchmark result bundles needed for handoff or
+  reproduction. Delete intermediate fix/failed run directories once their
+  result has been summarized in docs.
+- Never stage `benchmarks/results/**`, local stores, context caches, temporary
+  profiles, or one-off datasets unless the user explicitly asks to publish
+  experiment artifacts.
+- Before committing after a benchmark session, check `git status --short` and
+  verify that staged files are only source, tests, docs, or reviewed config.
+
 ## Design Rules For This Project
 
 - Runtime default는 일반 사용자 질문에 맞춘다. benchmark profile은 별도 profile/config로 둔다.
