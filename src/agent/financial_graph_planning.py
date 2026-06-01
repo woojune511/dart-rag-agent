@@ -25,6 +25,7 @@ from src.agent.financial_graph_models import (
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     NARRATIVE_BASE_RETRIEVAL_SUFFIXES,
+    NUMERIC_UNIT_NORMALIZATION_POLICY,
     PLANNING_POLICY,
     active_narrative_policies,
     narrative_policy_preferred_sections,
@@ -116,19 +117,6 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
     if not raw_value:
         return slot
     current_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
-    metadata = dict(evidence.get("metadata") or {})
-    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
-    if unit_hint and unit_hint != current_unit:
-        normalized_value, normalized_unit = _normalise_operand_value(raw_value, unit_hint)
-        if normalized_value is not None:
-            updated = dict(slot)
-            updated["raw_unit"] = unit_hint
-            updated["normalized_value"] = normalized_value
-            updated["normalized_unit"] = normalized_unit
-            updated["rendered_value"] = _normalise_spaces(f"{raw_value}{unit_hint}")
-            return updated
-    if current_unit:
-        return slot
     text = _normalise_spaces(
         " ".join(
             str(part or "")
@@ -140,23 +128,48 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
             ]
         )
     )
-    if not text or raw_value not in text:
+
+    def _update_with_unit(unit_text: str) -> Optional[Dict[str, Any]]:
+        evidence_unit = _normalise_spaces(str(unit_text or "")).strip("()[]{}")
+        if not evidence_unit or evidence_unit == current_unit:
+            return None
+        aliases = dict(NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_unit_aliases") or {})
+        evidence_unit = str(aliases.get(evidence_unit, evidence_unit))
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, evidence_unit)
+        if normalized_value is not None and str(normalized_unit or "").strip().upper() != "UNKNOWN":
+            updated = dict(slot)
+            updated["raw_unit"] = evidence_unit
+            updated["normalized_value"] = normalized_value
+            updated["normalized_unit"] = normalized_unit
+            updated["rendered_value"] = _normalise_spaces(f"{raw_value}{evidence_unit}")
+            return updated
+        return None
+
+    if text and raw_value in text:
+        inline_pattern = str(NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_value_unit_pattern") or "")
+        if inline_pattern:
+            raw_compact = re.sub(r"[,\s()]", "", raw_value)
+            for match in re.finditer(inline_pattern, text):
+                matched_compact = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
+                if matched_compact != raw_compact:
+                    continue
+                updated = _update_with_unit(str(match.group("unit") or ""))
+                if updated:
+                    return updated
+        match = re.search(rf"{re.escape(raw_value)}\s*([^\s|,)]+)", text)
+        if match:
+            updated = _update_with_unit(match.group(1))
+            if updated:
+                return updated
+    metadata = dict(evidence.get("metadata") or {})
+    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+    if unit_hint and not current_unit:
+        updated = _update_with_unit(unit_hint)
+        if updated:
+            return updated
+    if current_unit:
         return slot
-    match = re.search(rf"{re.escape(raw_value)}\s*([^\s|,)]+)", text)
-    if not match:
-        return slot
-    evidence_unit = _normalise_spaces(match.group(1))
-    if not evidence_unit or evidence_unit == _normalise_spaces(str(slot.get("raw_unit") or "")):
-        return slot
-    normalized_value, normalized_unit = _normalise_operand_value(raw_value, evidence_unit)
-    if normalized_value is None:
-        return slot
-    updated = dict(slot)
-    updated["raw_unit"] = evidence_unit
-    updated["normalized_value"] = normalized_value
-    updated["normalized_unit"] = normalized_unit
-    updated["rendered_value"] = _normalise_spaces(f"{raw_value}{evidence_unit}")
-    return updated
+    return slot
 
 
 def _extract_lookup_slot_from_answer_text(

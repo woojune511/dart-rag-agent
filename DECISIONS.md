@@ -2184,3 +2184,35 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 
 - 이것은 answer path 보정이 아니라 evaluator-visible projection 보정이다.
 - cash-flow 외에도 structured financial statement table이 parent section으로만 저장되는 경우, policy-defined statement metadata가 expected display section과 연결될 수 있다.
+
+---
+
+## 결정 92 — numeric unit은 table hint보다 value-local evidence surface를 우선한다
+
+**배경**: `LGE_T1_051`에서 표/문단 metadata의 table-level unit hint와 실제 값 표면의 단위가 충돌했다. 특히 AMPC처럼 문장에 `6,769억원`으로 직접 표시되는 값은 table hint나 후속 렌더링 단계에서 다른 단위로 강제되면 source-visible value와 answer slot provenance가 어긋난다.
+
+**결정**:
+
+- 계산 operand와 lookup answer slot 모두 value-local surface unit을 최우선으로 사용한다.
+- table-level `unit_hint`는 값 주변에서 단위를 찾지 못한 경우에만 fallback으로 사용한다.
+- `raw_value`에 단위가 붙어 있어도 numeric support check는 숫자와 inline unit을 분리해 직접 support 여부를 판정한다.
+- 이 규칙은 특정 회사, benchmark ID, AMPC 문자열에 묶지 않고 evidence-local unit precedence로만 구현한다.
+
+**검증**:
+
+- targeted operation contract tests passed.
+- `python -m unittest discover -s tests`
+  - 562 tests OK
+- `python -m src.ops.audit_runtime_domain_terms --summary`
+  - no new runtime domain-language finding
+- `LGE_T1_051` focused smoke:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `completeness = 1.0`
+  - `calculation_correctness = 1.0`
+  - answer contains `영업이익 2,163,234백만원`, `AMPC 6,769억원`, `실질 영업이익 1,486,334백만원`
+
+**해석**:
+
+- 이 변경은 단위 렌더링 트릭이 아니라 evidence contract 보강이다.
+- 값이 실제 문서 표면에 어떤 단위로 보였는지 보존하므로, 이후 synthesizer/evaluator가 source display와 다른 단위로 조용히 drift하는 위험을 줄인다.

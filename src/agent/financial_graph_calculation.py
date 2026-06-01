@@ -26,6 +26,7 @@ from src.config.retrieval_policy import (
     CALCULATION_SLOT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
+    NUMERIC_UNIT_NORMALIZATION_POLICY,
     OPERAND_CANDIDATE_SCORING_POLICY,
 )
 from src.schema import ArtifactKind, TaskKind, TaskStatus
@@ -1969,6 +1970,12 @@ class FinancialAgentCalculationMixin:
         metadata = dict((evidence_item or {}).get("metadata") or {})
         unit_hint = str(metadata.get("unit_hint") or "").strip()
         current_unit = str(raw_unit or "").strip()
+        surface_unit = self._infer_operand_unit_from_value_surface(
+            raw_value=raw_value,
+            evidence_item=evidence_item,
+        )
+        if surface_unit:
+            return surface_unit
         if not unit_hint:
             return current_unit
         if not current_unit:
@@ -1993,6 +2000,112 @@ class FinancialAgentCalculationMixin:
         if bare_numeric and normalized_current in ambiguous_krw_units and normalized_hint in krw_display_units:
             return unit_hint
         return current_unit
+
+    def _evidence_item_for_operand_row(
+        self,
+        row: Dict[str, Any],
+        evidence_by_id: Dict[str, Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        candidate_ids = [
+            str(row.get("evidence_id") or "").strip(),
+            str(row.get("source_row_id") or "").strip(),
+        ]
+        for candidate_id in [item for item in candidate_ids if item]:
+            evidence_item = evidence_by_id.get(candidate_id)
+            if evidence_item:
+                return evidence_item
+            evidence_item = evidence_by_id.get(f"recon::{candidate_id}")
+            if evidence_item:
+                return evidence_item
+            if candidate_id.startswith("recon::"):
+                evidence_item = evidence_by_id.get(candidate_id.removeprefix("recon::"))
+                if evidence_item:
+                    return evidence_item
+        return None
+
+    def _coerce_operand_row_from_evidence(
+        self,
+        row: Dict[str, Any],
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        updated = dict(row)
+        raw_value = str(updated.get("raw_value") or "")
+        coerced_unit = self._coerce_operand_unit_from_evidence(
+            raw_value=raw_value,
+            raw_unit=str(updated.get("raw_unit") or ""),
+            evidence_item=evidence_item,
+        )
+        if coerced_unit != str(updated.get("raw_unit") or "") or updated.get("normalized_value") is None:
+            normalized_value, normalized_unit = _normalise_operand_value(raw_value, coerced_unit)
+            if normalized_value is not None:
+                updated["raw_unit"] = coerced_unit
+                updated["normalized_value"] = normalized_value
+                updated["normalized_unit"] = normalized_unit
+        if evidence_item:
+            metadata = dict(evidence_item.get("metadata") or {})
+            if updated.get("statement_type") is None:
+                updated["statement_type"] = metadata.get("statement_type")
+            if updated.get("consolidation_scope") is None:
+                updated["consolidation_scope"] = metadata.get("consolidation_scope")
+            if updated.get("table_source_id") is None:
+                updated["table_source_id"] = metadata.get("table_source_id")
+        return self._refine_operand_precision_from_evidence_table(updated, evidence_item)
+
+    def _infer_operand_unit_from_value_surface(
+        self,
+        *,
+        raw_value: str,
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> str:
+        value = _normalise_spaces(str(raw_value or ""))
+        if not value or not re.search(r"\d", value):
+            return ""
+        surfaces = [
+            str((evidence_item or {}).get("claim") or ""),
+            str((evidence_item or {}).get("quote_span") or ""),
+            str((evidence_item or {}).get("raw_row_text") or ""),
+            str((evidence_item or {}).get("source_context") or ""),
+        ]
+        surface = _normalise_spaces(" ".join(part for part in surfaces if part))
+        if not surface:
+            return ""
+        aliases = dict(NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_unit_aliases") or {})
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        unit_candidates = [
+            _normalise_spaces(str(item))
+            for item in (
+                tuple(render_policy.get("krw_display_units") or ())
+                + tuple(render_policy.get("percent_display_units") or ())
+                + tuple(render_policy.get("count_or_percent_normalized_units") or ())
+            )
+            if str(item).strip()
+        ]
+        value_pattern = re.escape(value)
+        parenthetical_unit_pattern = (
+            rf"{value_pattern}\s*\(?\s*"
+            rf"(?P<surface_unit>{'|'.join(re.escape(unit) for unit in sorted(set(unit_candidates), key=len, reverse=True))})"
+            rf"\s*\)?"
+        )
+        for match in re.finditer(parenthetical_unit_pattern, surface, flags=re.IGNORECASE):
+            unit_text = _normalise_spaces(str(match.group("surface_unit") or ""))
+            if unit_text:
+                return str(aliases.get(unit_text, unit_text))
+        unit_pattern = str(
+            NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_value_unit_pattern") or ""
+        )
+        if not unit_pattern:
+            return ""
+        compact_value = re.sub(r"[,\s()]", "", value)
+        if not compact_value:
+            return ""
+        for match in re.finditer(unit_pattern, surface):
+            matched_value = str(match.group("value") or "")
+            matched_compact = re.sub(r"[,\s()]", "", matched_value)
+            if matched_compact != compact_value:
+                continue
+            unit_text = _normalise_spaces(str(match.group("unit") or ""))
+            return str(aliases.get(unit_text, unit_text))
+        return ""
 
     def _refine_operand_precision_from_evidence_table(
         self,
@@ -2363,7 +2476,15 @@ class FinancialAgentCalculationMixin:
         if matching_operand is None:
             return False
 
-        raw_compact = re.sub(r"[\s,]", "", raw_value)
+        support_raw_value = raw_value
+        unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
+        inline_unit_match = re.fullmatch(
+            str(unit_policy.get("inline_value_unit_pattern") or ""),
+            raw_value,
+        )
+        if inline_unit_match:
+            support_raw_value = _normalise_spaces(str(inline_unit_match.group("value") or raw_value))
+        raw_compact = re.sub(r"[\s,]", "", support_raw_value)
         if not raw_compact:
             return False
 
@@ -2796,6 +2917,19 @@ class FinancialAgentCalculationMixin:
                     len(surface_contract_evidence),
                     len(evidence_items),
                 )
+        if direct_structured_rows:
+            evidence_by_id = {
+                str(item.get("evidence_id") or "").strip(): dict(item)
+                for item in evidence_items
+                if str(item.get("evidence_id") or "").strip()
+            }
+            direct_structured_rows = [
+                self._coerce_operand_row_from_evidence(
+                    row,
+                    self._evidence_item_for_operand_row(row, evidence_by_id),
+                )
+                for row in direct_structured_rows
+            ]
         if direct_structured_rows and required_operands:
             direct_structured_rows = [
                 row
@@ -3547,21 +3681,8 @@ class FinancialAgentCalculationMixin:
                 evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
                 if evidence_item and evidence_conflicts_requested_scope(evidence_item):
                     continue
-                row["raw_unit"] = self._coerce_operand_unit_from_evidence(
-                    raw_value=str(item.raw_value or ""),
-                    raw_unit=str(item.raw_unit or ""),
-                    evidence_item=evidence_item,
-                )
-                if evidence_item:
-                    metadata = dict(evidence_item.get("metadata") or {})
-                    row["statement_type"] = metadata.get("statement_type")
-                    row["consolidation_scope"] = metadata.get("consolidation_scope")
-                    row["table_source_id"] = metadata.get("table_source_id")
-                normalized_value, normalized_unit = _normalise_operand_value(item.raw_value, row["raw_unit"])
                 row["operand_id"] = f"op_{index:03d}"
-                row["normalized_value"] = normalized_value
-                row["normalized_unit"] = normalized_unit
-                row = self._refine_operand_precision_from_evidence_table(row, evidence_item)
+                row = self._coerce_operand_row_from_evidence(row, evidence_item)
                 if operation_family in {"lookup", "single_value"} and required_operands:
                     if not self._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands):
                         continue

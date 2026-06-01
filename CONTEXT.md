@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-01 value-local unit contract가 계산 operand와 lookup slot 양쪽에서
+  닫혔다.
+  - table-level `unit_hint`가 있어도 evidence text의 값 주변에 직접 붙은
+    단위가 있으면 value-local surface unit을 우선한다.
+  - direct structured operand, LLM operand extraction, lookup answer-slot
+    refinement가 같은 unit precedence를 공유한다.
+  - embedded-unit raw value도 support scan에서 숫자와 단위를 분리해 처리한다
+    (`6,769억원` 같은 surface value가 direct support로 인정된다).
+  - `LGE_T1_051` focused smoke는 `영업이익 2,163,234백만원`,
+    `AMPC 6,769억원`, `실질 영업이익 1,486,334백만원`으로 `PASS`다.
+  - policy gate store-reuse confirmation도 완료됐다:
+    `structural_selective_v2_prefix_2500_320`은 4개 회사 모두 screen pass,
+    full-eval fail 1개, critical miss 0개, 평균 completeness/recall 1.0이다.
+    남은 1개 fail은 현대차 faithfulness 0.75 계열의 evaluator/path noise로
+    분류한다.
+  - concept planner shadow는 11/11 케이스에서 legacy plan과 다른
+    concept-shaped plan을 냈다. legacy는 `ok=6`, `heuristic_fallback=5`,
+    concept path는 `concept_fallback=11`이다. 이것은 승격 완료가 아니라
+    runtime gate에서 grounding 영향만 따로 볼 수 있는 promotion candidate다.
+
 - Runtime domain-vocabulary boundary has been tightened again.
   - Benchmark-shaped deterministic runtime code for the Hyundai US-sales policy
     case was removed; policy-growth mixed queries must now rely on generic

@@ -5,6 +5,46 @@
 
 ## Active Snapshot
 
+## 2026-06-01 Value-Local Unit Contract Closure
+
+- The LGE AMPC embedded-unit gap is closed as a generic value-local unit
+  precedence contract.
+  - Runtime does not add company, benchmark, AMPC, or report-specific control
+    branches.
+  - Direct structured operands, LLM-extracted operands, and lookup answer slots
+    all prefer the unit visible next to the value in evidence over table-level
+    `unit_hint`.
+  - Table-level `unit_hint` remains a fallback only when the value surface has
+    no usable unit.
+  - Embedded-unit raw values such as `6,769억원` are accepted by numeric support
+    checks after stripping the inline unit for the numeric comparison.
+- Verification:
+  - Targeted operation contract tests for operand coercion, lookup slot unit
+    refinement, adjacent-number rejection, embedded-unit support, precision
+    refinement, and AMPC prose extraction passed.
+  - `python -m unittest discover -s tests` passed with `562` tests.
+  - `python -m src.ops.audit_runtime_domain_terms --summary` reported no new
+    runtime domain-language finding.
+  - `LGE_T1_051` focused smoke passed with `영업이익 2,163,234백만원`,
+    `AMPC 6,769억원`, `실질 영업이익 1,486,334백만원`,
+    `numeric_final_judgement = PASS`, `faithfulness = 1.0`,
+    `completeness = 1.0`, `calculation_correctness = 1.0`.
+- Broader checks:
+  - Policy gate store-reuse confirmation completed in about `747s`.
+  - `structural_selective_v2_prefix_2500_320` screen-passed all 4 companies,
+    with full-eval fail count `1`, critical misses `0`, avg completeness `1.0`,
+    avg recall `1.0`, avg faithfulness `0.938`.
+  - The remaining policy-gate fail is Hyundai faithfulness `0.75`, already
+    classified as evaluator/path-noise follow-up rather than missing retrieval.
+  - Concept planner shadow completed for 11 cases: changed `11/11`,
+    legacy status `ok=6`, `heuristic_fallback=5`, concept status
+    `concept_fallback=11`.
+- Immediate next:
+  1. Keep concept planner in shadow mode and run a small runtime grounding gate
+     before promotion.
+  2. Treat the remaining Hyundai gate variance as evaluator/ranking stability
+     work, not as a new domain-specific rule opportunity.
+
 ## 2026-06-01 NAV_T1_030 Evaluator Projection Closure
 
 - `NAV_T1_030` is closed after separating answer correctness from evaluator

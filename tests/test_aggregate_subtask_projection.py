@@ -300,7 +300,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIsNotNone(answer)
         self.assertIn("Additional impact came from consolidation.", answer["compressed_answer"])
 
-    def test_lookup_unit_refinement_prefers_structured_unit_hint(self) -> None:
+    def test_lookup_unit_refinement_prefers_value_local_unit(self) -> None:
         slot = {
             "raw_value": "2,546,649",
             "raw_unit": "천원",
@@ -315,8 +315,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
 
-        self.assertEqual(refined["raw_unit"], "백만원")
-        self.assertEqual(refined["normalized_value"], 2_546_649_000_000)
+        self.assertEqual(refined["raw_unit"], "천원")
+        self.assertEqual(refined["normalized_value"], 2_546_649_000)
 
 
 if __name__ == "__main__":

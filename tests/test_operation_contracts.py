@@ -50,7 +50,7 @@ from src.agent.financial_graph_helpers import (
     _supplement_section_terms_for_query,
 )
 from src.agent.financial_graph_models import EvidenceExtraction, NumericExtraction
-from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask
+from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask, _refine_lookup_slot_unit_from_evidence
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
 
@@ -1754,6 +1754,116 @@ class OperationContractTests(unittest.TestCase):
         )
 
         self.assertEqual(value, "6,769억원")
+
+    def test_operand_unit_coercion_prefers_value_local_unit_over_table_unit_hint(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_item = {
+            "claim": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
+            "quote_span": "IRA Tax Credit: 6,769 (억원)",
+            "metadata": {"unit_hint": "백만원"},
+        }
+
+        unit = agent._coerce_operand_unit_from_evidence(
+            raw_value="6,769",
+            raw_unit="",
+            evidence_item=evidence_item,
+        )
+
+        self.assertEqual(unit, "억원")
+
+    def test_structured_direct_operand_row_uses_value_local_unit_from_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "operand_id": "op_001",
+            "evidence_id": "candidate_ampc",
+            "label": "첨단제조 생산세액공제 (IRA Tax Credit)",
+            "raw_value": "6,769",
+            "raw_unit": "백만원",
+            "normalized_value": 6769000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_by_id = {
+            "recon::candidate_ampc": {
+                "claim": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
+                "quote_span": "IRA Tax Credit: 6,769 (억원)",
+                "metadata": {"unit_hint": "백만원"},
+            }
+        }
+
+        evidence_item = agent._evidence_item_for_operand_row(row, evidence_by_id)
+        coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
+
+        self.assertEqual(coerced["raw_unit"], "억원")
+        self.assertEqual(coerced["normalized_value"], 676900000000.0)
+        self.assertEqual(coerced["normalized_unit"], "KRW")
+
+    def test_lookup_slot_refinement_prefers_value_local_unit_over_table_unit_hint(self) -> None:
+        slot = {
+            "status": "ok",
+            "role": "primary_value",
+            "label": "첨단제조 생산세액공제",
+            "raw_value": "6,769",
+            "raw_unit": "백만원",
+            "normalized_value": 6769000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "6,769백만원",
+        }
+        evidence = {
+            "claim": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
+            "quote_span": "IRA Tax Credit: 6,769 (억원)",
+            "metadata": {"unit_hint": "백만원"},
+        }
+
+        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+
+        self.assertEqual(refined["raw_unit"], "억원")
+        self.assertEqual(refined["normalized_value"], 676900000000.0)
+        self.assertEqual(refined["rendered_value"], "6,769억원")
+
+    def test_lookup_slot_refinement_does_not_treat_adjacent_number_as_unit(self) -> None:
+        slot = {
+            "status": "ok",
+            "role": "primary_value",
+            "label": "영업이익",
+            "raw_value": "2,163,234",
+            "raw_unit": "백만원",
+            "normalized_value": 2163234000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "2,163,234백만원",
+        }
+        evidence = {
+            "claim": "영업이익 2,163,234 | 2022년 1,213,705",
+            "quote_span": "영업이익 2,163,234",
+            "metadata": {"unit_hint": "백만원"},
+        }
+
+        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 2163234000000.0)
+
+    def test_lookup_direct_support_accepts_raw_value_with_embedded_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "첨단제조 생산세액공제",
+            "matched_operand_label": "첨단제조 생산세액공제",
+            "matched_operand_concept": "advanced_manufacturing_production_credit",
+            "raw_value": "6,769억원",
+        }
+        evidence_item = {
+            "claim": "영업이익은 물류비 절감 및 6,769억원의 IRA Tax Credit 수익 인식으로 개선되었습니다.",
+            "quote_span": "6,769억원의 IRA Tax Credit",
+        }
+        required_operands = [
+            {
+                "label": "첨단제조 생산세액공제",
+                "concept": "advanced_manufacturing_production_credit",
+                "aliases": ["IRA Tax Credit"],
+                "surface_contract": {"positive": ["IRA Tax Credit"]},
+            }
+        ]
+
+        self.assertTrue(agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands))
 
     def test_difference_renderer_prefers_slot_contract_over_llm_rendering(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
