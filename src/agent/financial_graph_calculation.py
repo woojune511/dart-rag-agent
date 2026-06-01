@@ -2584,8 +2584,8 @@ class FinancialAgentCalculationMixin:
 
         ordered_pairs: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
         if operation_family == "difference":
-            left_pair = _first_pair("current_period") or _first_pair("minuend")
-            right_pair = _first_pair("prior_period") or _first_pair("subtrahend")
+            left_pair = _first_pair("current_period") or _first_pair("minuend") or _first_pair("numerator")
+            right_pair = _first_pair("prior_period") or _first_pair("subtrahend") or _first_pair("denominator")
             if left_pair and right_pair:
                 ordered_pairs = [left_pair, right_pair]
             elif len(matched_rows) == 2:
@@ -2620,7 +2620,7 @@ class FinancialAgentCalculationMixin:
             formula = "A - B"
             operation_text = f"{ordered_labels[0]} - {ordered_labels[1]}"
             explanation = f"{metric_label or 'difference'} is computed as A - B."
-            if right_role == "subtrahend" and right_value is not None and float(right_value) < 0:
+            if right_role in {"subtrahend", "denominator"} and right_value is not None and float(right_value) < 0:
                 formula = "A + B"
                 operation_text = f"{ordered_labels[0]} + {ordered_labels[1]}"
                 explanation = f"{metric_label or 'difference'} uses sign-aware subtraction because B is already negative."
@@ -4444,18 +4444,23 @@ class FinancialAgentCalculationMixin:
 
         def _push_from_answer_slots(answer_slots: Dict[str, Any]) -> None:
             components = dict(answer_slots.get("components_by_role") or {})
-            for slot in list(components.get("subtrahend") or []):
-                rendered = str(slot.get("rendered_value") or "").strip()
-                positive = self._absolute_display_value(rendered)
-                if not rendered or rendered == positive:
-                    continue
-                rows.append(
-                    {
-                        "label": _display_operand_label(str(slot.get("label") or "")),
-                        "negative": rendered,
-                        "positive": positive,
-                    }
-                )
+            operation_family = _normalise_spaces(str(answer_slots.get("operation_family") or ""))
+            right_hand_roles = ["subtrahend"]
+            if operation_family == "difference":
+                right_hand_roles.append("denominator")
+            for role in right_hand_roles:
+                for slot in list(components.get(role) or []):
+                    rendered = str(slot.get("rendered_value") or "").strip()
+                    positive = self._absolute_display_value(rendered)
+                    if not rendered or rendered == positive:
+                        continue
+                    rows.append(
+                        {
+                            "label": _display_operand_label(str(slot.get("label") or "")),
+                            "negative": rendered,
+                            "positive": positive,
+                        }
+                    )
 
         if calculation_result:
             _push_from_answer_slots(dict((calculation_result or {}).get("answer_slots") or {}))

@@ -2965,6 +2965,51 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan["formula"], "A + B")
         self.assertEqual(plan["ordered_operand_ids"], ["op_001", "op_002"])
 
+    def test_ontology_difference_roles_use_sign_aware_subtraction(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            {
+                "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_fcf",
+                    "metric_family": "free_cash_flow",
+                    "metric_label": "잉여현금흐름",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {"label": "영업활동현금흐름", "role": "numerator", "required": True},
+                        {"label": "유형자산의 취득", "role": "denominator", "required": True},
+                    ],
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "label": "2023 영업활동현금흐름",
+                        "raw_value": "2,002,233,273,518",
+                        "raw_unit": "원",
+                        "normalized_value": 2002233273518.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "numerator",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "label": "2023 유형자산의 취득",
+                        "raw_value": "(640,623,697,250)",
+                        "raw_unit": "원",
+                        "normalized_value": -640623697250.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "denominator",
+                    },
+                ],
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+        plan = result["calculation_plan"]
+        self.assertEqual(plan["status"], "ok")
+        self.assertEqual(plan["operation"], "subtract")
+        self.assertEqual(plan["formula"], "A + B")
+        self.assertEqual(plan["ordered_operand_ids"], ["op_001", "op_002"])
+
     def test_formula_planner_prefers_resolved_runtime_trace_over_stale_flat_fields(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._plan_formula_calculation(
@@ -3231,6 +3276,32 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertIn("6,406억원을 차감", rendered["answer"])
         self.assertNotIn("-6,406억원을 차감", rendered["answer"])
+
+    def test_rendered_subtraction_answer_rewrites_negative_denominator_difference(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = "네이버의 2023년 연결기준 영업활동현금흐름은 2조 22억원이며, 유형자산의 취득 금액은 -6,406억원입니다. 이를 바탕으로 계산된 2023년 잉여현금흐름은 1조 3,616억원입니다."
+        rewritten = agent._coerce_sign_aware_subtraction_answer(
+            answer,
+            calculation_result={
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "components_by_role": {
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "role": "denominator",
+                                "label": "2023 유형자산의 취득",
+                                "rendered_value": "-6,406억원",
+                            }
+                        ]
+                    },
+                },
+            },
+        )
+
+        self.assertIn("유형자산의 취득 금액은 6,406억원", rewritten)
+        self.assertNotIn("-6,406억원", rewritten)
 
     def test_difference_result_exposes_structured_value_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

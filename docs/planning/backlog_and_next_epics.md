@@ -145,6 +145,11 @@ runtime contract를 고정하는 선행 작업으로 본다.
   보강했다. aggregate projection도 null-like source id를 정리하므로,
   `source_row_ids` 표면에 `"None"` 같은 값이 citation/evaluator 경로로
   흘러가는 문제는 닫혔다
+- concept planner store-fixed promotion smoke에서 `NAV_T1_071`과
+  `MIX_T1_021`은 통과했지만, `NAV_T1_030` FCF 계열은 cash-flow outflow
+  sign 처리와 evaluator-visible evidence projection debt를 드러냈다. sign
+  처리는 generic `difference` role contract로 닫혔고, 남은 blocker는
+  retrieval/evidence visibility다
 - 2026-06-01 concept planner shadow check에서 curated 11개 모두
   concept/operation/operand-role task를 만들었고, required operand concept
   누락은 0건이었다. 다만 planner-only 결과이므로 broad default 전환 전에
@@ -377,17 +382,18 @@ runtime contract를 고정하는 선행 작업으로 본다.
 
 ## 현재 추천 우선순위
 
-1. concept-only planner store-fixed runtime promotion gate
-2. mixed growth+narrative retrieval fan-out control and answer-language polish
-3. contextual arbitration / benchmark maintenance
-4. broader curated gate maintenance residual review
-5. internal compatibility mirror cleanup
-6. table payload sidecar / store-size cleanup
-7. MAS skeleton과 artifact schema productization
-8. Analyst / Critic / Researcher 분리
-9. agentic self-reflection 재설계
-10. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-11. cross-company 확장
+1. FCF cash-flow evidence projection and evaluator-visible retrieval support
+2. concept-only planner store-fixed runtime promotion gate residuals
+3. mixed growth+narrative retrieval fan-out control and answer-language polish
+4. contextual arbitration / benchmark maintenance
+5. broader curated gate maintenance residual review
+6. internal compatibility mirror cleanup
+7. table payload sidecar / store-size cleanup
+8. MAS skeleton과 artifact schema productization
+9. Analyst / Critic / Researcher 분리
+10. agentic self-reflection 재설계
+11. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+12. cross-company 확장
 
 ## 지금 당장 하지 않을 것
 

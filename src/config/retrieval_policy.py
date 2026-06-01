@@ -587,6 +587,9 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "ratio_answer_template": "{period_prefix}{metric_label}은 {rendered_value}입니다.",
     "sign_aware_subtraction_replacements": (
         ("{label} {negative}", "{label} {positive}"),
+        ("{label} 금액은 {negative}", "{label} 금액은 {positive}"),
+        ("{label}은 {negative}", "{label}은 {positive}"),
+        ("{label}는 {negative}", "{label}는 {positive}"),
         ("{negative}을 차감", "{positive}을 차감"),
         ("{negative}를 차감", "{positive}를 차감"),
         ("{negative} 만큼 차감", "{positive} 만큼 차감"),

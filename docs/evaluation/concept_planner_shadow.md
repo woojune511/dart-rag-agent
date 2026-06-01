@@ -247,6 +247,98 @@ Artifact policy:
   `benchmarks/results/tmp_curated_concept_planner_shadow_2026-06-01.json` are
   local planner-shadow outputs and should not be committed.
 
+## 2026-06-01 Store-Fixed Runtime Promotion Smoke
+
+After the planner-only promotion check, a minimal store-fixed runtime smoke was
+run against cases whose stores were already available in
+`benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/`. This was not
+a full promotion run; it was a cost-controlled check for whether planner shape
+survives retrieval, reconciliation, calculation, rendering, and evaluator
+contracts.
+
+Commands:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_runtime_contract_gate.json `
+  --output-dir benchmarks\results\policy_driven_runtime_gate_rerun_2026-05-29 `
+  --company-run-id naver_2023_runtime_contract_gate `
+  --eval-only `
+  --question-id NAV_T1_071 `
+  --progress-heartbeat-sec 30
+
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_runtime_contract_gate.json `
+  --output-dir benchmarks\results\policy_driven_runtime_gate_rerun_2026-05-29 `
+  --company-run-id samsung_2023_runtime_contract_gate `
+  --eval-only `
+  --question-id MIX_T1_021 `
+  --progress-heartbeat-sec 30
+
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_runtime_contract_gate.json `
+  --output-dir benchmarks\results\policy_driven_runtime_gate_rerun_2026-05-29 `
+  --company-run-id naver_2023_runtime_contract_gate `
+  --eval-only `
+  --question-id NAV_T1_030 `
+  --progress-heartbeat-sec 30
+```
+
+Results:
+
+- `NAV_T1_071` passed as a store-fixed runtime smoke:
+  `numeric_final_judgement = PASS`, `faithfulness = 1.0`,
+  `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+  `section_match_rate = 1.0`, `citation_coverage = 1.0`,
+  `completeness = 1.0`, `avg_score = 0.970`.
+- `MIX_T1_021` passed as a store-fixed runtime smoke:
+  `numeric_final_judgement = PASS`, `faithfulness = 1.0`,
+  `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+  `section_match_rate = 1.0`, `citation_coverage = 1.0`,
+  `entity_coverage = 1.0`, `completeness = 1.0`, `avg_score = 0.980`.
+- `NAV_T1_030` exposed a real runtime promotion blocker. The first run was
+  evaluator-passing but arithmetically wrong because a cash-flow outflow
+  operand was already signed negative and the metric-family task used
+  `numerator` / `denominator` roles rather than `minuend` / `subtrahend`.
+  The fix is generic: for `difference` operations, `numerator` / `denominator`
+  are treated as left/right operands, and an already-negative right operand
+  uses sign-aware subtraction (`A + B`). Answer rendering also rewrites the
+  right operand as a positive amount when the answer says it is being
+  subtracted.
+- After the sign/rendering fix, `NAV_T1_030` produces the correct answer:
+  `네이버의 2023년 연결기준 잉여현금흐름은 1조 3,616억원입니다. 이는
+  영업활동현금흐름 2조 22억원에서 유형자산 취득액 6,406억원을 차감하여
+  계산된 결과입니다.`
+  Runtime metrics: `numeric_final_judgement = PASS`, `faithfulness = 1.0`,
+  `context_recall = 1.0`, `completeness = 1.0`,
+  `calculation_correctness = 1.0`.
+- Remaining `NAV_T1_030` blocker: evaluator-visible retrieval metrics are still
+  weak (`retrieval_hit_at_k = 0.0`, `section_match_rate = 0.0`,
+  `citation_coverage = 0.667`, `entity_coverage = 0.5`). This means FCF is
+  numerically closed but not yet promotion-ready as an official runtime gate.
+
+Updated promotion verdict:
+
+- `NAV_T1_071` and `MIX_T1_021` support limited promotion for those operation
+  families.
+- `NAV_T1_030` blocks broad default promotion until retrieval/evidence
+  visibility is fixed. The next work should improve cash-flow evidence
+  projection and evaluator-visible citation/section support, not add a
+  question-specific calculation rule.
+
+Validation:
+
+- `python -m unittest tests.test_operation_contracts tests.test_semantic_numeric_plan tests.test_subtask_loop`
+  passed: `256` tests.
+- `python -m unittest discover -s tests` passed: `555` tests.
+- `python -m src.ops.audit_runtime_domain_terms --summary` passed with
+  reviewed records `215` and literal occurrences `246`.
+
+Artifact policy:
+
+- The heartbeat logs and rewritten `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/`
+  result files are local experiment artifacts and should not be committed.
+
 ## How To Interpret It
 
 Good signs:
