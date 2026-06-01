@@ -39,6 +39,17 @@
     - dataset contract를 answer key/evidence에 맞춰 `재고자산평가손실`,
       `매출원가`로 좁힌 뒤 재실행 결과: numeric/faithfulness/recall/
       completeness/entity/citation 모두 `1.0`, full-eval fail `0`.
+  - concept runtime gap gate 7문항 전체도 실행 완료했다.
+    - clean pass: `SAM_T3_028`, `POS_T1_057`, `KAB_T1_066`
+    - promotion blockers / triage 대상: `KBF_T2_018`, `SKH_T3_080`,
+      `CEL_T1_013`, `CEL_T3_040`
+    - aggregate: 6 company bundles screen pass, full-eval fail 3, critical
+      miss 0, avg numeric 0.750, avg completeness 0.717, avg faithfulness
+      0.775, avg recall 0.972.
+    - 결론: concept-only planner default 승격은 아직 보류다. 다음 작업은
+      새 runtime rule 추가가 아니라 실패 문항을 numeric evaluator mismatch,
+      operand/sign binding, missing concept/evidence, dataset contract 중 어느
+      층인지 분리하는 것이다.
 
 - Runtime domain-vocabulary boundary has been tightened again.
   - Benchmark-shaped deterministic runtime code for the Hyundai US-sales policy

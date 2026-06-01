@@ -40,8 +40,8 @@
     legacy status `ok=6`, `heuristic_fallback=5`, concept status
     `concept_fallback=11`.
 - Immediate next:
-  1. Extend the concept runtime grounding gate from the closed `SAM_T3_028`
-     smoke to 2-3 more representative concept-shadow cases.
+  1. Triage the concept runtime gap gate blockers by layer before any
+     concept-only planner promotion.
   2. Treat the remaining Hyundai gate variance as evaluator/ranking stability
      work, not as a new domain-specific rule opportunity.
 
@@ -72,6 +72,40 @@
   - `full_eval_fails = 0`
 - Next gate candidates should cover one bank metric case and one
   multi-step concept calculation case before planner promotion.
+
+## 2026-06-01 Concept Runtime Gap Gate Full Sweep
+
+- Ran all 7 questions in `curated_concept_runtime_gap_gate.json`.
+- Clean pass:
+  - `SAM_T3_028`
+  - `POS_T1_057`
+  - `KAB_T1_066`
+- Blocker / triage queue:
+  - `KBF_T2_018`: answer text is complete and recall/section/citation are
+    `1.0`, but numeric final judgement is `FAIL`; first check whether this is
+    numeric evaluator mismatch/rounding versus operand/result error.
+  - `SKH_T3_080`: numeric final judgement is `PASS`, but answer uses a
+    parenthesized foreign-currency translation gain and computes the net effect
+    as `-1조 4,800억원`; completeness flags this as materially wrong.
+  - `CEL_T1_013`: system refuses the requested capitalized-development-cost
+    ratio and instead answers R&D cost to revenue; this is likely missing
+    evidence/concept binding for the capitalized development cost operand.
+  - `CEL_T3_040`: numeric final judgement is `PASS`, but completeness flags two
+    inventory-related values as materially wrong; review expected values,
+    sign/unit handling, and whether numeric evaluator is matching only one
+    operand.
+- Aggregate output:
+  - 6 company bundles screen pass
+  - full-eval fails: `3`
+  - critical misses: `0`
+  - avg numeric: `0.750`
+  - avg completeness: `0.717`
+  - avg faithfulness: `0.775`
+  - avg recall: `0.972`
+- Decision:
+  - Do not promote concept-only planner yet.
+  - Next work is failure-layer classification, not new benchmark-specific
+    runtime rules.
 
 ## 2026-06-01 NAV_T1_030 Evaluator Projection Closure
 
