@@ -157,7 +157,18 @@
     - FCF는 deterministic `subtract` plan으로 유지된다
     - 괄호 음수 outflow row는 runtime과 evaluator에서 같은 operand로 해석된다
     - final rendering은 `-X를 차감` 같은 이중 음수 표현을 남기지 않는다
-    - `numeric_grounding = 1.0`, `numeric_retrieval_support = 1.0`, `numeric_final_judgement = PASS`
+    - evaluator runtime projection은 `statement_type` metadata를 policy-defined statement section surface로 투영한다
+      - 예: `section_path = III. 재무에 관한 사항 > 2. 연결재무제표` + `statement_type = cash_flow`는 `연결현금흐름표` expected section과 매칭된다
+      - benchmark ID / 회사명 / FCF 전용 runtime rule은 추가하지 않았다
+    - latest focused smoke:
+      - `numeric_grounding = 1.0`
+      - `numeric_retrieval_support = 1.0`
+      - `numeric_final_judgement = PASS`
+      - `retrieval_hit_at_k = 1.0`
+      - `ndcg_at_5 = 1.0`
+      - `context_precision_at_5 = 1.0`
+      - `section_match_rate = 1.0`
+    - evaluator NDCG는 같은 expected section에 여러 matched docs가 잡힐 때도 `1.0`을 넘지 않도록 cap 처리했다
 
 ## 현재 핵심 한계
 

@@ -20,6 +20,7 @@ import numpy as np
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.config.retrieval_policy import FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES
 from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 logger = logging.getLogger(__name__)
@@ -444,18 +445,71 @@ def _tokenize_ko(text: str) -> set[str]:
     return {token.lower() for token in tokens if len(token) >= 2}
 
 
+def _normalise_section_surface(text: str) -> str:
+    return re.sub(r"[\s>\-_/().·]+", "", str(text or "")).lower()
+
+
+def _metadata_section_surfaces(metadata: Dict[str, Any]) -> List[str]:
+    surfaces: List[str] = []
+    for key in (
+        "section",
+        "section_path",
+        "table_context",
+        "table_header_context",
+        "local_heading",
+        "heading",
+        "title",
+    ):
+        value = metadata.get(key)
+        if isinstance(value, str) and value.strip():
+            surfaces.append(value.strip())
+
+    statement_type = str(metadata.get("statement_type") or "").strip()
+    if statement_type:
+        metadata_blob = " ".join(surfaces)
+        scope_prefixes: List[str] = []
+        if "연결" in metadata_blob:
+            scope_prefixes.append("연결")
+        if "별도" in metadata_blob:
+            scope_prefixes.append("별도")
+        for policy in FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES:
+            if statement_type not in set(policy.get("statement_types") or ()):
+                continue
+            for preferred in policy.get("preferred_sections") or ():
+                preferred_text = str(preferred or "").strip()
+                if not preferred_text:
+                    continue
+                surfaces.append(preferred_text)
+                for prefix in scope_prefixes:
+                    if not preferred_text.startswith(prefix):
+                        surfaces.append(f"{prefix} {preferred_text}")
+
+    deduped: List[str] = []
+    seen: set[str] = set()
+    for surface in surfaces:
+        normalised = _normalise_section_surface(surface)
+        if not normalised or normalised in seen:
+            continue
+        seen.add(normalised)
+        deduped.append(surface)
+    return deduped
+
+
 def _contains_section(metadata: Dict[str, Any], expected_section: str) -> bool:
-    section = str(metadata.get("section", ""))
-    section_path = str(metadata.get("section_path", ""))
     expected = str(expected_section or "").strip()
     if not expected:
         return False
-    if expected == section or expected in section_path:
-        return True
-    if section_path and section_path in expected:
-        return True
-    if section and section in expected:
-        return True
+    expected_normalised = _normalise_section_surface(expected)
+    for surface in _metadata_section_surfaces(metadata):
+        surface_normalised = _normalise_section_surface(surface)
+        if expected == surface or expected in surface or surface in expected:
+            return True
+        if (
+            expected_normalised
+            and surface_normalised
+            and (expected_normalised in surface_normalised or surface_normalised in expected_normalised)
+        ):
+            return True
     return False
 
 
@@ -1609,7 +1663,7 @@ def _compute_ndcg_at_k(example: EvalExample, retrieved_docs: List[Any], k: int) 
     idcg = sum(1.0 / np.log2(index + 1) for index in range(1, ideal_count + 1))
     if idcg == 0.0:
         return 0.0
-    return float(dcg / idcg)
+    return float(np.clip(dcg / idcg, 0.0, 1.0))
 
 
 def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any]) -> float:

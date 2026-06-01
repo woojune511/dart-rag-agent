@@ -5,6 +5,34 @@
 
 ## Active Snapshot
 
+## 2026-06-01 NAV_T1_030 Evaluator Projection Closure
+
+- `NAV_T1_030` is closed after separating answer correctness from evaluator
+  section-surface projection.
+  - Runtime still uses the generic deterministic `subtract` plan for FCF.
+  - No benchmark ID, company, or FCF-specific branch was added to runtime code.
+  - Evaluator section matching now projects `statement_type` metadata through
+    the existing financial document statement policy.
+  - This lets a structured table under
+    `III. 재무에 관한 사항 > 2. 연결재무제표` with
+    `statement_type = cash_flow` count against an expected
+    `연결현금흐름표` section.
+- Focused NAVER 2023 eval-only smoke:
+  - `numeric_final_judgement = PASS`
+  - `numeric_grounding = 1.000`
+  - `numeric_retrieval_support = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `ndcg_at_5 = 1.000`
+  - `context_precision_at_5 = 1.000`
+  - `section_match_rate = 1.000`
+- Evaluator NDCG is now capped to `1.0`; previous focused notes that showed
+  `ndcg_at_5 > 1.0` should be treated as a metric sanity bug, not a retrieval
+  quality signal.
+- Validation:
+  - `python -m unittest tests.test_evaluator_runtime_projection`
+  - `python -m unittest discover -s tests`
+  - `python -m src.ops.audit_runtime_domain_terms --summary`
+
 ## 2026-05-29 Hyundai Gate Replay Update
 
 - `hyundai_2023_policy_driven_runtime_gate` now completes when given a longer

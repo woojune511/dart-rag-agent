@@ -2148,3 +2148,39 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 
 - 문제의 본질은 “LLM이 XML을 못 읽는다”보다, **parser 입력이 invalid XML-like source라 subtree 자체를 잃을 수 있다**는 데 있다
 - 따라서 다음 parser 실험은 heading rule을 더 늘리는 것이 아니라, **sanitize 전처리 전/후 구조 복원율을 비교하는 방식**으로 진행한다
+
+---
+
+## 결정 91 — evaluator section hit은 runtime evidence의 statement metadata를 section surface로 투영해 판정한다
+
+**배경**: `NAV_T1_030`은 runtime answer와 numeric grounding이 맞았지만, evaluator의 retrieval/section metric은 `0.0`으로 남았다. 원인은 retrieved/runtime evidence가 structured cash-flow table을 `III. 재무에 관한 사항 > 2. 연결재무제표` parent section으로 노출하고, dataset expected section은 `연결현금흐름표` display surface를 요구했기 때문이다.
+
+**결정**:
+
+- runtime retrieval, calculation, answer path에는 benchmark/company/metric-specific branch를 추가하지 않는다.
+- evaluator의 `_contains_section()`은 metadata의 `section`, `section_path`뿐 아니라 `table_context`, `table_header_context`, `local_heading` 등 evaluator-visible surfaces를 함께 본다.
+- `statement_type`이 있으면 기존 `FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES`의 `preferred_sections`를 section surface로 투영한다.
+- `연결` / `별도` scope는 metadata text에 이미 존재하는 경우에만 prefix surface로 생성한다.
+- NDCG는 동일 expected section에 여러 matched docs가 잡혀도 `1.0`을 넘지 않도록 cap한다.
+
+**검증**:
+
+- `python -m unittest tests.test_evaluator_runtime_projection`
+  - 40 tests OK
+- `python -m unittest discover -s tests`
+  - 557 tests OK
+- `python -m src.ops.audit_runtime_domain_terms --summary`
+  - 추가 runtime domain-language finding 없음
+- `NAV_T1_030` focused eval-only smoke:
+  - `numeric_final_judgement = PASS`
+  - `numeric_grounding = 1.0`
+  - `numeric_retrieval_support = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `ndcg_at_5 = 1.0`
+  - `context_precision_at_5 = 1.0`
+  - `section_match_rate = 1.0`
+
+**해석**:
+
+- 이것은 answer path 보정이 아니라 evaluator-visible projection 보정이다.
+- cash-flow 외에도 structured financial statement table이 parent section으로만 저장되는 경우, policy-defined statement metadata가 expected display section과 연결될 수 있다.

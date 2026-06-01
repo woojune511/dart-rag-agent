@@ -16,6 +16,7 @@ from src.ops.evaluator import (
     _build_example_report_scope,
     _compute_runtime_evidence_retrieval_hit_at_k,
     _compute_runtime_evidence_section_match_rate,
+    _compute_ndcg_at_k,
     _contains_section,
     _compute_numeric_result_correctness,
     _compute_operand_selection_correctness,
@@ -32,6 +33,11 @@ from src.ops.evaluator import (
     _should_override_numeric_grounding,
     _should_override_structured_summary_faithfulness,
 )
+
+
+class _DummyDoc:
+    def __init__(self, metadata: dict) -> None:
+        self.metadata = metadata
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
@@ -78,6 +84,58 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
         contexts = _build_runtime_evidence_contexts(runtime_evidence)
         self.assertTrue(any("Poshmark" in context for context in contexts))
+
+    def test_runtime_evidence_projects_statement_type_to_expected_section_surface(self) -> None:
+        example = EvalExample(
+            id="cash_flow_statement_surface",
+            question="연결기준 잉여현금흐름을 계산해 줘.",
+            ground_truth="영업활동현금흐름에서 유형자산 취득액을 차감",
+            company="네이버",
+            year=2023,
+            section="재무제표",
+            expected_sections=["III. 재무에 관한 사항 > 연결현금흐름표"],
+            company_aliases=["NAVER"],
+        )
+        runtime_evidence = [
+            {
+                "claim": "영업활동현금흐름 | 제 25 기 2,002,233,273,518 원",
+                "quote_span": "영업활동현금흐름 2,002,233,273,518",
+                "metadata": {
+                    "company": "NAVER",
+                    "year": 2023,
+                    "section": "재무제표",
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "statement_type": "cash_flow",
+                    "table_context": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                },
+            }
+        ]
+
+        self.assertTrue(_contains_section(runtime_evidence[0]["metadata"], "연결현금흐름표"))
+        self.assertEqual(_compute_runtime_evidence_retrieval_hit_at_k(example, runtime_evidence), 1.0)
+        self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
+
+    def test_ndcg_is_capped_when_multiple_docs_match_single_expected_section(self) -> None:
+        example = EvalExample(
+            id="cash_flow_ndcg",
+            question="연결기준 잉여현금흐름을 계산해 줘.",
+            ground_truth="영업활동현금흐름에서 유형자산 취득액을 차감",
+            company="네이버",
+            year=2023,
+            section="재무제표",
+            expected_sections=["III. 재무에 관한 사항 > 연결현금흐름표"],
+            company_aliases=["NAVER"],
+        )
+        metadata = {
+            "company": "NAVER",
+            "year": 2023,
+            "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+            "statement_type": "cash_flow",
+        }
+
+        score = _compute_ndcg_at_k(example, [_DummyDoc(metadata), _DummyDoc(metadata)], k=2)
+
+        self.assertEqual(score, 1.0)
 
     def test_numeric_judge_evidence_includes_structured_table_cell_values(self) -> None:
         metadata = {
