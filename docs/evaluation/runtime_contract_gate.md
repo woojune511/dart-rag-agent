@@ -380,6 +380,47 @@ Latest verification:
   - `numeric_equivalence = 1.0` and `numeric_grounding = 1.0` for all seven
     questions
 
+2026-06-02 focused blocker update:
+
+- `SKH_T3_080` is closed in the focused low-API concept-runtime gate.
+- Failure class:
+  - not retrieval coverage and not missing ontology
+  - the retrieved notes row already carried the required gain/loss evidence,
+    but the parenthesized gain amount was propagated as a negative value from
+    lookup slot to downstream dependency calculation
+  - aggregate answer composition also kept an earlier raw lookup fragment ahead
+    of the complete difference sentence, which made numeric evaluation see an
+    unsupported negative claim
+- Runtime changes are generic:
+  - ontology-declared lookup magnitude semantics are applied to structured
+    slot/operand rows after evidence lookup, including `source_row_ids` and
+    `recon::` evidence ids
+  - dependency-bound difference results preserve the common source display unit
+    so exact source-table arithmetic such as `백만원` does not get rounded into
+    compact KRW text
+  - aggregate fallback prefers a complete deterministic numeric result when it
+    already contains the needed operands and result, instead of prefixing stale
+    partial lookup text
+- Focused validation:
+  - command shape:
+    - `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --company-run-id skh_2023_concept_gap --question-id SKH_T3_080 --low-api-debug --progress-heartbeat-sec 30 --heartbeat-log <path>`
+  - local output bundle:
+    `benchmarks/results/concept_gap_skh_t3_080_low_api_2026-06-02_fix5/`
+    (local experiment artifact only; do not commit raw results)
+  - result:
+    - `numeric_final_judgement = PASS`
+    - `numeric_equivalence = 1.0`
+    - `numeric_grounding = 1.0`
+    - `numeric_retrieval_support = 1.0`
+    - final calculation result: `-332,236백만원`
+- Remaining runtime blockers:
+  - `CEL_T1_013`: missing capitalized-development-cost operand binding.
+  - `CEL_T3_040`: wrong value-source selection for inventory valuation
+    loss/reversal rows.
+- Promotion verdict remains unchanged: do not promote concept-only planning as
+  a runtime default until the remaining CEL blockers close through generic
+  operand/evidence-source contracts and the focused gate is rerun.
+
 2026-06-01 full sweep update:
 
 - The curated gate was rerun through the reusable profile and produced clean
@@ -392,7 +433,7 @@ Latest verification:
   a response cannot pass just because one numeric claim matches one reference
   number if other answer numeric claims are unsupported by the answer key or
   canonical evidence candidates.
-- After that evaluator fix, these are the remaining runtime blockers:
+- After that evaluator fix, these were the remaining runtime blockers:
   - `SKH_T3_080`: signed/parenthesized foreign-currency translation gain and
     downstream net-effect binding.
   - `CEL_T1_013`: missing capitalized-development-cost operand binding.

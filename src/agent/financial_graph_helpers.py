@@ -101,6 +101,7 @@ __all__ = [
     '_safe_eval_formula',
     '_extract_composite_krw',
     '_normalise_operand_value',
+    '_coerce_lookup_magnitude_record',
     '_extract_period_sort_key',
     '_format_korean_won_compact',
     '_display_operand_label',
@@ -1010,6 +1011,92 @@ def _coerce_lookup_magnitude_value(
     if not any(marker in raw_surface for marker in ("(", ")", "△", "▲", "-")):
         return normalized_value
     return abs(normalized_value)
+
+
+def _coerce_lookup_magnitude_record(
+    record: Dict[str, Any],
+    evidence_item: Optional[Dict[str, Any]] = None,
+    *,
+    concept: str = "",
+    statement_type: str = "",
+    row_label: str = "",
+    semantic_label: str = "",
+) -> Dict[str, Any]:
+    """Apply ontology-declared lookup magnitude semantics to a slot/operand row."""
+    updated = dict(record or {})
+    normalized_unit = _normalise_spaces(str(updated.get("normalized_unit") or "")).upper()
+    normalized_value = updated.get("normalized_value")
+    try:
+        numeric_value = float(normalized_value)
+    except (TypeError, ValueError):
+        return updated
+
+    metadata = dict((evidence_item or {}).get("metadata") or {})
+    resolved_concept = _normalise_spaces(
+        str(
+            concept
+            or updated.get("concept")
+            or updated.get("matched_operand_concept")
+            or ""
+        )
+    )
+    resolved_statement_type = _normalise_spaces(
+        str(
+            statement_type
+            or updated.get("statement_type")
+            or metadata.get("statement_type")
+            or ""
+        )
+    )
+    resolved_row_label = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in (
+                row_label,
+                updated.get("row_label"),
+                updated.get("label"),
+                updated.get("matched_operand_label"),
+                metadata.get("row_label"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    resolved_semantic_label = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in (
+                semantic_label,
+                updated.get("semantic_label"),
+                metadata.get("semantic_label"),
+                metadata.get("table_value_labels_text"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    coerced_value = _coerce_lookup_magnitude_value(
+        normalized_value=numeric_value,
+        normalized_unit=normalized_unit,
+        raw_value=_normalise_spaces(str(updated.get("raw_value") or updated.get("rendered_value") or "")),
+        concept=resolved_concept,
+        statement_type=resolved_statement_type,
+        row_label=resolved_row_label,
+        semantic_label=resolved_semantic_label,
+    )
+    if coerced_value != numeric_value:
+        raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
+        rendered_value = _normalise_spaces(str(updated.get("rendered_value") or ""))
+        magnitude_raw = raw_value.strip()
+        if magnitude_raw.startswith("(") and magnitude_raw.endswith(")"):
+            magnitude_raw = magnitude_raw[1:-1].strip()
+        magnitude_raw = magnitude_raw.lstrip("△▲-").strip()
+        if rendered_value and not updated.get("source_rendered_value"):
+            updated["source_rendered_value"] = rendered_value
+        if magnitude_raw and raw_unit:
+            updated["rendered_value"] = _normalise_spaces(f"{magnitude_raw}{raw_unit}")
+        updated["normalized_value"] = coerced_value
+        updated["value_coercion"] = "lookup_magnitude_from_source_surface"
+    return updated
 
 
 def _extract_period_sort_key(period: str) -> int:

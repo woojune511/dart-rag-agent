@@ -640,6 +640,136 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(normalized_unit, "KRW")
         self.assertEqual(coerced, 573_884_000_000.0)
 
+    def test_dependency_operand_rows_apply_lookup_magnitude_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "difference",
+                "inputs": [
+                    {
+                        "label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                        "concept": "foreign_currency_translation_gain",
+                        "role": "minuend",
+                        "source_preference": ["task_output"],
+                        "preferred_task_id": "task_gain",
+                        "source_slot": "primary_value",
+                    }
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_gain",
+                    "metric_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                                "concept": "foreign_currency_translation_gain",
+                                "raw_value": "(573,884)",
+                                "raw_unit": "\ubc31\ub9cc\uc6d0",
+                                "normalized_value": -573_884_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "(573,884)\ubc31\ub9cc\uc6d0",
+                                "source_row_ids": ["gain_cell"],
+                            }
+                        }
+                    },
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "recon::gain_cell",
+                            "quote_span": "\uc678\ud654\ud658\uc0b0\uc774\uc775 (573,884)",
+                            "metadata": {
+                                "statement_type": "notes",
+                                "row_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                                "semantic_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+
+        rows = agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["normalized_value"], 573_884_000_000.0)
+        self.assertEqual(rows[0]["raw_value"], "(573,884)")
+        self.assertEqual(rows[0]["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")
+        self.assertEqual(rows[0]["value_coercion"], "lookup_magnitude_from_source_surface")
+
+    def test_difference_source_display_unit_preserves_common_source_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        unit = agent._adjusted_difference_source_display_unit(
+            active_subtask={"operation_family": "difference", "metric_label": "net effect"},
+            ordered_operands=[
+                {"raw_unit": "\ubc31\ub9cc\uc6d0", "normalized_unit": "KRW", "dependency_resolved": True},
+                {"raw_unit": "\ubc31\ub9cc\uc6d0", "normalized_unit": "KRW", "dependency_resolved": True},
+            ],
+        )
+
+        self.assertEqual(unit, "\ubc31\ub9cc\uc6d0")
+
+    def test_aggregate_fallback_prefers_complete_numeric_result(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = agent._preferred_aggregate_fallback_answer(
+            [
+                {
+                    "status": "ok",
+                    "operation_family": "lookup",
+                    "answer": "(573,884)\ubc31\ub9cc\uc6d0",
+                    "calculation_result": {
+                        "status": "ok",
+                        "source_row_ids": ["lookup_cell"],
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "rendered_value": "573,884\ubc31\ub9cc\uc6d0",
+                                "normalized_value": 573_884_000_000.0,
+                                "source_row_ids": ["lookup_cell"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "status": "ok",
+                    "operation_family": "difference",
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": "\uc21c\ud6a8\uacfc\ub294 -332,236\ubc31\ub9cc\uc6d0\uc785\ub2c8\ub2e4.",
+                        "source_row_ids": ["task_output:task_gain", "task_output:task_loss", "gain_cell", "loss_cell"],
+                        "answer_slots": {
+                            "operation_family": "difference",
+                            "primary_value": {
+                                "status": "ok",
+                                "rendered_value": "-332,236\ubc31\ub9cc\uc6d0",
+                                "normalized_value": -332_236_000_000.0,
+                                "source_row_ids": ["gain_cell", "loss_cell"],
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "rendered_value": "573,884\ubc31\ub9cc\uc6d0",
+                                "normalized_value": 573_884_000_000.0,
+                                "source_row_ids": ["gain_cell"],
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "rendered_value": "906,120\ubc31\ub9cc\uc6d0",
+                                "normalized_value": 906_120_000_000.0,
+                                "source_row_ids": ["loss_cell"],
+                            },
+                        },
+                    },
+                },
+            ],
+            "(573,884)\ubc31\ub9cc\uc6d0 \uc21c\ud6a8\uacfc\ub294 -332,236\ubc31\ub9cc\uc6d0\uc785\ub2c8\ub2e4.",
+        )
+
+        self.assertEqual(answer, "\uc21c\ud6a8\uacfc\ub294 -332,236\ubc31\ub9cc\uc6d0\uc785\ub2c8\ub2e4.")
+
     def test_inventory_loss_surface_contract_rejects_summary_etc_row(self) -> None:
         operand = {
             "label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",

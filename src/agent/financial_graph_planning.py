@@ -1902,6 +1902,7 @@ class FinancialAgentPlanningMixin:
                     if not _normalise_spaces(str(primary_slot.get("source_anchor") or "")):
                         primary_slot["source_anchor"] = _normalise_spaces(str(slot_evidence.get("source_anchor") or ""))
                     primary_slot = _refine_lookup_slot_unit_from_evidence(primary_slot, slot_evidence)
+                    primary_slot = _coerce_lookup_magnitude_record(primary_slot, slot_evidence)
                     if calculation_operands:
                         refined_operands: List[Dict[str, Any]] = []
                         primary_ids = set(_clean_source_row_ids([primary_slot.get("source_row_ids")]))

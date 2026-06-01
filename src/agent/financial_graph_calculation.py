@@ -451,6 +451,47 @@ class FinancialAgentCalculationMixin:
                 return answer
         return ""
 
+    def _aggregate_results_include_dependency_numeric_result(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        for row in ordered_results:
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            candidate_sources = _clean_source_row_ids([
+                calculation_result.get("source_row_ids"),
+                row.get("source_row_ids"),
+                [
+                    [
+                        operand.get("evidence_id"),
+                        operand.get("source_row_id"),
+                        operand.get("source_row_ids"),
+                    ]
+                    for operand in list(row.get("calculation_operands") or [])
+                    if isinstance(operand, dict)
+                ],
+                [
+                    [
+                        operand.get("evidence_id"),
+                        operand.get("source_row_id"),
+                        operand.get("source_row_ids"),
+                    ]
+                    for operand in list(calculation_result.get("calculation_operands") or [])
+                    if isinstance(operand, dict)
+                ],
+            ])
+            if any(str(source_id).startswith("task_output:") for source_id in candidate_sources):
+                return True
+            if any(
+                bool((operand or {}).get("dependency_resolved"))
+                for operand in list(row.get("calculation_operands") or [])
+                if isinstance(operand, dict)
+            ):
+                return True
+        return False
+
     def _slot_display_from_source_task(
         self,
         slot: Dict[str, Any],
@@ -646,7 +687,10 @@ class FinancialAgentCalculationMixin:
 
         has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-        if has_narrative_summary and complete_numeric_answer:
+        if complete_numeric_answer and (
+            has_narrative_summary
+            or self._aggregate_results_include_dependency_numeric_result(ordered_results)
+        ):
             return complete_numeric_answer
 
         for row in ordered_results:
@@ -849,36 +893,36 @@ class FinancialAgentCalculationMixin:
                     source_anchor = _normalise_spaces(str(operand_candidate.get("source_anchor") or ""))
                     if source_anchor:
                         break
-            dependency_rows.append(
-                {
-                    "operand_id": f"dep_{preferred_task_id}_{index:03d}",
-                    "evidence_id": f"task_output:{preferred_task_id}",
-                    "source_row_id": source_row_ids[0] if source_row_ids else f"task_output:{preferred_task_id}",
-                    "source_row_ids": source_row_ids or [f"task_output:{preferred_task_id}"],
-                    "source_anchor": source_anchor,
-                    "label": _normalise_spaces(
-                        str(binding.get("label") or source_slot.get("label") or sibling_row.get("metric_label") or "")
-                    ),
-                    "raw_value": _normalise_spaces(
-                        str(
-                            source_slot.get("raw_value")
-                            or source_slot.get("rendered_value")
-                            or sibling_result.get("rendered_value")
-                            or ""
-                        )
-                    ),
-                    "raw_unit": raw_unit,
-                    "normalized_value": normalized_value,
-                    "normalized_unit": normalized_unit,
-                    "period": _normalise_spaces(str(source_slot.get("period") or binding.get("period") or "")),
-                    "matched_operand_label": _normalise_spaces(str(binding.get("label") or "")),
-                    "matched_operand_concept": _normalise_spaces(str(binding.get("concept") or "")),
-                    "matched_operand_role": _normalise_spaces(str(binding.get("role") or "")),
-                    "source_task_id": preferred_task_id,
-                    "source_slot": source_slot_name,
-                    "dependency_resolved": True,
-                }
-            )
+            dependency_row = {
+                "operand_id": f"dep_{preferred_task_id}_{index:03d}",
+                "evidence_id": f"task_output:{preferred_task_id}",
+                "source_row_id": source_row_ids[0] if source_row_ids else f"task_output:{preferred_task_id}",
+                "source_row_ids": source_row_ids or [f"task_output:{preferred_task_id}"],
+                "source_anchor": source_anchor,
+                "label": _normalise_spaces(
+                    str(binding.get("label") or source_slot.get("label") or sibling_row.get("metric_label") or "")
+                ),
+                "raw_value": _normalise_spaces(
+                    str(
+                        source_slot.get("raw_value")
+                        or source_slot.get("rendered_value")
+                        or sibling_result.get("rendered_value")
+                        or ""
+                    )
+                ),
+                "raw_unit": raw_unit,
+                "normalized_value": normalized_value,
+                "normalized_unit": normalized_unit,
+                "period": _normalise_spaces(str(source_slot.get("period") or binding.get("period") or "")),
+                "matched_operand_label": _normalise_spaces(str(binding.get("label") or "")),
+                "matched_operand_concept": _normalise_spaces(str(binding.get("concept") or "")),
+                "matched_operand_role": _normalise_spaces(str(binding.get("role") or "")),
+                "source_task_id": preferred_task_id,
+                "source_slot": source_slot_name,
+                "dependency_resolved": True,
+            }
+            source_evidence = self._evidence_item_for_operand_row(dependency_row, evidence_by_id)
+            dependency_rows.append(_coerce_lookup_magnitude_record(dependency_row, source_evidence))
         return dependency_rows
 
     def _active_retry_strategy(self, state: FinancialAgentState) -> str:
@@ -2006,10 +2050,11 @@ class FinancialAgentCalculationMixin:
         row: Dict[str, Any],
         evidence_by_id: Dict[str, Dict[str, Any]],
     ) -> Optional[Dict[str, Any]]:
-        candidate_ids = [
-            str(row.get("evidence_id") or "").strip(),
-            str(row.get("source_row_id") or "").strip(),
-        ]
+        candidate_ids = _clean_source_row_ids([
+            row.get("evidence_id"),
+            row.get("source_row_id"),
+            row.get("source_row_ids"),
+        ])
         for candidate_id in [item for item in candidate_ids if item]:
             evidence_item = evidence_by_id.get(candidate_id)
             if evidence_item:
@@ -2049,6 +2094,7 @@ class FinancialAgentCalculationMixin:
                 updated["consolidation_scope"] = metadata.get("consolidation_scope")
             if updated.get("table_source_id") is None:
                 updated["table_source_id"] = metadata.get("table_source_id")
+        updated = _coerce_lookup_magnitude_record(updated, evidence_item)
         return self._refine_operand_precision_from_evidence_table(updated, evidence_item)
 
     def _infer_operand_unit_from_value_surface(
@@ -4468,19 +4514,6 @@ class FinancialAgentCalculationMixin:
         active_subtask: Dict[str, Any],
         ordered_operands: List[Dict[str, Any]],
     ) -> str:
-        query_text = _normalise_spaces(
-            " ".join(
-                str(active_subtask.get(key) or "")
-                for key in ("query", "metric_label", "operation_text", "task_id")
-            )
-        )
-        query_terms = tuple(str(item) for item in (CALCULATION_RENDER_POLICY.get("adjusted_difference_query_terms") or ()))
-        exclusion_pattern = str(CALCULATION_RENDER_POLICY.get("adjusted_difference_exclusion_pattern") or r"$^")
-        if not (
-            any(marker in query_text for marker in query_terms)
-            or re.search(exclusion_pattern, query_text)
-        ):
-            return ""
         raw_units = [
             _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
             for row in ordered_operands
@@ -4498,6 +4531,32 @@ class FinancialAgentCalculationMixin:
             for item in (CALCULATION_RENDER_POLICY.get("converted_display_units") or ())
             if str(item)
         }
+        dependency_bound = any(
+            bool(row.get("dependency_resolved"))
+            or any(
+                str(source_id).startswith("task_output:")
+                for source_id in _clean_source_row_ids([
+                    row.get("source_row_id"),
+                    row.get("source_row_ids"),
+                ])
+            )
+            for row in ordered_operands
+        )
+        if dependency_bound and len(set(raw_units)) == 1 and raw_units[0] in source_display_units:
+            return raw_units[0]
+        query_text = _normalise_spaces(
+            " ".join(
+                str(active_subtask.get(key) or "")
+                for key in ("query", "metric_label", "operation_text", "task_id")
+            )
+        )
+        query_terms = tuple(str(item) for item in (CALCULATION_RENDER_POLICY.get("adjusted_difference_query_terms") or ()))
+        exclusion_pattern = str(CALCULATION_RENDER_POLICY.get("adjusted_difference_exclusion_pattern") or r"$^")
+        if not (
+            any(marker in query_text for marker in query_terms)
+            or re.search(exclusion_pattern, query_text)
+        ):
+            return ""
         if len(set(raw_units)) == 1 and raw_units[0] in source_display_units:
             return raw_units[0]
         source_units = [unit for unit in raw_units if unit in source_display_units]
@@ -4535,6 +4594,9 @@ class FinancialAgentCalculationMixin:
             for item in (CALCULATION_RENDER_POLICY.get("value_embedded_unit_markers") or ())
             if str(item)
         )
+        coerced_display = _normalise_spaces(str(row.get("rendered_value") or ""))
+        if row.get("value_coercion") and coerced_display:
+            return coerced_display
         if normalized_unit in count_or_percent_units and raw_value:
             if raw_unit and raw_unit in raw_value:
                 return raw_value
