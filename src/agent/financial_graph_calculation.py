@@ -729,6 +729,19 @@ class FinancialAgentCalculationMixin:
             for row in (state.get("subtask_results") or [])
             if str(row.get("task_id") or "").strip()
         }
+        evidence_by_id = {
+            str(item.get("evidence_id") or "").strip(): dict(item)
+            for row in sibling_rows.values()
+            for item in list(row.get("runtime_evidence") or [])
+            if str(item.get("evidence_id") or "").strip()
+        }
+        evidence_by_id.update(
+            {
+                str(item.get("evidence_id") or "").strip(): dict(item)
+                for item in list(state.get("evidence_items") or [])
+                if str(item.get("evidence_id") or "").strip()
+            }
+        )
         dependency_rows: List[Dict[str, Any]] = []
         for index, binding in enumerate(input_bindings, start=1):
             source_preference = [
@@ -803,16 +816,35 @@ class FinancialAgentCalculationMixin:
                 continue
             if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row):
                 continue
+            source_row_ids = _clean_source_row_ids([
+                f"task_output:{preferred_task_id}",
+                source_slot.get("source_row_id"),
+                source_slot.get("source_row_ids"),
+                sibling_result.get("source_row_ids"),
+            ])
             raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
             normalized_value = source_slot.get("normalized_value")
             if normalized_value is None:
                 normalized_value = sibling_result.get("result_value")
             source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or sibling_result.get("source_anchor") or ""))
             if not source_anchor:
+                for evidence_id in source_row_ids:
+                    evidence = evidence_by_id.get(evidence_id)
+                    if not evidence:
+                        continue
+                    source_anchor = _normalise_spaces(str(evidence.get("source_anchor") or ""))
+                    if source_anchor:
+                        break
+            if not source_anchor:
                 for operand_row in list(sibling_row.get("calculation_operands") or []):
                     operand_candidate = dict(operand_row or {})
                     if not _operand_row_matches_requirement(operand_candidate, binding):
                         continue
+                    source_row_ids = _clean_source_row_ids([
+                        *source_row_ids,
+                        operand_candidate.get("source_row_id"),
+                        operand_candidate.get("source_row_ids"),
+                    ])
                     source_anchor = _normalise_spaces(str(operand_candidate.get("source_anchor") or ""))
                     if source_anchor:
                         break
@@ -820,6 +852,8 @@ class FinancialAgentCalculationMixin:
                 {
                     "operand_id": f"dep_{preferred_task_id}_{index:03d}",
                     "evidence_id": f"task_output:{preferred_task_id}",
+                    "source_row_id": source_row_ids[0] if source_row_ids else f"task_output:{preferred_task_id}",
+                    "source_row_ids": source_row_ids or [f"task_output:{preferred_task_id}"],
                     "source_anchor": source_anchor,
                     "label": _normalise_spaces(
                         str(binding.get("label") or source_slot.get("label") or sibling_row.get("metric_label") or "")
@@ -4584,7 +4618,7 @@ class FinancialAgentCalculationMixin:
         source_row_ids: Optional[List[str]] = None,
         source_anchor: str = "",
     ) -> Dict[str, Any]:
-        row_ids = [str(item).strip() for item in (source_row_ids or []) if str(item).strip()]
+        row_ids = _clean_source_row_ids(source_row_ids or [])
         return {
             "status": "missing",
             "role": role,
@@ -4618,7 +4652,12 @@ class FinancialAgentCalculationMixin:
                     rendered_value = self._render_value_with_unit(float(normalized_value), raw_unit, normalized_unit)
             except (TypeError, ValueError):
                 rendered_value = str(row.get("raw_value") or "")
-        source_row_id = str(row.get("evidence_id") or row.get("row_id") or "")
+        source_row_ids = _clean_source_row_ids([
+            row.get("evidence_id"),
+            row.get("row_id"),
+            row.get("source_row_id"),
+            row.get("source_row_ids"),
+        ])
         return {
             "status": self._slot_status(
                 normalized_value=self._coerce_slot_numeric(normalized_value),
@@ -4634,8 +4673,8 @@ class FinancialAgentCalculationMixin:
             "normalized_value": normalized_value,
             "normalized_unit": normalized_unit,
             "rendered_value": rendered_value,
-            "source_row_id": source_row_id,
-            "source_row_ids": [source_row_id] if source_row_id else [],
+            "source_row_id": source_row_ids[0] if source_row_ids else "",
+            "source_row_ids": source_row_ids,
             "source_anchor": str(row.get("source_anchor") or ""),
         }
 
@@ -4657,7 +4696,7 @@ class FinancialAgentCalculationMixin:
                 rendered_value = self._format_calculation_value_in_display_unit(float(normalized_value), display_unit)
             else:
                 rendered_value = self._render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
-        row_ids = [str(item).strip() for item in (source_row_ids or []) if str(item).strip()]
+        row_ids = _clean_source_row_ids(source_row_ids or [])
         return {
             "status": self._slot_status(
                 normalized_value=self._coerce_slot_numeric(normalized_value),
@@ -5197,11 +5236,16 @@ class FinancialAgentCalculationMixin:
         prior_period = ""
         current_row: Optional[Dict[str, Any]] = None
         prior_row: Optional[Dict[str, Any]] = None
-        source_row_ids = [
-            str(row.get("evidence_id") or "").strip()
-            for row in ordered_operands
-            if str(row.get("evidence_id") or "").strip()
-        ]
+        source_row_ids = _clean_source_row_ids(
+            [
+                [
+                    row.get("evidence_id"),
+                    row.get("source_row_id"),
+                    row.get("source_row_ids"),
+                ]
+                for row in ordered_operands
+            ]
+        )
         if operation_family in {"lookup", "single_value"} and ordered_operands:
             current_value = float(ordered_operands[0].get("normalized_value"))
             current_period = str(ordered_operands[0].get("period") or "")

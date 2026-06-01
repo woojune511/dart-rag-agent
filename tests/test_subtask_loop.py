@@ -103,6 +103,64 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertTrue(rows[0]["dependency_resolved"])
 
+    def test_dependency_rows_resolve_task_output_to_direct_source_metadata(self) -> None:
+        state = {
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "label": "2023년 커머스 매출액",
+                        "preferred_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    }
+                ]
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_3",
+                    "metric_label": "2023년 커머스 매출액",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_001",
+                            "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "source_row_ids": ["ev_001"],
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "2023년 커머스 매출액",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "2,546,649",
+                                "raw_unit": "백만원",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,546,649백만원",
+                                "source_row_id": "ev_001",
+                                "source_row_ids": ["ev_001"],
+                            }
+                        },
+                    },
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_row_id"], "task_output:task_3")
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_3", "ev_001"])
+        self.assertEqual(
+            rows[0]["source_anchor"],
+            "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+        )
+
     def test_growth_rate_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
             "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
@@ -1896,6 +1954,34 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertEqual(len(projection["calculation_operands"]), 1)
+        self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
+
+    def test_aggregate_projection_drops_null_source_id_surfaces(self) -> None:
+        projection = self.agent._build_aggregate_calculation_projection(
+            [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023년 커머스 매출액",
+                    "answer": "2023년 커머스 매출액은 2,546,649백만원입니다.",
+                    "status": "ok",
+                    "calculation_operands": [
+                        {
+                            "operand_id": "primary_value",
+                            "label": "커머스 매출액",
+                            "raw_value": "2,546,649",
+                            "raw_unit": "백만원",
+                            "source_row_id": None,
+                            "source_row_ids": [None, "None", "ev_001"],
+                        }
+                    ],
+                    "calculation_plan": {"status": "ok", "operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "2,546,649백만원"},
+                }
+            ],
+            "2023년 커머스 매출액은 2,546,649백만원입니다.",
+        )
+
         self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
 
     def test_aggregate_growth_narrative_replaces_stale_missing_context(self) -> None:

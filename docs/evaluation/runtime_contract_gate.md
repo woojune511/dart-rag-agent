@@ -666,6 +666,21 @@ Current gate status:
   - `completeness = 1.0`
   - `refusal_accuracy = 1.0`
   - final answer no longer carries the partial-refusal suffix
+  - 2026-06-01 follow-up provenance smoke with the official policy-driven
+    runtime profile confirmed that `task_output:*` dependency operands now keep
+    direct evidence provenance instead of surfacing null-like source ids:
+    aggregate `source_row_ids = ["ev_001", "task_output:task_3",
+    "task_output:task_4"]`, current/prior lookup slots each keep the original
+    `ev_001` anchor, and no literal `"None"` source id appears in the
+    calculation projection.
+  - latest focused metrics after this provenance cleanup:
+    `faithfulness = 1.0`, `answer_relevancy = 0.837`,
+    `context_recall = 1.0`, `retrieval_hit_at_k = 1.0`,
+    `section_match_rate = 0.875`, `citation_coverage = 0.667`,
+    `entity_coverage = 0.75`, `completeness = 1.0`,
+    `calculation_correctness = 1.0`.
+  - remaining debt is not numeric grounding: the answer still has minor Korean
+    composition noise and the trace still shows broad mixed-query fan-out.
 - `HYU_T2_010` is closed in the latest targeted smoke:
   - answer covers `87.0만 대`, `78.1만 대`, `11.5%`, IRA / 핵심원자재법 /
     보호무역주의 대응 필요성

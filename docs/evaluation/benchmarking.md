@@ -2144,3 +2144,73 @@ Artifact policy:
 
 - `benchmarks/results/tmp_samsung_multi_report_sam_t2_002_2026-05-22/` is a
   local focused benchmark artifact and should not be committed.
+
+## 2026-06-01 NAV_T2_006 Dependency Provenance Smoke
+
+Purpose:
+
+- Verify the generic task-output provenance cleanup on a real mixed
+  growth+narrative question.
+- Confirm that dependency operands no longer expose null-like `source_row_ids`
+  after sibling lookup outputs are folded into an aggregate calculation.
+- Keep the check store-fixed and single-question to avoid spending a full
+  benchmark run on a provenance-only change.
+
+Implementation:
+
+- Dependency rows now carry both the synthetic `task_output:<task_id>` id and
+  the direct source evidence id from the sibling slot/result when available.
+- Aggregate calculation projection sanitizes source-id surfaces before dedupe,
+  dropping null/empty marker strings such as `"None"`.
+- Primary slots and refined calculation operands inherit missing source anchors
+  from runtime evidence. The change is based on slot/evidence provenance only;
+  no NAVER, commerce, benchmark-id, or metric-specific branch was added.
+
+Validation:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_driven_runtime_gate_rerun_2026-05-29 `
+  --company-run-id naver_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id NAV_T2_006 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_driven_runtime_gate_rerun_2026-05-29\nav_t2_006_provenance_smoke_2026-06-01.heartbeat.jsonl
+```
+
+Result:
+
+- Focused eval-only completed in about 195 seconds wall-clock with the existing
+  store; question latency was about 123 seconds.
+- Metrics:
+  - `faithfulness = 1.000`
+  - `answer_relevancy = 0.837`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `section_match_rate = 0.875`
+  - `citation_coverage = 0.667`
+  - `entity_coverage = 0.750`
+  - `completeness = 1.000`
+  - `calculation_correctness = 1.000`
+- Trace check:
+  - aggregate `source_row_ids = ["ev_001", "task_output:task_3",
+    "task_output:task_4"]`
+  - current slot `source_row_ids = ["task_output:task_3", "ev_001"]`
+  - prior slot `source_row_ids = ["task_output:task_4", "ev_001"]`
+  - no literal `"None"` source id appears in the calculation projection.
+
+Remaining debt:
+
+- This smoke closes provenance hygiene, not answer-language polish. The latest
+  answer still has minor Korean composition noise (`성장와`) and citation/entity
+  coverage remain below 1.0.
+- The trace still shows broad mixed-query fan-out (`61` retrieval queries for
+  `4` semantic-plan tasks), so the next structural work should target
+  concept-planner promotion criteria and retrieval fan-out control rather than
+  another question-specific answer patch.
+
+Artifact policy:
+
+- `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/` is local
+  experiment material and should not be committed.

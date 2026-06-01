@@ -140,11 +140,18 @@ runtime contract를 고정하는 선행 작업으로 본다.
   갖고도 최종 답변에서 operand 값을 누락하는 경우를 드러냈고, 이제
   sibling `task_output:*` lookup slot을 이용한 generic complete-growth
   rendering으로 닫혔다
+- `NAV_T2_006` follow-up smoke에서 `task_output:*` dependency operand가
+  sibling lookup의 직접 evidence id와 anchor를 보존하도록 provenance 계약을
+  보강했다. aggregate projection도 null-like source id를 정리하므로,
+  `source_row_ids` 표면에 `"None"` 같은 값이 citation/evaluator 경로로
+  흘러가는 문제는 닫혔다
 - 2026-06-01 concept planner shadow check에서 curated 11개 모두
   concept/operation/operand-role task를 만들었고, required operand concept
   누락은 0건이었다. 다만 planner-only 결과이므로 broad default 전환 전에
   store-fixed end-to-end runtime gate가 필요하다
-- 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하는 것이다
+- 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하고,
+  mixed growth+narrative 계열의 retrieval fan-out과 answer-language polish를
+  question-specific rule 없이 줄이는 것이다
 
 종료 조건:
 
@@ -371,15 +378,16 @@ runtime contract를 고정하는 선행 작업으로 본다.
 ## 현재 추천 우선순위
 
 1. concept-only planner store-fixed runtime promotion gate
-2. contextual arbitration / benchmark maintenance
-3. broader curated gate maintenance residual review
-4. internal compatibility mirror cleanup
-5. table payload sidecar / store-size cleanup
-6. MAS skeleton과 artifact schema productization
-7. Analyst / Critic / Researcher 분리
-8. agentic self-reflection 재설계
-9. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-10. cross-company 확장
+2. mixed growth+narrative retrieval fan-out control and answer-language polish
+3. contextual arbitration / benchmark maintenance
+4. broader curated gate maintenance residual review
+5. internal compatibility mirror cleanup
+6. table payload sidecar / store-size cleanup
+7. MAS skeleton과 artifact schema productization
+8. Analyst / Critic / Researcher 분리
+9. agentic self-reflection 재설계
+10. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+11. cross-company 확장
 
 ## 지금 당장 하지 않을 것
 

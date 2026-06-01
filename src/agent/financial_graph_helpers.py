@@ -83,6 +83,7 @@ __all__ = [
     '_normalise_spaces',
     '_split_sentences',
     '_strip_anchor_text',
+    '_clean_source_row_ids',
     '_section_hint_alias',
     '_append_artifact',
     '_upsert_task',
@@ -191,6 +192,25 @@ def _tokenize_terms(text: str) -> set[str]:
 
 def _normalise_spaces(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip()
+
+
+def _clean_source_row_ids(values: Sequence[Any]) -> List[str]:
+    blocked = {"none", "null", "nan"}
+    cleaned: List[str] = []
+
+    def _append(value: Any) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _append(item)
+            return
+        text = str(value).strip()
+        if not text or text.lower() in blocked:
+            return
+        cleaned.append(text)
+
+    for value in values or []:
+        _append(value)
+    return list(dict.fromkeys(cleaned))
 
 
 def _split_sentences(text: str) -> List[str]:
@@ -535,11 +555,15 @@ def _build_aggregate_calculation_projection(
             operand_row.setdefault("task_id", task_id)
             operand_row.setdefault("metric_family", metric_family)
             operand_row.setdefault("metric_label", metric_label)
+            operand_source_ids = _clean_source_row_ids([
+                operand_row.get("source_row_id"),
+                operand_row.get("source_row_ids"),
+            ])
             operand_key = (
                 str(operand_row.get("task_id") or ""),
                 str(operand_row.get("operand_id") or operand_row.get("matched_operand_role") or ""),
-                str(operand_row.get("source_row_id") or ""),
-                "|".join(str(item) for item in (operand_row.get("source_row_ids") or [])),
+                operand_source_ids[0] if operand_source_ids else "",
+                "|".join(operand_source_ids),
                 str(operand_row.get("raw_value") or operand_row.get("value") or ""),
                 str(operand_row.get("raw_unit") or ""),
                 str(operand_row.get("label") or operand_row.get("label_kr") or ""),
@@ -574,13 +598,12 @@ def _build_aggregate_calculation_projection(
     all_ok = all(str(item.get("status") or "") == "ok" for item in subtask_result_views) if subtask_result_views else False
     source_row_ids = list(
         dict.fromkeys(
-            str(source_row_id).strip()
+            source_row_id
             for operand in aggregate_operands
-            for source_row_id in [
+            for source_row_id in _clean_source_row_ids([
                 operand.get("source_row_id"),
-                *(operand.get("source_row_ids") or []),
-            ]
-            if str(source_row_id).strip()
+                operand.get("source_row_ids"),
+            ])
         )
     )
     return {

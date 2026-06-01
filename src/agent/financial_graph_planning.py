@@ -1798,14 +1798,10 @@ class FinancialAgentPlanningMixin:
         else:
             operand_row = {}
         if operand_row:
-            source_ids = [
-                str(source_id).strip()
-                for source_id in [
-                    operand_row.get("source_row_id"),
-                    *(operand_row.get("source_row_ids") or []),
-                ]
-                if str(source_id).strip()
-            ]
+            source_ids = _clean_source_row_ids([
+                operand_row.get("source_row_id"),
+                operand_row.get("source_row_ids"),
+            ])
             primary_slot_from_operand = {
                 "status": "ok",
                 "role": "primary_value",
@@ -1857,14 +1853,10 @@ class FinancialAgentPlanningMixin:
             )
         primary_slot = dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})
         if primary_slot and _slot_has_material(primary_slot):
-            primary_source_ids = {
-                str(source_id).strip()
-                for source_id in [
-                    primary_slot.get("source_row_id"),
-                    *(primary_slot.get("source_row_ids") or []),
-                ]
-                if str(source_id).strip()
-            }
+            primary_source_ids = set(_clean_source_row_ids([
+                primary_slot.get("source_row_id"),
+                primary_slot.get("source_row_ids"),
+            ]))
             slot_evidence = next(
                 (
                     dict(item)
@@ -1887,26 +1879,25 @@ class FinancialAgentPlanningMixin:
                     if isinstance(item, dict)
                 }
                 if evidence_id:
-                    primary_slot.setdefault("source_row_id", evidence_id)
-                    primary_slot.setdefault("source_row_ids", [evidence_id])
+                    slot_source_ids = _clean_source_row_ids([
+                        primary_slot.get("source_row_id"),
+                        primary_slot.get("source_row_ids"),
+                        evidence_id,
+                    ])
+                    primary_slot["source_row_id"] = slot_source_ids[0] if slot_source_ids else evidence_id
+                    primary_slot["source_row_ids"] = slot_source_ids or [evidence_id]
+                    if not _normalise_spaces(str(primary_slot.get("source_anchor") or "")):
+                        primary_slot["source_anchor"] = _normalise_spaces(str(slot_evidence.get("source_anchor") or ""))
                     primary_slot = _refine_lookup_slot_unit_from_evidence(primary_slot, slot_evidence)
                     if calculation_operands:
                         refined_operands: List[Dict[str, Any]] = []
-                        primary_ids = {
-                            str(source_id).strip()
-                            for source_id in (primary_slot.get("source_row_ids") or [])
-                            if str(source_id).strip()
-                        }
+                        primary_ids = set(_clean_source_row_ids([primary_slot.get("source_row_ids")]))
                         for operand in calculation_operands:
                             operand_row = dict(operand)
-                            operand_ids = {
-                                str(source_id).strip()
-                                for source_id in [
-                                    operand_row.get("source_row_id"),
-                                    *(operand_row.get("source_row_ids") or []),
-                                ]
-                                if str(source_id).strip()
-                            }
+                            operand_ids = set(_clean_source_row_ids([
+                                operand_row.get("source_row_id"),
+                                operand_row.get("source_row_ids"),
+                            ]))
                             if (
                                 _normalise_spaces(str(operand_row.get("raw_value") or ""))
                                 == _normalise_spaces(str(primary_slot.get("raw_value") or ""))
@@ -1920,6 +1911,8 @@ class FinancialAgentPlanningMixin:
                                 operand_row["rendered_value"] = _normalise_spaces(
                                     str(primary_slot.get("rendered_value") or "")
                                 )
+                                if not _normalise_spaces(str(operand_row.get("source_anchor") or "")):
+                                    operand_row["source_anchor"] = _normalise_spaces(str(primary_slot.get("source_anchor") or ""))
                             refined_operands.append(operand_row)
                         calculation_operands = refined_operands
                     if evidence_id not in existing_ids:
@@ -1944,7 +1937,8 @@ class FinancialAgentPlanningMixin:
                     "normalized_unit": _normalise_spaces(str(primary_slot.get("normalized_unit") or "UNKNOWN")),
                     "rendered_value": _normalise_spaces(str(primary_slot.get("rendered_value") or "")),
                     "source_row_id": _normalise_spaces(str(primary_slot.get("source_row_id") or "")),
-                    "source_row_ids": list(primary_slot.get("source_row_ids") or []),
+                    "source_row_ids": _clean_source_row_ids([primary_slot.get("source_row_ids")]),
+                    "source_anchor": _normalise_spaces(str(primary_slot.get("source_anchor") or "")),
                     "source_claim_ids": list(primary_slot.get("source_claim_ids") or []),
                 }
             ]
