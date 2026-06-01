@@ -646,6 +646,36 @@ losing behavior on the previously hard-coded retrieval/composition cases.
 
 Current gate status:
 
+- 2026-06-02 store-fixed full refresh:
+  - source/output store bundle:
+    `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
+    (local experiment artifact only; do not commit raw results)
+  - command shape:
+    - `benchmark_runner --config benchmarks/profiles/curated_policy_driven_runtime_gate.json --output-dir benchmarks/results/policy_gate_regression_2026-05-31_2212 --eval-only --progress-heartbeat-sec 30 --heartbeat-log <path>`
+  - scope: all four policy-driven company runs and all five full-evaluation
+    questions (`NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`,
+    `SAM_T2_078`) with the current runtime/evaluator and existing stores.
+  - aggregate signal:
+    - 4 / 4 company runs passed
+    - `full_eval_fail_count = 0`
+    - `critical_category_miss_count = 0`
+    - average `full_faithfulness = 1.0`
+    - average `full_completeness = 1.0`
+    - average `full_context_recall = 1.0`
+    - average numeric pass rate is `1.0` over applicable numeric questions;
+      `numeric_final_judgement = null` remains not-applicable for narrative or
+      mixed questions, not a failure
+  - per-company `avg_score`:
+    - `NAV_T2_006`: `0.896`
+    - `HYU_T2_010` / `HYU_T3_072`: `0.968`
+    - `LGE_T1_051`: `0.981`, with `numeric_final_judgement = PASS`
+    - `SAM_T2_078`: `0.952`
+  - interpretation:
+    - no current policy-driven runtime blocker is open
+    - keep this as the focused policy gate for changes to retrieval policy,
+      policy-driven narrative composition, planner fallback tracing, or
+      structured numeric projection
+
 - 2026-06-01 NAV_T2_006 narrative-preservation focused replay:
   - source store bundle:
     `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
