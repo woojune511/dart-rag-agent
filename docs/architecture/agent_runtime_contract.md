@@ -171,3 +171,29 @@ and answer slots when it is attached to the same evidence. The deterministic
 formula result should remain traceable, for example in `derived_metrics`, when
 it differs because the source rounded or displayed the value at a different
 precision.
+
+## 9. Aggregate Subtask Projection
+
+Aggregate answers must keep child task provenance visible after the final
+projection. Each item in `answer_slots.subtask_results` should expose:
+
+- `task_id`: child task identifier
+- `operation_family`: child operation family, copied from the child task,
+  answer slots, or calculation result
+- `source_row_ids`: cleaned source row ids used by the child result
+- `calculation_result`: child calculation result when available
+- `answer_slots`: child answer slots when available
+
+`source_row_ids` may include deterministic dependency references such as
+`task_output:<task_id>` together with structured row/evidence ids, but it must
+not contain display-only placeholders such as `"None"`. Runtime code should
+derive these fields from existing task, slot, trace, and evidence artifacts.
+It must not infer them from company names, benchmark ids, or topic-specific
+keywords.
+
+The purpose of this projection is traceability: evaluator, citation, and
+debugging paths should be able to inspect the same child operation and source
+rows that the aggregate composer used. If a child value came from prose lookup
+or retrieved seed evidence, the promoted evidence id/source row id should stay
+attached through the aggregate projection rather than disappearing during final
+answer synthesis.

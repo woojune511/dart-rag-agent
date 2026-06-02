@@ -1094,6 +1094,13 @@ Current gate status:
   - 2026-06-02 follow-up store-fixed eval-only confirms source-stated display
     preservation: `answer_slots.primary_value.rendered_value = "11.5%"` and
     the final answer says `2022년 78.1만 대 대비 11.5% 증가`.
+  - 2026-06-02 projection follow-up store-fixed eval-only confirms aggregate
+    child provenance survives final projection: top-level
+    `answer_slots.operation_family = "aggregate_subtasks"`, two child
+    `subtask_results` are present, and the growth child carries
+    `operation_family = "growth_rate"` with `source_row_ids = ["ev_001"]`.
+    The narrative child has no numeric row id, which is acceptable because it is
+    not a structured numeric operand.
   - `faithfulness = 1.0`
   - `completeness = 1.0`
   - `context_recall = 1.0`
