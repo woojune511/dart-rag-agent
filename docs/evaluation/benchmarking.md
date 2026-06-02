@@ -147,36 +147,42 @@ Runtime default와 trace 계약은 [../architecture/agent_runtime_contract.md](.
 | eval-only | `benchmark_runner --eval-only` | agent answer generation, full eval | parse, ingest, screening | current code path end-to-end 회귀 |
 | single-question eval-only | `benchmark_runner --eval-only --question-id <ID>` | 특정 문항 agent run + full eval | 나머지 문항, parse, ingest, screening | 디버깅 루프 단축 |
 | numeric fast gate | `benchmark_runner --eval-only --question-id <ID> --numeric-fast-gate` | 특정 numeric 문항 agent run + deterministic numeric gate | generic faithfulness/completeness/relevancy judge, LLM numeric grounding when operand grounding is deterministic | numeric canary quick check |
-| low-api debug | `benchmark_runner --eval-only --question-id <ID> --low-api-debug` | 특정 문항 agent run + deterministic/heuristic diagnostics | parse, ingest, screening, evaluator LLM judges, evaluator embedding metrics, semantic/LLM router fallback | API cap/cost 절감용 원인 분류 |
 | historical replay | `replay_full_eval_from_results` | saved answer/runtime evidence/trace의 deterministic numeric 재채점 | agent run, retrieval, all LLM judges | evaluator-only / trace-only 확인 |
 
-### Low-API Debug Loop
+### Cost-Controlled Debug Loop
 
 API 비용이나 rate/cap 문제가 있을 때는 full gate를 바로 돌리지 않는다. 기본 순서는 다음이다.
 
 1. `replay_full_eval_from_results`로 저장된 answer / evidence / trace를 먼저 재판정한다.
 2. live 실행이 필요하면 `benchmark_runner --eval-only --question-id <ID>`로 한 문항만 실행한다.
 3. numeric 문항은 `--numeric-fast-gate`를 기본으로 붙인다.
-4. API cap이 걸렸거나 retrieval/dependency/formatting 분류만 필요하면 `--low-api-debug`를 붙인다.
+4. evaluator 비용만 줄여도 되는 진단이면 `--skip-llm-judges` 또는
+   `--skip-embedding-metrics`를 명시적으로 붙인다.
+5. runtime 비용 자체가 문제면 `full_evaluation.llm_routes`로 phase별
+   provider/model을 낮춘다. LLM evidence extraction/planning 자체는
+   우회하지 않는다.
 
-`--low-api-debug`는 다음 플래그를 한 번에 켠다.
+`--low-api-debug` / `--offline-retrieval` bundle은 제거했다.
+API 비용 절감은 runtime 의미 경로를 우회하는 deterministic fallback이 아니라,
+명시적인 호출 축소 옵션과 phase별 model routing으로 처리한다.
 
 | 플래그 | 줄이는 호출 | 남는 진단 |
 | --- | --- | --- |
 | `--numeric-fast-gate` | deterministic operand grounding이 가능한 numeric 문항에서 numeric grounding LLM judge | numeric equivalence, operand grounding, retrieval support |
 | `--skip-llm-judges` | evaluator faithfulness/completeness/trend/rendering LLM judges | deterministic numeric verdict, heuristic completeness |
 | `--skip-embedding-metrics` | evaluator answer relevancy embedding calls | retrieval hit/context/section/citation metrics |
-| `--offline-retrieval` | routing semantic embedding과 routing LLM fallback, vector query embedding | BM25-only retrieval, generic operation-signal heuristic routing |
-| `low_api_debug` runtime flag | concept-planner LLM fallback, direct numeric evidence extraction LLM, calculation-subtask numeric extractor LLM, operand/formula planner LLM fallback, aggregate synthesis LLM, calculation answer render/verification LLM | deterministic plan/trace, deterministic formatted numeric result |
 
-이 모드는 공식 점수로 쓰지 않는다. 목적은 실패가 retrieval, dependency/synthesis, answer formatting 중 어디에 가까운지 빠르게 좁히는 것이다. 새 수정 케이스가 2-3개 쌓이면 그때 `--low-api-debug` 없이 curated runtime gate 전체를 한 번만 실행한다.
+공식 smoke/gate는 evidence extraction, concept planning, formula planning,
+answer rendering/validation LLM을 켠 상태로 실행한다. 비용을 낮춰야 하면
+`full_evaluation.llm_routes`에서 `evidence_extraction`, `compression`,
+`validation`, `numeric_extraction`, `concept_planning`, `operand_extraction`,
+`formula_planning`, `calculation_render`, `calculation_verification`,
+`aggregate_synthesis`, `reconciliation_rerank`, `reflection_planning` phase의
+provider/model을 조정한다.
 
-2026-05-31 기준 `SKH_T1_060` focused triage는 이 모드에서 `42.02%`로
-PASS했다. 이 확인은 BM25-only retrieval과 deterministic numeric path로
-수행했으며, API calls / estimated cost는 `0 / $0.0000`이었다. 새 output
-directory에서는 `--eval-only`가 기존 `results.json`을 요구하므로, fresh
-diagnostic은 `--question-id <ID> --low-api-debug --numeric-fast-gate` live
-single-question run으로 수행한다.
+과거 `SKH_T1_060` low-API focused triage 결과는 비용/실패층 진단 기록으로만
+해석한다. 이 결과는 BM25-only retrieval과 deterministic numeric path를
+포함했으므로 현재 공식 runtime quality evidence로 사용하지 않는다.
 
 ### Monitored Full Gate Run
 
@@ -1023,10 +1029,10 @@ python -m src.ops.retrospective_evaluator_ablation_eval --source-results benchma
 - Do not run contextual selective in ordinary code-change validation unless a
   structural failure needs explicit arbitration against the older contextual
   ingest path.
-- Do not include contextual selective in `--low-api-debug`, single-question
-  canary loops, or routine runtime contract triage; use structural stores and
-  replay/eval-only first.
-- If a focused low-API run fails, classify the trace first as retrieval,
+- Do not include contextual selective in single-question canary loops or
+  routine runtime contract triage; use structural stores and replay/eval-only
+  first.
+- If a focused single-question run fails, classify the trace first as retrieval,
   dependency/synthesis, calculation safety, or answer formatting before
   considering any contextual ingest comparison.
 - Prefer replay for cases that are already closed, such as multi-entity

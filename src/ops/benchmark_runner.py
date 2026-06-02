@@ -3002,11 +3002,9 @@ def _optional_positive_int(value: Any) -> int:
 
 
 def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, Any]:
-    offline_retrieval = bool(full_eval_config.get("offline_retrieval", False))
     routing_config: Dict[str, Any] = {
-        "low_api_debug": bool(full_eval_config.get("low_api_debug", False)),
-        "enable_semantic_router": not (offline_retrieval or bool(full_eval_config.get("disable_semantic_router", False))),
-        "enable_llm_fallback": not (offline_retrieval or bool(full_eval_config.get("disable_router_llm", False))),
+        "enable_semantic_router": not bool(full_eval_config.get("disable_semantic_router", False)),
+        "enable_llm_fallback": not bool(full_eval_config.get("disable_router_llm", False)),
     }
     for key in (
         "retrieval_query_budget",
@@ -3016,14 +3014,10 @@ def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, A
         parsed = _optional_positive_int(full_eval_config.get(key))
         if parsed:
             routing_config[key] = parsed
+    llm_routes = full_eval_config.get("llm_routes")
+    if isinstance(llm_routes, dict) and llm_routes:
+        routing_config["llm_routes"] = dict(llm_routes)
     return routing_config
-
-
-def _low_api_retrieval_enabled(full_eval_config: Dict[str, Any]) -> bool:
-    return bool(
-        full_eval_config.get("offline_retrieval", False)
-        or full_eval_config.get("low_api_debug", False)
-    )
 
 
 def _mean_or_none(values: List[float | None]) -> float | None:
@@ -3677,9 +3671,9 @@ def run_screening_experiment(
         collection_name=collection_name,
         embedding_provider=embedding_provider,
         embedding_model_name=embedding_model_name,
-        allow_query_embedding_fallback=allow_retrieval_fallback or _low_api_retrieval_enabled(full_eval_config),
-        force_bm25_only=_low_api_retrieval_enabled(full_eval_config),
-        skip_vector_add=_low_api_retrieval_enabled(full_eval_config),
+        allow_query_embedding_fallback=allow_retrieval_fallback,
+        force_bm25_only=False,
+        skip_vector_add=False,
     )
     agent = FinancialAgent(
         vsm,
@@ -4089,9 +4083,8 @@ def _run_full_evaluation(
         embedding_model_name=store_info.get("embedding_model_name", DEFAULT_EMBEDDING_MODEL),
         allow_query_embedding_fallback=bool(
             store_info.get("allow_retrieval_fallback", False)
-            or _low_api_retrieval_enabled(full_eval_config)
         ),
-        force_bm25_only=_low_api_retrieval_enabled(full_eval_config),
+        force_bm25_only=False,
     )
     agent = FinancialAgent(
         vsm,
@@ -4169,8 +4162,6 @@ def _run_full_evaluation(
             "numeric_fast_gate": bool(full_eval_config.get("numeric_fast_gate", False)),
             "skip_llm_judges": bool(full_eval_config.get("skip_llm_judges", False)),
             "skip_embedding_metrics": bool(full_eval_config.get("skip_embedding_metrics", False)),
-            "offline_retrieval": bool(full_eval_config.get("offline_retrieval", False)),
-            "low_api_debug": bool(full_eval_config.get("low_api_debug", False)),
         },
         max_workers=eval_max_workers,
         on_progress=on_eval_progress,
@@ -4462,22 +4453,6 @@ def main() -> None:
         help="Diagnostic mode: skip evaluator embedding-based metrics such as answer relevancy.",
     )
     parser.add_argument(
-        "--offline-retrieval",
-        action="store_true",
-        help=(
-            "Diagnostic mode: allow BM25 fallback for query embedding failures and disable "
-            "semantic/LLM routing fallback. Not an official gate mode."
-        ),
-    )
-    parser.add_argument(
-        "--low-api-debug",
-        action="store_true",
-        help=(
-            "Bundle for focused debugging: numeric fast gate, skip LLM judges, skip embedding metrics, "
-            "and offline retrieval routing."
-        ),
-    )
-    parser.add_argument(
         "--retrieval-query-budget",
         type=int,
         default=0,
@@ -4533,16 +4508,12 @@ def main() -> None:
         dict(matrix.get("full_evaluation", {}) or {}),
         list(args.question_id or []),
     )
-    if args.numeric_fast_gate or args.low_api_debug:
+    if args.numeric_fast_gate:
         full_eval_config["numeric_fast_gate"] = True
-    if args.skip_llm_judges or args.low_api_debug:
+    if args.skip_llm_judges:
         full_eval_config["skip_llm_judges"] = True
-    if args.skip_embedding_metrics or args.low_api_debug:
+    if args.skip_embedding_metrics:
         full_eval_config["skip_embedding_metrics"] = True
-    if args.offline_retrieval or args.low_api_debug:
-        full_eval_config["offline_retrieval"] = True
-    if args.low_api_debug:
-        full_eval_config["low_api_debug"] = True
     if args.retrieval_query_budget:
         full_eval_config["retrieval_query_budget"] = max(int(args.retrieval_query_budget), 0)
     if args.focused_retrieval_query_budget:

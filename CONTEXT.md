@@ -11,6 +11,21 @@
 
 ## 최신 상태
 
+- 2026-06-02 runtime/API cost-control 방향을 수정했다.
+  - `low_api_debug`와 `offline_retrieval`은 agent/runtime benchmark path에서
+    제거했다. 이 모드는 비용은 낮췄지만 BM25-only/deterministic fallback
+    시스템을 테스트해 공식 runtime quality 근거로 쓰기 어렵다.
+  - Evidence extraction은 structured LLM extraction 결과가
+    `coverage=missing`이거나 실패하면 retrieved snippet을 evidence claim으로
+    승격하지 않고 `evidence_status=missing`을 유지한다.
+  - 비용 절감은 runtime LLM skip branch가 아니라 `llm_routes` 기반 phase별
+    model routing과 evaluator-only skip 옵션으로 처리한다.
+  - `llm_routes`는 `evidence_extraction`, `compression`, `validation`,
+    `numeric_extraction`, `concept_planning`, `operand_extraction`,
+    `formula_planning`, `calculation_render`, `calculation_verification`,
+    `aggregate_synthesis`, `reconciliation_rerank`, `reflection_planning`
+    phase를 지원한다.
+
 - 2026-06-01 value-local unit contract가 계산 operand와 lookup slot 양쪽에서
   닫혔다.
   - table-level `unit_hint`가 있어도 evidence text의 값 주변에 직접 붙은
@@ -104,7 +119,7 @@
     - 실패층은 retrieval이 아니라 lookup/dependency operand binding이었다.
     - `단기차입금 4,145,647백만원`, `장기차입금 10,121,033백만원`,
       `사채 9,490,410백만원`이 final ratio dependency operand로 투영된다.
-    - latest focused low-API rerun:
+    - historical focused low-API rerun:
       `benchmarks/results/runtime_lookup_direct_row_skh_t1_060_2026-06-02/`
       returned `42.02%`, `numeric_final_judgement = PASS`.
     - Follow-up producer lookup alignment is now closed: serialized

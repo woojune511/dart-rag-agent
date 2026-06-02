@@ -60,17 +60,25 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
     def test_routing_config_carries_retrieval_query_budgets(self) -> None:
         config = _build_agent_routing_config(
             {
-                "low_api_debug": True,
                 "retrieval_query_budget": 12,
                 "focused_retrieval_query_budget": 4,
                 "retry_retrieval_query_budget": 1,
+                "llm_routes": {
+                    "evidence_extraction": {
+                        "provider": "openrouter",
+                        "model": "openai/gpt-4.1-mini",
+                    }
+                },
             }
         )
 
-        self.assertTrue(config["low_api_debug"])
         self.assertEqual(config["retrieval_query_budget"], 12)
         self.assertEqual(config["focused_retrieval_query_budget"], 4)
         self.assertEqual(config["retry_retrieval_query_budget"], 1)
+        self.assertEqual(
+            config["llm_routes"]["evidence_extraction"]["model"],
+            "openai/gpt-4.1-mini",
+        )
 
     def test_progress_reporter_writes_jsonl_events(self) -> None:
         with TemporaryDirectory() as temp_dir:

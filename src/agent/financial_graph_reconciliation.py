@@ -761,13 +761,6 @@ class FinancialAgentReconciliationMixin:
                 if str(item.get("candidate", {}).get("candidate_id") or "").strip()
             ]
 
-        if getattr(self, "low_api_debug", False):
-            return [
-                str(item.get("candidate", {}).get("candidate_id") or "").strip()
-                for item in top_candidates
-                if str(item.get("candidate", {}).get("candidate_id") or "").strip()
-            ]
-
         option_lines: List[str] = []
         allowed_ids: List[str] = []
         for rank, item in enumerate(top_candidates, start=1):
@@ -798,7 +791,7 @@ class FinancialAgentReconciliationMixin:
         if len(allowed_ids) < 2:
             return allowed_ids
 
-        structured_llm = self.llm.with_structured_output(ReconciliationCandidateRerank)
+        structured_llm = self._llm_for_phase("reconciliation_rerank").with_structured_output(ReconciliationCandidateRerank)
         prompt = ChatPromptTemplate.from_template(
             str(RECONCILIATION_POLICY.get("candidate_rerank_prompt_template") or "")
         )
@@ -1865,22 +1858,7 @@ class FinancialAgentReconciliationMixin:
             explanation="fallback reflection query plan",
         )
 
-        if getattr(self, "low_api_debug", False):
-            logger.info("[reflection] structured planner skipped by low_api_debug")
-            return {
-                "missing_info": list(heuristic_plan.get("missing_info") or []),
-                "retry_queries": list(heuristic_plan.get("subqueries") or []),
-                "retry_reason": str(heuristic_plan.get("explanation") or ""),
-                "retry_strategy": str(heuristic_plan.get("retry_strategy") or "retry_retrieval"),
-                "reflection_plan": dict(heuristic_plan),
-                "planner_debug_trace": {
-                    **dict(state.get("planner_debug_trace") or {}),
-                    "reflection_llm_invoked": False,
-                    "reflection_skip_reason": "low_api_debug",
-                },
-            }
-
-        structured_llm = self.llm.with_structured_output(ReflectionQueryPlan)
+        structured_llm = self._llm_for_phase("reflection_planning").with_structured_output(ReflectionQueryPlan)
         prompt = ChatPromptTemplate.from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
         try:
             reflection_plan: ReflectionQueryPlan = (prompt | structured_llm).invoke(

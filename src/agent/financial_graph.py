@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 from src.agent.financial_graph_contextual import (
     DEFAULT_CONTEXT_BATCH_SIZE,
@@ -58,7 +59,6 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         self.vsm = vector_store_manager
         self.k = k
         self.routing_config = dict(routing_config or {})
-        self.low_api_debug = bool(self.routing_config.get("low_api_debug", False))
         try:
             self.retrieval_query_budget = int(self.routing_config.get("retrieval_query_budget") or 0)
         except (TypeError, ValueError):
@@ -90,16 +90,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         if graph_expansion_config:
             self.graph_expansion_config.update(graph_expansion_config)
 
-        api_key = os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable is required.")
-
         self.llm_usage_callback = GeminiUsageCallbackHandler()
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0,
-            callbacks=[self.llm_usage_callback],
-        )
+        self.llm_routes = self._build_llm_routes()
+        self.llm = self.llm_routes.get("default")
+        if self.llm is None:
+            raise ValueError("Default LLM route was not initialized.")
         self.query_router = QueryRouter(
             embeddings=self.vsm.embeddings,
             llm=self.llm,
@@ -107,6 +102,61 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             enable_llm_fallback=bool(self.routing_config.get("enable_llm_fallback", True)),
         )
         self.graph = self._build_graph()
+
+    def _build_llm_routes(self) -> Dict[str, Any]:
+        route_config = self.routing_config.get("llm_routes")
+        routes = dict(route_config) if isinstance(route_config, dict) else {}
+        default_spec = routes.get("default") if isinstance(routes.get("default"), dict) else {}
+        built: Dict[str, Any] = {
+            "default": self._create_chat_model(dict(default_spec), phase="default"),
+        }
+        for phase, spec in routes.items():
+            if phase == "default" or not isinstance(spec, dict):
+                continue
+            built[str(phase)] = self._create_chat_model(dict(spec), phase=str(phase))
+        return built
+
+    def _create_chat_model(self, spec: Dict[str, Any], *, phase: str) -> Any:
+        provider = str(spec.get("provider") or "google").strip().lower()
+        model = str(spec.get("model") or spec.get("model_name") or "gemini-2.5-flash").strip()
+        temperature = float(spec.get("temperature", 0) or 0)
+
+        if provider in {"google", "gemini", "google_genai"}:
+            api_key = str(spec.get("api_key") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+            if not api_key:
+                raise ValueError(f"GOOGLE_API_KEY environment variable is required for LLM route '{phase}'.")
+            return ChatGoogleGenerativeAI(
+                model=model,
+                temperature=temperature,
+                google_api_key=api_key,
+                callbacks=[self.llm_usage_callback],
+            )
+
+        if provider in {"openai", "openrouter"}:
+            default_key_name = "OPENROUTER_API_KEY" if provider == "openrouter" else "OPENAI_API_KEY"
+            api_key = str(spec.get("api_key") or os.environ.get(default_key_name) or "").strip()
+            if not api_key:
+                raise ValueError(f"{default_key_name} environment variable is required for LLM route '{phase}'.")
+            base_url = spec.get("base_url")
+            if provider == "openrouter" and not base_url:
+                base_url = os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+            return ChatOpenAI(
+                model=model,
+                temperature=temperature,
+                api_key=api_key,
+                base_url=str(base_url) if base_url else None,
+            )
+
+        raise ValueError(f"Unsupported LLM provider for route '{phase}': {provider}")
+
+    def _llm_for_phase(self, phase: str) -> Any:
+        routes = getattr(self, "llm_routes", None)
+        if isinstance(routes, dict) and routes:
+            return routes.get(phase) or routes["default"]
+        llm = getattr(self, "llm", None)
+        if llm is None:
+            raise ValueError(f"LLM route '{phase}' is not initialized.")
+        return llm
 
     def _build_graph(self):
         """Wire the LangGraph state machine.

@@ -48,6 +48,43 @@ def _topic_particle(value: str) -> str:
     return without_final
 
 
+def _split_narrative_sentences(text: str) -> List[str]:
+    surface = _normalise_spaces(str(text or ""))
+    if not surface:
+        return []
+    surface = re.sub(r"(?<=[.!?。])\s*(?=[\-ㆍ•·*]\s*)", " ", surface)
+    surface = re.sub(r"(?<=[.!?。])(?=[\uac00-\ud7a3])", " ", surface)
+    return [
+        _normalise_spaces(fragment)
+        for fragment in re.split(r"(?<=[.!?。])\s+|\n+", surface)
+        if _normalise_spaces(fragment)
+    ]
+
+
+def _narrative_sentence_looks_table_noisy(sentence: str) -> bool:
+    text = _normalise_spaces(str(sentence or ""))
+    if not text:
+        return True
+    pipe_count = text.count("|")
+    bullet_count = len(re.findall(r"(?:^|\s)[\-ㆍ•·*]\s*", text))
+    bracket_header_count = len(re.findall(r"\[[^\]]+\]", text))
+    numeric_count = len(re.findall(r"\d[\d,]*(?:\.\d+)?%?", text))
+    if pipe_count >= 3:
+        return True
+    if len(text) >= 120 and numeric_count >= 6 and (pipe_count or bullet_count or bracket_header_count):
+        return True
+    if len(text) >= 180 and numeric_count >= 8:
+        return True
+    return False
+
+
+def _narrative_sentence_looks_abbreviated_fragment(sentence: str, markers: tuple[str, ...]) -> bool:
+    text = _normalise_spaces(str(sentence or ""))
+    if not text or any(marker in text for marker in markers):
+        return False
+    return bool(re.search(r"\b[A-Za-z]{1,4}\.$", text))
+
+
 class FinancialAgentCalculationMixin:
     def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
         if not isinstance(slot, dict) or not slot:
@@ -1252,7 +1289,7 @@ class FinancialAgentCalculationMixin:
             if required_values and all(value in answer_text for value in required_values):
                 return answer_text
             extra_sentences: List[str] = []
-            for sentence in re.split(r"(?<=[.!?。])\s+", answer_text):
+            for sentence in _split_narrative_sentences(answer_text):
                 cleaned = _normalise_spaces(sentence)
                 if not cleaned or cleaned in complete_answer:
                     continue
@@ -2192,7 +2229,8 @@ class FinancialAgentCalculationMixin:
 
         if best_score <= 0 or not best_sentence:
             return ""
-        best_sentence = re.split(r"(?<=[.!?。])\s+", best_sentence)[0]
+        split_sentences = _split_narrative_sentences(best_sentence)
+        best_sentence = split_sentences[0] if split_sentences else best_sentence
         return best_sentence[:220].rstrip()
 
     def _include_narrative_context_if_needed(
@@ -2248,10 +2286,13 @@ class FinancialAgentCalculationMixin:
             normalized = _normalise_spaces(text)
             if not normalized or any(marker in normalized for marker in missing_markers):
                 return
-            sentences = re.split(r"(?<=[.!?。])\s+", normalized)
-            for sentence in sentences:
+            for sentence in _split_narrative_sentences(normalized):
                 cleaned = _normalise_spaces(sentence)
                 if not cleaned or any(marker in cleaned for marker in missing_markers):
+                    continue
+                if _narrative_sentence_looks_table_noisy(cleaned):
+                    continue
+                if _narrative_sentence_looks_abbreviated_fragment(cleaned, narrative_markers):
                     continue
                 haystack = cleaned.lower()
                 score = base_score
@@ -2292,10 +2333,14 @@ class FinancialAgentCalculationMixin:
             if operation_family != "narrative_summary" and metric_family != "narrative_summary":
                 continue
             claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
-            sentences = re.split(r"(?<=[.!??])\s+", _normalise_spaces(str(row.get("answer") or "")))
-            for sentence in sentences:
+            narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
+            for sentence in _split_narrative_sentences(str(row.get("answer") or "")):
                 cleaned = _normalise_spaces(sentence)
                 if not cleaned:
+                    continue
+                if _narrative_sentence_looks_table_noisy(cleaned):
+                    continue
+                if _narrative_sentence_looks_abbreviated_fragment(cleaned, narrative_markers):
                     continue
                 haystack = cleaned.lower()
                 if any(variant.lower() in haystack for variant in focus_variants):
@@ -2309,11 +2354,7 @@ class FinancialAgentCalculationMixin:
             return True
         if context_text.lower() in answer_text:
             return True
-        sentences = [
-            _normalise_spaces(sentence)
-            for sentence in re.split(r"(?<=[.!??])\s+", context_text)
-            if _normalise_spaces(sentence)
-        ]
+        sentences = _split_narrative_sentences(context_text)
         for sentence in sentences:
             sentence_text = sentence.lower()
             if sentence_text in answer_text:
@@ -2349,15 +2390,24 @@ class FinancialAgentCalculationMixin:
                 continue
             claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
             sentences = [
-                _normalise_spaces(sentence)
-                for sentence in re.split(r"(?<=[.!??])\s+", _normalise_spaces(str(row.get("answer") or "")))
-                if _normalise_spaces(sentence)
+                sentence
+                for sentence in _split_narrative_sentences(str(row.get("answer") or ""))
+                if not _narrative_sentence_looks_table_noisy(sentence)
+                and not _narrative_sentence_looks_abbreviated_fragment(sentence, impact_markers)
             ]
-            focus_indexes = [
-                index
-                for index, sentence in enumerate(sentences)
-                if any(variant.lower() in sentence.lower() for variant in focus_variants)
-            ]
+            scored_focus_indexes: List[tuple[int, int]] = []
+            for index, sentence in enumerate(sentences):
+                haystack = sentence.lower()
+                focus_hits = sum(1 for variant in focus_variants if variant.lower() in haystack)
+                if not focus_hits:
+                    continue
+                marker_hits = sum(1 for marker in impact_markers if marker in sentence)
+                query_hits = sum(1 for term in query_terms if term.lower() in haystack)
+                numeric_hits = len(re.findall(r"\d[\d,]*(?:\.\d+)?%?", sentence))
+                score = focus_hits * 5 + marker_hits * 3 + query_hits - numeric_hits
+                scored_focus_indexes.append((score, index))
+            scored_focus_indexes.sort(key=lambda item: item[0], reverse=True)
+            focus_indexes = [index for _, index in scored_focus_indexes]
             if not focus_indexes:
                 continue
             selected: List[str] = []
@@ -2371,6 +2421,8 @@ class FinancialAgentCalculationMixin:
 
             focus_index = focus_indexes[0]
             _select(focus_index)
+            if any(marker in sentences[focus_index] for marker in impact_markers):
+                return (0, _normalise_spaces(" ".join(selected)), claim_ids)
             ordered_indexes = [
                 *range(focus_index + 1, len(sentences)),
                 *range(0, focus_index),
@@ -2576,9 +2628,38 @@ class FinancialAgentCalculationMixin:
         terminal_suffix = str(CALCULATION_NARRATIVE_POLICY.get("sentence_terminal_suffix") or "")
         if narrative_sentence and terminal_pattern and not re.search(terminal_pattern, narrative_sentence):
             narrative_sentence = f"{narrative_sentence}{terminal_suffix}"
+        narrative_sentences = [narrative_sentence] if narrative_sentence else []
+        selected_claim_ids = list(selected_claim_ids or [])
+        composed_context = _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}").lower()
+        for group in self._narrative_driver_groups(query):
+            variants = [
+                _normalise_spaces(str(variant or ""))
+                for variant in (group.get("variants") or [])
+                if _normalise_spaces(str(variant or ""))
+            ]
+            phrase = _normalise_spaces(str(group.get("phrase") or ""))
+            if not variants or not phrase:
+                continue
+            if any(variant.lower() in composed_context for variant in variants):
+                continue
+            for candidate in narrative_candidates:
+                candidate_sentence = _normalise_spaces(candidate[1])
+                candidate_context = candidate_sentence.lower()
+                if not candidate_sentence or candidate_sentence == _normalise_spaces(narrative_sentence):
+                    continue
+                if not any(variant.lower() in candidate_context for variant in variants):
+                    continue
+                if self._answer_covers_narrative_context(" ".join(narrative_sentences), candidate_sentence):
+                    continue
+                narrative_sentences.append(candidate_sentence)
+                selected_claim_ids.extend(candidate[2] or [])
+                composed_context = _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}").lower()
+                break
+            if len(narrative_sentences) >= 2:
+                break
         return {
-            "compressed_answer": _normalise_spaces(f"{numeric_sentence} {narrative_sentence}"),
-            "selected_claim_ids": selected_claim_ids,
+            "compressed_answer": _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}"),
+            "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
         }
 
     def _answer_satisfies_growth_narrative_intent(
@@ -4116,298 +4197,7 @@ class FinancialAgentCalculationMixin:
                     len(deterministic_required_rows),
                 )
 
-        if getattr(self, "low_api_debug", False):
-            evidence_by_id = {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in evidence_items
-                if str(item.get("evidence_id") or "").strip()
-            }
-
-            def _filter_supported_low_api_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-                if not required_operands:
-                    return [dict(row) for row in rows]
-                filtered: List[Dict[str, Any]] = []
-                for row in rows:
-                    candidate = dict(row)
-                    matching_requirements = [
-                        operand
-                        for operand in required_operands
-                        if _operand_row_matches_requirement(candidate, operand)
-                    ]
-                    if not matching_requirements:
-                        continue
-                    evidence_item = evidence_by_id.get(
-                        str(candidate.get("evidence_id") or candidate.get("source_row_id") or "").strip()
-                    )
-                    if evidence_item is None or any(
-                        self._llm_lookup_operand_has_direct_support(candidate, evidence_item, [operand])
-                        for operand in matching_requirements
-                    ):
-                        filtered.append(candidate)
-                return filtered
-
-            def _filter_dependency_scoped_low_api_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-                nonlocal rejected_dependency_scope_rows
-                if not missing_dependency_bindings or has_active_reconciliation_fallback:
-                    return [dict(row) for row in rows]
-                filtered_rows, rejected_rows = self._filter_direct_rows_by_dependency_producer_scope(
-                    state,
-                    bindings=missing_dependency_bindings,
-                    operand_rows=rows,
-                )
-                rejected_dependency_scope_rows.extend(rejected_rows)
-                return filtered_rows
-
-            operand_rows = list(direct_structured_rows)
-            if deterministic_required_rows:
-                operand_rows = _merge_operand_rows(
-                    deterministic_required_rows,
-                    operand_rows,
-                    required_operands=required_operands,
-                )
-            operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
-            operand_rows = _filter_supported_low_api_rows(operand_rows)
-            missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required and surface_contract_evidence:
-                surface_fallback_rows = self._build_required_operands_from_candidates(
-                    surface_contract_evidence,
-                    required_operands=missing_required,
-                    query=query,
-                    topic=state.get("topic") or "",
-                    report_scope=dict(state.get("report_scope") or {}),
-                )
-                operand_rows = _merge_operand_rows(
-                    operand_rows,
-                    surface_fallback_rows,
-                    required_operands=required_operands,
-                )
-                operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
-                operand_rows = _filter_supported_low_api_rows(operand_rows)
-                missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required and not direct_numeric_grounding:
-                generic_fallback_rows = self._build_required_operands_from_candidates(
-                    evidence_items,
-                    required_operands=missing_required,
-                    query=query,
-                    topic=state.get("topic") or "",
-                    report_scope=dict(state.get("report_scope") or {}),
-                )
-                operand_rows = _merge_operand_rows(
-                    operand_rows,
-                    generic_fallback_rows,
-                    required_operands=required_operands,
-                )
-                operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
-                operand_rows = _filter_supported_low_api_rows(operand_rows)
-                missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required:
-                candidate_probe_items: List[Dict[str, Any]] = []
-                reconciliation_candidates = self._build_reconciliation_candidates(state)
-                for candidate in reconciliation_candidates:
-                    candidate_metadata = dict(candidate.get("metadata") or {})
-                    raw_row_text = _normalise_spaces(
-                        str(candidate_metadata.get("row_text") or candidate.get("text") or "")
-                    )
-                    if not raw_row_text or not any(
-                        _candidate_matches_operand(candidate, operand)
-                        for operand in missing_required
-                    ):
-                        continue
-                    candidate_probe_items.append(
-                        {
-                            "evidence_id": f"recon_probe::{candidate.get('candidate_id')}",
-                            "source_anchor": str(candidate.get("source_anchor") or "").strip(),
-                            "claim": str(candidate.get("text") or raw_row_text),
-                            "quote_span": raw_row_text[:240],
-                            "raw_row_text": raw_row_text,
-                            "support_level": "direct",
-                            "question_relevance": "high",
-                            "metadata": candidate_metadata,
-                        }
-                    )
-                if candidate_probe_items:
-                    candidate_fallback_rows = self._build_required_operands_from_candidates(
-                        candidate_probe_items,
-                        required_operands=missing_required,
-                        query=query,
-                        topic=state.get("topic") or "",
-                        report_scope=dict(state.get("report_scope") or {}),
-                    )
-                    operand_rows = _merge_operand_rows(
-                        operand_rows,
-                        candidate_fallback_rows,
-                        required_operands=required_operands,
-                    )
-                    operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
-                    operand_rows = _filter_supported_low_api_rows(operand_rows)
-                    missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-                logger.info(
-                    "[calc_operands] candidate probe candidates=%s items=%s rows=%s missing_after=%s",
-                    len(reconciliation_candidates),
-                    len(candidate_probe_items),
-                    len(candidate_fallback_rows) if candidate_probe_items else 0,
-                    len(missing_required or []),
-                )
-            if missing_required and (retrieved_docs or seed_retrieved_docs):
-                doc_probe_items: List[Dict[str, Any]] = []
-                seen_doc_ids: set[str] = set()
-                for index, (doc, _score) in enumerate(list(retrieved_docs or []) + list(seed_retrieved_docs or []), start=1):
-                    metadata = dict(getattr(doc, "metadata", {}) or {})
-                    doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or index).strip()
-                    if doc_id and doc_id in seen_doc_ids:
-                        continue
-                    if doc_id:
-                        seen_doc_ids.add(doc_id)
-                    text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-                    text = _strip_rerank_metadata(text) or text
-                    if not text or not any(
-                        (
-                            _operand_text_match(text, operand)
-                            or _text_has_positive_surface(text, operand)
-                        )
-                        and not _text_has_negative_surface(text, operand)
-                        for operand in missing_required
-                    ):
-                        continue
-                    anchor = self._build_source_anchor(metadata)
-                    row_candidates = _build_table_row_reconciliation_candidates(
-                        candidate_id_prefix=f"ev_required_doc_{index:03d}",
-                        anchor=anchor,
-                        table_text=text,
-                        metadata=metadata,
-                    )
-                    row_probe_items: List[Dict[str, Any]] = []
-                    for candidate in row_candidates:
-                        candidate_metadata = dict(candidate.get("metadata") or {})
-                        row_text = _normalise_spaces(
-                            str(candidate_metadata.get("row_text") or candidate.get("text") or "")
-                        )
-                        if not row_text or not any(
-                            (
-                                _operand_text_match(row_text, operand)
-                                or _text_has_positive_surface(row_text, operand)
-                            )
-                            and not _text_has_negative_surface(row_text, operand)
-                            for operand in missing_required
-                        ):
-                            continue
-                        row_probe_items.append(
-                            {
-                                "evidence_id": str(candidate.get("candidate_id") or f"ev_required_doc_{index:03d}"),
-                                "source_anchor": anchor,
-                                "claim": str(candidate.get("text") or row_text),
-                                "quote_span": row_text[:240],
-                                "raw_row_text": row_text,
-                                "support_level": "direct",
-                                "question_relevance": "high",
-                                "metadata": candidate_metadata,
-                            }
-                        )
-                    if row_probe_items:
-                        doc_probe_items.extend(row_probe_items)
-                    else:
-                        doc_probe_items.append(
-                            {
-                                "evidence_id": f"ev_required_doc_{index:03d}",
-                                "source_anchor": anchor,
-                                "claim": text,
-                                "quote_span": text[:240],
-                                "raw_row_text": text,
-                                "support_level": "direct",
-                                "question_relevance": "high",
-                                "metadata": metadata,
-                            }
-                        )
-                if doc_probe_items:
-                    doc_fallback_rows = self._build_required_operands_from_candidates(
-                        doc_probe_items,
-                        required_operands=missing_required,
-                        query=query,
-                        topic=state.get("topic") or "",
-                        report_scope=dict(state.get("report_scope") or {}),
-                    )
-                    operand_rows = _merge_operand_rows(
-                        operand_rows,
-                        doc_fallback_rows,
-                        required_operands=required_operands,
-                    )
-                    operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
-                    operand_rows = _filter_supported_low_api_rows(operand_rows)
-                    missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
-                ratio_fallback_rows = self._build_ratio_operands_from_candidates(
-                    [item for item in evidence_items if item.get("raw_row_text")],
-                    query,
-                    topic=state.get("topic") or "",
-                    report_scope=dict(state.get("report_scope") or {}),
-                    required_operands=required_operands,
-                )
-                operand_rows = _merge_operand_rows(
-                    operand_rows,
-                    ratio_fallback_rows,
-                    required_operands=required_operands,
-                )
-                operand_rows = _filter_dependency_scoped_low_api_rows(operand_rows)
-                operand_rows = _filter_supported_low_api_rows(operand_rows)
-            if _is_percent_point_difference_query(query):
-                operand_rows = [
-                    row for row in operand_rows
-                    if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
-                ]
-            operand_rows = [dict(row) for row in operand_rows]
-            for index, row in enumerate(operand_rows, start=1):
-                row["operand_id"] = f"op_{index:03d}"
-            missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            coverage = "sufficient" if operand_rows and not missing_required else "partial" if operand_rows else "missing"
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str(active_subtask.get("task_id") or "calc")
-            if operand_rows:
-                artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
-                artifacts = _append_artifact(
-                    artifacts,
-                    artifact_id=artifact_id,
-                    task_id=task_id,
-                    kind=ArtifactKind.OPERAND_SET,
-                    status=coverage,
-                    summary=f"{len(operand_rows)} deterministic operand(s)",
-                    payload={"calculation_operands": operand_rows, "coverage": coverage, "source": "low_api_debug"},
-                    evidence_refs=[str(row.get("evidence_id") or "") for row in operand_rows if str(row.get("evidence_id") or "").strip()],
-                )
-                tasks = _upsert_task(
-                    tasks,
-                    task_id=task_id,
-                    kind=TaskKind.CALCULATION,
-                    label=str(active_subtask.get("metric_label") or task_id),
-                    status=TaskStatus.IN_PROGRESS,
-                    query=self._calc_query(state),
-                    metric_family=self._calc_metric_family(state),
-                    artifact_id=artifact_id,
-                )
-            return {
-                "calculation_debug_trace": {
-                    "coverage": coverage,
-                    "source": "low_api_debug_deterministic_operands",
-                    "llm_invoked": False,
-                    "direct_structured_rows": direct_structured_rows,
-                    "rejected_dependency_scope_rows": rejected_dependency_scope_rows,
-                    "missing_required": missing_required,
-                    "operands": operand_rows,
-                },
-                "evidence_items": evidence_items,
-                "evidence_bullets": evidence_bullets,
-                "evidence_status": coverage,
-                "tasks": tasks,
-                "artifacts": artifacts,
-                **_runtime_trace_state_update(
-                    state,
-                    calculation_operands=operand_rows,
-                    calculation_plan={},
-                    calculation_result={},
-                ),
-            }
-
-        structured_llm = self.llm.with_structured_output(OperandExtraction)
+        structured_llm = self._llm_for_phase("operand_extraction").with_structured_output(OperandExtraction)
         evidence_text = self._format_evidence_for_prompt(evidence_items, evidence_bullets)
         prompt = ChatPromptTemplate.from_template(
             str(CALCULATION_PROMPT_POLICY.get("operand_extraction_prompt_template") or "")
@@ -4985,41 +4775,7 @@ class FinancialAgentCalculationMixin:
                     calculation_result={},
                 ),
             }
-        if getattr(self, "low_api_debug", False):
-            failed_plan = {
-                "status": "incomplete",
-                "mode": "none",
-                "operation": "none",
-                "ordered_operand_ids": [],
-                "variable_bindings": [],
-                "formula": "",
-                "pairwise_formula": "",
-                "result_unit": "",
-                "operation_text": "",
-                "explanation": "low_api_debug skipped formula planner LLM fallback",
-                "missing_info": self._infer_missing_info(state, operands),
-            }
-            return {
-                "missing_info": self._infer_missing_info(state, operands),
-                "planner_debug_trace": {
-                    "active_metric_family": metric_key,
-                    "ontology_context": "low_api_debug",
-                    "operands_text": "\n".join(
-                        f"- operand_id={row.get('operand_id')} | label={row.get('label')} | raw={row.get('raw_value')} {row.get('raw_unit')}"
-                        for row in operands
-                    ),
-                    "llm_invoked": False,
-                    "guard_applied": False,
-                    "reason": "low_api_debug",
-                },
-                **_runtime_trace_state_update(
-                    state,
-                    calculation_plan=failed_plan,
-                    calculation_result={},
-                ),
-            }
-
-        structured_llm = self.llm.with_structured_output(CalculationPlan)
+        structured_llm = self._llm_for_phase("formula_planning").with_structured_output(CalculationPlan)
         ontology_context = ""
         if metric_info:
             components = dict(metric_info.get("components") or {})
@@ -6314,32 +6070,7 @@ class FinancialAgentCalculationMixin:
                 ),
             }
 
-        if getattr(self, "low_api_debug", False):
-            answer = str(
-                calculation_result.get("formatted_result")
-                or calculation_result.get("rendered_value")
-                or ""
-            ).strip()
-            if not answer:
-                answer = str(CALCULATION_RENDER_POLICY.get("low_api_generation_skipped_fallback") or "")
-            answer = self._coerce_sign_aware_subtraction_answer(
-                answer,
-                calculation_result=calculation_result,
-            )
-            if operation == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
-                answer = self._compact_ratio_answer(state, calculation_result)
-            calculation_result["formatted_result"] = answer
-            return {
-                "answer": answer,
-                "compressed_answer": answer,
-                "draft_points": [answer] if answer else [],
-                **_runtime_trace_state_update(
-                    state,
-                    calculation_result=calculation_result,
-                ),
-            }
-
-        structured_llm = self.llm.with_structured_output(CalculationRenderOutput)
+        structured_llm = self._llm_for_phase("calculation_render").with_structured_output(CalculationRenderOutput)
         prompt = ChatPromptTemplate.from_template(
             str(CALCULATION_RENDER_POLICY.get("renderer_prompt_template") or "")
         )
@@ -6425,25 +6156,7 @@ class FinancialAgentCalculationMixin:
             )
         else:
             direction_hint = ""
-        if getattr(self, "low_api_debug", False):
-            debug_trace = dict(state.get("calculation_debug_trace") or {})
-            debug_trace["verification"] = {
-                "verdict": "skip",
-                "reason": "low_api_debug",
-                "input_answer": answer,
-                "final_answer": answer,
-                "rendered_value": rendered_value,
-                "direction_hint": direction_hint,
-            }
-            calculation_result["formatted_result"] = answer
-            return {
-                "answer": answer,
-                "compressed_answer": answer,
-                "calculation_debug_trace": debug_trace,
-                **_runtime_trace_state_update(state, calculation_result=calculation_result),
-            }
-
-        structured_llm = self.llm.with_structured_output(CalculationVerificationOutput)
+        structured_llm = self._llm_for_phase("calculation_verification").with_structured_output(CalculationVerificationOutput)
         prompt = ChatPromptTemplate.from_template(
             str(render_policy.get("verification_prompt_template") or "")
         )
@@ -6638,8 +6351,8 @@ class FinancialAgentCalculationMixin:
         )
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         max_plan_loops = 2
-        if not getattr(self, "low_api_debug", False) and hasattr(self, "llm") and getattr(self, "llm", None) is not None:
-            structured_llm = self.llm.with_structured_output(AggregateSynthesisOutput)
+        if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
+            structured_llm = self._llm_for_phase("aggregate_synthesis").with_structured_output(AggregateSynthesisOutput)
             prompt = ChatPromptTemplate.from_template(
                 str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")
             )

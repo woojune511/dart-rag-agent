@@ -901,10 +901,6 @@ class FinancialAgentPlanningMixin:
         - operands must reference known ontology concepts
         - output is converted back into the same task IR used elsewhere
         """
-        if getattr(self, "low_api_debug", False):
-            logger.info("[concept_llm_plan] skipped by low_api_debug")
-            return None
-
         ontology = get_financial_ontology()
         planner_feedback = _normalise_spaces(planner_feedback)
         concept_seed_query = query if not planner_feedback else f"{query}\n{planner_feedback}"
@@ -972,7 +968,7 @@ class FinancialAgentPlanningMixin:
         prompt = ChatPromptTemplate.from_template(
             str(PLANNING_POLICY.get("concept_planner_prompt_template") or "")
         )
-        structured_llm = self.llm.with_structured_output(ConceptPlannerOutput)
+        structured_llm = self._llm_for_phase("concept_planning").with_structured_output(ConceptPlannerOutput)
         try:
             prompt_value = prompt.invoke(
                 {

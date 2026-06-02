@@ -3164,10 +3164,12 @@ class FinancialAgentEvidenceMixin:
         surface = _normalise_spaces(text)
         if not surface:
             return ""
+        surface = re.sub(r"(?<=[.!?。])\s*(?=[\-ㆍ•·*]\s*)", " ", surface)
+        surface = re.sub(r"(?<=[.!?。])(?=[\uac00-\ud7a3])", " ", surface)
 
         fragments = [
             _normalise_spaces(fragment)
-            for fragment in re.split(r"(?<=[.!?])\s+|\n+", surface)
+            for fragment in re.split(r"(?<=[.!?。])\s+|\n+", surface)
             if _normalise_spaces(fragment)
         ]
         for fragment in fragments:
@@ -3183,100 +3185,6 @@ class FinancialAgentEvidenceMixin:
                 end = min(len(surface), index + 140)
                 return surface[start:end].strip()
         return surface[:220]
-
-    def _supplement_narrative_driver_evidence(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        docs,
-        *,
-        query: str,
-        anchor_lookup: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
-        groups = self._narrative_driver_groups(query)
-        if not groups or not docs:
-            return evidence_items
-
-        merged_existing = _normalise_spaces(
-            " ".join(
-                part
-                for item in evidence_items
-                for part in (
-                    str(item.get("claim") or ""),
-                    str(item.get("quote_span") or ""),
-                )
-                if part
-            )
-        ).lower()
-
-        supplemented = [dict(item) for item in evidence_items]
-        seen_keys = {
-            _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(item.get("source_anchor") or ""),
-                        str(item.get("quote_span") or item.get("claim") or ""),
-                    )
-                    if part
-                )
-            )
-            for item in supplemented
-        }
-
-        for group in groups:
-            variants = list(group.get("variants") or [])
-            if not variants:
-                continue
-            if any(variant.lower() in merged_existing for variant in variants):
-                continue
-            for item in docs:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                metadata = getattr(doc, "metadata", {}) or {}
-                block_type = str(metadata.get("block_type") or "").strip().lower()
-                if block_type not in {"paragraph", "table"}:
-                    continue
-                text = _normalise_spaces(
-                    " ".join(
-                        part
-                        for part in (
-                            str(getattr(doc, "page_content", "") or ""),
-                            str(metadata.get("table_context") or ""),
-                        )
-                        if part
-                    )
-                )
-                lowered = text.lower()
-                if not any(variant.lower() in lowered for variant in variants):
-                    continue
-                snippet = self._extract_driver_snippet(text, variants)
-                if not snippet:
-                    continue
-                anchor = self._build_source_anchor(metadata)
-                dedupe_key = _normalise_spaces(f"{anchor} {snippet}")
-                if dedupe_key and dedupe_key in seen_keys:
-                    continue
-                if dedupe_key:
-                    seen_keys.add(dedupe_key)
-                supplemented.append(
-                    {
-                        "evidence_id": f"ev_{len(supplemented) + 1:03d}",
-                        "source_anchor": anchor,
-                        "claim": snippet,
-                        "quote_span": snippet,
-                        "support_level": "direct",
-                        "question_relevance": "high",
-                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
-                        "metadata": self._resolve_anchor_metadata(
-                            anchor_lookup,
-                            anchor,
-                            quote_surface=snippet,
-                            claim_surface=snippet,
-                        ),
-                    }
-                )
-                merged_existing = f"{merged_existing} {snippet.lower()}".strip()
-                break
-        return supplemented
 
     def _supplement_dividend_policy_evidence(
         self,
@@ -4610,7 +4518,7 @@ class FinancialAgentEvidenceMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
 
-        structured_llm = self.llm.with_structured_output(EvidenceExtraction)
+        structured_llm = self._llm_for_phase("evidence_extraction").with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
         evidence_context = self._build_evidence_context(docs[: min(8, len(docs))])
         anchor_lookup = evidence_context["anchor_lookup"]
@@ -4619,87 +4527,6 @@ class FinancialAgentEvidenceMixin:
         if not extra_rules:
             extra_rules = str(dict(extraction_policy.get("extra_rules_by_operation_family") or {}).get(operation_family) or "")
         prompt = ChatPromptTemplate.from_template(str(extraction_policy.get("prompt_template") or ""))
-
-        fallback_terms = sorted(
-            (term for term in _tokenize_terms(f"{state.get('query', '')} {state.get('topic') or ''}") if len(term) >= 2),
-            key=len,
-            reverse=True,
-        )
-
-        def _fallback_snippet(doc: Document) -> str:
-            metadata = doc.metadata or {}
-            surfaces = [
-                _strip_rerank_metadata(str(doc.page_content or "")),
-                str(metadata.get("table_value_labels_text") or ""),
-                str(metadata.get("table_row_labels_text") or ""),
-                str(metadata.get("table_summary_text") or ""),
-            ]
-            surface = re.sub(r"\s+", " ", "\n".join(part for part in surfaces if part).strip())
-            if not surface:
-                return ""
-            best_pos: Optional[int] = None
-            for term in fallback_terms:
-                pos = surface.find(term)
-                if pos >= 0:
-                    best_pos = pos
-                    break
-            if best_pos is None:
-                return surface[:220]
-            start = max(0, best_pos - 120)
-            end = min(len(surface), best_pos + 320)
-            return surface[start:end].strip()
-
-        def _deterministic_fallback(doc_list) -> tuple[List[str], List[Dict[str, Any]]]:
-            bullets = []
-            items = []
-            for doc, _score in doc_list[: min(6, len(doc_list))]:
-                metadata = doc.metadata or {}
-                anchor = self._build_source_anchor(metadata)
-                snippet = _fallback_snippet(doc)
-                if not snippet:
-                    continue
-                bullets.append(f"- {anchor} {snippet}")
-                items.append(
-                    {
-                        "evidence_id": f"ev_{len(items) + 1:03d}",
-                        "source_anchor": anchor,
-                        "claim": snippet,
-                        "quote_span": snippet,
-                        "support_level": "context",
-                        "question_relevance": "medium",
-                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
-                        "metadata": self._resolve_anchor_metadata(
-                            anchor_lookup,
-                            anchor,
-                            quote_surface=snippet,
-                            claim_surface=snippet,
-                        ),
-                    }
-                )
-            return bullets, items
-
-        if getattr(self, "low_api_debug", False):
-            fallback, fallback_items = _deterministic_fallback(docs)
-            fallback_items = self._filter_evidence_items_for_required_operands(fallback_items, state)
-            if direct_numeric_grounding:
-                fallback_items = self._restrict_direct_numeric_evidence_items(
-                    fallback_items,
-                    preserve_narrative_context=preserve_narrative_context,
-                )
-            fallback_bullets = [
-                f"- {item.get('source_anchor', '?')} {item.get('claim', '')} ({item.get('support_level', 'context')})"
-                for item in fallback_items
-            ]
-            return {
-                "evidence_bullets": fallback_bullets,
-                "evidence_items": fallback_items,
-                "evidence_status": "sparse" if fallback_items else "missing",
-                "numeric_debug_trace": {
-                    "path": "low_api_debug_skip_evidence_llm",
-                    "llm_invoked": False,
-                    "candidate_count": len(fallback_items),
-                },
-            }
 
         try:
             result: EvidenceExtraction = (prompt | structured_llm).invoke(
@@ -4717,12 +4544,6 @@ class FinancialAgentEvidenceMixin:
             ]
             evidence_items = self._filter_evidence_items_for_required_operands(evidence_items, state)
             if operation_family == "narrative_summary":
-                evidence_items = self._supplement_narrative_driver_evidence(
-                    evidence_items,
-                    docs,
-                    query=str(state.get("query") or ""),
-                    anchor_lookup=anchor_lookup,
-                )
                 evidence_items = self._supplement_dividend_policy_evidence(
                     evidence_items,
                     docs,
@@ -4741,7 +4562,7 @@ class FinancialAgentEvidenceMixin:
             if result.evidence and not evidence_items:
                 logger.info("[evidence] filtered all extracted evidence items due to operand binding conflicts")
             if direct_numeric_grounding and not evidence_items:
-                logger.info("[evidence] direct numeric task produced no grounded evidence — skipping deterministic fallback")
+                logger.info("[evidence] direct numeric task produced no grounded evidence")
                 return {
                     "evidence_bullets": [],
                     "evidence_items": [],
@@ -4749,22 +4570,12 @@ class FinancialAgentEvidenceMixin:
                 }
             logger.info("[evidence] coverage=%s bullets=%s", result.coverage, len(evidence_bullets))
 
-            # structured output이 missing을 반환했지만 docs는 있는 경우:
-            # hard abstain 대신 deterministic fallback으로 sparse 답변 시도
             if not evidence_bullets and result.coverage == "missing":
-                if direct_numeric_grounding:
-                    logger.info("[evidence] direct numeric task returned missing — preserving missing instead of context fallback")
-                    return {
-                        "evidence_bullets": [],
-                        "evidence_items": [],
-                        "evidence_status": "missing",
-                    }
-                logger.info("[evidence] structured output returned missing with docs present — using deterministic fallback")
-                fallback, fallback_items = _deterministic_fallback(docs)
+                logger.info("[evidence] structured output returned missing with docs present")
                 return {
-                    "evidence_bullets": fallback,
-                    "evidence_items": fallback_items,
-                    "evidence_status": "sparse" if fallback else "missing",
+                    "evidence_bullets": [],
+                    "evidence_items": [],
+                    "evidence_status": "missing",
                 }
 
             return {
@@ -4773,19 +4584,11 @@ class FinancialAgentEvidenceMixin:
                 "evidence_status": result.coverage,
             }
         except Exception as exc:
-            if direct_numeric_grounding:
-                logger.warning("[evidence] direct numeric extraction failed without grounded evidence: %s", exc)
-                return {
-                    "evidence_bullets": [],
-                    "evidence_items": [],
-                    "evidence_status": "missing",
-                }
-            logger.warning("Evidence extraction failed, using deterministic fallback: %s", exc)
-            fallback, fallback_items = _deterministic_fallback(docs)
+            logger.warning("Evidence extraction failed; preserving missing evidence: %s", exc)
             return {
-                "evidence_bullets": fallback,
-                "evidence_items": fallback_items,
-                "evidence_status": "sparse" if fallback else "missing",
+                "evidence_bullets": [],
+                "evidence_items": [],
+                "evidence_status": "missing",
             }
 
     def _compress_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -4817,25 +4620,8 @@ class FinancialAgentEvidenceMixin:
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
         guidance = self._compression_guidance(query_type, query, coverage)
 
-        if getattr(self, "low_api_debug", False):
-            selected_claim_ids = [
-                str(item.get("evidence_id") or "").strip()
-                for item in selected_evidence
-                if str(item.get("evidence_id") or "").strip()
-            ]
-            draft_points = [
-                _normalise_spaces(str(item.get("claim") or item.get("quote_span") or ""))
-                for item in selected_evidence
-            ]
-            draft_points = [point for point in dict.fromkeys(draft_points) if point][:4]
-            compressed_answer = " ".join(draft_points).strip()
-            return {
-                "selected_claim_ids": selected_claim_ids,
-                "draft_points": draft_points,
-                "compressed_answer": compressed_answer,
-            }
-
-        structured_llm = self.llm.with_structured_output(CompressionOutput)
+        compression_llm = self._llm_for_phase("compression")
+        structured_llm = compression_llm.with_structured_output(CompressionOutput)
         prompt = ChatPromptTemplate.from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("compression_prompt_template") or "")
         )
@@ -4872,7 +4658,7 @@ class FinancialAgentEvidenceMixin:
             }
         except Exception as exc:
             logger.warning("Compression structured output failed, using fallback text output: %s", exc)
-            chain = prompt | self.llm | StrOutputParser()
+            chain = prompt | compression_llm | StrOutputParser()
             compressed_answer = chain.invoke(
                 {
                     "instruction": guidance["instruction"],
@@ -5101,28 +4887,8 @@ class FinancialAgentEvidenceMixin:
             selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
 
-        if getattr(self, "low_api_debug", False):
-            selected_ids = [
-                str(item.get("evidence_id") or "").strip()
-                for item in selected_evidence
-                if str(item.get("evidence_id") or "").strip()
-            ]
-            return self._normalise_sentence_checks(
-                query_type=query_type,
-                compressed_answer=compressed_answer,
-                sentence_checks=[
-                    {
-                        "sentence": compressed_answer,
-                        "verdict": "keep",
-                        "reason": "low_api_debug_validation_skipped",
-                        "supporting_claim_ids": selected_ids,
-                    }
-                ],
-                selected_claim_ids=selected_ids,
-                evidence_items=selected_evidence,
-            )
-
-        structured_llm = self.llm.with_structured_output(ValidationOutput)
+        validation_llm = self._llm_for_phase("validation")
+        structured_llm = validation_llm.with_structured_output(ValidationOutput)
         validator_prompt = ChatPromptTemplate.from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("validation_prompt_template") or "")
         )
@@ -5214,7 +4980,7 @@ class FinancialAgentEvidenceMixin:
             return normalized_result
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
-            validated_answer = (validator_prompt | self.llm | StrOutputParser()).invoke(
+            validated_answer = (validator_prompt | validation_llm | StrOutputParser()).invoke(
                 {
                     "query_type": query_type,
                     "query": state["query"],
@@ -5488,17 +5254,7 @@ class FinancialAgentEvidenceMixin:
 
         context = self._format_context(docs[: min(8, len(docs))])
         numeric_query = _numeric_extractor_query_for_state(state)
-        if getattr(self, "low_api_debug", False) and list(state.get("calc_subtasks") or []):
-            return {
-                **empty_result,
-                "answer": "",
-                "numeric_debug_trace": {
-                    "path": "low_api_debug_skip_numeric_extractor_llm",
-                    "query": numeric_query,
-                },
-            }
-
-        structured_llm = self.llm.with_structured_output(NumericExtraction)
+        structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
         prompt = ChatPromptTemplate.from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
         )

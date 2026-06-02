@@ -47,8 +47,8 @@ These five questions cover:
   filings from DART without changing the required receipt number.
 - Run this gate with `structural_selective_v2_prefix_2500_320` only in routine
   development regression checks.
-- Do not use `contextual_selective_v2_prefix_2500_320` for routine triage,
-  single-question canaries, or low-API debug. It is an arbitration-only
+- Do not use `contextual_selective_v2_prefix_2500_320` for routine triage or
+  single-question canaries. It is an arbitration-only
   quality reference when the structural path has a confirmed regression.
 - Treat embedding-provider/model/dimension mismatch as cache miss and reindex.
 - Use the stored `store_signature` / `benchmark_cache_meta.json` metadata to
@@ -60,7 +60,7 @@ Use this order before paying for a full curated gate rerun:
 
 1. Commit the code/docs/test change once unit and contract tests pass.
 2. Recheck the active runtime canary with one question only, usually
-   `--eval-only --question-id <ID> --low-api-debug`.
+   `--eval-only --question-id <ID>`.
 3. When diagnosing retrieval-heavy questions, add explicit query budgets before
    changing retrieval policy:
    `--retrieval-query-budget <N> --focused-retrieval-query-budget <N> --retry-retrieval-query-budget <N>`.
@@ -71,12 +71,12 @@ Use this order before paying for a full curated gate rerun:
 5. Classify only two or three remaining focused failures at a time as
    retrieval, dependency/synthesis, answer formatting, or evaluator issues.
 6. Run the full curated runtime gate once after two or three focused fixes have
-   accumulated, without `--low-api-debug`.
+   accumulated.
 
-`--low-api-debug` is a diagnostic mode, not an official score. It intentionally
-skips evaluator LLM judges, evaluator embedding metrics, semantic/LLM router
-fallback, and calculation-path LLM fallbacks where deterministic artifacts are
-available.
+`--low-api-debug` and `--offline-retrieval` are no longer supported runtime
+gate modes. If cost is the issue, use explicit evaluator skip flags for
+evaluator-only triage or route expensive runtime phases through cheaper models
+with `llm_routes`.
 
 ## Latency telemetry
 
@@ -158,7 +158,7 @@ Fast numeric canary mode:
   --numeric-fast-gate
 ```
 
-Low-API diagnostic canary mode:
+Single-question canary mode:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
@@ -166,11 +166,10 @@ Low-API diagnostic canary mode:
   --output-dir benchmarks/results/runtime_contract_gate_manual `
   --company-run-id skh_2023_runtime_contract_gate `
   --eval-only `
-  --question-id SKH_T1_060 `
-  --low-api-debug
+  --question-id SKH_T1_060
 ```
 
-Low-API diagnostic canary with bounded retrieval fan-out:
+Single-question canary with bounded retrieval fan-out:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
@@ -178,7 +177,6 @@ Low-API diagnostic canary with bounded retrieval fan-out:
   --output-dir benchmarks/results/runtime_contract_gate_manual `
   --company-run-id naver_2023_runtime_contract_gate `
   --question-id NAV_T1_030 `
-  --low-api-debug `
   --numeric-fast-gate `
   --retrieval-query-budget 12 `
   --focused-retrieval-query-budget 6 `
@@ -410,21 +408,19 @@ Last checked: 2026-05-31.
       - required-operand candidate construction does not bind a row to one
         operand based only on context when that row directly names another
         required operand
-- `low-api-debug`
-  - Failure class:
-    - current numeric triage path is cost-controlled
-  - Observation:
-    - evaluator/router/calculation fallback calls are reduced
-    - current implementation also forces benchmark retrieval into BM25-only
-      mode and skips direct numeric evidence extraction, calculation-subtask
-      numeric extractor, operand/formula planner fallback, aggregate synthesis,
-      and calculation render/verification LLM calls
-    - latest `SKH_T1_060` low-API focused run showed no `generateContent`
-      calls in the numeric path
-  - Next improvement:
-    - keep checking whether non-calculation narrative paths need a separate
-      low-API diagnostic policy before broadening this mode beyond numeric
-      triage
+- Low-API/offline bundles
+  - Status:
+    - removed from the official benchmark runner and agent runtime path
+  - Rationale:
+    - BM25-only retrieval and deterministic answer/evidence fallbacks made API
+      cost cheaper but tested a different system from the production runtime
+    - evidence extraction now preserves `missing` when the LLM cannot produce
+      grounded evidence, instead of promoting retrieved snippets into claims
+  - Cost-control replacement:
+    - use explicit evaluator switches such as `--skip-llm-judges` only when the
+      goal is evaluator-cost triage
+    - use `llm_routes` to route expensive runtime phases to cheaper compatible
+      models without bypassing LLM evidence extraction or planning contracts
 - `comparison_002`
   - Treat as a solved multi-entity grounding case only when replaying a saved
     PASS trace.

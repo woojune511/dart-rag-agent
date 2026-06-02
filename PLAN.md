@@ -5,6 +5,28 @@
 
 ## Active Snapshot
 
+## 2026-06-02 LLM Evidence Path / Model Routing Cleanup
+
+- `low_api_debug` and `offline_retrieval` are removed from the agent/runtime
+  benchmark path. They made focused diagnostics cheaper, but they also tested a
+  BM25/deterministic-fallback system that differed from the official runtime.
+- Evidence extraction no longer promotes retrieved document snippets into
+  evidence claims when structured LLM extraction returns `coverage=missing` or
+  fails. The runtime now preserves `evidence_status=missing` and lets
+  planner/retrieval repair handle the gap.
+- Agent runtime now supports `routing_config["llm_routes"]` for phase-specific
+  model routing. Supported phases include `evidence_extraction`,
+  `compression`, `validation`, `numeric_extraction`, `concept_planning`,
+  `operand_extraction`, `formula_planning`, `calculation_render`,
+  `calculation_verification`, `aggregate_synthesis`, `reconciliation_rerank`,
+  and `reflection_planning`.
+- API-cost reduction should use explicit evaluator switches or cheaper routed
+  models, not runtime branches that skip LLM evidence extraction/planning.
+- Immediate validation:
+  - targeted unit tests for runner routing projection and subtask operand
+    extraction contracts
+  - full `python -m unittest discover -s tests` before commit
+
 ## 2026-06-02 Runtime/API Cost-Control Patch
 
 - Added optional retrieval query budgets for focused benchmark triage:
@@ -48,21 +70,23 @@
   - `python -m unittest tests.test_gemini_usage`
   - `python -m unittest tests.test_embedding_usage`
   - `python -m unittest discover -s tests`
-- Focused canary:
-  - `NAV_T1_030` with `--low-api-debug --numeric-fast-gate` and query budgets
+- Historical focused canary:
+  - `NAV_T1_030` with the now-removed low-API bundle, `--numeric-fast-gate`,
+    and query budgets
     `12 / 6 / 2` passed.
   - `retrieval_debug_trace.query_budget` showed `primary 3/3`,
     `operand_focus 6/16`, and `retry 0/0`.
   - API calls and estimated cost were `0 / $0.0000`.
-- Embedding usage output wiring check:
-  - `NAV_T1_030` eval-only with `--low-api-debug --numeric-fast-gate` passed.
+- Historical embedding usage output wiring check:
+  - `NAV_T1_030` eval-only with the now-removed low-API bundle and
+    `--numeric-fast-gate` passed.
   - Per-question and summary outputs included `agent_embedding_usage`,
     `judge_embedding_usage`, combined `embedding_usage`, aggregate
     `embedding_*`, and `estimated_runtime_embedding_cost_usd`.
-  - Values were zero/null in low-API mode because vector query embedding and
-    evaluator embedding metrics were intentionally disabled.
+  - Values were zero/null in that historical low-API mode because vector query
+    embedding and evaluator embedding metrics were intentionally disabled.
 - Caveat:
-  - `SKH_T1_060` failed in the current fresh low-API/BM25 path even without
+  - `SKH_T1_060` failed in the historical fresh low-API/BM25 path even without
     explicit query budgets because the bond operand can bind to a
     parenthesized adjustment row. Keep this as a separate row-selection
     regression, not as a query-budget plumbing failure.

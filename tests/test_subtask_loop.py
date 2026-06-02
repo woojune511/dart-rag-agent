@@ -39,6 +39,8 @@ class _StubLLM:
 class SubtaskLoopTests(unittest.TestCase):
     def setUp(self) -> None:
         self.agent = FinancialAgent.__new__(FinancialAgent)
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        self.agent._llm_for_phase = lambda _phase: self.agent.llm
 
     def test_ratio_definition_phrase_does_not_request_explanatory_context(self) -> None:
         self.assertFalse(
@@ -970,7 +972,7 @@ class SubtaskLoopTests(unittest.TestCase):
             ["numerator_1", "denominator_1"],
         )
 
-    def test_low_api_doc_probe_expands_table_rows_for_missing_ratio_operand(self) -> None:
+    def test_llm_operand_extraction_can_return_retrieved_doc_ratio_operand(self) -> None:
         table_object = {
             "table_id": "example-table",
             "statement_type": "mda",
@@ -1083,7 +1085,35 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        self.agent.low_api_debug = True
+        self.agent.llm = _StubLLM(
+            OperandExtraction(
+                coverage="sufficient",
+                operands=[
+                    CalculationOperand(
+                        operand_id="op_001",
+                        evidence_id="task_output:task_expense",
+                        source_anchor="[task_expense]",
+                        label="expense",
+                        raw_value="250",
+                        raw_unit="원",
+                        normalized_value=250.0,
+                        normalized_unit="KRW",
+                        period="2023",
+                    ),
+                    CalculationOperand(
+                        operand_id="op_002",
+                        evidence_id="ev_doc_001",
+                        source_anchor="[ExampleCo | 2023]",
+                        label="operating profit",
+                        raw_value="1,000",
+                        raw_unit="원",
+                        normalized_value=1000.0,
+                        normalized_unit="KRW",
+                        period="2023",
+                    ),
+                ],
+            )
+        )
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
         self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
@@ -1091,10 +1121,6 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertCountEqual(
-            [row.get("matched_operand_role") for row in extracted["calculation_operands"]],
-            ["numerator_1", "denominator_1"],
-        )
         self.assertEqual(
             len({row.get("operand_id") for row in extracted["calculation_operands"]}),
             2,
@@ -1102,10 +1128,9 @@ class SubtaskLoopTests(unittest.TestCase):
         denominator = next(
             row
             for row in extracted["calculation_operands"]
-            if row.get("matched_operand_role") == "denominator_1"
+            if row.get("label") == "operating profit"
         )
         self.assertEqual(denominator["raw_value"], "1,000")
-        self.assertEqual(denominator["matched_operand_concept"], "operating_profit")
 
     def test_ratio_missing_dependency_binding_can_use_active_reconciliation_evidence(self) -> None:
         state = {
@@ -1159,7 +1184,35 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        self.agent.low_api_debug = True
+        self.agent.llm = _StubLLM(
+            OperandExtraction(
+                coverage="sufficient",
+                operands=[
+                    CalculationOperand(
+                        operand_id="op_001",
+                        evidence_id="ev_expense",
+                        source_anchor="[ExampleCo | 2023]",
+                        label="expense",
+                        raw_value="250",
+                        raw_unit="",
+                        normalized_value=250.0,
+                        normalized_unit="UNKNOWN",
+                        period="2023",
+                    ),
+                    CalculationOperand(
+                        operand_id="op_002",
+                        evidence_id="ev_profit",
+                        source_anchor="[ExampleCo | 2023]",
+                        label="operating profit",
+                        raw_value="1,000",
+                        raw_unit="",
+                        normalized_value=1000.0,
+                        normalized_unit="UNKNOWN",
+                        period="2023",
+                    ),
+                ],
+            )
+        )
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [
             {
@@ -1175,34 +1228,6 @@ class SubtaskLoopTests(unittest.TestCase):
                 "claim": "expense | 250",
                 "raw_row_text": "expense | 250",
                 "metadata": {"statement_type": "income_statement"},
-            },
-        ]
-        self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: [
-            {
-                "operand_id": "op_001",
-                "evidence_id": "ev_expense",
-                "label": "expense",
-                "raw_value": "250",
-                "raw_unit": "",
-                "normalized_value": 250.0,
-                "normalized_unit": "NUMBER",
-                "period": "2023",
-                "matched_operand_label": "expense",
-                "matched_operand_concept": "expense",
-                "matched_operand_role": "numerator_1",
-            },
-            {
-                "operand_id": "op_002",
-                "evidence_id": "ev_profit",
-                "label": "operating profit",
-                "raw_value": "1,000",
-                "raw_unit": "",
-                "normalized_value": 1000.0,
-                "normalized_unit": "NUMBER",
-                "period": "2023",
-                "matched_operand_label": "operating profit",
-                "matched_operand_concept": "operating_profit",
-                "matched_operand_role": "denominator_1",
             },
         ]
         self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
@@ -3813,6 +3838,157 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("Poshmark", updated["answer"])
         self.assertFalse(updated["answer"].endswith("커머스 실"))
         self.assertIn("ev_poshmark", updated["selected_claim_ids"])
+
+    def test_aggregate_growth_narrative_filters_table_fragment_noise(self) -> None:
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, Poshmark 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_2"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "커머스 부문 매출 성장률",
+                    "answer": "41.4%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출 성장률",
+                                "period": "2023",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "period": "2023",
+                                "rendered_value": "2조 5,466억원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "period": "2022",
+                                "rendered_value": "1조 8,011억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "answer": (
+                        "주된 사유는 Poshmark, Inc. 인수 등으로 인한 무형자산 증가 1조 9,641억원 입니다."
+                        "- 부채제25기 당사의 부채는 전기 대비 증가하였습니다."
+                        "- 자본제25기 자본은 당기순이익 등으로 증가했습니다. "
+                        "| 1,488.8 | 1,304.7 | 14.1% | - 영업이익률(%) | 15.4% | 15.9% | -0.5%p | "
+                        "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다. "
+                        "Poshmark 연결 편입효과에 따른 영업수익 증가가 있었습니다."
+                    ),
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "Poshmark 연결 편입효과에 따른 영업수익 증가가 있었습니다.",
+                    "quote_span": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+                    "support_level": "direct",
+                    "metadata": {"section_path": "IV. 이사의 경영진단 및 분석의견"},
+                }
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("Poshmark 연결 편입효과", updated["answer"])
+        self.assertNotIn("부채", updated["answer"])
+        self.assertNotIn("자본", updated["answer"])
+        self.assertNotIn("무형자산", updated["answer"])
+
+    def test_growth_narrative_composition_supplements_uncovered_driver_evidence(self) -> None:
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "커머스 부문 매출 성장률",
+                "answer": "41.4%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "커머스 부문 매출 성장률",
+                            "period": "2023",
+                            "normalized_value": 41.4,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "41.4%",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "커머스 부문 매출액",
+                            "period": "2023",
+                            "rendered_value": "2조 5,466억원",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "커머스 부문 매출액",
+                            "period": "2022",
+                            "rendered_value": "1조 8,011억원",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "질문 관련 배경/영향 설명",
+                "answer": (
+                    "네이버의 커머스 사업은 스마트스토어와 브랜드스토어의 지속적인 성장, "
+                    "그리고 Poshmark의 성공적인 체질 개선 등으로 전년 대비 41.4% 성장했습니다."
+                ),
+                "status": "ok",
+                "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+            },
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "ev_driver",
+                "claim": "Poshmark 연결 편입효과에 따른 영업수익 증가가 있었습니다.",
+                "quote_span": "Poshmark 연결 편입효과에 따른 영업수익 증가",
+                "support_level": "direct",
+                "metadata": {"section_path": "IV. 이사의 경영진단 및 분석의견"},
+            }
+        ]
+
+        composed = self.agent._compose_growth_narrative_answer(
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            ordered_results=ordered_results,
+            existing_answer="",
+            evidence_items=evidence_items,
+        )
+
+        self.assertIsNotNone(composed)
+        answer = composed["compressed_answer"]
+        self.assertIn("41.4%", answer)
+        self.assertIn("체질 개선", answer)
+        self.assertIn("연결 편입효과", answer)
+        self.assertIn("ev_driver", composed["selected_claim_ids"])
 
     def test_aggregate_subtasks_does_not_repair_growth_answer_without_narrative_material(self) -> None:
         self.agent.llm = _StubLLM(

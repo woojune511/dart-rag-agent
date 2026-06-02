@@ -41,7 +41,7 @@
 | 규칙 | 유지 이유 |
 | --- | --- |
 | `docs[:8]` evidence 입력 확대 | retrieval은 성공했는데 evidence 단계에서 hard abstain하는 문제를 줄이는 구조적 개선 |
-| `coverage=missing` + docs 존재 시 deterministic fallback | evidence LLM의 보수성 때문에 바로 abstain하는 문제 완화 |
+| `coverage=missing` + docs 존재 시 missing 유지 | retrieval 문서 조각을 runtime이 임의로 evidence claim으로 승격하지 않기 위한 faithfulness 우선 원칙 |
 | `risk` evidence 단계의 verbatim 제한 | 원문에 없는 리스크 카테고리 생성 방지라는 명확한 안정성 목적 |
 | evaluator context `[:5] -> [:8]` | agent 실제 사용 범위와 evaluator 범위를 일치시키는 정합성 수정 |
 
