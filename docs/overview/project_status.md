@@ -130,6 +130,13 @@ Useful supporting points:
 
 - First low-risk control: benchmark runs can now pass explicit retrieval query
   budgets to cap primary, operand-focused, and retry retrieval fan-out.
+- Official runtime contract and policy-driven gate profiles now set `8 / 4 / 1`
+  in `full_evaluation`, so focused gate runs record the budget in their
+  profile/config instead of relying on ad hoc CLI flags.
+- `retrieval_debug_trace.query_budget.source` now records the active retrieval
+  source and source-level query counts. This matters because final traces can
+  describe only the last active subtask while the state-level semantic plan may
+  still contain many generated query surfaces.
 - Cost estimation now consumes normalized Gemini response usage metadata for
   benchmark contextualization, agent runtime, and evaluator judge calls:
   - prompt/input tokens
@@ -202,3 +209,13 @@ Useful supporting points:
   - The budget is therefore still a viable default candidate; the next work is
     separate runtime quality cleanup for noisy synthesis and material-gap
     replan behavior.
+- Official LLM-evidence-path canary after fallback removal:
+  - `NAV_T2_006` passed under the policy-driven gate profile with `8 / 4 / 1`.
+  - Final answer preserved `41.4%` and the Poshmark/smart-store/brand-store
+    explanation.
+  - Metrics: faithfulness `1.000`, answer relevancy `0.837`, context recall
+    `1.000`, retrieval hit `1.000`, context P@5 `0.800`, completeness `1.000`,
+    error rate `0.0%`.
+  - Final narrative retrieval trace selected `3` primary queries, `0`
+    operand-focus queries, and `0` retry queries while recording the broader
+    state-level query count as `61`.

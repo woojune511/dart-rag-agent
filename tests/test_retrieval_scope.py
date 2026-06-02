@@ -183,6 +183,9 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertTrue(any("retry one" in query for query in searched))
         self.assertFalse(any("retry two" in query for query in searched))
         trace = result["retrieval_debug_trace"]["query_budget"]
+        self.assertEqual(trace["source"]["kind"], "active_subtask_retrieval_queries")
+        self.assertEqual(trace["source"]["input_primary_query_count"], 3)
+        self.assertEqual(trace["source"]["active_subtask_retrieval_query_count"], 3)
         self.assertEqual(trace["primary"]["selected_count"], 2)
         self.assertEqual(trace["primary"]["dropped_count"], 1)
         self.assertEqual(trace["retry"]["selected_count"], 1)

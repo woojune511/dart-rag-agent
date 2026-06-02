@@ -5,6 +5,35 @@
 
 ## Active Snapshot
 
+## 2026-06-02 Official Retrieval Budget Gate
+
+- Official gate profiles now carry explicit retrieval budgets:
+  - `retrieval_query_budget = 8`
+  - `focused_retrieval_query_budget = 4`
+  - `retry_retrieval_query_budget = 1`
+- This is not a benchmark-answer rule. It is an execution-cost control passed
+  through profile config, and unbudgeted runtime behavior remains unchanged.
+- `retrieval_debug_trace.query_budget.source` now records which query source
+  drove the current retrieval call:
+  - active subtask retrieval queries
+  - active subtask query
+  - state-level retrieval queries
+  - fallback original query
+- Validation completed:
+  - `python -m unittest tests.test_retrieval_scope tests.test_benchmark_runner_runtime_projection`
+    (`23` tests OK)
+  - `python -m unittest discover -s tests` (`597` tests OK)
+  - `NAV_T2_006` official eval-only canary under `8/4/1`: final answer keeps
+    `41.4%`, faithfulness `1.000`, answer relevancy `0.837`,
+    context recall `1.000`, retrieval hit `1.000`, context P@5 `0.800`,
+    completeness `1.000`, error rate `0.0%`
+- Immediate next:
+  1. Commit and push this budget/trace/profile patch.
+  2. Run one small gate refresh only when needed; avoid broad benchmarks unless
+     the next change affects retrieval quality.
+  3. Continue API-cost reduction through model routing and query-shape cleanup,
+     not low-API/offline deterministic fallback branches.
+
 ## 2026-06-02 NAV_T2_006 Growth Unit Binding Repair
 
 - `NAV_T2_006` live canary after low-API/offline fallback removal initially
@@ -30,12 +59,10 @@
   - `python -m unittest discover -s tests` (`597` tests OK)
   - `NAV_T2_006` store-fixed eval-only canary: calculator `41.4%`, final answer
     states `2022 1조 8,011억원 대비 41.4% 성장`
-- Immediate next:
-  1. Commit and push this focused repair.
-  2. Run 2-3 focused growth/difference regression canaries only if needed; do
-     not run a broad gate yet.
-  3. Return to aggregate retrieval fan-out profiling, since this canary still
-     generated high semantic-planner query fan-out.
+- Follow-up:
+  - The focused repair was committed and pushed.
+  - The next cost-control patch now caps official profile retrieval execution
+    under `8/4/1` and records source-level trace counts.
 
 ## 2026-06-02 LLM Evidence Path / Model Routing Cleanup
 
@@ -123,10 +150,11 @@
     parenthesized adjustment row. Keep this as a separate row-selection
     regression, not as a query-budget plumbing failure.
 - Immediate next:
-  1. Profile total query fan-out across task-ledger subtasks, because per-stage
-     budgets do not yet cap the aggregate number of searches across all tasks.
-  2. Validate embedding usage fields with a one-question eval-only refresh.
-  3. Triage `SKH_T1_060` as a generic evidence row-selection problem.
+  1. Keep official gate profiles on `8/4/1` unless a focused canary shows
+     quality loss.
+  2. Reduce remaining runtime/API cost through model routing and query-shape
+     cleanup.
+  3. Keep row-selection regressions separate from query-budget plumbing.
 
 ## 2026-06-01 Value-Local Unit Contract Closure
 

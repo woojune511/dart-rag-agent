@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-02 official gate profile에 retrieval query budget을 명시했다.
+  - `curated_runtime_contract_gate.json`과
+    `curated_policy_driven_runtime_gate.json`의 full-evaluation profile은
+    이제 `retrieval_query_budget=8`, `focused_retrieval_query_budget=4`,
+    `retry_retrieval_query_budget=1`을 기본으로 기록한다.
+  - runtime에는 benchmark/company/metric별 branch를 추가하지 않았다.
+    budget은 benchmark profile이 명시적으로 전달하는 execution-cost
+    control이며, unbudgeted runtime default는 그대로 유지된다.
+  - `retrieval_debug_trace.query_budget.source`에 active subtask source,
+    active-subtask query count, state-level query count를 기록해 최종 trace가
+    어느 retrieval stage를 설명하는지 확인할 수 있게 했다.
+  - 검증:
+    - `python -m unittest tests.test_retrieval_scope tests.test_benchmark_runner_runtime_projection`: `23` tests OK.
+    - `python -m unittest discover -s tests`: `597` tests OK.
+    - official `NAV_T2_006` eval-only canary with `8/4/1`: final answer
+      `41.4%`, faithfulness `1.000`, answer relevancy `0.837`,
+      context recall `1.000`, retrieval hit `1.000`, context P@5 `0.800`,
+      completeness `1.000`, error rate `0.0%`.
+    - final narrative subtask trace recorded `source.kind =
+      active_subtask_retrieval_queries`, `state_retrieval_query_count = 61`,
+      `primary selected_count = 3`, `operand_focus selected_count = 0`,
+      `retry selected_count = 0`.
+
 - 2026-06-02 `NAV_T2_006` low-api removal 후 live canary 회귀를 닫았다.
   - 실패층은 LLM evidence extraction 누락이 아니라 growth-rate operand
     unit/source binding이었다. Evidence path는 충분했지만, current operand는

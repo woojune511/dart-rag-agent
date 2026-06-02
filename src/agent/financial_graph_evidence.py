@@ -1630,6 +1630,22 @@ class FinancialAgentEvidenceMixin:
                 if supplemental_query and supplemental_query not in query_bundle:
                     query_bundle.append(supplemental_query)
         query_budget_trace: Dict[str, Any] = {}
+        query_budget_trace["source"] = {
+            "kind": (
+                "active_subtask_retrieval_queries"
+                if active_subtask_retrieval_queries
+                else "active_subtask_query"
+                if active_subtask_query
+                else "state_retrieval_queries"
+                if retrieval_queries
+                else "query"
+            ),
+            "active_subtask_id": str(active_subtask.get("task_id") or ""),
+            "active_subtask_operation": str(active_subtask.get("operation_family") or ""),
+            "input_primary_query_count": len(query_bundle),
+            "active_subtask_retrieval_query_count": len(active_subtask_retrieval_queries),
+            "state_retrieval_query_count": len(retrieval_queries),
+        }
         primary_budget = _query_budget_int(getattr(self, "retrieval_query_budget", 0))
         query_bundle, query_budget_trace["primary"] = _apply_query_budget(
             list(query_bundle),
