@@ -107,10 +107,10 @@
     - latest focused low-API rerun:
       `benchmarks/results/runtime_lookup_direct_row_skh_t1_060_2026-06-02/`
       returned `42.02%`, `numeric_final_judgement = PASS`.
-    - caveat: producer lookup subtask answer can still display the weaker
-      aggregate/adjustment value, but final dependency projection now uses the
-      stronger direct structured evidence. A follow-up cleanup should align the
-      producer lookup answer itself with the same direct-evidence preference.
+    - Follow-up producer lookup alignment is now closed: serialized
+      `task_6` subtask result views show `9,490,410백만원`, matching the final
+      dependency projection, and no stale `(600,550)백만원` value remains in the
+      focused result JSON.
   - `MIX_T1_064`는 ontology-driven component ratio shape, evaluator composed-ratio grounding, uncertainty suffix 정리 이후 공식 targeted rerun까지 `PASS`로 닫혔다.
     - `numeric_equivalence = 1.0`
     - `numeric_grounding = 1.0`

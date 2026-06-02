@@ -5238,28 +5238,29 @@ class OperationContractTests(unittest.TestCase):
                     ],
                 },
             },
-            {
-                "evidence_id": "ev_direct",
-                "source_anchor": "[대상회사 | 2023 | table]",
-                "claim": "목표항목 | 표시금액 900 백만원",
-                "quote_span": "목표항목 | 표시금액 900 백만원",
-                "raw_row_text": "목표항목 | 표시금액 900 백만원",
-                "metadata": {
-                    "row_label": "목표항목",
-                    "semantic_label": "목표항목",
-                    "value_role": "detail",
-                    "aggregation_stage": "none",
-                    "statement_type": "notes",
-                    "consolidation_scope": "consolidated",
-                    "year": 2023,
-                    "table_source_id": "table_direct",
-                    "unit_hint": "백만원",
-                    "structured_cells": [
-                        {"column_headers": ["표시금액"], "value_text": "900", "unit_hint": "백만원"}
-                    ],
-                },
-            },
         ]
+        direct_evidence = {
+            "evidence_id": "ev_direct",
+            "source_anchor": "[대상회사 | 2023 | table]",
+            "claim": "목표항목 | 표시금액 900 백만원",
+            "quote_span": "목표항목 | 표시금액 900 백만원",
+            "raw_row_text": "목표항목 | 표시금액 900 백만원",
+            "metadata": {
+                "row_label": "목표항목",
+                "semantic_label": "목표항목",
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "year": 2023,
+                "table_source_id": "table_direct",
+                "unit_hint": "백만원",
+                "structured_cells": [
+                    {"column_headers": ["표시금액"], "value_text": "900", "unit_hint": "백만원"}
+                ],
+            },
+        }
+        state["runtime_evidence"] = [direct_evidence]
 
         with patch.object(
             agent,
@@ -5277,7 +5278,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["source_row_id"], "ev_direct")
         self.assertEqual(rows[0]["raw_value"], "900")
 
-    def test_aggregate_lookup_repair_replaces_ok_slot_with_stronger_sibling_evidence(self) -> None:
+    def test_aggregate_lookup_repair_uses_state_runtime_evidence_for_ok_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         direct_evidence = {
             "evidence_id": "ev_direct",
@@ -5306,7 +5307,6 @@ class OperationContractTests(unittest.TestCase):
                 "metric_family": "concept_lookup",
                 "metric_label": "context",
                 "status": "ok",
-                "runtime_evidence": [direct_evidence],
                 "calculation_result": {
                     "status": "ok",
                     "answer_slots": {
@@ -5375,6 +5375,7 @@ class OperationContractTests(unittest.TestCase):
                 },
             ],
             "evidence_items": [],
+            "runtime_evidence": [direct_evidence],
         }
 
         repaired = agent._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
@@ -5383,6 +5384,81 @@ class OperationContractTests(unittest.TestCase):
         slot = lookup["calculation_result"]["answer_slots"]["primary_value"]
         self.assertEqual(slot["source_row_id"], "ev_direct")
         self.assertEqual(slot["raw_value"], "900")
+
+    def test_lookup_result_view_aligns_with_dependency_projection(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {"calc_subtasks": []}
+        ordered_results = [
+            {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 목표항목",
+                "status": "ok",
+                "answer": "400백만원",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 400000000.0,
+                    "result_unit": "백만원",
+                    "rendered_value": "400백만원",
+                    "formatted_result": "400백만원",
+                    "source_row_ids": ["ev_indirect"],
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "목표항목",
+                            "concept": "target_metric",
+                            "raw_value": "400",
+                            "raw_unit": "백만원",
+                            "normalized_value": 400000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "400백만원",
+                            "source_row_id": "ev_indirect",
+                            "source_row_ids": ["ev_indirect"],
+                        },
+                    },
+                },
+            }
+        ]
+        aggregate_projection = {
+            "calculation_operands": [
+                {
+                    "label": "목표항목",
+                    "matched_operand_label": "목표항목",
+                    "matched_operand_concept": "target_metric",
+                    "matched_operand_role": "numerator_1",
+                    "raw_value": "900",
+                    "raw_unit": "백만원",
+                    "normalized_value": 900000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                    "source_row_id": "task_output:task_lookup",
+                    "source_row_ids": ["task_output:task_lookup", "ev_direct"],
+                    "source_anchor": "[대상회사 | 2023 | table]",
+                }
+            ]
+        }
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            state,
+            aggregate_projection,
+        )
+
+        lookup = aligned[0]
+        self.assertEqual(lookup["answer"], "900백만원")
+        slot = lookup["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertEqual(slot["raw_value"], "900")
+        self.assertEqual(slot["source_row_id"], "ev_direct")
+        self.assertEqual(
+            lookup["calculation_result"]["answer_slots"]["components_by_role"]["numerator_1"][0]["raw_value"],
+            "900",
+        )
+        projection = agent._build_aggregate_calculation_projection(aligned, "900백만원")
+        projected_subtask = projection["calculation_result"]["answer_slots"]["subtask_results"][0]
+        self.assertEqual(projected_subtask["answer"], "900백만원")
+        self.assertEqual(projected_subtask["rendered_value"], "900백만원")
 
     def test_dependency_operand_rows_prefer_direct_sibling_lookup_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

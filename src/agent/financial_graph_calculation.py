@@ -750,6 +750,7 @@ class FinancialAgentCalculationMixin:
         for row in ordered_results:
             evidence_pool.extend(dict(item) for item in (row.get("runtime_evidence") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
+        evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
         if not evidence_pool:
             return ordered_results
         evidence_by_id = {
@@ -867,6 +868,172 @@ class FinancialAgentCalculationMixin:
                 }
             )
         return recovered_results
+
+    def _align_lookup_results_with_dependency_projection(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        state: FinancialAgentState,
+        aggregate_projection: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        task_by_id = {
+            str(task.get("task_id") or ""): dict(task)
+            for task in (state.get("calc_subtasks") or [])
+            if str(task.get("task_id") or "").strip()
+        }
+        projected_by_task: Dict[str, List[Dict[str, Any]]] = {}
+        for operand in list(aggregate_projection.get("calculation_operands") or []):
+            if not isinstance(operand, dict):
+                continue
+            source_ids = _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")])
+            for source_id in source_ids:
+                if not source_id.startswith("task_output:"):
+                    continue
+                task_id = source_id.split(":", 1)[1]
+                if task_id:
+                    projected_by_task.setdefault(task_id, []).append(dict(operand))
+        if not projected_by_task:
+            return ordered_results
+
+        def _projection_operand_matches_lookup(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+            if _operand_row_matches_requirement(candidate, operand):
+                return True
+            candidate_label = _normalise_spaces(
+                str(candidate.get("matched_operand_label") or candidate.get("label") or "")
+            )
+            operand_label = _normalise_spaces(str(operand.get("label") or ""))
+            if candidate_label and operand_label and candidate_label == operand_label:
+                return True
+            candidate_concept = _normalise_spaces(str(candidate.get("matched_operand_concept") or ""))
+            operand_concept = _normalise_spaces(str(operand.get("concept") or ""))
+            if candidate_concept and operand_concept and candidate_concept == operand_concept:
+                return True
+            return bool(candidate_label and _operand_text_match(candidate_label, operand))
+
+        aligned_results: List[Dict[str, Any]] = []
+        for row in ordered_results:
+            task_id = str(row.get("task_id") or "").strip()
+            task = task_by_id.get(task_id) or {}
+            operation_family = _normalise_spaces(
+                str(
+                    row.get("operation_family")
+                    or task.get("operation_family")
+                    or self._aggregate_result_operation_family(row)
+                    or ""
+                )
+            ).lower()
+            if operation_family not in {"lookup", "single_value"}:
+                aligned_results.append(row)
+                continue
+            required_operands = [
+                dict(item)
+                for item in (task.get("required_operands") or [])
+                if bool(item.get("required", True))
+            ]
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            current_slot = dict(answer_slots.get("primary_value") or {})
+            if len(required_operands) != 1 and current_slot:
+                fallback_operand = {
+                    "label": current_slot.get("label") or row.get("metric_label"),
+                    "concept": current_slot.get("concept"),
+                    "role": current_slot.get("role") or "primary_value",
+                    "required": True,
+                }
+                if _normalise_spaces(str(fallback_operand.get("label") or fallback_operand.get("concept") or "")):
+                    required_operands = [fallback_operand]
+            if len(required_operands) != 1:
+                aligned_results.append(row)
+                continue
+            candidate = next(
+                (
+                    dict(item)
+                    for item in projected_by_task.get(task_id, [])
+                    if _projection_operand_matches_lookup(dict(item), required_operands[0])
+                ),
+                {},
+            )
+            if not candidate:
+                aligned_results.append(row)
+                continue
+
+            if not self._answer_slot_has_material(current_slot):
+                aligned_results.append(row)
+                continue
+            candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
+            current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
+            if not candidate_raw or candidate_raw == current_raw:
+                aligned_results.append(row)
+                continue
+
+            source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
+            direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
+            component_slot = self._build_operand_value_slot(
+                candidate,
+                default_role=str(
+                    candidate.get("matched_operand_role")
+                    or required_operands[0].get("role")
+                    or current_slot.get("role")
+                    or "primary_value"
+                ),
+                preserve_source_display=True,
+            )
+            if direct_source_ids:
+                component_slot["source_row_id"] = direct_source_ids[0]
+                component_slot["source_row_ids"] = direct_source_ids
+            primary_slot = {**component_slot, "role": "primary_value"}
+
+            rendered_value = _normalise_spaces(str(primary_slot.get("rendered_value") or ""))
+            if not rendered_value:
+                rendered_value = _normalise_spaces(
+                    f"{primary_slot.get('raw_value') or ''}{primary_slot.get('raw_unit') or ''}"
+                )
+            result_source_ids = list(primary_slot.get("source_row_ids") or source_ids)
+            updated_slots = dict(answer_slots)
+            updated_slots["primary_value"] = primary_slot
+            updated_slots["source_row_ids"] = result_source_ids
+            role_key = _normalise_spaces(str(component_slot.get("role") or ""))
+            if role_key:
+                components_by_role = dict(updated_slots.get("components_by_role") or {})
+                components_by_role[role_key] = [component_slot]
+                updated_slots["components_by_role"] = components_by_role
+                group_key = "denominator" if role_key.startswith("denominator") else "numerator"
+                components_by_group = dict(updated_slots.get("components_by_group") or {})
+                components_by_group[group_key] = [component_slot]
+                updated_slots["components_by_group"] = components_by_group
+
+            updated_result = {
+                **calculation_result,
+                "status": "ok",
+                "result_value": primary_slot.get("normalized_value"),
+                "result_unit": primary_slot.get("raw_unit") or calculation_result.get("result_unit"),
+                "rendered_value": rendered_value,
+                "formatted_result": rendered_value,
+                "series": [
+                    {
+                        "label": primary_slot.get("label"),
+                        "period": primary_slot.get("period"),
+                        "raw_value": primary_slot.get("raw_value"),
+                        "raw_unit": primary_slot.get("raw_unit"),
+                        "normalized_value": primary_slot.get("normalized_value"),
+                        "normalized_unit": primary_slot.get("normalized_unit"),
+                        "rendered_value": rendered_value,
+                    }
+                ],
+                "current_value": primary_slot.get("normalized_value"),
+                "current_period": primary_slot.get("period") or calculation_result.get("current_period"),
+                "source_row_ids": result_source_ids,
+                "answer_slots": updated_slots,
+            }
+            aligned_results.append(
+                {
+                    **dict(row),
+                    "answer": rendered_value,
+                    "calculation_result": updated_result,
+                    "answer_slots": updated_slots,
+                    "aligned_from_dependency_projection": True,
+                }
+            )
+        return aligned_results
 
     def _preferred_complete_numeric_answer(
         self,
@@ -3483,9 +3650,24 @@ class FinancialAgentCalculationMixin:
                     required_operands,
                 )
             ]
+            lookup_preference_evidence = list(evidence_items)
+            existing_preference_ids = {
+                str(item.get("evidence_id") or "").strip()
+                for item in lookup_preference_evidence
+                if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+            }
+            for item in state.get("runtime_evidence") or []:
+                if not isinstance(item, dict):
+                    continue
+                evidence_id = str(item.get("evidence_id") or "").strip()
+                if evidence_id and evidence_id in existing_preference_ids:
+                    continue
+                if evidence_id:
+                    existing_preference_ids.add(evidence_id)
+                lookup_preference_evidence.append(dict(item))
             direct_structured_rows = self._prefer_direct_structured_lookup_evidence_rows(
                 direct_structured_rows,
-                evidence_items=evidence_items,
+                evidence_items=lookup_preference_evidence,
                 required_operands=required_operands,
                 operation_family=operation_family,
             )
@@ -6641,6 +6823,14 @@ class FinancialAgentCalculationMixin:
             )
         )
         aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
+        aligned_ordered_results = self._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            state,
+            aggregate_projection,
+        )
+        if aligned_ordered_results is not ordered_results:
+            ordered_results = aligned_ordered_results
+            aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
         if calculation_projection_override:
             for key in ("calculation_operands", "calculation_plan", "calculation_result"):
                 if calculation_projection_override.get(key):

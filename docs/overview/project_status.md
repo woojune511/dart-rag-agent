@@ -36,6 +36,9 @@ role-separated multi-agent system using a task ledger and artifact store.
   - The fix is generic structured evidence selection: direct row-label /
     semantic-label evidence is preferred when projecting lookup task outputs
     into downstream ratio dependencies.
+  - Producer lookup subtask result views are also aligned with that dependency
+    projection, so serialized intermediate displays preserve the same direct
+    structured value used by the final ratio.
   - No company name, benchmark ID, or metric-specific runtime branch was added.
 
 ### Concept Runtime Gap Gate
@@ -104,13 +107,10 @@ Useful supporting points:
 
 1. Reduce benchmark runtime and embedding cost through profiling, cache
    hygiene, and explicit retrieval query-budget controls for focused canaries.
-2. Align producer lookup answers with the direct-evidence preference already
-   used by dependency projection, so intermediate subtask displays do not keep
-   weaker aggregate/adjustment values after the final answer is corrected.
-3. Harden task-ledger and artifact-store contracts for the multi-agent workflow.
-4. Clean up legacy projection paths now that `answer_slots` and
+2. Harden task-ledger and artifact-store contracts for the multi-agent workflow.
+3. Clean up legacy projection paths now that `answer_slots` and
    `resolved_calculation_trace` are the durable runtime surfaces.
-5. Add a small portfolio demo script that runs a representative query and emits
+4. Add a small portfolio demo script that runs a representative query and emits
    answer, evidence, and calculation trace side by side.
 
 ### Runtime/API Cost Focus

@@ -205,6 +205,9 @@ Latest local bounded-query canary:
   - Latest focused low-API rerun:
     `benchmarks/results/runtime_lookup_direct_row_skh_t1_060_2026-06-02/`
     returned `42.02%` with `numeric_final_judgement = PASS`.
+  - Producer lookup serialization is aligned with the final dependency
+    projection: the focused JSON now shows `task_6` as `9,490,410백만원`, with
+    zero stale `(600,550)백만원` occurrences.
 
 Historical answer replay:
 
