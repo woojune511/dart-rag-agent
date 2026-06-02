@@ -2257,6 +2257,7 @@ class SubtaskLoopTests(unittest.TestCase):
         updated = self.agent._aggregate_calculation_subtasks(state)
 
         self.assertIn("11.5%", updated["answer"])
+        self.assertIn("78.1", updated["answer"])
         self.assertIn("지역 시장 판매대수는 87.0만 대", updated["answer"])
         self.assertIn("정책 변화에 적극적인 대응이 필요한 상황", updated["answer"])
         self.assertNotIn("제공되지 않았", updated["answer"])

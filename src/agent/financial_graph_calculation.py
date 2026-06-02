@@ -1236,6 +1236,27 @@ class FinancialAgentCalculationMixin:
             return source_display
         return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
 
+    def _growth_required_display_values(
+        self,
+        row: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> List[str]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        required_values = [
+            self._growth_slot_display_value(dict(answer_slots.get("current_value") or {}), ordered_results),
+            self._growth_slot_display_value(dict(answer_slots.get("prior_value") or {}), ordered_results),
+            _normalise_spaces(
+                str(
+                    calculation_result.get("rendered_value")
+                    or self._growth_slot_display_value(primary_slot, ordered_results)
+                    or ""
+                )
+            ),
+        ]
+        return list(dict.fromkeys(value for value in required_values if value))
+
     def _compose_complete_growth_numeric_answer(
         self,
         row: Dict[str, Any],
@@ -1336,14 +1357,7 @@ class FinancialAgentCalculationMixin:
             complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
             if not complete_answer:
                 continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            required_values = [
-                self._growth_slot_display_value(dict(answer_slots.get("current_value") or {}), ordered_results),
-                self._growth_slot_display_value(dict(answer_slots.get("prior_value") or {}), ordered_results),
-                _normalise_spaces(str(calculation_result.get("rendered_value") or "")),
-            ]
-            required_values = [value for value in required_values if value]
+            required_values = self._growth_required_display_values(row, ordered_results)
             if required_values and all(value in answer_text for value in required_values):
                 return answer_text
             extra_sentences: List[str] = []
@@ -2552,8 +2566,8 @@ class FinancialAgentCalculationMixin:
         current_slot = growth_slots["current_value"]
         prior_slot = growth_slots["prior_value"]
         growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
-        current_value = _normalise_spaces(str(current_slot.get("rendered_value") or current_slot.get("raw_value") or ""))
-        prior_value = _normalise_spaces(str(prior_slot.get("rendered_value") or prior_slot.get("raw_value") or ""))
+        current_value = self._growth_slot_display_value(current_slot, ordered_results)
+        prior_value = self._growth_slot_display_value(prior_slot, ordered_results)
         prior_period = _normalise_spaces(
             str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
         )
@@ -2565,7 +2579,7 @@ class FinancialAgentCalculationMixin:
         metric_label = _normalise_spaces(metric_label)
         if not growth_value or not current_value or not metric_label:
             return None
-        required_displays = [value for value in (current_value, prior_value, growth_value) if value]
+        required_displays = self._growth_required_display_values(growth_row, ordered_results)
         focus_variants = self._narrative_focus_variants(query)
         focus_required_variants = self._parenthetical_focus_variants(query) or focus_variants
         answer_has_focus = not focus_required_variants or any(
@@ -2738,6 +2752,13 @@ class FinancialAgentCalculationMixin:
             return False
         if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"$^"), answer_text):
             return False
+        for row in ordered_results or []:
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            required_displays = self._growth_required_display_values(row, ordered_results)
+            if required_displays and not all(value in answer_text for value in required_displays):
+                return False
+            break
         impact_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ()))
         if not any(marker in answer_text for marker in impact_markers):
             return False

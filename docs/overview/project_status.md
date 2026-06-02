@@ -87,11 +87,14 @@ role-separated multi-agent system using a task ledger and artifact store.
   - The deterministic formula trace is still retained, but the final rendered
     answer and `answer_slots.primary_value.rendered_value` use the
     evidence-visible `11.5%` instead of drifting to a recomputed rounding.
+  - Aggregate growth+narrative composition now treats the structured
+    `current_value`, `prior_value`, and growth display slots as required answer
+    displays before accepting a mixed-query answer as complete.
   - Focused eval-only canary: faithfulness `1.000`, completeness `1.000`,
     context recall `1.000`, retrieval hit `1.000`, avg score `0.958`, error
     rate `0.0%`.
   - Validation: runtime domain-term audit passed, and
-    `python -m unittest discover -s tests` passed with `604` tests.
+    `python -m unittest discover -s tests` passed with `606` tests.
 
 ## Operating Principles
 
