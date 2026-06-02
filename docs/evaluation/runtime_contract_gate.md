@@ -1262,6 +1262,21 @@ Current gate status:
   - faithfulness is `1.0` for all seven questions; context recall remains
     `0.667` for `CEL_T1_013`, `KBF_T2_018`, and `SAM_T3_028`, and `1.0` for
     the other four questions.
+- Residual context-recall audit:
+  - `CEL_T1_013`: the two numeric operands (`342,736,271천원` total R&D cost
+    and `181,624,107천원` capitalized development cost) are present in runtime
+    evidence. The remaining recall gap is the canonical auxiliary sentence
+    about no current-period government grant receipts; the answer does not need
+    that auxiliary sentence to compute the requested ratio.
+  - `SAM_T3_028`: runtime evidence contains the inventory valuation amount and
+    cost-of-sales denominator, and the final answer preserves the supported
+    impact sentence. The remaining recall gap is a quote-surface mismatch for
+    the canonical sentence saying the cost includes inventory valuation losses.
+  - `KBF_T2_018`: the answer is grounded through MDA summary-table values and
+    risk-note scenario evidence, but the canonical direct comprehensive-income
+    statement row is not preserved as the selected context. This is the only
+    residual that looks like a retrieval coverage improvement candidate rather
+    than an evaluator granularity artifact.
 - Verification after the closure:
   - `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`
     passed (`213` tests).
