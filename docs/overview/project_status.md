@@ -170,6 +170,14 @@ Useful supporting points:
   dedupe is enabled only for explicitly budgeted retrieval stages.
 - Use this for focused triage before changing retrieval policy or ontology:
   it is an execution-cost control, not a benchmark-answer rule.
+- Benchmark runner now supports focused LLM route probes without editing the
+  profile via `--llm-route phase=provider:model`.
+- Local `HYU_T2_010` evidence-extraction probe with
+  `--llm-route evidence_extraction=google:gemini-2.5-flash` did not preserve
+  the gate contract: faithfulness and completeness fell to `0.500`, and the
+  rendered growth calculation drifted to `12.3%`. Keep
+  `evidence_extraction = gemini-2.5-pro` for the official gate until a broader
+  low-cost route canary proves otherwise.
 - First bounded low-API canary:
   - `NAV_T1_030` with budgets `12 / 6 / 2` passed.
   - `retrieval_debug_trace.query_budget` recorded `primary 3/3`,

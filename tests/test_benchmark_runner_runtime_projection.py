@@ -15,6 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.ops.benchmark_runner import (
     _BenchmarkProgressReporter,
+    _apply_llm_route_overrides,
     _build_agent_routing_config,
     _build_cross_company_rows,
     _build_winner_ranking,
@@ -79,6 +80,27 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             config["llm_routes"]["evidence_extraction"]["model"],
             "openai/gpt-4.1-mini",
         )
+
+    def test_llm_route_overrides_merge_with_profile_routes(self) -> None:
+        full_eval_config = _apply_llm_route_overrides(
+            {
+                "llm_routes": {
+                    "default": {"provider": "google", "model": "gemini-2.5-flash", "temperature": 0},
+                    "evidence_extraction": {"provider": "google", "model": "gemini-2.5-pro", "temperature": 0},
+                }
+            },
+            [
+                "evidence_extraction=google:gemini-2.5-flash",
+                "compression=openrouter:openai/gpt-4.1-mini",
+            ],
+        )
+
+        routes = full_eval_config["llm_routes"]
+        self.assertEqual(routes["evidence_extraction"]["provider"], "google")
+        self.assertEqual(routes["evidence_extraction"]["model"], "gemini-2.5-flash")
+        self.assertEqual(routes["evidence_extraction"]["temperature"], 0)
+        self.assertEqual(routes["compression"]["provider"], "openrouter")
+        self.assertEqual(routes["compression"]["model"], "openai/gpt-4.1-mini")
 
     def test_serialise_eval_results_preserves_retrieval_trace_history(self) -> None:
         result = SimpleNamespace(

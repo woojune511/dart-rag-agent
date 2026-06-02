@@ -3021,6 +3021,48 @@ def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, A
     return routing_config
 
 
+def _parse_llm_route_override(raw_value: str) -> tuple[str, Dict[str, Any]]:
+    raw = str(raw_value or "").strip()
+    if "=" not in raw:
+        raise ValueError("LLM route override must use phase=provider:model or phase=model format.")
+    phase, route_value = raw.split("=", 1)
+    phase = phase.strip()
+    route_value = route_value.strip()
+    if not phase or not route_value:
+        raise ValueError("LLM route override must include both phase and model.")
+
+    provider = ""
+    model = route_value
+    if ":" in route_value:
+        provider, model = route_value.split(":", 1)
+        provider = provider.strip()
+        model = model.strip()
+    if not model:
+        raise ValueError("LLM route override model cannot be empty.")
+
+    spec: Dict[str, Any] = {"model": model}
+    if provider:
+        spec["provider"] = provider
+    return phase, spec
+
+
+def _apply_llm_route_overrides(
+    full_eval_config: Dict[str, Any],
+    overrides: List[str],
+) -> Dict[str, Any]:
+    if not overrides:
+        return full_eval_config
+    updated = dict(full_eval_config)
+    routes = dict(updated.get("llm_routes") or {})
+    for override in overrides:
+        phase, spec = _parse_llm_route_override(override)
+        merged_spec = dict(routes.get(phase) or {})
+        merged_spec.update(spec)
+        routes[phase] = merged_spec
+    updated["llm_routes"] = routes
+    return updated
+
+
 def _mean_or_none(values: List[float | None]) -> float | None:
     filtered = [float(value) for value in values if value is not None]
     return float(mean(filtered)) if filtered else None
@@ -4475,6 +4517,15 @@ def main() -> None:
         help="Optional cap for reconciliation retry retrieval queries. Use 0 for the built-in default.",
     )
     parser.add_argument(
+        "--llm-route",
+        action="append",
+        default=[],
+        help=(
+            "Override a full-evaluation LLM route without editing the profile. "
+            "Format: phase=provider:model or phase=model. Repeat for multiple phases."
+        ),
+    )
+    parser.add_argument(
         "--progress-heartbeat-sec",
         type=int,
         default=0,
@@ -4521,6 +4572,7 @@ def main() -> None:
         full_eval_config["focused_retrieval_query_budget"] = max(int(args.focused_retrieval_query_budget), 0)
     if args.retry_retrieval_query_budget:
         full_eval_config["retry_retrieval_query_budget"] = max(int(args.retry_retrieval_query_budget), 0)
+    full_eval_config = _apply_llm_route_overrides(full_eval_config, list(args.llm_route or []))
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")
 
