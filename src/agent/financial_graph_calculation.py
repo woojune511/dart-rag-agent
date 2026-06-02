@@ -642,6 +642,27 @@ class FinancialAgentCalculationMixin:
         score = 0.0
         row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
         semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
+        binding_policy = dict(operand.get("binding_policy") or {})
+        requires_surface_contract = bool(
+            binding_policy.get("require_surface_contract_for_direct_match")
+            or binding_policy.get("require_surface_contract_for_direct_lookup")
+        )
+        if requires_surface_contract:
+            authoritative_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        evidence_item.get("claim"),
+                        evidence_item.get("quote_span"),
+                        evidence_item.get("raw_row_text"),
+                        row_label,
+                        semantic_label,
+                    )
+                )
+            )
+            if not _text_has_positive_surface(authoritative_surface, operand):
+                return 0.0
+
         operand_needles = [
             _normalise_spaces(str(needle))
             for needle in _operand_needles(operand)
@@ -907,9 +928,20 @@ class FinancialAgentCalculationMixin:
                 if not preferred_slot or preferred_score <= current_score:
                     recovered_results.append(row)
                     continue
-                if _normalise_spaces(str(preferred_slot.get("raw_value") or "")) == _normalise_spaces(
-                    str(current_slot.get("raw_value") or "")
-                ):
+                preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
+                current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
+                preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+                current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+                preferred_normalized = preferred_slot.get("normalized_value")
+                current_normalized = current_slot.get("normalized_value")
+                try:
+                    if preferred_normalized is not None and current_normalized is not None:
+                        normalized_differs = abs(float(preferred_normalized) - float(current_normalized)) > 1e-6
+                    else:
+                        normalized_differs = preferred_normalized != current_normalized
+                except (TypeError, ValueError):
+                    normalized_differs = preferred_normalized != current_normalized
+                if preferred_raw == current_raw and preferred_unit == current_unit and not normalized_differs:
                     recovered_results.append(row)
                     continue
                 preferred_result = _lookup_result_from_slot(
@@ -1749,7 +1781,23 @@ class FinancialAgentCalculationMixin:
             if preferred_slot and preferred_score > current_score:
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
-                if preferred_raw and preferred_raw != current_raw:
+                preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+                current_unit = _normalise_spaces(str(source_slot.get("raw_unit") or ""))
+                preferred_normalized = preferred_slot.get("normalized_value")
+                current_normalized = source_slot.get("normalized_value")
+                normalized_differs = False
+                try:
+                    if preferred_normalized is not None and current_normalized is not None:
+                        normalized_differs = abs(float(preferred_normalized) - float(current_normalized)) > 1e-6
+                    else:
+                        normalized_differs = preferred_normalized != current_normalized
+                except (TypeError, ValueError):
+                    normalized_differs = preferred_normalized != current_normalized
+                if preferred_raw and (
+                    preferred_raw != current_raw
+                    or preferred_unit != current_unit
+                    or normalized_differs
+                ):
                     source_slot = preferred_slot
             source_row_ids = _clean_source_row_ids([
                 f"task_output:{preferred_task_id}",
@@ -1812,7 +1860,7 @@ class FinancialAgentCalculationMixin:
                 "dependency_resolved": True,
             }
             source_evidence = self._evidence_item_for_operand_row(dependency_row, evidence_by_id)
-            dependency_rows.append(_coerce_lookup_magnitude_record(dependency_row, source_evidence))
+            dependency_rows.append(self._coerce_operand_row_from_evidence(dependency_row, source_evidence))
         return dependency_rows
 
     def _active_retry_strategy(self, state: FinancialAgentState) -> str:
@@ -3709,8 +3757,6 @@ class FinancialAgentCalculationMixin:
         """Reject lookup operands that are inferred from aggregate prose, not directly stated."""
         if not required_operands:
             return True
-        if not evidence_item:
-            return bool(str(row.get("source_anchor") or "").strip())
 
         raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
         if not raw_value:
@@ -3726,6 +3772,14 @@ class FinancialAgentCalculationMixin:
         )
         if matching_operand is None:
             return False
+
+        binding_policy = dict(matching_operand.get("binding_policy") or {})
+        requires_surface_contract = bool(
+            binding_policy.get("require_surface_contract_for_direct_match")
+            or binding_policy.get("require_surface_contract_for_direct_lookup")
+        )
+        if not evidence_item:
+            return False if requires_surface_contract else bool(str(row.get("source_anchor") or "").strip())
 
         support_raw_value = raw_value
         unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
@@ -3744,10 +3798,10 @@ class FinancialAgentCalculationMixin:
             if not evidence_text:
                 return False
             surface_operand = matching_operand
-            if not (
-                _text_has_positive_surface(evidence_text, surface_operand)
-                or _operand_text_match(evidence_text, surface_operand)
-            ):
+            positive_surface_match = _text_has_positive_surface(evidence_text, surface_operand)
+            if requires_surface_contract and not positive_surface_match:
+                return False
+            if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
                 periodless_label = _normalise_spaces(
                     re.sub(
                         rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+",
@@ -3758,10 +3812,10 @@ class FinancialAgentCalculationMixin:
                 if periodless_label and periodless_label != str(matching_operand.get("label") or ""):
                     surface_operand = dict(matching_operand)
                     surface_operand["label"] = periodless_label
-            if not (
-                _text_has_positive_surface(evidence_text, surface_operand)
-                or _operand_text_match(evidence_text, surface_operand)
-            ):
+                    positive_surface_match = _text_has_positive_surface(evidence_text, surface_operand)
+            if requires_surface_contract and not positive_surface_match:
+                return False
+            if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
                 return False
             if _text_has_negative_surface(evidence_text, surface_operand):
                 return False
@@ -3787,6 +3841,32 @@ class FinancialAgentCalculationMixin:
         if source_context:
             return _text_supports_operand(source_context)
         return False
+
+    def _operand_row_satisfies_required_surface_contract(
+        self,
+        row: Dict[str, Any],
+        evidence_by_id: Dict[str, Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+    ) -> bool:
+        matching_operand = next(
+            (
+                operand
+                for operand in required_operands
+                if _operand_row_matches_requirement(row, operand)
+            ),
+            None,
+        )
+        if matching_operand is None:
+            return False
+        binding_policy = dict(matching_operand.get("binding_policy") or {})
+        requires_surface_contract = bool(
+            binding_policy.get("require_surface_contract_for_direct_match")
+            or binding_policy.get("require_surface_contract_for_direct_lookup")
+        )
+        if not requires_surface_contract:
+            return True
+        evidence_item = self._evidence_item_for_operand_row(row, evidence_by_id)
+        return self._llm_lookup_operand_has_direct_support(row, evidence_item, [matching_operand])
 
     def _build_deterministic_ontology_plan(
         self,
@@ -4182,10 +4262,16 @@ class FinancialAgentCalculationMixin:
                 for row in direct_structured_rows
             ]
         if direct_structured_rows and required_operands:
+            evidence_by_id = {
+                str(item.get("evidence_id") or "").strip(): dict(item)
+                for item in evidence_items
+                if str(item.get("evidence_id") or "").strip()
+            }
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
                 if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+                and self._operand_row_satisfies_required_surface_contract(row, evidence_by_id, required_operands)
             ]
         if direct_structured_rows and required_operands and operation_family in {"lookup", "single_value"}:
             evidence_by_id = {
@@ -4673,6 +4759,7 @@ class FinancialAgentCalculationMixin:
                     row
                     for row in operand_rows
                     if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+                    and self._operand_row_satisfies_required_surface_contract(row, evidence_by_id, required_operands)
                 ]
             if operation_family in {"lookup", "single_value"} and required_operands:
                 operand_rows = [

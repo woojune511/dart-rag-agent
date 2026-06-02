@@ -1159,6 +1159,47 @@ Current gate status:
 - The raw rerun directory is a local benchmark artifact and should not be
   committed. Use the reusable profile below for future reruns.
 
+2026-06-03 concept runtime gap follow-up:
+
+- A fresh monitored concept-runtime gate refresh was run locally with
+  `benchmarks/profiles/curated_concept_runtime_gap_gate.json`.
+  - local output bundle:
+    `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-03_provenance/`
+  - the bundle is experiment material and was intentionally left untracked.
+  - heartbeat logging was enabled for the fresh run and follow-up eval-only
+    refreshes.
+- Initial seven-question refresh result:
+  - PASS: `SKH_T3_080`, `CEL_T3_040`, `KAB_T1_066`, `SAM_T3_028`
+  - FAIL: `KBF_T2_018`, `CEL_T1_013`, `POS_T1_057`
+- Runtime fixes stayed inside generic evidence/slot contracts:
+  - dependency lookup replacement now compares raw unit and normalized value,
+    not only raw display value, so a stronger structured slot can replace a
+    same-text value with a different unit scale.
+  - required operands with a declared surface contract must have positive
+    direct evidence before structured direct lookup scoring can prefer them.
+  - sibling lookup recovery uses the same unit/normalized-value replacement
+    rule.
+- Focused store-fixed eval-only after the fixes:
+  - `CEL_T1_013`: PASS, final answer `52.99%`,
+    `numeric_equivalence = 1.0`, `numeric_grounding = 1.0`,
+    `numeric_retrieval_support = 1.0`, `faithfulness = 1.0`,
+    `completeness = 1.0`.
+  - `POS_T1_057`: PASS, final answer `3.5269배`,
+    `numeric_equivalence = 1.0`, `numeric_grounding = 1.0`,
+    `numeric_retrieval_support = 1.0`, `faithfulness = 1.0`,
+    `completeness = 1.0`.
+- Remaining residual:
+  - `KBF_T2_018` still needs a separate review. The observed calculation path
+    was grounded, while the residual failure looked tied to auxiliary numeric
+    claim support/evaluator alignment rather than a missing retrieval concept.
+- Verification after the code change:
+  - `python -m unittest tests.test_part_whole_ratio_contract` passed
+    (`11` tests).
+  - `python -m src.ops.audit_runtime_domain_terms` passed.
+  - `python -m unittest tests.test_aggregate_subtask_projection
+    tests.test_subtask_loop tests.test_semantic_numeric_plan` passed
+    (`139` tests).
+
 Recommended invocation:
 
 ```powershell
