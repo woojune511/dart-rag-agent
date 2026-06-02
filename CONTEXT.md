@@ -98,7 +98,19 @@
   - `runtime_contract_gate`에서는 `plain`이 `SKH_T1_060`를 놓쳤고, `structural`과 `contextual`은 대표 5문항을 모두 통과했다
   - `multi_entity_grounding_gate`에서도 `structural`과 `contextual`이 `comparison_001~003`을 모두 통과했다
 - 최신 runtime hardening도 추가로 닫혔다.
-  - `SKH_T1_060`는 structural path에서 `장기차입금` / `사채` note aggregate lookup hardening 이후 다시 `PASS`로 닫혔다.
+  - `SKH_T1_060`는 structural path에서 direct structured row-label evidence를
+    lookup task output dependency보다 우선하는 generic binding repair 이후
+    다시 `PASS`로 닫혔다.
+    - 실패층은 retrieval이 아니라 lookup/dependency operand binding이었다.
+    - `단기차입금 4,145,647백만원`, `장기차입금 10,121,033백만원`,
+      `사채 9,490,410백만원`이 final ratio dependency operand로 투영된다.
+    - latest focused low-API rerun:
+      `benchmarks/results/runtime_lookup_direct_row_skh_t1_060_2026-06-02/`
+      returned `42.02%`, `numeric_final_judgement = PASS`.
+    - caveat: producer lookup subtask answer can still display the weaker
+      aggregate/adjustment value, but final dependency projection now uses the
+      stronger direct structured evidence. A follow-up cleanup should align the
+      producer lookup answer itself with the same direct-evidence preference.
   - `MIX_T1_064`는 ontology-driven component ratio shape, evaluator composed-ratio grounding, uncertainty suffix 정리 이후 공식 targeted rerun까지 `PASS`로 닫혔다.
     - `numeric_equivalence = 1.0`
     - `numeric_grounding = 1.0`

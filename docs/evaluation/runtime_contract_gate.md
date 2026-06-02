@@ -197,12 +197,14 @@ Latest local bounded-query canary:
   - executed retrieval queries: `9` (`primary = 3`, `operand_focus = 6`)
   - budget trace: `primary 3/3`, `operand_focus 6/16`, `retry 0/0`
   - API calls / estimated cost: `0 / $0.0000`
-- Caution:
-  - `SKH_T1_060` is not a good query-budget smoke target in the current fresh
-    low-API/BM25 path because it can bind the bond operand to a parenthesized
-    adjustment row and fail even without explicit budgets. Treat that as a
-    separate evidence-ranking / row-selection regression, not as proof that
-    query-budget plumbing is broken.
+- Follow-up note:
+  - The earlier fresh low-API/BM25 `SKH_T1_060` failure was classified as a
+    structured lookup / dependency operand-binding regression, not query-budget
+    plumbing. It is now closed by preferring stronger direct structured row-label
+    evidence when projecting lookup task outputs into ratio dependencies.
+  - Latest focused low-API rerun:
+    `benchmarks/results/runtime_lookup_direct_row_skh_t1_060_2026-06-02/`
+    returned `42.02%` with `numeric_final_judgement = PASS`.
 
 Historical answer replay:
 

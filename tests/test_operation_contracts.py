@@ -5169,6 +5169,302 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(len(result["evidence_items"]), 2)
         self.assertTrue(any("Poshmark" in str(item.get("claim") or "") for item in result["evidence_items"]))
 
+    def test_lookup_prefers_direct_structured_row_label_evidence_over_indirect_aggregate(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "2023년 목표항목 값을 찾아줘",
+            "years": [2023],
+            "report_scope": {"company": "대상회사", "year": "2023", "consolidation": "연결"},
+            "intent": "qa",
+            "topic": "목표항목",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "sufficient",
+            "active_subtask": {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 목표항목",
+                "operation_family": "lookup",
+                "required_operands": [
+                    {
+                        "label": "목표항목",
+                        "concept": "target_metric",
+                        "role": "primary_value",
+                        "required": True,
+                    }
+                ],
+                "constraints": {
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                },
+            },
+            "reconciliation_result": {"status": "ready", "matched_operands": []},
+        }
+        indirect_row = {
+            "evidence_id": "ev_indirect",
+            "source_row_id": "ev_indirect",
+            "source_row_ids": ["ev_indirect"],
+            "source_anchor": "[대상회사 | 2023 | table]",
+            "label": "목표항목",
+            "raw_value": "400",
+            "raw_unit": "백만원",
+            "normalized_value": 400000000.0,
+            "normalized_unit": "KRW",
+            "matched_operand_label": "목표항목",
+            "matched_operand_concept": "target_metric",
+            "matched_operand_role": "primary_value",
+        }
+        reconciliation_evidence = [
+            {
+                "evidence_id": "ev_indirect",
+                "source_anchor": "[대상회사 | 2023 | table]",
+                "claim": "상위항목 합계 | 목표항목 합계 400 백만원",
+                "quote_span": "상위항목 합계 | 목표항목 합계 400 백만원",
+                "raw_row_text": "상위항목 합계 | 목표항목 합계 400 백만원",
+                "metadata": {
+                    "row_label": "상위항목 합계",
+                    "semantic_label": "상위항목 합계",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "year": 2023,
+                    "table_source_id": "table_indirect",
+                    "unit_hint": "백만원",
+                    "structured_cells": [
+                        {"column_headers": ["목표항목 합계"], "value_text": "400", "unit_hint": "백만원"}
+                    ],
+                },
+            },
+            {
+                "evidence_id": "ev_direct",
+                "source_anchor": "[대상회사 | 2023 | table]",
+                "claim": "목표항목 | 표시금액 900 백만원",
+                "quote_span": "목표항목 | 표시금액 900 백만원",
+                "raw_row_text": "목표항목 | 표시금액 900 백만원",
+                "metadata": {
+                    "row_label": "목표항목",
+                    "semantic_label": "목표항목",
+                    "value_role": "detail",
+                    "aggregation_stage": "none",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "year": 2023,
+                    "table_source_id": "table_direct",
+                    "unit_hint": "백만원",
+                    "structured_cells": [
+                        {"column_headers": ["표시금액"], "value_text": "900", "unit_hint": "백만원"}
+                    ],
+                },
+            },
+        ]
+
+        with patch.object(
+            agent,
+            "_extract_structured_operands_from_reconciliation",
+            return_value=[indirect_row],
+        ), patch.object(
+            agent,
+            "_evidence_items_from_reconciliation_matches",
+            return_value=reconciliation_evidence,
+        ):
+            result = agent._extract_calculation_operands(state)
+
+        rows = result["calculation_debug_trace"]["operands"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_row_id"], "ev_direct")
+        self.assertEqual(rows[0]["raw_value"], "900")
+
+    def test_aggregate_lookup_repair_replaces_ok_slot_with_stronger_sibling_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        direct_evidence = {
+            "evidence_id": "ev_direct",
+            "source_anchor": "[대상회사 | 2023 | table]",
+            "claim": "목표항목 | 표시금액 900 백만원",
+            "quote_span": "목표항목 | 표시금액 900 백만원",
+            "raw_row_text": "목표항목 | 표시금액 900 백만원",
+            "metadata": {
+                "row_label": "목표항목",
+                "semantic_label": "목표항목",
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "year": 2023,
+                "table_source_id": "table_direct",
+                "unit_hint": "백만원",
+                "structured_cells": [
+                    {"column_headers": ["표시금액"], "value_text": "900", "unit_hint": "백만원"}
+                ],
+            },
+        }
+        ordered_results = [
+            {
+                "task_id": "task_context",
+                "metric_family": "concept_lookup",
+                "metric_label": "context",
+                "status": "ok",
+                "runtime_evidence": [direct_evidence],
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "context",
+                            "raw_value": "1",
+                            "raw_unit": "백만원",
+                            "normalized_value": 1000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "1백만원",
+                            "source_row_id": "ev_context",
+                            "source_row_ids": ["ev_context"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 목표항목",
+                "status": "ok",
+                "answer": "목표항목 400백만원",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 400000000.0,
+                    "result_unit": "백만원",
+                    "rendered_value": "400백만원",
+                    "formatted_result": "목표항목 400백만원",
+                    "source_row_ids": ["ev_indirect"],
+                    "answer_slots": {
+                        "metric_label": "2023년 목표항목",
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "목표항목",
+                            "raw_value": "400",
+                            "raw_unit": "백만원",
+                            "normalized_value": 400000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "400백만원",
+                            "source_row_id": "ev_indirect",
+                            "source_row_ids": ["ev_indirect"],
+                        },
+                    },
+                },
+            },
+        ]
+        state = {
+            "calc_subtasks": [
+                {"task_id": "task_context", "operation_family": "lookup", "required_operands": []},
+                {
+                    "task_id": "task_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "목표항목",
+                            "concept": "target_metric",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                },
+            ],
+            "evidence_items": [],
+        }
+
+        repaired = agent._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
+
+        lookup = next(row for row in repaired if row["task_id"] == "task_lookup")
+        slot = lookup["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertEqual(slot["source_row_id"], "ev_direct")
+        self.assertEqual(slot["raw_value"], "900")
+
+    def test_dependency_operand_rows_prefer_direct_sibling_lookup_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        direct_evidence = {
+            "evidence_id": "ev_direct",
+            "source_anchor": "[대상회사 | 2023 | table]",
+            "claim": "목표항목 | 표시금액 900 백만원",
+            "quote_span": "목표항목 | 표시금액 900 백만원",
+            "raw_row_text": "목표항목 | 표시금액 900 백만원",
+            "metadata": {
+                "row_label": "목표항목",
+                "semantic_label": "목표항목",
+                "value_role": "detail",
+                "aggregation_stage": "none",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "year": 2023,
+                "table_source_id": "table_direct",
+                "unit_hint": "백만원",
+                "structured_cells": [
+                    {"column_headers": ["표시금액"], "value_text": "900", "unit_hint": "백만원"}
+                ],
+            },
+        }
+        state = {
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "operation_family": "ratio",
+                "inputs": [
+                    {
+                        "label": "목표항목",
+                        "concept": "target_metric",
+                        "role": "numerator_1",
+                        "source_preference": ["task_output"],
+                        "preferred_task_id": "task_lookup",
+                        "source_slot": "primary_value",
+                    }
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_context",
+                    "runtime_evidence": [direct_evidence],
+                    "calculation_result": {},
+                },
+                {
+                    "task_id": "task_lookup",
+                    "metric_label": "2023년 목표항목",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 400000000.0,
+                        "result_unit": "백만원",
+                        "source_row_ids": ["ev_indirect"],
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "목표항목",
+                                "concept": "target_metric",
+                                "raw_value": "400",
+                                "raw_unit": "백만원",
+                                "normalized_value": 400000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "400백만원",
+                                "source_row_id": "ev_indirect",
+                                "source_row_ids": ["ev_indirect"],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+        }
+
+        rows = agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_row_ids"][:2], ["task_output:task_lookup", "ev_direct"])
+        self.assertEqual(rows[0]["source_row_id"], "task_output:task_lookup")
+        self.assertEqual(rows[0]["raw_value"], "900")
+
     def test_narrative_summary_supplements_missing_consolidation_effect_driver(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         metadata = {
