@@ -7225,6 +7225,20 @@ class FinancialAgentCalculationMixin:
                 calculation_projection_override = None
                 planner_feedback = ""
                 deterministic_feedback = ""
+        quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
+            query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        if quantitative_impact_answer and not narrative_answer_locked:
+            final_answer = _normalise_spaces(str(quantitative_impact_answer.get("answer") or "")) or final_answer
+            composition_selected_claim_ids.extend(
+                str(claim_id).strip()
+                for claim_id in (quantitative_impact_answer.get("supporting_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+            narrative_answer_locked = True
+            planner_feedback = ""
+            deterministic_feedback = ""
         if not deterministic_feedback:
             augmented_answer = self._augment_narrative_answer_with_supported_drivers(
                 final_answer,

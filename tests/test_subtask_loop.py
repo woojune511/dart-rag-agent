@@ -42,6 +42,73 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
         self.agent._llm_for_phase = lambda _phase: self.agent.llm
 
+    def test_aggregate_subtasks_preserves_supported_quantitative_impact_answer(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "2023년 주석에서 '평가손실' 규모를 찾고, 이것이 영업비용에 미친 영향을 분석해 줘.",
+            "calc_subtasks": [{"task_id": "task_1"}],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "영업비용 대비 평가손실 비중",
+                "operation_family": "ratio",
+            },
+            "answer": "2023년 연결기준 영업비용 대비 평가손실 비중은 2.00%입니다.",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "2.00%",
+                "formatted_result": "2023년 연결기준 영업비용 대비 평가손실 비중은 2.00%입니다.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "영업비용 대비 평가손실 비중",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "영업비용 대비 평가손실 비중",
+                        "raw_value": "2.00",
+                        "raw_unit": "%",
+                        "normalized_value": 2.0,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "2.00%",
+                    },
+                },
+            },
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_loss",
+                    "claim": "평가손실 2,000",
+                    "metadata": {
+                        "table_value_labels_text": "평가손실 2,000",
+                        "unit_hint": "백만원",
+                        "statement_type": "notes",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
+                {
+                    "evidence_id": "ev_cost",
+                    "claim": "영업비용 100,000",
+                    "metadata": {
+                        "table_value_labels_text": "영업비용 100,000",
+                        "unit_hint": "백만원",
+                        "statement_type": "income_statement",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
+            ],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("평가손실은 2,000백만원입니다", updated["answer"])
+        self.assertIn("영업비용에 포함되어 비용을 증가", updated["answer"])
+        self.assertIn("영업비용 100,000백만원 대비 약 2.00%", updated["answer"])
+        self.assertEqual(set(updated["selected_claim_ids"]), {"ev_cost", "ev_loss"})
+
     def test_ratio_definition_phrase_does_not_request_explanatory_context(self) -> None:
         self.assertFalse(
             self.agent._query_requests_explanatory_context(

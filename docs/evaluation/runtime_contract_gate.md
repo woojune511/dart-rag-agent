@@ -1236,7 +1236,22 @@ Current gate status:
     context recall `0.667`, citation coverage `1.0`.
   - `SKH_T3_080`: PASS, faithfulness `1.0`, completeness `1.0`,
     context recall `1.0`, citation coverage `1.0`.
+- Follow-up `SAM_T3_028` focused store-fixed eval-only closure:
+  - change: aggregate synthesis now reuses the existing
+    `supported_quantitative_impact_assembly` contract when the final evidence
+    set contains the labeled numerator and denominator values for a
+    quantitative impact question. This keeps the absolute amount, the supported
+    impact sentence, and the ratio in the final answer instead of collapsing to
+    the ratio-only numeric answer.
+  - command:
+    `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/sam_t3_028_quant_impact_focus_2026-06-03 --company-run-id samsung_2023_concept_gap --eval-only --question-id SAM_T3_028 --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/sam_t3_028_quant_impact_focus_2026-06-03/_logs/heartbeat_sam_t3_028_quant_impact_2026-06-03.jsonl`
+  - result: PASS, numeric final judgement `PASS`, faithfulness `1.0`,
+    completeness `1.0`, context recall `0.667`, citation coverage `1.0`.
+  - final answer includes `5,037,579백만원`, the supported cost-of-sales impact
+    sentence, `180,388,580백만원`, and `2.79%`.
 - Verification after the closure:
+  - `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`
+    passed (`213` tests).
   - `python -m unittest tests.test_math_parsing
     tests.test_aggregate_subtask_projection
     tests.test_evaluator_runtime_projection
