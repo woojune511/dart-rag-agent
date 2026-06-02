@@ -409,19 +409,7 @@ def _period_comparison_count_value_from_text(
             score += 0.5
 
         selected = value_matches[-1]
-        stated_change_match = re.search(
-            rf"{KOREAN_PERIOD_COMPARISON_RE_FRAGMENT}\s*"
-            r"(?P<value>[\-+]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|퍼센트)",
-            sentence,
-        )
-        stated_change: Dict[str, str] = {}
-        if stated_change_match:
-            stated_change = {
-                "stated_change_raw_value": stated_change_match.group("value"),
-                "stated_change_raw_unit": "%"
-                if stated_change_match.group("unit") == "%"
-                else stated_change_match.group("unit"),
-            }
+        stated_change = _stated_period_change_from_text(sentence)
         candidates.append(
             (
                 score,
@@ -438,6 +426,58 @@ def _period_comparison_count_value_from_text(
         return None
     candidates.sort(key=lambda item: item[0], reverse=True)
     return candidates[0][1]
+
+
+def _stated_period_change_from_text(text: str) -> Dict[str, str]:
+    count_policy = dict(PERIOD_COMPARISON_COUNT_POLICY)
+    stated_change_pattern = str(count_policy.get("stated_change_pattern") or "")
+    if not stated_change_pattern:
+        return {}
+    stated_change_match = re.search(stated_change_pattern, text)
+    if not stated_change_match:
+        return {}
+    return {
+        "stated_change_raw_value": stated_change_match.group("value"),
+        "stated_change_raw_unit": "%"
+        if stated_change_match.group("unit") == "%"
+        else stated_change_match.group("unit"),
+    }
+
+
+def _period_scoped_count_value_from_text(
+    text: str,
+    operand: Dict[str, Any],
+    *,
+    query_years: List[str],
+    report_scope: Dict[str, Any],
+) -> Optional[Dict[str, str]]:
+    normalized = _normalise_spaces(text)
+    if not normalized:
+        return None
+    target_year = _period_target_for_operand(operand, query_years, report_scope)
+    if not target_year:
+        return None
+    count_policy = dict(PERIOD_COMPARISON_COUNT_POLICY)
+    year_pattern = str(count_policy.get("year_pattern") or r"$^")
+    year_matches = [
+        match
+        for match in re.finditer(year_pattern, normalized)
+        if str(match.group(1) if match.groups() else match.group(0)).strip() == target_year
+    ]
+    if len(year_matches) != 1:
+        return None
+    for year_match in year_matches:
+        tail = normalized[year_match.end() : year_match.end() + 140]
+        value_match = re.search(_COUNT_VALUE_UNIT_RE, tail)
+        if not value_match:
+            continue
+        return {
+            "raw_value": value_match.group("value"),
+            "raw_unit": _normalise_spaces(value_match.group("unit")),
+            "period": target_year,
+            **_stated_period_change_from_text(tail),
+        }
+    return None
 
 
 def _doc_identity(doc: Document) -> str:
@@ -1863,10 +1903,17 @@ class FinancialAgentEvidenceMixin:
             format_preference,
             len(docs),
         )
+        retrieval_debug_trace_history = [
+            dict(item)
+            for item in (state.get("retrieval_debug_trace_history") or [])
+            if isinstance(item, dict)
+        ]
+        retrieval_debug_trace_history.append(retrieval_debug_trace)
         return {
             "seed_retrieved_docs": seed_docs,
             "retrieved_docs": docs,
             "retrieval_debug_trace": retrieval_debug_trace,
+            "retrieval_debug_trace_history": retrieval_debug_trace_history,
         }
 
     def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -2050,10 +2097,15 @@ class FinancialAgentEvidenceMixin:
             f"{metadata.get('section_path', metadata.get('section', '?'))}{relation_suffix}]"
         )
 
-    def _build_evidence_context(self, docs) -> Dict[str, Any]:
+    def _build_evidence_context(self, docs, *, focus_terms: Optional[List[str]] = None) -> Dict[str, Any]:
         parts = []
         anchor_lookup: Dict[str, List[Dict[str, Any]]] = {}
         seen_parents: set = set()
+        focus_terms_lower = [
+            _normalise_spaces(str(term or "")).lower()
+            for term in (focus_terms or [])
+            if _normalise_spaces(str(term or ""))
+        ]
 
         for doc, _score in docs:
             metadata = doc.metadata or {}
@@ -2088,11 +2140,16 @@ class FinancialAgentEvidenceMixin:
             parent_id = metadata.get("parent_id")
             graph_relation = metadata.get("graph_relation")
             skip_auto_parent = bool(metadata.get("graph_seed_with_parent_context"))
+            child_content = str(doc.page_content or "")
+            child_matches_focus = bool(
+                focus_terms_lower
+                and any(term in child_content.lower() for term in focus_terms_lower)
+            )
             if graph_relation:
-                parts.append(f"{anchor}\n{doc.page_content}")
+                parts.append(f"{anchor}\n{child_content}")
                 continue
 
-            if parent_id and not skip_auto_parent and parent_id not in seen_parents:
+            if parent_id and not child_matches_focus and not skip_auto_parent and parent_id not in seen_parents:
                 parent_text = self.vsm.get_parent(parent_id)
                 if parent_text:
                     seen_parents.add(parent_id)
@@ -2103,7 +2160,7 @@ class FinancialAgentEvidenceMixin:
                 continue
 
             table_context = metadata.get("table_context")
-            body = f"[table_context] {table_context}\n{doc.page_content}" if table_context else doc.page_content
+            body = f"[table_context] {table_context}\n{child_content}" if table_context else child_content
             parts.append(f"{anchor}\n{body}")
 
         return {
@@ -2111,6 +2168,47 @@ class FinancialAgentEvidenceMixin:
             "anchor_lookup": anchor_lookup,
             "available_anchors": list(anchor_lookup.keys()),
         }
+
+    def _evidence_extraction_focus_terms(self, query: str) -> List[str]:
+        extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
+        stopwords = {
+            _normalise_spaces(str(item))
+            for item in (extraction_policy.get("focus_term_stopwords") or ())
+            if _normalise_spaces(str(item))
+        }
+        max_terms = int(extraction_policy.get("max_focus_terms") or 12)
+        token_pattern = str(extraction_policy.get("focus_term_token_pattern") or r"\S+")
+        particle_suffix_pattern = str(extraction_policy.get("focus_term_particle_suffix_pattern") or r"$^")
+        terms: List[str] = []
+
+        def _add(term: str) -> None:
+            cleaned = _normalise_spaces(str(term or "")).strip()
+            if not cleaned:
+                return
+            variants = [cleaned]
+            variants.extend(
+                _normalise_spaces(match)
+                for match in re.findall(r"\(([^)]+)\)", cleaned)
+                if _normalise_spaces(match)
+            )
+            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
+            if outside_parentheses and outside_parentheses != cleaned:
+                variants.append(outside_parentheses)
+            for variant in variants:
+                normalized = _normalise_spaces(variant).strip()
+                normalized = re.sub(particle_suffix_pattern, "", normalized)
+                if len(normalized) < 2 or normalized in stopwords:
+                    continue
+                if re.fullmatch(r"\d+(?:\.\d+)?", normalized):
+                    continue
+                if normalized not in terms:
+                    terms.append(normalized)
+
+        for token in re.findall(token_pattern, _normalise_spaces(str(query or ""))):
+            _add(token)
+            if len(terms) >= max_terms:
+                break
+        return terms[:max_terms]
 
     def _resolve_anchor_metadata(
         self,
@@ -3049,7 +3147,12 @@ class FinancialAgentEvidenceMixin:
                                     )
 
                 if not raw_value:
-                    prose_value = _period_comparison_count_value_from_text(
+                    prose_value = _period_scoped_count_value_from_text(
+                        context_text or raw_row,
+                        operand,
+                        query_years=query_years,
+                        report_scope=report_scope,
+                    ) or _period_comparison_count_value_from_text(
                         context_text or raw_row,
                         operand,
                         query_years=query_years,
@@ -3062,7 +3165,12 @@ class FinancialAgentEvidenceMixin:
                         stated_change_raw_value = str(prose_value.get("stated_change_raw_value") or "")
                         stated_change_raw_unit = str(prose_value.get("stated_change_raw_unit") or "")
 
-                if not raw_value and not period_count_context_match:
+                if not raw_value and (
+                    not period_count_context_match
+                    or raw_row_direct_match
+                    or surface_contract_match
+                    or table_value_context_match
+                ):
                     raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
                     if raw_value and not raw_unit:
                         raw_unit = _fallback_unit(raw_value, context_text)
@@ -3082,6 +3190,12 @@ class FinancialAgentEvidenceMixin:
 
                 if not raw_unit:
                     raw_unit = _fallback_unit(raw_value, context_text)
+                if raw_value:
+                    raw_unit = self._coerce_operand_unit_from_evidence(
+                        raw_value=raw_value,
+                        raw_unit=raw_unit,
+                        evidence_item=item,
+                    )
 
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                 if normalized_value is None:
@@ -3096,10 +3210,6 @@ class FinancialAgentEvidenceMixin:
                 ):
                     continue
 
-                key = (str(item.get("source_anchor") or ""), label_name, period)
-                if key in seen:
-                    continue
-                seen.add(key)
                 row_payload = {
                     "operand_id": f"op_{len(operand_rows) + 1:03d}",
                     "evidence_id": item.get("evidence_id"),
@@ -3122,6 +3232,17 @@ class FinancialAgentEvidenceMixin:
                     row_payload["stated_change_raw_unit"] = stated_change_raw_unit or str(
                         assembly_policy.get("stated_change_default_unit") or ""
                     )
+                row_payload = self._coerce_operand_row_from_evidence(row_payload, item)
+                if not _operand_row_matches_requirement(row_payload, operand):
+                    continue
+                key = (
+                    str(row_payload.get("source_anchor") or item.get("source_anchor") or ""),
+                    label_name,
+                    str(row_payload.get("period") or period),
+                )
+                if key in seen:
+                    continue
+                seen.add(key)
                 operand_rows.append(row_payload)
                 break
 
@@ -4536,7 +4657,8 @@ class FinancialAgentEvidenceMixin:
 
         structured_llm = self._llm_for_phase("evidence_extraction").with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
-        evidence_context = self._build_evidence_context(docs[: min(8, len(docs))])
+        focus_terms = self._evidence_extraction_focus_terms(str(state.get("query") or ""))
+        evidence_context = self._build_evidence_context(docs[: min(8, len(docs))], focus_terms=focus_terms)
         anchor_lookup = evidence_context["anchor_lookup"]
         extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
         extra_rules = str(dict(extraction_policy.get("extra_rules_by_query_type") or {}).get(query_type) or "")
@@ -4549,6 +4671,7 @@ class FinancialAgentEvidenceMixin:
                 {
                     "query": state["query"],
                     "topic": state.get("topic") or state["query"],
+                    "focus_terms": ", ".join(focus_terms),
                     "available_anchors": "\n".join(evidence_context["available_anchors"]),
                     "context": evidence_context["context"],
                     "extra_rules": extra_rules,

@@ -82,6 +82,39 @@ class SemanticNumericPlanTests(unittest.TestCase):
             any("영업수익 증가" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
         )
 
+    def test_policy_context_query_appends_policy_retrieval_suffixes(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        state = {
+            "query": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "topic": "미국 시장 판매대수 성장률 및 보호무역주의 대응 필요성",
+            "report_scope": {
+                "company": "현대자동차",
+                "year": 2023,
+            },
+            "planner_mode": "initial",
+            "planner_feedback": "",
+            "plan_loop_count": 0,
+            "target_metric_family": "",
+            "target_metric_family_hint": "",
+            "companies": ["현대자동차"],
+            "years": [2023, 2022],
+            "section_filter": None,
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = agent._plan_semantic_numeric_tasks(state)
+
+        narrative_task = result["calc_subtasks"][-1]
+        self.assertEqual(narrative_task["operation_family"], "narrative_summary")
+        queries = list(narrative_task["retrieval_queries"])
+        self.assertTrue(any("인플레이션 감축법 IRA 보호무역주의 대응 필요" in query for query in queries))
+        self.assertTrue(any("보호무역주의 핵심원자재법 적극적인 대응" in query for query in queries))
+        self.assertIn("IV. 이사의 경영진단 및 분석의견", narrative_task["preferred_sections"])
+
     def test_qa_routed_ontology_numeric_lookup_promotes_to_numeric_plan(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager

@@ -2804,6 +2804,14 @@ class FinancialAgentCalculationMixin:
             known_current_family = current_unit and current_family and current_family != "UNKNOWN"
             known_hint_family = unit_hint and hint_family and hint_family != "UNKNOWN"
             known_surface_family = surface_family and surface_family != "UNKNOWN" and surface_value is not None
+            if self._evidence_core_surface_contains_value_unit(
+                raw_value=raw_value,
+                raw_unit=surface_unit,
+                evidence_item=evidence_item,
+            ):
+                if known_hint_family and known_current_family and hint_family == current_family:
+                    return current_unit
+                return surface_unit
             if known_surface_family and (
                 (known_current_family and current_value is not None and surface_family != current_family)
                 or (known_hint_family and hint_value is not None and surface_family != hint_family)
@@ -2834,6 +2842,78 @@ class FinancialAgentCalculationMixin:
         if bare_numeric and normalized_current in ambiguous_krw_units and normalized_hint in krw_display_units:
             return unit_hint
         return current_unit
+
+    def _evidence_core_surface(
+        self,
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> str:
+        return _normalise_spaces(
+            " ".join(
+                str((evidence_item or {}).get(key) or "")
+                for key in ("claim", "quote_span", "raw_row_text")
+            )
+        )
+
+    def _evidence_core_surface_contains_value_unit(
+        self,
+        *,
+        raw_value: str,
+        raw_unit: str,
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> bool:
+        value = _normalise_spaces(str(raw_value or ""))
+        unit = _normalise_spaces(str(raw_unit or ""))
+        surface = self._evidence_core_surface(evidence_item)
+        if not value or not unit or not surface:
+            return False
+        compact_value = re.sub(r"[,\s()]", "", value)
+        compact_unit = re.sub(r"\s+", "", unit)
+        unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
+        aliases = dict(unit_policy.get("inline_unit_aliases") or {})
+        unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
+        for match in re.finditer(unit_pattern, surface):
+            matched_value = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
+            matched_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
+            matched_unit = str(aliases.get(matched_unit) or matched_unit)
+            if matched_value == compact_value and matched_unit == compact_unit:
+                return True
+        return False
+
+    def _coerce_operand_period_from_evidence_surface(
+        self,
+        row: Dict[str, Any],
+        evidence_item: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        surface = self._evidence_core_surface(evidence_item)
+        if not surface:
+            return row
+        explicit_years = list(dict.fromkeys(re.findall(r"20\d{2}", surface)))
+        if len(explicit_years) != 1:
+            return row
+        evidence_year = explicit_years[0]
+        period_years = set(re.findall(r"20\d{2}", str(row.get("period") or "")))
+        if period_years and evidence_year in period_years:
+            return row
+        if period_years and evidence_year not in period_years:
+            updated = dict(row)
+            updated["period"] = evidence_year
+            updated["period_source"] = "evidence_surface"
+            return updated
+        row_years = set(
+            re.findall(
+                r"20\d{2}",
+                " ".join(
+                    str(row.get(key) or "")
+                    for key in ("period", "label", "matched_operand_label")
+                ),
+            )
+        )
+        if row_years and evidence_year in row_years:
+            return row
+        updated = dict(row)
+        updated["period"] = evidence_year
+        updated["period_source"] = "evidence_surface"
+        return updated
 
     def _evidence_item_for_operand_row(
         self,
@@ -2884,6 +2964,7 @@ class FinancialAgentCalculationMixin:
                 updated["consolidation_scope"] = metadata.get("consolidation_scope")
             if updated.get("table_source_id") is None:
                 updated["table_source_id"] = metadata.get("table_source_id")
+            updated = self._coerce_operand_period_from_evidence_surface(updated, evidence_item)
         updated = _coerce_lookup_magnitude_record(updated, evidence_item)
         return self._refine_operand_precision_from_evidence_table(updated, evidence_item)
 

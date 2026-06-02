@@ -49,6 +49,18 @@
     "retrieval_query_budget": 8,
     "focused_retrieval_query_budget": 4,
     "retry_retrieval_query_budget": 1,
+    "llm_routes": {
+      "default": {
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "temperature": 0
+      },
+      "evidence_extraction": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "temperature": 0
+      }
+    },
     "question_ids": [
       "NAV_T1_030",
       "NAV_T1_071",

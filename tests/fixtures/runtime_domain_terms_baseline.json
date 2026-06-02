@@ -301,16 +301,6 @@
     },
     {
       "path": "src/agent/financial_graph_evidence.py",
-      "text": "\\s*(?P<value>[\\-+]?\\d[\\d,]*(?:\\.\\d+)?)\\s*(?P<unit>%|퍼센트)",
-      "category": "regex_or_pattern",
-      "fingerprint": "263ff659f2e964c0",
-      "count": 1,
-      "first_lines": [
-        337
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
       "text": "] | [헤더:",
       "category": "regex_or_pattern",
       "fingerprint": "659b99dfd4b27fb1",

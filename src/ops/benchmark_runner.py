@@ -1095,6 +1095,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "retrieved_metadata": result.retrieved_metadata,
                 "retrieved_previews": result.retrieved_previews,
                 "retrieval_debug_trace": getattr(result, "retrieval_debug_trace", {}) or {},
+                "retrieval_debug_trace_history": getattr(result, "retrieval_debug_trace_history", []) or [],
                 "runtime_evidence": result.runtime_evidence,
                 "selected_claim_ids": result.selected_claim_ids,
                 "draft_points": result.draft_points,

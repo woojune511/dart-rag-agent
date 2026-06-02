@@ -1281,12 +1281,36 @@ EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
         "narrative_summary": (
             "\n- 질문이 영향/원인을 묻는 경우, 계약 목적이나 예상효과만 적힌 문단보다 "
             "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
+            "\n- 질문 focus terms에 고유명사, 약어, 괄호 표현, 정책/규제/대응/필요성 관련 표현이 있으면, "
+            "그 표현들이 들어간 원문 문장을 독립 EvidenceItem으로 추출하세요. "
+            "질문 focus terms가 직접 들어간 문장을 넓은 시장/연혁 배경 설명으로 대체하지 마세요."
             "\n- 가능하면 서로 다른 관점의 근거를 2개 이상 추출하세요. "
             "예: (1) 실적 변화나 성장률을 직접 설명하는 문단, "
             "(2) 그 변화의 배경 driver를 문서 표현 그대로 설명하는 문단."
             "\n- '주요 계약' 문단은 실제 성과 영향 문단이 부족할 때만 보조 근거로 사용하세요."
         ),
     },
+    "focus_term_stopwords": (
+        "2023년",
+        "2022년",
+        "전년",
+        "대비",
+        "계산",
+        "계산해",
+        "계산하고",
+        "사업보고서",
+        "사업보고서에서",
+        "요약",
+        "요약해",
+        "설명",
+        "설명해",
+        "대한",
+        "등",
+        "줘",
+    ),
+    "max_focus_terms": 12,
+    "focus_term_token_pattern": r"[가-힣A-Za-z0-9()]+",
+    "focus_term_particle_suffix_pattern": r"(?:에서|에게|으로|로|을|를|은|는|이|가|의|에|와|과|도|만)$",
     "prompt_template": """당신은 기업 공시 분석 보조자입니다.
 질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.
 
@@ -1301,6 +1325,7 @@ EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
 
 질문: {query}
 핵심 주제: {topic}
+질문 focus terms: {focus_terms}
 
 사용 가능한 source_anchor:
 {available_anchors}
@@ -1417,6 +1442,10 @@ QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
 PERIOD_COMPARISON_COUNT_POLICY: Dict[str, Any] = {
     "sentence_split_pattern": r"(?<=[.!?。])\s+|(?<=[가-힣])\.(?=(?:20\d{2}|[가-힣]))",
     "year_pattern": r"(20\d{2})년?",
+    "stated_change_pattern": (
+        rf"(?:{KOREAN_PERIOD_COMPARISON_RE_FRAGMENT}|대비)\s*"
+        r"(?P<value>[\-+]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|퍼센트)"
+    ),
 }
 
 DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
@@ -1676,6 +1705,15 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
         "name": "policy_context",
         "trigger_terms": ("보호무역주의", "대응", "IRA", "인플레이션 감축법"),
+        "retrieval_query_suffixes": (
+            "인플레이션 감축법 IRA 보호무역주의 대응 필요",
+            "보호무역주의 핵심원자재법 적극적인 대응",
+        ),
+        "preferred_sections": (
+            "IV. 이사의 경영진단 및 분석의견",
+            "재무상태 및 영업실적",
+            "나. 영업실적",
+        ),
         "focus_terms": ("보호무역주의", "대응", "ira", "인플레이션 감축법", "핵심원자재법"),
         "query_terms": ("정책", "IRA", "인플레이션 감축법", "보호무역"),
         "sentence_terms": ("인플레이션 감축법", "IRA", "핵심원자재법", "보호무역주의"),

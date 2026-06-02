@@ -5154,6 +5154,10 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     )
     operand_years = set(re.findall(r"20\d{2}", operand_period_text))
     row_years = set(re.findall(r"20\d{2}", row_period_text))
+    if str(row.get("period_source") or "").strip() == "evidence_surface":
+        row_period_years = set(re.findall(r"20\d{2}", str(row.get("period") or "")))
+        if operand_years and row_period_years and operand_years.isdisjoint(row_period_years):
+            return True
     if operand_years and row_years and operand_years.isdisjoint(row_years):
         return True
 

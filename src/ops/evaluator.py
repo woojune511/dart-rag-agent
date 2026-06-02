@@ -208,6 +208,7 @@ class EvalResult:
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
     retrieved_previews: List[Dict[str, Any]] = field(default_factory=list)
     retrieval_debug_trace: Dict[str, Any] = field(default_factory=dict)
+    retrieval_debug_trace_history: List[Dict[str, Any]] = field(default_factory=list)
     runtime_evidence: List[Dict[str, Any]] = field(default_factory=list)
     selected_claim_ids: List[str] = field(default_factory=list)
     draft_points: List[str] = field(default_factory=list)
@@ -2931,6 +2932,7 @@ class RAGEvaluator:
         routing_scores: Dict[str, float] = {}
         retrieved_docs: List[Any] = []
         retrieval_debug_trace: Dict[str, Any] = {}
+        retrieval_debug_trace_history: List[Dict[str, Any]] = []
         citations: List[str] = []
         runtime_evidence: List[Dict[str, Any]] = []
         selected_claim_ids: List[str] = []
@@ -2970,6 +2972,11 @@ class RAGEvaluator:
             routing_scores = dict(result.get("routing_scores", {}) or {})
             retrieved_docs = result.get("retrieved_docs", [])
             retrieval_debug_trace = dict(result.get("retrieval_debug_trace", {}) or {})
+            retrieval_debug_trace_history = [
+                dict(item)
+                for item in (result.get("retrieval_debug_trace_history", []) or [])
+                if isinstance(item, dict)
+            ]
             citations = result.get("citations", [])
             runtime_evidence = result.get("evidence_items", []) or []
             selected_claim_ids = result.get("selected_claim_ids", []) or []
@@ -3293,6 +3300,7 @@ class RAGEvaluator:
             retrieved_metadata=_extract_retrieved_metadata(retrieved_docs),
             retrieved_previews=_extract_retrieved_previews(retrieved_docs),
             retrieval_debug_trace=retrieval_debug_trace,
+            retrieval_debug_trace_history=retrieval_debug_trace_history,
             runtime_evidence=runtime_evidence,
             selected_claim_ids=selected_claim_ids,
             draft_points=draft_points,

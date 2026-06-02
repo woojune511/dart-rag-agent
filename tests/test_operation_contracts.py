@@ -74,6 +74,27 @@ class _StubLLM:
         return _StubStructuredLLM(self._response)
 
 
+class _CapturingStructuredLLM:
+    def __init__(self, response):
+        self._response = response
+        self.prompt_text = ""
+
+    def __call__(self, prompt_value):
+        return self.invoke(prompt_value)
+
+    def invoke(self, prompt_value):
+        self.prompt_text = prompt_value.to_string() if hasattr(prompt_value, "to_string") else str(prompt_value)
+        return self._response
+
+
+class _CapturingLLM:
+    def __init__(self, response):
+        self.structured = _CapturingStructuredLLM(response)
+
+    def with_structured_output(self, _schema):
+        return self.structured
+
+
 class _FailingStructuredLLM:
     def __call__(self, _prompt_value):
         raise RuntimeError("structured output disabled for test")
@@ -226,6 +247,150 @@ class OperationContractTests(unittest.TestCase):
         by_role = {row["matched_operand_role"]: row for row in rows}
         self.assertEqual(by_role["addend_a"]["raw_value"], "111")
         self.assertEqual(by_role["addend_b"]["raw_value"], "222")
+
+    def test_operand_coercion_trusts_evidence_surface_unit_and_period(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "operand_id": "op_001",
+            "evidence_id": "ev_prior",
+            "source_anchor": "[Example | 2023 | Section]",
+            "label": "2023년 판매 대수",
+            "raw_value": "78.1",
+            "raw_unit": "원",
+            "normalized_value": 78.1,
+            "normalized_unit": "KRW",
+            "period": "2023년",
+            "matched_operand_role": "current_period",
+            "matched_operand_concept": "sales_volume",
+            "matched_operand_label": "2023년 판매 대수",
+        }
+        evidence_item = {
+            "evidence_id": "ev_prior",
+            "claim": "2022년 판매 대수는 78.1만 대였다.",
+            "quote_span": "2022년 판매 대수는 78.1만 대였다.",
+        }
+
+        coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
+
+        self.assertEqual(coerced["period"], "2022")
+        self.assertEqual(coerced["period_source"], "evidence_surface")
+        self.assertEqual(coerced["normalized_unit"], "COUNT")
+        self.assertEqual(coerced["normalized_value"], 781000.0)
+        self.assertFalse(
+            _operand_row_matches_requirement(
+                coerced,
+                {
+                    "label": "2023년 판매 대수",
+                    "role": "current_period",
+                    "concept": "sales_volume",
+                    "period_hint": "2023",
+                    "required": True,
+                },
+            )
+        )
+        self.assertTrue(
+            _operand_row_matches_requirement(
+                {**coerced, "matched_operand_role": "prior_period"},
+                {
+                    "label": "2022년 판매 대수",
+                    "role": "prior_period",
+                    "concept": "sales_volume",
+                    "period_hint": "2022",
+                    "required": True,
+                },
+            )
+        )
+
+    def test_required_operand_builder_retries_after_evidence_period_conflict(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "2023년 판매 대수",
+                "role": "current_period",
+                "concept": "sales_volume",
+                "period_hint": "2023",
+                "unit_family": "COUNT",
+                "required": True,
+            },
+            {
+                "label": "2022년 판매 대수",
+                "role": "prior_period",
+                "concept": "sales_volume",
+                "period_hint": "2022",
+                "unit_family": "COUNT",
+                "required": True,
+            },
+        ]
+
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_prior",
+                    "source_anchor": "[Example | 2023 | Section]",
+                    "claim": "2022년 판매 대수는 78.1만 대였다.",
+                },
+                {
+                    "evidence_id": "ev_current",
+                    "source_anchor": "[Example | 2023 | Section]",
+                    "claim": "2023년 판매 대수는 87.0만 대로, 전년 대비 11.5% 증가했다.",
+                },
+            ],
+            required_operands=required_operands,
+            query="2023년 판매 대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"year": 2023},
+        )
+
+        by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(by_role["current_period"]["evidence_id"], "ev_current")
+        self.assertEqual(by_role["current_period"]["raw_value"], "87.0")
+        self.assertEqual(by_role["current_period"]["normalized_unit"], "COUNT")
+        self.assertEqual(by_role["current_period"]["period"], "2023")
+        self.assertEqual(by_role["prior_period"]["evidence_id"], "ev_prior")
+        self.assertEqual(by_role["prior_period"]["raw_value"], "78.1")
+        self.assertEqual(by_role["prior_period"]["normalized_unit"], "COUNT")
+        self.assertEqual(by_role["prior_period"]["period"], "2022")
+
+    def test_required_operand_builder_binds_two_period_values_in_one_sentence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "2023년 판매 대수",
+                "role": "current_period",
+                "concept": "sales_volume",
+                "period_hint": "2023",
+                "unit_family": "COUNT",
+                "required": True,
+            },
+            {
+                "label": "2022년 판매 대수",
+                "role": "prior_period",
+                "concept": "sales_volume",
+                "period_hint": "2022",
+                "unit_family": "COUNT",
+                "required": True,
+            },
+        ]
+
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_growth",
+                    "source_anchor": "[Example | 2023 | Section]",
+                    "claim": "2023년 판매 대수는 87.0만 대로, 2022년 78.1만 대 대비 11.5% 증가했다.",
+                },
+            ],
+            required_operands=required_operands,
+            query="2023년 판매 대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"year": 2023},
+        )
+
+        by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(by_role["current_period"]["raw_value"], "87.0")
+        self.assertEqual(by_role["current_period"]["period"], "2023")
+        self.assertEqual(by_role["current_period"]["stated_change_raw_value"], "11.5")
+        self.assertEqual(by_role["current_period"]["stated_change_raw_unit"], "%")
+        self.assertEqual(by_role["prior_period"]["raw_value"], "78.1")
+        self.assertEqual(by_role["prior_period"]["period"], "2022")
 
     def test_segment_row_parser_splits_labeled_value_cells(self) -> None:
         row_text = (
@@ -4317,6 +4482,77 @@ class OperationContractTests(unittest.TestCase):
                 for item in result["evidence_items"]
             )
         )
+
+    def test_evidence_extraction_prompt_surfaces_narrative_focus_terms(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _CapturingLLM(EvidenceExtraction(coverage="missing", evidence=[]))
+        state = {
+            "query": "인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+            "query_type": "qa",
+            "topic": "보호무역주의 대응 필요성",
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=(
+                            "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 "
+                            "보호무역주의에 대한 적극적인 대응이 필요한 상황입니다."
+                        ),
+                        metadata={
+                            "company": "현대자동차",
+                            "year": 2023,
+                            "section_path": "IV. 이사의 경영진단 및 분석의견",
+                            "block_type": "paragraph",
+                        },
+                    ),
+                    1.0,
+                )
+            ],
+            "active_subtask": {
+                "task_id": "task_policy_context",
+                "metric_family": "narrative_summary",
+                "metric_label": "정책 대응 필요성",
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        result = agent._extract_evidence(state)
+        prompt_text = agent.llm.structured.prompt_text
+
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertIn("질문 focus terms:", prompt_text)
+        self.assertIn("인플레이션", prompt_text)
+        self.assertIn("감축법(IRA)", prompt_text)
+        self.assertIn("IRA", prompt_text)
+        self.assertIn("보호무역주의", prompt_text)
+        self.assertIn("대응", prompt_text)
+        self.assertIn("필요성", prompt_text)
+
+    def test_evidence_context_prefers_focus_child_over_parent_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = SimpleNamespace(
+            get_parent=lambda _parent_id: "넓은 parent context입니다. 질문 focus term은 여기에 없습니다."
+        )
+        doc = Document(
+            page_content=(
+                "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 "
+                "보호무역주의에 대한 적극적인 대응이 필요한 상황입니다."
+            ),
+            metadata={
+                "company": "현대자동차",
+                "year": 2023,
+                "section_path": "IV. 이사의 경영진단 및 분석의견",
+                "block_type": "paragraph",
+                "parent_id": "mda-parent",
+            },
+        )
+
+        context = agent._build_evidence_context(
+            [(doc, 1.0)],
+            focus_terms=["IRA", "보호무역주의", "대응"],
+        )["context"]
+
+        self.assertIn("보호무역주의에 대한 적극적인 대응", context)
+        self.assertNotIn("넓은 parent context", context)
 
     def test_narrative_summary_doc_selection_prefers_mda_paragraphs(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
