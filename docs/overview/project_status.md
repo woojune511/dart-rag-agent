@@ -68,6 +68,19 @@ role-separated multi-agent system using a task ledger and artifact store.
 - Note:
   - `numeric_final_judgement = null` is not a failure for narrative or mixed
     questions when the other evaluator signals are healthy.
+- Latest focused repair:
+  - `NAV_T2_006` regressed after low-API/offline fallback removal because the
+    growth calculation paired same-concept operands with incompatible display
+    units (`백만원` versus `천원`), producing `141295.74%`.
+  - The fix is a generic growth operand unit-binding contract: when current and
+    prior operands are the same concept, raw numeric scale is plausible, and
+    normalized scale is distorted by at least 100x, the prior operand is
+    re-normalized to the current display unit.
+  - Repeated row-label table evidence also now supports role-aware current/prior
+    value selection.
+  - Focused eval-only canary now returns `41.4%`, with faithfulness `1.000`,
+    context recall `1.000`, context P@5 `0.800`, completeness `0.700`, and
+    error rate `0.0%`.
 
 ## Operating Principles
 

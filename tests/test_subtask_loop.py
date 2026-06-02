@@ -402,6 +402,156 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(self.agent._route_after_evidence(state), "reconcile_plan")
 
+    def test_table_label_lookup_uses_period_role_for_repeated_row_labels(self) -> None:
+        evidence_item = {
+            "evidence_id": "ev_table",
+            "source_anchor": "[ExampleCo | 2023 | MD&A]",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "억원",
+                "statement_type": "mda",
+                "table_source_id": "mda::table:1",
+                "table_header_context": "사업부문 | 당기 | 전기 | 증감률 | 비중",
+                "table_value_labels_text": "\n".join(
+                    [
+                        "영업수익 9,670.6",
+                        "영업수익 8,220.1",
+                        "영업수익 17.6%",
+                        "영업수익 100.0%",
+                        "A부문 2,546.6",
+                        "A부문 1,801.1",
+                        "A부문 41.4%",
+                        "A부문 26.4%",
+                    ]
+                ),
+            },
+        }
+        base_operand = {
+            "label": "A부문 매출액",
+            "aliases": ["A부문"],
+            "concept": "revenue",
+        }
+
+        current = self.agent._lookup_value_from_table_label_metadata(
+            {**base_operand, "role": "current_period", "period": "2023"},
+            evidence_item,
+        )
+        prior = self.agent._lookup_value_from_table_label_metadata(
+            {**base_operand, "role": "prior_period", "period": "2022"},
+            evidence_item,
+        )
+
+        self.assertEqual(current["raw_value"], "2,546.6")
+        self.assertEqual(current["raw_unit"], "억원")
+        self.assertEqual(current["period"], "2023")
+        self.assertEqual(prior["raw_value"], "1,801.1")
+        self.assertEqual(prior["raw_unit"], "억원")
+        self.assertEqual(prior["period"], "2022")
+
+    def test_ok_lookup_can_be_replaced_by_stronger_table_label_metadata(self) -> None:
+        ordered_results = [
+            {
+                "task_id": "task_prior",
+                "metric_family": "concept_lookup",
+                "metric_label": "2022년 A부문 매출액",
+                "status": "ok",
+                "answer": "2022년 A부문 매출액은 1,801,079천원입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "prior_period",
+                            "label": "2022년 A부문 매출액",
+                            "concept": "revenue",
+                            "period": "2022",
+                            "raw_value": "1,801,079",
+                            "raw_unit": "천원",
+                            "normalized_value": 1801079000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_weak",
+                            "source_row_ids": ["ev_weak"],
+                        },
+                    },
+                },
+            }
+        ]
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_prior",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "2022년 A부문 매출액",
+                            "aliases": ["A부문"],
+                            "concept": "revenue",
+                            "role": "prior_period",
+                            "period": "2022",
+                        }
+                    ],
+                }
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_table",
+                    "source_anchor": "[ExampleCo | 2023 | MD&A]",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "억원",
+                        "statement_type": "mda",
+                        "table_source_id": "mda::table:1",
+                        "table_value_labels_text": "\n".join(
+                            [
+                                "A부문 2,546.6",
+                                "A부문 1,801.1",
+                                "A부문 41.4%",
+                            ]
+                        ),
+                    },
+                }
+            ],
+            "evidence_items": [],
+        }
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertTrue(recovered[0]["recovered_from_sibling_table_evidence"])
+        self.assertEqual(slot["raw_value"], "1,801.1")
+        self.assertEqual(slot["raw_unit"], "억원")
+        self.assertEqual(slot["source_row_id"], "ev_table")
+
+    def test_growth_operands_align_units_when_raw_scale_matches(self) -> None:
+        rows = [
+            {
+                "operand_id": "current",
+                "matched_operand_role": "current_period",
+                "matched_operand_concept": "revenue",
+                "raw_value": "2,546,649",
+                "raw_unit": "백만원",
+                "normalized_value": 2546649000000.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "operand_id": "prior",
+                "matched_operand_role": "prior_period",
+                "matched_operand_concept": "revenue",
+                "raw_value": "1,801,079",
+                "raw_unit": "천원",
+                "normalized_value": 1801079000.0,
+                "normalized_unit": "KRW",
+            },
+        ]
+
+        aligned = self.agent._align_growth_operand_units_when_raw_scale_matches(rows)
+        prior = next(row for row in aligned if row["operand_id"] == "prior")
+
+        self.assertEqual(prior["raw_unit"], "백만원")
+        self.assertEqual(prior["normalized_value"], 1801079000000.0)
+        self.assertEqual(prior["unit_alignment_source"], "growth_raw_scale_match")
+
     def test_reconcile_short_circuits_when_dependency_outputs_are_fully_resolved(self) -> None:
         state = {
             "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",

@@ -5,6 +5,38 @@
 
 ## Active Snapshot
 
+## 2026-06-02 NAV_T2_006 Growth Unit Binding Repair
+
+- `NAV_T2_006` live canary after low-API/offline fallback removal initially
+  regressed because the numeric path paired same-concept growth operands with
+  incompatible display units:
+  - current: `2,546,649백만원`
+  - prior: `1,801,079천원`
+  - incorrect result: `141295.74%`
+- The evidence path itself was sufficient; this was not an LLM evidence
+  extraction abstain/failure.
+- Runtime repair is generic:
+  - table-label lookup metadata now supports repeated row labels and uses
+    `current_period` / `prior_period` role to pick the corresponding value
+    candidate.
+  - growth-rate execution aligns current/prior units only when the operands are
+    the same concept, both normalized as KRW, raw numeric scale is plausible,
+    and normalized scale is distorted by at least 100x.
+- No benchmark ID, company, segment, or acquisition keyword branch was added to
+  runtime code.
+- Validation completed:
+  - targeted table-label and growth unit-alignment tests
+  - `python -m unittest tests.test_subtask_loop`
+  - `python -m unittest discover -s tests` (`597` tests OK)
+  - `NAV_T2_006` store-fixed eval-only canary: calculator `41.4%`, final answer
+    states `2022 1조 8,011억원 대비 41.4% 성장`
+- Immediate next:
+  1. Commit and push this focused repair.
+  2. Run 2-3 focused growth/difference regression canaries only if needed; do
+     not run a broad gate yet.
+  3. Return to aggregate retrieval fan-out profiling, since this canary still
+     generated high semantic-planner query fan-out.
+
 ## 2026-06-02 LLM Evidence Path / Model Routing Cleanup
 
 - `low_api_debug` and `offline_retrieval` are removed from the agent/runtime

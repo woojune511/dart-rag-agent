@@ -11,6 +11,27 @@
 
 ## 최신 상태
 
+- 2026-06-02 `NAV_T2_006` low-api removal 후 live canary 회귀를 닫았다.
+  - 실패층은 LLM evidence extraction 누락이 아니라 growth-rate operand
+    unit/source binding이었다. Evidence path는 충분했지만, current operand는
+    `2,546,649백만원`, prior operand는 `1,801,079천원`으로 정규화되어
+    `141295.74%`라는 잘못된 growth 계산이 나왔다.
+  - runtime code에는 NAVER, 커머스, Poshmark, benchmark ID 같은
+    domain-specific branch를 넣지 않았다.
+  - 일반 계약으로 두 가지를 추가했다:
+    - 반복 row-label table evidence에서는 `current_period` / `prior_period`
+      role에 맞춰 같은 row label의 금액 후보를 선택한다.
+    - 같은 concept의 `growth_rate` current/prior operand에서 raw 숫자
+      비율은 정상인데 normalized 비율만 100배 이상 튀면, prior display
+      unit을 current display unit에 맞춰 재정규화한다.
+  - 검증:
+    - `python -m unittest discover -s tests`: `597` tests OK.
+    - `NAV_T2_006` store-fixed eval-only canary: calculator result
+      `41.4%`, final answer `2022 1조 8,011억원 대비 41.4% 성장`.
+    - canary metrics: faithfulness `1.000`, answer relevancy `0.842`,
+      context recall `1.000`, retrieval hit `1.000`, context P@5 `0.800`,
+      completeness `0.700`, error rate `0.0%`.
+
 - 2026-06-02 runtime/API cost-control 방향을 수정했다.
   - `low_api_debug`와 `offline_retrieval`은 agent/runtime benchmark path에서
     제거했다. 이 모드는 비용은 낮췄지만 BM25-only/deterministic fallback

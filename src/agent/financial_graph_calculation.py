@@ -531,7 +531,19 @@ class FinancialAgentCalculationMixin:
         )
         if not surfaces:
             return {}
+        label_keys = [
+            key
+            for key in self._slot_metric_keys(
+                {
+                    "label": str(operand.get("label") or ""),
+                    "concept": "",
+                }
+            )
+            if key
+        ]
+        surfaces = list(dict.fromkeys(surfaces + label_keys))
         value_pattern = r"\(?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*\)?"
+        matches: List[Dict[str, Any]] = []
         for line in str(metadata.get("table_value_labels_text") or "").splitlines():
             normalized_line = _normalise_spaces(line)
             if not normalized_line:
@@ -551,12 +563,12 @@ class FinancialAgentCalculationMixin:
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                 if normalized_value is None:
                     continue
-                record = {
+                matches.append({
                     "status": "ok",
                     "role": str(operand.get("role") or "operand").strip() or "operand",
                     "label": str(operand.get("label") or normalized_surface).strip(),
                     "concept": str(operand.get("concept") or "").strip(),
-                    "period": str(metadata.get("year") or ""),
+                    "period": str(operand.get("period") or metadata.get("year") or ""),
                     "raw_value": raw_value,
                     "raw_unit": raw_unit,
                     "normalized_value": normalized_value,
@@ -565,16 +577,57 @@ class FinancialAgentCalculationMixin:
                     "source_row_id": str(evidence_item.get("evidence_id") or "").strip(),
                     "source_row_ids": [str(evidence_item.get("evidence_id") or "").strip()],
                     "source_anchor": evidence_item.get("source_anchor"),
-                }
-                return _coerce_lookup_magnitude_record(
-                    record,
-                    evidence_item,
-                    concept=str(operand.get("concept") or ""),
-                    statement_type=str(metadata.get("statement_type") or ""),
-                    row_label=str(operand.get("label") or normalized_surface),
-                    semantic_label=normalized_line,
-                )
-        return {}
+                    "_semantic_label": normalized_line,
+                })
+                break
+        if not matches:
+            return {}
+
+        role = str(operand.get("role") or "").strip()
+        period_focus = _operand_period_focus(operand, "unknown")
+        krw_matches = [
+            match
+            for match in matches
+            if _normalise_spaces(str(match.get("normalized_unit") or "")).upper() == "KRW"
+        ]
+        candidate_pool = krw_matches or matches
+        selected = candidate_pool[0]
+        if role == "prior_period" or period_focus == "prior":
+            selected = candidate_pool[1] if len(candidate_pool) >= 2 else candidate_pool[-1]
+        elif role == "current_period" or period_focus == "current":
+            selected = candidate_pool[0]
+
+        semantic_label = str(selected.pop("_semantic_label", ""))
+        return _coerce_lookup_magnitude_record(
+            selected,
+            evidence_item,
+            concept=str(operand.get("concept") or ""),
+            statement_type=str(metadata.get("statement_type") or ""),
+            row_label=str(operand.get("label") or selected.get("label") or ""),
+            semantic_label=semantic_label,
+        )
+
+    def _table_label_metadata_lookup_score(
+        self,
+        slot: Dict[str, Any],
+        evidence_item: Dict[str, Any],
+    ) -> float:
+        if not slot:
+            return 0.0
+        metadata = dict(evidence_item.get("metadata") or {})
+        if not _normalise_spaces(str(metadata.get("table_value_labels_text") or "")):
+            return 0.0
+        score = 6.5
+        if _normalise_spaces(str(metadata.get("unit_hint") or "")):
+            score += 0.5
+        if _normalise_spaces(str(metadata.get("table_source_id") or "")):
+            score += 0.5
+        if _normalise_spaces(str(slot.get("source_anchor") or evidence_item.get("source_anchor") or "")):
+            score += 0.25
+        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+        if normalized_unit not in {"", "UNKNOWN"}:
+            score += 0.25
+        return score
 
     def _direct_structured_lookup_evidence_score(
         self,
@@ -703,29 +756,34 @@ class FinancialAgentCalculationMixin:
         operand: Dict[str, Any],
         evidence_pool: List[Dict[str, Any]],
     ) -> tuple[Dict[str, Any], float]:
-        best_row: Dict[str, Any] = {}
+        best_slot: Dict[str, Any] = {}
         best_score = 0.0
         for evidence_item in evidence_pool:
             evidence = dict(evidence_item or {})
             score = self._direct_structured_lookup_evidence_score(operand, evidence)
-            if score <= best_score:
-                continue
-            row = self._lookup_row_from_direct_structured_evidence(
-                operand,
-                evidence,
-                index=1,
-            )
-            if not row:
-                continue
-            best_row = row
-            best_score = score
-        if not best_row or best_score < 6.0:
+            if score > best_score:
+                row = self._lookup_row_from_direct_structured_evidence(
+                    operand,
+                    evidence,
+                    index=1,
+                )
+                if row:
+                    best_slot = self._build_operand_value_slot(
+                        row,
+                        default_role=str(operand.get("role") or "primary_value"),
+                        preserve_source_display=True,
+                    )
+                    best_score = score
+
+            table_label_slot = self._lookup_value_from_table_label_metadata(operand, evidence)
+            table_label_score = self._table_label_metadata_lookup_score(table_label_slot, evidence)
+            if table_label_slot and table_label_score > best_score:
+                best_slot = table_label_slot
+                best_score = table_label_score
+
+        if not best_slot or best_score < 6.0:
             return {}, 0.0
-        return self._build_operand_value_slot(
-            best_row,
-            default_role=str(operand.get("role") or "primary_value"),
-            preserve_source_display=True,
-        ), best_score
+        return best_slot, best_score
 
     def _prefer_direct_structured_lookup_evidence_rows(
         self,
@@ -3154,6 +3212,81 @@ class FinancialAgentCalculationMixin:
                 if digit_count >= 8:
                     return True
         return False
+
+    def _align_growth_operand_units_when_raw_scale_matches(
+        self,
+        ordered_operands: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        if len(ordered_operands) != 2:
+            return ordered_operands
+        current_row = next(
+            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "current_period"),
+            None,
+        )
+        prior_row = next(
+            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "prior_period"),
+            None,
+        )
+        if not current_row or not prior_row:
+            return ordered_operands
+        current_concept = _normalise_spaces(str(current_row.get("matched_operand_concept") or ""))
+        prior_concept = _normalise_spaces(str(prior_row.get("matched_operand_concept") or ""))
+        if current_concept and prior_concept and current_concept != prior_concept:
+            return ordered_operands
+
+        current_unit = _normalise_spaces(str(current_row.get("raw_unit") or ""))
+        prior_unit = _normalise_spaces(str(prior_row.get("raw_unit") or ""))
+        if not current_unit or not prior_unit or current_unit == prior_unit:
+            return ordered_operands
+        if str(current_row.get("normalized_unit") or "").upper() != "KRW":
+            return ordered_operands
+        if str(prior_row.get("normalized_unit") or "").upper() != "KRW":
+            return ordered_operands
+
+        current_raw_number = _parse_number_text(str(current_row.get("raw_value") or ""))
+        prior_raw_number = _parse_number_text(str(prior_row.get("raw_value") or ""))
+        current_normalized = current_row.get("normalized_value")
+        prior_normalized = prior_row.get("normalized_value")
+        if (
+            current_raw_number is None
+            or prior_raw_number is None
+            or not current_raw_number
+            or not prior_raw_number
+            or current_normalized is None
+            or prior_normalized is None
+        ):
+            return ordered_operands
+        try:
+            raw_ratio = abs(float(current_raw_number) / float(prior_raw_number))
+            normalized_ratio = abs(float(current_normalized) / float(prior_normalized))
+        except (TypeError, ValueError, ZeroDivisionError):
+            return ordered_operands
+        if raw_ratio <= 0 or normalized_ratio <= 0:
+            return ordered_operands
+        scale_distortion = max(raw_ratio, normalized_ratio) / min(raw_ratio, normalized_ratio)
+        if not (0.01 <= raw_ratio <= 100.0 and scale_distortion >= 100.0):
+            return ordered_operands
+
+        aligned_prior_value, aligned_prior_unit = _normalise_operand_value(
+            str(prior_row.get("raw_value") or ""),
+            current_unit,
+        )
+        if aligned_prior_value is None or aligned_prior_unit != "KRW":
+            return ordered_operands
+        updated_prior = {
+            **prior_row,
+            "raw_unit": current_unit,
+            "normalized_value": aligned_prior_value,
+            "normalized_unit": aligned_prior_unit,
+            "unit_alignment_source": "growth_raw_scale_match",
+        }
+        updated_rows = []
+        for row in ordered_operands:
+            if str(row.get("operand_id") or "") == str(updated_prior.get("operand_id") or ""):
+                updated_rows.append(updated_prior)
+            else:
+                updated_rows.append(row)
+        return updated_rows
 
     def _compact_ratio_answer(
         self,
@@ -5701,6 +5834,19 @@ class FinancialAgentCalculationMixin:
                         target_id = str(target.get("operand_id") or "").strip()
                         if target_id:
                             operands[target_id] = target
+                        runtime_operands = [
+                            dict(operands.get(str(row.get("operand_id") or "").strip()) or row)
+                            for row in runtime_operands
+                        ]
+                        ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
+
+                if operation_family == "growth_rate":
+                    aligned_operands = self._align_growth_operand_units_when_raw_scale_matches(ordered_operands)
+                    if aligned_operands != ordered_operands:
+                        for aligned_row in aligned_operands:
+                            aligned_id = str(aligned_row.get("operand_id") or "").strip()
+                            if aligned_id:
+                                operands[aligned_id] = aligned_row
                         runtime_operands = [
                             dict(operands.get(str(row.get("operand_id") or "").strip()) or row)
                             for row in runtime_operands
