@@ -69,32 +69,34 @@ role-separated multi-agent system using a task ledger and artifact store.
   - `numeric_final_judgement = null` is not a failure for narrative or mixed
     questions when the other evaluator signals are healthy.
 - Latest focused repair:
-  - `NAV_T2_006` regressed after low-API/offline fallback removal because the
-    growth calculation paired same-concept operands with incompatible display
-    units (`백만원` versus `천원`), producing `141295.74%`.
-  - The fix is a generic growth operand unit-binding contract: when current and
-    prior operands are the same concept, raw numeric scale is plausible, and
-    normalized scale is distorted by at least 100x, the prior operand is
-    re-normalized to the current display unit.
-  - Repeated row-label table evidence also now supports role-aware current/prior
-    value selection.
-  - Focused eval-only canary now returns `41.4%`, with faithfulness `1.000`,
-    context recall `1.000`, context P@5 `0.800`, completeness `0.700`, and
-    error rate `0.0%`.
-- Latest mixed-query closure:
   - `HYU_T2_010` now preserves the source-stated growth display when the DART
     sentence already says `87.0만 대`, `78.1만 대 대비 11.5%`.
   - The deterministic formula trace is still retained, but the final rendered
     answer and `answer_slots.primary_value.rendered_value` use the
     evidence-visible `11.5%` instead of drifting to a recomputed rounding.
+  - If a growth calculation accidentally binds duplicate current/prior
+    material, runtime now recovers the prior-period display from retrieved
+    evidence sentences using generic year/unit/value matching before executing
+    the formula.
   - Aggregate growth+narrative composition now treats the structured
     `current_value`, `prior_value`, and growth display slots as required answer
     displays before accepting a mixed-query answer as complete.
-  - Focused eval-only canary: faithfulness `1.000`, completeness `1.000`,
-    context recall `1.000`, retrieval hit `1.000`, avg score `0.958`, error
-    rate `0.0%`.
+  - `NAV_T2_006` now gets commerce-growth driver retrieval from declarative
+    retrieval policy suffixes, then rejects source-task display strings whose
+    KRW unit conflicts with the already bound growth slot display.
+  - The same answer guard replaces growth sentences that mix slot/trace values
+    with untraced numeric displays, preserving grounded narrative sentences.
+  - Full policy-gate eval-only refresh over the current store bundle reports
+    faithfulness, completeness, and context recall of `1.000` for every
+    per-question full-eval row:
+    - `NAV_T2_006`: relevancy `0.855`, context P@5 `0.800`
+    - `HYU_T2_010`: relevancy `0.857`, context P@5 `0.800`
+    - `HYU_T3_072`: relevancy `0.836`, context P@5 `1.000`
+    - `LGE_T1_051`: relevancy `0.888`, context P@5 `1.000`,
+      `numeric_final_judgement = PASS`
+    - `SAM_T2_078`: relevancy `0.913`, context P@5 `0.800`
   - Validation: runtime domain-term audit passed, and
-    `python -m unittest discover -s tests` passed with `606` tests.
+    `python -m unittest discover -s tests` passed with `609` tests.
 
 ## Operating Principles
 

@@ -81,6 +81,9 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertTrue(
             any("영업수익 증가" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
         )
+        self.assertTrue(
+            any("스마트스토어 브랜드스토어 성장" in str(item) for item in result["calc_subtasks"][-1]["retrieval_queries"])
+        )
 
     def test_policy_context_query_appends_policy_retrieval_suffixes(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

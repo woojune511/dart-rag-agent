@@ -4040,6 +4040,173 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
         self.assertTrue(calc["derived_metrics"]["source_stated_result_used"])
 
+    def test_growth_rate_recovers_duplicate_prior_operand_from_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘",
+                "active_subtask": {
+                    "task_id": "task_count_growth",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "지역 시장 판매대수",
+                    "operation_family": "growth_rate",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "sales_2023",
+                        "label": "2023 지역 시장 판매대수",
+                        "raw_value": "87.0",
+                        "raw_unit": "만 대",
+                        "normalized_value": 870000.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2023년",
+                        "matched_operand_role": "current_period",
+                        "stated_change_raw_value": "11.5",
+                        "stated_change_raw_unit": "%",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "sales_2023",
+                        "label": "2022 지역 시장 판매대수",
+                        "raw_value": "87.0",
+                        "raw_unit": "만 대",
+                        "normalized_value": 870000.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2023년",
+                        "matched_operand_role": "prior_period",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["op_001", "op_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_001"},
+                        {"variable": "B", "operand_id": "op_002"},
+                    ],
+                    "formula": "((A - B) / B) * 100",
+                    "result_unit": "%",
+                },
+                "evidence_items": [
+                    {
+                        "evidence_id": "sales_2022",
+                        "claim": "2022년 지역 시장 판매대수는 78.1만 대였습니다.",
+                        "quote_span": "2022년에는 전년 대비 0.9% 감소한 78.1만 대",
+                    }
+                ],
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        calc = result["calculation_result"]
+        self.assertEqual(calc["answer_slots"]["prior_value"]["period"], "2022년")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "78.1만 대")
+        self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_value"], 781000.0)
+        self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
+
+    def test_growth_answer_replaces_untraced_numeric_sentence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "서비스 매출 성장률",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "41.4%",
+                "formatted_result": "41.4%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "서비스 매출 성장률",
+                        "period": "2023",
+                        "raw_unit": "%",
+                        "normalized_value": 41.4,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "41.4%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "role": "current_value",
+                        "label": "서비스 매출액",
+                        "period": "2023",
+                        "raw_value": "2,546,649",
+                        "raw_unit": "백만원",
+                        "normalized_value": 2546649000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "2조 5,466억원",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "role": "prior_value",
+                        "label": "서비스 매출액",
+                        "period": "2022",
+                        "raw_value": "1,801,079",
+                        "raw_unit": "백만원",
+                        "normalized_value": 1801079000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "1조 8,011억원",
+                    },
+                },
+            },
+        }
+
+        answer = agent._ensure_complete_growth_numeric_answer(
+            (
+                "2023년 서비스 매출액은 3,589,060,852천원이며, 2022년 2,546,648,516천원 대비 "
+                "41.4% 성장했습니다. 2023년 서비스 매출액은 2조 5,466억원이며, "
+                "2022년 서비스 매출액은 1조 8,011억원입니다. 주요 성장 요인은 근거 문장에 설명되어 있습니다."
+            ),
+            [growth_row],
+        )
+
+        self.assertIn("2조 5,466억원", answer)
+        self.assertIn("1조 8,011억원", answer)
+        self.assertIn("41.4%", answer)
+        self.assertNotIn("3,589,060,852천원", answer)
+        self.assertNotIn("2,546,648,516천원", answer)
+        self.assertIn("주요 성장 요인", answer)
+
+    def test_growth_slot_keeps_display_when_source_task_unit_conflicts(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        slot = {
+            "status": "ok",
+            "source_task_id": "task_prior",
+            "source_slot": "primary_value",
+            "raw_value": "1,801,079",
+            "raw_unit": "백만원",
+            "normalized_value": 1801079000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "1조 8,011억원",
+        }
+        ordered_results = [
+            {
+                "task_id": "task_prior",
+                "calculation_result": {
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "raw_value": "1,801,079",
+                            "raw_unit": "천원",
+                            "normalized_value": 1801079000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "1,801,079천원",
+                        }
+                    }
+                },
+            }
+        ]
+
+        self.assertEqual(
+            agent._growth_slot_display_value(slot, ordered_results),
+            "1조 8,011억원",
+        )
+
     def test_failed_lookup_emits_explicit_missing_primary_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._execute_calculation(

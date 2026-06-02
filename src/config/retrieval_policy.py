@@ -1555,6 +1555,7 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
         "name": "commerce_growth",
         "trigger_terms": ("커머스", "쇼핑"),
+        "retrieval_query_suffixes": ("스마트스토어 브랜드스토어 성장",),
         "focus_terms": ("커머스", "쇼핑", "스마트스토어", "브랜드스토어"),
         "causal_terms": ("브랜드스토어", "스마트스토어"),
         "realized_terms": ("스마트스토어", "브랜드스토어"),

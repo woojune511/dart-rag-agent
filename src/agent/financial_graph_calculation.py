@@ -1226,27 +1226,140 @@ class FinancialAgentCalculationMixin:
                 )
         return ""
 
+    def _source_task_display_compatible_with_slot(
+        self,
+        slot: Dict[str, Any],
+        source_display: str,
+    ) -> bool:
+        display = _normalise_spaces(str(source_display or ""))
+        if not display:
+            return False
+        slot_display = _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+        if slot_display and display == slot_display:
+            return True
+        raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+        if not raw_unit:
+            return True
+        if raw_unit in display:
+            return True
+        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+        krw_normalized_unit = str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "").upper()
+        if normalized_unit == krw_normalized_unit:
+            krw_display_units = tuple(
+                str(item)
+                for item in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
+                if str(item)
+            )
+            if any(unit in display for unit in krw_display_units):
+                return False
+        return True
+
     def _growth_slot_display_value(
         self,
         slot: Dict[str, Any],
         ordered_results: List[Dict[str, Any]],
     ) -> str:
         source_display = self._slot_display_from_source_task(slot, ordered_results)
-        if source_display:
+        if source_display and self._source_task_display_compatible_with_slot(slot, source_display):
             return source_display
         return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+
+    def _growth_slots_share_material(
+        self,
+        current_slot: Dict[str, Any],
+        prior_slot: Dict[str, Any],
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        current_display = self._growth_slot_display_value(current_slot, ordered_results)
+        prior_display = self._growth_slot_display_value(prior_slot, ordered_results)
+        if current_display and prior_display and current_display == prior_display:
+            return True
+        current_value = current_slot.get("normalized_value")
+        prior_value = prior_slot.get("normalized_value")
+        if current_value is None or prior_value is None:
+            return False
+        try:
+            return float(current_value) == float(prior_value)
+        except (TypeError, ValueError):
+            return False
+
+    def _recover_growth_prior_material_from_evidence(
+        self,
+        *,
+        current_slot: Dict[str, Any],
+        prior_slot: Dict[str, Any],
+        evidence_items: Optional[List[Dict[str, Any]]],
+    ) -> Dict[str, str]:
+        if not evidence_items:
+            return {}
+        current_year_match = re.search(r"\d{4}", str(current_slot.get("period") or current_slot.get("label") or ""))
+        if not current_year_match:
+            return {}
+        current_year = int(current_year_match.group(0))
+        current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(prior_slot.get("raw_unit") or current_slot.get("raw_unit") or ""))
+        if raw_unit:
+            unit_pattern = r"\s*".join(re.escape(part) for part in re.split(r"\s+", raw_unit) if part)
+        else:
+            unit_pattern = r"[^\s\d,.;:()]{0,12}"
+        number_with_unit_pattern = re.compile(
+            rf"(?P<value>\d[\d,]*(?:\.\d+)?)\s*(?P<unit>{unit_pattern})"
+        )
+        for item in evidence_items:
+            surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        (item or {}).get("claim"),
+                        (item or {}).get("quote_span"),
+                        (item or {}).get("raw_row_text"),
+                    )
+                )
+            )
+            if not surface:
+                continue
+            for sentence in _split_narrative_sentences(surface) or [surface]:
+                years = [int(match.group(0)) for match in re.finditer(r"\d{4}", sentence)]
+                if not years or min(years) >= current_year:
+                    continue
+                prior_year = max(year for year in years if year < current_year)
+                for match in number_with_unit_pattern.finditer(sentence):
+                    value_text = _normalise_spaces(match.group("value"))
+                    if current_raw and value_text == current_raw:
+                        continue
+                    display = _normalise_spaces(match.group(0))
+                    if display:
+                        year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
+                        return {
+                            "display": display,
+                            "period": f"{prior_year}{year_suffix}" if year_suffix else str(prior_year),
+                            "raw_value": value_text,
+                        }
+        return {}
 
     def _growth_required_display_values(
         self,
         row: Dict[str, Any],
         ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> List[str]:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
         primary_slot = dict(answer_slots.get("primary_value") or {})
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+        prior_display = self._growth_slot_display_value(prior_slot, ordered_results)
+        if self._growth_slots_share_material(current_slot, prior_slot, ordered_results):
+            recovered_prior_material = self._recover_growth_prior_material_from_evidence(
+                current_slot=current_slot,
+                prior_slot=prior_slot,
+                evidence_items=evidence_items,
+            )
+            if recovered_prior_material.get("display"):
+                prior_display = recovered_prior_material["display"]
         required_values = [
-            self._growth_slot_display_value(dict(answer_slots.get("current_value") or {}), ordered_results),
-            self._growth_slot_display_value(dict(answer_slots.get("prior_value") or {}), ordered_results),
+            self._growth_slot_display_value(current_slot, ordered_results),
+            prior_display,
             _normalise_spaces(
                 str(
                     calculation_result.get("rendered_value")
@@ -1358,7 +1471,15 @@ class FinancialAgentCalculationMixin:
             if not complete_answer:
                 continue
             required_values = self._growth_required_display_values(row, ordered_results)
-            if required_values and all(value in answer_text for value in required_values):
+            if (
+                required_values
+                and all(value in answer_text for value in required_values)
+                and not self._growth_answer_has_untraced_numeric_sentence(
+                    answer_text,
+                    complete_answer,
+                    required_values,
+                )
+            ):
                 return answer_text
             extra_sentences: List[str] = []
             for sentence in _split_narrative_sentences(answer_text):
@@ -1370,6 +1491,29 @@ class FinancialAgentCalculationMixin:
                 extra_sentences.append(cleaned)
             return _normalise_spaces(" ".join([complete_answer, *extra_sentences]))
         return answer_text
+
+    def _growth_answer_has_untraced_numeric_sentence(
+        self,
+        answer: str,
+        complete_answer: str,
+        required_values: List[str],
+    ) -> bool:
+        answer_text = _normalise_spaces(str(answer or ""))
+        complete_text = _normalise_spaces(str(complete_answer or ""))
+        allowed_surface = _normalise_spaces(" ".join([complete_text, *required_values]))
+        if not answer_text or not allowed_surface:
+            return False
+        number_pattern = re.compile(r"\d[\d,]*(?:\.\d+)?%?")
+        for sentence in _split_narrative_sentences(answer_text):
+            cleaned = _normalise_spaces(sentence)
+            if not cleaned or cleaned in complete_text:
+                continue
+            if not any(value and value in cleaned for value in required_values):
+                continue
+            numeric_tokens = [match.group(0) for match in number_pattern.finditer(cleaned)]
+            if any(token and token not in allowed_surface for token in numeric_tokens):
+                return True
+        return False
 
     def _query_requests_explanatory_context(
         self,
@@ -2579,7 +2723,20 @@ class FinancialAgentCalculationMixin:
         metric_label = _normalise_spaces(metric_label)
         if not growth_value or not current_value or not metric_label:
             return None
-        required_displays = self._growth_required_display_values(growth_row, ordered_results)
+        if self._growth_slots_share_material(current_slot, prior_slot, ordered_results):
+            recovered_prior_material = self._recover_growth_prior_material_from_evidence(
+                current_slot=current_slot,
+                prior_slot=prior_slot,
+                evidence_items=evidence_items,
+            )
+            if recovered_prior_material.get("display"):
+                prior_value = recovered_prior_material["display"]
+                prior_period = recovered_prior_material.get("period") or prior_period
+        required_displays = self._growth_required_display_values(
+            growth_row,
+            ordered_results,
+            evidence_items=evidence_items,
+        )
         focus_variants = self._narrative_focus_variants(query)
         focus_required_variants = self._parenthetical_focus_variants(query) or focus_variants
         answer_has_focus = not focus_required_variants or any(
@@ -3381,6 +3538,59 @@ class FinancialAgentCalculationMixin:
             "normalized_value": aligned_prior_value,
             "normalized_unit": aligned_prior_unit,
             "unit_alignment_source": "growth_raw_scale_match",
+        }
+        updated_rows = []
+        for row in ordered_operands:
+            if str(row.get("operand_id") or "") == str(updated_prior.get("operand_id") or ""):
+                updated_rows.append(updated_prior)
+            else:
+                updated_rows.append(row)
+        return updated_rows
+
+    def _recover_duplicate_growth_prior_operand(
+        self,
+        ordered_operands: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]],
+    ) -> List[Dict[str, Any]]:
+        if len(ordered_operands) != 2:
+            return ordered_operands
+        current_row = next(
+            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "current_period"),
+            None,
+        )
+        prior_row = next(
+            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "prior_period"),
+            None,
+        )
+        if not current_row or not prior_row:
+            return ordered_operands
+        if not self._growth_slots_share_material(current_row, prior_row, []):
+            return ordered_operands
+
+        recovered = self._recover_growth_prior_material_from_evidence(
+            current_slot=current_row,
+            prior_slot=prior_row,
+            evidence_items=evidence_items,
+        )
+        display = _normalise_spaces(str(recovered.get("display") or ""))
+        raw_value = _normalise_spaces(str(recovered.get("raw_value") or ""))
+        if not display or not raw_value:
+            return ordered_operands
+
+        raw_unit = _normalise_spaces(str(prior_row.get("raw_unit") or current_row.get("raw_unit") or ""))
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+        if normalized_value is None:
+            return ordered_operands
+
+        updated_prior = {
+            **prior_row,
+            "period": recovered.get("period") or prior_row.get("period") or "",
+            "raw_value": raw_value,
+            "raw_unit": raw_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit or prior_row.get("normalized_unit") or "",
+            "rendered_value": display,
+            "prior_recovery_source": "evidence_period_display",
         }
         updated_rows = []
         for row in ordered_operands:
@@ -5954,6 +6164,22 @@ class FinancialAgentCalculationMixin:
                             for row in runtime_operands
                         ]
                         ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
+
+        if operation_family == "growth_rate":
+            recovered_operands = self._recover_duplicate_growth_prior_operand(
+                ordered_operands,
+                list(state.get("evidence_items") or []),
+            )
+            if recovered_operands != ordered_operands:
+                for recovered_row in recovered_operands:
+                    recovered_id = str(recovered_row.get("operand_id") or "").strip()
+                    if recovered_id:
+                        operands[recovered_id] = recovered_row
+                runtime_operands = [
+                    dict(operands.get(str(row.get("operand_id") or "").strip()) or row)
+                    for row in runtime_operands
+                ]
+                ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
         selected_evidence_ids = list(
             dict.fromkeys(str(row.get("evidence_id")) for row in ordered_operands if row.get("evidence_id"))

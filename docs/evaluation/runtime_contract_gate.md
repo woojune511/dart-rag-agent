@@ -817,11 +817,29 @@ Current gate status:
     - average numeric pass rate is `1.0` over applicable numeric questions;
       `numeric_final_judgement = null` remains not-applicable for narrative or
       mixed questions, not a failure
-  - per-company `avg_score`:
-    - `NAV_T2_006`: `0.896`
-    - `HYU_T2_010` / `HYU_T3_072`: `0.968`
-    - `LGE_T1_051`: `0.981`, with `numeric_final_judgement = PASS`
-    - `SAM_T2_078`: `0.952`
+  - per-question signal after the 2026-06-02 mixed growth/narrative repair:
+    - `NAV_T2_006`: faithfulness `1.000`, completeness `1.000`,
+      context recall `1.000`, answer relevancy `0.855`, context P@5 `0.800`
+    - `HYU_T2_010`: faithfulness `1.000`, completeness `1.000`,
+      context recall `1.000`, answer relevancy `0.857`, context P@5 `0.800`
+    - `HYU_T3_072`: faithfulness `1.000`, completeness `1.000`,
+      context recall `1.000`, answer relevancy `0.836`, context P@5 `1.000`
+    - `LGE_T1_051`: faithfulness `1.000`, completeness `1.000`,
+      context recall `1.000`, answer relevancy `0.888`, context P@5 `1.000`,
+      `numeric_final_judgement = PASS`
+    - `SAM_T2_078`: faithfulness `1.000`, completeness `1.000`,
+      context recall `1.000`, answer relevancy `0.913`, context P@5 `0.800`
+  - implementation scope:
+    - duplicate current/prior growth operands can recover the prior display
+      from retrieved evidence sentences with generic year/unit/value matching
+    - growth display selection rejects source-task displays whose KRW unit
+      conflicts with the already bound answer slot
+    - aggregate growth answers replace numeric sentences that mix required
+      slot displays with untraced numeric values, while preserving supported
+      narrative context
+    - commerce-growth narrative retrieval uses declarative
+      `retrieval_query_suffixes` in retrieval policy rather than agent
+      control-flow branches
   - interpretation:
     - no current policy-driven runtime blocker is open
     - keep this as the focused policy gate for changes to retrieval policy,
