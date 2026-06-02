@@ -1101,6 +1101,10 @@ Current gate status:
     `operation_family = "growth_rate"` with `source_row_ids = ["ev_001"]`.
     The narrative child has no numeric row id, which is acceptable because it is
     not a structured numeric operand.
+  - 2026-06-02 narrative provenance follow-up keeps row and evidence
+    provenance separate: the growth child keeps `source_row_ids = ["ev_001"]`
+    and empty `source_evidence_ids`, while the narrative/aggregate child keeps
+    empty `source_row_ids` and `source_evidence_ids = ["ev_001"]`.
   - `faithfulness = 1.0`
   - `completeness = 1.0`
   - `context_recall = 1.0`

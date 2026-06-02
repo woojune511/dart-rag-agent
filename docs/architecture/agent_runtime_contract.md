@@ -181,6 +181,9 @@ projection. Each item in `answer_slots.subtask_results` should expose:
 - `operation_family`: child operation family, copied from the child task,
   answer slots, or calculation result
 - `source_row_ids`: cleaned source row ids used by the child result
+- `source_evidence_ids`: cleaned evidence item ids used by the child result,
+  especially for narrative or prose-only child tasks that do not resolve to a
+  structured numeric row
 - `calculation_result`: child calculation result when available
 - `answer_slots`: child answer slots when available
 
@@ -191,9 +194,15 @@ derive these fields from existing task, slot, trace, and evidence artifacts.
 It must not infer them from company names, benchmark ids, or topic-specific
 keywords.
 
+`source_evidence_ids` is not a replacement for `source_row_ids`. Numeric and
+structured lookup children should keep row/candidate provenance in
+`source_row_ids`; narrative children should keep retrieved evidence ids in
+`source_evidence_ids` when the child answer is grounded in prose evidence but
+has no structured row id.
+
 The purpose of this projection is traceability: evaluator, citation, and
-debugging paths should be able to inspect the same child operation and source
-rows that the aggregate composer used. If a child value came from prose lookup
-or retrieved seed evidence, the promoted evidence id/source row id should stay
-attached through the aggregate projection rather than disappearing during final
-answer synthesis.
+debugging paths should be able to inspect the same child operation, source
+rows, and source evidence ids that the aggregate composer used. If a child
+value came from prose lookup or retrieved seed evidence, the promoted evidence
+id/source row id should stay attached through the aggregate projection rather
+than disappearing during final answer synthesis.

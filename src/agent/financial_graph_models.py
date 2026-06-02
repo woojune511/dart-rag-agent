@@ -349,6 +349,7 @@ class AggregateSubtaskAnswerSlots(BaseModel):
     answer_slots: Dict[str, Any] = Field(default_factory=dict)
     rendered_value: str = Field(default="")
     source_row_ids: List[str] = Field(default_factory=list)
+    source_evidence_ids: List[str] = Field(default_factory=list)
 
 
 class AggregateAnswerSlots(BaseModel):

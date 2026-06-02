@@ -5914,6 +5914,63 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(projected_subtask["operation_family"], "lookup")
         self.assertEqual(projected_subtask["source_row_ids"], ["ev_direct"])
 
+    def test_aggregate_projection_keeps_narrative_evidence_ids_separate_from_row_ids(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "segment growth",
+                "answer": "Segment grew 25%.",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "growth_rate",
+                    "rendered_value": "25%",
+                    "source_row_ids": ["row_growth"],
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "source_row_ids": ["row_growth"],
+                    },
+                },
+            },
+            {
+                "task_id": "task_summary",
+                "metric_family": "narrative_summary",
+                "metric_label": "context summary",
+                "answer": "Management described a policy response.",
+                "status": "ok",
+                "runtime_evidence": [
+                    {
+                        "evidence_id": "ev_summary",
+                        "claim": "Management described a policy response.",
+                    },
+                    {
+                        "evidence_id": "None",
+                        "claim": "Placeholder evidence should not survive.",
+                    },
+                ],
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "narrative_summary",
+                    "rendered_value": "",
+                },
+            },
+        ]
+
+        projection = agent._build_aggregate_calculation_projection(
+            ordered_results,
+            "Segment grew 25%. Management described a policy response.",
+        )
+        subtasks = projection["calculation_result"]["answer_slots"]["subtask_results"]
+
+        self.assertEqual(subtasks[0]["operation_family"], "growth_rate")
+        self.assertEqual(subtasks[0]["source_row_ids"], ["row_growth"])
+        self.assertEqual(subtasks[0]["source_evidence_ids"], [])
+        self.assertEqual(subtasks[1]["operation_family"], "narrative_summary")
+        self.assertEqual(subtasks[1]["source_row_ids"], [])
+        self.assertEqual(subtasks[1]["source_evidence_ids"], ["ev_summary"])
+
     def test_dependency_operand_rows_prefer_direct_sibling_lookup_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         direct_evidence = {

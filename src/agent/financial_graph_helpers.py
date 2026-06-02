@@ -214,6 +214,53 @@ def _clean_source_row_ids(values: Sequence[Any]) -> List[str]:
     return list(dict.fromkeys(cleaned))
 
 
+def _extract_source_evidence_ids_from_records(records: Sequence[Any]) -> List[str]:
+    values: List[Any] = []
+    for record in records or []:
+        if not isinstance(record, Mapping):
+            continue
+        values.extend(
+            [
+                record.get("evidence_id"),
+                record.get("source_evidence_id"),
+                record.get("source_evidence_ids"),
+            ]
+        )
+    return _clean_source_row_ids(values)
+
+
+def _extract_subtask_source_evidence_ids(
+    row: Mapping[str, Any],
+    calculation_result: Mapping[str, Any],
+    answer_slots: Mapping[str, Any],
+    source_row_ids: Sequence[Any],
+) -> List[str]:
+    values: List[Any] = [
+        row.get("evidence_id"),
+        row.get("evidence_ids"),
+        row.get("source_evidence_id"),
+        row.get("source_evidence_ids"),
+        calculation_result.get("evidence_id"),
+        calculation_result.get("evidence_ids"),
+        calculation_result.get("source_evidence_id"),
+        calculation_result.get("source_evidence_ids"),
+        answer_slots.get("evidence_id"),
+        answer_slots.get("evidence_ids"),
+        answer_slots.get("source_evidence_id"),
+        answer_slots.get("source_evidence_ids"),
+    ]
+    if not _clean_source_row_ids(source_row_ids):
+        values.extend(
+            [
+                _extract_source_evidence_ids_from_records(row.get("runtime_evidence") or []),
+                _extract_source_evidence_ids_from_records(row.get("evidence_items") or []),
+                _extract_source_evidence_ids_from_records(calculation_result.get("runtime_evidence") or []),
+                _extract_source_evidence_ids_from_records(calculation_result.get("evidence_items") or []),
+            ]
+        )
+    return _clean_source_row_ids(values)
+
+
 def _split_sentences(text: str) -> List[str]:
     cleaned = _normalise_spaces(text)
     if not cleaned:
@@ -597,6 +644,12 @@ def _build_aggregate_calculation_projection(
             calculation_result.get("source_row_ids"),
             answer_slots.get("source_row_ids"),
         ])
+        subtask_source_evidence_ids = _extract_subtask_source_evidence_ids(
+            row,
+            calculation_result,
+            answer_slots,
+            subtask_source_row_ids,
+        )
         subtask_result_views.append(
             {
                 "task_id": task_id,
@@ -607,6 +660,7 @@ def _build_aggregate_calculation_projection(
                 "status": str(row.get("status") or ""),
                 "calculation_result": calculation_result,
                 "source_row_ids": subtask_source_row_ids,
+                "source_evidence_ids": subtask_source_evidence_ids,
             }
         )
 
@@ -648,6 +702,7 @@ def _build_aggregate_calculation_projection(
                             "answer_slots": dict((item.get("calculation_result") or {}).get("answer_slots") or {}),
                             "rendered_value": str((item.get("calculation_result") or {}).get("rendered_value") or ""),
                             "source_row_ids": list(item.get("source_row_ids") or []),
+                            "source_evidence_ids": list(item.get("source_evidence_ids") or []),
                         }
                         for item in subtask_result_views
                     ],
