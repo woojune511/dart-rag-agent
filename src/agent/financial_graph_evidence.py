@@ -141,6 +141,54 @@ def _apply_query_budget(
     }
 
 
+def _summarize_executed_query_telemetry(executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]:
+    summary: Dict[str, Any] = {
+        "executed_query_count": len(executed_queries),
+        "cache_hit_count": 0,
+        "vector_attempted_count": 0,
+        "embedding_api_calls": 0,
+        "embedding_text_count": 0,
+        "query_embedding_api_calls": 0,
+        "query_embedding_text_count": 0,
+        "by_source": {},
+    }
+    for query_trace in executed_queries:
+        source = _normalise_spaces(str(query_trace.get("source") or "unknown")) or "unknown"
+        by_source = summary["by_source"].setdefault(
+            source,
+            {
+                "executed_query_count": 0,
+                "cache_hit_count": 0,
+                "vector_attempted_count": 0,
+                "embedding_api_calls": 0,
+                "query_embedding_api_calls": 0,
+            },
+        )
+        by_source["executed_query_count"] += 1
+
+        telemetry = dict(query_trace.get("search_telemetry") or {})
+        if not telemetry:
+            continue
+        if bool(telemetry.get("cache_hit")):
+            summary["cache_hit_count"] += 1
+            by_source["cache_hit_count"] += 1
+        if bool(telemetry.get("vector_attempted")):
+            summary["vector_attempted_count"] += 1
+            by_source["vector_attempted_count"] += 1
+        embedding_usage = dict(telemetry.get("embedding_usage") or {})
+        embedding_api_calls = int(embedding_usage.get("embedding_api_calls") or 0)
+        embedding_text_count = int(embedding_usage.get("embedding_text_count") or 0)
+        query_embedding_api_calls = int(embedding_usage.get("query_embedding_api_calls") or 0)
+        query_embedding_text_count = int(embedding_usage.get("query_embedding_text_count") or 0)
+        summary["embedding_api_calls"] += embedding_api_calls
+        summary["embedding_text_count"] += embedding_text_count
+        summary["query_embedding_api_calls"] += query_embedding_api_calls
+        summary["query_embedding_text_count"] += query_embedding_text_count
+        by_source["embedding_api_calls"] += embedding_api_calls
+        by_source["query_embedding_api_calls"] += query_embedding_api_calls
+    return summary
+
+
 def _period_target_for_operand(operand: Dict[str, Any], query_years: List[str], report_scope: Dict[str, Any]) -> str:
     label = _normalise_spaces(str(operand.get("label") or ""))
     match = re.search(r"(20\d{2})년?", label)
@@ -1876,6 +1924,7 @@ class FinancialAgentEvidenceMixin:
         retrieval_debug_trace = {
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
+            "search_summary": _summarize_executed_query_telemetry(executed_queries),
             "where_filter": where_filter,
             "effective_k": effective_k,
             "reflection_count": reflection_count,

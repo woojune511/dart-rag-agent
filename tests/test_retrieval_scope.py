@@ -3,7 +3,7 @@ import unittest
 from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_evidence import _apply_query_budget
+from src.agent.financial_graph_evidence import _apply_query_budget, _summarize_executed_query_telemetry
 from src.agent.financial_graph_helpers import _should_apply_strict_company_scope
 
 
@@ -56,6 +56,54 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertTrue(any("2023년" in query for query in selected))
         self.assertTrue(any("2022년" in query for query in selected))
         self.assertEqual(trace["dropped_count"], 2)
+
+    def test_executed_query_telemetry_summary_groups_by_source(self) -> None:
+        summary = _summarize_executed_query_telemetry(
+            [
+                {
+                    "source": "primary",
+                    "search_telemetry": {
+                        "cache_hit": False,
+                        "vector_attempted": True,
+                        "embedding_usage": {
+                            "embedding_api_calls": 1,
+                            "embedding_text_count": 1,
+                            "query_embedding_api_calls": 1,
+                            "query_embedding_text_count": 1,
+                        },
+                    },
+                },
+                {
+                    "source": "primary",
+                    "search_telemetry": {
+                        "cache_hit": True,
+                        "vector_attempted": False,
+                        "embedding_usage": {},
+                    },
+                },
+                {
+                    "source": "retry",
+                    "search_telemetry": {
+                        "cache_hit": False,
+                        "vector_attempted": True,
+                        "embedding_usage": {
+                            "embedding_api_calls": 1,
+                            "embedding_text_count": 1,
+                            "query_embedding_api_calls": 1,
+                            "query_embedding_text_count": 1,
+                        },
+                    },
+                },
+            ]
+        )
+
+        self.assertEqual(summary["executed_query_count"], 3)
+        self.assertEqual(summary["cache_hit_count"], 1)
+        self.assertEqual(summary["vector_attempted_count"], 2)
+        self.assertEqual(summary["query_embedding_api_calls"], 2)
+        self.assertEqual(summary["by_source"]["primary"]["executed_query_count"], 2)
+        self.assertEqual(summary["by_source"]["primary"]["cache_hit_count"], 1)
+        self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
 
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(

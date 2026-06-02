@@ -148,6 +148,16 @@ Useful supporting points:
   source and source-level query counts. This matters because final traces can
   describe only the last active subtask while the state-level semantic plan may
   still contain many generated query surfaces.
+- `retrieval_debug_trace.search_summary` now aggregates executed searches,
+  cache hits, vector attempts, and query-embedding calls by retrieval source.
+  A local `HYU_T2_010` trace showed `12` searches for the numeric subtask
+  (`primary 8`, `operand_focus 4`) and `3` searches for the narrative subtask,
+  making retrieval fan-out visible without hand-counting `executed_queries`.
+- The same `HYU_T2_010` rerun exposed a remaining answer-composition issue:
+  the answer can preserve `87.0만 대` and `11.5%` while omitting the prior
+  `78.1만 대` display, which lowers completeness despite correct retrieval and
+  calculation. Treat this as an aggregate rendering follow-up, not a retrieval
+  budget failure.
 - Cost estimation now consumes normalized Gemini response usage metadata for
   benchmark contextualization, agent runtime, and evaluator judge calls:
   - prompt/input tokens
