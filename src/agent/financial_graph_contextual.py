@@ -9,45 +9,16 @@ import time
 from typing import Any, Dict, List, Optional
 
 from src.config.retrieval_policy import CONTEXTUAL_INGEST_POLICY
+from src.utils.gemini_usage import (
+    add_gemini_usage_counts,
+    extract_gemini_usage_counts,
+    zero_gemini_usage_counts,
+)
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONTEXT_MAX_WORKERS = max(4, min(12, (os.cpu_count() or 4) * 2))
 DEFAULT_CONTEXT_BATCH_SIZE = max(8, DEFAULT_CONTEXT_MAX_WORKERS * 2)
-
-
-def _extract_usage_counts(response: Any) -> Dict[str, int]:
-    usage = getattr(response, "usage_metadata", None) or {}
-    response_metadata = getattr(response, "response_metadata", None) or {}
-    token_usage = response_metadata.get("token_usage") or {}
-
-    prompt_tokens = (
-        usage.get("input_tokens")
-        or usage.get("prompt_token_count")
-        or token_usage.get("input_tokens")
-        or token_usage.get("prompt_token_count")
-        or 0
-    )
-    output_tokens = (
-        usage.get("output_tokens")
-        or usage.get("candidates_token_count")
-        or token_usage.get("output_tokens")
-        or token_usage.get("candidates_token_count")
-        or 0
-    )
-    total_tokens = (
-        usage.get("total_tokens")
-        or usage.get("total_token_count")
-        or token_usage.get("total_tokens")
-        or token_usage.get("total_token_count")
-        or (prompt_tokens + output_tokens)
-    )
-
-    return {
-        "prompt_tokens": int(prompt_tokens or 0),
-        "output_tokens": int(output_tokens or 0),
-        "total_tokens": int(total_tokens or 0),
-    }
 
 
 def _context_block_type_label(metadata: dict) -> str:
@@ -145,9 +116,7 @@ class FinancialAgentContextualMixin:
                 "fallback_count": 0,
                 "prompt_chars": 0,
                 "response_chars": 0,
-                "prompt_tokens": 0,
-                "output_tokens": 0,
-                "total_tokens": 0,
+                **zero_gemini_usage_counts(),
                 "max_workers": 0,
                 "batch_size": 0,
                 "elapsed_sec": 0.0,
@@ -212,9 +181,7 @@ class FinancialAgentContextualMixin:
             "fallback_count": 0,
             "prompt_chars": 0,
             "response_chars": 0,
-            "prompt_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
+            **zero_gemini_usage_counts(),
             "max_workers": workers,
             "batch_size": request_batch_size,
             "elapsed_sec": 0.0,
@@ -241,9 +208,7 @@ class FinancialAgentContextualMixin:
                 "fallback_count": 0,
                 "prompt_chars": 0,
                 "response_chars": 0,
-                "prompt_tokens": 0,
-                "output_tokens": 0,
-                "total_tokens": 0,
+                **zero_gemini_usage_counts(),
                 "max_workers": 0,
                 "batch_size": 0,
                 "elapsed_sec": 0.0,
@@ -262,9 +227,7 @@ class FinancialAgentContextualMixin:
         completed_count = 0
         prompt_chars = 0
         response_chars = 0
-        prompt_tokens = 0
-        output_tokens = 0
-        total_tokens = 0
+        usage_totals = zero_gemini_usage_counts()
         fallback_count = 0
 
         logger.info(
@@ -295,10 +258,7 @@ class FinancialAgentContextualMixin:
                 else:
                     content = getattr(response, "content", "") or ""
                     contexts[idx] = content.strip() or self._fallback_context(chunk.metadata)
-                    usage = _extract_usage_counts(response)
-                    prompt_tokens += usage["prompt_tokens"]
-                    output_tokens += usage["output_tokens"]
-                    total_tokens += usage["total_tokens"]
+                    add_gemini_usage_counts(usage_totals, extract_gemini_usage_counts(response))
 
                 response_chars += len(contexts[idx])
                 completed_count += 1
@@ -326,9 +286,7 @@ class FinancialAgentContextualMixin:
             "fallback_count": fallback_count,
             "prompt_chars": prompt_chars,
             "response_chars": response_chars,
-            "prompt_tokens": prompt_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
+            **usage_totals,
             "max_workers": workers,
             "batch_size": request_batch_size,
             "elapsed_sec": time.perf_counter() - started_at,

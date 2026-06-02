@@ -42,6 +42,12 @@ from storage.vector_store import (
     VectorStoreManager,
     get_embedding_runtime_spec,
 )
+from utils.gemini_usage import (
+    add_gemini_usage_counts,
+    estimate_gemini_cost_usd,
+    extract_gemini_usage_counts,
+    zero_gemini_usage_counts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -743,13 +749,16 @@ def _build_cache_hit_ingest_metrics(source_metrics: Dict[str, Any]) -> Dict[str,
     metrics["cache_hit"] = True
     metrics["elapsed_sec"] = 0.0
     metrics["api_calls"] = 0
-    metrics["prompt_tokens"] = 0
-    metrics["output_tokens"] = 0
-    metrics["total_tokens"] = 0
+    metrics.update(zero_gemini_usage_counts())
     metrics["fallback_count"] = 0
     metrics["cached_source_api_calls"] = int((source_metrics or {}).get("api_calls", 0) or 0)
     metrics["cached_source_prompt_tokens"] = int((source_metrics or {}).get("prompt_tokens", 0) or 0)
     metrics["cached_source_output_tokens"] = int((source_metrics or {}).get("output_tokens", 0) or 0)
+    metrics["cached_source_thoughts_tokens"] = int((source_metrics or {}).get("thoughts_tokens", 0) or 0)
+    metrics["cached_source_cached_tokens"] = int((source_metrics or {}).get("cached_tokens", 0) or 0)
+    metrics["cached_source_tool_use_prompt_tokens"] = int(
+        (source_metrics or {}).get("tool_use_prompt_tokens", 0) or 0
+    )
     return metrics
 
 
@@ -757,14 +766,17 @@ def _build_context_cache_restore_metrics(source_metrics: Dict[str, Any], elapsed
     metrics = dict(source_metrics or {})
     metrics["cache_hit"] = True
     metrics["api_calls"] = 0
-    metrics["prompt_tokens"] = 0
-    metrics["output_tokens"] = 0
-    metrics["total_tokens"] = 0
+    metrics.update(zero_gemini_usage_counts())
     metrics["fallback_count"] = 0
     metrics["elapsed_sec"] = elapsed_sec
     metrics["cached_source_api_calls"] = int((source_metrics or {}).get("api_calls", 0) or 0)
     metrics["cached_source_prompt_tokens"] = int((source_metrics or {}).get("prompt_tokens", 0) or 0)
     metrics["cached_source_output_tokens"] = int((source_metrics or {}).get("output_tokens", 0) or 0)
+    metrics["cached_source_thoughts_tokens"] = int((source_metrics or {}).get("thoughts_tokens", 0) or 0)
+    metrics["cached_source_cached_tokens"] = int((source_metrics or {}).get("cached_tokens", 0) or 0)
+    metrics["cached_source_tool_use_prompt_tokens"] = int(
+        (source_metrics or {}).get("tool_use_prompt_tokens", 0) or 0
+    )
     return metrics
 
 
@@ -1000,18 +1012,7 @@ def _build_single_company_eval_slice(examples: List[EvalExample], max_questions:
 
 
 def _estimate_cost_usd(ingest_metrics: Dict[str, Any], pricing: Dict[str, Any] | None) -> float | None:
-    if not pricing:
-        return None
-
-    input_rate = float(pricing.get("input_per_million_tokens_usd", 0.0) or 0.0)
-    output_rate = float(pricing.get("output_per_million_tokens_usd", 0.0) or 0.0)
-    prompt_tokens = float(ingest_metrics.get("prompt_tokens", 0) or 0)
-    output_tokens = float(ingest_metrics.get("output_tokens", 0) or 0)
-
-    if input_rate == 0.0 and output_rate == 0.0:
-        return None
-
-    return (prompt_tokens / 1_000_000.0) * input_rate + (output_tokens / 1_000_000.0) * output_rate
+    return estimate_gemini_cost_usd(ingest_metrics, pricing)
 
 
 def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
@@ -1088,6 +1089,9 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "resolved_calculation_trace": resolved_trace,
                 "structured_result": structured_result,
                 "resolved_operand_count": len(resolved_trace.get("calculation_operands", []) or []),
+                "agent_llm_usage": getattr(result, "agent_llm_usage", {}) or {},
+                "judge_llm_usage": getattr(result, "judge_llm_usage", {}) or {},
+                "llm_usage": getattr(result, "llm_usage", {}) or {},
                 "missing_info_policy": result.missing_info_policy,
                 "error": result.error,
             }
@@ -1396,9 +1400,7 @@ def _build_plain_ingest_metrics(chunk_count: int, elapsed_sec: float) -> Dict[st
         "fallback_count": 0,
         "prompt_chars": 0,
         "response_chars": 0,
-        "prompt_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
+        **zero_gemini_usage_counts(),
         "max_workers": 0,
         "batch_size": 0,
         "elapsed_sec": elapsed_sec,
@@ -1675,9 +1677,7 @@ def _generate_context_map(
             "fallback_count": 0,
             "prompt_chars": 0,
             "response_chars": 0,
-            "prompt_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
+            **zero_gemini_usage_counts(),
             "max_workers": 0,
             "batch_size": 0,
         }
@@ -1687,9 +1687,7 @@ def _generate_context_map(
     contexts: Dict[Any, str] = {}
     prompt_chars = 0
     response_chars = 0
-    prompt_tokens = 0
-    output_tokens = 0
-    total_tokens = 0
+    usage_totals = zero_gemini_usage_counts()
     fallback_count = 0
     completed_count = 0
 
@@ -1723,30 +1721,7 @@ def _generate_context_map(
             else:
                 content = getattr(response, "content", "") or ""
                 contexts[key] = content.strip() or fallback_builder(item)
-                usage = getattr(response, "usage_metadata", None) or {}
-                response_metadata = getattr(response, "response_metadata", None) or {}
-                token_usage = response_metadata.get("token_usage") or {}
-                prompt_tokens += int(
-                    usage.get("input_tokens")
-                    or usage.get("prompt_token_count")
-                    or token_usage.get("input_tokens")
-                    or token_usage.get("prompt_token_count")
-                    or 0
-                )
-                output_tokens += int(
-                    usage.get("output_tokens")
-                    or usage.get("candidates_token_count")
-                    or token_usage.get("output_tokens")
-                    or token_usage.get("candidates_token_count")
-                    or 0
-                )
-                total_tokens += int(
-                    usage.get("total_tokens")
-                    or usage.get("total_token_count")
-                    or token_usage.get("total_tokens")
-                    or token_usage.get("total_token_count")
-                    or 0
-                )
+                add_gemini_usage_counts(usage_totals, extract_gemini_usage_counts(response))
             response_chars += len(contexts[key])
             completed_count += 1
             if on_progress:
@@ -1757,9 +1732,7 @@ def _generate_context_map(
         "fallback_count": fallback_count,
         "prompt_chars": prompt_chars,
         "response_chars": response_chars,
-        "prompt_tokens": prompt_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": total_tokens,
+        **usage_totals,
         "max_workers": workers,
         "batch_size": request_batch_size,
     }
@@ -1966,6 +1939,10 @@ def _benchmark_parent_hybrid_ingest(
         "response_chars": parent_metrics.get("response_chars", 0) + child_metrics.get("response_chars", 0),
         "prompt_tokens": parent_metrics.get("prompt_tokens", 0) + child_metrics.get("prompt_tokens", 0),
         "output_tokens": parent_metrics.get("output_tokens", 0) + child_metrics.get("output_tokens", 0),
+        "thoughts_tokens": parent_metrics.get("thoughts_tokens", 0) + child_metrics.get("thoughts_tokens", 0),
+        "cached_tokens": parent_metrics.get("cached_tokens", 0) + child_metrics.get("cached_tokens", 0),
+        "tool_use_prompt_tokens": parent_metrics.get("tool_use_prompt_tokens", 0)
+        + child_metrics.get("tool_use_prompt_tokens", 0),
         "total_tokens": parent_metrics.get("total_tokens", 0) + child_metrics.get("total_tokens", 0),
         "max_workers": max(parent_metrics.get("max_workers", 0), child_metrics.get("max_workers", 0)),
         "batch_size": max(parent_metrics.get("batch_size", 0), child_metrics.get("batch_size", 0)),
@@ -2188,9 +2165,7 @@ def _benchmark_structural_selective_v2_ingest(
             "fallback_count": 0,
             "prompt_chars": 0,
             "response_chars": 0,
-            "prompt_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
+            **zero_gemini_usage_counts(),
             "max_workers": 0,
             "batch_size": 0,
             "use_zero_cost_prefix": True,
@@ -2264,9 +2239,7 @@ def _benchmark_structural_parent_hybrid_v2_ingest(
             "fallback_count": 0,
             "prompt_chars": 0,
             "response_chars": 0,
-            "prompt_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
+            **zero_gemini_usage_counts(),
             "max_workers": 0,
             "batch_size": 0,
             "use_zero_cost_prefix": True,
@@ -2748,6 +2721,10 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "api_calls",
         "prompt_tokens",
         "output_tokens",
+        "thoughts_tokens",
+        "cached_tokens",
+        "tool_use_prompt_tokens",
+        "total_tokens",
         "estimated_ingest_cost_usd",
         "baseline_api_call_reduction_ratio",
         "baseline_ingest_time_reduction_ratio",
@@ -2783,6 +2760,14 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "full_trend_interpretation_correctness",
         "full_grounded_rendering_correctness",
         "full_calculation_correctness",
+        "full_llm_api_calls",
+        "full_llm_prompt_tokens",
+        "full_llm_output_tokens",
+        "full_llm_thoughts_tokens",
+        "full_llm_cached_tokens",
+        "full_llm_tool_use_prompt_tokens",
+        "full_llm_total_tokens",
+        "estimated_runtime_cost_usd",
         "full_avg_score",
         "full_avg_latency",
     ]
@@ -2815,6 +2800,10 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
                     "api_calls": ingest.get("api_calls", 0),
                     "prompt_tokens": ingest.get("prompt_tokens", 0),
                     "output_tokens": ingest.get("output_tokens", 0),
+                    "thoughts_tokens": ingest.get("thoughts_tokens", 0),
+                    "cached_tokens": ingest.get("cached_tokens", 0),
+                    "tool_use_prompt_tokens": ingest.get("tool_use_prompt_tokens", 0),
+                    "total_tokens": ingest.get("total_tokens", 0),
                     "estimated_ingest_cost_usd": result.get("estimated_ingest_cost_usd"),
                     "baseline_api_call_reduction_ratio": comparison.get("api_call_reduction_ratio"),
                     "baseline_ingest_time_reduction_ratio": comparison.get("ingest_time_reduction_ratio"),
@@ -2850,6 +2839,14 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
                       "full_trend_interpretation_correctness": full.get("trend_interpretation_correctness"),
                       "full_grounded_rendering_correctness": full.get("grounded_rendering_correctness"),
                       "full_calculation_correctness": full.get("calculation_correctness"),
+                      "full_llm_api_calls": full.get("llm_api_calls"),
+                      "full_llm_prompt_tokens": full.get("llm_prompt_tokens"),
+                      "full_llm_output_tokens": full.get("llm_output_tokens"),
+                      "full_llm_thoughts_tokens": full.get("llm_thoughts_tokens"),
+                      "full_llm_cached_tokens": full.get("llm_cached_tokens"),
+                      "full_llm_tool_use_prompt_tokens": full.get("llm_tool_use_prompt_tokens"),
+                      "full_llm_total_tokens": full.get("llm_total_tokens"),
+                      "estimated_runtime_cost_usd": full.get("estimated_runtime_cost_usd"),
                       "full_avg_score": full.get("avg_score"),
                       "full_avg_latency": full.get("avg_latency"),
                   }
@@ -2941,13 +2938,30 @@ def _apply_question_id_override(
     return overridden
 
 
-def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, bool]:
+def _optional_positive_int(value: Any) -> int:
+    try:
+        parsed = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return max(parsed, 0)
+
+
+def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, Any]:
     offline_retrieval = bool(full_eval_config.get("offline_retrieval", False))
-    return {
+    routing_config: Dict[str, Any] = {
         "low_api_debug": bool(full_eval_config.get("low_api_debug", False)),
         "enable_semantic_router": not (offline_retrieval or bool(full_eval_config.get("disable_semantic_router", False))),
         "enable_llm_fallback": not (offline_retrieval or bool(full_eval_config.get("disable_router_llm", False))),
     }
+    for key in (
+        "retrieval_query_budget",
+        "focused_retrieval_query_budget",
+        "retry_retrieval_query_budget",
+    ):
+        parsed = _optional_positive_int(full_eval_config.get(key))
+        if parsed:
+            routing_config[key] = parsed
+    return routing_config
 
 
 def _low_api_retrieval_enabled(full_eval_config: Dict[str, Any]) -> bool:
@@ -4109,9 +4123,24 @@ def _run_full_evaluation(
             experiment_id=result.get("id"),
             emit_now=True,
         )
+    aggregate = dict(eval_results["aggregate"])
+    runtime_cost = estimate_gemini_cost_usd(
+        {
+            "prompt_tokens": aggregate.get("llm_prompt_tokens", 0),
+            "output_tokens": aggregate.get("llm_output_tokens", 0),
+            "thoughts_tokens": aggregate.get("llm_thoughts_tokens", 0),
+            "cached_tokens": aggregate.get("llm_cached_tokens", 0),
+            "tool_use_prompt_tokens": aggregate.get("llm_tool_use_prompt_tokens", 0),
+            "total_tokens": aggregate.get("llm_total_tokens", 0),
+        },
+        merged_config.get("pricing"),
+    )
     return {
         "question_count": len(examples),
-        "aggregate": eval_results["aggregate"],
+        "aggregate": {
+            **aggregate,
+            "estimated_runtime_cost_usd": runtime_cost,
+        },
         "per_question": _serialise_eval_results(eval_results["per_question"]),
     }
 
@@ -4382,6 +4411,27 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--retrieval-query-budget",
+        type=int,
+        default=0,
+        help=(
+            "Optional cap for primary retrieval queries emitted by semantic planning. "
+            "Use 0 to keep the profile/default behavior."
+        ),
+    )
+    parser.add_argument(
+        "--focused-retrieval-query-budget",
+        type=int,
+        default=0,
+        help="Optional cap for focused operand-surface retrieval queries. Use 0 for the built-in default.",
+    )
+    parser.add_argument(
+        "--retry-retrieval-query-budget",
+        type=int,
+        default=0,
+        help="Optional cap for reconciliation retry retrieval queries. Use 0 for the built-in default.",
+    )
+    parser.add_argument(
         "--progress-heartbeat-sec",
         type=int,
         default=0,
@@ -4426,6 +4476,12 @@ def main() -> None:
         full_eval_config["offline_retrieval"] = True
     if args.low_api_debug:
         full_eval_config["low_api_debug"] = True
+    if args.retrieval_query_budget:
+        full_eval_config["retrieval_query_budget"] = max(int(args.retrieval_query_budget), 0)
+    if args.focused_retrieval_query_budget:
+        full_eval_config["focused_retrieval_query_budget"] = max(int(args.focused_retrieval_query_budget), 0)
+    if args.retry_retrieval_query_budget:
+        full_eval_config["retry_retrieval_query_budget"] = max(int(args.retry_retrieval_query_budget), 0)
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")
 

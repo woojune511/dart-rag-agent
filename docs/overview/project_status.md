@@ -95,10 +95,37 @@ Useful supporting points:
 
 ## Next Work
 
-1. Reduce benchmark runtime and embedding cost through profiling and cache
-   hygiene.
+1. Reduce benchmark runtime and embedding cost through profiling, cache
+   hygiene, and explicit retrieval query-budget controls for focused canaries.
 2. Harden task-ledger and artifact-store contracts for the multi-agent workflow.
 3. Clean up legacy projection paths now that `answer_slots` and
    `resolved_calculation_trace` are the durable runtime surfaces.
 4. Add a small portfolio demo script that runs a representative query and emits
    answer, evidence, and calculation trace side by side.
+
+### Runtime/API Cost Focus
+
+- First low-risk control: benchmark runs can now pass explicit retrieval query
+  budgets to cap primary, operand-focused, and retry retrieval fan-out.
+- Cost estimation now consumes normalized Gemini response usage metadata for
+  benchmark contextualization, agent runtime, and evaluator judge calls:
+  - prompt/input tokens
+  - output/candidate tokens
+  - thinking tokens
+  - cached-content tokens
+  - tool-use prompt tokens
+- `estimated_ingest_cost_usd` and `estimated_runtime_cost_usd` remain
+  estimates from usage metadata and the profile pricing table, not Cloud
+  Billing invoice amounts.
+- Full-eval results preserve per-question `agent_llm_usage`,
+  `judge_llm_usage`, combined `llm_usage`, and aggregate `llm_*` token totals
+  so runtime/evaluator cost can be compared against ingest cost.
+- Default runtime behavior remains unchanged unless a budget is supplied. Query
+  dedupe is enabled only for explicitly budgeted retrieval stages.
+- Use this for focused triage before changing retrieval policy or ontology:
+  it is an execution-cost control, not a benchmark-answer rule.
+- First bounded low-API canary:
+  - `NAV_T1_030` with budgets `12 / 6 / 2` passed.
+  - `retrieval_debug_trace.query_budget` recorded `primary 3/3`,
+    `operand_focus 6/16`, and `retry 0/0`.
+  - API calls and estimated cost remained `0 / $0.0000`.

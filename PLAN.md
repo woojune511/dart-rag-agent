@@ -5,6 +5,57 @@
 
 ## Active Snapshot
 
+## 2026-06-02 Runtime/API Cost-Control Patch
+
+- Added optional retrieval query budgets for focused benchmark triage:
+  - primary semantic-planner retrieval fan-out
+  - operand-focused supplemental retrieval
+  - reconciliation retry retrieval
+- Default runtime behavior is unchanged unless a budget is explicitly supplied.
+  Retry retrieval keeps the existing built-in cap of `3` when unset, and
+  operand-focused retrieval keeps the existing built-in cap of `8`.
+- Exact duplicate retrieval queries are removed before search and the selected
+  versus dropped counts are recorded in `retrieval_debug_trace.query_budget`
+  only when an explicit budget is supplied. Unbudgeted runtime stages preserve
+  the previous query order and duplicate behavior.
+- Benchmark runner CLI now exposes:
+  - `--retrieval-query-budget`
+  - `--focused-retrieval-query-budget`
+  - `--retry-retrieval-query-budget`
+- Gemini cost estimation now normalizes response usage metadata for benchmark
+  contextualization calls, agent runtime calls, and evaluator judge calls. It
+  estimates cost from:
+  - prompt/input tokens
+  - output/candidate tokens
+  - thinking tokens
+  - cached-content tokens
+  - tool-use prompt tokens
+  `estimated_ingest_cost_usd` and `estimated_runtime_cost_usd` are still
+  estimates against the profile pricing table, not billing export values.
+- Full-eval outputs now preserve per-question `agent_llm_usage`,
+  `judge_llm_usage`, combined `llm_usage`, and aggregate `llm_*` token totals.
+- Validation:
+  - `python -m unittest tests.test_retrieval_scope`
+  - `python -m unittest tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_routing_config_carries_retrieval_query_budgets`
+  - `python -m unittest tests.test_gemini_usage`
+- Focused canary:
+  - `NAV_T1_030` with `--low-api-debug --numeric-fast-gate` and query budgets
+    `12 / 6 / 2` passed.
+  - `retrieval_debug_trace.query_budget` showed `primary 3/3`,
+    `operand_focus 6/16`, and `retry 0/0`.
+  - API calls and estimated cost were `0 / $0.0000`.
+- Caveat:
+  - `SKH_T1_060` failed in the current fresh low-API/BM25 path even without
+    explicit query budgets because the bond operand can bind to a
+    parenthesized adjustment row. Keep this as a separate row-selection
+    regression, not as a query-budget plumbing failure.
+- Immediate next:
+  1. Profile total query fan-out across task-ledger subtasks, because per-stage
+     budgets do not yet cap the aggregate number of searches across all tasks.
+  2. Extend the usage meter to query-embedding calls if provider metadata is
+     available, or document why embedding cost remains profile-estimated.
+  3. Triage `SKH_T1_060` as a generic evidence row-selection problem.
+
 ## 2026-06-01 Value-Local Unit Contract Closure
 
 - The LGE AMPC embedded-unit gap is closed as a generic value-local unit

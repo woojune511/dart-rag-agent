@@ -65,6 +65,53 @@ _COUNT_VALUE_UNIT_RE = (
 )
 
 
+def _query_budget_int(value: Any) -> int:
+    try:
+        parsed = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return max(parsed, 0)
+
+
+def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
+    seen: set[str] = set()
+    deduped: List[str] = []
+    for query in queries:
+        normalized = _normalise_spaces(str(query or ""))
+        if not normalized:
+            continue
+        signature = re.sub(r"\s+", " ", normalized).lower()
+        if signature in seen:
+            continue
+        seen.add(signature)
+        deduped.append(normalized)
+    return deduped
+
+
+def _apply_query_budget(
+    queries: List[str],
+    budget: int,
+    *,
+    dedupe: bool = True,
+) -> tuple[List[str], Dict[str, Any]]:
+    normalized = [_normalise_spaces(str(item or "")) for item in queries]
+    normalized = [item for item in normalized if item]
+    candidates = _dedupe_queries_for_retrieval(normalized) if dedupe else normalized
+    if budget <= 0 or len(candidates) <= budget:
+        selected = candidates
+    else:
+        selected = candidates[:budget]
+    return selected, {
+        "input_count": len(normalized),
+        "deduped_count": len(candidates),
+        "selected_count": len(selected),
+        "budget": budget,
+        "dropped_count": max(len(candidates) - len(selected), 0),
+        "dropped_queries": candidates[len(selected) :],
+        "dedupe_enabled": dedupe,
+    }
+
+
 def _period_target_for_operand(operand: Dict[str, Any], query_years: List[str], report_scope: Dict[str, Any]) -> str:
     label = _normalise_spaces(str(operand.get("label") or ""))
     match = re.search(r"(20\d{2})년?", label)
@@ -1553,6 +1600,13 @@ class FinancialAgentEvidenceMixin:
             for supplemental_query in (query, str(state.get("topic") or "").strip()):
                 if supplemental_query and supplemental_query not in query_bundle:
                     query_bundle.append(supplemental_query)
+        query_budget_trace: Dict[str, Any] = {}
+        primary_budget = _query_budget_int(getattr(self, "retrieval_query_budget", 0))
+        query_bundle, query_budget_trace["primary"] = _apply_query_budget(
+            list(query_bundle),
+            primary_budget,
+            dedupe=primary_budget > 0,
+        )
         executed_queries: List[Dict[str, Any]] = []
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
@@ -1580,9 +1634,16 @@ class FinancialAgentEvidenceMixin:
                 query_trace["search_telemetry"] = dict(search_telemetry)
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
+        configured_focused_budget = _query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
+        focused_budget = configured_focused_budget or 8
+        focused_operand_queries, query_budget_trace["operand_focus"] = _apply_query_budget(
+            focused_operand_queries,
+            focused_budget,
+            dedupe=configured_focused_budget > 0,
+        )
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
-            for focused_query in focused_operand_queries[:8]:
+            for focused_query in focused_operand_queries:
                 search_k = max(effective_k * 2, 8)
                 query_trace = {
                     "source": "operand_focus",
@@ -1598,9 +1659,16 @@ class FinancialAgentEvidenceMixin:
                     query_trace["search_telemetry"] = dict(search_telemetry)
             if focused_docs:
                 docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
+        configured_retry_budget = _query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
+        retry_budget = configured_retry_budget or 3
+        retry_queries, query_budget_trace["retry"] = _apply_query_budget(
+            retry_queries,
+            retry_budget,
+            dedupe=configured_retry_budget > 0,
+        )
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
-            for retry_query in retry_queries[:3]:
+            for retry_query in retry_queries:
                 search_k = max(effective_k * 2, 8)
                 query_trace = {
                     "source": "retry",
@@ -1726,7 +1794,8 @@ class FinancialAgentEvidenceMixin:
             "where_filter": where_filter,
             "effective_k": effective_k,
             "reflection_count": reflection_count,
-            "retry_queries": retry_queries[:3],
+            "retry_queries": retry_queries,
+            "query_budget": query_budget_trace,
             "candidate_count": len(reranked),
             "seed_count": len(seed_docs),
             "selected_count": len(docs),

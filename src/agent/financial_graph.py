@@ -25,6 +25,7 @@ from src.agent.financial_graph_contextual import (
 from src.agent.financial_graph_models import FinancialAgentState
 from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 from src.routing import QueryRouter
+from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -58,6 +59,18 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         self.k = k
         self.routing_config = dict(routing_config or {})
         self.low_api_debug = bool(self.routing_config.get("low_api_debug", False))
+        try:
+            self.retrieval_query_budget = int(self.routing_config.get("retrieval_query_budget") or 0)
+        except (TypeError, ValueError):
+            self.retrieval_query_budget = 0
+        try:
+            self.focused_retrieval_query_budget = int(self.routing_config.get("focused_retrieval_query_budget") or 0)
+        except (TypeError, ValueError):
+            self.focused_retrieval_query_budget = 0
+        try:
+            self.retry_retrieval_query_budget = int(self.routing_config.get("retry_retrieval_query_budget") or 0)
+        except (TypeError, ValueError):
+            self.retry_retrieval_query_budget = 0
         # Expansion keeps the initial retrieval hits intact and selectively
         # appends nearby structural context such as parent paragraphs or table
         # descriptions.
@@ -81,7 +94,12 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+        self.llm_usage_callback = GeminiUsageCallbackHandler()
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            temperature=0,
+            callbacks=[self.llm_usage_callback],
+        )
         self.query_router = QueryRouter(
             embeddings=self.vsm.embeddings,
             llm=self.llm,
@@ -197,6 +215,9 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
     def run(self, query: str, *, report_scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Execute the graph and return a stable caller-facing payload."""
+        usage_callback = getattr(self, "llm_usage_callback", None)
+        if usage_callback is not None:
+            usage_callback.reset_current_thread()
         initial: FinancialAgentState = {
             "query": query,
             "report_scope": dict(report_scope or {}),
@@ -262,6 +283,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "artifacts": [],
         }
         final = self.graph.invoke(initial)
+        llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
         legacy_projection = self._project_legacy_calculation_fields(final)
         structured_result = _resolve_runtime_structured_result(
             {
@@ -321,6 +343,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "subtask_debug_trace": final.get("subtask_debug_trace", {}),
             "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
             "reconciliation_result": final.get("reconciliation_result", {}),
+            "llm_usage": llm_usage,
             "tasks": final.get("tasks", []),
             "artifacts": final.get("artifacts", []),
         }

@@ -61,11 +61,16 @@ Use this order before paying for a full curated gate rerun:
 1. Commit the code/docs/test change once unit and contract tests pass.
 2. Recheck the active runtime canary with one question only, usually
    `--eval-only --question-id <ID> --low-api-debug`.
-3. For already-closed cases such as `comparison_002`, use historical replay
+3. When diagnosing retrieval-heavy questions, add explicit query budgets before
+   changing retrieval policy:
+   `--retrieval-query-budget <N> --focused-retrieval-query-budget <N> --retry-retrieval-query-budget <N>`.
+   This caps search fan-out and records the selected/dropped query counts in
+   `retrieval_debug_trace.query_budget`.
+4. For already-closed cases such as `comparison_002`, use historical replay
    only unless the live agent path changed.
-4. Classify only two or three remaining focused failures at a time as
+5. Classify only two or three remaining focused failures at a time as
    retrieval, dependency/synthesis, answer formatting, or evaluator issues.
-5. Run the full curated runtime gate once after two or three focused fixes have
+6. Run the full curated runtime gate once after two or three focused fixes have
    accumulated, without `--low-api-debug`.
 
 `--low-api-debug` is a diagnostic mode, not an official score. It intentionally
@@ -78,6 +83,17 @@ available.
 Benchmark result traces include coarse phase timing (`parse`, `ingest`, and
 per-question `latency_sec`) plus retrieval-level timing inside
 `retrieval_debug_trace.executed_queries[].search_telemetry`.
+
+Benchmark ingest and full-eval summaries also include Gemini usage-derived cost
+estimates. `estimated_ingest_cost_usd` and `estimated_runtime_cost_usd` are
+computed from response usage metadata and the profile pricing table. They
+include prompt/input, output/candidate, thinking, cached-content, and tool-use
+prompt token buckets when those fields are present in the response metadata.
+They are not Cloud Billing invoice values.
+
+Full-eval output records per-question `agent_llm_usage`, `judge_llm_usage`, and
+combined `llm_usage`, plus aggregate `llm_*` token totals. This separates
+runtime agent cost from evaluator judge cost when diagnosing expensive runs.
 
 Use these fields to classify slow runs before changing retrieval policy:
 
@@ -141,6 +157,40 @@ Low-API diagnostic canary mode:
   --question-id SKH_T1_060 `
   --low-api-debug
 ```
+
+Low-API diagnostic canary with bounded retrieval fan-out:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_runtime_contract_gate.json `
+  --output-dir benchmarks/results/runtime_contract_gate_manual `
+  --company-run-id naver_2023_runtime_contract_gate `
+  --question-id NAV_T1_030 `
+  --low-api-debug `
+  --numeric-fast-gate `
+  --retrieval-query-budget 12 `
+  --focused-retrieval-query-budget 6 `
+  --retry-retrieval-query-budget 2
+```
+
+Latest local bounded-query canary:
+
+- Date: 2026-06-02
+- Output:
+  `benchmarks/results/runtime_query_budget_nav_t1_030_2026-06-02/`
+- Result:
+  - `NAV_T1_030`: `numeric_final_judgement = PASS`
+  - answer: `1조 3,616억원`
+  - faithfulness, completeness, and context recall all `1.000`
+  - executed retrieval queries: `9` (`primary = 3`, `operand_focus = 6`)
+  - budget trace: `primary 3/3`, `operand_focus 6/16`, `retry 0/0`
+  - API calls / estimated cost: `0 / $0.0000`
+- Caution:
+  - `SKH_T1_060` is not a good query-budget smoke target in the current fresh
+    low-API/BM25 path because it can bind the bond operand to a parenthesized
+    adjustment row and fail even without explicit budgets. Treat that as a
+    separate evidence-ranking / row-selection regression, not as proof that
+    query-budget plumbing is broken.
 
 Historical answer replay:
 

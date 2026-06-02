@@ -123,6 +123,92 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertIn("2023년 법인세비용차감전순이익 연결 손익계산서", first_query)
         self.assertNotIn("전역 쿼리", first_query)
 
+    def test_retrieval_query_budget_caps_primary_and_retry_searches(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 2
+        agent.retry_retrieval_query_budget = 1
+        agent.focused_retrieval_query_budget = 0
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "원본 질문",
+                "retrieval_queries": ["전역 쿼리"],
+                "active_subtask": {
+                    "query": "subtask query",
+                    "retrieval_queries": ["primary one", "primary two", "primary three"],
+                },
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": ["retry one", "retry two"],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        self.assertEqual(len(agent.vsm.queries), 3)
+        searched = [row["query"] for row in agent.vsm.queries]
+        self.assertTrue(any("primary one" in query for query in searched))
+        self.assertTrue(any("primary two" in query for query in searched))
+        self.assertFalse(any("primary three" in query for query in searched))
+        self.assertTrue(any("retry one" in query for query in searched))
+        self.assertFalse(any("retry two" in query for query in searched))
+        trace = result["retrieval_debug_trace"]["query_budget"]
+        self.assertEqual(trace["primary"]["selected_count"], 2)
+        self.assertEqual(trace["primary"]["dropped_count"], 1)
+        self.assertEqual(trace["retry"]["selected_count"], 1)
+        self.assertEqual(trace["retry"]["dropped_count"], 1)
+
+    def test_retry_query_budget_keeps_builtin_default_when_unset(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "원본 질문",
+                "retrieval_queries": ["primary one", "primary one"],
+                "active_subtask": {},
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": ["retry one", "retry two", "retry three", "retry four"],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        searched = [row["query"] for row in agent.vsm.queries]
+        self.assertEqual(len(searched), 5)
+        self.assertEqual(sum(1 for query in searched if "primary one" in query), 2)
+        self.assertTrue(any("retry three" in query for query in searched))
+        self.assertFalse(any("retry four" in query for query in searched))
+        trace = result["retrieval_debug_trace"]["query_budget"]
+        self.assertFalse(trace["primary"]["dedupe_enabled"])
+        self.assertEqual(trace["primary"]["selected_count"], 2)
+        self.assertFalse(trace["retry"]["dedupe_enabled"])
+        self.assertEqual(trace["retry"]["budget"], 3)
+        self.assertEqual(trace["retry"]["selected_count"], 3)
+        self.assertEqual(trace["retry"]["dropped_count"], 1)
+
     def test_multi_source_receipts_override_primary_receipt_filter(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 2

@@ -21,6 +21,11 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.config.retrieval_policy import FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES
+from src.utils.gemini_usage import (
+    GeminiUsageCallbackHandler,
+    add_gemini_usage_counts,
+    zero_gemini_usage_counts,
+)
 from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 logger = logging.getLogger(__name__)
@@ -220,6 +225,9 @@ class EvalResult:
     calculation_operands: List[Dict[str, Any]] = field(default_factory=list)
     calculation_plan: Dict[str, Any] = field(default_factory=dict)
     calculation_result: Dict[str, Any] = field(default_factory=dict)
+    agent_llm_usage: Dict[str, Any] = field(default_factory=dict)
+    judge_llm_usage: Dict[str, Any] = field(default_factory=dict)
+    llm_usage: Dict[str, Any] = field(default_factory=dict)
     missing_info_policy: Optional[str] = None
     error: Optional[str] = None
 
@@ -2829,7 +2837,16 @@ class RAGEvaluator:
         self.numeric_fast_gate = bool(numeric_fast_gate)
         self.skip_llm_judges = bool(skip_llm_judges)
         self.skip_embedding_metrics = bool(skip_embedding_metrics or self.skip_llm_judges)
-        self._llm = None if self.skip_llm_judges else ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
+        self._llm_usage_callback = None if self.skip_llm_judges else GeminiUsageCallbackHandler()
+        self._llm = (
+            None
+            if self.skip_llm_judges
+            else ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash",
+                temperature=0.0,
+                callbacks=[self._llm_usage_callback],
+            )
+        )
         self._embeddings = None if self.skip_embedding_metrics else create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
     def load_dataset(self) -> List[EvalExample]:
@@ -2920,12 +2937,17 @@ class RAGEvaluator:
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
         structured_result: Dict[str, Any] = {}
+        agent_llm_usage: Dict[str, Any] = {}
+        judge_usage_callback = getattr(self, "_llm_usage_callback", None)
+        if judge_usage_callback is not None:
+            judge_usage_callback.reset_current_thread()
 
         try:
             result = self.agent.run(
                 example.question,
                 report_scope=_build_example_report_scope(example),
             )
+            agent_llm_usage = dict(result.get("llm_usage", {}) or {})
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
             intent = result.get("intent", query_type or "unknown")
@@ -3192,6 +3214,14 @@ class RAGEvaluator:
             faithfulness_override_reason = "answerable question에 대한 full abstention으로 faithfulness를 0.0으로 강등"
             answer_relevancy = min(answer_relevancy, 0.1)
 
+        judge_llm_usage = judge_usage_callback.snapshot_current_thread() if judge_usage_callback is not None else {}
+        llm_usage = zero_gemini_usage_counts()
+        add_gemini_usage_counts(llm_usage, agent_llm_usage)
+        add_gemini_usage_counts(llm_usage, judge_llm_usage)
+        llm_usage["api_calls"] = int(agent_llm_usage.get("api_calls", 0) or 0) + int(
+            judge_llm_usage.get("api_calls", 0) or 0
+        )
+
         return EvalResult(
             id=example.id,
             question=example.question,
@@ -3266,6 +3296,9 @@ class RAGEvaluator:
             calculation_operands=calculation_operands,
             calculation_plan=calculation_plan,
             calculation_result=calculation_result,
+            agent_llm_usage=agent_llm_usage,
+            judge_llm_usage=judge_llm_usage,
+            llm_usage=llm_usage,
             missing_info_policy=example.missing_info_policy,
             error=error,
         )
@@ -3434,6 +3467,11 @@ class RAGEvaluator:
                 if numeric_results
                 else None
             )
+            llm_usage_totals = zero_gemini_usage_counts()
+            llm_usage_api_calls = 0
+            for result in valid_results:
+                add_gemini_usage_counts(llm_usage_totals, result.llm_usage)
+                llm_usage_api_calls += int(result.llm_usage.get("api_calls", 0) or 0)
 
             aggregate = {
                 "faithfulness": _average("faithfulness"),
@@ -3468,6 +3506,13 @@ class RAGEvaluator:
                 "avg_score": _average("aggregate_score"),
                 "avg_latency": _average("latency_sec"),
                 "error_rate": error_rate,
+                "llm_api_calls": llm_usage_api_calls,
+                "llm_prompt_tokens": llm_usage_totals["prompt_tokens"],
+                "llm_output_tokens": llm_usage_totals["output_tokens"],
+                "llm_thoughts_tokens": llm_usage_totals["thoughts_tokens"],
+                "llm_cached_tokens": llm_usage_totals["cached_tokens"],
+                "llm_tool_use_prompt_tokens": llm_usage_totals["tool_use_prompt_tokens"],
+                "llm_total_tokens": llm_usage_totals["total_tokens"],
             }
             mlflow.log_metrics({"agg_" + key: value for key, value in aggregate.items() if value is not None})
 

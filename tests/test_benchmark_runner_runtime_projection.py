@@ -15,8 +15,10 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.ops.benchmark_runner import (
     _BenchmarkProgressReporter,
+    _build_agent_routing_config,
     _build_cross_company_rows,
     _build_winner_ranking,
+    _estimate_cost_usd,
     _flatten_review_rows,
     _progress_watch_path_summary,
     _render_cross_company_summary_markdown,
@@ -25,6 +27,41 @@ from src.ops.benchmark_runner import (
 
 
 class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
+    def test_estimate_cost_usd_includes_cached_and_thinking_tokens(self) -> None:
+        cost = _estimate_cost_usd(
+            {
+                "prompt_tokens": 1_200_000,
+                "cached_tokens": 200_000,
+                "output_tokens": 300_000,
+                "thoughts_tokens": 100_000,
+                "tool_use_prompt_tokens": 50_000,
+            },
+            {
+                "input_per_million_tokens_usd": 1.0,
+                "cached_input_per_million_tokens_usd": 0.25,
+                "output_per_million_tokens_usd": 3.0,
+                "thinking_per_million_tokens_usd": 2.0,
+                "tool_input_per_million_tokens_usd": 0.5,
+            },
+        )
+
+        self.assertAlmostEqual(cost or 0.0, 2.175)
+
+    def test_routing_config_carries_retrieval_query_budgets(self) -> None:
+        config = _build_agent_routing_config(
+            {
+                "low_api_debug": True,
+                "retrieval_query_budget": 12,
+                "focused_retrieval_query_budget": 4,
+                "retry_retrieval_query_budget": 1,
+            }
+        )
+
+        self.assertTrue(config["low_api_debug"])
+        self.assertEqual(config["retrieval_query_budget"], 12)
+        self.assertEqual(config["focused_retrieval_query_budget"], 4)
+        self.assertEqual(config["retry_retrieval_query_budget"], 1)
+
     def test_progress_reporter_writes_jsonl_events(self) -> None:
         with TemporaryDirectory() as temp_dir:
             heartbeat_log = Path(temp_dir) / "heartbeat.jsonl"
