@@ -1112,6 +1112,18 @@ Current gate status:
     eval-only keeps `faithfulness = 1.0`, `completeness = 1.0`,
     `context_recall = 1.0`, `citation_coverage = 1.0`, and
     `entity_coverage = 1.0`.
+  - 2026-06-03 full policy-gate store-fixed eval-only after evaluator
+    provenance consumption covered all five policy questions:
+    `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`, and
+    `SAM_T2_078`. All five kept `faithfulness = 1.0`,
+    `completeness = 1.0`, `context_recall = 1.0`, and
+    `retrieval_hit_at_k = 1.0`; `LGE_T1_051` kept
+    `numeric_final_judgement = PASS`. Aggregate provenance remained quiet:
+    `HYU_T2_010` exposes two deduped child provenance rows with aggregate row
+    ids `["ev_001"]` and aggregate evidence ids `["ev_001"]`; `NAV_T2_006`
+    keeps aggregate row ids `["ev_001", "task_output:task_3",
+    "task_output:task_4"]`; `SAM_T2_078` keeps aggregate row ids
+    `["ev_001"]`.
   - `faithfulness = 1.0`
   - `completeness = 1.0`
   - `context_recall = 1.0`
