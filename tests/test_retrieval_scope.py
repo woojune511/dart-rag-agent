@@ -3,6 +3,7 @@ import unittest
 from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_evidence import _apply_query_budget
 from src.agent.financial_graph_helpers import _should_apply_strict_company_scope
 
 
@@ -37,6 +38,25 @@ class _BM25OnlyVSM:
 
 
 class RetrievalScopeTests(unittest.TestCase):
+    def test_query_budget_preserves_period_diversity_when_truncating(self) -> None:
+        selected, trace = _apply_query_budget(
+            [
+                "2023년 current primary",
+                "2023년 current statement",
+                "2023년 current notes",
+                "2022년 prior primary",
+                "2022년 prior statement",
+                "2022년 prior notes",
+            ],
+            4,
+            dedupe=True,
+        )
+
+        self.assertEqual(len(selected), 4)
+        self.assertTrue(any("2023년" in query for query in selected))
+        self.assertTrue(any("2022년" in query for query in selected))
+        self.assertEqual(trace["dropped_count"], 2)
+
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(
             _should_apply_strict_company_scope(

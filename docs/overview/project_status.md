@@ -144,3 +144,23 @@ Useful supporting points:
   - `retrieval_debug_trace.query_budget` recorded `primary 3/3`,
     `operand_focus 6/16`, and `retry 0/0`.
   - API calls and estimated cost remained `0 / $0.0000`.
+- Second bounded low-API canary:
+  - `SKH_T1_060` passed with tighter budgets `8 / 4 / 1`.
+  - The trace reduced executed retrieval searches to 12
+    (`primary = 8`, `operand_focus = 4`, `retry = 0`) while preserving
+    `numeric_final_judgement = PASS`.
+  - `KBF_T1_017` also passed numerically with `8 / 4 / 1` and 12 executed
+    retrieval searches.
+  - `NAV_T1_071` was confirmed to be a separate runtime regression rather than
+    a budget-only regression: `8 / 4 / 1`, `12 / 6 / 2`, and unbounded focused
+    low-API runs all failed with the same stale `0원` difference shape before
+    the runtime fix.
+  - The `NAV_T1_071` root cause was period-insensitive precision refinement:
+    a prior-period lookup initially selected the correct fiscal column, then
+    contextual table-cell refinement overwrote it with the current-period cell.
+  - The fix makes precision refinement reuse the generic period-aware structured
+    cell selector; the focused low-API canary now passes with current
+    `1,481,396,317,551원`, prior `1,083,717,091,152원`, and delta `3,977억원`.
+  - Query-budget selection now preserves period diversity before truncation so
+    explicitly budgeted multi-period comparisons do not silently drop all
+    prior-period search surfaces.

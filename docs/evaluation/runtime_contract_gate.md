@@ -209,6 +209,43 @@ Latest local bounded-query canary:
     projection: the focused JSON now shows `task_6` as `9,490,410백만원`, with
     zero stale `(600,550)백만원` occurrences.
 
+Latest bounded-query runtime canaries:
+
+- Date: 2026-06-02
+- Scope: focused low-API/BM25 canaries
+- `SKH_T1_060` candidate budgets:
+  - `12 / 6 / 2`: PASS, 18 executed retrieval searches
+  - `8 / 4 / 1`: PASS, 12 executed retrieval searches
+- `KBF_T1_017` candidate budget:
+  - `8 / 4 / 1`: `numeric_final_judgement = PASS`, 12 executed retrieval
+    searches
+- `NAV_T1_071` baseline check:
+  - `8 / 4 / 1`: FAIL, 12 executed retrieval searches
+  - `12 / 6 / 2`: FAIL, 18 executed retrieval searches
+  - unbounded: FAIL, 23 executed retrieval searches
+  - all three runs produce the same stale `0원` difference shape, so this is a
+    separate runtime regression rather than a budget-only regression.
+- `NAV_T1_071` regression fix:
+  - Root cause: period-insensitive precision refinement re-selected the first
+    contextual table cell after reconciliation had already identified the
+    prior-period fiscal column.
+  - Runtime fix: contextual table-cell refinement now delegates to the generic
+    period-aware structured-cell selector before replacing a reconciled
+    operand value.
+  - Focused low-API rerun: `numeric_final_judgement = PASS`; operands were
+    current `1,481,396,317,551원`, prior `1,083,717,091,152원`, and difference
+    `3,977억원`.
+- Current interpretation:
+  - `8 / 4 / 1` is promising for focused canaries that already have healthy
+    runtime grounding (`SKH_T1_060`, `KBF_T1_017`). With `NAV_T1_071` fixed,
+    the remaining promotion work is broader focused coverage rather than this
+    specific blocker.
+  - Explicit query-budget selection now preserves period diversity before
+    truncation, preventing a generic class of multi-period comparison
+    regressions.
+  - This is an execution-cost control only. It does not add domain vocabulary,
+    company-specific branches, or benchmark-answer rules.
+
 Historical answer replay:
 
 ```powershell

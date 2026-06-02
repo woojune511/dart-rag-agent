@@ -88,6 +88,34 @@ def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
     return deduped
 
 
+def _period_balanced_queries_for_retrieval(queries: List[str]) -> List[str]:
+    grouped: Dict[tuple[str, ...], List[str]] = {}
+    group_order: List[tuple[str, ...]] = []
+    for query in queries:
+        years = tuple(dict.fromkeys(re.findall(r"20\d{2}", query)))
+        key = years or ("",)
+        if key not in grouped:
+            grouped[key] = []
+            group_order.append(key)
+        grouped[key].append(query)
+    if len(group_order) <= 1:
+        return queries
+
+    balanced: List[str] = []
+    index = 0
+    while len(balanced) < len(queries):
+        progressed = False
+        for key in group_order:
+            bucket = grouped[key]
+            if index < len(bucket):
+                balanced.append(bucket[index])
+                progressed = True
+        if not progressed:
+            break
+        index += 1
+    return balanced
+
+
 def _apply_query_budget(
     queries: List[str],
     budget: int,
@@ -100,6 +128,7 @@ def _apply_query_budget(
     if budget <= 0 or len(candidates) <= budget:
         selected = candidates
     else:
+        candidates = _period_balanced_queries_for_retrieval(candidates)
         selected = candidates[:budget]
     return selected, {
         "input_count": len(normalized),

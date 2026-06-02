@@ -2888,6 +2888,38 @@ class FinancialAgentCalculationMixin:
                 if existing is None or (not existing.get("cells") and record.get("cells")):
                     records_by_label[label] = record
 
+            def _select_period_aware_cell(record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+                cells = [dict(cell or {}) for cell in list(record.get("cells") or []) if isinstance(cell, dict)]
+                if not cells:
+                    return None
+                query_years: List[int] = []
+                for raw_year in (
+                    row.get("period"),
+                    metadata.get("year"),
+                ):
+                    try:
+                        if raw_year not in (None, ""):
+                            year = int(raw_year)
+                            if year not in query_years:
+                                query_years.append(year)
+                    except (TypeError, ValueError):
+                        continue
+                period_operand = dict(operand_spec)
+                role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
+                period_hint = _normalise_spaces(str(row.get("period") or ""))
+                if role:
+                    period_operand["role"] = role
+                if period_hint:
+                    period_operand["period_hint"] = period_hint
+                cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
+                selected = _select_structured_cell(
+                    cells,
+                    operand=period_operand,
+                    query_years=query_years,
+                    period_focus=_operand_period_focus(period_operand, "unknown"),
+                )
+                return dict(selected) if selected else None
+
             def _is_krw_cell(cell_data: Dict[str, Any]) -> bool:
                 value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
                 unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
@@ -2901,19 +2933,15 @@ class FinancialAgentCalculationMixin:
                     continue
                 current_record = records_by_label.get(label_text)
                 if current_record:
-                    for cell in list(current_record.get("cells") or []):
-                        cell_data = dict(cell or {})
-                        if not _is_krw_cell(cell_data):
-                            continue
+                    cell_data = _select_period_aware_cell(current_record)
+                    if cell_data and _is_krw_cell(cell_data):
                         return cell_data
                 for previous_label in reversed(row_labels[:index]):
                     record = records_by_label.get(previous_label)
                     if not record:
                         continue
-                    for cell in list(record.get("cells") or []):
-                        cell_data = dict(cell or {})
-                        if not _is_krw_cell(cell_data):
-                            continue
+                    cell_data = _select_period_aware_cell(record)
+                    if cell_data and _is_krw_cell(cell_data):
                         return cell_data
                 break
             return None

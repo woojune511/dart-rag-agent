@@ -3140,6 +3140,55 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(normalized_unit, "KRW")
         self.assertEqual(normalized_value, -640623697250.0)
 
+    def test_precision_refinement_respects_prior_period_structured_cell(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "raw_value": "1,083,717,091,152",
+            "raw_unit": "원",
+            "normalized_value": 1083717091152.0,
+            "normalized_unit": "KRW",
+            "period": "2022",
+            "label": "2022년 법인세비용차감전순이익",
+            "matched_operand_label": "법인세비용차감전순이익",
+            "matched_operand_concept": "income_before_income_taxes",
+            "matched_operand_role": "prior_period",
+        }
+        evidence_item = {
+            "raw_row_text": (
+                "법인세비용차감전순이익 | 제 25 기 1,481,396,317,551 원 | "
+                "제 24 기 1,083,717,091,152 원"
+            ),
+            "metadata": {
+                "year": 2023,
+                "table_row_labels_text": "법인세비용차감전순이익",
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_label": "법인세비용차감전순이익",
+                            "cells": [
+                                {
+                                    "column_headers": ["제 25 기"],
+                                    "value_text": "1,481,396,317,551",
+                                    "unit_hint": "원",
+                                },
+                                {
+                                    "column_headers": ["제 24 기"],
+                                    "value_text": "1,083,717,091,152",
+                                    "unit_hint": "원",
+                                },
+                            ],
+                        }
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "1,083,717,091,152")
+        self.assertEqual(refined["normalized_value"], 1083717091152.0)
+
     def test_operand_requirement_matching_respects_explicit_roles(self) -> None:
         row = {
             "label": "2023 법인세비용차감전순이익",
