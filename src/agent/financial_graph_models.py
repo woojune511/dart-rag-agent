@@ -344,9 +344,11 @@ class AggregateSubtaskAnswerSlots(BaseModel):
     task_id: str = Field(default="")
     metric_family: str = Field(default="")
     metric_label: str = Field(default="")
+    operation_family: str = Field(default="")
     answer: str = Field(default="")
     answer_slots: Dict[str, Any] = Field(default_factory=dict)
     rendered_value: str = Field(default="")
+    source_row_ids: List[str] = Field(default_factory=list)
 
 
 class AggregateAnswerSlots(BaseModel):

@@ -5911,6 +5911,8 @@ class OperationContractTests(unittest.TestCase):
         projected_subtask = projection["calculation_result"]["answer_slots"]["subtask_results"][0]
         self.assertEqual(projected_subtask["answer"], "900백만원")
         self.assertEqual(projected_subtask["rendered_value"], "900백만원")
+        self.assertEqual(projected_subtask["operation_family"], "lookup")
+        self.assertEqual(projected_subtask["source_row_ids"], ["ev_direct"])
 
     def test_dependency_operand_rows_prefer_direct_sibling_lookup_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

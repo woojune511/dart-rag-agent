@@ -585,14 +585,28 @@ def _build_aggregate_calculation_projection(
                 }
             )
 
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        operation_family = _trace_operation_family(
+            calculation_plan=plan,
+            calculation_result=calculation_result,
+        ) or str(answer_slots.get("operation_family") or row.get("operation_family") or "").strip()
+        subtask_source_row_ids = _clean_source_row_ids([
+            row.get("source_row_id"),
+            row.get("source_row_ids"),
+            calculation_result.get("source_row_ids"),
+            answer_slots.get("source_row_ids"),
+        ])
         subtask_result_views.append(
             {
                 "task_id": task_id,
                 "metric_family": metric_family,
                 "metric_label": metric_label,
+                "operation_family": operation_family,
                 "answer": str(row.get("answer") or "").strip(),
                 "status": str(row.get("status") or ""),
-                "calculation_result": dict(row.get("calculation_result") or {}),
+                "calculation_result": calculation_result,
+                "source_row_ids": subtask_source_row_ids,
             }
         )
 
@@ -629,9 +643,11 @@ def _build_aggregate_calculation_projection(
                             "task_id": str(item.get("task_id") or ""),
                             "metric_family": str(item.get("metric_family") or ""),
                             "metric_label": str(item.get("metric_label") or ""),
+                            "operation_family": str(item.get("operation_family") or ""),
                             "answer": str(item.get("answer") or ""),
                             "answer_slots": dict((item.get("calculation_result") or {}).get("answer_slots") or {}),
                             "rendered_value": str((item.get("calculation_result") or {}).get("rendered_value") or ""),
+                            "source_row_ids": list(item.get("source_row_ids") or []),
                         }
                         for item in subtask_result_views
                     ],
