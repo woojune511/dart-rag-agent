@@ -48,6 +48,10 @@ from utils.gemini_usage import (
     extract_gemini_usage_counts,
     zero_gemini_usage_counts,
 )
+from utils.embedding_usage import (
+    estimate_embedding_cost_usd,
+    zero_embedding_usage_counts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -741,6 +745,10 @@ def _merge_resume_metrics(metrics: Dict[str, Any], add_metrics: Dict[str, Any]) 
             merged[key] = float(add_metrics.get(key, 0.0) or 0.0)
     if "vector_add_skipped" in add_metrics:
         merged["vector_add_skipped"] = bool(add_metrics.get("vector_add_skipped", False))
+    embedding_usage = dict(add_metrics.get("embedding_usage") or zero_embedding_usage_counts())
+    merged["embedding_usage"] = embedding_usage
+    for key, value in embedding_usage.items():
+        merged[key] = int(value or 0)
     return merged
 
 
@@ -750,6 +758,8 @@ def _build_cache_hit_ingest_metrics(source_metrics: Dict[str, Any]) -> Dict[str,
     metrics["elapsed_sec"] = 0.0
     metrics["api_calls"] = 0
     metrics.update(zero_gemini_usage_counts())
+    metrics.update(zero_embedding_usage_counts())
+    metrics["embedding_usage"] = zero_embedding_usage_counts()
     metrics["fallback_count"] = 0
     metrics["cached_source_api_calls"] = int((source_metrics or {}).get("api_calls", 0) or 0)
     metrics["cached_source_prompt_tokens"] = int((source_metrics or {}).get("prompt_tokens", 0) or 0)
@@ -767,6 +777,8 @@ def _build_context_cache_restore_metrics(source_metrics: Dict[str, Any], elapsed
     metrics["cache_hit"] = True
     metrics["api_calls"] = 0
     metrics.update(zero_gemini_usage_counts())
+    metrics.update(zero_embedding_usage_counts())
+    metrics["embedding_usage"] = zero_embedding_usage_counts()
     metrics["fallback_count"] = 0
     metrics["elapsed_sec"] = elapsed_sec
     metrics["cached_source_api_calls"] = int((source_metrics or {}).get("api_calls", 0) or 0)
@@ -1015,6 +1027,10 @@ def _estimate_cost_usd(ingest_metrics: Dict[str, Any], pricing: Dict[str, Any] |
     return estimate_gemini_cost_usd(ingest_metrics, pricing)
 
 
+def _estimate_embedding_cost_usd(embedding_metrics: Dict[str, Any], pricing: Dict[str, Any] | None) -> float | None:
+    return estimate_embedding_cost_usd(embedding_metrics, pricing)
+
+
 def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
     serialised: List[Dict[str, Any]] = []
     for result in results:
@@ -1092,6 +1108,9 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "agent_llm_usage": getattr(result, "agent_llm_usage", {}) or {},
                 "judge_llm_usage": getattr(result, "judge_llm_usage", {}) or {},
                 "llm_usage": getattr(result, "llm_usage", {}) or {},
+                "agent_embedding_usage": getattr(result, "agent_embedding_usage", {}) or {},
+                "judge_embedding_usage": getattr(result, "judge_embedding_usage", {}) or {},
+                "embedding_usage": getattr(result, "embedding_usage", {}) or {},
                 "missing_info_policy": result.missing_info_policy,
                 "error": result.error,
             }
@@ -1401,6 +1420,8 @@ def _build_plain_ingest_metrics(chunk_count: int, elapsed_sec: float) -> Dict[st
         "prompt_chars": 0,
         "response_chars": 0,
         **zero_gemini_usage_counts(),
+        **zero_embedding_usage_counts(),
+        "embedding_usage": zero_embedding_usage_counts(),
         "max_workers": 0,
         "batch_size": 0,
         "elapsed_sec": elapsed_sec,
@@ -1678,6 +1699,8 @@ def _generate_context_map(
             "prompt_chars": 0,
             "response_chars": 0,
             **zero_gemini_usage_counts(),
+            **zero_embedding_usage_counts(),
+            "embedding_usage": zero_embedding_usage_counts(),
             "max_workers": 0,
             "batch_size": 0,
         }
@@ -2166,6 +2189,8 @@ def _benchmark_structural_selective_v2_ingest(
             "prompt_chars": 0,
             "response_chars": 0,
             **zero_gemini_usage_counts(),
+            **zero_embedding_usage_counts(),
+            "embedding_usage": zero_embedding_usage_counts(),
             "max_workers": 0,
             "batch_size": 0,
             "use_zero_cost_prefix": True,
@@ -2240,6 +2265,8 @@ def _benchmark_structural_parent_hybrid_v2_ingest(
             "prompt_chars": 0,
             "response_chars": 0,
             **zero_gemini_usage_counts(),
+            **zero_embedding_usage_counts(),
+            "embedding_usage": zero_embedding_usage_counts(),
             "max_workers": 0,
             "batch_size": 0,
             "use_zero_cost_prefix": True,
@@ -2725,7 +2752,12 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "cached_tokens",
         "tool_use_prompt_tokens",
         "total_tokens",
+        "embedding_api_calls",
+        "embedding_text_count",
+        "embedding_input_chars",
+        "embedding_estimated_input_tokens",
         "estimated_ingest_cost_usd",
+        "estimated_ingest_embedding_cost_usd",
         "baseline_api_call_reduction_ratio",
         "baseline_ingest_time_reduction_ratio",
         "baseline_estimated_cost_reduction_ratio",
@@ -2767,7 +2799,16 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "full_llm_cached_tokens",
         "full_llm_tool_use_prompt_tokens",
         "full_llm_total_tokens",
+        "full_embedding_api_calls",
+        "full_embedding_text_count",
+        "full_embedding_input_chars",
+        "full_embedding_estimated_input_tokens",
+        "full_query_embedding_api_calls",
+        "full_query_embedding_text_count",
+        "full_query_embedding_input_chars",
+        "full_query_embedding_estimated_input_tokens",
         "estimated_runtime_cost_usd",
+        "estimated_runtime_embedding_cost_usd",
         "full_avg_score",
         "full_avg_latency",
     ]
@@ -2804,7 +2845,12 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
                     "cached_tokens": ingest.get("cached_tokens", 0),
                     "tool_use_prompt_tokens": ingest.get("tool_use_prompt_tokens", 0),
                     "total_tokens": ingest.get("total_tokens", 0),
+                    "embedding_api_calls": ingest.get("embedding_api_calls", 0),
+                    "embedding_text_count": ingest.get("embedding_text_count", 0),
+                    "embedding_input_chars": ingest.get("embedding_input_chars", 0),
+                    "embedding_estimated_input_tokens": ingest.get("embedding_estimated_input_tokens", 0),
                     "estimated_ingest_cost_usd": result.get("estimated_ingest_cost_usd"),
+                    "estimated_ingest_embedding_cost_usd": result.get("estimated_ingest_embedding_cost_usd"),
                     "baseline_api_call_reduction_ratio": comparison.get("api_call_reduction_ratio"),
                     "baseline_ingest_time_reduction_ratio": comparison.get("ingest_time_reduction_ratio"),
                     "baseline_estimated_cost_reduction_ratio": comparison.get("estimated_cost_reduction_ratio"),
@@ -2846,7 +2892,16 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
                       "full_llm_cached_tokens": full.get("llm_cached_tokens"),
                       "full_llm_tool_use_prompt_tokens": full.get("llm_tool_use_prompt_tokens"),
                       "full_llm_total_tokens": full.get("llm_total_tokens"),
+                      "full_embedding_api_calls": full.get("embedding_api_calls"),
+                      "full_embedding_text_count": full.get("embedding_text_count"),
+                      "full_embedding_input_chars": full.get("embedding_input_chars"),
+                      "full_embedding_estimated_input_tokens": full.get("embedding_estimated_input_tokens"),
+                      "full_query_embedding_api_calls": full.get("query_embedding_api_calls"),
+                      "full_query_embedding_text_count": full.get("query_embedding_text_count"),
+                      "full_query_embedding_input_chars": full.get("query_embedding_input_chars"),
+                      "full_query_embedding_estimated_input_tokens": full.get("query_embedding_estimated_input_tokens"),
                       "estimated_runtime_cost_usd": full.get("estimated_runtime_cost_usd"),
+                      "estimated_runtime_embedding_cost_usd": full.get("estimated_runtime_embedding_cost_usd"),
                       "full_avg_score": full.get("avg_score"),
                       "full_avg_latency": full.get("avg_latency"),
                   }
@@ -3841,6 +3896,10 @@ def run_screening_experiment(
         progress_reporter.update("screening:evaluate", experiment_id=experiment_id, emit_now=True)
     screening_eval = _run_screening_eval(agent, screening_examples, screening_config) if screening_examples else {}
     estimated_cost = _estimate_cost_usd(ingest_metrics, config_with_inventory.get("pricing"))
+    estimated_embedding_cost = _estimate_embedding_cost_usd(
+        dict(ingest_metrics.get("embedding_usage") or ingest_metrics),
+        config_with_inventory.get("pricing"),
+    )
 
     return {
         "id": experiment_id,
@@ -3890,6 +3949,7 @@ def run_screening_experiment(
             "signature": cache_signature,
         },
         "estimated_ingest_cost_usd": estimated_cost,
+        "estimated_ingest_embedding_cost_usd": estimated_embedding_cost,
         "smoke": smoke,
         "screening_eval": screening_eval,
         "screen_pass": False,
@@ -4135,11 +4195,18 @@ def _run_full_evaluation(
         },
         merged_config.get("pricing"),
     )
+    runtime_embedding_cost = estimate_embedding_cost_usd(
+        {
+            "embedding_estimated_input_tokens": aggregate.get("embedding_estimated_input_tokens", 0),
+        },
+        merged_config.get("pricing"),
+    )
     return {
         "question_count": len(examples),
         "aggregate": {
             **aggregate,
             "estimated_runtime_cost_usd": runtime_cost,
+            "estimated_runtime_embedding_cost_usd": runtime_embedding_cost,
         },
         "per_question": _serialise_eval_results(eval_results["per_question"]),
     }

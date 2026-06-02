@@ -14,6 +14,12 @@ from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
+from src.utils.embedding_usage import (
+    TrackingEmbeddings,
+    add_embedding_usage_counts,
+    subtract_embedding_usage_counts,
+    zero_embedding_usage_counts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +94,7 @@ def get_embedding_runtime_spec(
 def create_embeddings(
     provider: Optional[str] = None,
     model_name: Optional[str] = None,
+    track_usage: bool = True,
 ) -> Any:
     selected_provider = (provider or DEFAULT_EMBEDDING_PROVIDER).strip().lower()
     selected_model = (model_name or DEFAULT_EMBEDDING_MODEL).strip()
@@ -95,21 +102,24 @@ def create_embeddings(
     if selected_provider == "google":
         if not os.getenv("GOOGLE_API_KEY"):
             raise ValueError("GOOGLE_API_KEY is required for Google API embeddings.")
-        return GoogleGenerativeAIEmbeddings(
+        embeddings = GoogleGenerativeAIEmbeddings(
             model=selected_model or DEFAULT_GOOGLE_EMBEDDING_MODEL,
             google_api_key=os.getenv("GOOGLE_API_KEY"),
         )
+        return TrackingEmbeddings(embeddings) if track_usage else embeddings
 
     if selected_provider == "openai":
         if not os.getenv("OPENAI_API_KEY"):
             raise ValueError("OPENAI_API_KEY is required for OpenAI API embeddings.")
-        return OpenAIEmbeddings(
+        embeddings = OpenAIEmbeddings(
             model=selected_model or DEFAULT_OPENAI_EMBEDDING_MODEL,
             api_key=os.getenv("OPENAI_API_KEY"),
         )
+        return TrackingEmbeddings(embeddings) if track_usage else embeddings
 
     if selected_provider == "huggingface":
-        return HuggingFaceEmbeddings(model_name=selected_model or DEFAULT_HUGGINGFACE_EMBEDDING_MODEL)
+        embeddings = HuggingFaceEmbeddings(model_name=selected_model or DEFAULT_HUGGINGFACE_EMBEDDING_MODEL)
+        return TrackingEmbeddings(embeddings) if track_usage else embeddings
 
     raise ValueError(
         f"Unsupported embedding provider: {selected_provider}. "
@@ -281,6 +291,7 @@ class VectorStoreManager:
         self._vector_capacity_cooldown_until = 0.0
         self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
         self.last_search_telemetry: Dict[str, Any] = {}
+        self.last_embedding_usage: Dict[str, int] = zero_embedding_usage_counts()
         self.embedding_spec = get_embedding_runtime_spec(
             provider=self.embedding_provider,
             model_name=self.embedding_model_name,
@@ -322,6 +333,23 @@ class VectorStoreManager:
 
     def in_capacity_cooldown(self) -> bool:
         return time.time() < float(getattr(self, "_vector_capacity_cooldown_until", 0.0) or 0.0)
+
+    def get_embedding_usage_snapshot(self) -> Dict[str, int]:
+        snapshot = getattr(getattr(self, "embeddings", None), "snapshot_usage", None)
+        if callable(snapshot):
+            return snapshot()
+        return zero_embedding_usage_counts()
+
+    def reset_current_thread_embedding_usage(self) -> None:
+        reset = getattr(getattr(self, "embeddings", None), "reset_current_thread_usage", None)
+        if callable(reset):
+            reset()
+
+    def get_current_thread_embedding_usage_snapshot(self) -> Dict[str, int]:
+        snapshot = getattr(getattr(self, "embeddings", None), "snapshot_current_thread_usage", None)
+        if callable(snapshot):
+            return snapshot()
+        return zero_embedding_usage_counts()
 
     def _open_capacity_cooldown(self, exc: Exception) -> None:
         if self.vector_capacity_cooldown_sec <= 0:
@@ -775,6 +803,7 @@ class VectorStoreManager:
                 "skipped_chunks": 0,
                 "batch_count": 0,
                 "resume_enabled": bool(resume),
+                "embedding_usage": zero_embedding_usage_counts(),
                 "elapsed_sec": _elapsed_sec(started_at),
             }
 
@@ -830,6 +859,7 @@ class VectorStoreManager:
                 "skipped_chunks": skipped_chunks,
                 "batch_count": 0,
                 "resume_enabled": bool(resume),
+                "embedding_usage": zero_embedding_usage_counts(),
                 "elapsed_sec": _elapsed_sec(started_at),
                 "prepare_sec": prepare_sec,
                 "resume_lookup_sec": resume_lookup_sec,
@@ -877,6 +907,7 @@ class VectorStoreManager:
                 "batch_count": batch_count,
                 "resume_enabled": bool(resume),
                 "vector_add_skipped": True,
+                "embedding_usage": zero_embedding_usage_counts(),
                 "elapsed_sec": _elapsed_sec(started_at),
                 "prepare_sec": prepare_sec,
                 "resume_lookup_sec": resume_lookup_sec,
@@ -890,6 +921,7 @@ class VectorStoreManager:
         added_count = 0
         vector_add_sec = 0.0
         structure_graph_update_sec = 0.0
+        embedding_usage_before = self.get_embedding_usage_snapshot()
         for start in range(0, len(pending), effective_batch_size):
             batch = pending[start : start + effective_batch_size]
             batch_texts = [text for text, _, _ in batch]
@@ -932,6 +964,7 @@ class VectorStoreManager:
         self._init_bm25()
         bm25_build_sec = _elapsed_sec(bm25_started)
         logger.info("Successfully added documents and updated BM25 index.")
+        embedding_usage = subtract_embedding_usage_counts(self.get_embedding_usage_snapshot(), embedding_usage_before)
         return {
             "requested_chunks": len(chunks),
             "added_chunks": len(pending),
@@ -939,6 +972,7 @@ class VectorStoreManager:
             "batch_count": batch_count,
             "resume_enabled": bool(resume),
             "vector_add_skipped": False,
+            "embedding_usage": embedding_usage,
             "elapsed_sec": _elapsed_sec(started_at),
             "prepare_sec": prepare_sec,
             "resume_lookup_sec": resume_lookup_sec,
@@ -1082,6 +1116,7 @@ class VectorStoreManager:
             "bm25_doc_count": len(getattr(self, "bm25_docs", []) or []),
             "rrf_merge_sec": 0.0,
             "result_count": 0,
+            "embedding_usage": zero_embedding_usage_counts(),
         }
 
         cache_key = self._search_cache_key(query, k=k, k_rrf=k_rrf, where_filter=where_filter)
@@ -1092,6 +1127,7 @@ class VectorStoreManager:
             telemetry["retrieval_mode"] = "cache"
             telemetry["result_count"] = len(cached)
             telemetry["total_sec"] = _elapsed_sec(started_at)
+            self.last_embedding_usage = dict(telemetry["embedding_usage"])
             self.last_search_telemetry = telemetry
             return cached
 
@@ -1111,6 +1147,7 @@ class VectorStoreManager:
         else:
             try:
                 telemetry["vector_attempted"] = True
+                embedding_before = self.get_embedding_usage_snapshot()
                 vector_started = time.perf_counter()
                 vector_results = self.vector_store.similarity_search_with_score(
                     query,
@@ -1118,6 +1155,10 @@ class VectorStoreManager:
                     filter=where_filter,
                 )
                 telemetry["vector_search_sec"] = _elapsed_sec(vector_started)
+                telemetry["embedding_usage"] = subtract_embedding_usage_counts(
+                    self.get_embedding_usage_snapshot(),
+                    embedding_before,
+                )
                 vector_results = [
                     (self._hydrate_document_from_structure_graph(doc), score)
                     for doc, score in vector_results
@@ -1125,6 +1166,10 @@ class VectorStoreManager:
                 telemetry["vector_result_count"] = len(vector_results)
             except Exception as exc:
                 telemetry["vector_search_sec"] = _elapsed_sec(vector_started)
+                telemetry["embedding_usage"] = subtract_embedding_usage_counts(
+                    self.get_embedding_usage_snapshot(),
+                    embedding_before,
+                )
                 if self.allow_query_embedding_fallback and (
                     _is_embedding_capacity_error(exc) or _is_vector_store_read_error(exc)
                 ):
@@ -1141,9 +1186,15 @@ class VectorStoreManager:
                     telemetry["retrieval_mode"] = "bm25_fallback"
                     vector_results = []
                 elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
+                    embedding_before = self.get_embedding_usage_snapshot()
                     vector_started = time.perf_counter()
                     vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
                     telemetry["vector_search_sec"] += _elapsed_sec(vector_started)
+                    retry_embedding_usage = subtract_embedding_usage_counts(
+                        self.get_embedding_usage_snapshot(),
+                        embedding_before,
+                    )
+                    add_embedding_usage_counts(telemetry["embedding_usage"], retry_embedding_usage)
                     vector_results = [
                         (self._hydrate_document_from_structure_graph(doc), score)
                         for doc, score in vector_results
@@ -1190,6 +1241,7 @@ class VectorStoreManager:
         telemetry["rrf_merge_sec"] = _elapsed_sec(merge_started)
         telemetry["result_count"] = len(results)
         telemetry["total_sec"] = _elapsed_sec(started_at)
+        self.last_embedding_usage = dict(telemetry.get("embedding_usage") or zero_embedding_usage_counts())
         self.last_search_telemetry = telemetry
         self._store_cached_search(cache_key, results)
         return results

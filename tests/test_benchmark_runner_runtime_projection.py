@@ -18,6 +18,7 @@ from src.ops.benchmark_runner import (
     _build_agent_routing_config,
     _build_cross_company_rows,
     _build_winner_ranking,
+    _estimate_embedding_cost_usd,
     _estimate_cost_usd,
     _flatten_review_rows,
     _progress_watch_path_summary,
@@ -46,6 +47,15 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(cost or 0.0, 2.175)
+
+    def test_estimate_embedding_cost_usd_requires_embedding_rate(self) -> None:
+        usage = {"embedding_estimated_input_tokens": 1_500_000}
+
+        self.assertIsNone(_estimate_embedding_cost_usd(usage, {"input_per_million_tokens_usd": 0.3}))
+        self.assertAlmostEqual(
+            _estimate_embedding_cost_usd(usage, {"embedding_input_per_million_tokens_usd": 0.2}) or 0.0,
+            0.3,
+        )
 
     def test_routing_config_carries_retrieval_query_budgets(self) -> None:
         config = _build_agent_routing_config(

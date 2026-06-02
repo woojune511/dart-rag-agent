@@ -26,6 +26,10 @@ from src.utils.gemini_usage import (
     add_gemini_usage_counts,
     zero_gemini_usage_counts,
 )
+from src.utils.embedding_usage import (
+    add_embedding_usage_counts,
+    zero_embedding_usage_counts,
+)
 from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL, create_embeddings
 
 logger = logging.getLogger(__name__)
@@ -228,6 +232,9 @@ class EvalResult:
     agent_llm_usage: Dict[str, Any] = field(default_factory=dict)
     judge_llm_usage: Dict[str, Any] = field(default_factory=dict)
     llm_usage: Dict[str, Any] = field(default_factory=dict)
+    agent_embedding_usage: Dict[str, Any] = field(default_factory=dict)
+    judge_embedding_usage: Dict[str, Any] = field(default_factory=dict)
+    embedding_usage: Dict[str, Any] = field(default_factory=dict)
     missing_info_policy: Optional[str] = None
     error: Optional[str] = None
 
@@ -2938,9 +2945,14 @@ class RAGEvaluator:
         resolved_calculation_trace: Dict[str, Any] = {}
         structured_result: Dict[str, Any] = {}
         agent_llm_usage: Dict[str, Any] = {}
+        agent_embedding_usage: Dict[str, Any] = {}
         judge_usage_callback = getattr(self, "_llm_usage_callback", None)
         if judge_usage_callback is not None:
             judge_usage_callback.reset_current_thread()
+        judge_embeddings = getattr(self, "_embeddings", None)
+        reset_judge_embedding_usage = getattr(judge_embeddings, "reset_current_thread_usage", None)
+        if callable(reset_judge_embedding_usage):
+            reset_judge_embedding_usage()
 
         try:
             result = self.agent.run(
@@ -2948,6 +2960,7 @@ class RAGEvaluator:
                 report_scope=_build_example_report_scope(example),
             )
             agent_llm_usage = dict(result.get("llm_usage", {}) or {})
+            agent_embedding_usage = dict(result.get("embedding_usage", {}) or {})
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
             intent = result.get("intent", query_type or "unknown")
@@ -3221,6 +3234,11 @@ class RAGEvaluator:
         llm_usage["api_calls"] = int(agent_llm_usage.get("api_calls", 0) or 0) + int(
             judge_llm_usage.get("api_calls", 0) or 0
         )
+        judge_embedding_snapshot = getattr(judge_embeddings, "snapshot_current_thread_usage", None)
+        judge_embedding_usage = judge_embedding_snapshot() if callable(judge_embedding_snapshot) else {}
+        embedding_usage = zero_embedding_usage_counts()
+        add_embedding_usage_counts(embedding_usage, agent_embedding_usage)
+        add_embedding_usage_counts(embedding_usage, judge_embedding_usage)
 
         return EvalResult(
             id=example.id,
@@ -3299,6 +3317,9 @@ class RAGEvaluator:
             agent_llm_usage=agent_llm_usage,
             judge_llm_usage=judge_llm_usage,
             llm_usage=llm_usage,
+            agent_embedding_usage=agent_embedding_usage,
+            judge_embedding_usage=judge_embedding_usage,
+            embedding_usage=embedding_usage,
             missing_info_policy=example.missing_info_policy,
             error=error,
         )
@@ -3469,9 +3490,11 @@ class RAGEvaluator:
             )
             llm_usage_totals = zero_gemini_usage_counts()
             llm_usage_api_calls = 0
+            embedding_usage_totals = zero_embedding_usage_counts()
             for result in valid_results:
                 add_gemini_usage_counts(llm_usage_totals, result.llm_usage)
                 llm_usage_api_calls += int(result.llm_usage.get("api_calls", 0) or 0)
+                add_embedding_usage_counts(embedding_usage_totals, result.embedding_usage)
 
             aggregate = {
                 "faithfulness": _average("faithfulness"),
@@ -3513,6 +3536,18 @@ class RAGEvaluator:
                 "llm_cached_tokens": llm_usage_totals["cached_tokens"],
                 "llm_tool_use_prompt_tokens": llm_usage_totals["tool_use_prompt_tokens"],
                 "llm_total_tokens": llm_usage_totals["total_tokens"],
+                "embedding_api_calls": embedding_usage_totals["embedding_api_calls"],
+                "embedding_text_count": embedding_usage_totals["embedding_text_count"],
+                "embedding_input_chars": embedding_usage_totals["embedding_input_chars"],
+                "embedding_estimated_input_tokens": embedding_usage_totals["embedding_estimated_input_tokens"],
+                "query_embedding_api_calls": embedding_usage_totals["query_embedding_api_calls"],
+                "query_embedding_text_count": embedding_usage_totals["query_embedding_text_count"],
+                "query_embedding_input_chars": embedding_usage_totals["query_embedding_input_chars"],
+                "query_embedding_estimated_input_tokens": embedding_usage_totals["query_embedding_estimated_input_tokens"],
+                "document_embedding_api_calls": embedding_usage_totals["document_embedding_api_calls"],
+                "document_embedding_text_count": embedding_usage_totals["document_embedding_text_count"],
+                "document_embedding_input_chars": embedding_usage_totals["document_embedding_input_chars"],
+                "document_embedding_estimated_input_tokens": embedding_usage_totals["document_embedding_estimated_input_tokens"],
             }
             mlflow.log_metrics({"agg_" + key: value for key, value in aggregate.items() if value is not None})
 

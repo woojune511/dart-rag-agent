@@ -34,16 +34,33 @@
   estimates against the profile pricing table, not billing export values.
 - Full-eval outputs now preserve per-question `agent_llm_usage`,
   `judge_llm_usage`, combined `llm_usage`, and aggregate `llm_*` token totals.
+- Embedding usage is now tracked without extra provider calls:
+  - `embed_query` / `embed_documents` calls are wrapped at the embedding object
+    boundary.
+  - Results record embedding API calls, input text count, input character
+    count, and local estimated input tokens.
+  - Embedding cost is emitted only when the benchmark profile provides
+    `embedding_input_per_million_tokens_usd`; otherwise usage fields remain
+    available and embedding cost is `null`.
 - Validation:
   - `python -m unittest tests.test_retrieval_scope`
   - `python -m unittest tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_routing_config_carries_retrieval_query_budgets`
   - `python -m unittest tests.test_gemini_usage`
+  - `python -m unittest tests.test_embedding_usage`
+  - `python -m unittest discover -s tests`
 - Focused canary:
   - `NAV_T1_030` with `--low-api-debug --numeric-fast-gate` and query budgets
     `12 / 6 / 2` passed.
   - `retrieval_debug_trace.query_budget` showed `primary 3/3`,
     `operand_focus 6/16`, and `retry 0/0`.
   - API calls and estimated cost were `0 / $0.0000`.
+- Embedding usage output wiring check:
+  - `NAV_T1_030` eval-only with `--low-api-debug --numeric-fast-gate` passed.
+  - Per-question and summary outputs included `agent_embedding_usage`,
+    `judge_embedding_usage`, combined `embedding_usage`, aggregate
+    `embedding_*`, and `estimated_runtime_embedding_cost_usd`.
+  - Values were zero/null in low-API mode because vector query embedding and
+    evaluator embedding metrics were intentionally disabled.
 - Caveat:
   - `SKH_T1_060` failed in the current fresh low-API/BM25 path even without
     explicit query budgets because the bond operand can bind to a
@@ -52,8 +69,7 @@
 - Immediate next:
   1. Profile total query fan-out across task-ledger subtasks, because per-stage
      budgets do not yet cap the aggregate number of searches across all tasks.
-  2. Extend the usage meter to query-embedding calls if provider metadata is
-     available, or document why embedding cost remains profile-estimated.
+  2. Validate embedding usage fields with a one-question eval-only refresh.
   3. Triage `SKH_T1_060` as a generic evidence row-selection problem.
 
 ## 2026-06-01 Value-Local Unit Contract Closure

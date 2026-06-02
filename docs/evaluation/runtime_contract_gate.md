@@ -95,11 +95,21 @@ Full-eval output records per-question `agent_llm_usage`, `judge_llm_usage`, and
 combined `llm_usage`, plus aggregate `llm_*` token totals. This separates
 runtime agent cost from evaluator judge cost when diagnosing expensive runs.
 
+Embedding usage is tracked separately because LangChain embedding calls return
+vectors, not response usage metadata. The runtime records embedding API calls,
+input text count, input characters, and local estimated input tokens for query
+and document embedding calls. `estimated_ingest_embedding_cost_usd` and
+`estimated_runtime_embedding_cost_usd` are populated only when the benchmark
+profile defines `embedding_input_per_million_tokens_usd`; otherwise the usage
+fields are still available and the cost fields remain null.
+
 Use these fields to classify slow runs before changing retrieval policy:
 
 - `retrieval_mode`: `hybrid`, `bm25_only`, `bm25_fallback`, or `cache`
 - `vector_search_sec`: vector query and query-embedding time observed by the
   vector store call
+- `search_telemetry.embedding_usage`: query embedding input-volume estimate for
+  the vector search attempt, zero when served from cache or BM25-only mode
 - `bm25_search_sec`: local BM25 scoring and top-k filtering time
 - `rrf_merge_sec`: hybrid result merge time
 - `structure_graph_update_sec`: ingest-side structure graph update and save
@@ -108,6 +118,8 @@ Use these fields to classify slow runs before changing retrieval policy:
   `add_documents`
 - `vector_add_sec`: ingest-side vector add / embedding call time returned by
   `add_documents`
+- `ingest.embedding_usage`: document embedding input-volume estimate observed
+  during vector add, zero when `skip_vector_add` / BM25-only ingest is active
 - `store_add_elapsed_sec`: total ingest-side `add_documents` time, separate
   from the broader profile-level ingest `elapsed_sec`
 

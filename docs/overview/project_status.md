@@ -120,6 +120,11 @@ Useful supporting points:
 - Full-eval results preserve per-question `agent_llm_usage`,
   `judge_llm_usage`, combined `llm_usage`, and aggregate `llm_*` token totals
   so runtime/evaluator cost can be compared against ingest cost.
+- Embedding APIs do not return usage metadata through the LangChain embedding
+  interface, so the project records embedding input volume instead:
+  API calls, input text count, input characters, and local estimated input
+  tokens. `estimated_*_embedding_cost_usd` is populated only when a profile
+  provides `embedding_input_per_million_tokens_usd`.
 - Default runtime behavior remains unchanged unless a budget is supplied. Query
   dedupe is enabled only for explicitly budgeted retrieval stages.
 - Use this for focused triage before changing retrieval policy or ontology:

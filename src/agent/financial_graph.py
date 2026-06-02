@@ -218,6 +218,10 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         usage_callback = getattr(self, "llm_usage_callback", None)
         if usage_callback is not None:
             usage_callback.reset_current_thread()
+        vsm = getattr(self, "vsm", None)
+        reset_embedding_usage = getattr(vsm, "reset_current_thread_embedding_usage", None)
+        if callable(reset_embedding_usage):
+            reset_embedding_usage()
         initial: FinancialAgentState = {
             "query": query,
             "report_scope": dict(report_scope or {}),
@@ -284,6 +288,8 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         }
         final = self.graph.invoke(initial)
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
+        embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
+        embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
         legacy_projection = self._project_legacy_calculation_fields(final)
         structured_result = _resolve_runtime_structured_result(
             {
@@ -344,6 +350,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
             "reconciliation_result": final.get("reconciliation_result", {}),
             "llm_usage": llm_usage,
+            "embedding_usage": embedding_usage,
             "tasks": final.get("tasks", []),
             "artifacts": final.get("artifacts", []),
         }
