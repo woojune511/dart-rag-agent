@@ -2418,12 +2418,32 @@ def _slot_has_numeric_material(slot: Dict[str, Any]) -> bool:
     return bool(str(slot.get("raw_value") or "").strip() or str(slot.get("rendered_value") or "").strip())
 
 
+def _clean_provenance_ids(values: List[Any]) -> List[str]:
+    blocked = {"none", "null", "nan"}
+    cleaned: List[str] = []
+
+    def _append(value: Any) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _append(item)
+            return
+        text = str(value or "").strip()
+        if not text or text.lower() in blocked:
+            return
+        cleaned.append(text)
+
+    for value in values or []:
+        _append(value)
+    return list(dict.fromkeys(cleaned))
+
+
 def _slot_to_operand_like(slot: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not slot or not _slot_has_numeric_material(slot):
         return None
     role = str(slot.get("role") or "").strip()
     source_row_id = str(slot.get("source_row_id") or "").strip()
-    source_row_ids = [str(value).strip() for value in (slot.get("source_row_ids") or []) if str(value).strip()]
+    source_row_ids = _clean_provenance_ids([slot.get("source_row_ids")])
+    source_evidence_ids = _clean_provenance_ids([slot.get("source_evidence_ids")])
     return {
         "operand_id": role or source_row_id or "slot_operand",
         "matched_operand_role": role,
@@ -2438,6 +2458,7 @@ def _slot_to_operand_like(slot: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "source_anchor": str(slot.get("source_anchor") or "").strip(),
         "source_row_id": source_row_id,
         "source_row_ids": source_row_ids,
+        "source_evidence_ids": source_evidence_ids,
         "row_id": source_row_id,
     }
 
@@ -2709,6 +2730,63 @@ def _derive_operands_from_answer_slots(calculation_result: Dict[str, Any]) -> Li
     return _derive_operands_from_answer_slot_payload(answer_slots)
 
 
+def _collect_aggregate_subtask_provenance(answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if str(answer_slots.get("operation_family") or "").strip().lower() != "aggregate_subtasks":
+        return []
+
+    provenance_rows: List[Dict[str, Any]] = []
+    seen: set[Tuple[str, str, Tuple[str, ...], Tuple[str, ...]]] = set()
+
+    def _append(row: Dict[str, Any]) -> None:
+        key = (
+            str(row.get("task_id") or ""),
+            str(row.get("operation_family") or ""),
+            tuple(row.get("source_row_ids") or []),
+            tuple(row.get("source_evidence_ids") or []),
+        )
+        if key in seen:
+            return
+        seen.add(key)
+        provenance_rows.append(row)
+
+    for subtask in list(answer_slots.get("subtask_results") or []):
+        if not isinstance(subtask, dict):
+            continue
+        calculation_result = dict(subtask.get("calculation_result") or {})
+        nested_slots = dict(subtask.get("answer_slots") or calculation_result.get("answer_slots") or {})
+        source_row_ids = _clean_provenance_ids(
+            [
+                subtask.get("source_row_ids"),
+                calculation_result.get("source_row_ids"),
+                nested_slots.get("source_row_ids"),
+            ]
+        )
+        source_evidence_ids = _clean_provenance_ids(
+            [
+                subtask.get("source_evidence_ids"),
+                calculation_result.get("source_evidence_ids"),
+                nested_slots.get("source_evidence_ids"),
+            ]
+        )
+        if source_row_ids or source_evidence_ids:
+            _append(
+                {
+                    "task_id": str(subtask.get("task_id") or "").strip(),
+                    "operation_family": str(
+                        subtask.get("operation_family")
+                        or nested_slots.get("operation_family")
+                        or calculation_result.get("operation_family")
+                        or ""
+                    ).strip(),
+                    "source_row_ids": source_row_ids,
+                    "source_evidence_ids": source_evidence_ids,
+                }
+            )
+        for nested_row in _collect_aggregate_subtask_provenance(nested_slots):
+            _append(nested_row)
+    return provenance_rows
+
+
 def _resolve_evaluator_operands(
     calculation_operands: List[Dict[str, Any]],
     calculation_result: Dict[str, Any],
@@ -2722,6 +2800,7 @@ def _resolve_evaluator_operands(
                 operand.get("row_id"),
                 operand.get("evidence_id"),
                 *(operand.get("source_row_ids") or []),
+                *(operand.get("source_evidence_ids") or []),
             ]
             for source_id in source_ids:
                 source_id_text = str(source_id or "").strip()
@@ -2736,6 +2815,7 @@ def _resolve_evaluator_operands(
                 enriched.get("row_id"),
                 enriched.get("evidence_id"),
                 *(enriched.get("source_row_ids") or []),
+                *(enriched.get("source_evidence_ids") or []),
             ]
             original = next(
                 (
@@ -3222,6 +3302,17 @@ class RAGEvaluator:
             )
         if calculation_result:
             derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+            aggregate_provenance = _collect_aggregate_subtask_provenance(
+                dict((calculation_result.get("answer_slots") or {}))
+            )
+            if aggregate_provenance:
+                derived_metrics["aggregate_subtask_provenance"] = aggregate_provenance
+                derived_metrics["aggregate_source_row_ids"] = _clean_provenance_ids(
+                    [row.get("source_row_ids") for row in aggregate_provenance]
+                )
+                derived_metrics["aggregate_source_evidence_ids"] = _clean_provenance_ids(
+                    [row.get("source_evidence_ids") for row in aggregate_provenance]
+                )
             if trend_reason:
                 derived_metrics["trend_judge_reason"] = trend_reason
             if grounded_reason:

@@ -206,3 +206,10 @@ rows, and source evidence ids that the aggregate composer used. If a child
 value came from prose lookup or retrieved seed evidence, the promoted evidence
 id/source row id should stay attached through the aggregate projection rather
 than disappearing during final answer synthesis.
+
+Evaluator-side runtime projection should preserve these fields when it flattens
+answer slots into operand-like rows. For aggregate answers it should also
+publish a deduped provenance summary, for example under
+`calculation_result.derived_metrics.aggregate_subtask_provenance`, so debugging
+and retrospective checks can inspect child row/evidence provenance without
+re-running the agent.

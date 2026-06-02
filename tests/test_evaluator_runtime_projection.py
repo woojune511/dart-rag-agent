@@ -14,6 +14,7 @@ from src.ops.evaluator import (
     _build_operand_grounding_corpus,
     _build_runtime_evidence_contexts,
     _build_example_report_scope,
+    _collect_aggregate_subtask_provenance,
     _compute_runtime_evidence_retrieval_hit_at_k,
     _compute_runtime_evidence_section_match_rate,
     _compute_ndcg_at_k,
@@ -1096,6 +1097,44 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(resolved[1]["source_row_id"], "row_2022")
         self.assertEqual(resolved[1]["normalized_value"], 1.73)
 
+    def test_resolve_evaluator_operands_preserves_slot_source_evidence_ids(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "lookup",
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": "target metric",
+                    "period": "2023",
+                    "raw_value": "100",
+                    "raw_unit": "",
+                    "normalized_value": 100.0,
+                    "normalized_unit": "COUNT",
+                    "source_row_id": "task_output:task_1",
+                    "source_row_ids": ["task_output:task_1"],
+                    "source_evidence_ids": ["ev_direct"],
+                },
+            },
+        }
+        calculation_operands = [
+            {
+                "operand_id": "op_1",
+                "evidence_id": "ev_direct",
+                "label": "target metric",
+                "raw_value": "100",
+                "raw_unit": "",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+                "source_anchor": "[Company | 2023 | section]",
+            }
+        ]
+
+        resolved = _resolve_evaluator_operands(calculation_operands, calculation_result)
+
+        self.assertEqual(resolved[0]["source_evidence_ids"], ["ev_direct"])
+        self.assertEqual(resolved[0]["source_anchor"], "[Company | 2023 | section]")
+
     def test_count_scaled_units_match_expected_operands(self) -> None:
         self.assertEqual(_normalise_math_operand_value("87.0", "만대"), (870000.0, "COUNT"))
         self.assertEqual(_normalise_math_operand_value("87.0", "만 대"), (870000.0, "COUNT"))
@@ -1221,6 +1260,56 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(len(resolved), 2)
         self.assertEqual(resolved[0]["source_row_id"], "row_2023")
         self.assertEqual(resolved[1]["source_row_id"], "row_2022")
+
+    def test_collect_aggregate_subtask_provenance_keeps_evidence_ids_for_narrative_child(self) -> None:
+        answer_slots = {
+            "operation_family": "aggregate_subtasks",
+            "subtask_results": [
+                {
+                    "task_id": "task_growth",
+                    "operation_family": "growth_rate",
+                    "source_row_ids": ["row_growth"],
+                    "source_evidence_ids": [],
+                },
+                {
+                    "task_id": "task_summary",
+                    "operation_family": "narrative_summary",
+                    "source_row_ids": [],
+                    "source_evidence_ids": ["ev_summary", "None"],
+                    "answer_slots": {
+                        "operation_family": "aggregate_subtasks",
+                        "subtask_results": [
+                            {
+                                "task_id": "task_summary",
+                                "operation_family": "narrative_summary",
+                                "source_row_ids": [],
+                                "source_evidence_ids": ["ev_summary"],
+                            }
+                        ],
+                    },
+                },
+            ],
+        }
+
+        provenance = _collect_aggregate_subtask_provenance(answer_slots)
+
+        self.assertEqual(
+            provenance,
+            [
+                {
+                    "task_id": "task_growth",
+                    "operation_family": "growth_rate",
+                    "source_row_ids": ["row_growth"],
+                    "source_evidence_ids": [],
+                },
+                {
+                    "task_id": "task_summary",
+                    "operation_family": "narrative_summary",
+                    "source_row_ids": [],
+                    "source_evidence_ids": ["ev_summary"],
+                },
+            ],
+        )
 
     def test_resolve_evaluator_operands_dedupes_task_output_duplicates(self) -> None:
         calculation_result = {

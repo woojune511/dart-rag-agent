@@ -1105,6 +1105,13 @@ Current gate status:
     provenance separate: the growth child keeps `source_row_ids = ["ev_001"]`
     and empty `source_evidence_ids`, while the narrative/aggregate child keeps
     empty `source_row_ids` and `source_evidence_ids = ["ev_001"]`.
+  - 2026-06-03 evaluator provenance follow-up confirms the evaluator consumes
+    that projection into `calculation_result.derived_metrics`: deduped
+    `aggregate_subtask_provenance` has two rows, aggregate row ids are
+    `["ev_001"]`, aggregate evidence ids are `["ev_001"]`, and the focused
+    eval-only keeps `faithfulness = 1.0`, `completeness = 1.0`,
+    `context_recall = 1.0`, `citation_coverage = 1.0`, and
+    `entity_coverage = 1.0`.
   - `faithfulness = 1.0`
   - `completeness = 1.0`
   - `context_recall = 1.0`
