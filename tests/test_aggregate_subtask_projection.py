@@ -180,6 +180,186 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(rows[0]["matched_operand_role"], "prior_period")
         self.assertEqual(rows[0]["period"], "2022")
 
+    def test_dependency_projection_recalculates_from_stronger_source_task_slot(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "calculate coverage ratio",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_source",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "source metric",
+                    "operation_family": "lookup",
+                },
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "coverage ratio",
+                    "operation_family": "ratio",
+                },
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_source",
+                "metric_family": "concept_lookup",
+                "metric_label": "source metric",
+                "operation_family": "lookup",
+                "answer": "source metric 3,531,423백만원",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 3_531_423_000_000.0,
+                    "result_unit": "백만원",
+                    "rendered_value": "3,531,423백만원",
+                    "source_row_ids": ["recon::source"],
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "source metric",
+                            "concept": "source_metric",
+                            "period": "2023",
+                            "raw_value": "3,531,423",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3_531_423_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,531,423백만원",
+                            "source_row_id": "recon::source",
+                            "source_row_ids": ["recon::source"],
+                            "source_anchor": "[source]",
+                        },
+                    },
+                },
+                "source_row_ids": ["recon::source"],
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "coverage ratio",
+                "operation_family": "ratio",
+                "answer": "coverage ratio is 0.0035배.",
+                "status": "ok",
+                "calculation_operands": [
+                    {
+                        "operand_id": "dep_task_source_001",
+                        "evidence_id": "task_output:task_source",
+                        "source_row_id": "task_output:task_source",
+                        "source_row_ids": ["task_output:task_source", "ev_weak"],
+                        "label": "source metric",
+                        "raw_value": "3,531,423",
+                        "raw_unit": "천원",
+                        "normalized_value": 3_531_423_000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_label": "source metric",
+                        "matched_operand_concept": "source_metric",
+                        "matched_operand_role": "numerator_1",
+                        "source_task_id": "task_source",
+                        "dependency_resolved": True,
+                    },
+                    {
+                        "operand_id": "denominator_001",
+                        "evidence_id": "recon::denominator",
+                        "source_row_id": "recon::denominator",
+                        "source_row_ids": ["recon::denominator"],
+                        "label": "denominator metric",
+                        "raw_value": "1,000,000",
+                        "raw_unit": "백만원",
+                        "normalized_value": 1_000_000_000_000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_label": "denominator metric",
+                        "matched_operand_concept": "denominator_metric",
+                        "matched_operand_role": "denominator_1",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["dep_task_source_001", "denominator_001"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "dep_task_source_001"},
+                        {"variable": "B", "operand_id": "denominator_001"},
+                    ],
+                    "formula": "((A) / (B))",
+                    "result_unit": "배",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 0.003531423,
+                    "result_unit": "배",
+                    "rendered_value": "0.0035배",
+                    "formatted_result": "coverage ratio is 0.0035배.",
+                },
+                "source_row_ids": ["task_output:task_source", "ev_weak", "recon::denominator"],
+            },
+        ]
+        aggregate_projection = agent._build_aggregate_calculation_projection(ordered_results, "coverage ratio is 0.0035배.")
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            state,
+            aggregate_projection,
+        )
+
+        ratio_row = next(row for row in aligned if row["task_id"] == "task_ratio")
+        numerator = ratio_row["calculation_operands"][0]
+        self.assertTrue(ratio_row["aligned_from_source_task_slots"])
+        self.assertEqual(numerator["raw_unit"], "백만원")
+        self.assertEqual(numerator["normalized_value"], 3_531_423_000_000.0)
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "3.5314배")
+        self.assertIn("recon::source", numerator["source_row_ids"])
+
+    def test_lookup_execution_applies_ontology_magnitude_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "lookup translated gain",
+            "active_subtask": {
+                "task_id": "task_gain",
+                "metric_family": "concept_lookup",
+                "metric_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                "operation_family": "lookup",
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_gain",
+                    "evidence_id": "gain_cell",
+                    "source_row_id": "gain_cell",
+                    "source_row_ids": ["gain_cell"],
+                    "label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                    "raw_value": "(573,884)",
+                    "raw_unit": "\ubc31\ub9cc\uc6d0",
+                    "normalized_value": -573_884_000_000.0,
+                    "normalized_unit": "KRW",
+                    "matched_operand_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                    "matched_operand_concept": "foreign_currency_translation_gain",
+                    "matched_operand_role": "operand",
+                    "statement_type": "notes",
+                }
+            ],
+            "calculation_plan": {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "lookup",
+                "ordered_operand_ids": ["op_gain"],
+                "variable_bindings": [{"variable": "A", "operand_id": "op_gain"}],
+                "formula": "A",
+                "result_unit": "\ubc31\ub9cc\uc6d0",
+            },
+        }
+
+        result = agent._execute_calculation(state)
+        calculation_result = result["calculation_result"]
+        operand = result["calculation_operands"][0]
+
+        self.assertEqual(operand["normalized_value"], 573_884_000_000.0)
+        self.assertEqual(operand["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")
+        self.assertEqual(calculation_result["result_value"], 573_884_000_000.0)
+        self.assertEqual(calculation_result["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")
+
     def test_growth_narrative_prefers_uncovered_parenthetical_focus_variant(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         query = "calculate 2023 growth and summarize Acme(FooBar) impact"

@@ -95,6 +95,12 @@ class CompositeKrwParsingTests(unittest.TestCase):
         right = _extract_numeric_candidates("증가율은 약 70.28%입니다.")[0]
         self.assertTrue(_numeric_values_equivalent(left, right))
 
+    def test_ratio_equivalence_allows_display_rounding_gap(self) -> None:
+        left = _extract_numeric_candidates("coverage ratio is 3.5269배입니다.")[0]
+        right = _extract_numeric_candidates("coverage ratio is approximately 3.53배입니다.")[0]
+
+        self.assertTrue(_numeric_values_equivalent(left, right))
+
     def test_numeric_equivalence_rejects_extra_unsupported_answer_number(self) -> None:
         score, debug = _compute_numeric_equivalence(
             answer="이익은 (573,884)백만원이고 손실은 906,120백만원이며 순효과는 -1조 4,800억원입니다.",
@@ -105,6 +111,20 @@ class CompositeKrwParsingTests(unittest.TestCase):
         self.assertEqual(score, 0.0)
         self.assertEqual(debug["reason"], "unsupported_answer_numeric_claim")
         self.assertIn("1조 4,800억원", [item["value_text"] for item in debug["unsupported_answer_candidates"]])
+
+    def test_numeric_equivalence_allows_runtime_supported_auxiliary_numbers(self) -> None:
+        score, debug = _compute_numeric_equivalence(
+            answer="전년 대비 약 70.24% 증가했고, 고정이하여신비율은 1.01%입니다.",
+            answer_key="전년 대비 증가율은 약 70.28%입니다.",
+            canonical_evidence=[],
+            support_texts=[
+                "고정이하여신비율은 1.01%(전년대비 0.31%p 상승) 시현하였습니다.",
+            ],
+        )
+
+        self.assertEqual(score, 1.0)
+        self.assertEqual(debug["reason"], "equivalent_value")
+        self.assertEqual(debug["unsupported_answer_candidates"], [])
 
     def test_numeric_equivalence_requires_all_multi_value_answer_claims_to_match(self) -> None:
         score, debug = _compute_numeric_equivalence(

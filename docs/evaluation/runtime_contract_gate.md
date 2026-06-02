@@ -1200,6 +1200,51 @@ Current gate status:
     tests.test_subtask_loop tests.test_semantic_numeric_plan` passed
     (`139` tests).
 
+2026-06-03 concept runtime gap closure:
+
+- The residuals above were closed with generic runtime/evaluator contracts, not
+  benchmark-specific branches.
+  - `KBF_T2_018`: numeric equivalence now ignores auxiliary answer numbers only
+    when they are equivalent to a value visible in runtime support text.
+  - `POS_T1_057`: dependency calculations with `task_output:*` operands are
+    recalculated from the latest source-task answer slots when those slots carry
+    stronger value/unit/provenance contracts; evaluator numeric parsing also
+    recognizes `배` ratio displays with display-rounding tolerance.
+  - `SKH_T3_080`: lookup execution applies ontology-declared magnitude
+    semantics to operand rows before answer-slot construction, so
+    parenthesized magnitude concepts feed downstream subtraction as declared
+    positive magnitudes.
+- Focused store-fixed eval-only checks after the fixes:
+  - `KBF_T2_018`: PASS.
+  - `POS_T1_057`: PASS, final answer `3.5269배`.
+  - `SKH_T3_080`: PASS, final answer uses `573,884백만원`,
+    `906,120백만원`, and `-332,236백만원`.
+- Full seven-question store-fixed eval-only refresh after the focused fixes:
+  - command:
+    `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-03_provenance --eval-only --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-03_provenance/_logs/heartbeat_concept_gate_all7_after_pos_skh_2026-06-03.jsonl`
+  - `CEL_T1_013`: PASS, faithfulness `1.0`, completeness `1.0`,
+    context recall `0.667`, citation coverage `0.667`.
+  - `CEL_T3_040`: PASS, faithfulness `1.0`, completeness `1.0`,
+    context recall `1.0`, citation coverage `1.0`.
+  - `KAB_T1_066`: PASS, faithfulness `1.0`, completeness `1.0`,
+    context recall `1.0`, citation coverage `1.0`.
+  - `KBF_T2_018`: PASS, faithfulness `1.0`, completeness `1.0`,
+    context recall `0.667`, citation coverage `1.0`.
+  - `POS_T1_057`: PASS, faithfulness `1.0`, completeness `1.0`,
+    context recall `1.0`, citation coverage `1.0`.
+  - `SAM_T3_028`: PASS, faithfulness `1.0`, completeness `0.3`,
+    context recall `0.667`, citation coverage `1.0`.
+  - `SKH_T3_080`: PASS, faithfulness `1.0`, completeness `1.0`,
+    context recall `1.0`, citation coverage `1.0`.
+- Verification after the closure:
+  - `python -m unittest tests.test_math_parsing
+    tests.test_aggregate_subtask_projection
+    tests.test_evaluator_runtime_projection
+    tests.test_benchmark_runner_runtime_projection` passed (`83` tests).
+  - `python -m unittest tests.test_operation_contracts` passed (`151`
+    tests).
+  - `python -m src.ops.audit_runtime_domain_terms` passed.
+
 Recommended invocation:
 
 ```powershell

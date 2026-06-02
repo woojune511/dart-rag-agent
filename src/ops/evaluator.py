@@ -13,7 +13,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import mlflow
 import numpy as np
@@ -760,6 +760,7 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
     generic_patterns = [
         (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>십억원|백만원|억원|천원|원)"), "currency"),
         (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>%|퍼센트)"), "percent"),
+        (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>배)"), "ratio"),
         (re.compile(r"(?P<value>\(?-?[\d,]+(?:\.\d+)?\)?)\s*(?P<unit>개|곳|명)"), "count"),
     ]
     currency_scale = {
@@ -827,6 +828,18 @@ def _percent_display_step(candidate: Dict[str, Any]) -> float:
     return 10 ** (-decimals)
 
 
+def _ratio_display_step(candidate: Dict[str, Any]) -> float:
+    value_text = str(candidate.get("value_text") or "").strip().replace(",", "")
+    normalized = re.sub(r"[배\s]+", "", value_text)
+    match = re.search(r"(\d+)(?:\.(\d+))?$", normalized)
+    if not match:
+        return 0.0001
+    decimals = len(match.group(2) or "")
+    if decimals <= 0:
+        return 1.0
+    return 10 ** (-decimals)
+
+
 def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
     if left.get("kind") != right.get("kind"):
         return False
@@ -842,15 +855,32 @@ def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> b
     elif left.get("kind") == "percent":
         display_tolerance = max(_percent_display_step(left), _percent_display_step(right)) / 2.0
         tolerance = max(0.05, display_tolerance)
+    elif left.get("kind") == "ratio":
+        display_tolerance = max(_ratio_display_step(left), _ratio_display_step(right)) / 2.0
+        tolerance = max(1e-4, display_tolerance)
     else:
         tolerance = 1e-4
     return abs(left_value - right_value) <= tolerance
+
+
+def _numeric_candidate_supported_by_texts(
+    candidate: Dict[str, Any],
+    support_texts: Iterable[str],
+) -> bool:
+    for text in support_texts:
+        if not str(text or "").strip():
+            continue
+        for support_candidate in _extract_numeric_candidates(str(text)):
+            if _numeric_values_equivalent(candidate, support_candidate):
+                return True
+    return False
 
 
 def _compute_numeric_equivalence(
     answer: str,
     answer_key: str,
     canonical_evidence: List[EvalEvidence],
+    support_texts: Optional[Iterable[str]] = None,
 ) -> Tuple[Optional[float], Dict[str, Any]]:
     answer_candidates = _extract_numeric_candidates(answer)
     reference_candidates = _extract_numeric_candidates(answer_key)
@@ -880,11 +910,17 @@ def _compute_numeric_equivalence(
     if matched_pair:
         unsupported_answer_candidates: List[Dict[str, Any]] = []
         if len(answer_candidates) > 1:
+            auxiliary_support_texts = list(support_texts or [])
             for answer_candidate in answer_candidates:
                 if not any(
                     _numeric_values_equivalent(answer_candidate, reference_candidate)
                     for reference_candidate in reference_candidates
                 ):
+                    if auxiliary_support_texts and _numeric_candidate_supported_by_texts(
+                        answer_candidate,
+                        auxiliary_support_texts,
+                    ):
+                        continue
                     unsupported_answer_candidates.append(answer_candidate)
         if unsupported_answer_candidates:
             return 0.0, {
@@ -1334,10 +1370,31 @@ def _compute_numeric_evaluation(
     retrieval_hit_at_k: float,
     deterministic_grounding_only: bool = False,
 ) -> Dict[str, Any]:
+    numeric_support_texts: List[str] = []
+    for item in runtime_evidence:
+        evidence = dict(item or {})
+        numeric_support_texts.extend(
+            str(evidence.get(key) or "")
+            for key in ("claim", "quote_span", "raw_row_text", "source_context")
+            if str(evidence.get(key) or "").strip()
+        )
+        metadata = dict(evidence.get("metadata") or {})
+        numeric_support_texts.extend(
+            str(metadata.get(key) or "")
+            for key in (
+                "table_value_labels_text",
+                "table_row_labels_text",
+                "table_summary_text",
+                "table_header_context",
+            )
+            if str(metadata.get(key) or "").strip()
+        )
+    numeric_support_texts.extend(str(context or "") for context in contexts if str(context or "").strip())
     equivalence, equivalence_debug = _compute_numeric_equivalence(
         answer=answer,
         answer_key=example.canonical_answer_key,
         canonical_evidence=example.evidence,
+        support_texts=numeric_support_texts,
     )
     operand_grounding, operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=runtime_evidence,
