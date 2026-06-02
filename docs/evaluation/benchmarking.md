@@ -2220,3 +2220,70 @@ Artifact policy:
 
 - `benchmarks/results/policy_driven_runtime_gate_rerun_2026-05-29/` is local
   experiment material and should not be committed.
+
+## 2026-06-02 HYU_T2_010 Evidence-Stated Growth Display Smoke
+
+Purpose:
+
+- Recheck `HYU_T2_010` after tightening generic evidence-surface operand
+  binding and preserving source-stated period-change display in answer slots.
+- Avoid converting a source-visible display such as `11.5%` into a slightly
+  different recomputed rendering when the formula trace uses normalized count
+  operands.
+- Keep the repair within the AGENTS boundary: no Hyundai, benchmark-id, IRA, or
+  sales-volume branch was added to runtime control flow.
+
+Implementation:
+
+- Required operand assembly can use the evidence core surface to correct noisy
+  unit and period metadata when the source sentence directly contains the
+  value/unit pair and a single explicit year.
+- Source-stated period-change display is preserved in the structured
+  `answer_slots.primary_value` while deterministic formula metadata remains
+  available in the trace.
+- Unit correction is constrained so trusted structured `unit_hint` /
+  normalized-unit families are not overwritten by ambiguous nearby text.
+
+Validation:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
+
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_driven_runtime_gate_official_2026-05-29 `
+  --eval-only `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --question-id HYU_T2_010 `
+  --progress-heartbeat-sec 60
+```
+
+Result:
+
+- Runtime domain-language audit: passed with `215` reviewed literals.
+- Full unittest discover: `604` tests passed.
+- Focused eval-only:
+  - final answer includes `87.0만 대`, `78.1만 대`, source-stated `11.5%`,
+    and IRA / 핵심원자재법 / 보호무역주의 대응 필요성.
+  - `faithfulness = 1.000`
+  - `answer_relevancy = 0.872`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `context_precision_at_5 = 0.800`
+  - `section_match_rate = 0.875`
+  - `citation_coverage = 1.000`
+  - `entity_coverage = 1.000`
+  - `completeness = 1.000`
+  - `avg_score = 0.958`
+  - `error_rate = 0.0%`
+- Trace check:
+  - current operand: `87.0만 대`, period `2023`, normalized `870000 COUNT`
+  - prior operand: `78.1만 대`, period `2022`, normalized `781000 COUNT`
+  - primary answer slot: `rendered_value = "11.5%"`
+
+Artifact policy:
+
+- The refreshed `benchmarks/results/policy_driven_runtime_gate_official_2026-05-29/`
+  bundle is a local benchmark artifact and should not be committed.

@@ -23,6 +23,8 @@ DART 전자공시 문서를 테스트베드로 삼아, **금융 문서용 multi-
 
 | 문서 | 용도 |
 | --- | --- |
+| [docs/overview/codebase_map.md](docs/overview/codebase_map.md) | 코드베이스를 실행 경로와 책임 경계 기준으로 파악 |
+| [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | 대표 질문 1개가 API부터 answer trace까지 흐르는 경로를 추적 |
 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | 문제 정의, 설계 선택, 정량 결과를 1페이지로 정리 |
 | [docs/overview/portfolio_readme_blueprint.md](docs/overview/portfolio_readme_blueprint.md) | 제출용 README를 어떤 구조로 다시 쓸지 정리 |
 | [docs/overview/portfolio_presentation_outline.md](docs/overview/portfolio_presentation_outline.md) | 면접/발표용 슬라이드 구조 |

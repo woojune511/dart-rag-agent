@@ -11,6 +11,31 @@
 
 ## 최신 상태
 
+- 2026-06-02 `HYU_T2_010` evidence-stated growth display 보존까지 닫았다.
+  - 이전 targeted smoke는 답변 품질은 닫혔지만, 계산식 재계산값이 source
+    display rounding과 달라질 수 있는 여지가 있었다.
+  - runtime 보정은 benchmark/company branch가 아니라 generic evidence-surface
+    operand contract로 구현했다:
+    - evidence core surface의 `값+단위`가 직접 보이면 LLM/operand 단위 추론을
+      보정한다.
+    - evidence surface에 명시된 단일 연도가 row period와 충돌하면
+      `period_source = evidence_surface`로 period를 교정한다.
+    - 단, structured `unit_hint`와 현재 unit family가 이미 일치하면 surface
+      unit inference가 기존 단위를 덮어쓰지 않는다.
+    - source 문장에 `대비 11.5%`처럼 명시된 파생 display가 있으면
+      `answer_slots.primary_value.rendered_value`에 source-stated display를
+      보존한다.
+  - focused store-fixed eval-only:
+    - `HYU_T2_010`: final answer includes `87.0만 대`, `78.1만 대`,
+      source-stated `11.5%`, IRA / 핵심원자재법 / 보호무역주의 대응 필요성.
+    - metrics: `faithfulness = 1.000`, `completeness = 1.000`,
+      `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`,
+      `avg_score = 0.958`, `error_rate = 0.0%`.
+  - validation:
+    - `python -m src.ops.audit_runtime_domain_terms`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `604` tests OK.
+
 - 2026-06-02 official gate profile에 retrieval query budget을 명시했다.
   - `curated_runtime_contract_gate.json`과
     `curated_policy_driven_runtime_gate.json`의 full-evaluation profile은

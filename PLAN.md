@@ -5,6 +5,35 @@
 
 ## Active Snapshot
 
+## 2026-06-02 HYU_T2_010 Evidence-Stated Growth Display Closure
+
+- `HYU_T2_010` is now closed with the source-stated growth display preserved.
+- The runtime no longer relies only on recomputing `(870000 - 781000) / 781000`
+  when the source sentence already states the derived display. It keeps the
+  deterministic formula trace while rendering the evidence-visible `11.5%`.
+- Generic contract changes:
+  - evidence-surface value/unit pairs can correct a noisy operand unit only
+    when they do not conflict with a trusted structured unit family;
+  - a single explicit evidence-surface year can correct stale row period labels
+    and is marked with `period_source = evidence_surface`;
+  - source-stated period-change display is carried into `answer_slots` and the
+    final rendered value.
+- Focused store-fixed eval-only result:
+  - final answer includes `87.0만 대`, `78.1만 대`, source-stated `11.5%`, and
+    IRA / 핵심원자재법 / 보호무역주의 대응 필요성.
+  - `faithfulness = 1.000`, `completeness = 1.000`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`,
+    `avg_score = 0.958`, `error_rate = 0.0%`.
+- Validation completed:
+  - `python -m src.ops.audit_runtime_domain_terms`
+  - `python -m unittest discover -s tests` (`604` tests OK)
+- Immediate next:
+  1. Continue runtime/API cost work through model routing and retrieval
+     fan-out cleanup, not low-API/offline deterministic fallback.
+  2. Use store-fixed focused canaries before any broader policy gate refresh.
+  3. Keep the new overview docs current as the portfolio/code walkthrough
+     entry points.
+
 ## 2026-06-02 Official Retrieval Budget Gate
 
 - Official gate profiles now carry explicit retrieval budgets:
@@ -27,11 +56,10 @@
     `41.4%`, faithfulness `1.000`, answer relevancy `0.837`,
     context recall `1.000`, retrieval hit `1.000`, context P@5 `0.800`,
     completeness `1.000`, error rate `0.0%`
-- Immediate next:
-  1. Commit and push this budget/trace/profile patch.
-  2. Run one small gate refresh only when needed; avoid broad benchmarks unless
-     the next change affects retrieval quality.
-  3. Continue API-cost reduction through model routing and query-shape cleanup,
+- Follow-up:
+  1. Run one small gate refresh only when a retrieval-quality change requires
+     it; avoid broad benchmarks for docs-only or trace-only changes.
+  2. Continue API-cost reduction through model routing and query-shape cleanup,
      not low-API/offline deterministic fallback branches.
 
 ## 2026-06-02 NAV_T2_006 Growth Unit Binding Repair

@@ -1073,14 +1073,18 @@ Current gate status:
 - `HYU_T2_010` is closed in the latest targeted smoke:
   - answer covers `87.0만 대`, `78.1만 대`, `11.5%`, IRA / 핵심원자재법 /
     보호무역주의 대응 필요성
+  - 2026-06-02 follow-up store-fixed eval-only confirms source-stated display
+    preservation: `answer_slots.primary_value.rendered_value = "11.5%"` and
+    the final answer says `2022년 78.1만 대 대비 11.5% 증가`.
   - `faithfulness = 1.0`
-  - `raw_faithfulness = 0.5`
-  - `faithfulness_override_reason = hybrid mixed-query evidence coverage가 충분해 faithfulness를 1.0으로 보정`
   - `completeness = 1.0`
+  - `context_recall = 1.0`
   - `retrieval_hit_at_k = 1.0`
   - `grounded_rendering_correctness = 1.0`
   - `calculation_correctness = 1.0`
-  - `avg_score = 0.890`
+  - `avg_score = 0.958`
+  - validation: runtime domain-term audit passed and full unittest discover
+    passed with `604` tests.
 - `HYU_T3_072` is closed in the latest targeted smoke:
   - answer covers Motional `25.81%`, `1,294,367백만원`, 계속영업손실
     `(803,742)백만원`, 총포괄손실 `(791,627)백만원`
