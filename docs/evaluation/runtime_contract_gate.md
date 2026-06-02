@@ -274,6 +274,30 @@ Broader bounded-query promotion check:
     `KBF_T1_017` still includes a partial-refusal suffix despite numeric PASS,
     and `NAV_T1_071` has an awkward difference-rendering sentence.
 
+Non-gate bounded-query inventory:
+
+- Date: 2026-06-02
+- Command shape: focused low-API/BM25 run with budgets `8 / 4 / 1`
+- Scope: four non-gate curated questions across the existing runtime-contract
+  company set
+- Result summary:
+  - `SAM_T3_028`: PASS, 1 executed retrieval search
+    (`primary 1/1`, `operand_focus 0/0`, `retry 0/0`)
+  - `SKH_T3_080`: PASS, 12 executed retrieval searches
+    (`primary 8/18`, `operand_focus 4/10`, `retry 0/0`)
+  - `KBF_T2_043`: UNCERTAIN, 1 executed retrieval search
+    (`primary 1/1`, `operand_focus 0/0`, `retry 0/0`)
+  - `NAV_T2_006`: no numeric judgement, 2 executed retrieval searches
+    (`primary 2/2`, `operand_focus 0/0`, `retry 0/0`)
+- Interpretation:
+  - The two non-PASS cases are not query-budget truncation failures: neither
+    dropped any primary, operand-focused, or retry queries.
+  - `8 / 4 / 1` remains a viable retrieval-budget default candidate.
+  - The non-gate inventory exposed separate runtime quality work:
+    `NAV_T2_006` needs synthesis/noise control for mixed numeric+narrative
+    answers, and `KBF_T2_043` needs replan/material-gap handling for
+    numeric+narrative growth questions.
+
 Historical answer replay:
 
 ```powershell

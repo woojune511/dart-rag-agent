@@ -176,3 +176,16 @@ Useful supporting points:
   - Separate renderer cleanup remains: `KBF_T1_017` can still append a
     partial-refusal suffix despite numeric PASS, and `NAV_T1_071` uses an
     awkward difference sentence.
+- Non-gate `8 / 4 / 1` inventory check:
+  - Four curated non-gate questions were tested across the existing
+    runtime-contract company set: `NAV_T2_006`, `SAM_T3_028`, `KBF_T2_043`,
+    and `SKH_T3_080`.
+  - `SAM_T3_028` and `SKH_T3_080` passed numerically.
+  - `KBF_T2_043` returned `UNCERTAIN`, and `NAV_T2_006` produced no numeric
+    judgement with noisy mixed synthesis.
+  - These two non-PASS cases are not budget-truncation failures: their executed
+    query traces were `1/1` and `2/2`, with no dropped primary, operand-focused,
+    or retry queries.
+  - The budget is therefore still a viable default candidate; the next work is
+    separate runtime quality cleanup for noisy synthesis and material-gap
+    replan behavior.
