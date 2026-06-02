@@ -1249,6 +1249,19 @@ Current gate status:
     completeness `1.0`, context recall `0.667`, citation coverage `1.0`.
   - final answer includes `5,037,579백만원`, the supported cost-of-sales impact
     sentence, `180,388,580백만원`, and `2.79%`.
+- Full seven-question store-fixed eval-only refresh after the quantitative
+  impact closure:
+  - command:
+    `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-03_quant_impact_full --eval-only --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-03_quant_impact_full/_logs/heartbeat_concept_gate_all7_quant_impact_2026-06-03.jsonl`
+  - all seven questions passed with numeric final judgement `PASS`.
+  - average completeness improved from the previous full refresh's `0.883` to
+    `1.0`.
+  - per-question completeness is now `1.0` for `CEL_T1_013`, `CEL_T3_040`,
+    `KAB_T1_066`, `KBF_T2_018`, `POS_T1_057`, `SAM_T3_028`, and
+    `SKH_T3_080`.
+  - faithfulness is `1.0` for all seven questions; context recall remains
+    `0.667` for `CEL_T1_013`, `KBF_T2_018`, and `SAM_T3_028`, and `1.0` for
+    the other four questions.
 - Verification after the closure:
   - `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`
     passed (`213` tests).
