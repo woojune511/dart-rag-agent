@@ -32,6 +32,7 @@ from src.ops.evaluator import (
     _supplement_resolved_operands_from_runtime_evidence,
     _should_override_hybrid_faithfulness,
     _should_override_numeric_grounding,
+    _should_override_numeric_grounding_from_runtime_evidence,
     _should_override_structured_summary_faithfulness,
 )
 
@@ -210,6 +211,46 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 operand_selection_correctness=1.0,
                 numeric_result_correctness=1.0,
                 grounded_rendering_correctness=1.0,
+            )
+        )
+
+    def test_should_override_numeric_grounding_for_runtime_evidence_difference_and_growth(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        runtime_evidence = [
+            {
+                "quote_span": "검증항목 (3,146,409) (1,847,775)",
+                "metadata": {"unit_hint": "백만원"},
+            }
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding_from_runtime_evidence(
+                answer="검증항목은 3,146십억원으로 전년 1,848십억원 대비 1,298십억원, 약 70.23% 증가했습니다.",
+                numeric_eval=numeric_eval,
+                runtime_evidence=runtime_evidence,
+            )
+        )
+
+    def test_should_override_numeric_grounding_for_runtime_evidence_ratio(self) -> None:
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+        }
+        runtime_evidence = [
+            {"quote_span": "분자 3,531,423", "metadata": {"unit_hint": "백만원"}},
+            {"quote_span": "분모 1,001,290", "metadata": {"unit_hint": "백만원"}},
+        ]
+
+        self.assertTrue(
+            _should_override_numeric_grounding_from_runtime_evidence(
+                answer="산출 비율은 3.5269배입니다.",
+                numeric_eval=numeric_eval,
+                runtime_evidence=runtime_evidence,
             )
         )
 

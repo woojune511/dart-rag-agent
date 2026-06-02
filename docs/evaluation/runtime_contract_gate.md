@@ -1277,7 +1277,42 @@ Current gate status:
     statement row is not preserved as the selected context. This is the only
     residual that looks like a retrieval coverage improvement candidate rather
     than an evaluator granularity artifact.
+- Follow-up KBF statement-row preservation and evaluator grounding refresh:
+  - change: top-level retrieval now carries query-derived statement/section
+    hints only when no active subtask section contract is already present. This
+    lets an explicitly requested statement row be preserved for mixed narrative
+    questions without broadening active calculation subtasks.
+  - change: supplemental section seed matching can use quoted top-level row
+    labels together with query-inferred statement types. This is generic
+    evidence preservation; it does not add metric/company-specific runtime
+    branches.
+  - change: numeric evaluator grounding can deterministically accept answer
+    numbers that are directly visible in runtime evidence or are reproduced by
+    simple derivations from runtime-evidence numbers, such as displayed
+    differences, ratios, and percent changes. This handles source row values
+    and rounded answer operands without making the agent runtime follow
+    evaluator tricks.
+  - focused `KBF_T2_018` eval-only result:
+    PASS, faithfulness `1.0`, completeness `1.0`, context recall `0.667`,
+    citation coverage `1.0`; runtime evidence now includes the direct
+    `III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결 포괄손익계산서`
+    row quote.
+  - focused `POS_T1_057` eval-only regression check:
+    PASS, faithfulness `1.0`, completeness `1.0`, context recall `1.0`,
+    citation coverage `1.0`.
+  - full seven-question store-fixed eval-only refresh:
+    command:
+    `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_statement_preserve_eval_override_full_2026-06-03 --eval-only --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/concept_runtime_gap_gate_statement_preserve_eval_override_full_2026-06-03/_logs/heartbeat_statement_preserve_eval_override_full_2026-06-03.jsonl`
+  - all seven questions passed with numeric final judgement `PASS`.
+  - faithfulness and completeness are `1.0` for all seven questions.
+  - context recall remains `0.667` for `CEL_T1_013`, `KBF_T2_018`, and
+    `SAM_T3_028`, and `1.0` for `CEL_T3_040`, `KAB_T1_066`, `POS_T1_057`,
+    and `SKH_T3_080`.
 - Verification after the closure:
+  - `python -m unittest tests.test_evaluator_runtime_projection
+    tests.test_math_parsing tests.test_retrieval_scope
+    tests.test_operation_contracts tests.test_semantic_numeric_plan` passed
+    (`306` tests).
   - `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`
     passed (`213` tests).
   - `python -m unittest tests.test_math_parsing

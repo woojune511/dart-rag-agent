@@ -603,5 +603,51 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertTrue(docs)
         self.assertEqual(docs[0][0].metadata["chunk_uid"], "income-table")
 
+    def test_supplemental_seed_uses_top_level_statement_hint_with_quoted_row_label(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            docs=[
+                "검증항목 | 1,000 | 800",
+                "unrelated note table",
+            ],
+            metadatas=[
+                {
+                    "chunk_uid": "direct-statement-table",
+                    "company": "ExampleCo",
+                    "year": 2023,
+                    "block_type": "table",
+                    "statement_type": "income_statement",
+                    "section_path": "III. 재무에 관한 사항",
+                    "table_context": "연결 포괄손익계산서",
+                    "table_row_labels_text": "검증항목",
+                },
+                {
+                    "chunk_uid": "notes-table",
+                    "company": "ExampleCo",
+                    "year": 2023,
+                    "block_type": "table",
+                    "statement_type": "notes",
+                    "section_path": "III. 재무에 관한 사항 > 주석",
+                    "table_context": "주석",
+                    "table_row_labels_text": "other",
+                },
+            ],
+        )
+
+        docs = agent._supplement_section_seed_docs(
+            {
+                "query": "2023년 연결 포괄손익계산서 상의 '검증항목' 전년 대비 변화를 요약해 줘.",
+                "topic": "",
+                "intent": "risk",
+                "query_type": "risk",
+                "companies": ["ExampleCo"],
+                "years": [2023],
+                "active_subtask": {},
+            }
+        )
+
+        self.assertTrue(docs)
+        self.assertEqual(docs[0][0].metadata["chunk_uid"], "direct-statement-table")
+
 if __name__ == "__main__":
     unittest.main()

@@ -863,6 +863,17 @@ def _numeric_values_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> b
     return abs(left_value - right_value) <= tolerance
 
 
+def _numeric_magnitudes_equivalent(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    left_value = _safe_float(left.get("normalized_value"))
+    right_value = _safe_float(right.get("normalized_value"))
+    if left_value is None or right_value is None:
+        return False
+    return _numeric_values_equivalent(
+        {**left, "normalized_value": abs(left_value)},
+        {**right, "normalized_value": abs(right_value)},
+    )
+
+
 def _numeric_candidate_supported_by_texts(
     candidate: Dict[str, Any],
     support_texts: Iterable[str],
@@ -1954,31 +1965,150 @@ def _answer_numeric_material_grounded_in_runtime_evidence(
     if not answer_candidates or not runtime_evidence:
         return False
 
+    evidence_candidates = _runtime_evidence_numeric_candidates(runtime_evidence)
+    supported_answer_candidates: List[Dict[str, Any]] = []
+    pending_answer_candidates: List[Dict[str, Any]] = []
     for answer_candidate in answer_candidates:
-        kind = str(answer_candidate.get("kind") or "")
         matched = False
-        for row in list(runtime_evidence or []):
-            evidence_text = " ".join(
-                part
-                for part in [
-                    str(row.get("claim") or "").strip(),
-                    str(row.get("quote_span") or "").strip(),
-                    str(row.get("raw_row_text") or "").strip(),
-                    str(row.get("source_context") or "").strip(),
-                ]
-                if part
-            )
-            if not evidence_text:
-                continue
-            evidence_candidates = list(_extract_numeric_candidates(evidence_text))
-            if kind in {"currency", "percent"}:
-                evidence_candidates.extend(_extract_unitless_number_candidates(evidence_text, kind))
-            if any(_numeric_values_equivalent(answer_candidate, candidate) for candidate in evidence_candidates):
-                matched = True
-                break
+        if any(
+            _numeric_values_equivalent(answer_candidate, candidate)
+            or _numeric_magnitudes_equivalent(answer_candidate, candidate)
+            for candidate in evidence_candidates
+        ):
+            matched = True
+        if not matched and _numeric_candidate_supported_by_runtime_evidence_derivation(
+            answer_candidate,
+            runtime_evidence,
+        ):
+            matched = True
         if not matched:
+            pending_answer_candidates.append(answer_candidate)
+        else:
+            supported_answer_candidates.append(answer_candidate)
+
+    for answer_candidate in pending_answer_candidates:
+        if not _numeric_candidate_supported_by_candidate_derivation(
+            answer_candidate,
+            supported_answer_candidates,
+        ):
             return False
     return True
+
+
+def _numeric_candidate_supported_by_candidate_derivation(
+    answer_candidate: Dict[str, Any],
+    source_candidates: List[Dict[str, Any]],
+) -> bool:
+    answer_kind = str(answer_candidate.get("kind") or "")
+    if answer_kind not in {"currency", "count", "ratio", "percent"}:
+        return False
+    comparable = [
+        candidate
+        for candidate in source_candidates
+        if str(candidate.get("kind") or "") in {"currency", "count", "ratio"}
+        and _safe_float(candidate.get("normalized_value")) is not None
+    ]
+    if len(comparable) < 2:
+        return False
+    for left in comparable:
+        left_value = _safe_float(left.get("normalized_value"))
+        if left_value is None:
+            continue
+        for right in comparable:
+            right_value = _safe_float(right.get("normalized_value"))
+            if right_value is None or left is right:
+                continue
+            same_measure = str(left.get("kind") or "") == str(right.get("kind") or "")
+            if answer_kind in {"currency", "count"} and same_measure:
+                derived = {
+                    "value_text": str(abs(left_value - right_value)),
+                    "unit_text": str(answer_candidate.get("unit_text") or ""),
+                    "kind": answer_kind,
+                    "normalized_value": abs(left_value - right_value),
+                    "span": [0, 0],
+                }
+                if _numeric_values_equivalent(answer_candidate, derived):
+                    return True
+            if answer_kind == "ratio" and right_value:
+                ratio_value = left_value / right_value
+                derived = {
+                    "value_text": str(ratio_value),
+                    "unit_text": str(answer_candidate.get("unit_text") or ""),
+                    "kind": "ratio",
+                    "normalized_value": ratio_value,
+                    "span": [0, 0],
+                }
+                if _numeric_values_equivalent(answer_candidate, derived) or _numeric_magnitudes_equivalent(
+                    answer_candidate,
+                    derived,
+                ):
+                    return True
+            if answer_kind == "percent" and same_measure and right_value:
+                percent_value = ((left_value - right_value) / abs(right_value)) * 100.0
+                derived = {
+                    "value_text": str(percent_value),
+                    "unit_text": "%",
+                    "kind": "percent",
+                    "normalized_value": percent_value,
+                    "span": [0, 0],
+                }
+                if _numeric_values_equivalent(answer_candidate, derived) or _numeric_magnitudes_equivalent(
+                    answer_candidate,
+                    derived,
+                ):
+                    return True
+    return False
+
+
+def _runtime_evidence_numeric_candidates(runtime_evidence: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    candidates: List[Dict[str, Any]] = []
+    for row in list(runtime_evidence or []):
+        evidence_text = " ".join(
+            part
+            for part in [
+                str(row.get("claim") or "").strip(),
+                str(row.get("quote_span") or "").strip(),
+                str(row.get("raw_row_text") or "").strip(),
+                str(row.get("source_context") or "").strip(),
+            ]
+            if part
+        )
+        if not evidence_text:
+            continue
+        row_candidates = list(_extract_numeric_candidates(evidence_text))
+        for kind in ("currency", "percent", "ratio"):
+            row_candidates.extend(_extract_unitless_number_candidates(evidence_text, kind))
+        candidates.extend(row_candidates)
+    return [
+        candidate
+        for candidate in candidates
+        if _safe_float(candidate.get("normalized_value")) is not None
+    ]
+
+
+def _numeric_candidate_supported_by_runtime_evidence_derivation(
+    answer_candidate: Dict[str, Any],
+    runtime_evidence: List[Dict[str, Any]],
+) -> bool:
+    return _numeric_candidate_supported_by_candidate_derivation(
+        answer_candidate,
+        _runtime_evidence_numeric_candidates(runtime_evidence),
+    )
+
+
+def _should_override_numeric_grounding_from_runtime_evidence(
+    *,
+    answer: str,
+    numeric_eval: Dict[str, Any],
+    runtime_evidence: List[Dict[str, Any]],
+) -> bool:
+    if not numeric_eval or numeric_eval.get("numeric_grounding") == 1.0:
+        return False
+    if numeric_eval.get("numeric_equivalence") != 1.0:
+        return False
+    if numeric_eval.get("numeric_retrieval_support") != 1.0:
+        return False
+    return _answer_numeric_material_grounded_in_runtime_evidence(answer, runtime_evidence)
 
 
 def _should_override_hybrid_faithfulness(
@@ -3302,6 +3432,31 @@ class RAGEvaluator:
                     "verdict": "grounded",
                     "confidence": max(existing_confidence or 0.0, 0.95),
                     "reason": "deterministic_override_from_direct_resolved_operands",
+                }
+            )
+            numeric_eval["numeric_grounding"] = 1.0
+            numeric_eval["numeric_debug"] = dict(numeric_eval.get("numeric_debug") or {})
+            numeric_eval["numeric_debug"]["grounding"] = grounding_debug
+            final_judgement, confidence = _resolve_numeric_judgement(
+                equivalence=numeric_eval.get("numeric_equivalence"),
+                grounding=1.0,
+                retrieval_support=numeric_eval.get("numeric_retrieval_support"),
+                grounding_confidence=float(grounding_debug.get("confidence", 0.0) or 0.0),
+            )
+            numeric_eval["numeric_final_judgement"] = final_judgement
+            numeric_eval["numeric_confidence"] = confidence
+        elif _should_override_numeric_grounding_from_runtime_evidence(
+            answer=answer,
+            numeric_eval=numeric_eval,
+            runtime_evidence=runtime_evidence,
+        ):
+            grounding_debug = dict((numeric_eval.get("numeric_debug") or {}).get("grounding") or {})
+            existing_confidence = _safe_float(grounding_debug.get("confidence"))
+            grounding_debug.update(
+                {
+                    "verdict": "grounded",
+                    "confidence": max(existing_confidence or 0.0, 0.9),
+                    "reason": "deterministic_override_from_runtime_evidence_derivation",
                 }
             )
             numeric_eval["numeric_grounding"] = 1.0

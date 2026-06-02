@@ -8010,6 +8010,9 @@ def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, in
         for item in (dict(state.get("active_subtask") or {}).get("preferred_sections") or [])
         if str(item).strip()
     ]
+    if not sections:
+        _statement_types, query_sections = _infer_statement_and_section_hints(query)
+        sections.extend(query_sections)
     sections.extend(_preferred_calc_sections(query, topic, intent))
     return list(dict.fromkeys(sections))
 

@@ -1454,6 +1454,11 @@ class FinancialAgentReconciliationMixin:
             for needle in _operand_needles(dict(operand))
             if _normalise_spaces(needle)
         ]
+        active_operand_needles.extend(
+            _normalise_spaces(label)
+            for label in _extract_generic_operand_labels(query)
+            if _normalise_spaces(label)
+        )
         active_operand_needles = list(dict.fromkeys(active_operand_needles))
         active_preferred_statement_types = [
             _normalise_spaces(str(item))
@@ -1466,8 +1471,13 @@ class FinancialAgentReconciliationMixin:
                 for item in (dict(operand or {}).get("preferred_statement_types") or [])
                 if _normalise_spaces(str(item))
             )
+        active_preferred_statement_types.extend(_active_preferred_statement_types(state, query, topic))
         active_preferred_statement_types = list(dict.fromkeys(active_preferred_statement_types))
         if not section_terms and not (active_preferred_statement_types and active_operand_needles):
+            return []
+        bm25_docs = list(getattr(self.vsm, "bm25_docs", []) or [])
+        bm25_metadatas = list(getattr(self.vsm, "bm25_metadatas", []) or [])
+        if not bm25_docs or not bm25_metadatas:
             return []
 
         companies = {str(company).lower() for company in (state.get("companies") or [])}
@@ -1482,7 +1492,7 @@ class FinancialAgentReconciliationMixin:
 
         supplemented: List[tuple[Document, float]] = []
         seen_chunk_uids: set[str] = set()
-        for body, metadata in zip(self.vsm.bm25_docs, self.vsm.bm25_metadatas):
+        for body, metadata in zip(bm25_docs, bm25_metadatas):
             metadata = dict(metadata or {})
             section_path = str(metadata.get("section_path") or metadata.get("section") or "")
             local_heading = _normalise_spaces(str(metadata.get("local_heading") or ""))

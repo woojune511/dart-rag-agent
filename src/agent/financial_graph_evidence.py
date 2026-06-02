@@ -1940,6 +1940,9 @@ class FinancialAgentEvidenceMixin:
                 "format_preference": format_preference,
                 "retrieval_hint": retrieval_hint,
                 "preferred_sections": list(preferred_sections or []),
+                "preferred_statement_types": list(
+                    _active_preferred_statement_types(state, query, state.get("topic") or "")
+                ),
                 "strict_company_scope": strict_company_scope,
                 "multi_source_scope": has_multi_source_scope,
                 "scope_report_type": scope_report_type,
