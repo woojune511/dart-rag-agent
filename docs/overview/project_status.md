@@ -164,3 +164,15 @@ Useful supporting points:
   - Query-budget selection now preserves period diversity before truncation so
     explicitly budgeted multi-period comparisons do not silently drop all
     prior-period search surfaces.
+- Broader `8 / 4 / 1` promotion check:
+  - The official 5-question runtime contract gate set passed under focused
+    low-API/BM25 conditions.
+  - Results: `NAV_T1_030`, `NAV_T1_071`, `MIX_T1_021`, `KBF_T1_017`, and
+    `SKH_T1_060` all returned `numeric_final_judgement = PASS`.
+  - Executed retrieval searches were bounded at 7 to 12 per question, with
+    no retry queries needed.
+  - Treat `8 / 4 / 1` as a viable default candidate, pending one broader
+    non-gate inventory check.
+  - Separate renderer cleanup remains: `KBF_T1_017` can still append a
+    partial-refusal suffix despite numeric PASS, and `NAV_T1_071` uses an
+    awkward difference sentence.

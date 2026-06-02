@@ -246,6 +246,34 @@ Latest bounded-query runtime canaries:
   - This is an execution-cost control only. It does not add domain vocabulary,
     company-specific branches, or benchmark-answer rules.
 
+Broader bounded-query promotion check:
+
+- Date: 2026-06-02
+- Command shape: focused low-API/BM25 run with budgets `8 / 4 / 1`
+  (`--retrieval-query-budget 8 --focused-retrieval-query-budget 4
+  --retry-retrieval-query-budget 1`)
+- Scope: official 5-question runtime contract gate set
+- Result: 5 / 5 `numeric_final_judgement = PASS`
+- Per-question trace:
+  - `NAV_T1_030`: PASS, 7 executed retrieval searches
+    (`primary 3/3`, `operand_focus 4/16`, `retry 0/0`)
+  - `NAV_T1_071`: PASS, 12 executed retrieval searches
+    (`primary 8/15`, `operand_focus 4/14`, `retry 0/0`)
+  - `MIX_T1_021`: PASS, 7 executed retrieval searches
+    (`primary 3/3`, `operand_focus 4/4`, `retry 0/0`)
+  - `KBF_T1_017`: PASS, 12 executed retrieval searches
+    (`primary 8/33`, `operand_focus 4/4`, `retry 0/0`)
+  - `SKH_T1_060`: PASS, 12 executed retrieval searches
+    (`primary 8/30`, `operand_focus 4/11`, `retry 0/0`)
+- Interpretation:
+  - `8 / 4 / 1` is now a viable default candidate for the focused runtime
+    contract gate, not just for isolated canaries.
+  - Keep it as a candidate until one broader non-gate inventory confirms it
+    does not hide retrieval gaps outside this curated set.
+  - Follow-up quality work remains separate from numeric correctness:
+    `KBF_T1_017` still includes a partial-refusal suffix despite numeric PASS,
+    and `NAV_T1_071` has an awkward difference-rendering sentence.
+
 Historical answer replay:
 
 ```powershell
