@@ -2560,3 +2560,69 @@ Artifact policy:
   local diagnostic artifact and should not be committed. Re-run the full
   policy gate after embedding quota recovers before treating this optimization
   as release-grade.
+
+## 2026-06-03 Non-Numeric Operation Planner Override
+
+Purpose:
+
+- Repair a regression found during the adaptive focused retrieval full retry:
+  a mixed growth-rate plus narrative query could be routed as a non-numeric
+  `risk` intent, preventing the semantic numeric planner from creating the
+  growth-rate and narrative subtasks.
+- Keep the repair generic: no company names, benchmark ids, policy-topic
+  strings, or metric-specific runtime branches were added.
+
+Implementation scope:
+
+- `PLANNING_POLICY.non_numeric_operation_intent_override` now allows
+  non-numeric intents to enter the numeric planner when either ontology
+  concepts or a dry-run generic numeric plan produces executable operands for
+  an allowed operation family.
+- The policy still requires configured query markers and unit/operation-family
+  checks before promotion.
+- Mixed numeric/narrative questions continue to create a numeric child task and
+  a `narrative_summary` child task in the task ledger.
+
+Validation:
+
+```powershell
+uv run python -m unittest tests.test_semantic_numeric_plan
+uv run python -m src.ops.audit_runtime_domain_terms
+uv run python -m unittest tests.test_operation_contracts tests.test_retrieval_scope
+uv run python -m unittest discover -s tests
+
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_adaptive_focus_skip_full_retry_2026-06-03 `
+  --eval-only `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --question-id HYU_T2_010 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_adaptive_focus_skip_full_retry_2026-06-03\_logs\heartbeat_hyu_t2_010_after_non_numeric_operation_override.jsonl
+```
+
+Result:
+
+- `tests.test_semantic_numeric_plan`: `73` tests passed.
+- Runtime domain-language audit: passed with `215` reviewed literals.
+- `tests.test_operation_contracts tests.test_retrieval_scope`: `171` tests
+  passed.
+- Full unittest discover: `632` tests passed.
+- Focused eval-only `HYU_T2_010` after the fix:
+  - `faithfulness = 1.000`
+  - `completeness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - final answer includes `87.0만 대`, `78.1만 대`, source-stated `11.5%`,
+    and the policy-response narrative.
+- The broader retry bundle is still not a full release-grade gate:
+  `NAV_T2_006` remained blocked by Google embedding `429 RESOURCE_EXHAUSTED`
+  in the same local diagnostic directory, while `LGE_T1_051` and `SAM_T2_078`
+  completed cleanly.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_adaptive_focus_skip_full_retry_2026-06-03/`
+  is a local diagnostic artifact and should not be committed. Re-run the full
+  policy gate after embedding quota recovers before treating this as a complete
+  five-question gate result.

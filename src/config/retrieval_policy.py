@@ -828,15 +828,16 @@ PLANNING_POLICY: Dict[str, Any] = {
     "money_surface_compound_unit_prefix": "조",
     "hybrid_narrative_metric_label": "질문 관련 배경/영향 설명",
     "segment_default_metric_name": "매출액",
-    "qa_numeric_lookup_intent_override": {
+    "non_numeric_operation_intent_override": {
         "enabled": True,
-        "source_intents": ("qa",),
+        "source_intents": ("qa", "risk", "business_overview"),
         "target_intent": "numeric_fact",
-        "operation_families": ("lookup", "single_value"),
+        "operation_families": ("lookup", "single_value", "sum", "difference", "ratio", "growth_rate"),
         "unit_families": ("KRW", "USD", "COUNT", "PERCENT"),
         "query_markers": ("금액", "수치", "규모", "값", "찾", "알려", "제시", "보여", "추출", "요약"),
         "minimum_concepts": 1,
-        "planner_note": "qa_numeric_lookup_promoted_by_ontology",
+        "allow_generic_numeric_plan": True,
+        "planner_note": "non_numeric_operation_promoted_by_ontology",
     },
     "concept_planner_replan_rules": (
         "- 현재는 replan mode입니다. planner_feedback를 읽고, 기존 task는 유지한 채 누락된 재료를 찾기 위한 추가 task만 만드세요.\n"

@@ -152,7 +152,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
         self.assertFalse(result["semantic_plan"]["fallback_to_general_search"])
-        self.assertIn("qa_numeric_lookup_promoted_by_ontology", result["semantic_plan"]["planner_notes"])
+        self.assertIn("non_numeric_operation_promoted_by_ontology", result["semantic_plan"]["planner_notes"])
         numeric_tasks = [
             task
             for task in result["calc_subtasks"]
@@ -173,6 +173,47 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ],
         )
         self.assertEqual(result["calc_subtasks"][-1]["operation_family"], "narrative_summary")
+
+    def test_risk_routed_growth_summary_promotes_to_mixed_numeric_plan(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        result = agent._plan_semantic_numeric_tasks(
+            {
+                "query": (
+                    "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산하고, "
+                    "사업보고서에서 정책 대응 필요성을 요약해 줘."
+                ),
+                "query_type": "risk",
+                "intent": "risk",
+                "topic": "지역 시장 판매대수 성장률 및 정책 대응",
+                "report_scope": {"company": "테스트", "year": 2023, "report_type": "사업보고서"},
+                "planner_mode": "initial",
+                "planner_feedback": "",
+                "plan_loop_count": 0,
+                "target_metric_family": "",
+                "target_metric_family_hint": "",
+                "companies": ["테스트"],
+                "years": [2023, 2022],
+                "section_filter": None,
+                "tasks": [],
+                "artifacts": [],
+            }
+        )
+
+        self.assertFalse(result["semantic_plan"]["fallback_to_general_search"])
+        self.assertIn("non_numeric_operation_promoted_by_ontology", result["semantic_plan"]["planner_notes"])
+        self.assertEqual(result["calc_subtasks"][0]["operation_family"], "growth_rate")
+        self.assertEqual(result["calc_subtasks"][-1]["operation_family"], "narrative_summary")
+        self.assertEqual(
+            [
+                (row["label"], row["role"], row.get("period_hint"), row.get("unit_family"))
+                for row in result["calc_subtasks"][0]["required_operands"]
+            ],
+            [
+                ("2023년 지역 시장 판매대수", "current_period", "2023", "COUNT"),
+                ("2022년 지역 시장 판매대수", "prior_period", "2022", "COUNT"),
+            ],
+        )
 
     def test_general_ira_policy_context_does_not_open_ampc_concept_task(self) -> None:
         import src.config.ontology as ontology_module

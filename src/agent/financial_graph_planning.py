@@ -586,8 +586,12 @@ def _push_narrative_tasks_after_numeric(tasks: List[Dict[str, Any]]) -> List[Dic
     return numeric_tasks + narrative_tasks
 
 
-def _qa_numeric_lookup_intent_override(query: str, topic: str, intent: str) -> tuple[str, str]:
-    policy = dict(PLANNING_POLICY.get("qa_numeric_lookup_intent_override") or {})
+def _non_numeric_operation_intent_override(query: str, topic: str, intent: str) -> tuple[str, str]:
+    policy = dict(
+        PLANNING_POLICY.get("non_numeric_operation_intent_override")
+        or PLANNING_POLICY.get("qa_numeric_lookup_intent_override")
+        or {}
+    )
     if not bool(policy.get("enabled", False)):
         return intent, ""
 
@@ -615,30 +619,57 @@ def _qa_numeric_lookup_intent_override(query: str, topic: str, intent: str) -> t
     if allowed_operations and _normalise_spaces(operation_family) not in allowed_operations:
         return intent, ""
 
-    concept_specs = ontology.concept_specs(query, topic, str(policy.get("target_intent") or "numeric_fact"))
+    target_intent = str(policy.get("target_intent") or "numeric_fact").strip() or "numeric_fact"
+    concept_specs = ontology.concept_specs(query, topic, target_intent)
     try:
         minimum_concepts = int(policy.get("minimum_concepts") or 1)
     except (TypeError, ValueError):
         minimum_concepts = 1
-    if len(concept_specs) < max(1, minimum_concepts):
-        return intent, ""
-
     allowed_unit_families = {
         _normalise_spaces(str(item)).upper()
         for item in (policy.get("unit_families") or ())
         if _normalise_spaces(str(item))
     }
-    if allowed_unit_families:
+    concept_contract_ok = len(concept_specs) >= max(1, minimum_concepts)
+    if concept_contract_ok and allowed_unit_families:
         matched_units = {
             _normalise_spaces(str(spec.get("unit_family") or "")).upper()
             for spec in concept_specs
             if _normalise_spaces(str(spec.get("unit_family") or ""))
         }
-        if not matched_units.intersection(allowed_unit_families):
-            return intent, ""
+        concept_contract_ok = bool(matched_units.intersection(allowed_unit_families))
 
-    target_intent = str(policy.get("target_intent") or "numeric_fact").strip() or "numeric_fact"
-    planner_note = str(policy.get("planner_note") or "qa_numeric_lookup_promoted").strip()
+    generic_plan_ok = False
+    if not concept_contract_ok and bool(policy.get("allow_generic_numeric_plan", False)):
+        candidate_plan = _build_semantic_numeric_plan(
+            query=query,
+            topic=topic,
+            intent=target_intent,
+            report_scope={},
+            target_metric_family="",
+        )
+        for task in (candidate_plan.get("tasks") or []):
+            task_operation = _normalise_spaces(str(task.get("operation_family") or ""))
+            if allowed_operations and task_operation not in allowed_operations:
+                continue
+            operands = [dict(operand) for operand in (task.get("required_operands") or [])]
+            if not operands:
+                continue
+            if allowed_unit_families:
+                operand_units = {
+                    _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+                    for operand in operands
+                    if _normalise_spaces(str(operand.get("unit_family") or ""))
+                }
+                if not operand_units.intersection(allowed_unit_families):
+                    continue
+            generic_plan_ok = True
+            break
+
+    if not concept_contract_ok and not generic_plan_ok:
+        return intent, ""
+
+    planner_note = str(policy.get("planner_note") or "non_numeric_operation_promoted").strip()
     return target_intent, planner_note
 
 
@@ -1307,10 +1338,10 @@ class FinancialAgentPlanningMixin:
         intent_override_note = ""
         if intent not in {"comparison", "trend", "numeric_fact"}:
             original_intent = str(intent or "qa").strip() or "qa"
-            intent, intent_override_note = _qa_numeric_lookup_intent_override(query, topic, original_intent)
+            intent, intent_override_note = _non_numeric_operation_intent_override(query, topic, original_intent)
             if intent_override_note:
                 logger.info(
-                    "[semantic_plan] promoted intent %s -> %s via ontology numeric lookup contract",
+                    "[semantic_plan] promoted intent %s -> %s via ontology numeric operation contract",
                     original_intent,
                     intent,
                 )

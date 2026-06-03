@@ -108,6 +108,26 @@ This is a generic binding rule, not a place to encode company names, segment
 names, or benchmark-specific vocabulary. Metric surfaces must come from the
 ontology/policy-backed concept spec or the inferred generic metric label.
 
+### Non-Numeric Intent With Numeric Operations
+
+Routing intent is not the only gate into the numeric planner. If a query is
+routed as a non-numeric intent such as `qa`, `risk`, or `business_overview`, the
+planner may still promote it to the numeric task pipeline when a declarative
+policy proves that the query contains an executable numeric operation contract.
+
+The promotion must be based on generic signals:
+
+- configured source/target intents and allowed operation families
+- ontology concepts and unit families, when matched
+- or a dry-run semantic numeric plan that produces required operands with
+  allowed operation and unit families
+
+The promotion must not branch on company names, benchmark ids, specific policy
+topics, or report-specific phrases. Mixed questions that contain both numeric
+operation and explanatory/narrative requirements should still create a numeric
+child task plus a `narrative_summary` child task in the task ledger, rather than
+falling back to a single general-search answer.
+
 ## 7. Ontology-Driven Prose Lookup Slots
 
 When a concept lookup obtains the required numeric value from prose rather than
