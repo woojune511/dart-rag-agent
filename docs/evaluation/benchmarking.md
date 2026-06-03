@@ -2990,3 +2990,38 @@ Decision:
 - `benchmarks/results/policy_gate_openai_section_definition_full_2026-06-03/`
   and `benchmarks/results/sam_t2_078_section_definition_refresh_2026-06-03/`
   are local benchmark artifacts and should not be committed.
+
+Post dependency-trace commit local eval-only:
+
+```powershell
+$env:DART_EMBEDDING_PROVIDER='openai'
+$env:OPENAI_EMBEDDING_MODEL='text-embedding-3-large'
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_regression_2026-06-03_1138_actual `
+  --eval-only `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_regression_2026-06-03_1138_actual\_logs\heartbeat_evalonly_all_after_dependency_trace_commit_2026-06-03.jsonl
+```
+
+Result:
+
+- Run status: `completed`; 4 / 4 company runs completed.
+- Numeric/dependency trace regression: not observed.
+- `NAV_T2_006` growth trace is aligned to producer lookup slots:
+  current `2,546,649백만원`, prior `1,801,079백만원`, growth `41.4%`.
+- All rows kept faithfulness `1.000`, context recall `1.000`, retrieval hit@k
+  `1.000`, and error rate `0.0%`.
+- `HYU_T2_010`, `HYU_T3_072`, and `SAM_T2_078` remained completeness `1.000`.
+- `NAV_T2_006` and `LGE_T1_051` scored completeness `0.700` in this local
+  Google-backed artifact run. The judge reasons were narrative wording gaps:
+  missing `스마트스토어/브랜드스토어` and explicit `네이버` for `NAV_T2_006`,
+  and missing explicit `IRA` / `AMPC` terminology for `LGE_T1_051`.
+
+Decision:
+
+- Treat the post-commit run as a dependency-trace pass with narrative
+  completeness follow-up, not as a numeric grounding regression.
+- If the next milestone needs a fully clean release table, rerun the official
+  OpenAI-backed policy gate artifact or adjust answer composition/evaluator
+  expectations for the two narrative terminology gaps.
