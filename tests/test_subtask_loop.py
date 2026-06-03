@@ -4285,6 +4285,87 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("Poshmark acquisition", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
+    def test_late_numeric_refresh_preserves_narrative_summary_child(self) -> None:
+        self.agent.llm = None
+        self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
+        self.agent._align_lookup_results_with_dependency_projection = (
+            lambda ordered_results, _state, _projection: list(ordered_results)
+        )
+        state = {
+            "query": "Calculate the 2023 commerce revenue growth rate and summarize the acquisition impact.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "operation_family": "narrative_summary",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "commerce revenue growth rate",
+                    "answer": "2023 commerce revenue was up 41.4%.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "commerce revenue growth rate",
+                                "period": "2023",
+                                "rendered_value": "41.4%",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "commerce revenue",
+                                "period": "2023",
+                                "rendered_value": "2,546,649 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "commerce revenue",
+                                "period": "2022",
+                                "rendered_value": "1,801,079 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "acquisition impact summary",
+                    "answer": "The acquisition integration improved commerce revenue growth.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ],
+            "answer": "The acquisition integration improved commerce revenue growth.",
+            "compressed_answer": "The acquisition integration improved commerce revenue growth.",
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": ["ev_driver"],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("2,546,649 million", updated["answer"])
+        self.assertIn("1,801,079 million", updated["answer"])
+        self.assertIn("acquisition integration improved", updated["answer"])
+        self.assertIn("ev_driver", updated["selected_claim_ids"])
+
     def test_aggregate_subtasks_keeps_slot_based_difference_answer_when_numeric_locked(self) -> None:
         self.agent.llm = None
         state = {

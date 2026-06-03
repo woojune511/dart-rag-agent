@@ -2619,6 +2619,15 @@ Result:
   `NAV_T2_006` remained blocked by Google embedding `429 RESOURCE_EXHAUSTED`
   in the same local diagnostic directory, while `LGE_T1_051` and `SAM_T2_078`
   completed cleanly.
+- Full five-question retry after commit
+  `4aac5dc` in
+  `benchmarks/results/policy_gate_non_numeric_override_full_2026-06-03/`
+  was also blocked by Google embedding quota:
+  `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, and `LGE_T1_051` all recorded
+  `429 RESOURCE_EXHAUSTED` errors before producing usable eval metrics.
+  `SAM_T2_078` completed cleanly with `faithfulness = 1.000`,
+  `completeness = 1.000`, `context_recall = 1.000`,
+  `retrieval_hit_at_k = 1.000`, and `answer_relevancy = 0.913`.
 
 Artifact policy:
 
@@ -2626,3 +2635,213 @@ Artifact policy:
   is a local diagnostic artifact and should not be committed. Re-run the full
   policy gate after embedding quota recovers before treating this as a complete
   five-question gate result.
+- `benchmarks/results/policy_gate_non_numeric_override_full_2026-06-03/` is
+  also an intermediate local artifact and should not be committed.
+
+## 2026-06-03 OpenAI Embedding 3-Large Probe
+
+Purpose:
+
+- Test whether switching retrieval embeddings from Google
+  `models/gemini-embedding-2` to OpenAI `text-embedding-3-large` removes the
+  repeated Google embedding `429 RESOURCE_EXHAUSTED` blocker without changing
+  the Gemini LLM routes.
+
+Run:
+
+```powershell
+$env:DART_EMBEDDING_PROVIDER='openai'
+$env:OPENAI_EMBEDDING_MODEL='text-embedding-3-large'
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_openai_embedding_3_large_2026-06-03 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_openai_embedding_3_large_2026-06-03\_logs\heartbeat_policy_gate_openai_embedding_3_large_2026-06-03.jsonl
+```
+
+Result:
+
+- Fresh ingest and full evaluation completed without embedding quota errors.
+- Winner summary:
+  - `avg_full_context_recall = 1.000`
+  - `avg_full_numeric_pass_rate = 1.000`
+  - `avg_full_faithfulness = 0.825`
+  - `avg_full_completeness = 0.875`
+  - `full_eval_fail_count = 1`
+- Passing rows:
+  - `HYU_T2_010`: `faithfulness = 1.000`, `completeness = 1.000`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`
+  - `HYU_T3_072`: `faithfulness = 1.000`, `completeness = 1.000`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`
+  - `LGE_T1_051`: `faithfulness = 1.000`, `completeness = 1.000`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`,
+    `numeric_final_judgement = PASS`
+  - `SAM_T2_078`: `faithfulness = 1.000`, `completeness = 1.000`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`
+- Failing row:
+  - `NAV_T2_006`: `faithfulness = 0.300`, `completeness = 0.500`,
+    `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`.
+  - The trace contained the numeric growth result and a narrative subtask
+    answer, but the final answer exposed only the numeric sentence:
+    `2023년 커머스 매출액은 2,546,649천원이며, 2022년 1,801,079천원 대비 41.4% 성장했습니다.`
+  - This is therefore not an OpenAI embedding quota failure. It is an aggregate
+    synthesis/composition issue where narrative child output is not preserved in
+    the user-visible final answer.
+
+Decision:
+
+- OpenAI `text-embedding-3-large` is a viable way to remove the current Google
+  embedding quota blocker.
+- Do not promote it as the release default until the remaining
+  `NAV_T2_006` aggregate narrative preservation issue is fixed and the
+  five-question gate passes cleanly.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_openai_embedding_3_large_2026-06-03/` is a
+  local diagnostic artifact and should not be committed.
+
+## 2026-06-03 NAV Aggregate Narrative Preservation Fix
+
+Purpose:
+
+- Verify the generic aggregate-synthesis fix that prevents late dependency
+  alignment from replacing a mixed numeric/narrative answer with a numeric-only
+  refresh when a `narrative_summary` child already produced grounded context.
+- Keep the OpenAI `text-embedding-3-large` retrieval embedding setting from the
+  previous probe to avoid the Google embedding quota blocker.
+
+Run:
+
+```powershell
+$env:DART_EMBEDDING_PROVIDER='openai'
+$env:OPENAI_EMBEDDING_MODEL='text-embedding-3-large'
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --company-run-id naver_2023_policy_driven_runtime_gate `
+  --question-id NAV_T2_006 `
+  --output-dir benchmarks\results\policy_gate_openai_nav_t2_006_narrative_preserve_2026-06-03 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_openai_nav_t2_006_narrative_preserve_2026-06-03\heartbeat.jsonl
+```
+
+Result:
+
+- Fresh NAV ingest and focused full evaluation completed without embedding
+  quota errors.
+- `NAV_T2_006` improved from the OpenAI embedding probe failure to:
+  - `faithfulness = 1.000`
+  - `completeness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `ndcg_at_5 = 1.000`
+  - `context_precision_at_5 = 0.800`
+  - `section_match_rate = 0.875`
+  - `citation_coverage = 0.667`
+  - `entity_coverage = 1.000`
+  - `answer_relevancy = 0.774`
+- Final answer now exposes both the deterministic growth calculation and the
+  grounded narrative context:
+  `2023년 커머스 매출액은 2,546,649천원이며, 2022 1,801,079천원 대비 41.4% 성장했습니다. 이는 2023년 초 인수한 포시마크(Poshmark)의 성공적인 체질 개선이 성장에 기여한 결과입니다. 또한 스마트스토어와 브랜드스토어의 성장와 연결 편입 효과도 실적 성장에 기여했습니다.`
+
+Validation:
+
+```powershell
+uv run python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_late_numeric_refresh_preserves_narrative_summary_child
+uv run python -m unittest tests.test_subtask_loop tests.test_aggregate_subtask_projection tests.test_operation_contracts
+uv run python -m src.ops.audit_runtime_domain_terms
+uv run python -m unittest discover -s tests
+```
+
+- New focused regression test: passed.
+- Related aggregate/projection/operation contract suite: `224` tests passed.
+- Runtime domain-language audit: passed with `215` reviewed literals.
+- Full unittest discover: `633` tests passed.
+
+Decision:
+
+- The remaining `NAV_T2_006` failure was aggregate answer preservation, not
+  retrieval coverage.
+- The fix is generic: runtime preserves existing `narrative_summary` child
+  material during late numeric refresh instead of adding benchmark/company/topic
+  keyword branches.
+- Next release-grade check should be a five-question policy gate with OpenAI
+  embeddings. The previous OpenAI probe had the other four rows passing, but a
+  clean post-fix full gate is still needed before promoting the embedding
+  switch as a stable default.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_openai_nav_t2_006_narrative_preserve_2026-06-03/`
+  is a local diagnostic artifact and should not be committed.
+
+## 2026-06-03 OpenAI Embedding Post-Fix Full Gate
+
+Purpose:
+
+- Promote the NAV aggregate narrative preservation fix from focused status to a
+  full five-question policy gate check.
+- Reconfirm that OpenAI `text-embedding-3-large` avoids the Google embedding
+  quota blocker while preserving the policy-driven runtime quality contract.
+
+Run:
+
+```powershell
+$env:DART_EMBEDDING_PROVIDER='openai'
+$env:OPENAI_EMBEDDING_MODEL='text-embedding-3-large'
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_openai_embedding_3_large_post_nav_fix_full_2026-06-03 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_openai_embedding_3_large_post_nav_fix_full_2026-06-03\_logs\heartbeat.jsonl
+```
+
+Result:
+
+- Run status: `completed`.
+- Fresh ingest and full evaluation completed without embedding quota errors.
+- Winner summary:
+  - `pass_count = 4`
+  - `critical_category_miss_count = 0`
+  - `full_eval_fail_count = 0`
+  - `avg_full_faithfulness = 1.000`
+  - `avg_full_completeness = 1.000`
+  - `avg_full_context_recall = 1.000`
+  - `avg_full_numeric_pass_rate = 1.000`
+- Five-question aggregate:
+  - `avg_faithfulness = 1.000`
+  - `avg_completeness = 1.000`
+  - `avg_context_recall = 1.000`
+  - `avg_retrieval_hit_at_k = 1.000`
+  - `avg_answer_relevancy = 0.692`
+  - `avg_section_match_rate = 0.875`
+  - `avg_citation_coverage = 0.933`
+  - `avg_entity_coverage = 0.927`
+  - `total_latency_sec = 497.324`
+
+Per-question result:
+
+| Row | Faithfulness | Completeness | Context recall | Hit@k | Answer relevancy | Section match | Citation coverage | Numeric judgement |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `NAV_T2_006` | 1.000 | 1.000 | 1.000 | 1.000 | 0.803 | 0.875 | 0.667 | n/a |
+| `HYU_T2_010` | 1.000 | 1.000 | 1.000 | 1.000 | 0.671 | 1.000 | 1.000 | n/a |
+| `HYU_T3_072` | 1.000 | 1.000 | 1.000 | 1.000 | 0.609 | 1.000 | 1.000 | n/a |
+| `LGE_T1_051` | 1.000 | 1.000 | 1.000 | 1.000 | 0.563 | 1.000 | 1.000 | `PASS` |
+| `SAM_T2_078` | 1.000 | 1.000 | 1.000 | 1.000 | 0.817 | 0.500 | 1.000 | n/a |
+
+Decision:
+
+- The post-fix OpenAI embedding full gate is clean. The previous
+  `NAV_T2_006` narrative preservation regression is closed in the full profile,
+  not only in the focused rerun.
+- OpenAI `text-embedding-3-large` is a practical unblocker for the current
+  Google embedding quota issue. Treat promotion to default as a separate
+  configuration decision rather than a runtime code change.
+- `SAM_T2_078` still has lower section-match precision (`0.500`) despite
+  faithfulness/completeness/retrieval passing. That is a follow-up retrieval
+  precision optimization, not a release blocker for this gate.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_openai_embedding_3_large_post_nav_fix_full_2026-06-03/`
+  is a local benchmark artifact and should not be committed.

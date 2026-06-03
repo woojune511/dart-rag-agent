@@ -1750,6 +1750,96 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
+    def _refresh_numeric_answer_preserving_narrative_context(
+        self,
+        *,
+        query: str,
+        current_answer: str,
+        numeric_answer: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        numeric_text = _normalise_spaces(str(numeric_answer or ""))
+        if not any(self._row_is_narrative_summary(row) for row in ordered_results):
+            return {"answer": numeric_text, "selected_claim_ids": []}
+
+        query_text = _normalise_spaces(str(query or ""))
+        candidate_answer = self._ensure_complete_growth_numeric_answer(current_answer, ordered_results)
+        if self._answer_satisfies_growth_narrative_intent(
+            query=query_text,
+            answer=candidate_answer,
+            ordered_results=ordered_results,
+        ):
+            return {"answer": candidate_answer, "selected_claim_ids": []}
+
+        composed = self._compose_growth_narrative_answer(
+            query=query_text,
+            ordered_results=ordered_results,
+            existing_answer=candidate_answer or numeric_text,
+            evidence_items=evidence_items,
+        )
+        composed_answer = _normalise_spaces(str((composed or {}).get("compressed_answer") or ""))
+        if composed_answer and self._answer_satisfies_growth_narrative_intent(
+            query=query_text,
+            answer=composed_answer,
+            ordered_results=ordered_results,
+        ):
+            return {
+                "answer": composed_answer,
+                "selected_claim_ids": [
+                    str(claim_id).strip()
+                    for claim_id in ((composed or {}).get("selected_claim_ids") or [])
+                    if str(claim_id).strip()
+                ],
+            }
+
+        missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
+        narrative_parts: List[str] = []
+        selected_claim_ids: List[str] = []
+        for row in ordered_results:
+            if not self._row_is_narrative_summary(row):
+                continue
+            row_answer = _normalise_spaces(
+                str(
+                    row.get("answer")
+                    or (row.get("calculation_result") or {}).get("formatted_result")
+                    or (row.get("calculation_result") or {}).get("rendered_value")
+                    or ""
+                )
+            )
+            if not row_answer or any(marker and marker in row_answer for marker in missing_markers):
+                continue
+            if row_answer in numeric_text:
+                continue
+            narrative_parts.append(row_answer)
+            selected_claim_ids.extend(
+                str(claim_id).strip()
+                for claim_id in (row.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+
+        if narrative_parts:
+            combined_answer = self._ensure_complete_growth_numeric_answer(
+                _normalise_spaces(" ".join([numeric_text, *narrative_parts])),
+                ordered_results,
+            )
+            if self._answer_satisfies_growth_narrative_intent(
+                query=query_text,
+                answer=combined_answer,
+                ordered_results=ordered_results,
+            ):
+                return {
+                    "answer": combined_answer,
+                    "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
+                }
+            if self._query_requests_explanatory_context(query_text):
+                return {
+                    "answer": combined_answer,
+                    "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
+                }
+
+        return {"answer": numeric_text, "selected_claim_ids": []}
+
     def _preferred_aggregate_fallback_answer(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -7364,7 +7454,26 @@ class FinancialAgentCalculationMixin:
             ordered_results = aligned_ordered_results
             refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
             if refreshed_numeric_answer and not narrative_answer_locked:
-                final_answer = refreshed_numeric_answer
+                refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
+                    query=str(state.get("query") or ""),
+                    current_answer=final_answer,
+                    numeric_answer=refreshed_numeric_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=aggregate_evidence_items,
+                )
+                final_answer = _normalise_spaces(str(refreshed_answer.get("answer") or refreshed_numeric_answer))
+                selected_claim_ids = list(
+                    dict.fromkeys(
+                        [
+                            *selected_claim_ids,
+                            *[
+                                str(claim_id).strip()
+                                for claim_id in (refreshed_answer.get("selected_claim_ids") or [])
+                                if str(claim_id).strip()
+                            ],
+                        ]
+                    )
+                )
             aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
         if calculation_projection_override:
             for key in ("calculation_operands", "calculation_plan", "calculation_result"):
