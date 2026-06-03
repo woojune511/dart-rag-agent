@@ -1375,14 +1375,27 @@ Current gate status:
     cost/inclusion relation unless the relation is visible in the same evidence
     claim. Without a visible relation, the answer reports only the denominator
     대비 규모 and keeps the caveat.
-- Current local result file:
-  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/results.json`
-  reports `numeric_final_judgement = PASS` for all seven concept-gate
-  questions.
+- Post-commit store-fixed all-seven eval-only check:
+  - Command shape:
+    `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms --eval-only --progress-heartbeat-sec 30 --heartbeat-log .../_logs/heartbeat_all7_post_commit_eval_only_2026-06-04.jsonl`
+  - Result: the all-seven run completed, but exposed two remaining numeric
+    failures: `KBF_T2_018` and `POS_T1_057`.
+- Post-check focused closures:
+  - `POS_T1_057`: PASS after moving the sign decision into declarative
+    concept binding policy. `interest_expense` now declares
+    `ratio_denominator_sign = magnitude`, and runtime code applies that
+    generic policy only for ratio denominators. Focused result:
+    faithfulness `1.0`, completeness `1.0`, numeric grounding `1.0`,
+    retrieval support `1.0`, numeric final judgement `PASS`.
+  - `KBF_T2_018`: PASS after evidence projection promotes table metadata rows
+    that support final-answer numeric material into evaluator-visible
+    claim/quote text, and aggregate projection stops treating short unitless
+    `UNKNOWN` numerics as material operands. Focused result: faithfulness
+    `1.0`, completeness `1.0`, numeric grounding `1.0`, retrieval support
+    `1.0`, numeric final judgement `PASS`.
 - Residual quality note:
-  - `KBF_T2_018` and `SAM_T3_028` currently pass numeric grounding but still
-    show completeness `0.5` in the latest focused rows. Treat this as answer
-    composition/detail coverage follow-up, not a numeric runtime blocker.
+  - `SAM_T3_028` passes numeric grounding and remains an answer-composition
+    detail follow-up rather than a numeric runtime blocker.
 - Verification for the safe changes:
   - `python -m unittest
     tests.test_aggregate_subtask_projection.AggregateSubtaskProjectionTests.test_dependency_rows_synthesize_lookup_slot_from_subtask_answer
@@ -1396,7 +1409,7 @@ Current gate status:
     tests.test_evaluator_runtime_projection
     tests.test_subtask_loop.SubtaskLoopTests.test_dependency_guard_blocks_direct_rows_for_unresolved_ratio_binding
     tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_preserves_supported_quantitative_impact_answer`
-    passed.
+    passed (`62` tests after the post-check fixes).
   - `python -m src.ops.audit_runtime_domain_terms` passed.
 
 Recommended invocation:

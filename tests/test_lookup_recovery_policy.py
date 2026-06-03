@@ -413,6 +413,56 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         subtask_slots = projection["calculation_result"]["answer_slots"]["subtask_results"]
         self.assertEqual(subtask_slots[0]["task_id"], "task_missing")
 
+    def test_aggregate_projection_skips_short_unknown_numeric_operands(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        projection = agent._build_aggregate_calculation_projection(
+            [
+                {
+                    "task_id": "task_noise",
+                    "metric_family": "concept_lookup",
+                    "status": "ok",
+                    "calculation_operands": [
+                        {
+                            "operand_id": "prior_value",
+                            "matched_operand_role": "prior_period",
+                            "label": "prior metric",
+                            "raw_value": "9",
+                            "raw_unit": "",
+                            "normalized_value": 9.0,
+                            "normalized_unit": "UNKNOWN",
+                            "rendered_value": "9",
+                            "source_row_id": "ev_noise",
+                            "source_row_ids": ["ev_noise"],
+                        }
+                    ],
+                },
+                {
+                    "task_id": "task_material",
+                    "metric_family": "concept_lookup",
+                    "status": "ok",
+                    "calculation_operands": [
+                        {
+                            "operand_id": "current_value",
+                            "matched_operand_role": "current_period",
+                            "label": "current metric",
+                            "raw_value": "3,146",
+                            "raw_unit": "billion",
+                            "normalized_value": 3146000000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,146 billion",
+                            "source_row_id": "ev_current",
+                            "source_row_ids": ["ev_current"],
+                        }
+                    ],
+                },
+            ],
+            "The metric increased.",
+        )
+
+        operands = projection["calculation_operands"]
+        self.assertEqual([row["operand_id"] for row in operands], ["current_value"])
+        self.assertNotIn("ev_noise", projection["calculation_result"]["source_row_ids"])
+
     def test_contextual_precision_refinement_rejects_large_scale_drift(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         row = {
@@ -481,6 +531,41 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             [row["evidence_id"] for row in filtered],
             ["ev_selected", "recon::good"],
         )
+
+    def test_final_answer_evidence_promotes_table_numeric_support_text(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_items = [
+            {
+                "evidence_id": "ev_table",
+                "claim": "3,146 (billion)",
+                "quote_span": "3,146",
+                "metadata": {
+                    "table_header_context": "item | 2023 | change | 2022",
+                    "table_value_labels_text": "\n".join(
+                        [
+                            "credit loss provision expense 3,146",
+                            "credit loss provision expense 1,299",
+                            "credit loss provision expense 1,848",
+                            "net income 4,632",
+                        ]
+                    ),
+                },
+            }
+        ]
+
+        filtered = agent._filter_aggregate_evidence_for_final_answer(
+            evidence_items,
+            final_answer=(
+                "credit loss provision expense was 3,146 billion in 2023 "
+                "and 1,848 billion in 2022, up 70.24%."
+            ),
+            selected_claim_ids=[],
+        )
+
+        self.assertEqual(len(filtered), 1)
+        self.assertIn("credit loss provision expense 3,146", filtered[0]["claim"])
+        self.assertIn("credit loss provision expense 1,848", filtered[0]["claim"])
+        self.assertIn("final_answer_table_numeric_support", filtered[0]["metadata"])
 
     def test_aggregate_projection_provenance_drops_pruned_recon_ids(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -581,6 +666,36 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             ["operand::dep_current", "operand::dep_prior"],
         )
         self.assertTrue(filtered[1]["metadata"]["supports_derived_percent"])
+
+    def test_ratio_denominator_sign_policy_uses_magnitude(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operands = [
+            {
+                "operand_id": "numerator",
+                "matched_operand_role": "numerator_1",
+                "matched_operand_concept": "operating_income",
+                "normalized_value": 300.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "operand_id": "denominator",
+                "matched_operand_role": "denominator_1",
+                "matched_operand_concept": "interest_expense",
+                "raw_value": "(100)",
+                "normalized_value": -100.0,
+                "normalized_unit": "KRW",
+            },
+        ]
+
+        updated = agent._apply_operation_sign_policy(
+            operands,
+            operation="ratio",
+            operation_family="ratio",
+        )
+
+        self.assertEqual(updated[1]["normalized_value"], 100.0)
+        self.assertEqual(updated[1]["source_normalized_value"], -100.0)
+        self.assertEqual(updated[1]["sign_policy_applied"], "ratio_denominator_magnitude")
 
 
 if __name__ == "__main__":

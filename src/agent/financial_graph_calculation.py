@@ -2613,6 +2613,92 @@ class FinancialAgentCalculationMixin:
             for evidence_candidate in evidence_candidates
         )
 
+    def _table_numeric_support_text_for_final_answer(
+        self,
+        evidence: Dict[str, Any],
+        *,
+        final_answer: str,
+        answer_candidates: List[Dict[str, Any]],
+    ) -> str:
+        metadata = dict(evidence.get("metadata") or {})
+        table_lines = [
+            _normalise_spaces(line)
+            for line in str(metadata.get("table_value_labels_text") or "").splitlines()
+            if _normalise_spaces(line)
+        ]
+        if not table_lines:
+            return ""
+        answer_surface = re.sub(r"\s+", "", _normalise_spaces(final_answer))
+        unit_terms = sorted(
+            {
+                *[str(unit) for unit in dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})],
+                *[str(unit) for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())],
+            },
+            key=len,
+            reverse=True,
+        )
+        unit_pattern = "|".join(re.escape(unit) for unit in unit_terms if unit)
+
+        def _line_label(line: str) -> str:
+            label = re.sub(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", " ", line)
+            if unit_pattern:
+                label = re.sub(unit_pattern, " ", label)
+            label = re.sub(r"[|:;()\[\]/,]+", " ", label)
+            return re.sub(r"\s+", "", _normalise_spaces(label))
+
+        support_lines: List[str] = []
+        for line in table_lines:
+            label = _line_label(line)
+            if len(label) < 2 or label not in answer_surface:
+                continue
+            line_candidates = self._answer_evidence_numeric_candidates(line)
+            if not line_candidates:
+                continue
+            if any(
+                self._numeric_candidates_equivalent_for_evidence(answer_candidate, line_candidate)
+                for answer_candidate in answer_candidates
+                for line_candidate in line_candidates
+            ):
+                support_lines.append(line)
+            if len(support_lines) >= 4:
+                break
+        if not support_lines:
+            return ""
+        header = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in (
+                    metadata.get("table_header_context"),
+                    metadata.get("table_context"),
+                )
+            )
+        )
+        return _normalise_spaces(" ; ".join([header, *support_lines] if header else support_lines))
+
+    def _promote_table_numeric_support_evidence(
+        self,
+        evidence: Dict[str, Any],
+        *,
+        final_answer: str,
+        answer_candidates: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        support_text = self._table_numeric_support_text_for_final_answer(
+            evidence,
+            final_answer=final_answer,
+            answer_candidates=answer_candidates,
+        )
+        if not support_text:
+            return evidence
+        promoted = dict(evidence)
+        claim = _normalise_spaces(str(promoted.get("claim") or ""))
+        quote_span = _normalise_spaces(str(promoted.get("quote_span") or ""))
+        promoted["claim"] = _normalise_spaces(" | ".join(part for part in (claim, support_text) if part))
+        promoted["quote_span"] = _normalise_spaces(" | ".join(part for part in (quote_span, support_text) if part))
+        metadata = dict(promoted.get("metadata") or {})
+        metadata["final_answer_table_numeric_support"] = support_text
+        promoted["metadata"] = metadata
+        return promoted
+
     def _filter_aggregate_evidence_for_final_answer(
         self,
         evidence_items: List[Dict[str, Any]],
@@ -2637,7 +2723,13 @@ class FinancialAgentCalculationMixin:
                 filtered.append(evidence)
                 continue
             if self._evidence_supports_final_answer_numeric_material(evidence, answer_candidates):
-                filtered.append(evidence)
+                filtered.append(
+                    self._promote_table_numeric_support_evidence(
+                        evidence,
+                        final_answer=final_answer,
+                        answer_candidates=answer_candidates,
+                    )
+                )
         return filtered or list(evidence_items or [])
 
     def _append_operand_evidence_for_final_answer(
@@ -7540,6 +7632,56 @@ class FinancialAgentCalculationMixin:
 
         return validate_answer_slots_payload(answer_slots)
 
+    def _binding_policy_for_operand_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        row_policy = dict(row.get("binding_policy") or {})
+        concept_key = str(row.get("matched_operand_concept") or row.get("concept") or "").strip()
+        if not concept_key:
+            return row_policy
+        ontology_policy = get_financial_ontology().binding_policy_for_concept(concept_key)
+        merged = dict(ontology_policy or {})
+        merged.update(row_policy)
+        return merged
+
+    def _apply_operation_sign_policy(
+        self,
+        operands: List[Dict[str, Any]],
+        *,
+        operation: str,
+        operation_family: str,
+    ) -> List[Dict[str, Any]]:
+        if _normalise_spaces(operation) != "ratio" and _normalise_spaces(operation_family) != "ratio":
+            return operands
+        updated: List[Dict[str, Any]] = []
+        changed = False
+        for row in operands:
+            next_row = dict(row)
+            role = _normalise_spaces(str(next_row.get("matched_operand_role") or next_row.get("role") or ""))
+            if not role.startswith("denominator"):
+                updated.append(next_row)
+                continue
+            policy = self._binding_policy_for_operand_row(next_row)
+            denominator_sign = _normalise_spaces(str(policy.get("ratio_denominator_sign") or ""))
+            if denominator_sign != "magnitude":
+                updated.append(next_row)
+                continue
+            value = next_row.get("normalized_value")
+            if value is None:
+                updated.append(next_row)
+                continue
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                updated.append(next_row)
+                continue
+            if numeric_value < 0:
+                next_row["normalized_value"] = abs(numeric_value)
+                next_row["sign_policy_applied"] = "ratio_denominator_magnitude"
+                next_row["source_normalized_value"] = numeric_value
+                next_row["binding_policy"] = policy
+                changed = True
+            updated.append(next_row)
+        return updated if changed else operands
+
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
         runtime_trace = _resolve_runtime_calculation_trace(dict(state))
@@ -7704,6 +7846,22 @@ class FinancialAgentCalculationMixin:
                     for row in runtime_operands
                 ]
                 ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
+
+        sign_normalized_operands = self._apply_operation_sign_policy(
+            ordered_operands,
+            operation=operation,
+            operation_family=operation_family,
+        )
+        if sign_normalized_operands != ordered_operands:
+            for sign_normalized_row in sign_normalized_operands:
+                sign_normalized_id = str(sign_normalized_row.get("operand_id") or "").strip()
+                if sign_normalized_id:
+                    operands[sign_normalized_id] = sign_normalized_row
+            runtime_operands = [
+                dict(operands.get(str(row.get("operand_id") or "").strip()) or row)
+                for row in runtime_operands
+            ]
+            ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
         coerced_lookup_operands: List[Dict[str, Any]] = []
         lookup_magnitude_changed = False

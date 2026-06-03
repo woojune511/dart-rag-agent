@@ -298,8 +298,9 @@ Useful supporting points:
   `POS_T1_057`, `KBF_T2_018`, `KAB_T1_066`, and `SAM_T3_028`.
 - The current local result file
   `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/results.json`
-  now reports `numeric_final_judgement = PASS` for all seven concept-gate
-  questions.
+  is a mutable local experiment artifact; the post-commit all-seven eval-only
+  check completed and exposed `KBF_T2_018` and `POS_T1_057` as remaining
+  numeric failures before the focused closures below.
 - Closures stayed generic:
   - aggregate structured cell selection uses reviewed row/cell metadata
   - contextual precision refinement cannot replace a detailed source display
@@ -310,6 +311,16 @@ Useful supporting points:
     the relation is visible in evidence
   - percent answers preserve formula operand evidence even if the final sentence
     renders only the derived percentage
-- Residual follow-up: `KBF_T2_018` and `SAM_T3_028` pass numeric grounding but
-  still show completeness `0.5` in the latest focused rows, so the next work is
-  answer-composition coverage rather than numeric runtime repair.
+  - ratio denominator sign semantics are declared in ontology binding policy and
+    consumed generically by runtime calculation
+  - table metadata rows that support final-answer numeric material are promoted
+    into evaluator-visible evidence claims
+  - short unitless `UNKNOWN` numerics are not treated as material aggregate
+    operands
+- Latest focused checks:
+  - `KBF_T2_018`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
+    grounding `1.0`, retrieval support `1.0`.
+  - `POS_T1_057`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
+    grounding `1.0`, retrieval support `1.0`.
+- Residual follow-up: `SAM_T3_028` passes numeric grounding; remaining work is
+  answer-composition detail coverage rather than numeric runtime repair.

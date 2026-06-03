@@ -265,19 +265,23 @@ def _operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
     status = _normalise_spaces(str(row.get("status") or "")).lower()
     if status == "missing":
         return False
-    if row.get("normalized_value") is not None:
-        return True
-    return bool(
-        _normalise_spaces(
-            str(
-                row.get("raw_value")
-                or row.get("value")
-                or row.get("rendered_value")
-                or row.get("display_value")
-                or ""
-            )
+    raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("unit") or ""))
+    normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+    raw_value = _normalise_spaces(
+        str(
+            row.get("raw_value")
+            or row.get("value")
+            or row.get("rendered_value")
+            or row.get("display_value")
+            or ""
         )
     )
+    raw_digit_count = len(re.findall(r"\d", raw_value))
+    if normalized_unit in {"", "UNKNOWN"} and not raw_unit and raw_digit_count < 4:
+        return False
+    if row.get("normalized_value") is not None:
+        return True
+    return bool(raw_value)
 
 
 def _split_sentences(text: str) -> List[str]:

@@ -1475,7 +1475,10 @@
         "이자율위험",
         "연결재무제표 주석",
         "재무제표 주석"
-      ]
+      ],
+      "binding_policy": {
+        "ratio_denominator_sign": "magnitude"
+      }
     },
     "interest_income": {
       "display_name": "이자수익",
