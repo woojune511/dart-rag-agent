@@ -109,10 +109,15 @@ role-separated multi-agent system using a task ledger and artifact store.
     - aggregate growth rows can derive operands from `answer_slots` pointing at
       `task_output:*` lookup rows and recalculate from those sibling lookup
       slots
+    - producer lookup slots are propagated back into the serialized growth
+      trace, so stale aggregate operands do not survive in `structured_result`
     - `NAV_T2_006` now renders `2,546,649백만원`, `1,801,079백만원`, and
       `41.4%` in the final mixed numeric+narrative answer
     - this is a generic dependency-binding/display-preservation fix, not a
       company/question keyword rule
+    - focused `NAV_T2_006` policy-gate smoke confirmed faithfulness `1.000`,
+      completeness `1.000`, error rate `0.0%`, and growth-rate answer slots
+      aligned to the producer lookup values
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.

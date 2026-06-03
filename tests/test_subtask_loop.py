@@ -14,7 +14,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, OperandExtraction
+from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
 
 
 class _StubStructuredLLM:
@@ -4285,6 +4285,361 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("Poshmark acquisition", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
+    def test_format_citations_prefers_selected_evidence_source_anchor(self) -> None:
+        state = {
+            "selected_claim_ids": ["ev_driver"],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_driver",
+                    "source_anchor": "[ExampleCo | 2023 | Management]",
+                    "claim": "Selected driver evidence.",
+                    "metadata": {
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "Management discussion",
+                    },
+                },
+                {
+                    "evidence_id": "ev_unused",
+                    "source_anchor": "[ExampleCo | 2023 | Unused section]",
+                    "claim": "Unused evidence.",
+                },
+            ],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="table text",
+                        metadata={
+                            "company": "ExampleCo",
+                            "year": 2023,
+                            "report_type": "annual report",
+                            "section_path": "Financial statements",
+                            "block_type": "table",
+                            "chunk_uid": "chunk_1",
+                        },
+                    ),
+                    0.9,
+                )
+            ],
+        }
+
+        result = self.agent._format_citations(state)
+
+        self.assertEqual(result["citations"][0], "[ExampleCo | 2023 | Management discussion]")
+        self.assertNotIn("[ExampleCo | 2023 | Unused section]", result["citations"])
+        self.assertTrue(any("Financial statements" in citation for citation in result["citations"]))
+
+    def test_runtime_evidence_item_resolves_metadata_from_short_source_anchor(self) -> None:
+        item = EvidenceItem(
+            source_anchor="ExampleCo | 2023 | Management",
+            claim="Selected driver evidence.",
+            quote_span="driver evidence",
+            support_level="direct",
+            question_relevance="high",
+        )
+        anchor_lookup = {
+            "[ExampleCo | 2023 | Management discussion > Performance]": [
+                {
+                    "metadata": {
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "Management discussion > Performance",
+                        "block_type": "paragraph",
+                    },
+                    "page_content": "Selected driver evidence.",
+                }
+            ]
+        }
+
+        result = self.agent._build_runtime_evidence_item(item, 1, anchor_lookup)
+
+        self.assertEqual(result["metadata"]["section_path"], "Management discussion > Performance")
+
+    def test_dependency_rows_keep_resolved_task_output_slot_over_evidence_pool(self) -> None:
+        state = {
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "operation_family": "growth_rate",
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "label": "2023 segment revenue",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 segment revenue",
+                    "operation_family": "lookup",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "2,546,649",
+                                "raw_unit": "million",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,546,649 million",
+                                "source_row_id": "ev_current",
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [{"evidence_id": "ev_current"}],
+        }
+        preferred_slot = {
+            "status": "ok",
+            "label": "segment revenue",
+            "concept": "revenue",
+            "period": "2023",
+            "raw_value": "3,589,061",
+            "raw_unit": "thousand",
+            "normalized_value": 3589061000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "3,589,061 thousand",
+            "source_row_id": "ev_direct",
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _binding, _pool: (preferred_slot, 10.0)
+        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "2,546,649")
+        self.assertEqual(rows[0]["raw_unit"], "million")
+        self.assertEqual(rows[0]["normalized_value"], 2546649000000.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_current", "ev_current"])
+
+    def test_lookup_recovery_prefers_table_unit_hint_when_source_surface_has_no_unit(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_direct",
+                    "quote_span": "2,546,649",
+                    "metadata": {"unit_hint": "백만원"},
+                }
+            ],
+        }
+        preferred_slot = {
+            "status": "ok",
+            "label": "segment revenue",
+            "concept": "revenue",
+            "period": "2023",
+            "raw_value": "2,546,649",
+            "raw_unit": "천원",
+            "normalized_value": 2546649000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "2,546,649천원",
+            "source_row_id": "ev_direct",
+            "source_row_ids": ["ev_direct"],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": {**preferred_slot, "source_row_id": "ev_weak"}},
+            },
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertEqual(slot["raw_unit"], "백만원")
+        self.assertEqual(slot["normalized_value"], 2546649000000.0)
+        self.assertEqual(slot["rendered_value"], "2,546,649백만원")
+
+    def test_lookup_recovery_aligns_current_slot_unit_without_preferred_replacement(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_direct",
+                    "quote_span": "2,546,649",
+                    "metadata": {"unit_hint": "백만원"},
+                }
+            ],
+        }
+        current_slot = {
+            "status": "ok",
+            "label": "segment revenue",
+            "concept": "revenue",
+            "period": "2023",
+            "raw_value": "2,546,649",
+            "raw_unit": "천원",
+            "normalized_value": 2546649000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "2,546,649천원",
+            "source_row_id": "ev_direct",
+            "source_row_ids": ["ev_direct"],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": current_slot},
+            },
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: ({}, 0.0)
+        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 10.0
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertTrue(recovered[0].get("unit_aligned_from_evidence_metadata"))
+        self.assertEqual(slot["raw_unit"], "백만원")
+        self.assertEqual(slot["normalized_value"], 2546649000000.0)
+
+    def test_table_label_lookup_uses_partial_row_label_and_requested_period(self) -> None:
+        evidence = {
+            "evidence_id": "ev_segment_table",
+            "source_anchor": "COMPANY | 2023 | management discussion",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "million",
+                "table_source_id": "mda::table:1",
+                "table_value_labels_text": "\n".join(
+                    [
+                        "total revenue 9,670.6",
+                        "total revenue 8,220.1",
+                        "commerce 2,546.6",
+                        "commerce 1,801.1",
+                    ]
+                ),
+            },
+        }
+
+        current_slot = self.agent._lookup_value_from_table_label_metadata(
+            {
+                "label": "2023 commerce revenue",
+                "concept": "revenue",
+                "role": "current_period",
+            },
+            evidence,
+        )
+        prior_slot = self.agent._lookup_value_from_table_label_metadata(
+            {
+                "label": "2022 commerce revenue",
+                "concept": "revenue",
+                "role": "prior_period",
+            },
+            evidence,
+        )
+
+        self.assertEqual(current_slot["raw_value"], "2,546.6")
+        self.assertEqual(current_slot["period"], "2023")
+        self.assertEqual(prior_slot["raw_value"], "1,801.1")
+        self.assertEqual(prior_slot["period"], "2022")
+
+    def test_lookup_recovery_uses_current_slot_when_required_operands_missing(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                }
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_segment_table",
+                    "source_anchor": "COMPANY | 2023 | management discussion",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "million",
+                        "table_source_id": "mda::table:1",
+                        "table_value_labels_text": "\n".join(
+                            [
+                                "total revenue 9,670.6",
+                                "total revenue 8,220.1",
+                                "commerce 2,546.6",
+                                "commerce 1,801.1",
+                            ]
+                        ),
+                    },
+                }
+            ],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "2023 commerce revenue",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "raw_value": "3,589.1",
+                        "raw_unit": "million",
+                        "normalized_value": 3589100000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "3,589.1 million",
+                        "source_row_id": "ev_weak",
+                    }
+                },
+            },
+        }
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertTrue(recovered[0].get("recovered_from_sibling_table_evidence"))
+        self.assertEqual(slot["raw_value"], "2,546.6")
+        self.assertEqual(slot["source_row_id"], "ev_segment_table")
+
     def test_aggregate_subtasks_recalculates_growth_from_dependency_lookup_slots_without_child_operands(self) -> None:
         self.agent.llm = None
         state = {
@@ -4433,6 +4788,217 @@ class SubtaskLoopTests(unittest.TestCase):
         growth_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_1")
         self.assertTrue(growth_row.get("aligned_from_source_task_slots"))
         self.assertEqual(growth_row["calculation_result"]["rendered_value"], "41.4%")
+        growth_slots = growth_row["calculation_result"]["answer_slots"]
+        self.assertEqual(growth_slots["current_value"]["raw_value"], "2,546,649")
+        self.assertEqual(growth_slots["prior_value"]["raw_value"], "1,801,079")
+        self.assertEqual(growth_slots["prior_value"]["period"], "2022")
+
+    def test_dependency_slot_alignment_dedupes_stale_operand_ids(self) -> None:
+        state = {
+            "query": "Calculate segment revenue growth.",
+            "calc_subtasks": [
+                {"task_id": "task_3", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_4", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_1", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_3",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "period": "2023",
+                            "raw_value": "2,546,649",
+                            "raw_unit": "million",
+                            "normalized_value": 2546649000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "2,546,649 million",
+                            "source_row_id": "ev_current",
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_4",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "period": "2022",
+                            "raw_value": "1,801,079",
+                            "raw_unit": "million",
+                            "normalized_value": 1801079000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "1,801,079 million",
+                            "source_row_id": "ev_prior",
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "operation_family": "growth_rate",
+                "calculation_operands": [
+                    {
+                        "operand_id": "dep_task_3_001",
+                        "source_row_id": "task_output:task_3",
+                        "source_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "matched_operand_role": "current_period",
+                        "matched_operand_concept": "revenue",
+                        "raw_value": "3,589,061",
+                        "raw_unit": "thousand",
+                        "normalized_value": 3589061000000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "dep_task_4_002",
+                        "source_row_id": "task_output:task_4",
+                        "source_task_id": "task_4",
+                        "source_slot": "primary_value",
+                        "matched_operand_role": "prior_period",
+                        "matched_operand_concept": "revenue",
+                        "raw_value": "2,546,649",
+                        "raw_unit": "thousand",
+                        "normalized_value": 2546649000000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "dep_task_3_001",
+                        "source_row_id": "task_output:task_3",
+                        "source_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "matched_operand_role": "current_period",
+                        "matched_operand_concept": "revenue",
+                        "raw_value": "2,546,649",
+                        "raw_unit": "million",
+                        "normalized_value": 2546649000000.0,
+                        "normalized_unit": "KRW",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["dep_task_3_001", "dep_task_4_002"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "dep_task_3_001"},
+                        {"variable": "B", "operand_id": "dep_task_4_002"},
+                    ],
+                    "formula": "((A - B) / B) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {"status": "ok", "rendered_value": "40.93%"},
+            },
+        ]
+
+        aligned = self.agent._align_lookup_results_with_dependency_projection(ordered_results, state, {})
+        growth_row = next(row for row in aligned if row["task_id"] == "task_1")
+
+        self.assertEqual(growth_row["calculation_result"]["rendered_value"], "41.4%")
+        operand_ids = [operand["operand_id"] for operand in growth_row["calculation_operands"]]
+        self.assertEqual(operand_ids.count("dep_task_3_001"), 1)
+        self.assertEqual(operand_ids.count("dep_task_4_002"), 1)
+
+    def test_preferred_numeric_answer_skips_same_period_growth_row(self) -> None:
+        good_row = {
+            "task_id": "task_good",
+            "metric_family": "concept_growth_rate",
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "41.4%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue growth",
+                        "normalized_value": 41.4,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "41.4%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "2,546,649",
+                        "raw_unit": "million",
+                        "normalized_value": 2546649000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "2,546,649 million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2022",
+                        "raw_value": "1,801,079",
+                        "raw_unit": "million",
+                        "normalized_value": 1801079000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "1,801,079 million",
+                    },
+                },
+            },
+        }
+        stale_row = {
+            "task_id": "task_stale",
+            "metric_family": "concept_growth_rate",
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "17.65%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue growth",
+                        "normalized_value": 17.65,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "17.65%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "9,670.6",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 967060000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "9,671 hundred million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "8,220.1",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 822010000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "8,220 hundred million",
+                    },
+                },
+            },
+        }
+
+        answer = self.agent._preferred_complete_numeric_answer([good_row, stale_row])
+
+        self.assertIn("41.4%", answer)
+        self.assertNotIn("17.65%", answer)
 
     def test_late_numeric_refresh_preserves_narrative_summary_child(self) -> None:
         self.agent.llm = None

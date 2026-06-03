@@ -278,6 +278,17 @@ value came from prose lookup or retrieved seed evidence, the promoted evidence
 id/source row id should stay attached through the aggregate projection rather
 than disappearing during final answer synthesis.
 
+When an aggregate numeric child depends on lookup subtasks through
+`task_output:<task_id>`, the calculation trace and the serialized child result
+must be realigned from the latest producer `answer_slots` before answer
+composition. This alignment is allowed to use generic slot provenance,
+structured row/header metadata, unit hints, period hints, dedupe, and dependency
+bindings. It must not choose values through company names, benchmark ids,
+question ids, or topic-specific runtime keywords. If an aggregate projection
+contains a weaker echo of the producer result with the same raw display but a
+conflicting normalized value, the producer lookup slot remains the source of
+truth.
+
 Evaluator-side runtime projection should preserve these fields when it flattens
 answer slots into operand-like rows. For aggregate answers it should also
 publish a deduped provenance summary, for example under

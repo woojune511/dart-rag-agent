@@ -543,11 +543,39 @@ class FinancialAgentCalculationMixin:
         ]
         surfaces = list(dict.fromkeys(surfaces + label_keys))
         value_pattern = r"\(?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*\)?"
+        percent_pattern = r"\(?\s*(?P<value>[+-]?\d[\d,]*(?:\.\d+)?)\s*%\s*\)?"
+
+        def _operand_year_hint() -> str:
+            year_candidates = re.findall(
+                r"20\d{2}",
+                " ".join(
+                    str(operand.get(key) or "")
+                    for key in ("period", "period_hint", "label", "name")
+                ),
+            )
+            return year_candidates[0] if year_candidates else ""
+
+        def _line_label_matches_operand(line_label: str) -> bool:
+            normalized_label = _normalise_spaces(line_label)
+            if not normalized_label:
+                return False
+            for surface in surfaces:
+                normalized_surface = _normalise_spaces(surface)
+                if not normalized_surface:
+                    continue
+                if normalized_surface == normalized_label:
+                    return True
+                if re.search(rf"(?<!\w){re.escape(normalized_label)}(?!\w)", normalized_surface):
+                    return True
+            return False
+
         matches: List[Dict[str, Any]] = []
         for line in str(metadata.get("table_value_labels_text") or "").splitlines():
             normalized_line = _normalise_spaces(line)
             if not normalized_line:
                 continue
+            matched_surface = ""
+            matched_value = ""
             for surface in sorted(surfaces, key=len, reverse=True):
                 normalized_surface = _normalise_spaces(surface)
                 if not normalized_surface:
@@ -558,7 +586,23 @@ class FinancialAgentCalculationMixin:
                 )
                 if not match:
                     continue
-                raw_value = _normalise_spaces(match.group("value")).replace(" ", "")
+                matched_surface = normalized_surface
+                matched_value = _normalise_spaces(match.group("value")).replace(" ", "")
+                break
+            if not matched_value:
+                line_match = re.search(
+                    rf"(?P<label>.+?)\s+(?P<value>{value_pattern})(?!\S)",
+                    normalized_line,
+                )
+                if not line_match:
+                    continue
+                line_label = _normalise_spaces(line_match.group("label"))
+                if not _line_label_matches_operand(line_label):
+                    continue
+                matched_surface = line_label
+                matched_value = _normalise_spaces(line_match.group("value")).replace(" ", "")
+            if matched_value:
+                raw_value = matched_value
                 raw_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                 if normalized_value is None:
@@ -568,7 +612,7 @@ class FinancialAgentCalculationMixin:
                     "role": str(operand.get("role") or "operand").strip() or "operand",
                     "label": str(operand.get("label") or normalized_surface).strip(),
                     "concept": str(operand.get("concept") or "").strip(),
-                    "period": str(operand.get("period") or metadata.get("year") or ""),
+                    "period": str(operand.get("period") or _operand_year_hint() or metadata.get("year") or ""),
                     "raw_value": raw_value,
                     "raw_unit": raw_unit,
                     "normalized_value": normalized_value,
@@ -579,9 +623,25 @@ class FinancialAgentCalculationMixin:
                     "source_anchor": evidence_item.get("source_anchor"),
                     "_semantic_label": normalized_line,
                 })
-                break
         if not matches:
             return {}
+
+        stated_change_raw_value = ""
+        for line in str(metadata.get("table_value_labels_text") or "").splitlines():
+            normalized_line = _normalise_spaces(line)
+            if not normalized_line:
+                continue
+            percent_match = re.search(
+                rf"(?P<label>.+?)\s+{percent_pattern}(?!\S)",
+                normalized_line,
+            )
+            if not percent_match:
+                continue
+            line_label = _normalise_spaces(percent_match.group("label"))
+            if not _line_label_matches_operand(line_label):
+                continue
+            stated_change_raw_value = _normalise_spaces(percent_match.group("value")).replace(" ", "")
+            break
 
         role = str(operand.get("role") or "").strip()
         period_focus = _operand_period_focus(operand, "unknown")
@@ -592,10 +652,26 @@ class FinancialAgentCalculationMixin:
         ]
         candidate_pool = krw_matches or matches
         selected = candidate_pool[0]
-        if role == "prior_period" or period_focus == "prior":
+        operand_year = _operand_year_hint()
+        report_year = str(metadata.get("year") or "")
+        if operand_year and report_year and operand_year.isdigit() and report_year.isdigit():
+            period_offset = max(int(report_year) - int(operand_year), 0)
+            if period_offset > 0:
+                selected = candidate_pool[min(period_offset, len(candidate_pool) - 1)]
+            else:
+                selected = candidate_pool[0]
+        elif role == "prior_period" or period_focus == "prior":
             selected = candidate_pool[1] if len(candidate_pool) >= 2 else candidate_pool[-1]
         elif role == "current_period" or period_focus == "current":
             selected = candidate_pool[0]
+        if not operand_year and report_year and report_year.isdigit():
+            if role == "prior_period" or period_focus == "prior":
+                selected["period"] = str(int(report_year) - 1)
+            elif role == "current_period" or period_focus == "current":
+                selected["period"] = report_year
+        if stated_change_raw_value:
+            selected["stated_change_raw_value"] = stated_change_raw_value
+            selected["stated_change_raw_unit"] = "%"
 
         semantic_label = str(selected.pop("_semantic_label", ""))
         return _coerce_lookup_magnitude_record(
@@ -875,7 +951,48 @@ class FinancialAgentCalculationMixin:
             if str(item.get("evidence_id") or "").strip()
         }
 
+        def _normalize_lookup_slot_unit(slot: Dict[str, Any]) -> Dict[str, Any]:
+            updated = dict(slot)
+            raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
+            raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
+            evidence_item = self._evidence_item_for_operand_row(updated, evidence_by_id)
+            metadata = dict((evidence_item or {}).get("metadata") or {})
+            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+            source_surface = _normalise_spaces(
+                " ".join(
+                    str((evidence_item or {}).get(key) or "")
+                    for key in ("quote_span", "raw_row_text")
+                )
+            )
+            if raw_value and unit_hint and raw_unit != unit_hint:
+                source_has_value = raw_value in source_surface or raw_value.replace(",", "") in source_surface.replace(",", "")
+                source_has_raw_unit = bool(raw_unit and raw_unit in source_surface)
+                if source_has_value and not source_has_raw_unit:
+                    coerced_unit = unit_hint
+                else:
+                    coerced_unit = self._coerce_operand_unit_from_evidence(
+                        raw_value=raw_value,
+                        raw_unit=raw_unit,
+                        evidence_item=evidence_item,
+                    )
+            else:
+                coerced_unit = self._coerce_operand_unit_from_evidence(
+                    raw_value=raw_value,
+                    raw_unit=raw_unit,
+                    evidence_item=evidence_item,
+                )
+            if coerced_unit and coerced_unit != raw_unit:
+                normalized_value, normalized_unit = _normalise_operand_value(raw_value, coerced_unit)
+                updated["raw_unit"] = coerced_unit
+                if normalized_value is not None:
+                    updated["normalized_value"] = normalized_value
+                    updated["normalized_unit"] = normalized_unit
+                if raw_value:
+                    updated["rendered_value"] = f"{raw_value}{coerced_unit}"
+            return updated
+
         def _lookup_result_from_slot(slot: Dict[str, Any], source_note: str) -> Dict[str, Any]:
+            slot = _normalize_lookup_slot_unit(slot)
             rendered_value = _normalise_spaces(str(slot.get("rendered_value") or ""))
             label = _normalise_spaces(str(slot.get("label") or ""))
             return {
@@ -906,15 +1023,44 @@ class FinancialAgentCalculationMixin:
             if operation_family not in {"lookup", "single_value"}:
                 recovered_results.append(row)
                 continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            current_slot = dict(answer_slots.get("primary_value") or {})
             operands = [dict(item) for item in (task.get("required_operands") or []) if bool(item.get("required", True))]
+            if len(operands) != 1 and current_slot:
+                fallback_operand = {
+                    "label": current_slot.get("label") or row.get("metric_label"),
+                    "concept": current_slot.get("concept"),
+                    "role": current_slot.get("role") or "primary_value",
+                    "period": current_slot.get("period"),
+                    "required": True,
+                }
+                if _normalise_spaces(str(fallback_operand.get("label") or fallback_operand.get("concept") or "")):
+                    operands = [fallback_operand]
             if len(operands) != 1:
                 recovered_results.append(row)
                 continue
             operand = operands[0]
             if status == "ok":
-                calculation_result = dict(row.get("calculation_result") or {})
-                answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-                current_slot = dict(answer_slots.get("primary_value") or {})
+                normalized_current_slot = _normalize_lookup_slot_unit(current_slot)
+                unit_aligned_row: Optional[Dict[str, Any]] = None
+                if (
+                    _normalise_spaces(str(normalized_current_slot.get("raw_unit") or ""))
+                    != _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+                    or normalized_current_slot.get("normalized_value") != current_slot.get("normalized_value")
+                ):
+                    current_slot = normalized_current_slot
+                    normalized_result = _lookup_result_from_slot(
+                        current_slot,
+                        "lookup result unit aligned from structured evidence metadata.",
+                    )
+                    unit_aligned_row = {
+                        **dict(row),
+                        "answer": str(normalized_result.get("formatted_result") or ""),
+                        "calculation_result": normalized_result,
+                        "answer_slots": normalized_result["answer_slots"],
+                        "unit_aligned_from_evidence_metadata": True,
+                    }
                 current_evidence = self._evidence_item_for_operand_row(current_slot, evidence_by_id)
                 current_score = (
                     self._direct_structured_lookup_evidence_score(operand, current_evidence)
@@ -926,8 +1072,9 @@ class FinancialAgentCalculationMixin:
                     evidence_pool,
                 )
                 if not preferred_slot or preferred_score <= current_score:
-                    recovered_results.append(row)
+                    recovered_results.append(unit_aligned_row or row)
                     continue
+                preferred_slot = _normalize_lookup_slot_unit(preferred_slot)
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
                 preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
@@ -942,7 +1089,7 @@ class FinancialAgentCalculationMixin:
                 except (TypeError, ValueError):
                     normalized_differs = preferred_normalized != current_normalized
                 if preferred_raw == current_raw and preferred_unit == current_unit and not normalized_differs:
-                    recovered_results.append(row)
+                    recovered_results.append(unit_aligned_row or row)
                     continue
                 preferred_result = _lookup_result_from_slot(
                     preferred_slot,
@@ -1125,6 +1272,8 @@ class FinancialAgentCalculationMixin:
                     str(operand.get("matched_operand_concept") or slot.get("concept") or "")
                 ),
                 "matched_operand_role": role,
+                "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
+                "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
                 "source_task_id": source_task_id,
                 "source_slot": _normalise_spaces(str(operand.get("source_slot") or "primary_value")) or "primary_value",
                 "dependency_resolved": True,
@@ -1277,6 +1426,20 @@ class FinancialAgentCalculationMixin:
                     changed = True
                 else:
                     updated_operands.append(operand)
+            deduped_operands: List[Dict[str, Any]] = []
+            operand_index_by_id: Dict[str, int] = {}
+            for operand in updated_operands:
+                operand_id = _normalise_spaces(str(operand.get("operand_id") or ""))
+                if not operand_id:
+                    deduped_operands.append(operand)
+                    continue
+                existing_index = operand_index_by_id.get(operand_id)
+                if existing_index is None:
+                    operand_index_by_id[operand_id] = len(deduped_operands)
+                    deduped_operands.append(operand)
+                else:
+                    deduped_operands[existing_index] = operand
+            updated_operands = deduped_operands
             if not changed:
                 return row
 
@@ -1394,6 +1557,20 @@ class FinancialAgentCalculationMixin:
                 continue
 
             source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
+            if f"task_output:{task_id}" in source_ids:
+                candidate_normalized = candidate.get("normalized_value")
+                current_normalized = current_slot.get("normalized_value")
+                normalized_differs = False
+                try:
+                    if candidate_normalized is not None and current_normalized is not None:
+                        normalized_differs = abs(float(candidate_normalized) - float(current_normalized)) > 1e-6
+                    else:
+                        normalized_differs = candidate_normalized != current_normalized
+                except (TypeError, ValueError):
+                    normalized_differs = candidate_normalized != current_normalized
+                if candidate_raw == current_raw and normalized_differs:
+                    aligned_results.append(row)
+                    continue
             direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
             component_slot = self._build_operand_value_slot(
                 candidate,
@@ -1452,6 +1629,7 @@ class FinancialAgentCalculationMixin:
                 "source_row_ids": result_source_ids,
                 "answer_slots": updated_slots,
             }
+            lookup_slots_by_task[task_id] = primary_slot
             aligned_results.append(
                 {
                     **dict(row),
@@ -1479,6 +1657,8 @@ class FinancialAgentCalculationMixin:
                 continue
             calculation_result = dict(row.get("calculation_result") or {})
             if operation_family == "growth_rate":
+                if self._growth_row_has_conflicting_periods(row):
+                    continue
                 answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
                 if answer:
                     return answer
@@ -1570,6 +1750,9 @@ class FinancialAgentCalculationMixin:
             return False
         slot_display = _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
         if slot_display and display == slot_display:
+            return True
+        source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
+        if source_row_id.startswith("task_output:"):
             return True
         raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
         if not raw_unit:
@@ -1792,6 +1975,34 @@ class FinancialAgentCalculationMixin:
             )
         )
 
+    def _growth_row_has_conflicting_periods(self, row: Dict[str, Any]) -> bool:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+        current_period = self._period_match_key(
+            self._slot_period_hint(current_slot) or str(calculation_result.get("current_period") or "")
+        )
+        prior_period = self._period_match_key(
+            self._slot_period_hint(prior_slot) or str(calculation_result.get("prior_period") or "")
+        )
+        if not (current_period and prior_period and current_period == prior_period):
+            return False
+        row_text = _normalise_spaces(
+            " ".join(
+                str(row.get(key) or "")
+                for key in ("answer", "formatted_result", "rendered_value")
+            )
+        )
+        result_text = _normalise_spaces(
+            " ".join(
+                str(calculation_result.get(key) or "")
+                for key in ("formatted_result", "rendered_value")
+            )
+        )
+        mentioned_periods = set(re.findall(r"20\d{2}", f"{row_text} {result_text}"))
+        return len(mentioned_periods) < 2
+
     def _ensure_complete_growth_numeric_answer(
         self,
         answer: str,
@@ -1800,6 +2011,8 @@ class FinancialAgentCalculationMixin:
         answer_text = _normalise_spaces(str(answer or ""))
         for row in reversed(ordered_results):
             if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            if self._growth_row_has_conflicting_periods(row):
                 continue
             complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
             if not complete_answer:
@@ -1822,9 +2035,47 @@ class FinancialAgentCalculationMixin:
                     continue
                 if any(value and value in cleaned for value in required_values):
                     continue
+                if self._growth_sentence_has_untraced_material_numeric(
+                    cleaned,
+                    complete_answer,
+                    required_values,
+                ):
+                    continue
                 extra_sentences.append(cleaned)
             return _normalise_spaces(" ".join([complete_answer, *extra_sentences]))
         return answer_text
+
+    def _growth_sentence_has_untraced_material_numeric(
+        self,
+        sentence: str,
+        complete_answer: str,
+        required_values: List[str],
+    ) -> bool:
+        cleaned = _normalise_spaces(str(sentence or ""))
+        if not cleaned:
+            return False
+        allowed_surface = _normalise_spaces(" ".join([str(complete_answer or ""), *required_values]))
+        if not allowed_surface:
+            return False
+        percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or "")
+        if percent_pattern:
+            for match in re.finditer(percent_pattern, cleaned):
+                token = _normalise_spaces(match.group(0))
+                if token and token not in allowed_surface:
+                    return True
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        unit_terms = [
+            _normalise_spaces(str(unit))
+            for unit in (render_policy.get("krw_display_units") or ())
+            if _normalise_spaces(str(unit))
+        ]
+        for unit in unit_terms:
+            pattern = rf"\d[\d,]*(?:\.\d+)?\s*{re.escape(unit)}"
+            for match in re.finditer(pattern, cleaned):
+                token = _normalise_spaces(match.group(0))
+                if token and token not in allowed_surface:
+                    return True
+        return False
 
     def _growth_answer_has_untraced_numeric_sentence(
         self,
@@ -2117,6 +2368,7 @@ class FinancialAgentCalculationMixin:
             answer_slots = dict(sibling_result.get("answer_slots") or {})
             source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
             source_slot = dict(answer_slots.get(source_slot_name) or {})
+            source_slot_from_answer_slots = self._answer_slot_has_material(source_slot)
             if not self._answer_slot_has_material(source_slot):
                 producer_task = self._producer_task_for_dependency_binding(state, binding)
                 if not producer_task:
@@ -2172,16 +2424,37 @@ class FinancialAgentCalculationMixin:
                 continue
             if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row):
                 continue
+            source_slot_from_answer_slots = True
             current_evidence = self._evidence_item_for_operand_row(source_slot, evidence_by_id)
             current_score = (
                 self._direct_structured_lookup_evidence_score(binding, current_evidence)
                 if current_evidence
                 else 0.0
             )
-            preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool(
-                binding,
-                evidence_pool,
-            )
+            preferred_slot: Dict[str, Any] = {}
+            preferred_score = 0.0
+            if source_slot_from_answer_slots and "retrieval" in source_preference:
+                source_raw_number = _parse_number_text(str(source_slot.get("raw_value") or ""))
+                preferred_raw_number = None
+                candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool(
+                    binding,
+                    evidence_pool,
+                )
+                if candidate_slot:
+                    preferred_raw_number = _parse_number_text(str(candidate_slot.get("raw_value") or ""))
+                allow_preferred_slot_lookup = (
+                    bool(candidate_slot)
+                    and source_raw_number is not None
+                    and preferred_raw_number is not None
+                    and abs(float(source_raw_number) - float(preferred_raw_number)) <= 1e-6
+                )
+                if allow_preferred_slot_lookup:
+                    preferred_slot, preferred_score = candidate_slot, candidate_score
+            else:
+                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool(
+                    binding,
+                    evidence_pool,
+                )
             if preferred_slot and preferred_score > current_score:
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
@@ -3128,6 +3401,8 @@ class FinancialAgentCalculationMixin:
         for row in ordered_results or []:
             if self._aggregate_result_operation_family(row) != "growth_rate":
                 continue
+            if self._growth_row_has_conflicting_periods(row):
+                continue
             calculation_result = dict(row.get("calculation_result") or {})
             answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
             primary_slot = dict(answer_slots.get("primary_value") or {})
@@ -3168,9 +3443,10 @@ class FinancialAgentCalculationMixin:
             str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
         )
         current_period = _normalise_spaces(str(current_slot.get("period") or primary_slot.get("period") or ""))
-        metric_label = _normalise_spaces(
+        metric_label_raw = _normalise_spaces(
             str(current_slot.get("label") or primary_slot.get("label") or growth_row.get("metric_label") or "")
         )
+        metric_label = metric_label_raw
         metric_label = re.sub(str(CALCULATION_SLOT_POLICY.get("period_pattern") or r"$^"), " ", metric_label)
         metric_label = _normalise_spaces(metric_label)
         if not growth_value or not current_value or not metric_label:
@@ -3234,7 +3510,9 @@ class FinancialAgentCalculationMixin:
         else:
             direction_word = str(direction_words.get("increase") or "increase")
         year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
-        if current_period and year_suffix and not current_period.endswith(year_suffix):
+        if current_period and current_period in metric_label_raw:
+            period_prefix = ""
+        elif current_period and year_suffix and not current_period.endswith(year_suffix):
             period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_with_year_template") or "").format(
                 period=current_period
             )
@@ -3363,6 +3641,8 @@ class FinancialAgentCalculationMixin:
             return False
         for row in ordered_results or []:
             if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            if self._growth_row_has_conflicting_periods(row):
                 continue
             required_displays = self._growth_required_display_values(row, ordered_results)
             if required_displays and not all(value in answer_text for value in required_displays):
@@ -6277,6 +6557,8 @@ class FinancialAgentCalculationMixin:
             "source_row_id": source_row_ids[0] if source_row_ids else "",
             "source_row_ids": source_row_ids,
             "source_anchor": str(row.get("source_anchor") or ""),
+            "stated_change_raw_value": str(row.get("stated_change_raw_value") or ""),
+            "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
         }
 
     def _build_calculated_value_slot(
@@ -7847,6 +8129,29 @@ class FinancialAgentCalculationMixin:
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()
         citations: List[str] = []
+        selected_claim_ids = {
+            str(claim_id).strip()
+            for claim_id in (state.get("selected_claim_ids") or [])
+            if str(claim_id).strip()
+        }
+        for evidence in list(state.get("evidence_items") or []):
+            if not isinstance(evidence, dict):
+                continue
+            evidence_id = str(evidence.get("evidence_id") or "").strip()
+            if selected_claim_ids and evidence_id not in selected_claim_ids:
+                continue
+            anchor = _normalise_spaces(str(evidence.get("source_anchor") or ""))
+            metadata = dict(evidence.get("metadata") or {})
+            metadata_anchor = self._build_source_anchor(metadata) if metadata else ""
+            if metadata_anchor and (not anchor or len(metadata_anchor) > len(anchor)):
+                anchor = metadata_anchor
+            if not anchor:
+                continue
+            key = ("evidence", anchor)
+            if key in seen:
+                continue
+            seen.add(key)
+            citations.append(anchor)
         for doc, score in state.get("retrieved_docs", []):
             metadata = doc.metadata or {}
             key = (

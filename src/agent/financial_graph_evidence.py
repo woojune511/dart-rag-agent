@@ -2390,6 +2390,23 @@ class FinancialAgentEvidenceMixin:
         claim_surface: str = "",
     ) -> Dict[str, Any]:
         lookup_value = anchor_lookup.get(anchor) or []
+        if not lookup_value and anchor:
+            anchor_norm = _normalise_spaces(str(anchor or "")).strip("[]").lower()
+            fuzzy_entries: List[Dict[str, Any]] = []
+            for candidate_anchor, candidate_value in anchor_lookup.items():
+                candidate_norm = _normalise_spaces(str(candidate_anchor or "")).strip("[]").lower()
+                if not anchor_norm or not candidate_norm:
+                    continue
+                if anchor_norm in candidate_norm or candidate_norm in anchor_norm:
+                    if isinstance(candidate_value, dict):
+                        fuzzy_entries.append(dict(candidate_value))
+                    else:
+                        fuzzy_entries.extend(
+                            dict(item)
+                            for item in list(candidate_value or [])
+                            if isinstance(item, dict)
+                        )
+            lookup_value = fuzzy_entries
         if isinstance(lookup_value, dict):
             return dict(lookup_value)
         entries = [dict(item) for item in lookup_value if isinstance(item, dict)]
