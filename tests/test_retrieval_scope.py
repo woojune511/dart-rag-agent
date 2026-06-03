@@ -412,6 +412,67 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 0)
         self.assertGreater(focus_trace["selected_count"], 0)
 
+    def test_focused_operand_retrieval_runs_when_narrative_sibling_task_exists(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="2023 revenue 1,000\n2023 cost 800",
+                        metadata={
+                            "chunk_id": "complete-primary",
+                            "block_type": "table",
+                            "year": 2023,
+                            "table_row_labels_text": "revenue cost",
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "2023 revenue cost ratio and explain the business context",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "query": "2023 revenue cost ratio",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "revenue", "role": "denominator"},
+                        {"label": "cost", "role": "numerator"},
+                    ],
+                },
+                "calc_subtasks": [
+                    {"task_id": "task_1", "operation_family": "ratio"},
+                    {"task_id": "task_2", "operation_family": "narrative_summary"},
+                ],
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
+        self.assertFalse(focus_trace["skipped"])
+        self.assertEqual(focus_trace["skip_blocked_reason"], "narrative_sibling_subtask_present")
+        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 2)
+        self.assertGreater(focus_trace["selected_count"], 0)
+
     def test_retry_query_budget_keeps_builtin_default_when_unset(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 2

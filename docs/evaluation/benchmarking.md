@@ -2493,6 +2493,9 @@ Implementation scope:
   `query_budget.operand_focus.primary_operand_coverage`.
 - If coverage is complete, `query_budget.operand_focus.skipped = true` with
   `skip_reason = "primary_required_operand_coverage_complete"`.
+- If the active task has a `narrative_summary` sibling in the task ledger,
+  focused operand retrieval is kept and
+  `skip_blocked_reason = "narrative_sibling_subtask_present"` is recorded.
 - The stop decision uses only generic task/evidence signals:
   `required_operands`, operand surface coverage, period coverage, numeric
   signal, and source chunk ids.
@@ -2517,17 +2520,21 @@ uv run python -m src.ops.benchmark_runner `
 
 Result:
 
-- `tests.test_retrieval_scope`: `18` tests passed.
+- `tests.test_retrieval_scope`: `20` tests passed.
 - Runtime domain-language audit: passed with `215` reviewed literals.
-- Full unittest discover: `629` tests passed.
-- `NAV_T2_006` store-fixed canary:
-  - `faithfulness = 1.000`
-  - `context_recall = 1.000`
-  - `retrieval_hit_at_k = 1.000`
-  - `completeness = 1.000`
-  - focused operand retrieval skipped on two lookup subtasks; total focused
-    selected queries dropped to `0`.
-- `LGE_T1_051` store-fixed canary:
+- Full unittest discover: `631` tests passed.
+- Initial `NAV_T2_006` / `LGE_T1_051` canary showed that the stop gate can
+  preserve numeric/evidence quality when primary coverage is complete, but the
+  subsequent five-question refresh exposed a mixed numeric+narrative regression:
+  `NAV_T2_006` stayed faithful and grounded but dropped to
+  `completeness = 0.500` because the final answer omitted the Poshmark impact
+  narrative.
+- Follow-up change:
+  - focused operand retrieval is no longer skipped for numeric child tasks when
+    the task ledger also contains a `narrative_summary` sibling.
+  - the guard is generic and task-ledger based; it does not inspect company,
+    topic, or benchmark identifiers.
+- `LGE_T1_051` remains the clean focused-skip canary from the store-fixed run:
   - `faithfulness = 1.000`
   - `context_recall = 1.000`
   - `retrieval_hit_at_k = 1.000`
@@ -2535,8 +2542,21 @@ Result:
   - `completeness = 1.000`
   - focused operand retrieval skipped on two lookup subtasks; total focused
     selected queries dropped to `0`.
+- Full five-question refresh status:
+  - attempted in
+    `benchmarks/results/policy_gate_adaptive_focus_skip_full_2026-06-03/`.
+  - `HYU_T2_010` and `HYU_T3_072` completed with
+    `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, and `completeness = 1.000`.
+  - `NAV_T2_006` exposed the mixed numeric+narrative regression described
+    above before the narrative sibling guard was added.
+  - `LGE_T1_051` and `SAM_T2_078` were blocked by Google embedding
+    `429 RESOURCE_EXHAUSTED`, so the full gate was not accepted as a quality
+    result.
 
 Artifact policy:
 
-- `benchmarks/results/policy_gate_adaptive_focus_skip_smoke_2026-06-03/` is a
-  local validation artifact and should not be committed.
+- `benchmarks/results/policy_gate_adaptive_focus_skip_full_2026-06-03/` is a
+  local diagnostic artifact and should not be committed. Re-run the full
+  policy gate after embedding quota recovers before treating this optimization
+  as release-grade.

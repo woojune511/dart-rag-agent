@@ -195,6 +195,12 @@ whether focused retrieval was skipped, and the reason. The default query-budget
 profile remains unchanged until a focused gate confirms that this generic stop
 condition preserves answer quality.
 
+Mixed numeric+narrative tasks are a stricter case. If the current task ledger
+contains a `narrative_summary` sibling task, numeric child tasks must keep
+focused operand retrieval even when primary operand coverage is complete. This
+prevents a numeric-only child answer from starving the final aggregate answer of
+the narrative evidence required by the user query.
+
 ## 9. Aggregate Subtask Projection
 
 Aggregate answers must keep child task provenance visible after the final

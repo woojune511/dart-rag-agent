@@ -641,6 +641,20 @@ def _required_operand_coverage_from_docs(
     }
 
 
+def _has_narrative_sibling_subtask(state: FinancialAgentState, active_subtask: Dict[str, Any]) -> bool:
+    active_task_id = _normalise_spaces(str(active_subtask.get("task_id") or ""))
+    for item in (state.get("calc_subtasks") or []):
+        if not isinstance(item, dict):
+            continue
+        task_id = _normalise_spaces(str(item.get("task_id") or ""))
+        if active_task_id and task_id == active_task_id:
+            continue
+        operation_family = _normalise_spaces(str(item.get("operation_family") or "")).lower()
+        if operation_family == "narrative_summary":
+            return True
+    return False
+
+
 def _doc_period_count_operand_matches(doc: Document, required_operands: List[Dict[str, Any]]) -> List[int]:
     text = _doc_operand_context_text(doc)
     if not text:
@@ -1862,7 +1876,10 @@ class FinancialAgentEvidenceMixin:
             dedupe=configured_focused_budget > 0,
         )
         query_budget_trace["operand_focus"]["primary_operand_coverage"] = primary_operand_coverage
-        if focused_operand_queries and bool(primary_operand_coverage.get("complete")):
+        skip_blocked_reason = ""
+        if _has_narrative_sibling_subtask(state, active_subtask):
+            skip_blocked_reason = "narrative_sibling_subtask_present"
+        if focused_operand_queries and bool(primary_operand_coverage.get("complete")) and not skip_blocked_reason:
             query_budget_trace["operand_focus"]["skipped"] = True
             query_budget_trace["operand_focus"]["skip_reason"] = "primary_required_operand_coverage_complete"
             query_budget_trace["operand_focus"]["selected_count_before_skip"] = query_budget_trace["operand_focus"].get(
@@ -1874,6 +1891,8 @@ class FinancialAgentEvidenceMixin:
             focused_operand_queries = []
         else:
             query_budget_trace["operand_focus"]["skipped"] = False
+            if skip_blocked_reason:
+                query_budget_trace["operand_focus"]["skip_blocked_reason"] = skip_blocked_reason
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
             for focused_query in focused_operand_queries:
