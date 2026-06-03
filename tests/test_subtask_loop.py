@@ -4285,6 +4285,123 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("Poshmark acquisition", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
+    def test_growth_narrative_requires_all_supported_policy_driver_groups(self) -> None:
+        original_driver_groups = self.agent._narrative_driver_groups
+        self.agent._narrative_driver_groups = lambda _query: [
+            {"label": "driver_a", "variants": ["DriverA"], "phrase": "DriverA expansion"},
+            {"label": "driver_b", "variants": ["DriverB"], "phrase": "DriverB expansion"},
+            {"label": "driver_c", "variants": ["DriverC"], "phrase": "DriverC expansion"},
+        ]
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "revenue growth rate",
+                "answer": "41.4%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "revenue growth rate",
+                            "period": "2023",
+                            "rendered_value": "41.4%",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "revenue",
+                            "period": "2023",
+                            "rendered_value": "2,546,649 million",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "revenue",
+                            "period": "2022",
+                            "rendered_value": "1,801,079 million",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "drivers",
+                "answer": (
+                    "DriverA expansion contributed to growth. "
+                    "DriverB expansion contributed to growth. "
+                    "DriverC expansion contributed to growth."
+                ),
+                "status": "ok",
+                "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+            },
+        ]
+        query = "Calculate the 2023 revenue 성장률 and summarize the impact of DriverA, DriverB, and DriverC."
+        try:
+            composed = self.agent._compose_growth_narrative_answer(
+                query=query,
+                ordered_results=ordered_results,
+                existing_answer="",
+                evidence_items=[],
+            )
+            self.assertIsNotNone(composed)
+            answer = composed["compressed_answer"]
+            self.assertIn("DriverA", answer)
+            self.assertIn("DriverB", answer)
+            self.assertIn("DriverC", answer)
+            self.assertFalse(
+                self.agent._answer_satisfies_growth_narrative_intent(
+                    query=query,
+                    answer="2023 revenue was 2,546,649 million, up 41.4% from 1,801,079 million. DriverA expansion contributed to growth.",
+                    ordered_results=ordered_results,
+                    evidence_items=[],
+                )
+            )
+            self.assertTrue(
+                self.agent._answer_satisfies_growth_narrative_intent(
+                    query=query,
+                    answer=answer,
+                    ordered_results=ordered_results,
+                    evidence_items=[],
+                )
+            )
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+
+    def test_preserve_source_visible_query_terms_from_retrieved_docs(self) -> None:
+        answer = self.agent._preserve_source_visible_query_terms(
+            "Adjusted operating income is 100 million.",
+            query="Calculate adjusted operating income excluding Alpha Program (ABC) and production credit (XYZ).",
+            ordered_results=[],
+            evidence_items=[],
+            docs=[
+                (
+                    Document(
+                        page_content="Alpha Program (ABC) and production credit (XYZ) are included in the source disclosure.",
+                        metadata={"section_path": "Management discussion"},
+                    ),
+                    0.8,
+                )
+            ],
+        )
+
+        self.assertIn("ABC", answer)
+        self.assertIn("XYZ", answer)
+
+    def test_preserve_query_terms_from_ontology_alias_binding(self) -> None:
+        answer = self.agent._preserve_source_visible_query_terms(
+            "LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원입니다. "
+            "첨단제조 생산세액공제 금액은 676,874백만원이며, 이를 제외한 실질 영업이익은 1,486,360백만원입니다.",
+            query="2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 실질 영업이익을 계산해 줘.",
+            ordered_results=[],
+            evidence_items=[],
+            docs=[],
+        )
+
+        self.assertIn("IRA", answer)
+        self.assertIn("AMPC", answer)
+
     def test_format_citations_prefers_selected_evidence_source_anchor(self) -> None:
         state = {
             "selected_claim_ids": ["ev_driver"],

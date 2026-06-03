@@ -118,11 +118,16 @@ role-separated multi-agent system using a task ledger and artifact store.
     - focused `NAV_T2_006` policy-gate smoke confirmed faithfulness `1.000`,
       completeness `1.000`, error rate `0.0%`, and growth-rate answer slots
       aligned to the producer lookup values
-    - post-commit local eval-only over the available Google-backed policy-gate
-      artifact completed for all 5 questions with no numeric/dependency trace
-      regression. `NAV_T2_006` and `LGE_T1_051` still need narrative
-      completeness follow-up in that artifact because the judge wanted explicit
-      driver/terminology mentions, not because operand grounding failed.
+    - follow-up focused store-fixed eval-only over the available Google-backed
+      policy-gate artifact closed the narrative completeness gap without adding
+      runtime domain keyword rules:
+      - `NAV_T2_006`: policy-backed supported driver groups are now preserved
+        through growth narrative composition; faithfulness `1.000`,
+        completeness `1.000`, error rate `0.0%`
+      - `LGE_T1_051`: ontology alias-bound compact query markers such as
+        source-visible abbreviations are preserved after numeric locking and
+        slot-based answer composition; faithfulness `1.000`, completeness
+        `1.000`, numeric final judgement `PASS`
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.

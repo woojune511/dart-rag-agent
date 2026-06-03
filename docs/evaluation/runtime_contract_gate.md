@@ -1127,6 +1127,20 @@ Current gate status:
     keeps aggregate row ids `["ev_001", "task_output:task_3",
     "task_output:task_4"]`; `SAM_T2_078` keeps aggregate row ids
     `["ev_001"]`.
+  - 2026-06-03 narrative terminology follow-up:
+    - implementation keeps runtime code generic. Growth+narrative composition
+      now requires all evidence-supported policy driver groups to survive into
+      the answer, and compact query markers are preserved only when grounded by
+      retrieved/source text or ontology alias binding to a concept already
+      rendered in the numeric answer.
+    - focused store-fixed eval-only on
+      `benchmarks/results/policy_gate_regression_2026-06-03_narrative_terms_focus/`
+      closed both remaining narrative completeness checks:
+      - `NAV_T2_006`: `faithfulness = 1.0`, `completeness = 1.0`,
+        `retrieval_hit_at_k = 1.0`, error rate `0.0%`
+      - `LGE_T1_051`: `faithfulness = 1.0`, `completeness = 1.0`,
+        `numeric_final_judgement = PASS`, error rate `0.0%`; final answer
+        preserves the ontology/query-visible `IRA` and `AMPC` displays.
   - `faithfulness = 1.0`
   - `completeness = 1.0`
   - `context_recall = 1.0`

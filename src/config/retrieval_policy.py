@@ -545,6 +545,8 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
     "period_prefix_template": "{period} ",
     "sentence_terminal_pattern": r"[.!?。]$",
     "sentence_terminal_suffix": ".",
+    "max_growth_driver_sentences": 4,
+    "source_visible_term_note_template": "원문 표기: {terms}.",
 }
 
 

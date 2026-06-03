@@ -2159,6 +2159,7 @@ class FinancialAgentCalculationMixin:
             query=query_text,
             answer=candidate_answer,
             ordered_results=ordered_results,
+            evidence_items=evidence_items,
         ):
             return {"answer": candidate_answer, "selected_claim_ids": []}
 
@@ -2173,6 +2174,7 @@ class FinancialAgentCalculationMixin:
             query=query_text,
             answer=composed_answer,
             ordered_results=ordered_results,
+            evidence_items=evidence_items,
         ):
             return {
                 "answer": composed_answer,
@@ -2217,6 +2219,7 @@ class FinancialAgentCalculationMixin:
                 query=query_text,
                 answer=combined_answer,
                 ordered_results=ordered_results,
+                evidence_items=evidence_items,
             ):
                 return {
                     "answer": combined_answer,
@@ -3201,6 +3204,134 @@ class FinancialAgentCalculationMixin:
             return answer_text
         return _normalise_spaces(f"{context} {answer_text}")
 
+    def _preserve_source_visible_query_terms(
+        self,
+        answer: str,
+        *,
+        query: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+        docs: List[Any],
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text:
+            return answer_text
+
+        marker_groups: List[List[str]] = []
+        for group in self._query_focus_marker_groups(query):
+            group_markers: List[str] = []
+            for variant in group.get("variants") or []:
+                marker = _normalise_spaces(str(variant or ""))
+                if not marker:
+                    continue
+                if len(marker) > 32 or not re.search(r"[A-Z]", marker):
+                    continue
+                group_markers.append(marker)
+            if group_markers:
+                marker_groups.append(group_markers)
+        marker_variants: List[str] = []
+        for group in marker_groups:
+            for marker in group:
+                if marker.lower() not in {item.lower() for item in marker_variants}:
+                    marker_variants.append(marker)
+        if not marker_variants:
+            return answer_text
+
+        support_parts: List[str] = []
+        for item in evidence_items or []:
+            evidence = dict(item or {})
+            metadata = dict(evidence.get("metadata") or {})
+            support_parts.extend(
+                str(value or "")
+                for value in (
+                    evidence.get("claim"),
+                    evidence.get("quote_span"),
+                    evidence.get("raw_row_text"),
+                    " ".join(str(term or "") for term in (evidence.get("allowed_terms") or [])),
+                    metadata.get("table_context"),
+                    metadata.get("table_header_context"),
+                    metadata.get("table_summary_text"),
+                    metadata.get("text"),
+                )
+            )
+        for row in ordered_results or []:
+            calculation_result = dict(row.get("calculation_result") or {})
+            support_parts.extend(
+                str(value or "")
+                for value in (
+                    row.get("answer"),
+                    row.get("metric_label"),
+                    calculation_result.get("formatted_result"),
+                    calculation_result.get("rendered_value"),
+                )
+            )
+        for item in docs or []:
+            doc = item[0] if isinstance(item, (tuple, list)) and item else item
+            metadata = getattr(doc, "metadata", {}) or {}
+            support_parts.extend(
+                str(value or "")
+                for value in (
+                    getattr(doc, "page_content", ""),
+                    metadata.get("table_context"),
+                    metadata.get("table_header_context"),
+                    metadata.get("table_summary_text"),
+                    metadata.get("section_path"),
+                    metadata.get("local_heading"),
+                )
+            )
+
+        support_blob = _normalise_spaces(" ".join(part for part in support_parts if part)).lower()
+        grounded_blob = _normalise_spaces(f"{answer_text} {support_blob}").lower()
+        matched_concepts = get_financial_ontology().match_concepts(query)
+        concept_surfaces_by_key: Dict[str, List[str]] = {}
+        for concept in matched_concepts:
+            concept_key = str(concept.get("key") or "").strip()
+            if not concept_key:
+                continue
+            surfaces = [
+                _normalise_spaces(str(surface or ""))
+                for surface in [
+                    concept.get("display_name"),
+                    *(concept.get("aliases") or []),
+                    *(concept.get("keywords") or []),
+                ]
+                if _normalise_spaces(str(surface or ""))
+            ]
+            if surfaces:
+                concept_surfaces_by_key[concept_key] = list(dict.fromkeys(surfaces))
+
+        def _marker_has_ontology_support(marker: str, siblings: List[str]) -> bool:
+            marker_lower = marker.lower()
+            sibling_lowers = [sibling.lower() for sibling in siblings if sibling]
+            for surfaces in concept_surfaces_by_key.values():
+                surface_lowers = [surface.lower() for surface in surfaces]
+                if marker_lower not in surface_lowers and not any(
+                    sibling and any(sibling in surface or surface in sibling for surface in surface_lowers)
+                    for sibling in sibling_lowers
+                ):
+                    continue
+                if any(surface != marker_lower and surface in grounded_blob for surface in surface_lowers):
+                    return True
+            return False
+
+        answer_lower = answer_text.lower()
+        missing_terms: List[str] = []
+        for group in marker_groups:
+            for marker in group:
+                marker_lower = marker.lower()
+                if marker_lower in answer_lower:
+                    continue
+                if marker_lower in support_blob or _marker_has_ontology_support(marker, group):
+                    if marker_lower not in {item.lower() for item in missing_terms}:
+                        missing_terms.append(marker)
+        if not missing_terms:
+            return answer_text
+        template = str(CALCULATION_NARRATIVE_POLICY.get("source_visible_term_note_template") or "{terms}")
+        addition = _normalise_spaces(template.format(terms=", ".join(missing_terms[:4])))
+        if not addition or addition.lower() in answer_lower:
+            return answer_text
+        return _normalise_spaces(f"{answer_text} {addition}")
+
     def _answer_looks_truncated(self, answer: str) -> bool:
         answer_text = _normalise_spaces(str(answer or ""))
         if not answer_text:
@@ -3219,6 +3350,7 @@ class FinancialAgentCalculationMixin:
         evidence_items: List[Dict[str, Any]],
     ) -> List[tuple[int, str, List[str]]]:
         query_terms = self._narrative_context_terms(query)
+        driver_groups = self._narrative_driver_groups(query)
         narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         candidates: List[tuple[int, str, List[str]]] = []
@@ -3238,6 +3370,14 @@ class FinancialAgentCalculationMixin:
                 haystack = cleaned.lower()
                 score = base_score
                 score += sum(3 for term in query_terms if term.lower() in haystack)
+                for group in driver_groups:
+                    variants = [
+                        str(variant).strip()
+                        for variant in (group.get("variants") or [])
+                        if str(variant).strip()
+                    ]
+                    if any(variant.lower() in haystack for variant in variants):
+                        score += 4
                 score += sum(2 for marker in narrative_markers if marker in cleaned)
                 if score <= base_score:
                     continue
@@ -3259,6 +3399,29 @@ class FinancialAgentCalculationMixin:
 
         candidates.sort(key=lambda item: item[0], reverse=True)
         return candidates
+
+    def _supported_growth_driver_groups(
+        self,
+        *,
+        query: str,
+        narrative_candidates: List[tuple[int, str, List[str]]],
+    ) -> List[Dict[str, Any]]:
+        supported: List[Dict[str, Any]] = []
+        for group in self._narrative_driver_groups(query):
+            variants = [
+                str(variant).strip()
+                for variant in (group.get("variants") or [])
+                if str(variant).strip()
+            ]
+            if not variants:
+                continue
+            if not any(
+                any(variant.lower() in candidate_text.lower() for variant in variants)
+                for _score, candidate_text, _claim_ids in narrative_candidates
+            ):
+                continue
+            supported.append({**group, "variants": variants})
+        return supported
 
     def _narrative_row_focus_sentence(
         self,
@@ -3590,7 +3753,13 @@ class FinancialAgentCalculationMixin:
         narrative_sentences = [narrative_sentence] if narrative_sentence else []
         selected_claim_ids = list(selected_claim_ids or [])
         composed_context = _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}").lower()
-        for group in self._narrative_driver_groups(query):
+        supported_driver_groups = self._supported_growth_driver_groups(
+            query=query,
+            narrative_candidates=narrative_candidates,
+        )
+        max_driver_sentences = int(CALCULATION_NARRATIVE_POLICY.get("max_growth_driver_sentences") or 4)
+        max_narrative_sentences = max(1, min(max_driver_sentences, max(1, len(supported_driver_groups))))
+        for group in supported_driver_groups:
             variants = [
                 _normalise_spaces(str(variant or ""))
                 for variant in (group.get("variants") or [])
@@ -3608,13 +3777,11 @@ class FinancialAgentCalculationMixin:
                     continue
                 if not any(variant.lower() in candidate_context for variant in variants):
                     continue
-                if self._answer_covers_narrative_context(" ".join(narrative_sentences), candidate_sentence):
-                    continue
                 narrative_sentences.append(candidate_sentence)
                 selected_claim_ids.extend(candidate[2] or [])
                 composed_context = _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}").lower()
                 break
-            if len(narrative_sentences) >= 2:
+            if len(narrative_sentences) >= max_narrative_sentences:
                 break
         return {
             "compressed_answer": _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}"),
@@ -3627,6 +3794,7 @@ class FinancialAgentCalculationMixin:
         query: str,
         answer: str,
         ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         query_text = _normalise_spaces(str(query or ""))
         answer_text = _normalise_spaces(str(answer or ""))
@@ -3666,6 +3834,26 @@ class FinancialAgentCalculationMixin:
         required_focus_terms = parenthetical_focus_terms or focus_terms
         if required_focus_terms and not any(term.lower() in answer_text.lower() for term in required_focus_terms):
             return False
+        narrative_candidates = self._growth_narrative_sentence_candidates(
+            query=query_text,
+            ordered_results=ordered_results,
+            evidence_items=list(evidence_items or []),
+        )
+        for group in self._supported_growth_driver_groups(
+            query=query_text,
+            narrative_candidates=narrative_candidates,
+        ):
+            variants = [
+                _normalise_spaces(str(variant or ""))
+                for variant in (group.get("variants") or [])
+                if _normalise_spaces(str(variant or ""))
+            ]
+            phrase = _normalise_spaces(str(group.get("phrase") or ""))
+            if not variants:
+                continue
+            coverage_terms = variants + ([phrase] if phrase else [])
+            if not any(term.lower() in answer_text.lower() for term in coverage_terms):
+                return False
         row_focus_context = self._narrative_row_focus_context(
             query=query_text,
             ordered_results=ordered_results,
@@ -7713,6 +7901,7 @@ class FinancialAgentCalculationMixin:
                 query=str(state.get("query") or ""),
                 answer=final_answer,
                 ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
             )
             planner_feedback = ""
             deterministic_feedback = ""
@@ -7790,6 +7979,7 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             answer=final_answer,
             ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
         ):
             repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
                 query=str(state.get("query") or ""),
@@ -7804,6 +7994,7 @@ class FinancialAgentCalculationMixin:
                 query=str(state.get("query") or ""),
                 answer=repaired_answer,
                 ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
             ):
                 final_answer = repaired_answer
                 composition_selected_claim_ids = [
@@ -7817,6 +8008,13 @@ class FinancialAgentCalculationMixin:
             calculation_projection_override = None
             planner_feedback = ""
             deterministic_feedback = ""
+        final_answer = self._preserve_source_visible_query_terms(
+            final_answer,
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
+        )
         # Prefer the deterministic structured-material check over a stale
         # deterministic hint, but preserve independent synthesizer feedback for
         # replan/budget-exhausted cases.
@@ -7836,6 +8034,7 @@ class FinancialAgentCalculationMixin:
                 query=str(state.get("query") or ""),
                 answer=final_answer,
                 ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
             )
         ):
             planner_feedback = ""
@@ -7911,6 +8110,15 @@ class FinancialAgentCalculationMixin:
         if slot_based_difference_answer:
             final_answer = slot_based_difference_answer
             aggregate_projection["calculation_result"]["formatted_result"] = final_answer
+        final_answer = self._preserve_source_visible_query_terms(
+            final_answer,
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
+        )
+        if final_answer:
+            aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
         if final_answer and not deterministic_feedback:
             aggregate_projection["calculation_result"]["status"] = "ok"
         artifacts = list(state.get("artifacts") or [])
