@@ -2353,12 +2353,30 @@ uv run python -m src.ops.benchmark_runner `
   --eval-only `
   --question-id LGE_T1_051 `
   --progress-heartbeat-sec 30
+
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_regression_2026-06-03_1138_actual `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id HYU_T2_010 `
+  --question-id HYU_T3_072 `
+  --progress-heartbeat-sec 30
+
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_regression_2026-06-03_1138_actual `
+  --company-run-id samsung_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id SAM_T2_078 `
+  --progress-heartbeat-sec 30
 ```
 
 Result:
 
 - Runtime domain-language audit: passed with `215` reviewed literals.
 - `tests.test_subtask_loop`: `64` tests passed.
+- Full unittest discover after the source/test changes: `627` tests passed.
 - `NAV_T2_006` focused eval-only:
   - answer now includes the `41.4%` growth result and the Poshmark /
     connection-effect narrative.
@@ -2376,6 +2394,24 @@ Result:
   - `numeric_final_judgement = PASS`
   - `completeness = 1.000` (`0.300` before this fix)
   - `avg_score = 0.976`
+- Follow-up refresh confirmed no aggregate-composer regression on the remaining
+  policy gate rows:
+  - `HYU_T2_010`: `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `completeness = 1.000`,
+    `answer_relevancy = 0.872`.
+  - `HYU_T3_072`: `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `completeness = 1.000`,
+    `answer_relevancy = 0.836`.
+  - `SAM_T2_078`: `faithfulness = 1.000`, `context_recall = 1.000`,
+    `retrieval_hit_at_k = 1.000`, `completeness = 1.000`,
+    `answer_relevancy = 0.913`.
+- Five-question policy gate summary after refresh:
+  - `avg_full_faithfulness = 1.000`
+  - `avg_full_completeness = 1.000`
+  - `avg_full_context_recall = 1.000`
+  - `avg_full_numeric_pass_rate = 1.000`
+  - `full_eval_fail_count = 0`
+  - `screen_failures = []`
 
 Artifact policy:
 
