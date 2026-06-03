@@ -4214,6 +4214,145 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("연결 편입효과", answer)
         self.assertIn("ev_driver", composed["selected_claim_ids"])
 
+    def test_aggregate_subtasks_preserves_evidence_built_growth_narrative_after_alignment(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023 commerce revenue was 2,546,649 million, up 41.4% from 1,801,079 million in 2022.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        self.agent._align_lookup_results_with_dependency_projection = (
+            lambda ordered_results, _state, _projection: list(ordered_results)
+        )
+        state = {
+            "query": "Calculate the 2023 commerce revenue growth rate and summarize the impact of the acquisition (Poshmark).",
+            "calc_subtasks": [{"task_id": "task_1"}],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "commerce revenue growth rate",
+                    "answer": "2023 commerce revenue was 2,546,649 million, up 41.4% from 1,801,079 million in 2022.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "commerce revenue growth rate",
+                                "period": "2023",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "commerce revenue",
+                                "period": "2023",
+                                "rendered_value": "2,546,649 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "commerce revenue",
+                                "period": "2022",
+                                "rendered_value": "1,801,079 million",
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "The Poshmark acquisition had an integration effect that increased operating revenue.",
+                    "quote_span": "Poshmark acquisition integration effect increased operating revenue",
+                    "support_level": "direct",
+                    "metadata": {"section_path": "IV. 이사의 경영진단 및 분석의견"},
+                }
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("Poshmark acquisition", updated["answer"])
+        self.assertIn("ev_driver", updated["selected_claim_ids"])
+
+    def test_aggregate_subtasks_keeps_slot_based_difference_answer_when_numeric_locked(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "2023년 연결기준 영업이익을 확인하고, 세액공제 금액을 제외했을 때의 실질 영업이익을 계산해 줘.",
+            "report_scope": {"company": "테스트회사", "consolidation_scope": "consolidated"},
+            "calc_subtasks": [{"task_id": "task_1"}, {"task_id": "task_2"}],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "adjusted_difference",
+                    "metric_label": "실질 영업이익",
+                    "answer": "1,486,334백만원",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "1,486,334백만원",
+                        "answer_slots": {
+                            "operation_family": "difference",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "실질 영업이익",
+                                "period": "2023",
+                                "rendered_value": "1,486,334백만원",
+                            },
+                            "components_by_role": {
+                                "minuend": [
+                                    {
+                                        "status": "ok",
+                                        "label": "영업이익",
+                                        "period": "2023",
+                                        "rendered_value": "2,163,234백만원",
+                                    }
+                                ],
+                                "subtrahend": [
+                                    {
+                                        "status": "ok",
+                                        "label": "세액공제",
+                                        "period": "2023",
+                                        "rendered_value": "676,900백만원",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "계산 배경",
+                    "answer": "세액공제 금액은 영업이익에서 제외해 조정값을 산출합니다.",
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("영업이익", updated["answer"])
+        self.assertIn("2,163,234백만원", updated["answer"])
+        self.assertIn("세액공제", updated["answer"])
+        self.assertIn("676,900백만원", updated["answer"])
+        self.assertIn("실질 영업이익", updated["answer"])
+        self.assertIn("1,486,334백만원", updated["answer"])
+
     def test_aggregate_subtasks_does_not_repair_growth_answer_without_narrative_material(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(

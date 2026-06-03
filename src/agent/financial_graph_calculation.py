@@ -5883,6 +5883,27 @@ class FinancialAgentCalculationMixin:
             str(answer_slots.get("operation_family") or calculation_result.get("operation_family") or "")
         ).lower()
         if operation_family != "difference":
+            subtask_rows = list(answer_slots.get("subtask_results") or calculation_result.get("subtask_results") or [])
+            for row in subtask_rows:
+                row_payload = dict(row or {})
+                row_result = dict(row_payload.get("calculation_result") or {})
+                row_slots = dict(row_result.get("answer_slots") or row_payload.get("answer_slots") or {})
+                row_family = _normalise_spaces(
+                    str(row_slots.get("operation_family") or row_payload.get("operation_family") or "")
+                ).lower()
+                if row_family != "difference":
+                    continue
+                candidate = dict(row_result)
+                candidate["answer_slots"] = row_slots
+                if not candidate.get("rendered_value"):
+                    candidate["rendered_value"] = row_payload.get("rendered_value") or row_payload.get("answer")
+                answer = self._compose_slot_based_difference_answer(
+                    query=query,
+                    report_scope=report_scope,
+                    calculation_result=candidate,
+                )
+                if answer:
+                    return answer
             return ""
 
         minuend = self._first_material_slot_for_role(answer_slots, "minuend")
@@ -7144,6 +7165,7 @@ class FinancialAgentCalculationMixin:
         )
         if slot_based_difference_answer:
             final_answer = slot_based_difference_answer
+            complete_numeric_answer = slot_based_difference_answer
             planner_feedback = ""
             deterministic_feedback = ""
         if has_narrative_summary:
@@ -7169,13 +7191,14 @@ class FinancialAgentCalculationMixin:
         calculation_projection_override: Optional[Dict[str, Any]] = None
         narrative_answer_locked = False
         if growth_narrative_answer:
-            final_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or "")) or final_answer
+            growth_compressed_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or ""))
+            final_answer = growth_compressed_answer or final_answer
             composition_selected_claim_ids.extend(
                 str(claim_id).strip()
                 for claim_id in (growth_narrative_answer.get("selected_claim_ids") or [])
                 if str(claim_id).strip()
             )
-            narrative_answer_locked = self._answer_satisfies_growth_narrative_intent(
+            narrative_answer_locked = bool(growth_compressed_answer) or self._answer_satisfies_growth_narrative_intent(
                 query=str(state.get("query") or ""),
                 answer=final_answer,
                 ordered_results=ordered_results,

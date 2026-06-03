@@ -2309,3 +2309,75 @@ Artifact policy:
 
 - The refreshed `benchmarks/results/policy_driven_runtime_gate_official_2026-05-29/`
   bundle is a local benchmark artifact and should not be committed.
+
+## 2026-06-03 Policy Gate Aggregate Composer Preservation Smoke
+
+Purpose:
+
+- Recheck the policy-driven gate rows where retrieval already found the right
+  evidence, but aggregate answer composition collapsed the final answer back to
+  a numeric-only surface.
+- Keep the fix within the runtime domain boundary: no company, benchmark-id,
+  or topic-specific runtime branch was added.
+
+Implementation:
+
+- Slot-based difference composition now looks through aggregate subtask
+  projections and can render a child `difference` result with its
+  minuend/subtrahend/result slots.
+- When that slot-based difference answer is available, it becomes the complete
+  numeric answer used by numeric locking, preventing a bare result value from
+  overwriting the operand-visible sentence.
+- Growth narrative answers assembled from grounded evidence are locked against
+  later dependency-alignment refreshes that would otherwise restore a
+  numeric-only growth sentence.
+
+Validation:
+
+```powershell
+uv run python -m unittest tests.test_subtask_loop
+uv run python -m src.ops.audit_runtime_domain_terms
+
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_regression_2026-06-03_1138_actual `
+  --company-run-id naver_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id NAV_T2_006 `
+  --progress-heartbeat-sec 30
+
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_regression_2026-06-03_1138_actual `
+  --company-run-id lge_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id LGE_T1_051 `
+  --progress-heartbeat-sec 30
+```
+
+Result:
+
+- Runtime domain-language audit: passed with `215` reviewed literals.
+- `tests.test_subtask_loop`: `64` tests passed.
+- `NAV_T2_006` focused eval-only:
+  - answer now includes the `41.4%` growth result and the Poshmark /
+    connection-effect narrative.
+  - `faithfulness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `completeness = 1.000` (`0.500` before this fix)
+  - `avg_score = 0.897`
+- `LGE_T1_051` focused eval-only:
+  - answer now includes the source operating profit, tax-credit operand, and
+    adjusted operating-profit result.
+  - `faithfulness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `numeric_final_judgement = PASS`
+  - `completeness = 1.000` (`0.300` before this fix)
+  - `avg_score = 0.976`
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/` is local
+  benchmark material and should not be committed.
