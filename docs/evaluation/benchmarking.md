@@ -2417,3 +2417,62 @@ Artifact policy:
 
 - `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/` is local
   benchmark material and should not be committed.
+
+## 2026-06-03 Policy Gate Query Budget Smoke
+
+Purpose:
+
+- Check whether the policy-driven gate can reduce retrieval fan-out below the
+  current `8 / 4 / 1` query-budget profile without losing grounded answer
+  quality.
+- Treat this as a budget probe only. Do not add company, topic, or benchmark-id
+  rules to runtime code to recover the budget-smoke failures.
+
+Baseline:
+
+- Official store-fixed policy-gate bundle:
+  `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`.
+- Current profile budget: `retrieval_query_budget = 8`,
+  `focused_retrieval_query_budget = 4`, `retry_retrieval_query_budget = 1`.
+- Five-question gate remained clean before the probe:
+  `avg_full_faithfulness = 1.000`, `avg_full_completeness = 1.000`,
+  `avg_full_context_recall = 1.000`, `avg_full_numeric_pass_rate = 1.000`,
+  `full_eval_fail_count = 0`.
+
+Budget probes:
+
+| Probe | Scope | Result |
+| --- | --- | --- |
+| `5 / 3 / 1` | `NAV_T2_006`, `LGE_T1_051` | `LGE_T1_051` stayed PASS and improved latency, but `NAV_T2_006` dropped to `faithfulness = 0.300`, `completeness = 0.500`. |
+| `6 / 4 / 1` | `NAV_T2_006` | Still failed with `faithfulness = 0.300`, `completeness = 0.500`; latency did not improve versus baseline. |
+| `7 / 4 / 1` | `NAV_T2_006` | Numeric growth recovered to `41.4%` and `faithfulness = 1.000`, but `completeness = 0.500` remained below the policy gate. |
+
+Trace interpretation:
+
+- The NAVER row is not a pure final-window retrieval miss:
+  `context_recall = 1.000` and `retrieval_hit_at_k = 1.000` stayed healthy.
+- Retrieval history shows the vulnerable work is the lookup subtask loop. The
+  NAVER baseline selected `20` primary queries across retrieval turns, while
+  `5 / 3 / 1`, `6 / 4 / 1`, and `7 / 4 / 1` selected `13`, `15`, and `18`
+  respectively.
+- `operation_family` alone is not a safe adaptive-budget discriminator here:
+  both the passing LGE row and failing NAVER row use lookup subtasks. A runtime
+  budget rule that distinguishes them by company, topic, or benchmark row would
+  violate the domain-knowledge boundary.
+
+Decision:
+
+- Keep the official policy-driven gate budget at `8 / 4 / 1`.
+- Do not promote `5 / 3 / 1`, `6 / 4 / 1`, or `7 / 4 / 1` as defaults.
+- Future fan-out optimization should be based on generic retrieval evidence
+  signals, such as required operand coverage, period coverage, retrieved row
+  provenance, and task ledger completion, rather than domain vocabulary or row
+  identity.
+
+Artifact policy:
+
+- The budget-smoke directories are intermediate local artifacts and should be
+  deleted after this record is committed:
+  `policy_gate_budget5_smoke_2026-06-03`,
+  `policy_gate_budget6_smoke_2026-06-03`, and
+  `policy_gate_budget7_smoke_2026-06-03`.
