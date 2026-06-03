@@ -244,6 +244,174 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["retry"]["selected_count"], 1)
         self.assertEqual(trace["retry"]["dropped_count"], 1)
 
+    def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="2023 revenue 1,000\n2023 cost 800",
+                        metadata={
+                            "chunk_id": "complete-primary",
+                            "block_type": "table",
+                            "year": 2023,
+                            "table_row_labels_text": "revenue cost",
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "2023 revenue cost ratio",
+                "active_subtask": {
+                    "query": "2023 revenue cost ratio",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "revenue", "role": "denominator"},
+                        {"label": "cost", "role": "numerator"},
+                    ],
+                },
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        self.assertEqual(len(agent.vsm.queries), 1)
+        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
+        self.assertTrue(focus_trace["skipped"])
+        self.assertEqual(focus_trace["skip_reason"], "primary_required_operand_coverage_complete")
+        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 2)
+        self.assertEqual(focus_trace["selected_count"], 0)
+
+    def test_focused_operand_retrieval_runs_when_primary_docs_miss_required_operand(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="2023 revenue 1,000",
+                        metadata={
+                            "chunk_id": "partial-primary",
+                            "block_type": "table",
+                            "year": 2023,
+                            "table_row_labels_text": "revenue",
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "2023 revenue cost ratio",
+                "active_subtask": {
+                    "query": "2023 revenue cost ratio",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "revenue", "role": "denominator"},
+                        {"label": "cost", "role": "numerator"},
+                    ],
+                },
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        self.assertGreater(len(agent.vsm.queries), 1)
+        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
+        self.assertFalse(focus_trace["skipped"])
+        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 1)
+        self.assertGreater(focus_trace["selected_count"], 0)
+
+    def test_focused_operand_retrieval_runs_when_primary_docs_only_contain_period_numbers(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="2023 revenue\n2023 cost",
+                        metadata={
+                            "chunk_id": "labels-only-primary",
+                            "block_type": "table",
+                            "year": 2023,
+                            "table_row_labels_text": "revenue cost",
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "2023 revenue cost ratio",
+                "active_subtask": {
+                    "query": "2023 revenue cost ratio",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "revenue", "role": "denominator"},
+                        {"label": "cost", "role": "numerator"},
+                    ],
+                },
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
+        self.assertFalse(focus_trace["skipped"])
+        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 0)
+        self.assertGreater(focus_trace["selected_count"], 0)
+
     def test_retry_query_budget_keeps_builtin_default_when_unset(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 2

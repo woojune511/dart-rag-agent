@@ -2476,3 +2476,67 @@ Artifact policy:
   `policy_gate_budget5_smoke_2026-06-03`,
   `policy_gate_budget6_smoke_2026-06-03`, and
   `policy_gate_budget7_smoke_2026-06-03`.
+
+## 2026-06-03 Adaptive Focused Retrieval Stop Smoke
+
+Purpose:
+
+- Validate the first conservative fan-out optimization after the failed global
+  budget probes.
+- The change does not lower the default `8 / 4 / 1` budget. It skips focused
+  operand retrieval only when primary retrieval already covers every required
+  operand with matching period and numeric signal.
+
+Implementation scope:
+
+- `src/agent/financial_graph_evidence.py` now records
+  `query_budget.operand_focus.primary_operand_coverage`.
+- If coverage is complete, `query_budget.operand_focus.skipped = true` with
+  `skip_reason = "primary_required_operand_coverage_complete"`.
+- The stop decision uses only generic task/evidence signals:
+  `required_operands`, operand surface coverage, period coverage, numeric
+  signal, and source chunk ids.
+
+Validation:
+
+```powershell
+uv run python -m unittest tests.test_retrieval_scope
+uv run python -m src.ops.audit_runtime_domain_terms
+uv run python -m unittest discover -s tests
+
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_adaptive_focus_skip_smoke_2026-06-03 `
+  --company-run-id naver_2023_policy_driven_runtime_gate `
+  --company-run-id lge_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id NAV_T2_006 `
+  --question-id LGE_T1_051 `
+  --progress-heartbeat-sec 30
+```
+
+Result:
+
+- `tests.test_retrieval_scope`: `18` tests passed.
+- Runtime domain-language audit: passed with `215` reviewed literals.
+- Full unittest discover: `629` tests passed.
+- `NAV_T2_006` store-fixed canary:
+  - `faithfulness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `completeness = 1.000`
+  - focused operand retrieval skipped on two lookup subtasks; total focused
+    selected queries dropped to `0`.
+- `LGE_T1_051` store-fixed canary:
+  - `faithfulness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `numeric_final_judgement = PASS`
+  - `completeness = 1.000`
+  - focused operand retrieval skipped on two lookup subtasks; total focused
+    selected queries dropped to `0`.
+
+Artifact policy:
+
+- `benchmarks/results/policy_gate_adaptive_focus_skip_smoke_2026-06-03/` is a
+  local validation artifact and should not be committed.

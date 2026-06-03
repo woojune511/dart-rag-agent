@@ -555,6 +555,92 @@ def _doc_operand_context_text(doc: Document) -> str:
     )
 
 
+def _doc_has_numeric_signal(doc: Document, ignored_periods: Optional[set[str]] = None) -> bool:
+    text = _doc_operand_context_text(doc)
+    if not text:
+        return False
+    ignored = {str(item).strip() for item in (ignored_periods or set()) if str(item).strip()}
+    for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", text):
+        token = str(match.group(0) or "").strip()
+        normalized = re.sub(r"[\s,()]", "", token)
+        if not normalized:
+            continue
+        if normalized in ignored:
+            continue
+        if re.fullmatch(r"20\d{2}", normalized):
+            continue
+        return True
+    return False
+
+
+def _doc_matches_target_period(doc: Document, target_period: str) -> bool:
+    target = _normalise_spaces(str(target_period or ""))
+    if not target:
+        return True
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    metadata_year = _normalise_spaces(str(metadata.get("year") or ""))
+    if metadata_year == target:
+        return True
+    return target in _doc_operand_context_text(doc)
+
+
+def _required_operand_coverage_from_docs(
+    docs: List[tuple[Document, float]],
+    active_subtask: Dict[str, Any],
+    query: str,
+    report_scope: Dict[str, Any],
+) -> Dict[str, Any]:
+    required_operands = [
+        dict(item)
+        for item in (active_subtask.get("required_operands") or [])
+        if isinstance(item, dict) and bool(item.get("required", True))
+    ]
+    if not required_operands:
+        return {
+            "required_count": 0,
+            "covered_count": 0,
+            "complete": False,
+            "operands": [],
+        }
+
+    query_years = re.findall(r"20\d{2}", str(query or ""))
+    operand_rows: List[Dict[str, Any]] = []
+    for index, operand in enumerate(required_operands):
+        target_period = _period_target_for_operand(operand, query_years, report_scope)
+        ignored_numeric_periods = {target_period, *query_years}
+        matched_doc_ids: List[str] = []
+        for doc_score in docs:
+            doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+            if not isinstance(doc, Document):
+                continue
+            if not _doc_has_numeric_signal(doc, ignored_numeric_periods):
+                continue
+            if not _sentence_matches_operand_context(_doc_operand_context_text(doc), operand):
+                continue
+            if not _doc_matches_target_period(doc, target_period):
+                continue
+            matched_doc_ids.append(_doc_identity(doc))
+        matched_doc_ids = list(dict.fromkeys(item for item in matched_doc_ids if item))
+        operand_rows.append(
+            {
+                "index": index,
+                "label": _normalise_spaces(str(operand.get("label") or "")),
+                "role": _normalise_spaces(str(operand.get("role") or "")),
+                "target_period": target_period,
+                "covered": bool(matched_doc_ids),
+                "matched_doc_ids": matched_doc_ids[:5],
+            }
+        )
+
+    covered_count = sum(1 for row in operand_rows if row.get("covered"))
+    return {
+        "required_count": len(required_operands),
+        "covered_count": covered_count,
+        "complete": covered_count == len(required_operands),
+        "operands": operand_rows,
+    }
+
+
 def _doc_period_count_operand_matches(doc: Document, required_operands: List[Dict[str, Any]]) -> List[int]:
     text = _doc_operand_context_text(doc)
     if not text:
@@ -1769,11 +1855,25 @@ class FinancialAgentEvidenceMixin:
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
         configured_focused_budget = _query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
         focused_budget = configured_focused_budget or 8
+        primary_operand_coverage = _required_operand_coverage_from_docs(docs, active_subtask, query, report_scope)
         focused_operand_queries, query_budget_trace["operand_focus"] = _apply_query_budget(
             focused_operand_queries,
             focused_budget,
             dedupe=configured_focused_budget > 0,
         )
+        query_budget_trace["operand_focus"]["primary_operand_coverage"] = primary_operand_coverage
+        if focused_operand_queries and bool(primary_operand_coverage.get("complete")):
+            query_budget_trace["operand_focus"]["skipped"] = True
+            query_budget_trace["operand_focus"]["skip_reason"] = "primary_required_operand_coverage_complete"
+            query_budget_trace["operand_focus"]["selected_count_before_skip"] = query_budget_trace["operand_focus"].get(
+                "selected_count",
+                0,
+            )
+            query_budget_trace["operand_focus"]["skipped_queries"] = list(focused_operand_queries)
+            query_budget_trace["operand_focus"]["selected_count"] = 0
+            focused_operand_queries = []
+        else:
+            query_budget_trace["operand_focus"]["skipped"] = False
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
             for focused_query in focused_operand_queries:

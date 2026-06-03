@@ -172,6 +172,29 @@ formula result should remain traceable, for example in `derived_metrics`, when
 it differs because the source rounded or displayed the value at a different
 precision.
 
+### Adaptive Retrieval Stop Gate
+
+Retrieval fan-out may be reduced only when the runtime can prove generic
+coverage from already retrieved documents. The stop decision must not use
+company names, benchmark ids, topic-specific phrases, or domain vocabulary in
+runtime control flow.
+
+The allowed stop signals are:
+
+- active task `required_operands`
+- operand surface coverage from task/ontology aliases
+- period coverage from task constraints, query years, or report scope
+- numeric signal in the retrieved document text or table metadata
+- source provenance through chunk ids and retrieval trace entries
+
+The first conservative stop gate is scoped to focused operand retrieval:
+after primary retrieval, if every required operand is covered by a retrieved
+document with matching period and numeric signal, the runtime may skip
+additional focused operand queries. The trace must record the coverage summary,
+whether focused retrieval was skipped, and the reason. The default query-budget
+profile remains unchanged until a focused gate confirms that this generic stop
+condition preserves answer quality.
+
 ## 9. Aggregate Subtask Projection
 
 Aggregate answers must keep child task provenance visible after the final
