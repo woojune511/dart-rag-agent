@@ -117,6 +117,29 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(_compute_runtime_evidence_retrieval_hit_at_k(example, runtime_evidence), 1.0)
         self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
 
+    def test_runtime_evidence_uses_source_anchor_when_metadata_is_empty(self) -> None:
+        example = EvalExample(
+            id="anchor_section_surface",
+            question="Extract the total and summarize the related business direction.",
+            ground_truth="The total is grounded and the direction is supported.",
+            company="ACME",
+            year=2023,
+            section="II. Business",
+            expected_sections=["II. Business > 7. Other notes"],
+            company_aliases=["ACME Corp"],
+        )
+        runtime_evidence = [
+            {
+                "claim": "The business direction is stated in the cited section.",
+                "quote_span": "The cited section states the direction.",
+                "source_anchor": "[ACME Corp | 2023 | II. Business > 7. Other notes]",
+                "metadata": {},
+            }
+        ]
+
+        self.assertEqual(_compute_runtime_evidence_retrieval_hit_at_k(example, runtime_evidence), 1.0)
+        self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
+
     def test_ndcg_is_capped_when_multiple_docs_match_single_expected_section(self) -> None:
         example = EvalExample(
             id="cash_flow_ndcg",

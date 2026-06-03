@@ -529,16 +529,38 @@ def _contains_section(metadata: Dict[str, Any], expected_section: str) -> bool:
     return False
 
 
+def _parse_source_anchor_metadata(source_anchor: Any) -> Dict[str, Any]:
+    anchor = str(source_anchor or "").strip()
+    if not anchor:
+        return {}
+    if anchor.startswith("[") and anchor.endswith("]"):
+        anchor = anchor[1:-1].strip()
+    parts = [part.strip() for part in anchor.split("|") if part.strip()]
+    if len(parts) < 3:
+        return {}
+
+    metadata: Dict[str, Any] = {
+        "company": parts[0],
+        "section": " | ".join(parts[2:]),
+        "section_path": " | ".join(parts[2:]),
+    }
+    year_match = re.search(r"\b(19|20)\d{2}\b", parts[1])
+    if year_match:
+        metadata["year"] = int(year_match.group(0))
+    return metadata
+
+
 def _runtime_evidence_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
     metadata = dict(row.get("metadata") or {})
-    if metadata:
-        return metadata
-    return {
-        "company": row.get("company"),
-        "year": row.get("year"),
-        "section": row.get("section"),
-        "section_path": row.get("section_path"),
-    }
+    anchor_metadata = _parse_source_anchor_metadata(row.get("source_anchor"))
+    for key, value in anchor_metadata.items():
+        if value not in (None, "") and not metadata.get(key):
+            metadata[key] = value
+    for key in ("company", "year", "section", "section_path"):
+        value = row.get(key)
+        if value not in (None, "") and not metadata.get(key):
+            metadata[key] = value
+    return metadata
 
 
 def _compute_runtime_evidence_retrieval_hit_at_k(example: EvalExample, runtime_evidence: List[Dict[str, Any]]) -> float:

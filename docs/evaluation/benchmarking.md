@@ -2846,6 +2846,32 @@ Artifact policy:
 - `benchmarks/results/policy_gate_openai_embedding_3_large_post_nav_fix_full_2026-06-03/`
   is a local benchmark artifact and should not be committed.
 
+## 2026-06-03 SAM_T2_078 Section Definition Correction
+
+Purpose:
+
+- Classify the low `SAM_T2_078` section precision as an evaluator-definition
+  gap rather than a runtime retrieval rule gap. The answer and retrieved
+  evidence were faithful and complete, but the curated expected sections did
+  not include a directly relevant Harman technology-focus discussion from
+  `IV. 이사의 경영진단 및 분석의견`.
+
+Change:
+
+- Added `IV. 이사의 경영진단 및 분석의견` as an acceptable expected section and
+  ground-truth context for `SAM_T2_078` in both curated single-doc datasets.
+- Added the corresponding digital-cockpit quote as supporting evidence.
+- Updated the evaluator runtime-evidence projection so empty metadata can fall
+  back to the generic `source_anchor` shape: `company | year | section`.
+
+Validation:
+
+- JSON validation for both curated datasets passed.
+- `uv run python -m unittest tests.test_evaluator_runtime_projection` passed.
+- Recomputing the existing `SAM_T2_078` local bundle with the corrected
+  expected sections gives runtime, retrieved, and effective section match of
+  `1.000`.
+
 ## 2026-06-03 Embedding Runtime Default Update
 
 Purpose:

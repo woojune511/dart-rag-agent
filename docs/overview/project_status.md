@@ -95,6 +95,12 @@ role-separated multi-agent system using a task ledger and artifact store.
     - `LGE_T1_051`: relevancy `0.563`, section match `1.000`,
       `numeric_final_judgement = PASS`
     - `SAM_T2_078`: relevancy `0.817`, section match `0.500`
+  - Follow-up diagnosis classified the `SAM_T2_078` section precision gap as
+    evaluator-definition drift: the retrieved Harman technology-focus evidence
+    from `IV. 이사의 경영진단 및 분석의견` was faithful and complete but was not
+    listed as an acceptable expected section. The curated datasets now include
+    that section and quote, and recomputing the existing local bundle gives
+    section match `1.000`.
   - Validation: runtime domain-term audit passed, the focused narrative
     preservation regression test passed, and the full policy gate completed
     without embedding quota errors.

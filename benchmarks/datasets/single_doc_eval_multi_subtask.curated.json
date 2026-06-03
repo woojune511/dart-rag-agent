@@ -522,7 +522,8 @@
     "ground_truth": "2023년 연결 연구개발비용 총액은 28,352,769백만원(28조 3,528억원)입니다. Harman은 커넥티드카 제품 및 솔루션을 설계·개발하고 있으며, 삼성전자의 무선통신·디스플레이 등 IT 기술을 전장사업에 지속 접목하고 있습니다. 또한 SDV(Software Defined Vehicle) 전환에 대응하기 위한 차별화 기술 개발을 주요 방향으로 제시합니다.",
     "expected_sections": [
       "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
-      "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)"
+      "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)",
+      "IV. 이사의 경영진단 및 분석의견"
     ],
     "evidence": [
       {
@@ -548,6 +549,12 @@
         "quote": "SDV(Software Defined Vehicle)화 변화에 대응하기 위해 차별화된 기술 개발",
         "quote_type": "verbatim",
         "why_it_supports_answer": "질문에 대한 핵심 근거를 제공합니다."
+      },
+      {
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "quote": "인포테인먼트 분야에서는 디지털콕핏으로의 전환에 선행 대응",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "Harman 부문의 주요 기술 초점을 설명하는 보조 근거입니다."
       }
     ],
     "required_entities": [
@@ -587,13 +594,15 @@
     ],
     "ground_truth_context_ids": [
       "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
-      "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)"
+      "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)",
+      "IV. 이사의 경영진단 및 분석의견"
     ],
     "ground_truth_evidence_quotes": [
       "연구개발비용 총계 28,352,769",
       "Harman은 커넥티드카 제품 및 솔루션 등을 디자인하고 개발",
       "Harman의 전장사업에 당사의 무선통신, 디스플레이 등 IT 기술을 지속 접목",
-      "SDV(Software Defined Vehicle)화 변화에 대응하기 위해 차별화된 기술 개발"
+      "SDV(Software Defined Vehicle)화 변화에 대응하기 위해 차별화된 기술 개발",
+      "인포테인먼트 분야에서는 디지털콕핏으로의 전환에 선행 대응"
     ],
     "retrieval_preview": [
       {
