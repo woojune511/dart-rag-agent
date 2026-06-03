@@ -1018,9 +1018,6 @@ class FinancialAgentCalculationMixin:
                 task_id = source_id.split(":", 1)[1]
                 if task_id:
                     projected_by_task.setdefault(task_id, []).append(dict(operand))
-        if not projected_by_task:
-            return ordered_results
-
         def _projection_operand_matches_lookup(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
             if _operand_row_matches_requirement(candidate, operand):
                 return True
@@ -1140,10 +1137,128 @@ class FinancialAgentCalculationMixin:
                 return row
             calculation_plan = dict(row.get("calculation_plan") or {})
             operands = [dict(item) for item in list(row.get("calculation_operands") or []) if isinstance(item, dict)]
-            if not calculation_plan or not operands:
+            task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            active_subtask = {
+                **dict(task_by_id.get(task_id) or {}),
+                "task_id": task_id,
+                "metric_family": row.get("metric_family") or (task_by_id.get(task_id) or {}).get("metric_family"),
+                "metric_label": row.get("metric_label") or (task_by_id.get(task_id) or {}).get("metric_label"),
+                "operation_family": operation_family,
+            }
+
+            def _derive_operands_from_source_task_slots() -> List[Dict[str, Any]]:
+                calculation_result = dict(row.get("calculation_result") or {})
+                answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+                slot_candidates: List[tuple[str, Dict[str, Any]]] = []
+                for role, slot_key in (
+                    ("current_period", "current_value"),
+                    ("prior_period", "prior_value"),
+                    ("minuend", "minuend"),
+                    ("subtrahend", "subtrahend"),
+                ):
+                    slot = dict(answer_slots.get(slot_key) or {})
+                    if slot:
+                        slot_candidates.append((role, slot))
+                components_by_role = dict(answer_slots.get("components_by_role") or {})
+                for role in ("current_period", "prior_period", "minuend", "subtrahend", "numerator", "denominator"):
+                    for slot in list(components_by_role.get(role) or []):
+                        if isinstance(slot, dict):
+                            slot_candidates.append((role, dict(slot)))
+
+                derived: List[Dict[str, Any]] = []
+                seen_keys: set[str] = set()
+                for role, slot in slot_candidates:
+                    if not self._answer_slot_has_material(slot):
+                        continue
+                    operand_seed = {
+                        "operand_id": _normalise_spaces(str(slot.get("operand_id") or role or f"operand_{len(derived) + 1}")),
+                        "matched_operand_role": role,
+                        "role": role,
+                        "label": _normalise_spaces(str(slot.get("label") or "")),
+                        "matched_operand_label": _normalise_spaces(str(slot.get("label") or "")),
+                        "concept": _normalise_spaces(str(slot.get("concept") or "")),
+                        "matched_operand_concept": _normalise_spaces(str(slot.get("concept") or "")),
+                        "source_row_id": slot.get("source_row_id"),
+                        "source_row_ids": slot.get("source_row_ids"),
+                        "source_task_id": slot.get("source_task_id"),
+                        "source_slot": slot.get("source_slot") or "primary_value",
+                    }
+                    source_task_id = _source_task_id_for_operand(operand_seed)
+                    source_slot = dict(lookup_slots_by_task.get(source_task_id) or {})
+                    if not source_task_id or not self._answer_slot_has_material(source_slot):
+                        continue
+                    derived_operand = _operand_from_source_slot(
+                        operand_seed,
+                        source_slot,
+                        source_task_id=source_task_id,
+                    )
+                    key = "|".join(
+                        (
+                            str(derived_operand.get("matched_operand_role") or ""),
+                            str(derived_operand.get("source_task_id") or ""),
+                            str(derived_operand.get("raw_value") or ""),
+                            str(derived_operand.get("raw_unit") or ""),
+                        )
+                    )
+                    if key in seen_keys:
+                        continue
+                    seen_keys.add(key)
+                    derived.append(derived_operand)
+                return derived
+
+            def _fallback_dependency_operation_plan(derived_operands: List[Dict[str, Any]]) -> Dict[str, Any]:
+                if operation_family != "growth_rate":
+                    return {}
+                current = next(
+                    (
+                        operand
+                        for operand in derived_operands
+                        if _normalise_spaces(str(operand.get("matched_operand_role") or "")) == "current_period"
+                    ),
+                    {},
+                )
+                prior = next(
+                    (
+                        operand
+                        for operand in derived_operands
+                        if _normalise_spaces(str(operand.get("matched_operand_role") or "")) == "prior_period"
+                    ),
+                    {},
+                )
+                if not current or not prior:
+                    return {}
+                current_id = _normalise_spaces(str(current.get("operand_id") or ""))
+                prior_id = _normalise_spaces(str(prior.get("operand_id") or ""))
+                if not current_id or not prior_id:
+                    return {}
+                metric_label = _normalise_spaces(str(active_subtask.get("metric_label") or active_subtask.get("task_id") or ""))
+                current_label = _normalise_spaces(str(current.get("label") or current.get("matched_operand_label") or "A"))
+                prior_label = _normalise_spaces(str(prior.get("label") or prior.get("matched_operand_label") or "B"))
+                return {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": [current_id, prior_id],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": current_id},
+                        {"variable": "B", "operand_id": prior_id},
+                    ],
+                    "formula": "((A - B) / B) * 100",
+                    "pairwise_formula": "",
+                    "result_unit": "%",
+                    "operation_text": f"({current_label} - {prior_label}) / {prior_label} * 100",
+                    "explanation": f"{metric_label or 'growth rate'} is computed as ((A - B) / B) * 100 from dependency task outputs.",
+                    "missing_info": [],
+                }
+
+            derived_from_slots = False
+            if not operands:
+                operands = _derive_operands_from_source_task_slots()
+                derived_from_slots = bool(operands)
+            if not operands:
                 return row
             updated_operands: List[Dict[str, Any]] = []
-            changed = False
+            changed = derived_from_slots
             for operand in operands:
                 source_task_id = _source_task_id_for_operand(operand)
                 source_slot = dict(lookup_slots_by_task.get(source_task_id) or {})
@@ -1165,14 +1280,22 @@ class FinancialAgentCalculationMixin:
             if not changed:
                 return row
 
-            task_id = _normalise_spaces(str(row.get("task_id") or ""))
-            active_subtask = {
-                **dict(task_by_id.get(task_id) or {}),
-                "task_id": task_id,
-                "metric_family": row.get("metric_family") or (task_by_id.get(task_id) or {}).get("metric_family"),
-                "metric_label": row.get("metric_label") or (task_by_id.get(task_id) or {}).get("metric_label"),
-                "operation_family": operation_family,
-            }
+            if not calculation_plan:
+                plan_state = {
+                    **dict(state),
+                    "active_subtask": active_subtask,
+                    "calculation_operands": updated_operands,
+                    "resolved_calculation_trace": {
+                        "calculation_operands": updated_operands,
+                        "calculation_plan": {},
+                        "calculation_result": {},
+                    },
+                }
+                calculation_plan = self._build_deterministic_operation_plan(plan_state, updated_operands) or {}
+                if not calculation_plan:
+                    calculation_plan = _fallback_dependency_operation_plan(updated_operands)
+            if not calculation_plan:
+                return row
             recalculation_state = {
                 **dict(state),
                 "active_subtask": active_subtask,
@@ -1211,8 +1334,11 @@ class FinancialAgentCalculationMixin:
             }
 
         aligned_results: List[Dict[str, Any]] = []
+        changed_any = False
         for row in ordered_results:
             row = _recalculate_row_from_source_slots(dict(row))
+            if row.get("aligned_from_source_task_slots"):
+                changed_any = True
             task_id = str(row.get("task_id") or "").strip()
             task = task_by_id.get(task_id) or {}
             operation_family = _normalise_spaces(
@@ -1335,7 +1461,8 @@ class FinancialAgentCalculationMixin:
                     "aligned_from_dependency_projection": True,
                 }
             )
-        return aligned_results
+            changed_any = True
+        return aligned_results if changed_any else ordered_results
 
     def _preferred_complete_numeric_answer(
         self,
@@ -1719,6 +1846,18 @@ class FinancialAgentCalculationMixin:
                 continue
             numeric_tokens = [match.group(0) for match in number_pattern.finditer(cleaned)]
             if any(token and token not in allowed_surface for token in numeric_tokens):
+                return True
+        return False
+
+    def _aggregate_results_include_source_task_slot_realignment(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        for row in ordered_results:
+            if not row.get("aligned_from_source_task_slots"):
+                continue
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
                 return True
         return False
 
@@ -7453,7 +7592,10 @@ class FinancialAgentCalculationMixin:
         if aligned_ordered_results is not ordered_results:
             ordered_results = aligned_ordered_results
             refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if refreshed_numeric_answer and not narrative_answer_locked:
+            if refreshed_numeric_answer and (
+                not narrative_answer_locked
+                or self._aggregate_results_include_source_task_slot_realignment(ordered_results)
+            ):
                 refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
                     query=str(state.get("query") or ""),
                     current_answer=final_answer,

@@ -2900,3 +2900,93 @@ Decision:
   as the implicit default when both API keys are present.
 - Provider/model/dimension changes remain store-signature changes and require
   reindexing or a matching store bundle.
+
+## 2026-06-03 Dependency Lookup Slot Growth Refresh
+
+Purpose:
+
+- Close the `NAV_T2_006` aggregate assembly regression that reappeared after
+  the section-definition refresh: sibling lookup subtasks produced the correct
+  2023 and 2022 commerce revenue values, but the aggregate growth row could
+  keep a stale child growth display.
+- Keep the fix generic. The runtime now derives calculation operands from
+  `answer_slots` that point at `task_output:*` lookup rows, then recalculates
+  the operation from those dependency slots. No company, question, or
+  domain-specific keyword branch was added.
+
+Validation:
+
+- `uv run python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_recalculates_growth_from_dependency_lookup_slots_without_child_operands`
+- `uv run python -m unittest tests.test_subtask_loop`
+- `uv run python -m src.ops.audit_runtime_domain_terms`
+- `uv run python -m unittest discover -s tests`
+
+Focused NAV eval-only:
+
+```powershell
+$env:DART_EMBEDDING_PROVIDER='openai'
+$env:OPENAI_EMBEDDING_MODEL='text-embedding-3-large'
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_openai_section_definition_full_2026-06-03 `
+  --eval-only `
+  --question-id NAV_T2_006 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_openai_section_definition_full_2026-06-03\_logs\heartbeat_evalonly_nav_after_dependency_growth_refresh_2026-06-03.jsonl
+```
+
+Focused result:
+
+- `NAV_T2_006` answer now renders `2,546,649백만원`,
+  `1,801,079백만원`, and `41.4%`.
+- Metrics: `faithfulness = 1.000`, `completeness = 1.000`,
+  `context_recall = 1.000`, `retrieval_hit_at_k = 1.000`,
+  `section_match_rate = 0.875`, `citation_coverage = 0.667`,
+  `entity_coverage = 1.000`, `error_rate = 0.0%`.
+
+Five-question OpenAI store-fixed gate:
+
+```powershell
+$env:DART_EMBEDDING_PROVIDER='openai'
+$env:OPENAI_EMBEDDING_MODEL='text-embedding-3-large'
+uv run python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\policy_gate_openai_section_definition_full_2026-06-03 `
+  --eval-only `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\policy_gate_openai_section_definition_full_2026-06-03\_logs\heartbeat_evalonly_all_after_dependency_growth_refresh_2026-06-03.jsonl
+```
+
+Aggregate result:
+
+- Question count: `5`
+- Average faithfulness: `1.000`
+- Average completeness: `1.000`
+- Average context recall: `1.000`
+- Average retrieval hit@k: `1.000`
+- Average section match: `0.975`
+- Average citation coverage: `0.933`
+- Average entity coverage: `0.927`
+- Average answer relevancy: `0.689`
+- Error rate: `0.0%`
+
+Per-question result:
+
+| Row | Faithfulness | Completeness | Context recall | Hit@k | Answer relevancy | Section match | Citation coverage | Entity coverage | Numeric judgement |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `NAV_T2_006` | 1.000 | 1.000 | 1.000 | 1.000 | 0.759 | 0.875 | 0.667 | 1.000 | n/a |
+| `HYU_T2_010` | 1.000 | 1.000 | 1.000 | 1.000 | 0.696 | 1.000 | 1.000 | 0.800 | n/a |
+| `HYU_T3_072` | 1.000 | 1.000 | 1.000 | 1.000 | 0.609 | 1.000 | 1.000 | 1.000 | n/a |
+| `LGE_T1_051` | 1.000 | 1.000 | 1.000 | 1.000 | 0.563 | 1.000 | 1.000 | 0.833 | `PASS` |
+| `SAM_T2_078` | 1.000 | 1.000 | 1.000 | 1.000 | 0.817 | 1.000 | 1.000 | 1.000 | n/a |
+
+Decision:
+
+- The policy-driven runtime gate is clean after the dependency-slot growth
+  refresh and `SAM_T2_078` section-definition correction.
+- The failed eval-only attempt against the older Google-backed local result
+  directory is treated as an artifact/store-provider mismatch and Google
+  embedding `429 RESOURCE_EXHAUSTED` issue, not a source regression.
+- `benchmarks/results/policy_gate_openai_section_definition_full_2026-06-03/`
+  and `benchmarks/results/sam_t2_078_section_definition_refresh_2026-06-03/`
+  are local benchmark artifacts and should not be committed.

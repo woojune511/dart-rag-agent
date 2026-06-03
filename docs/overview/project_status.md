@@ -64,7 +64,10 @@ role-separated multi-agent system using a task ledger and artifact store.
   - 4 / 4 company runs passed
   - 0 full-eval failures
   - 0 critical misses
-  - average faithfulness, completeness, and context recall are all `1.000`
+  - five-question average faithfulness, completeness, context recall, and
+    retrieval hit@k are all `1.000`
+  - average section match is `0.975`, citation coverage is `0.933`, entity
+    coverage is `0.927`, and error rate is `0.0%`
 - Note:
   - `numeric_final_judgement = null` is not a failure for narrative or mixed
     questions when the other evaluator signals are healthy.
@@ -86,24 +89,33 @@ role-separated multi-agent system using a task ledger and artifact store.
     KRW unit conflicts with the already bound growth slot display.
   - The same answer guard replaces growth sentences that mix slot/trace values
     with untraced numeric displays, preserving grounded narrative sentences.
-  - Post-fix full policy-gate refresh with OpenAI embeddings reports
+  - Latest OpenAI store-fixed eval-only policy-gate refresh reports
     faithfulness, completeness, context recall, and retrieval hit@k of `1.000`
     for every per-question full-eval row:
-    - `NAV_T2_006`: relevancy `0.803`, section match `0.875`
-    - `HYU_T2_010`: relevancy `0.671`, section match `1.000`
+    - `NAV_T2_006`: relevancy `0.759`, section match `0.875`,
+      citation coverage `0.667`, entity coverage `1.000`
+    - `HYU_T2_010`: relevancy `0.696`, section match `1.000`
     - `HYU_T3_072`: relevancy `0.609`, section match `1.000`
     - `LGE_T1_051`: relevancy `0.563`, section match `1.000`,
       `numeric_final_judgement = PASS`
-    - `SAM_T2_078`: relevancy `0.817`, section match `0.500`
+    - `SAM_T2_078`: relevancy `0.817`, section match `1.000`
   - Follow-up diagnosis classified the `SAM_T2_078` section precision gap as
     evaluator-definition drift: the retrieved Harman technology-focus evidence
     from `IV. 이사의 경영진단 및 분석의견` was faithful and complete but was not
     listed as an acceptable expected section. The curated datasets now include
     that section and quote, and recomputing the existing local bundle gives
     section match `1.000`.
-  - Validation: runtime domain-term audit passed, the focused narrative
-    preservation regression test passed, and the full policy gate completed
-    without embedding quota errors.
+  - Latest dependency-slot growth refresh:
+    - aggregate growth rows can derive operands from `answer_slots` pointing at
+      `task_output:*` lookup rows and recalculate from those sibling lookup
+      slots
+    - `NAV_T2_006` now renders `2,546,649백만원`, `1,801,079백만원`, and
+      `41.4%` in the final mixed numeric+narrative answer
+    - this is a generic dependency-binding/display-preservation fix, not a
+      company/question keyword rule
+  - Validation: runtime domain-term audit passed, focused dependency-growth and
+    aggregate preservation regression tests passed, the full unittest suite
+    passed, and the full policy gate completed without embedding quota errors.
 
 ## Operating Principles
 

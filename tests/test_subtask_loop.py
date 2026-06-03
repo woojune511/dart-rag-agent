@@ -4285,6 +4285,155 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("Poshmark acquisition", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
+    def test_aggregate_subtasks_recalculates_growth_from_dependency_lookup_slots_without_child_operands(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "Calculate the 2023 segment revenue growth rate and summarize the acquisition impact.",
+            "calc_subtasks": [
+                {"task_id": "task_3", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_4", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_1", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "operation_family": "narrative_summary"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 segment revenue",
+                    "operation_family": "lookup",
+                    "answer": "2,546,649 million",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "2,546,649 million",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "2,546,649",
+                                "raw_unit": "million",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,546,649 million",
+                                "source_row_id": "ev_current",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_4",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022 segment revenue",
+                    "operation_family": "lookup",
+                    "answer": "1,801,079 million",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "1,801,079 million",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2022",
+                                "raw_value": "1,801,079",
+                                "raw_unit": "million",
+                                "normalized_value": 1801079000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "1,801,079 million",
+                                "source_row_id": "ev_prior",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment revenue growth rate",
+                    "operation_family": "growth_rate",
+                    "answer": "2023 segment revenue was 3,589,061 thousand, up 40.93% from 2,546,649 thousand.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "40.93%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue growth rate",
+                                "period": "2023",
+                                "normalized_value": 40.93,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "40.93%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "3,589,061",
+                                "raw_unit": "thousand",
+                                "normalized_value": 3589061000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "3,589,061 thousand",
+                                "source_row_id": "task_output:task_3",
+                                "source_row_ids": ["task_output:task_3", "ev_current"],
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "2,546,649",
+                                "raw_unit": "thousand",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,546,649 thousand",
+                                "source_row_id": "task_output:task_4",
+                                "source_row_ids": ["task_output:task_4", "ev_prior"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "acquisition impact",
+                    "operation_family": "narrative_summary",
+                    "answer": "The acquisition integration improved segment revenue growth.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "The acquisition integration improved segment revenue growth.",
+                    "quote_span": "acquisition integration improved segment revenue growth",
+                    "support_level": "direct",
+                    "metadata": {"section_path": "Management discussion"},
+                }
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("2,546,649 million", updated["answer"])
+        self.assertIn("1,801,079 million", updated["answer"])
+        self.assertNotIn("3,589,061", updated["answer"])
+        growth_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_1")
+        self.assertTrue(growth_row.get("aligned_from_source_task_slots"))
+        self.assertEqual(growth_row["calculation_result"]["rendered_value"], "41.4%")
+
     def test_late_numeric_refresh_preserves_narrative_summary_child(self) -> None:
         self.agent.llm = None
         self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
