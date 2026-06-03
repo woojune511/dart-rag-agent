@@ -45,6 +45,9 @@ These five questions cover:
 - Keep `allow_retrieval_fallback = false`.
 - Keep `auto_fetch_missing_report = true` so the gate can recover missing local
   filings from DART without changing the required receipt number.
+- Use OpenAI `text-embedding-3-large` as the canonical remote embedding runtime
+  when `OPENAI_API_KEY` is available. `DART_EMBEDDING_PROVIDER` remains the
+  explicit override for replaying Google or local embedding runs.
 - Run this gate with `structural_selective_v2_prefix_2500_320` only in routine
   development regression checks.
 - Do not use `contextual_selective_v2_prefix_2500_320` for routine triage or

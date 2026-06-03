@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-02
+Last updated: 2026-06-03
 
 ## Positioning
 
@@ -58,9 +58,9 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Policy-Driven Runtime Gate
 
 - Profile: `benchmarks/profiles/curated_policy_driven_runtime_gate.json`
-- Source/output store bundle:
-  `benchmarks/results/policy_gate_regression_2026-05-31_2212/`
-- Latest store-fixed refresh result:
+- Canonical remote embedding runtime:
+  OpenAI `text-embedding-3-large` when `OPENAI_API_KEY` is available.
+- Latest post-fix fresh OpenAI embedding refresh result:
   - 4 / 4 company runs passed
   - 0 full-eval failures
   - 0 critical misses
@@ -86,17 +86,18 @@ role-separated multi-agent system using a task ledger and artifact store.
     KRW unit conflicts with the already bound growth slot display.
   - The same answer guard replaces growth sentences that mix slot/trace values
     with untraced numeric displays, preserving grounded narrative sentences.
-  - Full policy-gate eval-only refresh over the current store bundle reports
-    faithfulness, completeness, and context recall of `1.000` for every
-    per-question full-eval row:
-    - `NAV_T2_006`: relevancy `0.855`, context P@5 `0.800`
-    - `HYU_T2_010`: relevancy `0.857`, context P@5 `0.800`
-    - `HYU_T3_072`: relevancy `0.836`, context P@5 `1.000`
-    - `LGE_T1_051`: relevancy `0.888`, context P@5 `1.000`,
+  - Post-fix full policy-gate refresh with OpenAI embeddings reports
+    faithfulness, completeness, context recall, and retrieval hit@k of `1.000`
+    for every per-question full-eval row:
+    - `NAV_T2_006`: relevancy `0.803`, section match `0.875`
+    - `HYU_T2_010`: relevancy `0.671`, section match `1.000`
+    - `HYU_T3_072`: relevancy `0.609`, section match `1.000`
+    - `LGE_T1_051`: relevancy `0.563`, section match `1.000`,
       `numeric_final_judgement = PASS`
-    - `SAM_T2_078`: relevancy `0.913`, context P@5 `0.800`
-  - Validation: runtime domain-term audit passed, and
-    `python -m unittest discover -s tests` passed with `609` tests.
+    - `SAM_T2_078`: relevancy `0.817`, section match `0.500`
+  - Validation: runtime domain-term audit passed, the focused narrative
+    preservation regression test passed, and the full policy gate completed
+    without embedding quota errors.
 
 ## Operating Principles
 
@@ -111,6 +112,9 @@ role-separated multi-agent system using a task ledger and artifact store.
 - Store-fixed `--eval-only` refreshes come before fresh ingest unless parser,
   ingest, or cache signatures changed.
 - Experiment result directories are local artifacts and are not committed.
+- Embedding provider/model/dimension is part of the store signature. Changing
+  it requires a fresh store or a signature-matched cache, not silent store
+  reuse.
 
 ## Portfolio Framing
 

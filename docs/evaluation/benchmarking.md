@@ -2845,3 +2845,32 @@ Artifact policy:
 
 - `benchmarks/results/policy_gate_openai_embedding_3_large_post_nav_fix_full_2026-06-03/`
   is a local benchmark artifact and should not be committed.
+
+## 2026-06-03 Embedding Runtime Default Update
+
+Purpose:
+
+- Convert the clean OpenAI embedding full-gate result into a reproducible
+  runtime setting instead of relying on ad hoc shell environment variables.
+
+Change:
+
+- `src/config/runtime_contract.py` now declares the canonical embedding runtime:
+  - `CANONICAL_EMBEDDING_PROVIDER = "openai"`
+  - `CANONICAL_EMBEDDING_MODEL = "text-embedding-3-large"`
+  - `CANONICAL_EMBEDDING_DIMENSION = 3072`
+- `src/storage/vector_store.py` now prefers the canonical OpenAI provider when
+  no explicit `DART_EMBEDDING_PROVIDER` is set and `OPENAI_API_KEY` is
+  available.
+- Explicit `DART_EMBEDDING_PROVIDER` values still win, and environments without
+  `OPENAI_API_KEY` can still fall back to Google or local HuggingFace
+  embeddings.
+
+Decision:
+
+- Promote OpenAI `text-embedding-3-large` as the canonical remote embedding
+  runtime for routine validation.
+- Keep Google embeddings available as an explicit replay/fallback provider, not
+  as the implicit default when both API keys are present.
+- Provider/model/dimension changes remain store-signature changes and require
+  reindexing or a matching store bundle.

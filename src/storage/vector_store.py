@@ -14,6 +14,11 @@ from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
+from src.config.runtime_contract import (
+    CANONICAL_EMBEDDING_DIMENSION,
+    CANONICAL_EMBEDDING_MODEL,
+    CANONICAL_EMBEDDING_PROVIDER,
+)
 from src.utils.embedding_usage import (
     TrackingEmbeddings,
     add_embedding_usage_counts,
@@ -25,11 +30,34 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-DEFAULT_EMBEDDING_PROVIDER = os.getenv("DART_EMBEDDING_PROVIDER", "").strip().lower() or (
-    "google" if os.getenv("GOOGLE_API_KEY") else "openai" if os.getenv("OPENAI_API_KEY") else "huggingface"
-)
+
+def _select_default_embedding_provider(explicit_provider: Optional[str] = None) -> str:
+    explicit = (
+        explicit_provider
+        if explicit_provider is not None
+        else os.getenv("DART_EMBEDDING_PROVIDER", "")
+    ).strip().lower()
+    if explicit:
+        return explicit
+
+    canonical = CANONICAL_EMBEDDING_PROVIDER.strip().lower()
+    if canonical == "openai" and os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    if canonical == "google" and os.getenv("GOOGLE_API_KEY"):
+        return "google"
+    if canonical == "huggingface":
+        return "huggingface"
+
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    if os.getenv("GOOGLE_API_KEY"):
+        return "google"
+    return "huggingface"
+
+
+DEFAULT_EMBEDDING_PROVIDER = _select_default_embedding_provider()
 DEFAULT_GOOGLE_EMBEDDING_MODEL = os.getenv("GOOGLE_EMBEDDING_MODEL", "models/gemini-embedding-2")
-DEFAULT_OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+DEFAULT_OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", CANONICAL_EMBEDDING_MODEL)
 DEFAULT_HUGGINGFACE_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 DEFAULT_EMBEDDING_MODEL = (
     DEFAULT_GOOGLE_EMBEDDING_MODEL
@@ -45,7 +73,7 @@ DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD = int(os.getenv("DART_CHROMA_HNSW_SYNC_THRESH
 _KNOWN_EMBEDDING_DIMENSIONS = {
     ("google", "models/gemini-embedding-2"): 3072,
     ("google", "models/text-embedding-004"): 768,
-    ("openai", "text-embedding-3-large"): 3072,
+    ("openai", "text-embedding-3-large"): CANONICAL_EMBEDDING_DIMENSION,
     ("openai", "text-embedding-3-small"): 1536,
     ("openai", "text-embedding-ada-002"): 1536,
     ("huggingface", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"): 384,

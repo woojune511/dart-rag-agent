@@ -13,6 +13,28 @@ Routine validation의 기준 ingest는 `structural_selective_v2_prefix_2500_320`
 - `CANONICAL_CHUNK_SIZE = 2500`
 - `CANONICAL_CHUNK_OVERLAP = 320`
 
+## 1.1 Canonical Embedding Runtime
+
+Routine validation now treats OpenAI `text-embedding-3-large` as the canonical
+remote embedding runtime:
+
+- `CANONICAL_EMBEDDING_PROVIDER = "openai"`
+- `CANONICAL_EMBEDDING_MODEL = "text-embedding-3-large"`
+- `CANONICAL_EMBEDDING_DIMENSION = 3072`
+
+Runtime provider selection is still environment-aware:
+
+- `DART_EMBEDDING_PROVIDER` explicitly overrides the canonical provider.
+- If no provider is set and `OPENAI_API_KEY` is available, use OpenAI.
+- If OpenAI is unavailable but `GOOGLE_API_KEY` is available, fall back to
+  Google embeddings.
+- If no remote embedding key is available, fall back to the local HuggingFace
+  embedding model for development only.
+
+Changing embedding provider, model, or dimension invalidates vector-store
+compatibility. Treat a provider/model/dimension mismatch as a cache miss and
+reindex rather than reusing an old Chroma store.
+
 다른 ingest 방식은 experimental profile로만 사용한다. 품질 비교가 필요하면 profile 이름과 결과 디렉터리로 격리하고, runtime default를 조용히 바꾸지 않는다.
 
 ## 2. Retrieval Trace
