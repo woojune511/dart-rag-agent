@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 ## Positioning
 
@@ -290,3 +290,26 @@ Useful supporting points:
   - Final narrative retrieval trace selected `3` primary queries, `0`
     operand-focus queries, and `0` retry queries while recording the broader
     state-level query count as `61`.
+
+## Latest Fresh Concept Gate Refresh
+
+- A 2026-06-04 fresh concept-runtime-gate refresh with OpenAI
+  `text-embedding-3-large` initially exposed focused failures in
+  `POS_T1_057`, `KBF_T2_018`, `KAB_T1_066`, and `SAM_T3_028`.
+- The current local result file
+  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/results.json`
+  now reports `numeric_final_judgement = PASS` for all seven concept-gate
+  questions.
+- Closures stayed generic:
+  - aggregate structured cell selection uses reviewed row/cell metadata
+  - contextual precision refinement cannot replace a detailed source display
+    with a large-scale-drift table cell
+  - ratio tasks can prefer an active reconciled operand set when it covers all
+    required operands
+  - quantitative-impact assembly only asserts inclusion/impact relations when
+    the relation is visible in evidence
+  - percent answers preserve formula operand evidence even if the final sentence
+    renders only the derived percentage
+- Residual follow-up: `KBF_T2_018` and `SAM_T3_028` pass numeric grounding but
+  still show completeness `0.5` in the latest focused rows, so the next work is
+  answer-composition coverage rather than numeric runtime repair.

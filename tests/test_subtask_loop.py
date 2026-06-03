@@ -105,7 +105,7 @@ class SubtaskLoopTests(unittest.TestCase):
         updated = self.agent._aggregate_calculation_subtasks(state)
 
         self.assertIn("평가손실은 2,000백만원입니다", updated["answer"])
-        self.assertIn("영업비용에 포함되어 비용을 증가", updated["answer"])
+        self.assertIn("영업비용 대비 규모", updated["answer"])
         self.assertIn("영업비용 100,000백만원 대비 약 2.00%", updated["answer"])
         self.assertEqual(set(updated["selected_claim_ids"]), {"ev_cost", "ev_loss"})
 

@@ -5149,10 +5149,30 @@ class FinancialAgentEvidenceMixin:
         numerator_raw = str(numerator.get("raw_value") or "").strip()
         denominator_raw = str(denominator.get("raw_value") or "").strip()
 
+        def _claim_links_labels(claim: str, left_label: str, right_label: str) -> bool:
+            claim_compact = re.sub(r"\s+", "", _normalise_spaces(claim))
+            left_compact = re.sub(r"\s+", "", _normalise_spaces(left_label))
+            right_compact = re.sub(r"\s+", "", _normalise_spaces(right_label))
+            return bool(claim_compact and left_compact and right_compact and left_compact in claim_compact and right_compact in claim_compact)
+
+        relation_visible = any(
+            _claim_links_labels(
+                str(row.get("claim") or ""),
+                numerator_label,
+                denominator_label,
+            )
+            for row in (numerator, denominator)
+        )
         cost_denominator_markers = tuple(str(marker) for marker in (policy.get("cost_denominator_markers") or ()))
         loss_markers = tuple(str(marker) for marker in (policy.get("loss_markers") or ()))
-        impact_sentence = str(policy.get("default_impact_sentence") or "")
+        impact_sentence = str(
+            policy.get("scale_only_impact_template")
+            or policy.get("default_impact_sentence")
+            or "{denominator_label}"
+        ).format(denominator_label=denominator_label)
         if (
+            relation_visible
+            and
             any(marker in denominator_label for marker in cost_denominator_markers)
             and any(marker in numerator_label for marker in loss_markers)
             and numerator_value > 0
@@ -5160,7 +5180,7 @@ class FinancialAgentEvidenceMixin:
             impact_sentence = str(policy.get("cost_loss_impact_template") or "{denominator_label}").format(
                 denominator_label=denominator_label
             )
-        elif any(marker in denominator_label for marker in cost_denominator_markers):
+        elif relation_visible and any(marker in denominator_label for marker in cost_denominator_markers):
             impact_sentence = str(policy.get("cost_impact_template") or "{denominator_label}").format(
                 denominator_label=denominator_label
             )

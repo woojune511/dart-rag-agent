@@ -2687,6 +2687,9 @@ def _build_expected_operand_runtime_evidence_match(
     normalized_value, normalized_unit = _normalise_math_operand_value(raw_value, raw_unit)
     if normalized_value is None or not label:
         return None
+    digit_count = len(re.sub(r"\D", "", raw_value))
+    if str(normalized_unit or "").strip().upper() in {"", "UNKNOWN"} and not raw_unit and digit_count < 4:
+        return None
 
     kind = "percent" if normalized_unit == "PERCENT" else "currency" if normalized_unit == "KRW" else "generic"
     expected_candidate = {

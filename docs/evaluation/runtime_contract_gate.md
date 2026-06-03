@@ -1340,6 +1340,65 @@ Current gate status:
     tests).
   - `python -m src.ops.audit_runtime_domain_terms` passed.
 
+2026-06-04 OpenAI-embedding fresh concept-gate refresh:
+
+- A fresh monitored seven-question run was started because the local
+  `concept_runtime_gap_gate_statement_preserve_eval_override_full_2026-06-03`
+  directory only contained logs and could not support a store-fixed eval-only
+  refresh.
+- Command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms --progress-heartbeat-sec 30 --heartbeat-log .../_logs/heartbeat_all7_after_narrative_terms_2026-06-04.jsonl`
+- Initial fresh-store result under OpenAI `text-embedding-3-large`:
+  - PASS: `CEL_T1_013`, `CEL_T3_040`, `KAB_T1_066`, `SAM_T3_028`,
+    `SKH_T3_080`.
+  - FAIL: `KBF_T2_018`, `POS_T1_057`.
+- `POS_T1_057` focused closure:
+  - Root cause: the direct structured lookup selected a detail/segment
+    interest-expense cell instead of the aggregate/final cell.
+  - Runtime fix: structured cell scoring now consumes existing generic
+    `value_role`, `aggregation_stage`, and aggregate metadata when an operand
+    binding policy prefers aggregate values. Sibling cell candidate metadata is
+    preserved through reconciliation so this remains data-driven rather than a
+    topic-specific branch.
+  - Focused eval-only after the fix: PASS, faithfulness `1.0`,
+    completeness `1.0`, context recall `1.0`, citation coverage `1.0`,
+    numeric final judgement `PASS`, final ratio `3.5269배`.
+- Follow-up focused closures:
+  - `KBF_T2_018`: PASS after preserving formula operand evidence for percent
+    answers. The current/prior operands stay visible in runtime evidence even
+    when the final sentence renders only the derived percentage.
+  - `KAB_T1_066`: PASS after ratio extraction prefers an active reconciled
+    direct operand set when it covers every required operand. This lets the
+    same profitability table provide both numerator and denominator instead of
+    letting an older dependency lookup shadow the reconciled row.
+  - `SAM_T3_028`: PASS after quantitative-impact assembly stopped asserting a
+    cost/inclusion relation unless the relation is visible in the same evidence
+    claim. Without a visible relation, the answer reports only the denominator
+    대비 규모 and keeps the caveat.
+- Current local result file:
+  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/results.json`
+  reports `numeric_final_judgement = PASS` for all seven concept-gate
+  questions.
+- Residual quality note:
+  - `KBF_T2_018` and `SAM_T3_028` currently pass numeric grounding but still
+    show completeness `0.5` in the latest focused rows. Treat this as answer
+    composition/detail coverage follow-up, not a numeric runtime blocker.
+- Verification for the safe changes:
+  - `python -m unittest
+    tests.test_aggregate_subtask_projection.AggregateSubtaskProjectionTests.test_dependency_rows_synthesize_lookup_slot_from_subtask_answer
+    tests.test_aggregate_subtask_projection.AggregateSubtaskProjectionTests.test_dependency_projection_recalculates_from_stronger_source_task_slot
+    tests.test_subtask_loop.SubtaskLoopTests.test_growth_explanatory_fallback_drops_untraced_numeric_draft
+    tests.test_subtask_loop.SubtaskLoopTests.test_ok_lookup_is_not_replaced_with_different_direct_evidence_value
+    tests.test_subtask_loop.SubtaskLoopTests.test_direct_structured_lookup_prefers_aggregate_cell_metadata
+    tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_projection_promotes_subtask_source_evidence_ids`
+    passed.
+  - `python -m unittest tests.test_lookup_recovery_policy
+    tests.test_evaluator_runtime_projection
+    tests.test_subtask_loop.SubtaskLoopTests.test_dependency_guard_blocks_direct_rows_for_unresolved_ratio_binding
+    tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_preserves_supported_quantitative_impact_answer`
+    passed.
+  - `python -m src.ops.audit_runtime_domain_terms` passed.
+
 Recommended invocation:
 
 ```powershell

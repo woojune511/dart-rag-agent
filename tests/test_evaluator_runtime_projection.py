@@ -277,6 +277,38 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_supplement_operands_rejects_short_unknown_unit_values(self) -> None:
+        example = EvalExample(
+            id="short_unknown",
+            question="Find the metric.",
+            ground_truth="The metric is not the relation-table short value.",
+            company="ACME",
+            year=2023,
+            section="Notes",
+            expected_operands=[
+                {
+                    "label": "target metric",
+                    "period": "2022",
+                    "raw_value": "9",
+                    "raw_unit": "",
+                }
+            ],
+        )
+        runtime_evidence = [
+            {
+                "evidence_id": "ev_short",
+                "claim": "target metric | current 9 | prior 1",
+            }
+        ]
+
+        supplemented = _supplement_resolved_operands_from_runtime_evidence(
+            example=example,
+            runtime_evidence=runtime_evidence,
+            calculation_operands=[],
+        )
+
+        self.assertEqual(supplemented, [])
+
     def test_should_not_override_numeric_grounding_for_task_output_only_operands(self) -> None:
         numeric_eval = {
             "numeric_equivalence": 1.0,

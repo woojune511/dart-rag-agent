@@ -261,6 +261,25 @@ def _extract_subtask_source_evidence_ids(
     return _clean_source_row_ids(values)
 
 
+def _operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
+    status = _normalise_spaces(str(row.get("status") or "")).lower()
+    if status == "missing":
+        return False
+    if row.get("normalized_value") is not None:
+        return True
+    return bool(
+        _normalise_spaces(
+            str(
+                row.get("raw_value")
+                or row.get("value")
+                or row.get("rendered_value")
+                or row.get("display_value")
+                or ""
+            )
+        )
+    )
+
+
 def _split_sentences(text: str) -> List[str]:
     cleaned = _normalise_spaces(text)
     if not cleaned:
@@ -600,6 +619,8 @@ def _build_aggregate_calculation_projection(
 
         for operand in list(row.get("calculation_operands") or []):
             operand_row = dict(operand)
+            if not _operand_row_has_material_numeric_payload(operand_row):
+                continue
             operand_row.setdefault("task_id", task_id)
             operand_row.setdefault("metric_family", metric_family)
             operand_row.setdefault("metric_label", metric_label)
@@ -675,6 +696,21 @@ def _build_aggregate_calculation_projection(
             ])
         )
     )
+    subtask_source_row_ids = list(
+        dict.fromkeys(
+            source_row_id
+            for item in subtask_result_views
+            for source_row_id in _clean_source_row_ids(item.get("source_row_ids") or [])
+        )
+    )
+    source_evidence_ids = list(
+        dict.fromkeys(
+            source_id
+            for item in subtask_result_views
+            for source_id in _clean_source_row_ids(item.get("source_evidence_ids") or [])
+        )
+    )
+    aggregate_source_row_ids = list(dict.fromkeys([*source_row_ids, *subtask_source_row_ids, *source_evidence_ids]))
     return {
         "calculation_operands": aggregate_operands,
         "calculation_plan": {
@@ -687,11 +723,13 @@ def _build_aggregate_calculation_projection(
             "status": "ok" if all_ok else "partial",
             "rendered_value": final_answer,
             "formatted_result": final_answer,
-            "source_row_ids": source_row_ids,
+            "source_row_ids": aggregate_source_row_ids,
+            "source_evidence_ids": source_evidence_ids,
             "subtask_results": subtask_result_views,
             "answer_slots": validate_answer_slots_payload(
                 {
                     "operation_family": "aggregate_subtasks",
+                    "source_row_ids": aggregate_source_row_ids,
                     "subtask_results": [
                         {
                             "task_id": str(item.get("task_id") or ""),
@@ -715,6 +753,8 @@ def _build_aggregate_calculation_projection(
                     for item in subtask_result_views
                     if str(item.get("task_id") or "").strip()
                 ],
+                "aggregate_source_row_ids": aggregate_source_row_ids,
+                "aggregate_source_evidence_ids": source_evidence_ids,
             },
         },
     }
@@ -5082,6 +5122,42 @@ def _score_structured_cell(
             score -= 1.0
     if operand:
         score += _structured_cell_operand_affinity(cell, operand)
+        binding_policy = dict(operand.get("binding_policy") or {})
+        preferred_value_roles = {
+            _normalise_spaces(str(item))
+            for item in (binding_policy.get("prefer_value_roles") or [])
+            if str(item).strip()
+        }
+        preferred_aggregation_stages = {
+            _normalise_spaces(str(item))
+            for item in (binding_policy.get("prefer_aggregation_stages") or [])
+            if str(item).strip()
+        }
+        value_role = _normalise_spaces(str(cell.get("value_role") or ""))
+        aggregation_stage = _normalise_spaces(str(cell.get("aggregation_stage") or ""))
+        aggregate_role = _normalise_spaces(str(cell.get("aggregate_role") or ""))
+        aggregate_label = _normalise_spaces(str(cell.get("aggregate_label") or ""))
+        aggregate_tokens = tuple(
+            str(item)
+            for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("aggregate_tokens") or ())
+            if str(item)
+        )
+        aggregate_surface = _normalise_spaces(" ".join([header_text, aggregate_label, aggregate_role]))
+        aggregate_like = (
+            value_role == "aggregate"
+            or aggregation_stage in {"final", "direct", "subtotal"}
+            or aggregate_role in {"direct_total", "subtotal", "final_total"}
+            or any(token in aggregate_surface for token in aggregate_tokens)
+        )
+        if aggregate_like:
+            if "aggregate" in preferred_value_roles:
+                score += 3.0
+            if preferred_aggregation_stages and aggregation_stage in preferred_aggregation_stages:
+                score += 2.0
+            if not _normalise_spaces(str(operand.get("segment_label") or "")):
+                score += 1.25
+        elif preferred_value_roles and "aggregate" in preferred_value_roles and value_role == "detail":
+            score -= 1.0
     if not header_text:
         score -= 0.25
     return score
@@ -5709,6 +5785,10 @@ def _build_table_value_reconciliation_candidates(
                     "column_headers": sibling_headers,
                     "value_text": _normalise_spaces(str(sibling.get("value_text") or "")),
                     "unit_hint": str(sibling.get("unit_hint") or metadata.get("unit_hint") or "").strip(),
+                    "value_role": _normalise_spaces(str(sibling.get("value_role") or "")),
+                    "aggregation_stage": _normalise_spaces(str(sibling.get("aggregation_stage") or "")),
+                    "aggregate_role": _normalise_spaces(str(sibling.get("aggregate_role") or "")),
+                    "aggregate_label": _normalise_spaces(str(sibling.get("aggregate_label") or "")),
                 }
             )
         composite_text = " ".join(
