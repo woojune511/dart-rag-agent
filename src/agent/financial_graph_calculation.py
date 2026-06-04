@@ -913,6 +913,24 @@ class FinancialAgentCalculationMixin:
             return {}, 0.0
         return best_slot, best_score
 
+    def _best_direct_lookup_slot_from_evidence_pool_compat(
+        self,
+        operand: Dict[str, Any],
+        evidence_pool: List[Dict[str, Any]],
+        *,
+        state: Optional[FinancialAgentState] = None,
+    ) -> tuple[Dict[str, Any], float]:
+        try:
+            return self._best_direct_lookup_slot_from_evidence_pool(
+                operand,
+                evidence_pool,
+                state=state,
+            )
+        except TypeError as exc:
+            if "unexpected keyword argument 'state'" not in str(exc):
+                raise
+            return self._best_direct_lookup_slot_from_evidence_pool(operand, evidence_pool)
+
     def _prefer_direct_structured_lookup_evidence_rows(
         self,
         direct_structured_rows: List[Dict[str, Any]],
@@ -991,8 +1009,24 @@ class FinancialAgentCalculationMixin:
             preferred_evidence: Optional[Dict[str, Any]],
         ) -> bool:
             preferred_metadata = dict((preferred_evidence or {}).get("metadata") or {})
-            if not _normalise_spaces(str(preferred_metadata.get("table_value_labels_text") or "")):
+            has_structured_surface = any(
+                _normalise_spaces(str(value or ""))
+                for value in (
+                    preferred_metadata.get("table_value_labels_text"),
+                    preferred_metadata.get("row_label"),
+                    preferred_metadata.get("semantic_label"),
+                    preferred_metadata.get("structured_cells"),
+                )
+            )
+            if not has_structured_surface:
                 return False
+            if bool(preferred_metadata.get("table_value_labels_text")) and _recovered_slot_has_primary_label_match(
+                preferred_slot
+            ):
+                current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+                preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+                if preferred_raw_unit and (not current_raw_unit or preferred_raw_unit == current_raw_unit):
+                    return True
             current_unit = _normalise_spaces(str(current_slot.get("normalized_unit") or "")).upper()
             preferred_unit = _normalise_spaces(str(preferred_slot.get("normalized_unit") or "")).upper()
             if not current_unit or not preferred_unit or current_unit == "UNKNOWN" or preferred_unit == "UNKNOWN":
@@ -1012,7 +1046,23 @@ class FinancialAgentCalculationMixin:
                 return False
             relative_delta = abs(preferred_float - current_float) / max(abs(current_float), abs(preferred_float), 1.0)
             if relative_delta > 0.005:
-                return False
+                evidence_score = (
+                    self._direct_structured_lookup_evidence_score(operand, preferred_evidence)
+                    if preferred_evidence
+                    else 0.0
+                )
+                direct_label = _normalise_spaces(
+                    str(
+                        preferred_metadata.get("row_label")
+                        or preferred_metadata.get("semantic_label")
+                        or ""
+                    )
+                )
+                if evidence_score >= 6.0 and direct_label:
+                    return True
+                return bool(preferred_metadata.get("table_value_labels_text")) and _recovered_slot_has_primary_label_match(
+                    preferred_slot
+                )
             return _digit_count(preferred_slot.get("raw_value")) > _digit_count(current_slot.get("raw_value"))
 
         def _normalize_lookup_slot_unit(slot: Dict[str, Any]) -> Dict[str, Any]:
@@ -1121,9 +1171,26 @@ class FinancialAgentCalculationMixin:
                     for key in (
                         _normalise_spaces(str(operand.get("label") or "")),
                         _normalise_spaces(str(row.get("metric_label") or "")),
+                        *[
+                            _normalise_spaces(str(alias or ""))
+                            for alias in (operand.get("aliases") or [])
+                        ],
                     )
                     if key
                 )
+                primary_surfaces = [
+                    _normalise_spaces(str(value or ""))
+                    for value in (
+                        operand.get("label"),
+                        row.get("metric_label"),
+                    )
+                    if _normalise_spaces(str(value or ""))
+                ]
+                if any(
+                    matched_line_label in surface or re.sub(r"\s+", "", matched_line_label) in re.sub(r"\s+", "", surface)
+                    for surface in primary_surfaces
+                ):
+                    return True
                 return matched_line_label in primary_keys
 
             if status == "ok":
@@ -1152,7 +1219,7 @@ class FinancialAgentCalculationMixin:
                     if current_evidence
                     else 0.0
                 )
-                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool(
+                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
                     operand,
                     evidence_pool,
                     state=state,
@@ -2098,6 +2165,7 @@ class FinancialAgentCalculationMixin:
         self,
         row: Dict[str, Any],
         ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
@@ -2114,6 +2182,16 @@ class FinancialAgentCalculationMixin:
             growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
         current_value = self._absolute_display_value(self._growth_slot_display_value(current_slot, ordered_results))
         prior_value = self._absolute_display_value(self._growth_slot_display_value(prior_slot, ordered_results))
+        recovered_prior_period = ""
+        if self._growth_slots_share_material(current_slot, prior_slot, ordered_results):
+            recovered_prior_material = self._recover_growth_prior_material_from_evidence(
+                current_slot=current_slot,
+                prior_slot=prior_slot,
+                evidence_items=evidence_items,
+            )
+            if recovered_prior_material.get("display"):
+                prior_value = self._absolute_display_value(str(recovered_prior_material["display"]))
+                recovered_prior_period = _normalise_spaces(str(recovered_prior_material.get("period") or ""))
         if not (growth_value and current_value and prior_value):
             return ""
 
@@ -2129,6 +2207,8 @@ class FinancialAgentCalculationMixin:
         prior_period = _normalise_spaces(
             str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
         )
+        if recovered_prior_period:
+            prior_period = recovered_prior_period
         direction = _normalise_spaces(str(primary_slot.get("direction") or primary_slot.get("direction_hint") or "")).lower()
         if not direction:
             normalized_value = primary_slot.get("normalized_value")
@@ -2214,6 +2294,7 @@ class FinancialAgentCalculationMixin:
         self,
         answer: str,
         ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         answer_text = _normalise_spaces(str(answer or ""))
         for row in reversed(ordered_results):
@@ -2221,10 +2302,14 @@ class FinancialAgentCalculationMixin:
                 continue
             if self._growth_row_has_conflicting_periods(row):
                 continue
-            complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
+            complete_answer = self._compose_complete_growth_numeric_answer(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
             if not complete_answer:
                 continue
-            required_values = self._growth_required_display_values(row, ordered_results)
+            required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
             if (
                 required_values
                 and all(value in answer_text for value in required_values)
@@ -2466,13 +2551,29 @@ class FinancialAgentCalculationMixin:
                 continue
             if not self._narrative_summary_conflicts_with_growth_trace(row_answer, ordered_results, evidence_items):
                 continue
-            return {
-                "answer": row_answer,
-                "selected_claim_ids": [
+            clean_candidates = self._growth_narrative_sentence_candidates(
+                query=query,
+                ordered_results=[row],
+                evidence_items=evidence_items or [],
+            )
+            if clean_candidates:
+                _score, row_answer, candidate_claim_ids = clean_candidates[0]
+                selected_claim_ids = [
+                    str(claim_id).strip()
+                    for claim_id in (candidate_claim_ids or [])
+                    if str(claim_id).strip()
+                ]
+            elif _narrative_sentence_looks_table_noisy(row_answer):
+                continue
+            else:
+                selected_claim_ids = [
                     str(claim_id).strip()
                     for claim_id in (row.get("selected_claim_ids") or [])
                     if str(claim_id).strip()
-                ],
+                ]
+            return {
+                "answer": row_answer,
+                "selected_claim_ids": selected_claim_ids,
             }
         return {}
 
@@ -2538,14 +2639,18 @@ class FinancialAgentCalculationMixin:
         if conflicting_narrative:
             return conflicting_narrative
 
-        candidate_answer = self._ensure_complete_growth_numeric_answer(current_answer, ordered_results)
+        candidate_answer = self._ensure_complete_growth_numeric_answer(
+            current_answer,
+            ordered_results,
+            evidence_items=evidence_items,
+        )
         if (
             not self._growth_answer_has_untraced_numeric_material(candidate_answer, ordered_results, evidence_items)
             and self._answer_satisfies_growth_narrative_intent(
-            query=query_text,
-            answer=candidate_answer,
-            ordered_results=ordered_results,
-            evidence_items=evidence_items,
+                query=query_text,
+                answer=candidate_answer,
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
             )
         ):
             return {"answer": candidate_answer, "selected_claim_ids": []}
@@ -2562,7 +2667,11 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             evidence_items,
         ):
-            composed_answer = self._ensure_complete_growth_numeric_answer(composed_answer, ordered_results)
+            composed_answer = self._ensure_complete_growth_numeric_answer(
+                composed_answer,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
         if composed_answer and self._answer_satisfies_growth_narrative_intent(
             query=query_text,
             answer=composed_answer,
@@ -2585,32 +2694,45 @@ class FinancialAgentCalculationMixin:
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         narrative_parts: List[str] = []
         selected_claim_ids: List[str] = []
-        for row in ordered_results:
-            if not self._row_is_narrative_summary(row):
+        for _score, sentence, claim_ids in self._growth_narrative_sentence_candidates(
+            query=query_text,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        ):
+            candidate_sentence = _normalise_spaces(sentence)
+            if not candidate_sentence or candidate_sentence in numeric_text:
                 continue
-            row_answer = _normalise_spaces(
-                str(
-                    row.get("answer")
-                    or (row.get("calculation_result") or {}).get("formatted_result")
-                    or (row.get("calculation_result") or {}).get("rendered_value")
-                    or ""
+            narrative_parts.append(candidate_sentence)
+            selected_claim_ids.extend(str(claim_id).strip() for claim_id in (claim_ids or []) if str(claim_id).strip())
+            break
+        if not narrative_parts:
+            for row in ordered_results:
+                if not self._row_is_narrative_summary(row):
+                    continue
+                row_answer = _normalise_spaces(
+                    str(
+                        row.get("answer")
+                        or (row.get("calculation_result") or {}).get("formatted_result")
+                        or (row.get("calculation_result") or {}).get("rendered_value")
+                        or ""
+                    )
                 )
-            )
-            if not row_answer or any(marker and marker in row_answer for marker in missing_markers):
-                continue
-            if row_answer in numeric_text:
-                continue
-            narrative_parts.append(row_answer)
-            selected_claim_ids.extend(
-                str(claim_id).strip()
-                for claim_id in (row.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
-            )
+                if not row_answer or any(marker and marker in row_answer for marker in missing_markers):
+                    continue
+                if row_answer in numeric_text:
+                    continue
+                narrative_parts.append(row_answer)
+                selected_claim_ids.extend(
+                    str(claim_id).strip()
+                    for claim_id in (row.get("selected_claim_ids") or [])
+                    if str(claim_id).strip()
+                )
 
         if narrative_parts:
             combined_answer = self._ensure_complete_growth_numeric_answer(
                 _normalise_spaces(" ".join([numeric_text, *narrative_parts])),
                 ordered_results,
+                evidence_items=evidence_items,
             )
             if self._answer_satisfies_growth_narrative_intent(
                 query=query_text,
@@ -2632,7 +2754,11 @@ class FinancialAgentCalculationMixin:
                     ordered_results,
                     evidence_items,
                 ):
-                    clean_numeric = self._ensure_complete_growth_numeric_answer(numeric_text, ordered_results)
+                    clean_numeric = self._ensure_complete_growth_numeric_answer(
+                        numeric_text,
+                        ordered_results,
+                        evidence_items=evidence_items,
+                    )
                     return {"answer": clean_numeric or numeric_text, "selected_claim_ids": []}
                 return {
                     "answer": combined_answer,
@@ -2640,7 +2766,11 @@ class FinancialAgentCalculationMixin:
                 }
 
         if self._growth_answer_has_untraced_numeric_material(numeric_text, ordered_results, evidence_items):
-            clean_numeric = self._ensure_complete_growth_numeric_answer(numeric_text, ordered_results)
+            clean_numeric = self._ensure_complete_growth_numeric_answer(
+                numeric_text,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
             return {"answer": clean_numeric or candidate_answer or numeric_text, "selected_claim_ids": []}
         return {"answer": numeric_text, "selected_claim_ids": []}
 
@@ -3240,7 +3370,7 @@ class FinancialAgentCalculationMixin:
             if source_slot_from_answer_slots and "retrieval" in source_preference:
                 source_raw_number = _parse_number_text(str(source_slot.get("raw_value") or ""))
                 preferred_raw_number = None
-                candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool(
+                candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
                     binding,
                     evidence_pool,
                     state=state,
@@ -3319,7 +3449,7 @@ class FinancialAgentCalculationMixin:
                     if candidate_has_sibling_context and preferred_score <= current_score:
                         preferred_score = current_score + 0.1
             else:
-                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool(
+                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
                     binding,
                     evidence_pool,
                     state=state,
@@ -5234,11 +5364,21 @@ class FinancialAgentCalculationMixin:
             if surface_normalized is not None and surface_unit == "KRW":
                 target_values.append(float(surface_normalized))
 
+        contextual_cell = _cell_from_contextual_note_row()
         best_cell: Optional[Dict[str, Any]] = None
         best_normalized: Optional[float] = None
         best_diff: Optional[float] = None
         best_target: Optional[float] = None
-        if target_values:
+        if contextual_cell:
+            contextual_value, contextual_unit = _normalise_operand_value(
+                _normalise_spaces(str(contextual_cell.get("value_text") or "")),
+                _normalise_spaces(str(contextual_cell.get("unit_hint") or "")),
+            )
+            if contextual_value is not None and contextual_unit == "KRW":
+                best_cell = contextual_cell
+                best_normalized = float(contextual_value)
+
+        if target_values and best_cell is None:
             for record in records:
                 for cell in list(record.get("cells") or []):
                     cell_data = dict(cell or {})
@@ -5260,19 +5400,9 @@ class FinancialAgentCalculationMixin:
                             best_diff = diff
                             best_target = target_value
 
-        contextual_cell = _cell_from_contextual_note_row() if best_cell is None else None
-        if contextual_cell:
-            contextual_value, contextual_unit = _normalise_operand_value(
-                _normalise_spaces(str(contextual_cell.get("value_text") or "")),
-                _normalise_spaces(str(contextual_cell.get("unit_hint") or "")),
-            )
-            if contextual_value is not None and contextual_unit == "KRW":
-                best_cell = contextual_cell
-                best_normalized = float(contextual_value)
-
         if not best_cell or best_normalized is None:
             return row
-        if best_target is None:
+        if best_target is None and not contextual_cell:
             try:
                 current_float = float(normalized_value)
                 candidate_float = float(best_normalized)
@@ -9353,7 +9483,11 @@ class FinancialAgentCalculationMixin:
             planner_feedback = ""
             deterministic_feedback = ""
         if has_narrative_summary and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
-            final_answer = self._ensure_complete_growth_numeric_answer(final_answer, ordered_results)
+            final_answer = self._ensure_complete_growth_numeric_answer(
+                final_answer,
+                ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
         if not deterministic_feedback:
             final_answer = self._include_narrative_context_if_needed(
                 final_answer,
@@ -9657,7 +9791,11 @@ class FinancialAgentCalculationMixin:
                 )
             )
         if has_narrative_summary and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
-            final_answer = self._ensure_complete_growth_numeric_answer(final_answer, ordered_results)
+            final_answer = self._ensure_complete_growth_numeric_answer(
+                final_answer,
+                ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
         late_promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
         if late_promoted_results is not ordered_results:
             ordered_results = late_promoted_results

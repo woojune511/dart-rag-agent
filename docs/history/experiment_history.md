@@ -784,6 +784,25 @@
   - `POS_T1_057` focused eval-only: faithfulness, completeness, context recall,
     retrieval hit, numeric pass rate all `1.000`
 
+### Broader Operation Contract Follow-up
+
+- Pull 후 broader unittest에서 operand precision, value-local unit refinement,
+  direct runtime evidence replacement, growth+narrative answer composition
+  regressions이 드러났다.
+- 수정은 특정 회사/문항 branch 없이 다음 일반 contract로 정리했다:
+  - semantic contextual table row가 있으면 numeric proximity 후보보다 우선
+  - direct quote/raw-row local unit은 table unit보다 우선하되, 확정 unit은
+    weak metadata/claim만으로 바꾸지 않음
+  - table-label metadata와 direct runtime evidence가 weak/stale lookup slot을
+    교체할 수 있음
+  - growth answer는 evidence-visible prior display를 보존하고, narrative
+    fallback은 table-fragment noise를 sentence filter로 제거
+- 검증:
+  - `python -m src.ops.audit_runtime_domain_terms`: passed
+  - related answer-composition / lookup-recovery regression suite: `182` tests OK
+  - `python -m unittest tests.test_subtask_loop`: `91` tests OK
+  - `python -m unittest discover -s tests`: `687` tests OK
+
 ### 해석
 
 - 남은 blocker는 benchmark answer를 직접 맞추는 문제가 아니라

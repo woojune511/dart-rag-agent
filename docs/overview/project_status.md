@@ -335,6 +335,10 @@ Useful supporting points:
     operands
   - unscoped lookup/ratio tasks reject context-dependent segment/total table
     rows before sibling recovery or direct operand extraction can promote them
+- Broader operation-contract follow-up after the closure commit is also green:
+  runtime domain-term audit passed, `tests.test_subtask_loop` passed `91`
+  tests, the related answer-composition / lookup-recovery suite passed `182`
+  tests, and full unittest discovery passed `687` tests.
 - Latest focused checks:
   - `KBF_T2_018`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
     grounding `1.0`, retrieval support `1.0`.

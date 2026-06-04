@@ -118,18 +118,26 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
         return slot
     current_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
     current_normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
-    if current_unit and current_normalized_unit not in {"", "UNKNOWN"}:
-        return slot
-    text = _normalise_spaces(
+    direct_text = _normalise_spaces(
         " ".join(
             str(part or "")
             for part in [
                 evidence.get("raw_row_text"),
                 evidence.get("quote_span"),
-                evidence.get("claim"),
+            ]
+        )
+    )
+    claim_text = _normalise_spaces(str(evidence.get("claim") or ""))
+    metadata_text = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in [
                 (evidence.get("metadata") or {}).get("table_value_labels_text"),
             ]
         )
+    )
+    text = direct_text if current_unit and current_normalized_unit not in {"", "UNKNOWN"} else _normalise_spaces(
+        f"{direct_text} {claim_text} {metadata_text}"
     )
 
     def _update_with_unit(unit_text: str) -> Optional[Dict[str, Any]]:
@@ -164,6 +172,8 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
             updated = _update_with_unit(match.group(1))
             if updated:
                 return updated
+    if current_unit and current_normalized_unit not in {"", "UNKNOWN"}:
+        return slot
     metadata = dict(evidence.get("metadata") or {})
     unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
     if unit_hint and not current_unit:
