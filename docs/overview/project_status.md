@@ -22,7 +22,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Gate | Scope | Latest Status |
 | --- | --- | --- |
 | Runtime contract gate | 5 core numeric/runtime questions | PASS |
-| Concept runtime gap gate | 7 ontology-driven concept questions | PASS |
+| Concept runtime gap gate | 7 ontology-driven concept questions | Numeric PASS; 2 completeness residuals |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
 
 ### Runtime Contract Gate
@@ -45,15 +45,22 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 - Profile: `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
 - Latest representative local output:
-  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-02_042728/`
+  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/`
 - Result:
-  - 7 / 7 questions passed
+  - 6 / 6 company runs completed with `pass_count = 6`
   - `numeric_final_judgement = PASS` for all seven questions
-  - aggregate numeric pass, completeness, and faithfulness are all `1.000`
+  - average full-eval faithfulness is `1.000`
+  - average full-eval numeric pass rate is `1.000`
+  - average full-eval completeness is `0.833`
+  - `full_eval_fail_count = 2` remains for answer-composition completeness:
+    `KBF_T2_018` and `SAM_T3_028` both have faithfulness `1.000`,
+    numeric pass rate `1.000`, and completeness `0.500`
 - Main closure:
   - multi-concept lookup tasks now split into independent task-ledger entries
   - sibling table evidence can recover missing lookup slots generically
   - lookup-list rendering is constrained to lookup-only aggregates
+  - post-fix runtime numeric blockers for `KBF_T2_018`, `POS_T1_057`, and
+    `SAM_T3_028` are closed without adding runtime domain keyword branches
 
 ### Policy-Driven Runtime Gate
 

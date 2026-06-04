@@ -1393,9 +1393,29 @@ Current gate status:
     `UNKNOWN` numerics as material operands. Focused result: faithfulness
     `1.0`, completeness `1.0`, numeric grounding `1.0`, retrieval support
     `1.0`, numeric final judgement `PASS`.
+- Full seven-question eval-only recheck after the residual fixes:
+  - Command shape:
+    `benchmark_runner --config benchmarks/profiles/curated_concept_runtime_gap_gate.json --output-dir benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms --eval-only --progress-heartbeat-sec 30 --heartbeat-log .../_logs/heartbeat_2026-06-04_full_eval_after_residual_fixes.jsonl`
+  - Run status: `completed`; all six company runs completed and
+    `pending_companies = []`.
+  - Winner summary: `pass_count = 6`, `company_count = 6`,
+    `critical_category_miss_count = 0`, `screen_failures = []`.
+  - Numeric/runtime status: all seven questions finished with
+    `numeric_final_judgement = PASS`; average full numeric pass rate is `1.0`.
+  - Faithfulness status: average full faithfulness is `1.0`.
+  - Residual quality status: `full_eval_fail_count = 2` because
+    `KBF_T2_018` and `SAM_T3_028` still have completeness `0.5` even though
+    both have faithfulness `1.0` and numeric pass rate `1.0`.
+  - Interpretation: the concept runtime numeric blockers are closed, but the
+    full gate is not a clean all-quality PASS until the remaining
+    answer-composition completeness gaps are addressed.
 - Residual quality note:
-  - `SAM_T3_028` passes numeric grounding and remains an answer-composition
-    detail follow-up rather than a numeric runtime blocker.
+  - `KBF_T2_018` needs the risk-management cause summary to survive alongside
+    the grounded percent-change calculation.
+  - `SAM_T3_028` needs stronger answer-composition detail coverage for the
+    impact narrative after the grounded `2.79%` quantitative result.
+  - Treat both as answer-composition completeness follow-ups, not numeric
+    grounding or retrieval-support blockers.
 - Verification for the safe changes:
   - `python -m unittest
     tests.test_aggregate_subtask_projection.AggregateSubtaskProjectionTests.test_dependency_rows_synthesize_lookup_slot_from_subtask_answer
