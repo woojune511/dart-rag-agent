@@ -459,6 +459,46 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("영업비용 100,000백만원 대비 약 2.00%", result["answer"])
         self.assertEqual(result["supporting_claim_ids"], ["ev_001", "ev_002"])
 
+    def test_quantitative_impact_answer_uses_supported_cost_loss_relation(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._compose_supported_quantitative_impact_answer(
+            query="2023년 주석에서 손상차손 규모를 찾고 이것이 영업비용에 미친 영향을 분석해 줘.",
+            evidence_items=[
+                {
+                    "evidence_id": "ev_loss",
+                    "claim": "손상차손 2,000",
+                    "metadata": {
+                        "table_value_labels_text": "손상차손 2,000",
+                        "unit_hint": "백만원",
+                        "statement_type": "notes",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
+                {
+                    "evidence_id": "ev_cost",
+                    "claim": "영업비용 100,000",
+                    "metadata": {
+                        "table_value_labels_text": "영업비용 100,000",
+                        "unit_hint": "백만원",
+                        "statement_type": "income_statement",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
+                {
+                    "evidence_id": "ev_relation",
+                    "claim": "동 비용에는 손상차손 금액이 포함되어 있습니다.",
+                },
+            ],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIn("영업비용에 포함되어 비용을 증가시키고", result["answer"])
+        self.assertIn("매출총이익을 압박하는 요인", result["answer"])
+        self.assertIn("영업비용 100,000백만원 대비 약 2.00%", result["answer"])
+
     def setUp(self) -> None:
         self.ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
 
@@ -4206,6 +4246,61 @@ class OperationContractTests(unittest.TestCase):
             agent._growth_slot_display_value(slot, ordered_results),
             "1조 8,011억원",
         )
+
+    def test_growth_numeric_answer_uses_magnitude_for_parenthesized_currency_displays(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        growth_row = {
+            "task_id": "task_growth",
+            "operation_family": "growth_rate",
+            "metric_label": "allowance expense",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "70.28%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": "allowance expense",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "allowance expense",
+                        "normalized_value": 70.28,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "70.28%",
+                        "direction": "increase",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "role": "current_period",
+                        "label": "allowance expense",
+                        "period": "2023",
+                        "raw_value": "(3,146,409)",
+                        "raw_unit": "백만원",
+                        "normalized_value": -3_146_409_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "(3,146,409)백만원",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "role": "prior_period",
+                        "label": "allowance expense",
+                        "period": "2022",
+                        "raw_value": "(1,847,775)",
+                        "raw_unit": "백만원",
+                        "normalized_value": -1_847_775_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "(1,847,775)백만원",
+                    },
+                },
+            },
+        }
+
+        answer = agent._compose_complete_growth_numeric_answer(growth_row, [growth_row])
+
+        self.assertIn("3,146,409백만원", answer)
+        self.assertIn("1,847,775백만원", answer)
+        self.assertNotIn("(3,146,409)백만원", answer)
+        self.assertNotIn("(1,847,775)백만원", answer)
 
     def test_failed_lookup_emits_explicit_missing_primary_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

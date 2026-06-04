@@ -16,7 +16,7 @@ from src.agent.financial_graph import FinancialAgent
 class LookupRecoveryPolicyTests(unittest.TestCase):
     def _agent_with_preferred_slot(self, preferred_slot, preferred_score=10.0):
         agent = FinancialAgent.__new__(FinancialAgent)
-        agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (
+        agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool, **_kwargs: (
             dict(preferred_slot),
             preferred_score,
         )
@@ -565,6 +565,40 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         self.assertEqual(len(filtered), 1)
         self.assertIn("credit loss provision expense 3,146", filtered[0]["claim"])
         self.assertIn("credit loss provision expense 1,848", filtered[0]["claim"])
+        self.assertIn("final_answer_table_numeric_support", filtered[0]["metadata"])
+
+    def test_selected_final_answer_evidence_still_promotes_table_numeric_support_text(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_items = [
+            {
+                "evidence_id": "ev_table",
+                "claim": "The provision increase was explained by risk management.",
+                "quote_span": "risk management",
+                "metadata": {
+                    "table_header_context": "item | 2023 | change | 2022",
+                    "table_value_labels_text": "\n".join(
+                        [
+                            "credit loss provision expense 3,146",
+                            "credit loss provision expense 1,299",
+                            "credit loss provision expense 1,848",
+                        ]
+                    ),
+                },
+            }
+        ]
+
+        filtered = agent._filter_aggregate_evidence_for_final_answer(
+            evidence_items,
+            final_answer=(
+                "credit loss provision expense was 3,146 billion in 2023 "
+                "and 1,848 billion in 2022, up 70.24%."
+            ),
+            selected_claim_ids=["ev_table"],
+        )
+
+        self.assertEqual(len(filtered), 1)
+        self.assertIn("credit loss provision expense 3,146", filtered[0]["claim"])
+        self.assertIn("credit loss provision expense 1,848", filtered[0]["quote_span"])
         self.assertIn("final_answer_table_numeric_support", filtered[0]["metadata"])
 
     def test_aggregate_projection_provenance_drops_pruned_recon_ids(self) -> None:

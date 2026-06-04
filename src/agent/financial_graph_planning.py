@@ -117,6 +117,9 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
     if not raw_value:
         return slot
     current_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+    current_normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+    if current_unit and current_normalized_unit not in {"", "UNKNOWN"}:
+        return slot
     text = _normalise_spaces(
         " ".join(
             str(part or "")
@@ -2088,11 +2091,43 @@ class FinancialAgentPlanningMixin:
         for row in existing or []:
             row_task_id = str(row.get("task_id") or "").strip()
             if current_task_id and row_task_id == current_task_id:
-                rows.append(current)
+                if self._subtask_upsert_quality_rank(dict(row)) > self._subtask_upsert_quality_rank(current):
+                    rows.append(row)
+                else:
+                    rows.append(current)
                 replaced = True
             else:
                 rows.append(row)
         if not replaced:
             rows.append(current)
         return rows
+
+    def _subtask_upsert_quality_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int, int]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        status = _normalise_spaces(str(row.get("status") or calculation_result.get("status") or "")).lower()
+        status_rank = {"ok": 4, "ready": 3, "partial": 2}.get(status, 0)
+        has_material = 1 if self._subtask_row_has_material(row) else 0
+        has_structured_payload = 1 if (
+            calculation_result.get("answer_slots")
+            or calculation_result.get("subtask_results")
+            or calculation_result.get("source_row_ids")
+            or calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+        ) else 0
+        source_count = len(_clean_source_row_ids([
+            row.get("source_row_ids"),
+            calculation_result.get("source_row_ids"),
+            row.get("selected_claim_ids"),
+            calculation_result.get("source_evidence_ids"),
+        ]))
+        answer_text = _normalise_spaces(
+            str(
+                row.get("answer")
+                or calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or ""
+            )
+        )
+        digit_count = len(re.findall(r"\d", answer_text))
+        return status_rank, has_material, has_structured_payload, source_count, digit_count, len(answer_text)
 

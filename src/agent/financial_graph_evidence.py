@@ -1600,6 +1600,45 @@ class FinancialAgentEvidenceMixin:
                     if chunk_id:
                         seen_chunk_ids.add(chunk_id)
                     break
+            relation_markers = tuple(
+                str(item)
+                for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("relation_markers") or ())
+                if str(item)
+            )
+            relation_context_markers = tuple(
+                str(item)
+                for item in (
+                    tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("primary_denominator_markers") or ())
+                    + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("denominator_markers") or ())
+                    + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("cost_relation_context_markers") or ())
+                )
+                if str(item)
+            )
+            if relation_markers and focus_terms:
+                def _has_quantitative_relation_doc(doc: Document) -> bool:
+                    surface = _doc_surface(doc)
+                    return (
+                        any(term in surface for term in focus_terms)
+                        and any(marker in surface for marker in relation_markers)
+                        and (
+                            not relation_context_markers
+                            or any(marker in surface for marker in relation_context_markers)
+                        )
+                    )
+
+                if not any(_has_quantitative_relation_doc(item[0] if isinstance(item, (tuple, list)) else item) for item in selected):
+                    for item in reranked:
+                        doc = item[0] if isinstance(item, (tuple, list)) else item
+                        metadata = getattr(doc, "metadata", {}) or {}
+                        chunk_id = str(metadata.get("chunk_id") or "")
+                        if chunk_id and chunk_id in seen_chunk_ids:
+                            continue
+                        if not _has_quantitative_relation_doc(doc):
+                            continue
+                        selected.append(item)
+                        if chunk_id:
+                            seen_chunk_ids.add(chunk_id)
+                        break
 
         if dividend_policy_query:
             def _append_dividend_specific_doc(predicate) -> None:
@@ -1803,9 +1842,16 @@ class FinancialAgentEvidenceMixin:
         else:
             where_filter = {"$and": conditions}
 
-        retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, intent)
-        preferred_sections = _active_preferred_sections(state, query, state.get("topic") or "", intent)
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        retrieval_intent = intent
+        if operation_family in {"lookup", "single_value", "ratio", "sum", "difference", "growth_rate"} and intent not in {
+            "comparison",
+            "trend",
+            "numeric_fact",
+        }:
+            retrieval_intent = "comparison"
+        retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, retrieval_intent)
+        preferred_sections = _active_preferred_sections(state, query, state.get("topic") or "", retrieval_intent)
         query_bundle = (
             active_subtask_retrieval_queries
             or ([active_subtask_query] if active_subtask_query else [])
@@ -1817,6 +1863,45 @@ class FinancialAgentEvidenceMixin:
             for supplemental_query in (query, str(state.get("topic") or "").strip()):
                 if supplemental_query and supplemental_query not in query_bundle:
                     query_bundle.append(supplemental_query)
+            if any(marker in query for marker in QUANTITATIVE_IMPACT_QUERY_TERMS):
+                quantitative_focus_stopwords = {
+                    str(item)
+                    for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("focus_stopwords") or ())
+                    if str(item)
+                }
+                focus_token_pattern = str(QUERY_FOCUS_MARKER_POLICY.get("generic_token_pattern") or "")
+                focus_terms = [
+                    term
+                    for term in (re.findall(focus_token_pattern, query) if focus_token_pattern else [])
+                    if len(term) >= 3 and term not in quantitative_focus_stopwords
+                ]
+                relation_terms = [
+                    str(item)
+                    for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("relation_markers") or ())
+                    if str(item)
+                ]
+                context_terms = [
+                    str(item)
+                    for item in (
+                        tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("primary_denominator_markers") or ())
+                        + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("denominator_markers") or ())
+                        + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("cost_relation_context_markers") or ())
+                    )
+                    if str(item)
+                ]
+                relation_query_template = str(
+                    QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("relation_query_template") or ""
+                )
+                if relation_query_template and focus_terms and relation_terms:
+                    relation_query = _normalise_spaces(
+                        relation_query_template.format(
+                            focus_terms=" ".join(list(dict.fromkeys(focus_terms))[:4]),
+                            relation_terms=" ".join(list(dict.fromkeys(relation_terms))[:4]),
+                            context_terms=" ".join(list(dict.fromkeys(context_terms))[:6]),
+                        )
+                    )
+                    if relation_query and relation_query not in query_bundle:
+                        query_bundle.append(relation_query)
         query_budget_trace: Dict[str, Any] = {}
         query_budget_trace["source"] = {
             "kind": (
@@ -5155,6 +5240,33 @@ class FinancialAgentEvidenceMixin:
             right_compact = re.sub(r"\s+", "", _normalise_spaces(right_label))
             return bool(claim_compact and left_compact and right_compact and left_compact in claim_compact and right_compact in claim_compact)
 
+        def _label_base(label: str) -> str:
+            compact = re.sub(r"\s+", "", _normalise_spaces(label))
+            compact = re.sub(r"\([^)]*\)", "", compact)
+            for drop_term in tuple(str(term) for term in (policy.get("label_drop_terms") or ()) if str(term)):
+                compact = compact.replace(re.sub(r"\s+", "", drop_term), "")
+            return compact
+
+        relation_markers = tuple(str(marker) for marker in (policy.get("relation_markers") or ()) if str(marker))
+        relation_context_markers = tuple(
+            str(marker)
+            for marker in (
+                tuple(policy.get("primary_denominator_markers") or ())
+                + tuple(policy.get("denominator_markers") or ())
+                + tuple(policy.get("cost_relation_context_markers") or ())
+            )
+            if str(marker)
+        )
+
+        def _claim_has_policy_relation(claim: str, left_label: str) -> bool:
+            claim_compact = re.sub(r"\s+", "", _normalise_spaces(claim))
+            left_compact = _label_base(left_label)
+            if not (claim_compact and left_compact and left_compact in claim_compact):
+                return False
+            if relation_markers and not any(marker in claim_compact for marker in relation_markers):
+                return False
+            return not relation_context_markers or any(marker in claim_compact for marker in relation_context_markers)
+
         relation_visible = any(
             _claim_links_labels(
                 str(row.get("claim") or ""),
@@ -5162,6 +5274,9 @@ class FinancialAgentEvidenceMixin:
                 denominator_label,
             )
             for row in (numerator, denominator)
+        ) or any(
+            _claim_has_policy_relation(str(item.get("claim") or item.get("quote_span") or ""), numerator_label)
+            for item in evidence_items
         )
         cost_denominator_markers = tuple(str(marker) for marker in (policy.get("cost_denominator_markers") or ()))
         loss_markers = tuple(str(marker) for marker in (policy.get("loss_markers") or ()))

@@ -49,6 +49,73 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
     _SECTION_BIAS_BY_QUERY_TYPE = SECTION_BIAS_BY_QUERY_TYPE
 
+    def _runtime_evidence_from_retrieved_docs(self, final: Dict[str, Any]) -> list[Dict[str, Any]]:
+        """Preserve numeric provenance when a non-calculation path produced the final answer."""
+        existing = [dict(item) for item in (final.get("evidence_items") or []) if isinstance(item, dict)]
+        final_answer = _normalise_spaces(str(final.get("answer") or final.get("compressed_answer") or ""))
+        answer_candidates = self._answer_evidence_numeric_candidates(final_answer) if final_answer else []
+        if existing and answer_candidates:
+            projection = self._project_legacy_calculation_fields(final)
+            operands = list((projection or {}).get("calculation_operands") or [])
+            evidence_items = self._append_operand_evidence_for_final_answer(
+                existing,
+                operands=operands,
+                final_answer=final_answer,
+            )
+            return self._filter_aggregate_evidence_for_final_answer(
+                evidence_items,
+                final_answer=final_answer,
+                selected_claim_ids=list(final.get("selected_claim_ids") or []),
+            )[:8]
+        if existing:
+            return existing
+        if not final_answer or not answer_candidates:
+            return []
+
+        evidence_items: list[Dict[str, Any]] = []
+        seen: set[str] = set()
+        retrieved_items = list(final.get("seed_retrieved_docs") or []) + list(final.get("retrieved_docs") or [])
+        for item in retrieved_items:
+            doc = item[0] if isinstance(item, (tuple, list)) and item else item
+            page_content = _normalise_spaces(
+                str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
+            )
+            if not page_content:
+                continue
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            source_anchor = _normalise_spaces(
+                str(
+                    metadata.get("source_anchor")
+                    or metadata.get("section_path")
+                    or metadata.get("section_title")
+                    or metadata.get("section")
+                    or ""
+                )
+            )
+            dedupe_key = "|".join([source_anchor, page_content[:240]])
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            evidence_items.append(
+                {
+                    "evidence_id": f"retrieved::{len(evidence_items) + 1:03d}",
+                    "source_anchor": source_anchor,
+                    "claim": page_content,
+                    "quote_span": page_content,
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "metadata": metadata,
+                }
+            )
+
+        if not evidence_items:
+            return []
+        return self._filter_aggregate_evidence_for_final_answer(
+            evidence_items,
+            final_answer=final_answer,
+            selected_claim_ids=[],
+        )[:8]
+
     def __init__(
         self,
         vector_store_manager,
@@ -338,6 +405,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "artifacts": [],
         }
         final = self.graph.invoke(initial)
+        runtime_evidence = self._runtime_evidence_from_retrieved_docs(final)
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
         embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
         embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
@@ -372,7 +440,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "retrieved_docs": final["retrieved_docs"],
             "retrieval_debug_trace": final.get("retrieval_debug_trace", {}),
             "retrieval_debug_trace_history": final.get("retrieval_debug_trace_history", []),
-            "evidence_items": final.get("evidence_items", []),
+            "evidence_items": runtime_evidence,
             "selected_claim_ids": final.get("selected_claim_ids", []),
             "draft_points": final.get("draft_points", []),
             "kept_claim_ids": final.get("kept_claim_ids", []),

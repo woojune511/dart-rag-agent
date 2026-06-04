@@ -154,9 +154,17 @@ runtime contract를 고정하는 선행 작업으로 본다.
   concept/operation/operand-role task를 만들었고, required operand concept
   누락은 0건이었다. 다만 planner-only 결과이므로 broad default 전환 전에
   store-fixed end-to-end runtime gate가 필요하다
+- 2026-06-04 concept runtime gap gate는 answer-composition residual까지
+  store-fixed eval-only 기준 `7 / 7 PASS`로 닫혔다. `KBF_T2_018`,
+  `POS_T1_057`, `SAM_T3_028` closure는 source-visible display 보존,
+  evidence-visible impact relation assembly, unscoped context-dependent table
+  rejection 같은 일반 contract로 처리했고, runtime domain-term audit도
+  통과했다.
 - 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하고,
   mixed growth+narrative 계열의 retrieval fan-out과 answer-language polish를
-  question-specific rule 없이 줄이는 것이다
+  question-specific rule 없이 줄이는 것이다. 다만 concept-gate blocker
+  chasing은 종료하고, 다음 우선순위는 gate baseline 고정, runtime/API cost
+  control, task-ledger/artifact-store boundary hardening이다.
 
 종료 조건:
 

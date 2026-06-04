@@ -11,6 +11,36 @@
 
 ## 최신 상태
 
+- 2026-06-04 concept runtime gap gate answer-composition blockers까지 닫았다.
+  - 최신 local store-fixed eval-only refresh:
+    `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
+  - 7문항 모두 `numeric_final_judgement = PASS`:
+    `KBF_T2_018`, `POS_T1_057`, `SKH_T3_080`, `SAM_T3_028`,
+    `CEL_T1_013`, `CEL_T3_040`, `KAB_T1_066`.
+  - summary: `7 / 7 PASS`, faithfulness는 전 문항 `1.000`, numeric pass
+    rate는 전 문항 `1.000`.
+  - `KBF_T2_018`는 source-stated display와 formula trace가 충돌하지 않도록
+    aggregate answer composition이 evidence-visible value display를 보존한다.
+  - `SAM_T3_028`는 quantitative-impact answer assembly가 evidence-visible
+    value/relationship만 조립하도록 정리되어 numeric, faithfulness,
+    completeness가 모두 닫혔다.
+  - `POS_T1_057`는 scope가 명시되지 않은 lookup/ratio에서
+    context-dependent segment table value를 sibling recovery나 ratio operand로
+    승격하지 않도록 generic ambiguous-context-table guard를 적용해 닫았다.
+    이후 correct notes row `1,001,290백만원`을 denominator로 사용해
+    `3.5269배`가 계산된다.
+  - 이 변경은 POSCO, benchmark ID, 특정 계정명 branch가 아니라 기존
+    table-view/structured-cell/scope contract를 재사용한 일반 guard다.
+  - 검증:
+    - `python -m src.ops.audit_runtime_domain_terms`: passed
+      (`215` reviewed literals).
+    - 관련 answer composition / lookup recovery regression: `45` tests OK.
+    - `POS_T1_057` focused eval-only: PASS, faithfulness/completeness/context
+      recall/retrieval hit/numeric pass rate all `1.000`.
+  - 다음 작업은 concept-only planner default promotion 여부를 바로 켜는 것이
+    아니라, 이번 7/7 gate를 기준선으로 고정한 뒤 runtime/API cost control과
+    task-ledger/artifact-store boundary를 정리하는 것이다.
+
 - 2026-06-02 `HYU_T2_010` evidence-stated growth display 보존까지 닫았다.
   - 이전 targeted smoke는 답변 품질은 닫혔지만, 계산식 재계산값이 source
     display rounding과 달라질 수 있는 여지가 있었다.

@@ -180,6 +180,80 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(rows[0]["matched_operand_role"], "prior_period")
         self.assertEqual(rows[0]["period"], "2022")
 
+    def test_dependency_rows_synthesize_lookup_slot_with_billion_krw_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "active_subtask": {
+                "task_id": "task_growth",
+                "operation_family": "growth_rate",
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "provision_expense",
+                        "period": "2023",
+                        "label": "provision expense",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    }
+                ],
+            },
+            "calc_subtasks": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 provision expense",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "role": "current_period",
+                            "concept": "provision_expense",
+                            "period": "2023",
+                            "label": "provision expense",
+                            "unit_family": "KRW",
+                        }
+                    ],
+                }
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 provision expense",
+                    "answer": "2023 provision expense was 3,146십억원.",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "2023 provision expense was 3,146십억원.",
+                    },
+                }
+            ],
+        }
+
+        rows = agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "3,146")
+        self.assertEqual(rows[0]["raw_unit"], "십억원")
+        self.assertEqual(rows[0]["normalized_unit"], "KRW")
+
+    def test_lookup_unit_refinement_preserves_explicit_normalized_unit(self) -> None:
+        slot = {
+            "raw_value": "3,146",
+            "raw_unit": "십억원",
+            "normalized_value": 3_146_000_000_000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "3,146십억원",
+        }
+        evidence = {
+            "claim": "nearby table text says 3,146억원",
+            "metadata": {"table_value_labels_text": "metric 3,146억원"},
+        }
+
+        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+
+        self.assertEqual(refined["raw_unit"], "십억원")
+        self.assertEqual(refined["normalized_value"], 3_146_000_000_000.0)
+
     def test_dependency_projection_recalculates_from_stronger_source_task_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {

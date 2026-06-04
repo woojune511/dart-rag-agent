@@ -276,6 +276,10 @@ OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "related_party_penalty_terms": ("특수관계자", "관계기업", "공동기업"),
     "generic_suffix_penalty_terms": ("등",),
     "delta_row_markers": ("증가(감소)", "증가", "감소", "증감", "변동"),
+    "context_dependent_lookup_scope_markers": ("부문", "세그먼트", "segment"),
+    "context_dependent_table_views": ("column_row_window",),
+    "ambiguous_lookup_min_structured_cells": 4,
+    "ambiguous_lookup_min_distinct_column_headers": 3,
     "capex_total_surfaces": ("시설투자", "시설투자(capex)", "capex", "자본적지출", "시설투자총액"),
     "capex_priority_section_terms": ("원재료 및 생산설비", "시설투자", "사업의 내용"),
     "balance_sheet_scope_markers": {
@@ -824,7 +828,7 @@ RECONCILIATION_POLICY: Dict[str, Any] = {
 PLANNING_POLICY: Dict[str, Any] = {
     "money_surface_pattern": (
         r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"
-        r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|억원|백만원|천원|원|%)"
+        r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|십억원|억원|백만원|천원|원|%)"
     ),
     "year_token_pattern": r"20\d{2}",
     "year_label_token_pattern": r"20\d{2}\s*년?",
@@ -1162,7 +1166,10 @@ QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
     "denominator_markers": ("자산", "부채", "자본"),
     "label_drop_terms": ("등",),
     "cost_denominator_markers": ("원가", "비용"),
-    "loss_markers": ("손실",),
+    "loss_markers": ("손실", "손상차손"),
+    "relation_markers": ("포함", "반영", "인식", "영향"),
+    "cost_relation_context_markers": ("원가", "비용", "손익"),
+    "relation_query_template": "{focus_terms} {relation_terms} {context_terms}",
     "caveat_trigger_terms": ("등", "환입"),
     "caveat_exception_terms": ("세부",),
     "consolidated_scope_prefix": "연결 기준 ",

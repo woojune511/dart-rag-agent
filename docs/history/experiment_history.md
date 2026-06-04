@@ -747,6 +747,53 @@
 - grounding judge는 numeric_extractor가 생성한 synthetic evidence_item 기준으로 판정
 - `plain_prefix`의 numeric_fact 실패는 ingest-side 문제로 별도 추적
 
+## Concept Runtime Gap Gate Answer-Composition Closure (2026-06-04)
+
+참조:
+
+- `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
+
+### 코드 / 설정 변화
+
+- `answer_slots`와 `resolved_calculation_trace`를 최종 answer assembly의
+  canonical surface로 더 강하게 사용한다.
+- lookup sibling recovery는 table metadata에서 값을 찾더라도 primary row label
+  match와 ambiguous context-table guard를 통과해야만 값을 승격한다.
+- ratio / lookup direct structured operands도 scope가 명시되지 않은 경우
+  context-dependent segment/total table row를 사용하지 않는다.
+- aggregate answer composition은 source-visible display와 evidence-visible
+  impact relation을 우선하고, recomputed trace는 provenance metadata로 보존한다.
+
+### 핵심 결과
+
+- concept runtime gap gate 최신 store-fixed eval-only refresh:
+  - `KBF_T2_018`: PASS
+  - `POS_T1_057`: PASS
+  - `SKH_T3_080`: PASS
+  - `SAM_T3_028`: PASS
+  - `CEL_T1_013`: PASS
+  - `CEL_T3_040`: PASS
+  - `KAB_T1_066`: PASS
+- 전체 요약: `7 / 7 PASS`
+- `POS_T1_057`는 segment/total context table의 `(718,937)` 또는
+  `(1,180,096)` 값을 unscoped denominator로 쓰지 않고, notes evidence의
+  `1,001,290백만원`을 denominator로 사용해 `3.5269배`를 계산한다.
+- 검증:
+  - runtime domain-language audit passed (`215` reviewed literals)
+  - related answer-composition / lookup-recovery regression suite: `45` tests OK
+  - `POS_T1_057` focused eval-only: faithfulness, completeness, context recall,
+    retrieval hit, numeric pass rate all `1.000`
+
+### 해석
+
+- 남은 blocker는 benchmark answer를 직접 맞추는 문제가 아니라
+  answer-composition contract와 context-dependent table scope contract였다.
+- 이번 closure는 특정 회사/문항/계정명 branch가 아니라, evidence schema와
+  structured-cell metadata를 이용한 일반 runtime contract로 닫혔다.
+- concept-only planner promotion 검토는 이제 "불합격 문항 고치기"가 아니라
+  현재 7/7 gate를 baseline으로 잡고 runtime cost, promotion risk, task-ledger
+  boundary를 관리하는 단계로 넘어간다.
+
 ## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
 
 참조:

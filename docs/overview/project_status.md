@@ -22,7 +22,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Gate | Scope | Latest Status |
 | --- | --- | --- |
 | Runtime contract gate | 5 core numeric/runtime questions | PASS |
-| Concept runtime gap gate | 7 ontology-driven concept questions | Numeric PASS; 2 completeness residuals |
+| Concept runtime gap gate | 7 ontology-driven concept questions | PASS, 7 / 7 |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
 
 ### Runtime Contract Gate
@@ -45,21 +45,26 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 - Profile: `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
 - Latest representative local output:
-  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/`
+  `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
 - Result:
-  - 6 / 6 company runs completed with `pass_count = 6`
+  - 6 / 6 company runs completed
+  - 7 / 7 questions pass
   - `numeric_final_judgement = PASS` for all seven questions
-  - average full-eval faithfulness is `1.000`
-  - average full-eval numeric pass rate is `1.000`
-  - average full-eval completeness is `0.833`
-  - `full_eval_fail_count = 2` remains for answer-composition completeness:
-    `KBF_T2_018` and `SAM_T3_028` both have faithfulness `1.000`,
-    numeric pass rate `1.000`, and completeness `0.500`
+  - full-eval faithfulness is `1.000` for all seven questions
+  - full-eval numeric pass rate is `1.000` for all seven questions
+  - `KBF_T2_018`, `POS_T1_057`, and `SAM_T3_028` answer-composition
+    residuals are closed
 - Main closure:
   - multi-concept lookup tasks now split into independent task-ledger entries
   - sibling table evidence can recover missing lookup slots generically
   - lookup-list rendering is constrained to lookup-only aggregates
-  - post-fix runtime numeric blockers for `KBF_T2_018`, `POS_T1_057`, and
+  - source-visible value displays are preserved when they are stronger than
+    recomputed rounded displays
+  - quantitative-impact composition assembles only evidence-visible numeric
+    claims and relations
+  - context-dependent segment/total table rows are rejected for unscoped
+    lookup and ratio operands
+  - post-fix runtime blockers for `KBF_T2_018`, `POS_T1_057`, and
     `SAM_T3_028` are closed without adding runtime domain keyword branches
 
 ### Policy-Driven Runtime Gate
@@ -178,12 +183,15 @@ Useful supporting points:
 
 ## Next Work
 
-1. Reduce benchmark runtime and embedding cost through profiling, cache
+1. Freeze the current concept-runtime 7/7 gate as the promotion baseline and
+   use store-fixed eval-only refreshes for future canaries before paying for
+   fresh ingest.
+2. Reduce benchmark runtime and embedding cost through profiling, cache
    hygiene, and explicit retrieval query-budget controls for focused canaries.
-2. Harden task-ledger and artifact-store contracts for the multi-agent workflow.
-3. Clean up legacy projection paths now that `answer_slots` and
+3. Harden task-ledger and artifact-store contracts for the multi-agent workflow.
+4. Clean up legacy projection paths now that `answer_slots` and
    `resolved_calculation_trace` are the durable runtime surfaces.
-4. Add a small portfolio demo script that runs a representative query and emits
+5. Add a small portfolio demo script that runs a representative query and emits
    answer, evidence, and calculation trace side by side.
 
 ### Runtime/API Cost Focus
@@ -303,11 +311,12 @@ Useful supporting points:
 - A 2026-06-04 fresh concept-runtime-gate refresh with OpenAI
   `text-embedding-3-large` initially exposed focused failures in
   `POS_T1_057`, `KBF_T2_018`, `KAB_T1_066`, and `SAM_T3_028`.
-- The current local result file
-  `benchmarks/results/concept_runtime_gap_gate_refresh_2026-06-04_after_narrative_terms/results.json`
-  is a mutable local experiment artifact; the post-commit all-seven eval-only
-  check completed and exposed `KBF_T2_018` and `POS_T1_057` as remaining
-  numeric failures before the focused closures below.
+- The current local result directory
+  `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
+  is a mutable local experiment artifact and is not committed.
+- The latest store-fixed eval-only refresh now reports `7 / 7 PASS`:
+  `KBF_T2_018`, `POS_T1_057`, `SKH_T3_080`, `SAM_T3_028`, `CEL_T1_013`,
+  `CEL_T3_040`, and `KAB_T1_066`.
 - Closures stayed generic:
   - aggregate structured cell selection uses reviewed row/cell metadata
   - contextual precision refinement cannot replace a detailed source display
@@ -324,10 +333,16 @@ Useful supporting points:
     into evaluator-visible evidence claims
   - short unitless `UNKNOWN` numerics are not treated as material aggregate
     operands
+  - unscoped lookup/ratio tasks reject context-dependent segment/total table
+    rows before sibling recovery or direct operand extraction can promote them
 - Latest focused checks:
   - `KBF_T2_018`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
     grounding `1.0`, retrieval support `1.0`.
   - `POS_T1_057`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
     grounding `1.0`, retrieval support `1.0`.
-- Residual follow-up: `SAM_T3_028` passes numeric grounding; remaining work is
-  answer-composition detail coverage rather than numeric runtime repair.
+  - `SAM_T3_028`: PASS; faithfulness `1.0`, completeness `1.0`; the final
+    answer preserves the inventory valuation loss/reversal/disposal values and
+    the cost-of-sales impact relation without adding a runtime keyword branch.
+- Residual follow-up: no active concept-gate blocker remains. Future work is
+  promotion-risk management, cost/runtime control, and task-ledger/artifact
+  contract cleanup.
