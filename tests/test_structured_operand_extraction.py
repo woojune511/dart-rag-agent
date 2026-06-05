@@ -14,6 +14,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import OperandExtraction
 
 
@@ -125,7 +126,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        rows = list(result.get("calculation_operands") or [])
+        rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
 
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
@@ -233,7 +234,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        rows = list(result.get("calculation_operands") or [])
+        rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
 
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
@@ -338,7 +339,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        rows = list(result.get("calculation_operands") or [])
+        rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
 
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
         self.assertEqual(len(rows), 2)
@@ -1099,10 +1100,11 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(result)
 
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
-        self.assertEqual(len(result.get("calculation_operands") or []), 1)
-        self.assertEqual(result["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
 
     def test_lookup_direct_acceptance_rejects_evidence_row_and_uses_structured_value(self) -> None:
         label = "법인세비용차감전순이익"
@@ -1195,11 +1197,12 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(result)
 
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
-        self.assertEqual(len(result.get("calculation_operands") or []), 1)
-        self.assertEqual(result["calculation_operands"][0]["evidence_id"], "chunk_lookup_accept::value:0")
-        self.assertEqual(result["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["evidence_id"], "chunk_lookup_accept::value:0")
+        self.assertEqual(trace["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
 
     def test_lookup_direct_task_skips_generic_retrieved_doc_augmentation(self) -> None:
         self.agent.llm = _ExplodingLLM()
@@ -1264,8 +1267,9 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(result)
 
-        self.assertEqual(result["calculation_operands"], [])
+        self.assertEqual(trace["calculation_operands"], [])
         self.assertEqual(result["calculation_debug_trace"]["coverage"], "missing")
 
     def test_reconciliation_evidence_items_use_table_backed_row_surface(self) -> None:
@@ -1727,11 +1731,17 @@ class StructuredOperandExtractionTests(unittest.TestCase):
                 "artifacts": [],
             }
 
+            state["resolved_calculation_trace"] = {
+                "calculation_operands": state.pop("calculation_operands"),
+                "calculation_plan": {},
+                "calculation_result": {},
+            }
             result = self.agent._plan_formula_calculation(state)
         finally:
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
-        plan = dict(result.get("calculation_plan") or {})
+        trace = _resolve_runtime_calculation_trace(result)
+        plan = dict(trace["calculation_plan"])
         self.assertEqual(plan.get("status"), "ok")
         self.assertEqual(plan.get("mode"), "single_value")
         self.assertEqual(plan.get("operation"), "ratio")
@@ -1763,9 +1773,15 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
+        state["resolved_calculation_trace"] = {
+            "calculation_operands": state.pop("calculation_operands"),
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
         result = self.agent._plan_formula_calculation(state)
 
-        plan = dict(result.get("calculation_plan") or {})
+        trace = _resolve_runtime_calculation_trace(result)
+        plan = dict(trace["calculation_plan"])
         self.assertEqual(plan.get("status"), "ok")
         self.assertEqual(plan.get("operation"), "ratio")
         self.assertEqual(plan.get("formula"), "((A) / (B)) * 100")

@@ -33,7 +33,7 @@ contract로 승격할 준비를 끝내는 것**이다.
 | --- | --- |
 | Topology | 장기적으로는 `Orchestrator -> Analyst / Researcher -> Critic -> Merge`가 유망하지만, 단기적으로는 single-agent graph 안에서 planner / synthesizer 경계를 먼저 닫아야 함 |
 | Communication | 자유 대화보다 `task ledger + artifact store`가 적합 |
-| Memory | generic long-term memory보다 `report-scoped cache`가 우선 |
+| Memory | ChatGPT/Codex memory는 사용자 선호와 handoff 시작 절차에만 쓰고, runtime 상태 기억은 `report-scoped cache`와 repo 문서/git 기록이 우선 |
 
 즉 앞으로의 epic은 `REFERENCE_NOTE`나 retry patch 자체보다,  
 **planner / synthesizer / artifact boundary와 shared state contract를 먼저 고정하는 것**을 기준으로 정렬한다.
@@ -160,11 +160,43 @@ runtime contract를 고정하는 선행 작업으로 본다.
   evidence-visible impact relation assembly, unscoped context-dependent table
   rejection 같은 일반 contract로 처리했고, runtime domain-term audit도
   통과했다.
+- task-ledger/artifact-store boundary hardening의 첫 단계로 runtime caller,
+  evaluator, review CSV/Markdown, benchmark summary가 공통
+  `task_artifact_trace` projection을 노출한다. 이 projection은 task/artifact
+  count, missing artifact reference, orphan artifact, duplicate id,
+  completed/partial task without artifact 같은 generic integrity issue를
+  구조화해서 보여준다.
+- aggregate final synthesis는 `task_artifact_trace.integrity_status = error`를
+  blocking acceptance condition으로 사용한다. replan budget이 남으면 planner
+  feedback을 내고, budget이 소진되면 partial answer에 명시적 refusal을 붙인다.
+- completed `calculation` task는 `operand_set`, `calculation_plan`,
+  `calculation_result` artifact kind를 모두 요구한다. 누락된 kind는
+  `missing_required_artifact_kind` error로 projection되고 final close를 막는다.
+- completed calculation artifact는 최소 payload와 provenance도 요구한다.
+  operand list, plan operation/mode, rendered result 또는 answer slots, 그리고
+  artifact-level evidence refs 또는 payload provenance가 없으면 각각
+  `missing_required_artifact_payload` / `missing_required_evidence_ref` error가
+  된다.
+- completed `reconciliation` task도 `reconciliation_result` artifact,
+  `payload.reconciliation_result.status`, ready/ok 상태의 candidate/evidence
+  provenance를 요구한다. 누락은 기존 generic integrity error type으로
+  projection되고 final close를 막는다.
+- completed `retrieval` task도 `retrieval_bundle` artifact, non-empty retrieved
+  candidate list, candidate provenance를 요구한다. 빈 retrieval bundle이나
+  source 없는 retrieved candidate는 generic integrity error로 projection되고
+  final close를 막는다.
+- completed `synthesis` task도 `aggregated_answer` artifact, final answer text,
+  source material, provenance를 요구한다. text-only final answer나 source 없는
+  aggregate는 generic integrity error로 projection되고 final close를 막는다.
+- completed `critic` task도 `critic_report` artifact, verdict, target refs,
+  reason/issues, provenance를 요구한다. target 없는 critic 또는 이유 없는
+  pass/fail verdict는 generic integrity error로 projection되고 final close를
+  막는다.
 - 따라서 이제 남은 일은 이 구조를 다른 numeric family로 일반화하고,
   mixed growth+narrative 계열의 retrieval fan-out과 answer-language polish를
   question-specific rule 없이 줄이는 것이다. 다만 concept-gate blocker
   chasing은 종료하고, 다음 우선순위는 gate baseline 고정, runtime/API cost
-  control, task-ledger/artifact-store boundary hardening이다.
+  control, 그리고 legacy projection cleanup이다.
 
 종료 조건:
 
@@ -200,7 +232,118 @@ runtime contract를 고정하는 선행 작업으로 본다.
 
 현재:
 
-- single-agent graph state는 존재하지만 task ledger와 artifact schema는 약하다
+- single-agent graph state가 raw task/artifact 기록을 유지한다
+- caller/evaluator/benchmark surface에는 compact `task_artifact_trace`와
+  generic integrity issue projection이 생겼다
+- final synthesis는 trace의 error 상태를 close 차단 조건으로 사용한다
+- completed calculation task의 required artifact-kind contract는 close 차단
+  조건으로 승격됐다
+- completed calculation task의 required payload/provenance contract도 close
+  차단 조건으로 승격됐다
+- completed reconciliation task의 required artifact/status/provenance contract도
+  close 차단 조건으로 승격됐다
+- completed retrieval task의 required bundle/provenance contract도 close 차단
+  조건으로 승격됐다
+- completed synthesis task의 aggregated answer/source/provenance contract도
+  close 차단 조건으로 승격됐다
+- completed critic task의 critic report/verdict/target/provenance contract도
+  close 차단 조건으로 승격됐다
+- MAS state도 `task_artifact_trace`를 유지하고, Critic은 `critic_report`
+  artifact를, final merge는 `aggregated_answer` artifact를 artifact store에
+  남긴다
+- warning-level integrity signal은 기본 non-blocking이지만, final
+  aggregated answer가 orphan artifact나 artifact 없는 completed/partial task를
+  직접 source로 삼으면 blocking error로 승격된다
+- Analyst worker는 `calculation` task로 `operand_set`, `calculation_plan`,
+  primary `calculation_result`를 분리해서 쓰고, Researcher worker는
+  retrieved candidate와 provenance를 담은 `retrieval_bundle`을 쓴다
+- Runtime calculation projection source is now explicit under
+  `resolved_calculation_trace.runtime_projection`; legacy top-level
+  `calculation_*` fallback is marked compatibility-only with
+  `legacy_fallback = true`.
+- Resolver fallback now distinguishes standalone `structured_result` projection
+  from mixed legacy fallback. If legacy operands/plans are combined with
+  `structured_result`, the trace stays `legacy_top_level` and records
+  `calculation_result_source`.
+- Evaluator per-question results, benchmark serialized results, review CSV, and
+  review Markdown now surface runtime projection source, legacy-fallback status,
+  and calculation-result source as first-class audit fields.
+- `RuntimeCalculationTrace` and `TaskResultRecord` typed contracts now describe
+  the preferred graph-state projection; remaining cleanup should reduce writes
+  to top-level `calculation_*` mirrors.
+- `_runtime_trace_state_update(include_compatibility_mirrors = false)` is now
+  available and applied to calculation verification skip, formula no-operands,
+  formula missing-required-operands, calculation execution failure, incomplete
+  deterministic lookup, deterministic operation guard, LLM formula-plan guard,
+  operand/formula planning structured-output failure, render fallback,
+  verification structured-output failure, and aggregate synthesis fallback
+  branches. Render, verification, and aggregate success branches are now
+  converted as well. `_execute_calculation` success and operand extraction
+  direct/guard/synthesis/LLM success branches are now converted too. Formula
+  planning deterministic lookup/operation/ontology success and LLM success
+  branches are converted as well, and the remaining formula planning
+  guard/incomplete branches now follow the same canonical trace contract.
+  Non-formula calculation-node reset/no-op branches are converted too, and
+  `_runtime_trace_state_update()` now defaults to omitting top-level
+  compatibility mirrors. Compatibility mirrors are explicit opt-in for older
+  external readers. A no-LLM replay audit over
+  `runtime_projection_audit_2026-06-05` found all 7 copied concept-gate
+  full-eval rows already on `resolved_calculation_trace` and no
+  `legacy_top_level` rows. `_resolve_runtime_calculation_trace(...,
+  allow_legacy_top_level = false)` now provides a strict mode for new readers:
+  it rejects legacy top-level fallback while preserving non-legacy
+  `structured_result` projection. Evaluator result export, benchmark
+  serialized/review export, eligible analyst/MAS artifact handoff consumers, and
+  current-runtime debug readers, reflection retry planning, route-decision
+  readers after formula planning/calculation, and render/verification/retry
+  preparation readers now use strict mode. Formula planning now reads incoming
+  operands through strict current-state resolution and carries those operands
+  explicitly through canonical trace updates, so legacy top-level operands
+  cannot drive a new formula plan. Calculation execution now also reads operands
+  and plans through strict current-state resolution, and every execution
+  result/failure update carries the strict operands and plan explicitly. Late
+  runtime numeric answer shaping now also reads through strict current-state
+  resolution, so legacy top-level calculation results cannot rewrite final
+  answers. Dependency-projection recalculation result readers now also use
+  strict current-state resolution after `_execute_calculation()`, preventing
+  legacy top-level recalculation results from refreshing aggregate rows. The
+  active-task artifact projection helper now also ignores legacy top-level
+  `calculation_*` fallback unless it is deliberately overriding a stale
+  aggregate trace with live non-aggregate state.
+  Historical replay, retrospective readers, and the public runtime projection
+  bridge explicitly opt into legacy compatibility. The public bridge is now
+  documented and tested as a `FinancialAgent.run()`/export boundary, not an
+  internal current-state reader. Helper-level compatibility readers are now
+  documented and tested: `_resolve_runtime_structured_result()` preserves legacy
+  top-level fallback for export/review adapters, and
+  `_runtime_trace_state_update()` may carry omitted trace parts from older
+  state surfaces while migrated live graph nodes pass updated trace parts
+  explicitly. Benchmark runner serialized results, smoke summaries, and review
+  exports are now classified as strict current-contract projection surfaces;
+  they expose projection metadata without promoting legacy top-level mirrors
+  into exported resolved traces. Live evaluator rows are now classified the same
+  way: fresh eval scoring consumes canonical runtime projection only and rejects
+  stale top-level mirrors. Historical answer replay is now classified as a
+  deliberate compatibility reader: it accepts legacy top-level mirrors from
+  older saved result bundles, but canonical `resolved_calculation_trace` still
+  wins when both surfaces are present. Retrospective operand-grounding
+  rescoring follows the same compatibility policy for historical rows: legacy
+  top-level operands are accepted only as resolver fallback behind canonical
+  trace data. Retrospective evaluator ablation follows the same policy for
+  historical rows, covering both operand-selection ablations and
+  calculation-result-based override ablations. Retrospective ontology retrieval
+  ablation is classified differently: it reruns the current graph against a
+  persisted store, so it uses strict current-state projection and rejects
+  top-level mirror fallback. Current-run debug helpers now follow the same
+  strict projection policy: `debug_math_workflow.py` and
+  `debug_reference_note_workflow.py` reject top-level mirror fallback and avoid
+  structured-result fallback through stale top-level calculation results.
+  `mas_analyst_smoke.py` is now explicitly mixed: direct `FinancialAgent.run()`
+  comparison payloads remain compatibility-oriented, while MAS artifact handoff
+  readers are strict and reject stale top-level mirrors for operands, statuses,
+  and calculation-result payloads. The ops raw resolver callsites are now
+  classified as strict current-runtime readers or deliberate compatibility
+  readers.
 
 다음:
 
@@ -210,7 +353,34 @@ runtime contract를 고정하는 선행 작업으로 본다.
 - `CriticReport`
 - `FinalReport`
 
-같은 typed object를 기준으로 state를 재정의
+First step completed: MAS merge now keeps the compatibility `final_report`
+string while also publishing a typed `final_report_record`/`FinalReport`
+projection, and the `aggregated_answer` artifact payload mirrors that record.
+Second step completed: MAS Analyst and Researcher evidence-pool rows now use a
+shared `EvidenceRecord` builder with common task/creator/kind/source fields and
+producer-specific details preserved under `metadata`.
+Third step completed: MAS critic output now uses a shared `CriticReport`
+builder, and `critic_report` artifact payloads mirror the typed report.
+Fourth step completed: MAS planner, critic, and synthesis task creation now use
+a shared `AgentTask` builder to normalize task ids, status, context keys,
+kind/label, dependencies, artifact ids, and blocked reason.
+Fifth step completed: MAS worker, critic, and synthesis artifact creation now
+uses a shared `Artifact` builder to normalize artifact ids, kind/status/summary,
+payload projections, evidence refs, producer task id, and metadata while keeping
+the compatibility `content` field intact.
+Sixth step completed: MAS critic and final synthesis consumers now read typed
+artifact projections first, using `payload` for answer/calculation status and
+`evidence_refs` for grounding before falling back to compatibility fields.
+Seventh step completed: MAS final merge now blocks `ok` close when
+`task_artifact_trace.integrity_status = "error"`, preserves visible partial
+material, and marks the typed final report plus synthesis artifact as blocked.
+Eighth step completed: MAS final merge now distinguishes budgeted replan from
+budget-exhausted refusal by emitting `planner_feedback`, incrementing
+`replan_count`, and publishing a `replan_required` final projection while budget
+remains.
+
+Next structural step: connect the `replan_required` signal to an actual graph
+edge back to planning, with loop limits and task/artifact carry-forward rules.
 
 ### 3. Report-scoped cache
 
@@ -408,7 +578,7 @@ runtime contract를 고정하는 선행 작업으로 본다.
 - `business_overview_001`, `risk_analysis_001`을 score 맞추기용으로 과도하게 패치
 - retrieval purity metric만 보고 ranking 로직을 계속 국소 조정
 - rule-based self-reflection 분기를 더 늘리기
-- generic long-term memory를 먼저 설계하기
+- generic long-term memory를 runtime state contract로 먼저 설계하기
 
 핵심 원칙:
 

@@ -8,7 +8,18 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from src.agent.financial_graph_helpers import _resolve_runtime_structured_result
-from src.agent.mas_types import AgentTask, Artifact, CriticReport, MultiAgentState, TaskStatus
+from src.agent.mas_types import (
+    AgentTask,
+    Artifact,
+    CriticReport,
+    MultiAgentState,
+    TaskStatus,
+    attach_task_artifact_trace,
+    build_agent_task,
+    build_artifact,
+    build_critic_report,
+)
+from src.schema import ArtifactKind, TaskKind
 
 MAX_CRITIC_RETRIES = 2
 _PERCENT_RE = re.compile(r"\d+(?:\.\d+)?%")
@@ -19,7 +30,16 @@ def _trace(message: str) -> List[str]:
     return [message]
 
 
+def _artifact_payload(artifact: Artifact) -> Dict[str, Any]:
+    payload = artifact.get("payload")
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
 def _artifact_answer(artifact: Artifact) -> str:
+    payload = _artifact_payload(artifact)
+    answer = str(payload.get("answer") or "").strip()
+    if answer:
+        return answer
     content = artifact.get("content")
     if isinstance(content, dict):
         return str(content.get("answer") or "").strip()
@@ -27,10 +47,24 @@ def _artifact_answer(artifact: Artifact) -> str:
 
 
 def _artifact_calc_result(artifact: Artifact) -> Dict[str, Any]:
+    payload = _artifact_payload(artifact)
+    if payload:
+        calc_result = _resolve_runtime_structured_result(payload)
+        if calc_result:
+            return calc_result
     content = artifact.get("content")
     if isinstance(content, dict):
         return _resolve_runtime_structured_result(content)
     return {}
+
+
+def _artifact_refs(artifact: Artifact | None) -> List[str]:
+    if artifact is None:
+        return []
+    refs = artifact.get("evidence_refs")
+    if not isinstance(refs, list):
+        refs = artifact.get("evidence_links") or []
+    return [str(item).strip() for item in refs if str(item).strip()]
 
 
 def _apply_rejection(
@@ -69,8 +103,8 @@ def _evaluate_analyst_artifact(task: AgentTask, artifact: Artifact | None) -> Tu
         score -= 0.4
         feedback.append("결과 답변이 비어 있습니다.")
 
-    evidence_links = [str(item).strip() for item in artifact.get("evidence_links", []) if str(item).strip()]
-    if not evidence_links:
+    evidence_refs = _artifact_refs(artifact)
+    if not evidence_refs:
         passed = False
         score -= 0.4
         feedback.append("계산 근거 링크가 없습니다. (grounding 실패)")
@@ -116,8 +150,8 @@ def _evaluate_researcher_artifact(task: AgentTask, artifact: Artifact | None) ->
         score -= 0.5
         feedback.append("리서치 결과가 너무 짧습니다.")
 
-    evidence_links = [str(item).strip() for item in artifact.get("evidence_links", []) if str(item).strip()]
-    if not evidence_links:
+    evidence_refs = _artifact_refs(artifact)
+    if not evidence_refs:
         passed = False
         score -= 0.4
         feedback.append("리서치 근거 링크가 없습니다. (grounding 실패)")
@@ -133,6 +167,7 @@ def run_critic(state: MultiAgentState) -> Dict[str, Any]:
 
     critic_reports: List[CriticReport] = []
     task_updates: Dict[str, AgentTask] = {}
+    artifact_updates: Dict[str, Artifact] = {}
     should_retry = False
     feedback_lines: List[str] = []
 
@@ -145,9 +180,7 @@ def run_critic(state: MultiAgentState) -> Dict[str, Any]:
         elif assignee == "Researcher":
             passed, score, feedback = _evaluate_researcher_artifact(task, artifact)
         else:
-            passed = artifact is not None
-            score = 1.0 if passed else 0.0
-            feedback = "통과 (Deterministic 1층)" if passed else "Unknown assignee artifact is missing."
+            continue
 
         if force_retry and not retry_emitted and assignee.lower() == force_retry:
             passed = False
@@ -163,13 +196,40 @@ def run_critic(state: MultiAgentState) -> Dict[str, Any]:
                 feedback = f"{feedback} | 최대 재시도 횟수를 초과하여 최종 실패 처리됨."
             feedback_lines.append(f"{task_id}: {feedback}")
 
-        critic_reports.append(
-            {
-                "target_task_id": task_id,
-                "passed": passed,
-                "deterministic_score": score,
-                "llm_feedback": feedback,
-            }
+        target_artifact_id = str((artifact or {}).get("artifact_id") or task_id).strip()
+        report = build_critic_report(
+            target_task_id=task_id,
+            passed=passed,
+            deterministic_score=score,
+            feedback=feedback,
+            target_artifact_id=target_artifact_id,
+        )
+        critic_reports.append(report)
+        critic_task_id = f"critic::{task_id}"
+        critic_artifact_id = critic_task_id
+        task_updates[critic_task_id] = build_agent_task(
+            task_id=critic_task_id,
+            assignee="Critic",
+            instruction=f"Review artifact for {task_id}.",
+            status=TaskStatus.COMPLETED,
+            context_keys=["artifact_store"],
+            kind=TaskKind.CRITIC.value,
+            label=f"Critic report for {task_id}",
+            depends_on=[task_id],
+            artifact_ids=[critic_artifact_id],
+        )
+        evidence_refs = [target_artifact_id] if target_artifact_id else []
+        evidence_refs.extend(_artifact_refs(artifact))
+        artifact_updates[critic_artifact_id] = build_artifact(
+            task_id=critic_task_id,
+            creator="Critic",
+            artifact_id=critic_artifact_id,
+            kind=ArtifactKind.CRITIC_REPORT.value,
+            status="ok" if passed else "rejected",
+            summary=feedback,
+            content=dict(report),
+            payload={"critic_report": dict(report)},
+            evidence_links=evidence_refs,
         )
 
     critic_feedback = (
@@ -183,10 +243,11 @@ def run_critic(state: MultiAgentState) -> Dict[str, Any]:
         else "Critic rejected some artifacts (Deterministic)"
     )
 
-    return {
+    return attach_task_artifact_trace(state, {
         "critic_reports": critic_reports,
         "critic_feedback": critic_feedback,
         "tasks": task_updates,
+        "artifacts": artifact_updates,
         "debug_retry_emitted": retry_emitted,
         "execution_trace": _trace(trace_message),
-    }
+    })

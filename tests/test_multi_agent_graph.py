@@ -28,11 +28,46 @@ class MultiAgentSkeletonTests(unittest.TestCase):
         self.assertLess(trace.index("Analyst completed task_1"), critic_index)
         self.assertLess(trace.index("Researcher completed task_2"), critic_index)
 
-        self.assertEqual(set(final["tasks"].keys()), {"task_1", "task_2"})
+        self.assertEqual(
+            set(final["tasks"].keys()),
+            {"task_1", "task_2", "critic::task_1", "critic::task_2", "synthesis::final"},
+        )
         self.assertEqual(final["tasks"]["task_1"]["status"], TaskStatus.COMPLETED)
         self.assertEqual(final["tasks"]["task_2"]["status"], TaskStatus.COMPLETED)
+        self.assertEqual(final["tasks"]["task_1"]["kind"], "calculation")
+        self.assertEqual(final["tasks"]["task_2"]["kind"], "retrieval")
+        self.assertEqual(
+            final["tasks"]["task_1"]["artifact_ids"],
+            ["task_1::operand_set", "task_1::calculation_plan", "task_1"],
+        )
+        self.assertEqual(final["tasks"]["critic::task_1"]["kind"], "critic")
+        self.assertEqual(final["tasks"]["synthesis::final"]["kind"], "synthesis")
+        self.assertIn("task_1::operand_set", final["artifacts"])
+        self.assertIn("task_1::calculation_plan", final["artifacts"])
         self.assertIn("task_1", final["artifacts"])
         self.assertIn("task_2", final["artifacts"])
+        self.assertIn("critic::task_1", final["artifacts"])
+        self.assertIn("synthesis::final", final["artifacts"])
+        self.assertEqual(final["artifacts"]["critic::task_1"]["kind"], "critic_report")
+        self.assertEqual(final["artifacts"]["synthesis::final"]["kind"], "aggregated_answer")
+        self.assertEqual(final["final_report_record"]["final_answer"], final["final_report"])
+        self.assertEqual(
+            final["artifacts"]["synthesis::final"]["payload"]["final_answer"],
+            final["final_report_record"]["final_answer"],
+        )
+        self.assertEqual(
+            final["final_report_record"]["source_task_ids"],
+            ["task_1", "task_2"],
+        )
+        self.assertEqual(
+            final["final_report_record"]["source_artifact_ids"],
+            ["task_1::operand_set", "task_1::calculation_plan", "task_1", "task_2"],
+        )
+        self.assertEqual(
+            final["final_report_record"]["evidence_refs"],
+            final["final_report_record"]["source_artifact_ids"],
+        )
+        self.assertEqual(final["task_artifact_trace"]["integrity_status"], "ok")
         self.assertEqual(len(final["critic_reports"]), 2)
         self.assertTrue(all(report["passed"] for report in final["critic_reports"]))
         self.assertEqual(
@@ -57,6 +92,9 @@ class MultiAgentSkeletonTests(unittest.TestCase):
         self.assertEqual(final["tasks"]["task_1"]["status"], TaskStatus.COMPLETED)
         self.assertEqual(final["tasks"]["task_1"]["retry_count"], 1)
         self.assertEqual(final["tasks"]["task_2"]["status"], TaskStatus.COMPLETED)
+        self.assertEqual(final["final_report_record"]["final_answer"], final["final_report"])
+        self.assertEqual(final["final_report_record"]["status"], "ok")
+        self.assertEqual(final["task_artifact_trace"]["integrity_status"], "ok")
         self.assertEqual(len(final["critic_reports"]), 4)
         first_critic_pass = {
             report["target_task_id"]: report["passed"]

@@ -65,31 +65,62 @@ def _artifact_answer(final_state: Dict[str, Any]) -> str:
 def _artifact_calc_status(final_state: Dict[str, Any]) -> str:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    calculation_result = _resolve_runtime_structured_result(content)
+    resolved_trace = _resolve_runtime_calculation_trace(
+        content,
+        allow_legacy_top_level=False,
+    )
+    calculation_result = _resolve_runtime_structured_result(
+        {
+            "resolved_calculation_trace": resolved_trace,
+            "structured_result": content.get("structured_result"),
+        }
+    )
     return str(calculation_result.get("status") or "")
 
 
 def _artifact_operand_count(final_state: Dict[str, Any]) -> int:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    resolved = _resolve_runtime_calculation_trace(content)
+    resolved = _resolve_runtime_calculation_trace(
+        content,
+        allow_legacy_top_level=False,
+    )
     return len(resolved.get("calculation_operands") or [])
 
 
 def _calc_payload(result: Dict[str, Any]) -> Dict[str, Any]:
-    resolved = _resolve_runtime_calculation_trace(result)
+    # Direct FinancialAgent output is the public export bridge for this smoke
+    # comparison, so it keeps legacy compatibility for older result payloads.
+    resolved = _resolve_runtime_calculation_trace(
+        result,
+        allow_legacy_top_level=True,
+    )
     return dict(resolved.get("calculation_result") or {})
 
 
 def _operand_count(result: Dict[str, Any]) -> int:
-    resolved = _resolve_runtime_calculation_trace(result)
+    # Direct FinancialAgent output may come from the compatibility bridge; MAS
+    # artifact readers below stay strict because they inspect current handoff.
+    resolved = _resolve_runtime_calculation_trace(
+        result,
+        allow_legacy_top_level=True,
+    )
     return len(resolved.get("calculation_operands") or [])
 
 
 def _artifact_calc_payload(final_state: Dict[str, Any]) -> Dict[str, Any]:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    return _resolve_runtime_structured_result(content)
+    resolved_trace = _resolve_runtime_calculation_trace(
+        content,
+        allow_legacy_top_level=False,
+    )
+    return _resolve_runtime_structured_result(
+        {
+            "resolved_calculation_trace": resolved_trace,
+            "structured_result": content.get("structured_result"),
+        }
+    )
 
 
 def _numeric_result_match(left: Dict[str, Any], right: Dict[str, Any], tolerance: float = 1e-9) -> bool:

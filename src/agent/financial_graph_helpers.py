@@ -19,7 +19,7 @@ import json
 import math
 from pathlib import Path
 import re
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -75,7 +75,7 @@ from src.config.retrieval_policy import (
     numeric_section_policy_preferred_sections,
     numeric_section_policy_statement_types,
 )
-from src.agent.financial_graph_models import validate_answer_slots_payload
+from src.agent.financial_graph_models import RuntimeCalculationTrace, validate_answer_slots_payload
 from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
 
 __all__ = [
@@ -87,6 +87,7 @@ __all__ = [
     '_section_hint_alias',
     '_append_artifact',
     '_upsert_task',
+    '_project_task_artifact_trace',
     '_extract_artifact_payload_value',
     '_find_task_record_in_list',
     '_latest_artifact_value_for_task_records',
@@ -94,6 +95,7 @@ __all__ = [
     '_project_task_trace_from_state',
     '_build_aggregate_calculation_projection',
     '_resolve_runtime_calculation_trace',
+    '_build_runtime_calculation_trace',
     '_runtime_trace_state_update',
     '_candidate_row_block_signature',
     '_resolve_candidate_local_unit_hint',
@@ -383,6 +385,465 @@ def _upsert_task(
     return updated
 
 
+def _normalise_ledger_records(value: Any) -> List[Dict[str, Any]]:
+    if isinstance(value, dict):
+        raw_items = list(value.values())
+    elif isinstance(value, list):
+        raw_items = list(value)
+    else:
+        raw_items = []
+    return [dict(item) for item in raw_items if isinstance(item, dict)]
+
+
+def _project_task_artifact_trace(
+    tasks: Any,
+    artifacts: Any,
+) -> Dict[str, Any]:
+    """Return a compact caller-facing projection of the task/artifact ledger."""
+
+    required_artifact_kinds_by_task_kind = {
+        TaskKind.CALCULATION.value: {
+            ArtifactKind.OPERAND_SET.value,
+            ArtifactKind.CALCULATION_PLAN.value,
+            ArtifactKind.CALCULATION_RESULT.value,
+        },
+        TaskKind.RECONCILIATION.value: {
+            ArtifactKind.RECONCILIATION_RESULT.value,
+        },
+        TaskKind.RETRIEVAL.value: {
+            ArtifactKind.RETRIEVAL_BUNDLE.value,
+        },
+        TaskKind.SYNTHESIS.value: {
+            ArtifactKind.AGGREGATED_ANSWER.value,
+        },
+        TaskKind.CRITIC.value: {
+            ArtifactKind.CRITIC_REPORT.value,
+        },
+    }
+    provenance_keys = {
+        "evidence_ref",
+        "evidence_refs",
+        "evidence_id",
+        "evidence_ids",
+        "source_evidence_id",
+        "source_evidence_ids",
+        "source_row_id",
+        "source_row_ids",
+        "row_id",
+        "row_ids",
+        "candidate_id",
+        "candidate_ids",
+        "chunk_id",
+        "chunk_ids",
+        "doc_id",
+        "doc_ids",
+        "source_anchor",
+        "source_anchors",
+        "source_artifact_id",
+        "source_artifact_ids",
+        "source_task_id",
+        "source_task_ids",
+        "target_artifact_id",
+        "target_artifact_ids",
+        "target_task_id",
+        "target_task_ids",
+        "checked_artifact_id",
+        "checked_artifact_ids",
+        "checked_task_id",
+        "checked_task_ids",
+    }
+
+    def _payload_missing_contract(artifact_kind: str, payload: Mapping[str, Any]) -> str:
+        if artifact_kind == ArtifactKind.OPERAND_SET.value:
+            operands = payload.get("calculation_operands")
+            if not isinstance(operands, list) or not operands:
+                return "calculation_operands"
+        elif artifact_kind == ArtifactKind.CALCULATION_PLAN.value:
+            plan = payload.get("calculation_plan")
+            if not isinstance(plan, Mapping):
+                return "calculation_plan"
+            if not str(plan.get("operation") or plan.get("mode") or "").strip():
+                return "calculation_plan.operation"
+        elif artifact_kind == ArtifactKind.CALCULATION_RESULT.value:
+            result = payload.get("calculation_result")
+            if not isinstance(result, Mapping):
+                return "calculation_result"
+            answer_slots = result.get("answer_slots")
+            has_answer_slots = isinstance(answer_slots, Mapping) and bool(answer_slots)
+            has_rendered = bool(
+                str(result.get("rendered_value") or result.get("formatted_result") or "").strip()
+            )
+            if not has_rendered and not has_answer_slots:
+                return "calculation_result.rendered_value_or_answer_slots"
+        elif artifact_kind == ArtifactKind.RECONCILIATION_RESULT.value:
+            result = payload.get("reconciliation_result")
+            if not isinstance(result, Mapping):
+                return "reconciliation_result"
+            if not str(result.get("status") or "").strip():
+                return "reconciliation_result.status"
+        elif artifact_kind == ArtifactKind.RETRIEVAL_BUNDLE.value:
+            bundle = payload.get("retrieval_bundle") if isinstance(payload.get("retrieval_bundle"), Mapping) else {}
+            candidate_lists = [
+                payload.get("retrieved_docs"),
+                payload.get("seed_retrieved_docs"),
+                payload.get("evidence_items"),
+                payload.get("documents"),
+                bundle.get("retrieved_docs"),
+                bundle.get("seed_retrieved_docs"),
+                bundle.get("evidence_items"),
+                bundle.get("documents"),
+            ]
+            if not any(isinstance(items, list) and bool(items) for items in candidate_lists):
+                return "retrieval_bundle.items"
+        elif artifact_kind == ArtifactKind.AGGREGATED_ANSWER.value:
+            final_answer = str(payload.get("final_answer") or payload.get("answer") or "").strip()
+            if not final_answer:
+                return "aggregated_answer.final_answer"
+            source_lists = [
+                payload.get("subtask_results"),
+                payload.get("source_artifact_ids"),
+                payload.get("source_task_ids"),
+            ]
+            source_maps = [
+                payload.get("resolved_calculation_trace"),
+                payload.get("structured_result"),
+                payload.get("calculation_result"),
+            ]
+            has_source_list = any(isinstance(items, list) and bool(items) for items in source_lists)
+            has_source_map = any(isinstance(item, Mapping) and bool(item) for item in source_maps)
+            if not has_source_list and not has_source_map:
+                return "aggregated_answer.source_material"
+        elif artifact_kind == ArtifactKind.CRITIC_REPORT.value:
+            report = payload.get("critic_report") if isinstance(payload.get("critic_report"), Mapping) else payload
+            verdict_value = report.get("verdict") or report.get("status")
+            has_passed_value = isinstance(report.get("passed"), bool)
+            if not has_passed_value and not str(verdict_value or "").strip():
+                return "critic_report.verdict"
+            target_lists = [
+                report.get("target_task_ids"),
+                report.get("target_artifact_ids"),
+                report.get("checked_task_ids"),
+                report.get("checked_artifact_ids"),
+                report.get("source_task_ids"),
+                report.get("source_artifact_ids"),
+            ]
+            target_values = [
+                report.get("target_task_id"),
+                report.get("target_artifact_id"),
+                report.get("checked_task_id"),
+                report.get("checked_artifact_id"),
+                report.get("source_task_id"),
+                report.get("source_artifact_id"),
+            ]
+            has_target_list = any(isinstance(items, list) and bool(items) for items in target_lists)
+            has_target_value = any(str(item or "").strip() for item in target_values)
+            if not has_target_list and not has_target_value:
+                return "critic_report.target_refs"
+            issue_lists = [
+                report.get("blocking_issues"),
+                report.get("issues"),
+                report.get("findings"),
+            ]
+            reason_values = [
+                report.get("acceptance_reason"),
+                report.get("rationale"),
+                report.get("feedback"),
+                report.get("llm_feedback"),
+            ]
+            has_issues = any(isinstance(items, list) and bool(items) for items in issue_lists)
+            has_reason = any(str(item or "").strip() for item in reason_values)
+            if not has_issues and not has_reason:
+                return "critic_report.acceptance_reason_or_issues"
+        return ""
+
+    def _reconciliation_result_status(artifacts_for_task: Sequence[Mapping[str, Any]]) -> str:
+        for artifact in artifacts_for_task:
+            if str(artifact.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
+                continue
+            payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+            result = payload.get("reconciliation_result") if isinstance(payload, Mapping) else {}
+            if isinstance(result, Mapping):
+                return str(result.get("status") or "").strip().lower()
+        return ""
+
+    def _payload_has_provenance(value: Any) -> bool:
+        if isinstance(value, Mapping):
+            for key, nested in value.items():
+                if str(key).strip() in provenance_keys:
+                    if isinstance(nested, list):
+                        if any(str(item).strip() for item in nested):
+                            return True
+                    elif isinstance(nested, Mapping):
+                        if nested:
+                            return True
+                    elif str(nested).strip():
+                        return True
+                if _payload_has_provenance(nested):
+                    return True
+        elif isinstance(value, list):
+            for nested in value:
+                if _payload_has_provenance(nested):
+                    return True
+        return False
+
+    def _direct_string_refs(value: Any) -> List[str]:
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if isinstance(value, str) and value.strip():
+            return [value.strip()]
+        return []
+
+    def _final_source_refs(artifact_records_value: Sequence[Mapping[str, Any]]) -> tuple[set[str], set[str]]:
+        source_artifact_ids: set[str] = set()
+        source_task_ids: set[str] = set()
+        for artifact in artifact_records_value:
+            if str(artifact.get("kind") or "").strip() != ArtifactKind.AGGREGATED_ANSWER.value:
+                continue
+            payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+            nested = payload.get("aggregated_answer") if isinstance(payload.get("aggregated_answer"), Mapping) else {}
+            payloads = [payload, nested]
+            for item in payloads:
+                source_artifact_ids.update(_direct_string_refs(item.get("source_artifact_id")))
+                source_artifact_ids.update(_direct_string_refs(item.get("source_artifact_ids")))
+                source_task_ids.update(_direct_string_refs(item.get("source_task_id")))
+                source_task_ids.update(_direct_string_refs(item.get("source_task_ids")))
+                for result in item.get("subtask_results") or []:
+                    if not isinstance(result, Mapping):
+                        continue
+                    source_task_ids.update(_direct_string_refs(result.get("task_id")))
+                    source_artifact_ids.update(_direct_string_refs(result.get("artifact_id")))
+                    source_artifact_ids.update(_direct_string_refs(result.get("source_artifact_id")))
+        return source_artifact_ids, source_task_ids
+
+    task_records = _normalise_ledger_records(tasks)
+    artifact_records = _normalise_ledger_records(artifacts)
+    task_id_counts: Dict[str, int] = {}
+    for task in task_records:
+        task_id = str(task.get("task_id") or "").strip()
+        if task_id:
+            task_id_counts[task_id] = task_id_counts.get(task_id, 0) + 1
+    artifact_id_counts: Dict[str, int] = {}
+    for artifact in artifact_records:
+        artifact_id = str(artifact.get("artifact_id") or "").strip()
+        if artifact_id:
+            artifact_id_counts[artifact_id] = artifact_id_counts.get(artifact_id, 0) + 1
+    artifact_by_id = {
+        str(item.get("artifact_id") or "").strip(): item
+        for item in artifact_records
+        if str(item.get("artifact_id") or "").strip()
+    }
+    referenced_artifact_ids: set[str] = set()
+    task_views: List[Dict[str, Any]] = []
+
+    for task in task_records:
+        artifact_ids = [
+            str(value).strip()
+            for value in (task.get("artifact_ids") or [])
+            if str(value).strip()
+        ]
+        referenced_artifact_ids.update(artifact_ids)
+        attached = [
+            artifact_by_id[artifact_id]
+            for artifact_id in artifact_ids
+            if artifact_id in artifact_by_id
+        ]
+        latest = attached[-1] if attached else {}
+        task_views.append(
+            {
+                "task_id": str(task.get("task_id") or "").strip(),
+                "kind": str(task.get("kind") or "").strip(),
+                "label": str(task.get("label") or "").strip(),
+                "status": str(task.get("status") or "").strip(),
+                "metric_family": str(task.get("metric_family") or "").strip(),
+                "artifact_ids": artifact_ids,
+                "artifact_kinds": [
+                    str(artifact.get("kind") or "").strip()
+                    for artifact in attached
+                    if str(artifact.get("kind") or "").strip()
+                ],
+                "latest_artifact_id": str(latest.get("artifact_id") or "").strip(),
+                "latest_artifact_kind": str(latest.get("kind") or "").strip(),
+                "latest_artifact_status": str(latest.get("status") or "").strip(),
+                "latest_artifact_summary": str(latest.get("summary") or "").strip(),
+            }
+        )
+
+    artifact_views: List[Dict[str, Any]] = []
+    for artifact in artifact_records:
+        payload = artifact.get("payload") if isinstance(artifact.get("payload"), dict) else {}
+        artifact_views.append(
+            {
+                "artifact_id": str(artifact.get("artifact_id") or "").strip(),
+                "task_id": str(artifact.get("task_id") or "").strip(),
+                "kind": str(artifact.get("kind") or "").strip(),
+                "status": str(artifact.get("status") or "").strip(),
+                "summary": str(artifact.get("summary") or "").strip(),
+                "payload_keys": sorted(str(key) for key in payload.keys()),
+                "evidence_refs": [
+                    str(value).strip()
+                    for value in (artifact.get("evidence_refs") or [])
+                    if str(value).strip()
+                ],
+            }
+        )
+
+    artifact_ids = {
+        str(item.get("artifact_id") or "").strip()
+        for item in artifact_records
+        if str(item.get("artifact_id") or "").strip()
+    }
+    task_ids = {
+        str(item.get("task_id") or "").strip()
+        for item in task_records
+        if str(item.get("task_id") or "").strip()
+    }
+    missing_artifact_ids = sorted(
+        artifact_id for artifact_id in referenced_artifact_ids if artifact_id not in artifact_ids
+    )
+    orphan_artifact_ids = sorted(
+        artifact_id
+        for artifact_id, artifact in artifact_by_id.items()
+        if str(artifact.get("task_id") or "").strip() not in task_ids
+    )
+    integrity_issues: List[Dict[str, Any]] = []
+
+    for task_id, count in sorted(task_id_counts.items()):
+        if count > 1:
+            integrity_issues.append(
+                {"type": "duplicate_task_id", "severity": "error", "task_id": task_id, "count": count}
+            )
+    for artifact_id, count in sorted(artifact_id_counts.items()):
+        if count > 1:
+            integrity_issues.append(
+                {"type": "duplicate_artifact_id", "severity": "error", "artifact_id": artifact_id, "count": count}
+            )
+    for artifact_id in missing_artifact_ids:
+        integrity_issues.append(
+            {"type": "missing_artifact_reference", "severity": "error", "artifact_id": artifact_id}
+        )
+    for artifact_id in orphan_artifact_ids:
+        integrity_issues.append(
+            {"type": "orphan_artifact", "severity": "warning", "artifact_id": artifact_id}
+        )
+    final_source_artifact_ids, final_source_task_ids = _final_source_refs(artifact_records)
+    for artifact_id in sorted(set(orphan_artifact_ids) & final_source_artifact_ids):
+        integrity_issues.append(
+            {
+                "type": "final_source_orphan_artifact",
+                "severity": "error",
+                "artifact_id": artifact_id,
+            }
+        )
+    for task in task_views:
+        status = str(task.get("status") or "").strip().lower()
+        if status in {"completed", "partial"} and not list(task.get("artifact_ids") or []):
+            integrity_issues.append(
+                {
+                    "type": "task_without_artifacts",
+                    "severity": "warning",
+                    "task_id": task.get("task_id") or "",
+                    "status": status,
+                }
+            )
+            if str(task.get("task_id") or "").strip() in final_source_task_ids:
+                integrity_issues.append(
+                    {
+                        "type": "final_source_task_without_artifacts",
+                        "severity": "error",
+                        "task_id": task.get("task_id") or "",
+                        "status": status,
+                    }
+                )
+        required_kinds = sorted(
+            required_artifact_kinds_by_task_kind.get(str(task.get("kind") or "").strip(), set())
+        )
+        if status == "completed" and required_kinds:
+            task_kind = str(task.get("kind") or "").strip()
+            attached_artifacts = [
+                artifact_by_id[artifact_id]
+                for artifact_id in (task.get("artifact_ids") or [])
+                if artifact_id in artifact_by_id
+            ]
+            present_kinds = {
+                str(kind).strip()
+                for kind in (task.get("artifact_kinds") or [])
+                if str(kind).strip()
+            }
+            for missing_kind in sorted(set(required_kinds) - present_kinds):
+                integrity_issues.append(
+                    {
+                        "type": "missing_required_artifact_kind",
+                        "severity": "error",
+                        "task_id": task.get("task_id") or "",
+                        "task_kind": task.get("kind") or "",
+                        "artifact_kind": missing_kind,
+                    }
+                )
+            for artifact in attached_artifacts:
+                artifact_kind = str(artifact.get("kind") or "").strip()
+                if artifact_kind not in required_kinds:
+                    continue
+                payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+                missing_payload_key = _payload_missing_contract(artifact_kind, payload)
+                if missing_payload_key:
+                    integrity_issues.append(
+                        {
+                            "type": "missing_required_artifact_payload",
+                            "severity": "error",
+                            "task_id": task.get("task_id") or "",
+                            "task_kind": task.get("kind") or "",
+                            "artifact_id": str(artifact.get("artifact_id") or "").strip(),
+                            "artifact_kind": artifact_kind,
+                            "payload_key": missing_payload_key,
+                        }
+                    )
+            has_evidence_ref = any(
+                str(value).strip()
+                for artifact in attached_artifacts
+                for value in (artifact.get("evidence_refs") or [])
+            )
+            has_payload_provenance = any(
+                _payload_has_provenance(artifact.get("payload") or {})
+                for artifact in attached_artifacts
+            )
+            requires_evidence_ref = task_kind == TaskKind.CALCULATION.value
+            if task_kind == TaskKind.RECONCILIATION.value:
+                requires_evidence_ref = _reconciliation_result_status(attached_artifacts) in {"ok", "ready"}
+            elif task_kind == TaskKind.RETRIEVAL.value:
+                requires_evidence_ref = True
+            elif task_kind == TaskKind.SYNTHESIS.value:
+                requires_evidence_ref = True
+            elif task_kind == TaskKind.CRITIC.value:
+                requires_evidence_ref = True
+            if requires_evidence_ref and not has_evidence_ref and not has_payload_provenance:
+                integrity_issues.append(
+                    {
+                        "type": "missing_required_evidence_ref",
+                        "severity": "error",
+                        "task_id": task.get("task_id") or "",
+                        "task_kind": task_kind,
+                    }
+                )
+
+    integrity_status = "ok"
+    if any(issue.get("severity") == "error" for issue in integrity_issues):
+        integrity_status = "error"
+    elif integrity_issues:
+        integrity_status = "warning"
+
+    return {
+        "tasks": task_views,
+        "artifacts": artifact_views,
+        "task_count": len(task_views),
+        "artifact_count": len(artifact_views),
+        "orphan_artifact_ids": orphan_artifact_ids,
+        "missing_artifact_ids": missing_artifact_ids,
+        "integrity_status": integrity_status,
+        "integrity_issue_count": len(integrity_issues),
+        "integrity_issues": integrity_issues,
+    }
+
+
 def _extract_artifact_payload_value(
     artifact: Dict[str, Any],
     payload_key: str,
@@ -531,7 +992,10 @@ def _project_task_trace_from_state(
         suppress_aggregate_fallback = False
         active_trace = _normalise_resolved_calculation_trace(state)
         if not active_trace:
-            active_trace = _resolve_runtime_calculation_trace(state)
+            active_trace = _resolve_runtime_calculation_trace(
+                state,
+                allow_legacy_top_level=False,
+            )
         active_trace_result = dict(active_trace.get("calculation_result") or {})
         active_trace_plan = dict(active_trace.get("calculation_plan") or {})
         active_trace_operation = _trace_operation_family(
@@ -575,24 +1039,18 @@ def _project_task_trace_from_state(
                     or []
                 )
             ]
-        elif not calculation_operands and not suppress_aggregate_fallback:
-            calculation_operands = [dict(item) for item in (state.get("calculation_operands") or [])]
         if prefer_live_state and state.get("calculation_plan"):
             calculation_plan = dict(state.get("calculation_plan") or {})
         elif active_trace.get("calculation_plan"):
             calculation_plan = dict(
                 active_trace.get("calculation_plan")
             )
-        elif not calculation_plan and not suppress_aggregate_fallback:
-            calculation_plan = dict(state.get("calculation_plan") or {})
         if prefer_live_state and live_state_result:
             calculation_result = live_state_result
         elif active_trace.get("calculation_result"):
             calculation_result = dict(
                 active_trace.get("calculation_result")
             )
-        elif not calculation_result and not suppress_aggregate_fallback:
-            calculation_result = dict(state.get("calculation_result") or {})
         if not reconciliation_result:
             reconciliation_result = dict(state.get("reconciliation_result") or {})
 
@@ -764,6 +1222,105 @@ def _build_aggregate_calculation_projection(
     }
 
 
+def _trace_has_material(trace: Mapping[str, Any]) -> bool:
+    return bool(
+        trace.get("calculation_operands")
+        or trace.get("calculation_plan")
+        or trace.get("calculation_result")
+    )
+
+
+def _attach_runtime_projection_metadata(
+    trace: Dict[str, Any],
+    *,
+    source: str,
+    source_task_id: str = "",
+    legacy_fallback: bool = False,
+) -> Dict[str, Any]:
+    if not _trace_has_material(trace):
+        return trace
+    metadata = dict(trace.get("runtime_projection") or {})
+    metadata.update(
+        {
+            "source": str(source or "").strip(),
+            "legacy_fallback": bool(legacy_fallback),
+        }
+    )
+    if source_task_id:
+        metadata["source_task_id"] = str(source_task_id).strip()
+    trace["runtime_projection"] = metadata
+    return trace
+
+
+def _build_runtime_calculation_trace(
+    *,
+    calculation_operands: Optional[List[Dict[str, Any]]] = None,
+    calculation_plan: Optional[Dict[str, Any]] = None,
+    calculation_result: Optional[Dict[str, Any]] = None,
+    source: str,
+    source_task_id: str = "",
+    legacy_fallback: bool = False,
+) -> RuntimeCalculationTrace:
+    trace: RuntimeCalculationTrace = {
+        "calculation_operands": [dict(item) for item in (calculation_operands or [])],
+        "calculation_plan": dict(calculation_plan or {}),
+        "calculation_result": dict(calculation_result or {}),
+    }
+    return _attach_runtime_projection_metadata(
+        trace,
+        source=source,
+        source_task_id=source_task_id,
+        legacy_fallback=legacy_fallback,
+    )
+
+
+def _build_fallback_calculation_trace(
+    result: Dict[str, Any],
+    *,
+    allow_legacy_top_level: bool = True,
+) -> Dict[str, Any]:
+    operands = list(result.get("calculation_operands") or [])
+    plan = dict(result.get("calculation_plan") or {})
+    top_level_result = dict(result.get("calculation_result") or {})
+    structured_result = dict(result.get("structured_result") or {})
+    if not allow_legacy_top_level:
+        if structured_result:
+            return _build_runtime_calculation_trace(
+                calculation_result=structured_result,
+                source="structured_result",
+                legacy_fallback=False,
+            )
+        return {}
+
+    calculation_result = dict(top_level_result)
+    source = "legacy_top_level"
+    legacy_fallback = bool(operands or plan or top_level_result)
+
+    if structured_result:
+        calculation_result = structured_result
+        if not operands and not plan and not top_level_result:
+            source = "structured_result"
+            legacy_fallback = False
+
+    trace = _build_runtime_calculation_trace(
+        calculation_operands=operands,
+        calculation_plan=plan,
+        calculation_result=calculation_result,
+        source=source,
+        legacy_fallback=legacy_fallback,
+    )
+    metadata = trace.get("runtime_projection")
+    if (
+        structured_result
+        and isinstance(metadata, MutableMapping)
+        and (operands or plan or top_level_result)
+    ):
+        metadata["calculation_result_source"] = "structured_result"
+        if top_level_result:
+            metadata["superseded_calculation_result_source"] = "legacy_top_level"
+    return trace
+
+
 def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
     resolved = dict(result.get("resolved_calculation_trace") or {})
     structured_result = dict(result.get("structured_result") or {})
@@ -771,15 +1328,20 @@ def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, A
     operands = list(resolved.get("calculation_operands") or [])
     plan = dict(resolved.get("calculation_plan") or {})
     calc_result = dict(resolved.get("calculation_result") or {})
+    source = "resolved_calculation_trace"
     if structured_result and not calc_result:
         calc_result = structured_result
+        if not operands and not plan:
+            source = "structured_result"
 
     if operands or plan or calc_result:
-        return {
-            "calculation_operands": operands,
-            "calculation_plan": plan,
-            "calculation_result": calc_result,
-        }
+        return _build_runtime_calculation_trace(
+            calculation_operands=operands,
+            calculation_plan=plan,
+            calculation_result=calc_result,
+            source=source,
+            legacy_fallback=False,
+        )
     return {}
 
 
@@ -808,16 +1370,16 @@ def _trace_operation_family(
     return ""
 
 
-def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]:
+def _resolve_runtime_calculation_trace(
+    result: Dict[str, Any],
+    *,
+    allow_legacy_top_level: bool = True,
+) -> Dict[str, Any]:
     normalised = _normalise_resolved_calculation_trace(result)
-    top_level = {
-        "calculation_operands": list(result.get("calculation_operands") or []),
-        "calculation_plan": dict(result.get("calculation_plan") or {}),
-        "calculation_result": dict(result.get("calculation_result") or {}),
-    }
-    structured_result = dict(result.get("structured_result") or {})
-    if structured_result and not top_level["calculation_result"]:
-        top_level["calculation_result"] = structured_result
+    fallback_trace = _build_fallback_calculation_trace(
+        result,
+        allow_legacy_top_level=allow_legacy_top_level,
+    )
     subtask_results = [dict(item) for item in (result.get("subtask_results") or [])]
 
     active_task_id = str((result.get("active_subtask") or {}).get("task_id") or "").strip()
@@ -851,16 +1413,20 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
                     or projected_active.get("calculation_plan")
                     or projected_active.get("calculation_result")
                 ):
-                    return projected_active
+                    return _attach_runtime_projection_metadata(
+                        projected_active,
+                        source="task_artifact_ledger",
+                        source_task_id=active_task_id,
+                    )
                 if _trace_operation_family(
-                    calculation_plan=top_level["calculation_plan"],
-                    calculation_result=top_level["calculation_result"],
+                    calculation_plan=dict(fallback_trace.get("calculation_plan") or {}),
+                    calculation_result=dict(fallback_trace.get("calculation_result") or {}),
                 ) != "aggregate_subtasks" and (
-                    top_level["calculation_operands"]
-                    or top_level["calculation_plan"]
-                    or top_level["calculation_result"]
+                    fallback_trace.get("calculation_operands")
+                    or fallback_trace.get("calculation_plan")
+                    or fallback_trace.get("calculation_result")
                 ):
-                    return top_level
+                    return fallback_trace
             return normalised
 
     if active_task_id:
@@ -870,19 +1436,39 @@ def _resolve_runtime_calculation_trace(result: Dict[str, Any]) -> Dict[str, Any]
             or projected["calculation_plan"]
             or projected["calculation_result"]
         ):
-            return projected
+            return _attach_runtime_projection_metadata(
+                projected,
+                source="task_artifact_ledger",
+                source_task_id=active_task_id,
+            )
 
     if subtask_results:
         final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
-        return _build_aggregate_calculation_projection(subtask_results, final_answer)
+        return _attach_runtime_projection_metadata(
+            _build_aggregate_calculation_projection(subtask_results, final_answer),
+            source="aggregate_subtasks",
+        )
 
     if normalised:
+        if (
+            dict(normalised.get("runtime_projection") or {}).get("source")
+            == "structured_result"
+            and (fallback_trace.get("calculation_operands") or fallback_trace.get("calculation_plan"))
+        ):
+            return fallback_trace
         return normalised
 
-    return top_level
+    return fallback_trace
 
 
 def _resolve_runtime_structured_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a structured result for export/review compatibility surfaces.
+
+    This helper intentionally preserves legacy top-level fallback because it is
+    used by benchmark, replay, MAS, and public response adapters that may read
+    older payloads. Live graph readers should resolve the canonical trace
+    directly with allow_legacy_top_level=False.
+    """
     structured_result = dict(result.get("structured_result") or {})
     if structured_result:
         return structured_result
@@ -901,28 +1487,31 @@ def _runtime_trace_state_update(
     calculation_operands: Optional[List[Dict[str, Any]]] = None,
     calculation_plan: Optional[Dict[str, Any]] = None,
     calculation_result: Optional[Dict[str, Any]] = None,
+    include_compatibility_mirrors: bool = False,
 ) -> Dict[str, Any]:
+    # Compatibility carry-forward for callers that omit one of the trace parts.
+    # Migrated live graph nodes pass every updated part explicitly, so this
+    # fallback remains only for older adapter/helper call surfaces.
     current_trace = _resolve_runtime_calculation_trace(state)
-    resolved_trace = {
-        "calculation_operands": [
-            dict(item)
-            for item in (
-                calculation_operands
-                if calculation_operands is not None
-                else list(current_trace.get("calculation_operands") or [])
-            )
-        ],
-        "calculation_plan": dict(
+    resolved_trace = _build_runtime_calculation_trace(
+        calculation_operands=(
+            calculation_operands
+            if calculation_operands is not None
+            else list(current_trace.get("calculation_operands") or [])
+        ),
+        calculation_plan=(
             calculation_plan
             if calculation_plan is not None
             else dict(current_trace.get("calculation_plan") or {})
         ),
-        "calculation_result": dict(
+        calculation_result=(
             calculation_result
             if calculation_result is not None
             else dict(current_trace.get("calculation_result") or {})
         ),
-    }
+        source="runtime_trace_state_update",
+        legacy_fallback=False,
+    )
     if calculation_result is not None:
         structured_result = dict(calculation_result)
     else:
@@ -932,14 +1521,20 @@ def _runtime_trace_state_update(
                 "resolved_calculation_trace": resolved_trace,
             }
         )
-    return {
+    update: Dict[str, Any] = {
         "resolved_calculation_trace": resolved_trace,
         "structured_result": structured_result,
-        # Internal compatibility mirror while graph-state callers migrate.
-        "calculation_operands": list(resolved_trace["calculation_operands"]),
-        "calculation_plan": dict(resolved_trace["calculation_plan"]),
-        "calculation_result": dict(resolved_trace["calculation_result"]),
     }
+    if include_compatibility_mirrors:
+        # Internal compatibility mirror while graph-state callers migrate.
+        update.update(
+            {
+                "calculation_operands": list(resolved_trace["calculation_operands"]),
+                "calculation_plan": dict(resolved_trace["calculation_plan"]),
+                "calculation_result": dict(resolved_trace["calculation_result"]),
+            }
+        )
+    return update
 
 
 # ---------------------------------------------------------------------------

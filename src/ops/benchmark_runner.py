@@ -25,7 +25,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from agent.financial_graph import DEFAULT_CONTEXT_BATCH_SIZE, DEFAULT_CONTEXT_MAX_WORKERS, FinancialAgent
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
+from agent.financial_graph_helpers import (
+    _project_task_artifact_trace,
+    _resolve_runtime_calculation_trace,
+    _resolve_runtime_structured_result,
+)
 from config.runtime_contract import CANONICAL_INGEST_MODE
 from ingestion.dart_fetcher import DARTFetcher, ReportMetadata
 from ops.evaluator import (
@@ -1038,8 +1042,16 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
             "resolved_calculation_trace": getattr(result, "resolved_calculation_trace", {}) or {},
             "structured_result": getattr(result, "structured_result", {}) or {},
         }
-        resolved_trace = _resolve_runtime_calculation_trace(runtime_projection)
+        # Benchmark result exports are current-contract surfaces. They expose
+        # projection metadata but must not resurrect legacy top-level mirrors
+        # from older EvalResult attributes.
+        resolved_trace = _resolve_runtime_calculation_trace(
+            runtime_projection,
+            allow_legacy_top_level=False,
+        )
         structured_result = _resolve_runtime_structured_result(runtime_projection)
+        projection_metadata = dict(resolved_trace.get("runtime_projection") or {})
+        task_artifact_trace = dict(getattr(result, "task_artifact_trace", {}) or {})
         serialised.append(
             {
                 "id": result.id,
@@ -1104,7 +1116,22 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "unsupported_sentences": result.unsupported_sentences,
                 "sentence_checks": result.sentence_checks,
                 "resolved_calculation_trace": resolved_trace,
+                "runtime_projection_source": projection_metadata.get("source") or "",
+                "runtime_projection_legacy_fallback": bool(
+                    projection_metadata.get("legacy_fallback")
+                ),
+                "runtime_projection_calculation_result_source": (
+                    projection_metadata.get("calculation_result_source") or ""
+                ),
                 "structured_result": structured_result,
+                "task_artifact_trace": task_artifact_trace,
+                "task_artifact_task_count": task_artifact_trace.get("task_count"),
+                "task_artifact_artifact_count": task_artifact_trace.get("artifact_count"),
+                "task_artifact_missing_ids": list(task_artifact_trace.get("missing_artifact_ids") or []),
+                "task_artifact_orphan_ids": list(task_artifact_trace.get("orphan_artifact_ids") or []),
+                "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
+                "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
+                "task_artifact_integrity_issues": list(task_artifact_trace.get("integrity_issues") or []),
                 "resolved_operand_count": len(resolved_trace.get("calculation_operands", []) or []),
                 "agent_llm_usage": getattr(result, "agent_llm_usage", {}) or {},
                 "judge_llm_usage": getattr(result, "judge_llm_usage", {}) or {},
@@ -1141,7 +1168,12 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
                 "resolved_calculation_trace": result.get("resolved_calculation_trace"),
                 "structured_result": result.get("structured_result"),
             }
-            resolved_trace = _resolve_runtime_calculation_trace(runtime_projection)
+            # Smoke summaries are generated from the public run projection and
+            # should not re-read legacy top-level calculation mirrors.
+            resolved_trace = _resolve_runtime_calculation_trace(
+                runtime_projection,
+                allow_legacy_top_level=False,
+            )
             structured_result = _resolve_runtime_structured_result(runtime_projection)
         except Exception as exc:
             error = str(exc)
@@ -2347,9 +2379,22 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             for row in result.get("screening_eval", {}).get("per_question", [])
         }
         for question_result in result.get("full_eval", {}).get("per_question", []):
-            resolved_trace = _resolve_runtime_calculation_trace(question_result)
+            # Review CSV/Markdown exports audit canonical runtime projection
+            # only; older top-level calculation mirrors remain visible in the
+            # raw bundle but are not promoted into review fields.
+            resolved_trace = _resolve_runtime_calculation_trace(
+                question_result,
+                allow_legacy_top_level=False,
+            )
+            projection_metadata = dict(resolved_trace.get("runtime_projection") or {})
             resolved_result = resolved_trace.get("calculation_result", {}) or {}
-            structured_result = _resolve_runtime_structured_result(question_result)
+            structured_result = dict(question_result.get("structured_result") or resolved_result or {})
+            task_artifact_trace = dict(question_result.get("task_artifact_trace") or {})
+            if not task_artifact_trace:
+                task_artifact_trace = _project_task_artifact_trace(
+                    question_result.get("tasks", []),
+                    question_result.get("artifacts", []),
+                )
             resolved_operands = resolved_trace.get("calculation_operands", []) or []
             evidence_rows = question_result.get("evidence") or []
             evidence_quotes = [
@@ -2471,8 +2516,26 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "trend_interpretation_correctness": question_result.get("trend_interpretation_correctness"),
                     "grounded_rendering_correctness": question_result.get("grounded_rendering_correctness"),
                     "calculation_correctness": question_result.get("calculation_correctness"),
+                    "runtime_projection_source": projection_metadata.get("source") or "",
+                    "runtime_projection_legacy_fallback": bool(
+                        projection_metadata.get("legacy_fallback")
+                    ),
+                    "runtime_projection_calculation_result_source": (
+                        projection_metadata.get("calculation_result_source") or ""
+                    ),
                     "resolved_calculation_trace": json.dumps(resolved_trace, ensure_ascii=False),
                     "structured_result": json.dumps(structured_result, ensure_ascii=False),
+                    "task_artifact_trace": json.dumps(task_artifact_trace, ensure_ascii=False),
+                    "task_artifact_task_count": task_artifact_trace.get("task_count"),
+                    "task_artifact_artifact_count": task_artifact_trace.get("artifact_count"),
+                    "task_artifact_missing_ids": " | ".join(task_artifact_trace.get("missing_artifact_ids") or []),
+                    "task_artifact_orphan_ids": " | ".join(task_artifact_trace.get("orphan_artifact_ids") or []),
+                    "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
+                    "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
+                    "task_artifact_integrity_issues": json.dumps(
+                        task_artifact_trace.get("integrity_issues") or [],
+                        ensure_ascii=False,
+                    ),
                     "resolved_operand_count": len(resolved_operands),
                     "missing_info_compliance": question_result.get("missing_info_compliance"),
                     "missing_info_policy": question_result.get("missing_info_policy"),
@@ -2542,8 +2605,19 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "trend_interpretation_correctness",
         "grounded_rendering_correctness",
         "calculation_correctness",
+        "runtime_projection_source",
+        "runtime_projection_legacy_fallback",
+        "runtime_projection_calculation_result_source",
         "resolved_calculation_trace",
         "structured_result",
+        "task_artifact_trace",
+        "task_artifact_task_count",
+        "task_artifact_artifact_count",
+        "task_artifact_missing_ids",
+        "task_artifact_orphan_ids",
+        "task_artifact_integrity_status",
+        "task_artifact_integrity_issue_count",
+        "task_artifact_integrity_issues",
         "resolved_operand_count",
         "missing_info_compliance",
         "missing_info_policy",
@@ -2624,11 +2698,23 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
                 "",
                 row.get("structured_result") or "-",
                 "",
+                "Task Artifact Trace",
+                "",
+                row.get("task_artifact_trace") or "-",
+                "",
+                f"Task/Artifact Counts: tasks={row.get('task_artifact_task_count') if row.get('task_artifact_task_count') is not None else '-'}, artifacts={row.get('task_artifact_artifact_count') if row.get('task_artifact_artifact_count') is not None else '-'}",
+                f"Missing Artifact IDs: {row.get('task_artifact_missing_ids') or '-'}",
+                f"Orphan Artifact IDs: {row.get('task_artifact_orphan_ids') or '-'}",
+                f"Integrity: {row.get('task_artifact_integrity_status') or '-'} ({row.get('task_artifact_integrity_issue_count') if row.get('task_artifact_integrity_issue_count') is not None else 0} issues)",
+                row.get("task_artifact_integrity_issues") or "-",
+                "",
                 "Resolved Calculation Trace",
                 "",
                 row.get("resolved_calculation_trace") or "-",
                 "",
                 f"Resolved Operand Count: {row.get('resolved_operand_count') if row.get('resolved_operand_count') is not None else '-'}",
+                f"Runtime Projection: source={row.get('runtime_projection_source') or '-'}, legacy_fallback={row.get('runtime_projection_legacy_fallback')}",
+                f"Calculation Result Source: {row.get('runtime_projection_calculation_result_source') or '-'}",
                 "",
                 "Selected Claims",
                 "",
@@ -2667,8 +2753,8 @@ def _render_summary_markdown(results: List[Dict[str, Any]]) -> str:
     lines = [
         "# Benchmark Summary",
         "",
-        "| Experiment | Chunk | Overlap | Mode | Screen Pass | Parse (s) | Ingest (s) | Est. Cost (USD) | API Δ | Time Δ | Cost Δ | Parent Calls | Child Calls | API Calls | Contam | Hit@k | NDCG@5 | P@5 | Entity | Section | Citation | Full Faithfulness | Full Relevancy | Full Recall | Full Completeness | Refusal | Numeric Pass |",
-        "|---|---:|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Experiment | Chunk | Overlap | Mode | Screen Pass | Parse (s) | Ingest (s) | Est. Cost (USD) | API Δ | Time Δ | Cost Δ | Parent Calls | Child Calls | API Calls | Contam | Hit@k | NDCG@5 | P@5 | Entity | Section | Citation | Full Faithfulness | Full Relevancy | Full Recall | Full Completeness | Refusal | Numeric Pass | Ledger Errors | Ledger Warnings | Ledger Issues |",
+        "|---|---:|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
 
     for result in results:
@@ -2682,7 +2768,7 @@ def _render_summary_markdown(results: List[Dict[str, Any]]) -> str:
         ingest_delta = comparison.get("ingest_time_reduction_ratio")
         cost_delta = comparison.get("estimated_cost_reduction_ratio")
         lines.append(
-              "| {id} | {chunk} | {overlap} | {mode} | {passed} | {parse:.3f} | {ingest_sec:.3f} | {cost} | {api_delta} | {ingest_delta} | {cost_delta} | {parent_calls} | {child_calls} | {api_calls} | {contam:.3f} | {hit:.3f} | {ndcg} | {p5} | {entity} | {section:.3f} | {citation:.3f} | {faith} | {rel} | {recall} | {complete} | {refusal} | {numeric_pass} |".format(
+              "| {id} | {chunk} | {overlap} | {mode} | {passed} | {parse:.3f} | {ingest_sec:.3f} | {cost} | {api_delta} | {ingest_delta} | {cost_delta} | {parent_calls} | {child_calls} | {api_calls} | {contam:.3f} | {hit:.3f} | {ndcg} | {p5} | {entity} | {section:.3f} | {citation:.3f} | {faith} | {rel} | {recall} | {complete} | {refusal} | {numeric_pass} | {ledger_errors} | {ledger_warnings} | {ledger_issues} |".format(
                   id=result["id"],
                 chunk=config.get("chunk_size"),
                 overlap=config.get("chunk_overlap"),
@@ -2703,6 +2789,9 @@ def _render_summary_markdown(results: List[Dict[str, Any]]) -> str:
                   complete="-" if not full or full.get("completeness") is None else f"{full.get('completeness', 0.0):.3f}",
                   refusal="-" if not full or full.get("refusal_accuracy") is None else f"{full.get('refusal_accuracy', 0.0):.3f}",
                   numeric_pass="-" if not full or full.get("numeric_pass_rate") is None else f"{full.get('numeric_pass_rate', 0.0):.3f}",
+                  ledger_errors="-" if not full else int(full.get("task_artifact_integrity_error_count", 0) or 0),
+                  ledger_warnings="-" if not full else int(full.get("task_artifact_integrity_warning_count", 0) or 0),
+                  ledger_issues="-" if not full else int(full.get("task_artifact_integrity_issue_count", 0) or 0),
                   contam=screen.get("contamination_rate", 0.0),
                   hit=screen.get("retrieval_hit_at_k", 0.0),
                   ndcg="-" if screen.get("ndcg_at_5") is None else f"{screen.get('ndcg_at_5', 0.0):.3f}",
@@ -2793,6 +2882,10 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "full_trend_interpretation_correctness",
         "full_grounded_rendering_correctness",
         "full_calculation_correctness",
+        "full_task_artifact_integrity_error_count",
+        "full_task_artifact_integrity_warning_count",
+        "full_task_artifact_integrity_ok_count",
+        "full_task_artifact_integrity_issue_count",
         "full_llm_api_calls",
         "full_llm_prompt_tokens",
         "full_llm_output_tokens",
@@ -2886,6 +2979,10 @@ def _write_summary_csv(path: Path, results: List[Dict[str, Any]]) -> None:
                       "full_trend_interpretation_correctness": full.get("trend_interpretation_correctness"),
                       "full_grounded_rendering_correctness": full.get("grounded_rendering_correctness"),
                       "full_calculation_correctness": full.get("calculation_correctness"),
+                      "full_task_artifact_integrity_error_count": full.get("task_artifact_integrity_error_count"),
+                      "full_task_artifact_integrity_warning_count": full.get("task_artifact_integrity_warning_count"),
+                      "full_task_artifact_integrity_ok_count": full.get("task_artifact_integrity_ok_count"),
+                      "full_task_artifact_integrity_issue_count": full.get("task_artifact_integrity_issue_count"),
                       "full_llm_api_calls": full.get("llm_api_calls"),
                       "full_llm_prompt_tokens": full.get("llm_prompt_tokens"),
                       "full_llm_output_tokens": full.get("llm_output_tokens"),

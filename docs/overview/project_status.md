@@ -17,6 +17,18 @@ traceable runtime contract for financial analysis:
 The current direction is to turn the verified single-agent runtime into a
 role-separated multi-agent system using a task ledger and artifact store.
 
+## Session Handoff
+
+- ChatGPT/Codex memory may remember user preferences and the preferred handoff
+  routine, but it is not the source of truth for current project state.
+- A new session should first read `AGENTS.md`, `CONTEXT.md`, this status file,
+  `git status`, and recent commits before proposing or editing code.
+- Store changing state in repo artifacts: `CONTEXT.md` for short snapshots,
+  this file for current gate/backlog status, `docs/history/experiment_history.md`
+  for experiment narratives, and git commits for exact source history.
+- Do not rely on memory for latest blockers, benchmark outputs, model/API
+  configuration, or files to stage.
+
 ## Current Gate Status
 
 | Gate | Scope | Latest Status |
@@ -188,11 +200,248 @@ Useful supporting points:
    fresh ingest.
 2. Reduce benchmark runtime and embedding cost through profiling, cache
    hygiene, and explicit retrieval query-budget controls for focused canaries.
-3. Harden task-ledger and artifact-store contracts for the multi-agent workflow.
-4. Clean up legacy projection paths now that `answer_slots` and
-   `resolved_calculation_trace` are the durable runtime surfaces.
-5. Add a small portfolio demo script that runs a representative query and emits
+3. Continue projection cleanup by reducing internal writes to top-level
+   `calculation_*` mirrors now that `RuntimeCalculationTrace` and
+   `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
+   LLM formula-plan guard, and operand/formula planning structured-output
+   failure branches now use `include_compatibility_mirrors = false`. Render,
+   verification, and aggregate synthesis fallback branches now do the same; the
+   render, verification, and aggregate success branches have also moved to
+   canonical trace readers. `_execute_calculation` success and operand
+   extraction direct/guard/synthesis/LLM success readers now also consume the
+   canonical trace while those branches omit top-level mirrors. Formula planning
+   deterministic lookup/operation/ontology success and LLM success readers now
+   do the same, and the remaining formula planning guard/incomplete branches
+   are now also mirror-free. Formula planning now reads incoming operands with
+   strict current-state resolution and preserves them explicitly in canonical
+   trace updates, so legacy top-level operands cannot seed a new formula plan.
+   Calculation execution now also reads operands and plans with strict
+   current-state resolution, preserving the strict operands and plan through
+   result/failure trace updates. Late runtime numeric answer shaping now also
+   uses strict current-state resolution, so legacy top-level calculation results
+   cannot rewrite final answers. Dependency-projection recalculation readers now
+   also use strict current-state resolution for `_execute_calculation()` outputs,
+   so legacy top-level recalculation results cannot refresh aggregate rows. The
+   calculation node's remaining non-formula
+   reset/no-op branches now also omit top-level mirrors, and
+   `_runtime_trace_state_update()` now defaults to mirror-free canonical trace
+   publication. Helper-level compatibility fallback is documented and tested for
+   export/review structured-result adapters and omitted trace-part carry-forward
+   only. Benchmark runner serialized results, smoke summaries, and review
+   exports are strict current-contract projection surfaces: they surface
+   projection source metadata without re-promoting legacy top-level mirrors into
+   resolved traces. Live evaluator rows now follow the same strict contract for
+   fresh scoring, rejecting stale top-level mirrors while retaining canonical
+   projection metadata. Historical answer replay is the first explicitly
+   classified ops compatibility reader: it accepts legacy top-level mirrors from
+   older saved bundles, but treats them as fallback behind canonical
+   `resolved_calculation_trace`. Retrospective operand-grounding rescoring now
+   follows the same policy for historical rows, and retrospective evaluator
+   ablation now applies it to both operand and calculation-result inputs.
+   Retrospective ontology retrieval ablation reruns the current graph against a
+   persisted store, so it is now documented and tested as a strict
+   current-runtime projection reader. Current-run debug helpers are now also
+   documented and tested as strict readers, including structured-result output
+   paths that no longer revive stale top-level calculation results. Resolver
+   fallback now distinguishes structured-result-only and mixed legacy fallback,
+   and evaluator/benchmark exports surface projection source metadata so
+   remaining legacy fallback consumers can be audited from output artifacts.
+4. Add a small portfolio demo script that runs a representative query and emits
    answer, evidence, and calculation trace side by side.
+
+### Task Ledger / Artifact Contract Focus
+
+- The runtime now projects raw `tasks` and `artifacts` into a compact
+  `task_artifact_trace` for callers, evaluator results, review CSV/Markdown,
+  and benchmark aggregate summaries.
+- The projection reports task/artifact counts, missing artifact references,
+  orphan artifacts, and a generic integrity status with structured issues.
+- Duplicate ids and missing artifact references are errors; orphan artifacts and
+  completed or partial tasks without artifacts are warnings.
+- Final synthesis now treats integrity errors as blocking acceptance: it replans
+  when budget remains and emits an explicit partial/refusal answer when the
+  replan budget is exhausted.
+- Completed calculation tasks now require attached `operand_set`,
+  `calculation_plan`, and `calculation_result` artifacts; missing required kinds
+  are reported as `missing_required_artifact_kind` errors and therefore block
+  final close.
+- Calculation artifacts now also require minimum payload shape and preserved
+  provenance. Missing operand lists, executable plan operation/mode, rendered
+  result/answer slots, or evidence provenance are reported as
+  `missing_required_artifact_payload` / `missing_required_evidence_ref` errors.
+- Completed reconciliation tasks now require a `reconciliation_result` artifact,
+  `payload.reconciliation_result.status`, and candidate/evidence provenance when
+  the result is `ready` or `ok`.
+- Completed retrieval tasks now require a `retrieval_bundle` artifact with a
+  non-empty retrieved candidate list and preserved candidate provenance.
+- Completed synthesis tasks now require an `aggregated_answer` artifact with
+  final answer text, source material, and preserved provenance.
+- Completed critic tasks now require a `critic_report` artifact with verdict,
+  target refs, reason/issues, and preserved provenance.
+- MAS state now carries `task_artifact_trace`; worker nodes write stable
+  artifact ids/kinds/payload/evidence refs, Critic writes `critic_report`
+  artifacts, and final merge writes an `aggregated_answer` artifact.
+- Analyst worker tasks are now `calculation` tasks that write separate
+  `operand_set`, `calculation_plan`, and primary `calculation_result` artifacts.
+  Researcher worker tasks are now `retrieval` tasks that write a
+  `retrieval_bundle` with retrieved candidates and provenance.
+- Runtime calculation projection now records its source under
+  `resolved_calculation_trace.runtime_projection`, so callers can distinguish
+  canonical resolved traces, task/artifact ledger projections, aggregate
+  projections, structured-result views, and legacy top-level `calculation_*`
+  fallback.
+- Resolver fallback now separates structured-result-only projections from mixed
+  legacy fallback. A standalone `structured_result` is non-legacy, while legacy
+  top-level operands/plans combined with a structured result remain marked
+  `legacy_top_level` and record `calculation_result_source`.
+- Evaluator results and benchmark review exports now surface
+  `runtime_projection_source`, `runtime_projection_legacy_fallback`, and
+  `runtime_projection_calculation_result_source`, making remaining legacy
+  fallback usage visible without reading the full trace JSON.
+- A no-LLM replay audit over the copied
+  `runtime_projection_audit_2026-06-05` concept-gate bundle found 7/7
+  full-eval rows using `runtime_projection_source = resolved_calculation_trace`
+  and 0 `legacy_top_level` rows. The live eval-only diagnostic was stopped after
+  heartbeat-confirmed progress because the first question exceeded the audit's
+  cost/time budget.
+- `_resolve_runtime_calculation_trace(..., allow_legacy_top_level = false)` now
+  provides a strict resolver mode for new readers. Strict mode rejects legacy
+  top-level `calculation_*` fallback but still keeps standalone
+  `structured_result` as a non-legacy projection.
+- Evaluator result export, benchmark serialized/review export, eligible
+  analyst/MAS artifact handoff consumers, current-runtime debug readers,
+  reflection retry planning, route-decision readers after formula
+  planning/calculation, and render/verification/retry preparation readers now
+  use strict resolver mode, so legacy top-level mirrors no longer reappear in
+  those review, runtime handoff, debug, retry planning, routing, or answer
+  preparation surfaces. Historical replay, retrospective readers, and the public
+  runtime projection bridge explicitly opt into legacy compatibility because
+  they may read older result bundles or older caller surfaces. The public bridge
+  is covered as a `FinancialAgent.run()`/export boundary and must not be used by
+  new internal current-state readers.
+- `FinancialAgentState` now types `resolved_calculation_trace` as
+  `RuntimeCalculationTrace` and `subtask_results` as `TaskResultRecord`; the old
+  `_project_legacy_calculation_fields()` name remains only as a compatibility
+  alias for `_project_runtime_calculation_trace()`.
+- `_runtime_trace_state_update()` can now omit top-level `calculation_*`
+  compatibility mirrors. The first applied branch is calculation verification
+  skip for non-ok calculation results, which keeps `resolved_calculation_trace`
+  current without rewriting mirror fields.
+- The no-operands formula plan, missing-required-operands formula plan, and
+  calculation execution failure paths now also omit top-level compatibility
+  mirrors; focused tests read these results through `_resolve_runtime_calculation_trace()`.
+- Deterministic incomplete-plan branches now omit top-level compatibility
+  mirrors as well: incomplete deterministic lookup plans and deterministic
+  operation guard failures are consumed through `resolved_calculation_trace`.
+- LLM formula-plan guard failures and operand/formula planning structured-output
+  failures also omit top-level compatibility mirrors; focused tests read these
+  results through `_resolve_runtime_calculation_trace()`.
+- Render fallback, verification structured-output failure, and aggregate
+  synthesis fallback branches now omit top-level compatibility mirrors as well.
+  Focused tests read render/verification results through
+  `_resolve_runtime_calculation_trace()`, and aggregate fallback readers now use
+  the same projection instead of direct top-level `calculation_*` fields.
+- Render and verification success branches now also omit top-level
+  compatibility mirrors. Focused tests cover both LLM-rendered and slot-rendered
+  answers, plus successful verification, through `_resolve_runtime_calculation_trace()`.
+- Aggregate success branches now omit top-level compatibility mirrors too.
+  Aggregate result tests now read formatted results, rendered values, and status
+  through `_resolve_runtime_calculation_trace()` instead of direct top-level
+  `calculation_*` fields.
+- Calculation execution success branches and operand extraction
+  direct/guard/synthesis/LLM success branches now omit top-level compatibility
+  mirrors. Focused tests read produced operands/results through
+  `_resolve_runtime_calculation_trace()` before feeding the next graph step.
+- Formula planning deterministic lookup/operation/ontology success branches and
+  LLM success branches now omit top-level compatibility mirrors. Focused tests
+  read planned operations through `_resolve_runtime_calculation_trace()`.
+- Formula planning guard/incomplete branches now also omit top-level
+  compatibility mirrors, so the entire formula planning node publishes through
+  the canonical runtime trace contract.
+- Non-formula calculation-node reset/no-op branches now omit top-level
+  compatibility mirrors too. All `_runtime_trace_state_update()` call sites in
+  `financial_graph_calculation.py` now publish through the canonical trace
+  contract.
+- Active-task artifact projection now uses strict current-state resolution too:
+  empty `resolved_calculation_trace` no longer falls back to legacy top-level
+  `calculation_*` fields, while the deliberate stale-aggregate to live
+  non-aggregate override remains covered by focused tests.
+- Formula planning now also uses strict current-state resolution for its input
+  operands. Focused tests cover the legacy top-level operand rejection case and
+  existing deterministic/LLM plan branches feed operands through
+  `resolved_calculation_trace`.
+- Calculation execution now uses strict current-state resolution for operands
+  and plans. Focused tests cover the legacy top-level operand/plan rejection
+  case, and execution fixtures feed calculation inputs through
+  `resolved_calculation_trace`.
+- Late runtime numeric answer shaping now uses strict current-state resolution
+  too. Focused tests cover both canonical trace answer recovery and legacy
+  top-level calculation-result rejection.
+- Dependency-projection recalculation now reads `_execute_calculation()` outputs
+  through strict current-state resolution. Focused tests cover rejection of
+  legacy top-level recalculation results.
+- `_runtime_trace_state_update()` now defaults to omitting top-level
+  compatibility mirrors. Compatibility mirrors remain available only as an
+  explicit opt-in for older external readers.
+- Helper-level compatibility fallbacks are now explicitly documented and tested:
+  `_resolve_runtime_structured_result()` may read older top-level calculation
+  results for export/review adapters, and `_runtime_trace_state_update()` may
+  carry omitted trace parts from older state surfaces.
+- Benchmark runner exports are now explicitly strict projection consumers:
+  serialized eval rows, smoke summaries, and review CSV/Markdown rows ignore
+  stale top-level calculation mirrors while exposing runtime projection and task
+  artifact integrity metadata for audit.
+- Live evaluator rows are also strict projection consumers: `evaluate_one()`
+  ignores legacy top-level calculation mirrors during fresh scoring and records
+  projection metadata only from canonical runtime traces.
+- Historical answer replay is explicitly compatibility-oriented. It may read
+  older top-level calculation mirrors from saved benchmark bundles, but canonical
+  `resolved_calculation_trace` takes precedence whenever both are present.
+- Retrospective operand-grounding rescoring is also compatibility-oriented for
+  historical rows, with canonical `resolved_calculation_trace` taking precedence
+  over stale top-level operand mirrors.
+- Retrospective evaluator ablation is compatibility-oriented too. Historical
+  top-level mirrors remain fallback inputs, while canonical trace operands and
+  calculation results take precedence for ablation scoring.
+- Retrospective ontology retrieval ablation is strict, not compatibility-based:
+  it reruns current graph nodes against a persisted store and rejects legacy
+  top-level calculation mirrors when forming outcome rows.
+- Current-run debug helpers are strict projection consumers:
+  `debug_math_workflow.py` and `debug_reference_note_workflow.py` reject legacy
+  top-level calculation mirrors and keep structured-result output tied to the
+  canonical runtime trace.
+- `mas_analyst_smoke.py` is now classified as a mixed smoke reader: direct
+  `FinancialAgent.run()` comparison inputs keep compatibility fallback, while
+  MAS artifact handoff readers are strict and reject stale top-level mirrors for
+  operands, statuses, and calculation-result payloads.
+- MAS final synthesis now keeps the compatibility `final_report` string and
+  also publishes a typed `final_report_record`/`FinalReport` projection. The
+  `aggregated_answer` artifact payload mirrors that typed record.
+- MAS `evidence_pool` rows now use the shared `EvidenceRecord` builder:
+  Analyst and Researcher nodes publish common task/creator/kind/source fields
+  while preserving producer-specific details under `metadata`.
+- MAS critic output now uses the shared `CriticReport` builder. The typed report
+  normalizes verdict, target artifact refs, acceptance reason, blocking issues,
+  score, and feedback, and the `critic_report` artifact payload mirrors it.
+- MAS planner, critic, and synthesis task creation now use the shared
+  `AgentTask` builder to normalize task ids, assignees, status, context keys,
+  kind/label, dependencies, artifact ids, and blocked reason.
+- MAS worker, critic, and synthesis artifacts now use the shared `Artifact`
+  builder to normalize artifact ids, kind/status/summary, payload projections,
+  evidence refs, producer task id, and metadata while preserving compatibility
+  content.
+- MAS critic and final synthesis consumers now read typed artifact projections
+  first: answer/calculation status from `payload`, evidence from
+  `evidence_refs`, then compatibility `content`/`evidence_links` fallback.
+- MAS final merge now treats `task_artifact_trace.integrity_status = "error"`
+  as a blocking close condition: it preserves partial material but marks the
+  typed final report and synthesis artifact as blocked instead of closing `ok`.
+- MAS final merge now distinguishes replan from refusal: when replan budget
+  remains it emits `planner_feedback` and a `replan_required` final projection;
+  once the budget is exhausted it emits the blocked/refusal final answer.
+- Warning-level integrity signals are non-blocking by default, but final-source
+  dependencies on orphan artifacts or artifactless completed/partial tasks are
+  promoted to blocking errors.
 
 ### Runtime/API Cost Focus
 

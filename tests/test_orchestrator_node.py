@@ -10,7 +10,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.mas_graph import build_initial_state, run_mas_graph
-from src.agent.mas_types import Artifact, MultiAgentState, TaskStatus
+from src.agent.mas_types import Artifact, MultiAgentState, TaskStatus, build_agent_task, build_artifact
 from src.agent.nodes.orchestrator_node import (
     make_run_orchestrator_merge,
     make_run_orchestrator_plan,
@@ -49,7 +49,63 @@ class FailingPlannerCore:
         raise RuntimeError("planner unavailable")
 
 
+class FailingMergeCore:
+    def run(self, query: str, *, report_scope=None, artifacts=None, critic_feedback=None):
+        raise RuntimeError("merge unavailable")
+
+
 class OrchestratorNodeTests(unittest.TestCase):
+    def test_build_agent_task_normalizes_optional_contract_fields(self) -> None:
+        task = build_agent_task(
+            task_id=" task_x ",
+            assignee=" Analyst ",
+            instruction=" Do work ",
+            status="completed",
+            context_keys=[" numeric_values ", ""],
+            retry_count=2,
+            kind=" calculation ",
+            label=" Label ",
+            depends_on=[" task_a ", " "],
+            artifact_ids=[" artifact_a ", ""],
+            blocked_reason=" waiting ",
+        )
+
+        self.assertEqual(task["task_id"], "task_x")
+        self.assertEqual(task["assignee"], "Analyst")
+        self.assertEqual(task["instruction"], "Do work")
+        self.assertEqual(task["status"], TaskStatus.COMPLETED)
+        self.assertEqual(task["context_keys"], ["numeric_values"])
+        self.assertEqual(task["retry_count"], 2)
+        self.assertEqual(task["kind"], "calculation")
+        self.assertEqual(task["label"], "Label")
+        self.assertEqual(task["depends_on"], ["task_a"])
+        self.assertEqual(task["artifact_ids"], ["artifact_a"])
+        self.assertEqual(task["blocked_reason"], "waiting")
+
+    def test_build_artifact_normalizes_projection_fields(self) -> None:
+        artifact = build_artifact(
+            task_id=" task_1 ",
+            creator=" Analyst ",
+            artifact_id=" artifact_1 ",
+            kind=" calculation_result ",
+            status="",
+            summary=" Result ",
+            content="42",
+            evidence_links=[" chunk-a ", ""],
+            metadata={"source": "unit"},
+        )
+
+        self.assertEqual(artifact["task_id"], "task_1")
+        self.assertEqual(artifact["creator"], "Analyst")
+        self.assertEqual(artifact["artifact_id"], "artifact_1")
+        self.assertEqual(artifact["kind"], "calculation_result")
+        self.assertEqual(artifact["status"], "ok")
+        self.assertEqual(artifact["summary"], "Result")
+        self.assertEqual(artifact["payload"], {"answer": "42"})
+        self.assertEqual(artifact["evidence_links"], ["chunk-a"])
+        self.assertEqual(artifact["evidence_refs"], ["chunk-a"])
+        self.assertEqual(artifact["metadata"], {"source": "unit"})
+
     def test_orchestrator_plan_registers_tasks(self) -> None:
         planner = FakePlannerCore(
             {
@@ -85,7 +141,9 @@ class OrchestratorNodeTests(unittest.TestCase):
         self.assertEqual(planner.calls[0]["report_scope"]["company"], "삼성전자")
         self.assertEqual(set(updates["tasks"].keys()), {"task_1", "task_2"})
         self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.PENDING)
+        self.assertEqual(updates["tasks"]["task_1"]["kind"], "calculation")
         self.assertEqual(updates["tasks"]["task_1"]["context_keys"], ["numeric_values"])
+        self.assertEqual(updates["tasks"]["task_2"]["kind"], "retrieval")
         self.assertEqual(updates["tasks"]["task_2"]["context_keys"], ["narrative_evidence"])
         self.assertEqual(updates["execution_trace"], ["Orchestrator planned 2 tasks"])
 
@@ -97,9 +155,11 @@ class OrchestratorNodeTests(unittest.TestCase):
 
         self.assertEqual(set(updates["tasks"].keys()), {"task_1", "task_2"})
         self.assertEqual(updates["tasks"]["task_1"]["assignee"], "Analyst")
+        self.assertEqual(updates["tasks"]["task_1"]["kind"], "calculation")
         self.assertEqual(updates["tasks"]["task_1"]["context_keys"], ["numeric_values"])
         self.assertIn("numeric, table-backed, or calculation", updates["tasks"]["task_1"]["instruction"])
         self.assertEqual(updates["tasks"]["task_2"]["assignee"], "Researcher")
+        self.assertEqual(updates["tasks"]["task_2"]["kind"], "retrieval")
         self.assertEqual(updates["tasks"]["task_2"]["context_keys"], ["narrative_evidence"])
         self.assertIn("narrative, contextual, or explanatory", updates["tasks"]["task_2"]["instruction"])
 
@@ -107,6 +167,30 @@ class OrchestratorNodeTests(unittest.TestCase):
         merge = FakeMergeCore("최종 보고서")
         node = make_run_orchestrator_merge(merge)
         state: MultiAgentState = build_initial_state("질문")
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "Analyze.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+                "kind": "verification",
+                "label": "Analyst source",
+                "artifact_ids": ["task_1"],
+            },
+            "task_2": {
+                "task_id": "task_2",
+                "assignee": "Researcher",
+                "instruction": "Research.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["narrative_evidence"],
+                "retry_count": 0,
+                "kind": "verification",
+                "label": "Researcher source",
+                "artifact_ids": ["task_2"],
+            },
+        }
         state["artifacts"] = {
             "task_1": Artifact(
                 task_id="task_1",
@@ -127,7 +211,171 @@ class OrchestratorNodeTests(unittest.TestCase):
 
         self.assertEqual(len(merge.calls), 1)
         self.assertEqual(updates["final_report"], "최종 보고서")
+        self.assertEqual(updates["final_report_record"]["final_answer"], "최종 보고서")
+        self.assertEqual(
+            updates["final_report_record"]["source_task_ids"],
+            ["task_1", "task_2"],
+        )
+        self.assertEqual(
+            updates["final_report_record"]["source_artifact_ids"],
+            ["task_1", "task_2"],
+        )
+        self.assertEqual(
+            updates["artifacts"]["synthesis::final"]["payload"],
+            updates["final_report_record"],
+        )
         self.assertEqual(updates["execution_trace"], ["Orchestrator synthesized final report"])
+
+    def test_orchestrator_merge_prefers_typed_payload_projection(self) -> None:
+        node = make_run_orchestrator_merge(FailingMergeCore())
+        state: MultiAgentState = build_initial_state("Question")
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "Analyze.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+                "kind": "verification",
+                "label": "Analyst source",
+                "artifact_ids": ["artifact_1"],
+            },
+            "task_2": {
+                "task_id": "task_2",
+                "assignee": "Researcher",
+                "instruction": "Research.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["narrative_evidence"],
+                "retry_count": 0,
+                "kind": "verification",
+                "label": "Researcher source",
+                "artifact_ids": ["artifact_2"],
+            },
+        }
+        state["artifacts"] = {
+            "task_1": Artifact(
+                task_id="task_1",
+                creator="Analyst",
+                artifact_id="artifact_1",
+                content={"answer": "stale analyst content"},
+                payload={"answer": "payload analyst answer"},
+                evidence_links=[],
+                evidence_refs=["payload-ref-a"],
+            ),
+            "task_2": Artifact(
+                task_id="task_2",
+                creator="Researcher",
+                artifact_id="artifact_2",
+                content={"answer": "stale researcher content"},
+                payload={"answer": "payload researcher answer"},
+                evidence_links=[],
+                evidence_refs=["payload-ref-b"],
+            ),
+        }
+
+        updates = node(state)
+
+        self.assertIn("payload analyst answer", updates["final_report"])
+        self.assertIn("payload researcher answer", updates["final_report"])
+        self.assertNotIn("stale analyst content", updates["final_report"])
+        self.assertEqual(
+            updates["final_report_record"]["subtask_results"],
+            [
+                {"task_id": "task_1", "answer": "payload analyst answer"},
+                {"task_id": "task_2", "answer": "payload researcher answer"},
+            ],
+        )
+        self.assertEqual(
+            updates["final_report_record"]["evidence_refs"],
+            ["payload-ref-a", "payload-ref-b"],
+        )
+
+    def test_orchestrator_merge_blocks_final_close_on_integrity_error(self) -> None:
+        node = make_run_orchestrator_merge(FakeMergeCore("ready final"))
+        state: MultiAgentState = build_initial_state("Question")
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "Compute a result.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+                "kind": "calculation",
+                "label": "Calculation task",
+                "artifact_ids": ["task_1"],
+            }
+        }
+        state["artifacts"] = {
+            "task_1": Artifact(
+                task_id="task_1",
+                creator="Analyst",
+                artifact_id="task_1",
+                kind="calculation_result",
+                status="ok",
+                summary="10.9%",
+                content={"answer": "10.9%"},
+                payload={"answer": "10.9%", "calculation_result": {"status": "ok", "formatted_result": "10.9%"}},
+                evidence_links=["chunk-a"],
+                evidence_refs=["chunk-a"],
+            ),
+        }
+
+        updates = node(state)
+
+        self.assertEqual(updates["final_report_record"]["status"], "blocked")
+        self.assertIn("Cannot close as fully answered", updates["final_report"])
+        self.assertEqual(updates["tasks"]["synthesis::final"]["status"], TaskStatus.FAILED)
+        self.assertEqual(updates["artifacts"]["synthesis::final"]["status"], "blocked")
+        self.assertEqual(updates["task_artifact_trace"]["integrity_status"], "error")
+        issue_types = [issue["type"] for issue in updates["task_artifact_trace"]["integrity_issues"]]
+        self.assertIn("missing_required_artifact_kind", issue_types)
+        self.assertIn(
+            "blocking_integrity_issues",
+            updates["artifacts"]["synthesis::final"]["payload"],
+        )
+
+    def test_orchestrator_merge_requests_replan_when_budget_remains(self) -> None:
+        node = make_run_orchestrator_merge(FakeMergeCore("ready final"))
+        state: MultiAgentState = build_initial_state("Question", replan_budget=1)
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "Compute a result.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+                "kind": "calculation",
+                "label": "Calculation task",
+                "artifact_ids": ["task_1"],
+            }
+        }
+        state["artifacts"] = {
+            "task_1": Artifact(
+                task_id="task_1",
+                creator="Analyst",
+                artifact_id="task_1",
+                kind="calculation_result",
+                status="ok",
+                summary="10.9%",
+                content={"answer": "10.9%"},
+                payload={"answer": "10.9%", "calculation_result": {"status": "ok", "formatted_result": "10.9%"}},
+                evidence_links=["chunk-a"],
+                evidence_refs=["chunk-a"],
+            ),
+        }
+
+        updates = node(state)
+
+        self.assertIsNone(updates["final_report"])
+        self.assertEqual(updates["final_report_record"]["status"], "replan_required")
+        self.assertEqual(updates["replan_count"], 1)
+        self.assertIn("missing_required_artifact_kind", updates["planner_feedback"])
+        self.assertEqual(updates["task_artifact_trace"]["integrity_status"], "error")
+        self.assertNotIn("synthesis::final", updates.get("artifacts", {}))
+        self.assertEqual(updates["execution_trace"], ["Orchestrator requested replan on integrity errors"])
 
     def test_full_graph_can_use_injected_orchestrators(self) -> None:
         planner = FakePlannerCore(
@@ -155,6 +403,7 @@ class OrchestratorNodeTests(unittest.TestCase):
         )
 
         self.assertEqual(final["final_report"], "병합 완료")
+        self.assertEqual(final["final_report_record"]["final_answer"], "병합 완료")
         self.assertEqual(final["execution_trace"][0], "Orchestrator planned 2 tasks")
         self.assertEqual(final["execution_trace"][-1], "Orchestrator synthesized final report")
 

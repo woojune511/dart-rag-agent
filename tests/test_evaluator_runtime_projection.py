@@ -26,6 +26,7 @@ from src.ops.evaluator import (
     _numeric_values_equivalent,
     _operand_matches,
     EvalExample,
+    RAGEvaluator,
     _format_runtime_evidence_for_numeric_judge,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
@@ -35,11 +36,20 @@ from src.ops.evaluator import (
     _should_override_numeric_grounding_from_runtime_evidence,
     _should_override_structured_summary_faithfulness,
 )
+from src.agent.financial_graph_helpers import _resolve_runtime_structured_result, _runtime_trace_state_update
 
 
 class _DummyDoc:
     def __init__(self, metadata: dict) -> None:
         self.metadata = metadata
+
+
+class _FakeAgent:
+    def __init__(self, result: dict) -> None:
+        self.result = result
+
+    def run(self, question: str, report_scope=None) -> dict:
+        return dict(self.result)
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
@@ -1019,6 +1029,8 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             trace["calculation_result"]["answer_slots"]["operation_family"],
             "aggregate_subtasks",
         )
+        self.assertEqual(trace["runtime_projection"]["source"], "aggregate_subtasks")
+        self.assertFalse(trace["runtime_projection"]["legacy_fallback"])
 
     def test_resolve_runtime_trace_can_project_single_task_from_ledger(self) -> None:
         result = {
@@ -1071,6 +1083,9 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(trace["calculation_plan"]["operation"], "divide")
         self.assertEqual(trace["calculation_result"]["rendered_value"], "25.4%")
+        self.assertEqual(trace["runtime_projection"]["source"], "task_artifact_ledger")
+        self.assertEqual(trace["runtime_projection"]["source_task_id"], "task_1")
+        self.assertFalse(trace["runtime_projection"]["legacy_fallback"])
 
     def test_resolve_runtime_trace_prefers_explicit_structured_contract(self) -> None:
         result = {
@@ -1090,6 +1105,252 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(trace["calculation_operands"], [{"label": "fresh", "value": "123"}])
         self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
         self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(trace["runtime_projection"]["source"], "resolved_calculation_trace")
+        self.assertFalse(trace["runtime_projection"]["legacy_fallback"])
+
+    def test_resolve_runtime_trace_marks_top_level_calculation_fields_as_legacy_fallback(self) -> None:
+        result = {
+            "calculation_operands": [{"label": "legacy", "value": "999"}],
+            "calculation_plan": {"status": "legacy"},
+            "calculation_result": {"status": "ok", "rendered_value": "999"},
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+        }
+
+        trace = _resolve_runtime_calculation_trace(result)
+
+        self.assertEqual(trace["calculation_operands"], [{"label": "legacy", "value": "999"}])
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "999")
+        self.assertEqual(trace["runtime_projection"]["source"], "legacy_top_level")
+        self.assertTrue(trace["runtime_projection"]["legacy_fallback"])
+
+    def test_resolve_runtime_trace_strict_mode_rejects_legacy_top_level_fallback(self) -> None:
+        result = {
+            "calculation_operands": [{"label": "legacy", "value": "999"}],
+            "calculation_plan": {"status": "legacy"},
+            "calculation_result": {"status": "ok", "rendered_value": "999"},
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+        }
+
+        trace = _resolve_runtime_calculation_trace(
+            result,
+            allow_legacy_top_level=False,
+        )
+
+        self.assertEqual(trace, {})
+
+    def test_resolve_runtime_trace_marks_structured_result_only_as_non_legacy(self) -> None:
+        result = {
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "resolved_calculation_trace": {},
+            "structured_result": {"status": "ok", "rendered_value": "123"},
+        }
+
+        trace = _resolve_runtime_calculation_trace(result)
+
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace["calculation_plan"], {})
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(trace["runtime_projection"]["source"], "structured_result")
+        self.assertFalse(trace["runtime_projection"]["legacy_fallback"])
+
+    def test_resolve_runtime_trace_prefers_structured_result_over_stale_legacy_result(self) -> None:
+        result = {
+            "calculation_operands": [{"label": "legacy", "value": "123"}],
+            "calculation_plan": {"status": "legacy", "operation": "lookup"},
+            "calculation_result": {"status": "stale", "rendered_value": "999"},
+            "resolved_calculation_trace": {},
+            "structured_result": {"status": "ok", "rendered_value": "123"},
+        }
+
+        trace = _resolve_runtime_calculation_trace(result)
+
+        self.assertEqual(trace["calculation_operands"], [{"label": "legacy", "value": "123"}])
+        self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(trace["runtime_projection"]["source"], "legacy_top_level")
+        self.assertTrue(trace["runtime_projection"]["legacy_fallback"])
+        self.assertEqual(
+            trace["runtime_projection"]["calculation_result_source"],
+            "structured_result",
+        )
+        self.assertEqual(
+            trace["runtime_projection"]["superseded_calculation_result_source"],
+            "legacy_top_level",
+        )
+
+    def test_resolve_runtime_trace_strict_mode_keeps_structured_result_without_legacy_inputs(self) -> None:
+        result = {
+            "calculation_operands": [{"label": "legacy", "value": "123"}],
+            "calculation_plan": {"status": "legacy", "operation": "lookup"},
+            "calculation_result": {"status": "stale", "rendered_value": "999"},
+            "resolved_calculation_trace": {},
+            "structured_result": {"status": "ok", "rendered_value": "123"},
+        }
+
+        trace = _resolve_runtime_calculation_trace(
+            result,
+            allow_legacy_top_level=False,
+        )
+
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace["calculation_plan"], {})
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(trace["runtime_projection"]["source"], "structured_result")
+        self.assertFalse(trace["runtime_projection"]["legacy_fallback"])
+        self.assertNotIn("calculation_result_source", trace["runtime_projection"])
+
+    def test_resolve_runtime_structured_result_keeps_legacy_export_compatibility(self) -> None:
+        result = {
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_result": {"status": "ok", "rendered_value": "123"},
+        }
+
+        structured_result = _resolve_runtime_structured_result(result)
+
+        self.assertEqual(structured_result["rendered_value"], "123")
+
+    def test_runtime_trace_state_update_omits_compatibility_mirrors_by_default(self) -> None:
+        update = _runtime_trace_state_update(
+            {
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "calculation_operands": [{"row_id": "stale"}],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+            },
+            calculation_operands=[{"row_id": "fresh"}],
+            calculation_plan={"operation": "lookup"},
+            calculation_result={"status": "ok", "rendered_value": "123"},
+        )
+
+        self.assertEqual(
+            update["resolved_calculation_trace"]["calculation_operands"],
+            [{"row_id": "fresh"}],
+        )
+        self.assertEqual(update["structured_result"]["rendered_value"], "123")
+        self.assertNotIn("calculation_operands", update)
+        self.assertNotIn("calculation_plan", update)
+        self.assertNotIn("calculation_result", update)
+
+    def test_runtime_trace_state_update_omitted_inputs_preserve_legacy_for_compatibility(self) -> None:
+        update = _runtime_trace_state_update(
+            {
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "calculation_operands": [{"row_id": "legacy"}],
+                "calculation_plan": {"status": "legacy"},
+                "calculation_result": {"status": "ok", "rendered_value": "123"},
+            },
+        )
+
+        trace = update["resolved_calculation_trace"]
+        self.assertEqual(trace["calculation_operands"], [{"row_id": "legacy"}])
+        self.assertEqual(trace["calculation_plan"]["status"], "legacy")
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
+        self.assertNotIn("calculation_operands", update)
+        self.assertNotIn("calculation_plan", update)
+        self.assertNotIn("calculation_result", update)
+
+    def test_runtime_trace_state_update_can_opt_into_compatibility_mirrors(self) -> None:
+        update = _runtime_trace_state_update(
+            {
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+            },
+            calculation_operands=[{"row_id": "fresh"}],
+            calculation_plan={"operation": "lookup"},
+            calculation_result={"status": "ok", "rendered_value": "123"},
+            include_compatibility_mirrors=True,
+        )
+
+        self.assertEqual(update["calculation_operands"], [{"row_id": "fresh"}])
+        self.assertEqual(update["calculation_plan"], {"operation": "lookup"})
+        self.assertEqual(update["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(
+            update["resolved_calculation_trace"]["runtime_projection"]["source"],
+            "runtime_trace_state_update",
+        )
+
+    def test_evaluate_one_rejects_legacy_top_level_runtime_projection(self) -> None:
+        evaluator = RAGEvaluator(
+            _FakeAgent(
+                {
+                    "answer": "answer",
+                    "query_type": "qa",
+                    "intent": "qa",
+                    "calculation_operands": [{"label": "legacy", "value": "999"}],
+                    "calculation_plan": {"status": "legacy", "operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "999"},
+                    "resolved_calculation_trace": {},
+                    "structured_result": {},
+                }
+            ),
+            skip_llm_judges=True,
+        )
+        example = EvalExample(
+            id="Q1",
+            question="question",
+            ground_truth="answer",
+            company="TEST",
+            year=2023,
+            section="section",
+        )
+
+        result = evaluator.evaluate_one(example)
+
+        self.assertEqual(result.resolved_calculation_trace, {})
+        self.assertEqual(result.calculation_operands, [])
+        self.assertEqual(result.calculation_plan, {})
+        self.assertEqual(result.calculation_result, {})
+        self.assertEqual(result.structured_result, {})
+        self.assertEqual(result.runtime_projection_source, "")
+        self.assertFalse(result.runtime_projection_legacy_fallback)
+
+    def test_evaluate_one_uses_canonical_runtime_projection_metadata(self) -> None:
+        evaluator = RAGEvaluator(
+            _FakeAgent(
+                {
+                    "answer": "answer",
+                    "query_type": "qa",
+                    "intent": "qa",
+                    "calculation_operands": [{"label": "legacy", "value": "999"}],
+                    "calculation_plan": {"status": "legacy", "operation": "lookup"},
+                    "calculation_result": {"status": "stale", "rendered_value": "999"},
+                    "resolved_calculation_trace": {
+                        "calculation_operands": [{"label": "fresh", "value": "123"}],
+                        "calculation_plan": {"status": "ok", "operation": "lookup"},
+                        "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    },
+                }
+            ),
+            skip_llm_judges=True,
+        )
+        example = EvalExample(
+            id="Q1",
+            question="question",
+            ground_truth="answer",
+            company="TEST",
+            year=2023,
+            section="section",
+        )
+
+        result = evaluator.evaluate_one(example)
+
+        self.assertEqual(result.calculation_operands, [{"label": "fresh", "value": "123"}])
+        self.assertEqual(result.calculation_plan["operation"], "lookup")
+        self.assertEqual(result.calculation_result["rendered_value"], "123")
+        self.assertEqual(result.structured_result["rendered_value"], "123")
+        self.assertEqual(result.runtime_projection_source, "resolved_calculation_trace")
+        self.assertFalse(result.runtime_projection_legacy_fallback)
+        self.assertNotIn(
+            "999",
+            json.dumps(result.resolved_calculation_trace, ensure_ascii=False),
+        )
 
     def test_resolve_runtime_trace_prefers_explicit_non_aggregate_over_active_subtask(self) -> None:
         result = {

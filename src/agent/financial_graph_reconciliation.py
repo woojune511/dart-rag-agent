@@ -1777,7 +1777,10 @@ class FinancialAgentReconciliationMixin:
         return list(dict.fromkeys(item for item in finalized if item))
 
     def _plan_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         operands = list(runtime_trace.get("calculation_operands") or [])
         plan = dict(runtime_trace.get("calculation_plan") or {})
         calc_result = dict(runtime_trace.get("calculation_result") or {})

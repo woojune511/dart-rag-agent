@@ -7,6 +7,32 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict, Uni
 from pydantic import BaseModel, Field, TypeAdapter
 
 
+class RuntimeProjectionMetadata(TypedDict, total=False):
+    source: str
+    legacy_fallback: bool
+    source_task_id: str
+
+
+class RuntimeCalculationTrace(TypedDict, total=False):
+    calculation_operands: List[Dict[str, Any]]
+    calculation_plan: Dict[str, Any]
+    calculation_result: Dict[str, Any]
+    runtime_projection: RuntimeProjectionMetadata
+
+
+class TaskResultRecord(TypedDict, total=False):
+    task_id: str
+    metric_family: str
+    metric_label: str
+    status: str
+    answer: str
+    calculation_operands: List[Dict[str, Any]]
+    calculation_plan: Dict[str, Any]
+    calculation_result: Dict[str, Any]
+    runtime_evidence: List[Dict[str, Any]]
+    selected_claim_ids: List[str]
+
+
 class FinancialAgentState(TypedDict):
     query: str
     report_scope: Dict[str, Any]
@@ -43,7 +69,7 @@ class FinancialAgentState(TypedDict):
     answer: str
     citations: List[str]
     numeric_debug_trace: Dict[str, Any]
-    resolved_calculation_trace: Dict[str, Any]
+    resolved_calculation_trace: RuntimeCalculationTrace
     structured_result: Dict[str, Any]
     # Legacy flat calculation fields are still mirrored inside runtime state
     # while internal nodes migrate to `resolved_calculation_trace` /
@@ -65,7 +91,7 @@ class FinancialAgentState(TypedDict):
     retrieval_queries: List[str]
     active_subtask_index: int
     active_subtask: Dict[str, Any]
-    subtask_results: List[Dict[str, Any]]
+    subtask_results: List[TaskResultRecord]
     subtask_debug_trace: Dict[str, Any]
     subtask_loop_complete: bool
     reconciliation_result: Dict[str, Any]

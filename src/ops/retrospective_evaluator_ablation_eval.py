@@ -193,7 +193,13 @@ def _override_operand_selection(
 
 
 def _score_case(case: AblationCase, row: Dict[str, Any], example: Any) -> Dict[str, Any]:
-    resolved_trace = _resolve_runtime_calculation_trace(row)
+    # Retrospective ablations intentionally support historical result rows.
+    # Legacy top-level mirrors are accepted only as compatibility fallback;
+    # canonical trace values must win when both surfaces are present.
+    resolved_trace = _resolve_runtime_calculation_trace(
+        row,
+        allow_legacy_top_level=True,
+    )
     resolved_operands = list(resolved_trace.get("calculation_operands") or [])
     resolved_result = dict(resolved_trace.get("calculation_result") or {})
     evidence_quotes = [str(item.quote) for item in list(example.evidence or [])]

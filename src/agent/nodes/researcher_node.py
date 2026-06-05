@@ -16,7 +16,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus
+from src.agent.mas_types import AgentTask, Artifact, EvidenceRecord, MultiAgentState, TaskStatus, build_artifact, build_evidence_record
+from src.schema import ArtifactKind
 from src.storage.vector_store import VectorStoreManager
 
 load_dotenv()
@@ -171,6 +172,27 @@ def _extract_doc_links(retrieved_docs: Sequence[Any]) -> List[str]:
     return _dedupe_preserve_order(links)
 
 
+def _project_retrieved_docs(retrieved_docs: Sequence[Any]) -> List[Dict[str, Any]]:
+    projected: List[Dict[str, Any]] = []
+    for item in retrieved_docs or []:
+        doc = item[0] if isinstance(item, tuple) and item else item
+        score = item[1] if isinstance(item, tuple) and len(item) > 1 else None
+        if not isinstance(doc, Document):
+            continue
+        metadata = dict(doc.metadata or {})
+        chunk_id = str(metadata.get("chunk_uid") or metadata.get("parent_id") or "").strip()
+        projected.append(
+            {
+                "chunk_id": chunk_id,
+                "doc_id": str(metadata.get("rcept_no") or metadata.get("document_id") or "").strip(),
+                "source_anchor": _format_doc_anchor(metadata),
+                "score": score,
+                "text": str(doc.page_content or "")[:500],
+            }
+        )
+    return projected
+
+
 class NarrativeResearcherCore:
     def __init__(self, vector_store_manager: VectorStoreManager, *, k: int = 6) -> None:
         self.vsm = vector_store_manager
@@ -228,48 +250,61 @@ class NarrativeResearcherCore:
         }
 
 
-def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[Dict[str, Any]]:
-    entries: List[Dict[str, Any]] = []
+def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[EvidenceRecord]:
+    entries: List[EvidenceRecord] = []
     for item in result.get("retrieved_docs", []) or []:
         doc = item[0] if isinstance(item, tuple) and item else item
         if not isinstance(doc, Document):
             continue
         metadata = dict(doc.metadata or {})
         entries.append(
-            {
-                "task_id": task_id,
-                "creator": "Researcher",
-                "kind": "retrieved_context",
-                "source_anchor": _format_doc_anchor(metadata),
-                "snippet": str(doc.page_content or "")[:280],
-                "block_type": metadata.get("block_type"),
-            }
+            build_evidence_record(
+                task_id=task_id,
+                creator="Researcher",
+                kind="retrieved_context",
+                source_anchor=_format_doc_anchor(metadata),
+                snippet=str(doc.page_content or "")[:280],
+                metadata={"block_type": metadata.get("block_type")},
+            )
         )
     return entries
 
 
 def _build_researcher_artifact(task_id: str, result: Dict[str, Any]) -> Artifact:
-    return {
-        "task_id": task_id,
-        "creator": "Researcher",
-        "content": {
-            "answer": str(result.get("answer") or "").strip(),
+    retrieved_docs = _project_retrieved_docs(result.get("retrieved_docs", []) or [])
+    evidence_links = _extract_doc_links(result.get("retrieved_docs", []) or [])
+    answer = str(result.get("answer") or "").strip()
+    return build_artifact(
+        task_id=task_id,
+        creator="Researcher",
+        artifact_id=task_id,
+        kind=ArtifactKind.RETRIEVAL_BUNDLE.value,
+        status="ok",
+        summary=answer,
+        content={
+            "answer": answer,
             "citations": list(result.get("citations", []) or []),
             "summary_points": list(result.get("summary_points", []) or []),
         },
-        "evidence_links": _extract_doc_links(result.get("retrieved_docs", []) or []),
-    }
+        payload={
+            "answer": answer,
+            "citations": list(result.get("citations", []) or []),
+            "summary_points": list(result.get("summary_points", []) or []),
+            "retrieved_docs": retrieved_docs,
+        },
+        evidence_links=evidence_links,
+    )
 
 
 def _is_successful_research_result(result: Dict[str, Any]) -> bool:
-    return bool(str(result.get("answer") or "").strip())
+    return bool(str(result.get("answer") or "").strip() and _project_retrieved_docs(result.get("retrieved_docs", []) or []))
 
 
 def make_run_researcher(core_runner: ResearcherCoreRunner) -> Callable[[MultiAgentState], Dict[str, Any]]:
     def run_researcher(state: MultiAgentState) -> Dict[str, Any]:
         task_updates: Dict[str, AgentTask] = {}
         artifact_updates: Dict[str, Artifact] = {}
-        evidence_pool_entries: List[Dict[str, Any]] = []
+        evidence_pool_entries: List[EvidenceRecord] = []
         trace: List[str] = []
 
         for task_id, task in _iter_researcher_tasks(state):
@@ -301,6 +336,7 @@ def make_run_researcher(core_runner: ResearcherCoreRunner) -> Callable[[MultiAge
                 **task,
                 "status": TaskStatus.COMPLETED,
                 "retry_count": task["retry_count"] + (1 if was_retry else 0),
+                "artifact_ids": [task_id],
             }
             trace_message = f"Researcher completed {task_id}"
             if was_retry:

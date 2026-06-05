@@ -5,7 +5,7 @@ This module owns the "front" of the graph:
 - classify the query
 - extract entity and metric hints
 - translate the query into numeric subtasks when possible
-- project ledger state back into the legacy flat result shape
+- project ledger state back into the runtime calculation trace
 """
 
 import json
@@ -1723,9 +1723,19 @@ class FinancialAgentPlanningMixin:
             "evidence_items": aggregate_evidence,
         }
 
+    def _project_runtime_calculation_trace(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Project caller-facing calculation material into the canonical runtime trace."""
+        # Public return/export surfaces keep this compatibility bridge until
+        # older callers stop sending top-level calculation mirrors. Internal
+        # current-state readers should use strict resolver mode instead.
+        return _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=True,
+        )
+
     def _project_legacy_calculation_fields(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Project ledger-backed traces into the legacy flat calculation view."""
-        return _resolve_runtime_calculation_trace(dict(state))
+        """Compatibility alias while older tests and callers migrate."""
+        return self._project_runtime_calculation_trace(state)
 
     def _nested_subtask_rows(self, calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []

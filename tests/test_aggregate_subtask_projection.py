@@ -1,6 +1,7 @@
 import unittest
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
 
 
@@ -424,10 +425,16 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "result_unit": "\ubc31\ub9cc\uc6d0",
             },
         }
+        state["resolved_calculation_trace"] = {
+            "calculation_operands": list(state.get("calculation_operands") or []),
+            "calculation_plan": dict(state.get("calculation_plan") or {}),
+            "calculation_result": {},
+        }
 
         result = agent._execute_calculation(state)
-        calculation_result = result["calculation_result"]
-        operand = result["calculation_operands"][0]
+        trace = _resolve_runtime_calculation_trace(result)
+        calculation_result = trace["calculation_result"]
+        operand = trace["calculation_operands"][0]
 
         self.assertEqual(operand["normalized_value"], 573_884_000_000.0)
         self.assertEqual(operand["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")

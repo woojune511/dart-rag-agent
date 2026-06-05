@@ -18,7 +18,18 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, ReportScope, TaskStatus
+from src.agent.mas_types import (
+    AgentTask,
+    Artifact,
+    MultiAgentState,
+    ReportScope,
+    TaskStatus,
+    attach_task_artifact_trace,
+    build_agent_task,
+    build_artifact,
+    build_final_report_record,
+)
+from src.schema import ArtifactKind, TaskKind
 
 load_dotenv()
 
@@ -51,6 +62,15 @@ def _context_keys_for_assignee(assignee: str) -> List[str]:
     if key == "researcher":
         return ["narrative_evidence"]
     return []
+
+
+def _task_kind_for_assignee(assignee: str) -> str:
+    key = str(assignee or "").strip().lower()
+    if key == "analyst":
+        return TaskKind.CALCULATION.value
+    if key == "researcher":
+        return TaskKind.RETRIEVAL.value
+    return TaskKind.VERIFICATION.value
 
 
 def _extract_json_payload(text: str) -> Dict[str, Any]:
@@ -115,25 +135,85 @@ def _normalize_plan_tasks(payload: Dict[str, Any]) -> List[AgentTask]:
             continue
         task_id = str(item.get("task_id") or f"task_{index}").strip() or f"task_{index}"
         normalized.append(
-            {
-                "task_id": task_id,
-                "assignee": assignee,
-                "instruction": instruction,
-                "status": TaskStatus.PENDING,
-                "context_keys": list(item.get("context_keys") or _context_keys_for_assignee(assignee)),
-                "retry_count": 0,
-            }
+            build_agent_task(
+                task_id=task_id,
+                assignee=assignee,
+                instruction=instruction,
+                context_keys=list(item.get("context_keys") or _context_keys_for_assignee(assignee)),
+                kind=_task_kind_for_assignee(assignee),
+                label=str(item.get("label") or instruction).strip(),
+            )
         )
     if not normalized:
         raise ValueError("Planner produced no valid tasks.")
     return normalized
 
 
+def _artifact_payload(artifact: Artifact) -> Dict[str, Any]:
+    payload = artifact.get("payload")
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
 def _artifact_answer(artifact: Artifact) -> str:
+    payload = _artifact_payload(artifact)
+    answer = str(payload.get("answer") or payload.get("final_answer") or "").strip()
+    if answer:
+        return answer
     content = artifact.get("content")
     if isinstance(content, dict):
         return str(content.get("answer") or "").strip()
     return str(content or "").strip()
+
+
+def _artifact_refs(artifact: Artifact) -> List[str]:
+    refs = artifact.get("evidence_refs")
+    if not isinstance(refs, list):
+        refs = artifact.get("evidence_links") or []
+    return [str(item).strip() for item in refs if str(item).strip()]
+
+
+def _blocking_integrity_issues(trace: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if str(trace.get("integrity_status") or "").strip().lower() != "error":
+        return []
+    return [
+        dict(issue)
+        for issue in (trace.get("integrity_issues") or [])
+        if isinstance(issue, dict) and str(issue.get("severity") or "").strip().lower() == "error"
+    ]
+
+
+def _integrity_issue_summary(issues: List[Dict[str, Any]]) -> str:
+    issue_types: List[str] = []
+    seen: set[str] = set()
+    for issue in issues:
+        issue_type = str(issue.get("type") or "").strip()
+        if not issue_type or issue_type in seen:
+            continue
+        seen.add(issue_type)
+        issue_types.append(issue_type)
+    return ", ".join(issue_types[:5]) or "task_artifact_integrity_error"
+
+
+def _blocked_final_report(final_report: str, issues: List[Dict[str, Any]]) -> str:
+    partial = str(final_report or "").strip()
+    notice = (
+        "Cannot close as fully answered because required task/artifact "
+        f"contract checks failed: {_integrity_issue_summary(issues)}."
+    )
+    return f"{partial}\n\n{notice}" if partial else notice
+
+
+def _planner_feedback_from_integrity_issues(issues: List[Dict[str, Any]]) -> str:
+    return (
+        "Replan required because task/artifact contract checks failed: "
+        f"{_integrity_issue_summary(issues)}."
+    )
+
+
+def _replan_budget_remaining(state: MultiAgentState) -> bool:
+    budget = int(state.get("replan_budget", 0) or 0)
+    count = int(state.get("replan_count", 0) or 0)
+    return count < budget
 
 
 def _artifact_lines(artifacts: Dict[str, Artifact], creator: str) -> List[str]:
@@ -144,8 +224,8 @@ def _artifact_lines(artifacts: Dict[str, Artifact], creator: str) -> List[str]:
         answer = _artifact_answer(artifact)
         if not answer:
             continue
-        evidence_links = ", ".join(str(item) for item in artifact.get("evidence_links", []) if str(item).strip())
-        suffix = f" | evidence={evidence_links}" if evidence_links else ""
+        evidence_refs = ", ".join(_artifact_refs(artifact))
+        suffix = f" | evidence={evidence_refs}" if evidence_refs else ""
         lines.append(f"{task_id}: {answer}{suffix}")
     return lines
 
@@ -294,10 +374,10 @@ def make_run_orchestrator_plan(
 
         tasks = _normalize_plan_tasks(payload)
         task_ledger = {task["task_id"]: task for task in tasks}
-        return {
+        return attach_task_artifact_trace(state, {
             "tasks": task_ledger,
             "execution_trace": _trace(f"Orchestrator planned {len(task_ledger)} tasks"),
-        }
+        })
 
     return run_orchestrator_plan
 
@@ -325,10 +405,130 @@ def make_run_orchestrator_merge(
             merged = analyst_lines + researcher_lines
             final_report = "\n".join(merged) if merged else "현재 확보된 산출물이 없습니다."
 
-        return {
+        source_artifacts = {
+            key: artifact
+            for key, artifact in artifacts.items()
+            if artifact.get("creator") in {"Analyst", "Researcher"}
+        }
+        source_artifact_ids = [
+            str(artifact.get("artifact_id") or key).strip()
+            for key, artifact in source_artifacts.items()
+            if str(artifact.get("artifact_id") or key).strip()
+        ]
+        source_task_ids = [
+            str(artifact.get("task_id") or key).strip()
+            for key, artifact in source_artifacts.items()
+            if str(artifact.get("task_id") or key).strip()
+        ]
+        evidence_refs = [
+            str(value).strip()
+            for artifact in source_artifacts.values()
+            for value in _artifact_refs(artifact)
+            if str(value).strip()
+        ] or source_artifact_ids
+        subtask_results = [
+            {
+                "task_id": str(artifact.get("task_id") or key),
+                "answer": _artifact_answer(artifact),
+            }
+            for key, artifact in source_artifacts.items()
+        ]
+        final_report_record = build_final_report_record(
+            final_answer=final_report,
+            source_task_ids=source_task_ids,
+            source_artifact_ids=source_artifact_ids,
+            evidence_refs=evidence_refs,
+            subtask_results=subtask_results,
+        )
+        synthesis_task = build_agent_task(
+            task_id="synthesis::final",
+            assignee="Orchestrator",
+            instruction="Synthesize final report from accepted artifacts.",
+            status=TaskStatus.COMPLETED,
+            context_keys=["artifact_store"],
+            kind=TaskKind.SYNTHESIS.value,
+            label="Final report synthesis",
+            artifact_ids=["synthesis::final"],
+        )
+        synthesis_artifact = build_artifact(
+            task_id="synthesis::final",
+            creator="Orchestrator",
+            artifact_id="synthesis::final",
+            kind=ArtifactKind.AGGREGATED_ANSWER.value,
+            status="ok",
+            summary=final_report,
+            content={"answer": final_report},
+            payload={**final_report_record},
+            evidence_links=evidence_refs,
+        )
+        updates = {
+            "tasks": {"synthesis::final": synthesis_task},
+            "artifacts": {"synthesis::final": synthesis_artifact},
             "final_report": final_report,
+            "final_report_record": final_report_record,
             "execution_trace": _trace("Orchestrator synthesized final report"),
         }
+        projected_updates = attach_task_artifact_trace(state, updates)
+        blocking_issues = _blocking_integrity_issues(
+            dict(projected_updates.get("task_artifact_trace") or {})
+        )
+        if not blocking_issues:
+            return projected_updates
+
+        planner_feedback = _planner_feedback_from_integrity_issues(blocking_issues)
+        if _replan_budget_remaining(state):
+            replan_record = build_final_report_record(
+                final_answer="",
+                source_task_ids=source_task_ids,
+                source_artifact_ids=source_artifact_ids,
+                evidence_refs=evidence_refs,
+                subtask_results=subtask_results,
+                status="replan_required",
+            )
+            return attach_task_artifact_trace(state, {
+                "planner_feedback": planner_feedback,
+                "replan_count": int(state.get("replan_count", 0) or 0) + 1,
+                "final_report": None,
+                "final_report_record": replan_record,
+                "execution_trace": _trace("Orchestrator requested replan on integrity errors"),
+            })
+
+        blocked_report = _blocked_final_report(final_report, blocking_issues)
+        blocked_record = build_final_report_record(
+            final_answer=blocked_report,
+            source_task_ids=source_task_ids,
+            source_artifact_ids=source_artifact_ids,
+            evidence_refs=evidence_refs,
+            subtask_results=subtask_results,
+            status="blocked",
+        )
+        blocked_task = {
+            **synthesis_task,
+            "status": TaskStatus.FAILED,
+            "blocked_reason": _integrity_issue_summary(blocking_issues),
+        }
+        blocked_artifact = build_artifact(
+            task_id="synthesis::final",
+            creator="Orchestrator",
+            artifact_id="synthesis::final",
+            kind=ArtifactKind.AGGREGATED_ANSWER.value,
+            status="blocked",
+            summary=blocked_report,
+            content={"answer": blocked_report},
+            payload={
+                **blocked_record,
+                "blocking_integrity_issues": blocking_issues,
+            },
+            evidence_links=evidence_refs,
+        )
+        return attach_task_artifact_trace(state, {
+            "tasks": {"synthesis::final": blocked_task},
+            "artifacts": {"synthesis::final": blocked_artifact},
+            "final_report": blocked_report,
+            "final_report_record": blocked_record,
+            "planner_feedback": planner_feedback,
+            "execution_trace": _trace("Orchestrator blocked final report on integrity errors"),
+        })
 
     return run_orchestrator_merge
 

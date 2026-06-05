@@ -24,6 +24,7 @@ from src.ops.benchmark_runner import (
     _flatten_review_rows,
     _progress_watch_path_summary,
     _render_cross_company_summary_markdown,
+    _render_summary_markdown,
     _serialise_eval_results,
 )
 
@@ -412,7 +413,7 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                                     "kind": "operand_set",
                                     "payload": {
                                         "calculation_operands": [
-                                            {"label": "fresh", "value": "123"}
+                                            {"label": "fresh", "value": "123", "row_id": "ev_001"}
                                         ]
                                     },
                                 },
@@ -451,13 +452,61 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         structured_result = json.loads(rows[0]["structured_result"])
         resolved_trace = json.loads(rows[0]["resolved_calculation_trace"])
+        task_artifact_trace = json.loads(rows[0]["task_artifact_trace"])
 
         self.assertEqual(rows[0]["resolved_operand_count"], 1)
+        self.assertEqual(rows[0]["task_artifact_task_count"], 1)
+        self.assertEqual(rows[0]["task_artifact_artifact_count"], 3)
+        self.assertEqual(rows[0]["task_artifact_integrity_status"], "ok")
+        self.assertEqual(rows[0]["task_artifact_integrity_issue_count"], 0)
+        self.assertEqual(task_artifact_trace["tasks"][0]["latest_artifact_id"], "artifact:result")
+        self.assertEqual(task_artifact_trace["tasks"][0]["artifact_kinds"], ["operand_set", "calculation_plan", "calculation_result"])
         self.assertEqual(structured_result["rendered_value"], "123")
         self.assertEqual(
             resolved_trace["calculation_result"]["answer_slots"]["operation_family"],
             "lookup",
         )
+        self.assertEqual(resolved_trace["runtime_projection"]["source"], "task_artifact_ledger")
+        self.assertFalse(resolved_trace["runtime_projection"]["legacy_fallback"])
+        self.assertEqual(rows[0]["runtime_projection_source"], "task_artifact_ledger")
+        self.assertFalse(rows[0]["runtime_projection_legacy_fallback"])
+        self.assertEqual(rows[0]["runtime_projection_calculation_result_source"], "")
+        self.assertNotIn("calculation_operands", rows[0])
+        self.assertNotIn("calculation_plan", rows[0])
+        self.assertNotIn("calculation_result", rows[0])
+
+    def test_flatten_review_rows_rejects_legacy_top_level_runtime_projection(self) -> None:
+        results = [
+            {
+                "id": "exp-1",
+                "screening_eval": {"per_question": [{"id": "Q1", "category": "numeric_fact"}]},
+                "full_eval": {
+                    "per_question": [
+                        {
+                            "id": "Q1",
+                            "question": "question",
+                            "answer_key": "answer",
+                            "answer": "answer",
+                            "calculation_operands": [{"label": "legacy", "value": "999"}],
+                            "calculation_plan": {"status": "legacy"},
+                            "calculation_result": {"status": "ok", "rendered_value": "999"},
+                            "resolved_calculation_trace": {},
+                            "structured_result": {},
+                            "task_artifact_trace": {},
+                        }
+                    ]
+                },
+            }
+        ]
+
+        rows = _flatten_review_rows(results)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(json.loads(rows[0]["resolved_calculation_trace"]), {})
+        self.assertEqual(json.loads(rows[0]["structured_result"]), {})
+        self.assertEqual(rows[0]["runtime_projection_source"], "")
+        self.assertFalse(rows[0]["runtime_projection_legacy_fallback"])
+        self.assertEqual(rows[0]["resolved_operand_count"], 0)
         self.assertNotIn("calculation_operands", rows[0])
         self.assertNotIn("calculation_plan", rows[0])
         self.assertNotIn("calculation_result", rows[0])
@@ -538,6 +587,19 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                 "rendered_value": "123",
                 "answer_slots": {"operation_family": "lookup"},
             },
+            task_artifact_trace={
+                "task_count": 1,
+                "artifact_count": 1,
+                "missing_artifact_ids": ["artifact_missing"],
+                "orphan_artifact_ids": [],
+                "integrity_status": "error",
+                "integrity_issue_count": 1,
+                "integrity_issues": [
+                    {"type": "missing_artifact_reference", "severity": "error", "artifact_id": "artifact_missing"}
+                ],
+                "tasks": [{"task_id": "task_1", "latest_artifact_id": "artifact_1"}],
+                "artifacts": [{"artifact_id": "artifact_1", "payload_keys": ["calculation_result"]}],
+            },
             calculation_operands=[{"label": "stale", "value": "999"}],
             calculation_plan={"status": "stale"},
             calculation_result={"status": "stale", "rendered_value": "999"},
@@ -553,6 +615,21 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             rows[0]["resolved_calculation_trace"]["calculation_plan"]["operation"],
             "lookup",
         )
+        self.assertEqual(
+            rows[0]["resolved_calculation_trace"]["runtime_projection"]["source"],
+            "resolved_calculation_trace",
+        )
+        self.assertFalse(
+            rows[0]["resolved_calculation_trace"]["runtime_projection"]["legacy_fallback"]
+        )
+        self.assertEqual(rows[0]["runtime_projection_source"], "resolved_calculation_trace")
+        self.assertFalse(rows[0]["runtime_projection_legacy_fallback"])
+        self.assertEqual(rows[0]["runtime_projection_calculation_result_source"], "")
+        self.assertEqual(rows[0]["task_artifact_trace"]["task_count"], 1)
+        self.assertEqual(rows[0]["task_artifact_missing_ids"], ["artifact_missing"])
+        self.assertEqual(rows[0]["task_artifact_integrity_status"], "error")
+        self.assertEqual(rows[0]["task_artifact_integrity_issue_count"], 1)
+        self.assertEqual(rows[0]["task_artifact_integrity_issues"][0]["type"], "missing_artifact_reference")
         self.assertEqual(rows[0]["resolved_operand_count"], 1)
         self.assertEqual(rows[0]["raw_numeric_grounding"], 0.5)
         self.assertEqual(rows[0]["numeric_grounding"], 1.0)
@@ -562,9 +639,55 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(rows[0]["operand_selection_correctness"], 1.0)
         self.assertEqual(rows[0]["retrieval_debug_trace"]["selected_count"], 1)
         self.assertEqual(rows[0]["retrieval_debug_trace"]["candidate_count"], 3)
+        self.assertNotIn(
+            "stale",
+            json.dumps(rows[0]["resolved_calculation_trace"], ensure_ascii=False),
+        )
         self.assertNotIn("calculation_operands", rows[0])
         self.assertNotIn("calculation_plan", rows[0])
         self.assertNotIn("calculation_result", rows[0])
+
+    def test_summary_markdown_includes_task_artifact_integrity_counts(self) -> None:
+        markdown = _render_summary_markdown(
+            [
+                {
+                    "id": "exp-1",
+                    "config": {
+                        "chunk_size": 2500,
+                        "chunk_overlap": 320,
+                        "ingest_mode": "structural_selective_v2",
+                    },
+                    "parse": {"elapsed_sec": 1.0, "chunk_count": 10},
+                    "ingest": {"elapsed_sec": 2.0},
+                    "comparison_to_baseline": {},
+                    "screen_pass": True,
+                    "screening_eval": {
+                        "aggregate": {
+                            "contamination_rate": 0.0,
+                            "retrieval_hit_at_k": 1.0,
+                            "section_match_rate": 1.0,
+                            "citation_coverage": 1.0,
+                        }
+                    },
+                    "full_eval": {
+                        "aggregate": {
+                            "faithfulness": 1.0,
+                            "answer_relevancy": 1.0,
+                            "context_recall": 1.0,
+                            "completeness": 1.0,
+                            "numeric_pass_rate": 1.0,
+                            "task_artifact_integrity_error_count": 1,
+                            "task_artifact_integrity_warning_count": 2,
+                            "task_artifact_integrity_issue_count": 3,
+                        }
+                    },
+                }
+            ]
+        )
+
+        self.assertIn("Ledger Errors", markdown)
+        self.assertIn("| exp-1 |", markdown)
+        self.assertIn("| 1 | 2 | 3 |", markdown)
 
 
 if __name__ == "__main__":

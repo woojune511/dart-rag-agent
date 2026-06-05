@@ -226,7 +226,11 @@ class EvalResult:
     numeric_confidence: Optional[float] = None
     numeric_debug: Dict[str, Any] = field(default_factory=dict)
     resolved_calculation_trace: Dict[str, Any] = field(default_factory=dict)
+    runtime_projection_source: str = ""
+    runtime_projection_legacy_fallback: bool = False
+    runtime_projection_calculation_result_source: str = ""
     structured_result: Dict[str, Any] = field(default_factory=dict)
+    task_artifact_trace: Dict[str, Any] = field(default_factory=dict)
     calculation_operands: List[Dict[str, Any]] = field(default_factory=list)
     calculation_plan: Dict[str, Any] = field(default_factory=dict)
     calculation_result: Dict[str, Any] = field(default_factory=dict)
@@ -3238,6 +3242,7 @@ class RAGEvaluator:
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
         structured_result: Dict[str, Any] = {}
+        task_artifact_trace: Dict[str, Any] = {}
         agent_llm_usage: Dict[str, Any] = {}
         agent_embedding_usage: Dict[str, Any] = {}
         judge_usage_callback = getattr(self, "_llm_usage_callback", None)
@@ -3277,8 +3282,16 @@ class RAGEvaluator:
             dropped_claim_ids = result.get("dropped_claim_ids", []) or []
             unsupported_sentences = result.get("unsupported_sentences", []) or []
             sentence_checks = result.get("sentence_checks", []) or []
-            resolved_trace = _resolve_runtime_calculation_trace(result)
+            # Live evaluator rows are current-contract results. Replay and
+            # retrospective tools may opt into legacy top-level mirrors, but
+            # fresh eval scoring must only consume canonical runtime projection.
+            resolved_trace = _resolve_runtime_calculation_trace(
+                result,
+                allow_legacy_top_level=False,
+            )
             resolved_calculation_trace = dict(resolved_trace or {})
+            runtime_projection = dict(resolved_calculation_trace.get("runtime_projection") or {})
+            task_artifact_trace = dict(result.get("task_artifact_trace") or {})
             calculation_operands = resolved_trace.get("calculation_operands", []) or []
             calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
             calculation_result = resolved_trace.get("calculation_result", {}) or {}
@@ -3646,7 +3659,13 @@ class RAGEvaluator:
             numeric_confidence=numeric_eval.get("numeric_confidence"),
             numeric_debug=numeric_eval.get("numeric_debug", {}),
             resolved_calculation_trace=resolved_calculation_trace,
+            runtime_projection_source=str(runtime_projection.get("source") or ""),
+            runtime_projection_legacy_fallback=bool(runtime_projection.get("legacy_fallback")),
+            runtime_projection_calculation_result_source=str(
+                runtime_projection.get("calculation_result_source") or ""
+            ),
             structured_result=structured_result,
+            task_artifact_trace=task_artifact_trace,
             calculation_operands=calculation_operands,
             calculation_plan=calculation_plan,
             calculation_result=calculation_result,
@@ -3831,6 +3850,23 @@ class RAGEvaluator:
                 add_gemini_usage_counts(llm_usage_totals, result.llm_usage)
                 llm_usage_api_calls += int(result.llm_usage.get("api_calls", 0) or 0)
                 add_embedding_usage_counts(embedding_usage_totals, result.embedding_usage)
+            task_artifact_integrity_error_count = 0
+            task_artifact_integrity_warning_count = 0
+            task_artifact_integrity_ok_count = 0
+            task_artifact_integrity_issue_count = 0
+            for result in valid_results:
+                trace = dict(result.task_artifact_trace or {})
+                status = str(trace.get("integrity_status") or "ok").strip().lower()
+                if status == "error":
+                    task_artifact_integrity_error_count += 1
+                elif status == "warning":
+                    task_artifact_integrity_warning_count += 1
+                else:
+                    task_artifact_integrity_ok_count += 1
+                try:
+                    task_artifact_integrity_issue_count += int(trace.get("integrity_issue_count") or 0)
+                except (TypeError, ValueError):
+                    task_artifact_integrity_issue_count += len(list(trace.get("integrity_issues") or []))
 
             aggregate = {
                 "faithfulness": _average("faithfulness"),
@@ -3865,6 +3901,10 @@ class RAGEvaluator:
                 "avg_score": _average("aggregate_score"),
                 "avg_latency": _average("latency_sec"),
                 "error_rate": error_rate,
+                "task_artifact_integrity_error_count": task_artifact_integrity_error_count,
+                "task_artifact_integrity_warning_count": task_artifact_integrity_warning_count,
+                "task_artifact_integrity_ok_count": task_artifact_integrity_ok_count,
+                "task_artifact_integrity_issue_count": task_artifact_integrity_issue_count,
                 "llm_api_calls": llm_usage_api_calls,
                 "llm_prompt_tokens": llm_usage_totals["prompt_tokens"],
                 "llm_output_tokens": llm_usage_totals["output_tokens"],
