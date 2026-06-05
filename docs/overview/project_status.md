@@ -549,7 +549,9 @@ Useful supporting points:
   calculation trace provenance before any future cache hit can be considered
   rehydratable, while still reporting serving disabled. `ReportCacheIndex`
   lookup diagnostics now count rehydration-ready vs. blocked matches and carry
-  those counts through MAS smoke summaries.
+  those counts through MAS smoke summaries. The reviewer handoff smoke
+  `src.ops.report_cache_index_smoke` prints the same trace-only diagnostic
+  payload from the source-controlled fixture without running MAS or retrieval.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

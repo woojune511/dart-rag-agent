@@ -653,9 +653,21 @@ fixture directly and verifies `match_count = 2`, `readable_match_count = 2`,
 `rehydration_ready_match_count = 1`, and
 `rehydration_blocked_match_count = 1`, while serving stays disabled.
 
-Next structural step: use the persisted fixture in a small docs or CLI smoke
-example that prints the diagnostic payload shape reviewers should expect from
-`--report-cache-index-path`.
+Thirty-fourth step completed: `src/ops/report_cache_index_smoke.py` now prints
+a reviewer-facing trace-only diagnostics payload for a local cache index. By
+default it uses the first entry key in
+`tests/fixtures/report_cache_index/rehydration_diagnostics.json`, so the
+handoff command only needs `--report-cache-index-path` and shows
+`match_count = 2`, `readable_match_count = 2`,
+`rehydration_ready_match_count = 1`, and
+`rehydration_blocked_match_count = 1` while both `enabled` and
+`serving_enabled` remain false. `tests/test_report_cache_index_smoke.py` keeps
+the emitted summary shape fixed.
+
+Next structural step: decide the first non-serving consumer contract for
+rehydrated payload shape: answer slots, citations/source anchors, evidence
+items, and calculation trace should be reconstructable into a candidate answer
+artifact without bypassing retrieval or changing final-answer behavior.
 
 ### 3. Report-scoped cache
 

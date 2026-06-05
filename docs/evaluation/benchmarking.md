@@ -953,6 +953,16 @@ Current local baseline was refreshed on 2026-06-05:
   readable-but-blocked entry and one rehydration-ready entry for the same key,
   so `ReportCacheIndex.lookup_diagnostics()` can be reproduced without
   temporary test data.
+- Reviewer handoff smoke:
+  ```powershell
+  .\.venv\Scripts\python.exe -m src.ops.report_cache_index_smoke `
+    --report-cache-index-path tests\fixtures\report_cache_index\rehydration_diagnostics.json
+  ```
+  The expected summary remains trace-only: `status = trace_only`,
+  `enabled = false`, `serving_enabled = false`, `match_count = 2`,
+  `readable_match_count = 2`, `rehydration_ready_match_count = 1`,
+  `rehydration_blocked_match_count = 1`, and
+  `rehydration_reason_counts.missing_answer_slots = 1`.
 
 ## Parser Structure Smokes
 
