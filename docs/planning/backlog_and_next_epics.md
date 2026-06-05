@@ -643,6 +643,20 @@ Next structural step: build a tiny persisted-index fixture profile for
 eval-only or MAS smoke documentation so a reviewer can reproduce readable vs.
 rehydration-ready diagnostics without relying on ad hoc temporary test data.
 
+Thirty-third step completed: a source-controlled local-cache-index fixture now
+lives at `tests/fixtures/report_cache_index/rehydration_diagnostics.json`. It
+uses one cache key with two readable local-index entries: one intentionally
+blocked for rehydration because it lacks answer slots/citation/trace material,
+and one rehydration-ready entry with answer slots, citations, evidence items,
+and calculation trace provenance. `tests/test_report_cache_index.py` reads the
+fixture directly and verifies `match_count = 2`, `readable_match_count = 2`,
+`rehydration_ready_match_count = 1`, and
+`rehydration_blocked_match_count = 1`, while serving stays disabled.
+
+Next structural step: use the persisted fixture in a small docs or CLI smoke
+example that prints the diagnostic payload shape reviewers should expect from
+`--report-cache-index-path`.
+
 ### 3. Report-scoped cache
 
 현재:

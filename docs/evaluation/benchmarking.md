@@ -948,6 +948,11 @@ Current local baseline was refreshed on 2026-06-05:
   rehydration reason counts. MAS smoke carries these through to case/top-level
   summaries so benchmark handoff can distinguish readable local-index matches
   from entries that are actually reconstructable.
+- The source-controlled fixture
+  `tests/fixtures/report_cache_index/rehydration_diagnostics.json` contains one
+  readable-but-blocked entry and one rehydration-ready entry for the same key,
+  so `ReportCacheIndex.lookup_diagnostics()` can be reproduced without
+  temporary test data.
 
 ## Parser Structure Smokes
 

@@ -166,6 +166,27 @@ class ReportCacheIndexTests(unittest.TestCase):
         self.assertEqual(diagnostics["rehydration_reason_counts"], {})
         self.assertEqual(diagnostics["matches"][0]["rehydration"]["status"], "ready")
 
+    def test_fixture_reports_readable_and_rehydratable_match_counts(self) -> None:
+        fixture_path = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        key = payload["entries"][0]["key"]
+
+        diagnostics = ReportCacheIndex(fixture_path).lookup_diagnostics(key)
+
+        self.assertEqual(diagnostics["status"], "trace_only")
+        self.assertFalse(diagnostics["enabled"])
+        self.assertFalse(diagnostics["serving_enabled"])
+        self.assertEqual(diagnostics["match_count"], 2)
+        self.assertEqual(diagnostics["readable_match_count"], 2)
+        self.assertEqual(diagnostics["rehydration_ready_match_count"], 1)
+        self.assertEqual(diagnostics["rehydration_blocked_match_count"], 1)
+        self.assertEqual(diagnostics["rehydration_reason_counts"]["missing_answer_slots"], 1)
+        self.assertEqual(diagnostics["index"]["rehydration_ready_count"], 1)
+        self.assertEqual(
+            [item["rehydration"]["status"] for item in diagnostics["matches"]],
+            ["blocked", "ready"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
