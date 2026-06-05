@@ -445,6 +445,11 @@ Useful supporting points:
   input, marks blocking tasks as failed with `blocked_reason`, and final
   synthesis reads only completed worker tasks plus their referenced artifacts so
   stale artifacts are not reused as final sources.
+- `mas_e2e_smoke.py` now supports replan-budgeted real-node smoke runs and
+  exports replan counts, routed-replan status, final report records,
+  task/artifact integrity status, blocked case counts, and integrity-error
+  counts. The live real-node smoke is environment-gated because it needs
+  `GOOGLE_API_KEY`; the current change is covered by API-free contract tests.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.
@@ -597,6 +602,11 @@ Useful supporting points:
 - MAS replan-edge follow-up is green: runtime domain-term audit passed,
   projection/MAS focused tests passed `34` tests, and full unittest discovery
   passed `780` tests.
+- MAS real-node smoke observability follow-up is green at the contract-test
+  layer: the new smoke-script tests passed with the MAS focused suite, runtime
+  domain-term audit passed, and full unittest discovery passed `782` tests. A
+  live smoke run was not executed because `GOOGLE_API_KEY` is not set in the
+  current shell.
 - Latest focused checks:
   - `KBF_T2_018`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
     grounding `1.0`, retrieval support `1.0`.

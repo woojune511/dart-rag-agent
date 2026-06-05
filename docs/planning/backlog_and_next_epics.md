@@ -385,9 +385,18 @@ integrity feedback into planner input, closes blocking tasks as failed with
 worker tasks and their referenced artifacts so stale artifacts do not re-enter
 the final answer.
 
-Next structural step: run a real-node MAS smoke with the planner, Analyst,
-Researcher, Critic, and merge nodes wired together to confirm planner feedback
-is actionable outside injected-node contract tests.
+Tenth step completed: `src/ops/mas_e2e_smoke.py` now accepts a replan budget
+and reports `final_report_record`, `task_artifact_trace`, planner feedback,
+replan counts, routed-replan status, blocked case counts, and integrity error
+counts for real Orchestrator / Analyst / Researcher / Critic / Merge runs.
+This makes the real-node smoke observable for replan behavior without changing
+the real node wiring. The live run still requires `GOOGLE_API_KEY` and a
+store-backed query, so it remains an environment-gated smoke rather than a
+unit-test gate.
+
+Next structural step: run that real-node MAS smoke in an environment with
+`GOOGLE_API_KEY` and inspect whether planner feedback is actionable outside
+injected-node contract tests.
 
 ### 3. Report-scoped cache
 

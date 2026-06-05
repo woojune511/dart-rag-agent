@@ -55,7 +55,13 @@ def _artifact_answer(artifact: Dict[str, Any]) -> str:
     return str(content or "")
 
 
-def run_smoke(*, store_dir: Path, collection_name: str, queries: List[str]) -> Dict[str, Any]:
+def run_smoke(
+    *,
+    store_dir: Path,
+    collection_name: str,
+    queries: List[str],
+    replan_budget: int = 0,
+) -> Dict[str, Any]:
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),
         collection_name=collection_name,
@@ -70,6 +76,7 @@ def run_smoke(*, store_dir: Path, collection_name: str, queries: List[str]) -> D
         final = run_mas_graph(
             query,
             report_scope=dict(DEFAULT_SCOPE),
+            replan_budget=replan_budget,
             orchestrator_plan_node=plan_node,
             orchestrator_merge_node=merge_node,
             analyst_node=analyst_node,
@@ -78,6 +85,9 @@ def run_smoke(*, store_dir: Path, collection_name: str, queries: List[str]) -> D
         artifacts = dict(final.get("artifacts") or {})
         tasks = dict(final.get("tasks") or {})
         critic_reports = list(final.get("critic_reports") or [])
+        final_report_record = dict(final.get("final_report_record") or {})
+        task_artifact_trace = dict(final.get("task_artifact_trace") or {})
+        execution_trace = list(final.get("execution_trace") or [])
         cases.append(
             {
                 "query": query,
@@ -85,8 +95,17 @@ def run_smoke(*, store_dir: Path, collection_name: str, queries: List[str]) -> D
                 "task_statuses": {task_id: str(task.get("status")) for task_id, task in tasks.items()},
                 "critic_reports": critic_reports,
                 "critic_feedback": final.get("critic_feedback"),
-                "execution_trace": list(final.get("execution_trace") or []),
+                "planner_feedback": final.get("planner_feedback"),
+                "replan_budget": int(final.get("replan_budget", replan_budget) or 0),
+                "replan_count": int(final.get("replan_count", 0) or 0),
+                "replan_requested": final_report_record.get("status") == "replan_required",
+                "replan_routed": "Orchestrator replanned" in " | ".join(execution_trace),
+                "execution_trace": execution_trace,
                 "final_report": final.get("final_report"),
+                "final_report_record": final_report_record,
+                "task_artifact_trace": task_artifact_trace,
+                "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
+                "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
                 "artifact_answers": {
                     task_id: _artifact_answer(artifact)
                     for task_id, artifact in artifacts.items()
@@ -94,13 +113,30 @@ def run_smoke(*, store_dir: Path, collection_name: str, queries: List[str]) -> D
             }
         )
 
+    replan_routed_count = sum(1 for case in cases if case.get("replan_routed"))
+    blocked_count = sum(
+        1
+        for case in cases
+        if str((case.get("final_report_record") or {}).get("status") or "").strip() == "blocked"
+    )
+    integrity_error_count = sum(
+        1
+        for case in cases
+        if str(case.get("task_artifact_integrity_status") or "").strip() == "error"
+    )
     return {
         "store": {
             "persist_directory": str(store_dir),
             "collection_name": collection_name,
         },
         "report_scope": dict(DEFAULT_SCOPE),
+        "replan_budget": int(replan_budget or 0),
         "case_count": len(cases),
+        "summary": {
+            "replan_routed_count": replan_routed_count,
+            "blocked_count": blocked_count,
+            "integrity_error_count": integrity_error_count,
+        },
         "cases": cases,
     }
 
@@ -110,6 +146,7 @@ def main() -> None:
     parser.add_argument("--store-dir", type=Path, default=DEFAULT_STORE_DIR)
     parser.add_argument("--collection-name", default=DEFAULT_COLLECTION)
     parser.add_argument("--query", action="append", dest="queries")
+    parser.add_argument("--replan-budget", type=int, default=0)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
@@ -117,6 +154,7 @@ def main() -> None:
         store_dir=args.store_dir,
         collection_name=args.collection_name,
         queries=args.queries or list(DEFAULT_QUERIES),
+        replan_budget=args.replan_budget,
     )
 
     if args.output:
