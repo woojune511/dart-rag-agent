@@ -732,6 +732,23 @@ should specify where a rehydrated candidate would enter the task/artifact
 ledger, how evidence provenance is rechecked, and which trace-only diagnostics
 would become blocking.
 
+Forty-first step completed: the guarded report-cache consumer-read design is
+now part of `docs/architecture/agent_runtime_contract.md`. The contract keeps
+serving disabled, limits future reads to readable `local_cache_index` entries,
+requires a single rehydration-ready match, and requires provenance rechecks
+across answer slots, citations/source anchors, evidence material, calculation
+trace material, and report/value/provenance key scope. It also defines that a
+future served cache value must enter the task/artifact ledger through either a
+declared cache-rehydration schema path or the existing calculation task contract
+with required `operand_set`, `calculation_plan`, and `calculation_result`
+artifacts. Until that schema-backed producer policy exists, rehydrated output
+must remain a non-serving `candidate`.
+
+Next structural step: add a small contract helper or test-only validator for
+the documented guarded-consumer blocking conditions, still without enabling
+cache reads. The first validator should classify a rehydration-ready fixture as
+admissible-for-design and the blocked fixture as a normal-retrieval fallback.
+
 ### 3. Report-scoped cache
 
 현재:

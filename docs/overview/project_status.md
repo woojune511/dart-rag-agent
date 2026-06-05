@@ -566,6 +566,11 @@ Useful supporting points:
   that fixture-backed baseline comparison as the default reviewer command. The
   fixture-backed compact baseline is source-controlled under
   `tests/fixtures/report_cache_index/rehydration_contract_baseline.json`.
+  The guarded cache-consumer promotion design is now documented in the runtime
+  contract: future serving must start from a readable `local_cache_index`
+  match, select exactly one rehydration-ready entry, recheck value/evidence/
+  citation/calculation provenance against the cache key, and enter the
+  task/artifact ledger only through an explicit schema-backed producer policy.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

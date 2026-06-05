@@ -282,6 +282,60 @@ as a diagnostic candidate only and execute normal retrieval. The fallback is not
 to synthesize missing evidence from the cache value; it is to recover evidence
 through the existing retrieval and validation path.
 
+### Guarded Cache Consumer Promotion Design
+
+Cache serving remains disabled until the consumer path can satisfy the same
+task/artifact contract as normal retrieval and calculation. A future
+implementation must be behind an explicit enable flag, and the default behavior
+must remain normal retrieval with trace-only diagnostics.
+
+The only allowed read source is a readable `local_cache_index` entry. Runtime
+trace projections, artifact-store projections, smoke output, and benchmark
+exports are observability surfaces only; they cannot become cache hits. A
+consumer must start from `ReportCacheIndex.lookup_diagnostics()`, select a
+single rehydration-ready match, and preserve the normal-retrieval fallback when
+there is no exact readable and rehydratable match.
+
+Before a rehydrated candidate can influence the final answer, it must enter the
+task/artifact ledger through an explicit producer policy. It must not be hidden
+inside free-form agent text or top-level compatibility fields. The future
+implementation has two acceptable shapes:
+
+- declare a dedicated cache-rehydration task/artifact kind in the schema and
+  contract, then teach integrity projection how to validate it
+- or map the rehydrated value into the existing calculation task contract by
+  producing the same required `operand_set`, `calculation_plan`, and
+  `calculation_result` artifacts with explicit cache-origin metadata
+
+Until one of those shapes is implemented and contract-tested, rehydrated output
+must stay `status = candidate` and outside the ledger.
+
+The consumer must recheck provenance before serving. The cached display value,
+normalized value, `answer_slots.primary_value`, citation/source anchors,
+evidence items or refs, source row/table ids, and calculation operands must
+agree with the cache key's report/value/provenance scope. A mismatch is a cache
+miss, not a repair opportunity. The consumer must not synthesize citations,
+operands, source rows, or calculation traces from the cached answer text.
+
+The following trace-only diagnostics become blocking for an enabled consumer:
+
+- `serving_enabled = false` or any disabled mode marker on the candidate
+- no readable `local_cache_index` match
+- more than one selected match for the same key without a deterministic tie
+  policy in config
+- `rehydration_ready = false` or any rehydration block reason
+- missing answer slots, citation/source anchors, evidence material, or
+  calculation trace material
+- cache key id mismatch or incomplete report/value/provenance key fields
+- source scope mismatch across report, statement, consolidation, section, table,
+  row, period, or value identity fields
+- ledger insertion without required artifact kinds, payload shape, and evidence
+  refs
+
+When any blocking condition appears, runtime must record the diagnostic reason
+and execute normal retrieval. A cache miss must be observable, but it must not
+degrade answer correctness or weaken final-source integrity checks.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를
