@@ -76,8 +76,9 @@ User question
    - benchmark-specific runtime routing rules
 
 10. **Next step**
-    - add a portfolio demo command that prints answer, evidence, calculation
-      trace, critic acceptance, and cache handoff status in one compact output.
+    - capture the portfolio demo command output in a short walkthrough that
+      shows answer, evidence, calculation trace, critic acceptance, and cache
+      handoff status in one compact output.
 
 ## README Opening Draft
 

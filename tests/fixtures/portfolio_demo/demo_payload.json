@@ -1,0 +1,103 @@
+{
+  "demo_id": "portfolio_contract_demo",
+  "question": "Which selected metric is supported by the available report evidence?",
+  "answer_package": {
+    "answer": "The selected metric is 123, grounded in the cited report section.",
+    "citations": [
+      "[ACME | 2023 | section]"
+    ],
+    "evidence_items": [
+      {
+        "evidence_id": "ev-1",
+        "source_anchor": "section",
+        "claim": "metric was 123",
+        "quote_span": "metric was 123",
+        "metadata": {
+          "source_row_id": "row-1"
+        }
+      }
+    ],
+    "structured_result": {
+      "status": "ok",
+      "rendered_value": "123",
+      "answer_slots": {
+        "primary_value": {
+          "display": "123",
+          "raw_value": "123"
+        }
+      }
+    },
+    "resolved_calculation_trace": {
+      "calculation_operands": [
+        {
+          "operand_id": "operand-1",
+          "label": "selected_metric",
+          "raw_value": "123",
+          "source_anchor": "section",
+          "source_row_id": "row-1"
+        }
+      ],
+      "calculation_plan": {
+        "operation": "lookup",
+        "formula": "source_value"
+      },
+      "calculation_result": {
+        "status": "ok",
+        "rendered_value": "123",
+        "answer_slots": {
+          "primary_value": {
+            "display": "123",
+            "raw_value": "123"
+          }
+        }
+      },
+      "runtime_projection": {
+        "source": "resolved_calculation_trace",
+        "legacy_fallback": false
+      }
+    },
+    "task_artifact_trace": {
+      "task_count": 2,
+      "artifact_count": 4,
+      "integrity_status": "ok",
+      "integrity_issue_count": 0,
+      "integrity_issues": [],
+      "missing_artifact_ids": [],
+      "orphan_artifact_ids": [],
+      "tasks": [
+        {
+          "task_id": "task_1",
+          "owner": "analyst",
+          "status": "completed",
+          "latest_artifact_id": "artifact:calculation_result",
+          "artifact_kinds": [
+            "operand_set",
+            "calculation_plan",
+            "calculation_result"
+          ]
+        },
+        {
+          "task_id": "task_2",
+          "owner": "critic",
+          "status": "completed",
+          "latest_artifact_id": "artifact:critic_report",
+          "artifact_kinds": [
+            "critic_report"
+          ]
+        }
+      ]
+    },
+    "critic_reports": [
+      {
+        "verdict": "passed",
+        "passed": true,
+        "target_task_id": "task_1",
+        "target_artifact_ids": [
+          "artifact:calculation_result"
+        ],
+        "acceptance_reason": "Evidence, trace, and target refs are present.",
+        "blocking_issues": []
+      }
+    ]
+  }
+}

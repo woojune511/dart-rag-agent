@@ -104,6 +104,7 @@ retrieval bypass remain disabled.
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests
 .\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
+.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
 .\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
 ```
 
@@ -125,6 +126,6 @@ and hard to overfit.
 
 ## Next Useful Step
 
-Package a small portfolio demo that runs one representative question and prints
-the final answer, citations, calculation trace, task/artifact integrity summary,
-critic acceptance status, and cache reviewer handoff status side by side.
+Capture the portfolio demo output in a short walkthrough that shows the final
+answer, citations, calculation trace, task/artifact integrity summary, critic
+acceptance status, and cache reviewer handoff status side by side.
