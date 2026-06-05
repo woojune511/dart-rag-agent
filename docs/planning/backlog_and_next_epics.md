@@ -517,9 +517,21 @@ value-canary risk: the operating-margin answer surface showed `2536.14%` rather
 than the expected `2.54%`. Do not promote cache retrieval-bypass behavior until
 the value canary is stable on the intended store/provider path.
 
-Next structural step: keep report-scoped cache as observability only, then close
-the operating-margin unit-scale canary on the MAS/default smoke path before
-turning any `reusable` class into a retrieval-bypass candidate.
+Twenty-fourth step completed: the MAS operating-margin unit-scale canary is now
+closed on the intended Google-store path. Ratio operands that come from the same
+structured table context and normalize to the same KRW unit family now align
+their source display unit from `CALCULATION_RENDER_POLICY` before formula
+execution. A focused local Google-store MAS probe for Samsung 2023 produced
+`2.54%`, preserved `6,566,976` and `258,935,494`, and still surfaced one
+deduped `reusable` report-cache candidate. Cache read/write and retrieval bypass
+remain disabled; the next step is to design the guarded consumer path rather
+than simply trusting every reusable projection.
+
+Next structural step: keep report-scoped cache as observability only while
+designing the first guarded retrieval-bypass consumer. The consumer should only
+consider `reusable` projections, preserve the source evidence contract, and
+fall back to normal retrieval when cache provenance or value identity is
+incomplete.
 
 ### 3. Report-scoped cache
 

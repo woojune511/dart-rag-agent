@@ -522,10 +522,12 @@ Useful supporting points:
   with classifier status/reasons/key/key id, and MAS Analyst artifacts preserve
   it through `resolved_calculation_trace`. MAS E2E smoke output now reports
   per-case `report_cache_candidates` plus top-level status/reason counts, with
-  duplicate content/payload projections counted once. A focused local
-  Google-store probe produced one `reusable` calculation candidate, but also
-  surfaced an operating-margin value-canary risk (`2536.14%` instead of
-  `2.54%`), so no cache read/write behavior or retrieval bypass is enabled yet.
+  duplicate content/payload projections counted once. The follow-up unit-scale
+  repair aligns same-table KRW ratio operands to the table display unit before
+  formula execution; a focused local Google-store probe now reports the Samsung
+  2023 operating margin as `2.54%` with one `reusable` calculation candidate.
+  Cache read/write behavior and retrieval bypass remain disabled until the
+  guarded consumer path is designed.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

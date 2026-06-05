@@ -16,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
+from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
 class _StubStructuredLLM:
@@ -1925,6 +1926,46 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertEqual(answer, "2023년 연결기준 operating margin은 2.54%입니다.")
+
+    def test_ratio_operand_alignment_uses_shared_table_display_unit(self) -> None:
+        display_units = tuple(CALCULATION_RENDER_POLICY.get("source_display_units") or ())
+        scale_by_unit = dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})
+        smaller_unit = min(display_units, key=lambda unit: scale_by_unit.get(unit, 0.0))
+        larger_unit = max(display_units, key=lambda unit: scale_by_unit.get(unit, 0.0))
+
+        ordered_operands = [
+            {
+                "operand_id": "numerator",
+                "label": "metric a",
+                "matched_operand_role": "numerator",
+                "period": "2023",
+                "raw_value": "6,566,976",
+                "raw_unit": larger_unit,
+                "normalized_value": 6_566_976 * scale_by_unit[larger_unit],
+                "normalized_unit": "KRW",
+                "rendered_value": f"6,566,976{larger_unit}",
+                "table_source_id": "report::table:2",
+            },
+            {
+                "operand_id": "denominator",
+                "label": "metric b",
+                "matched_operand_role": "denominator",
+                "period": "2023",
+                "raw_value": "258,935,494",
+                "raw_unit": smaller_unit,
+                "normalized_value": 258_935_494 * scale_by_unit[smaller_unit],
+                "normalized_unit": "KRW",
+                "rendered_value": f"258,935,494{smaller_unit}",
+                "table_source_id": "report::table:2",
+            },
+        ]
+
+        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, [])
+
+        self.assertEqual(aligned[1]["raw_unit"], larger_unit)
+        self.assertEqual(aligned[1]["original_raw_unit"], smaller_unit)
+        self.assertEqual(aligned[1]["normalized_value"], 258_935_494 * scale_by_unit[larger_unit])
+        self.assertTrue(aligned[1]["ratio_unit_aligned_from_sibling_table"])
 
     def test_best_direct_lookup_slot_rejects_ambiguous_context_table_without_scope(self) -> None:
         operand = {

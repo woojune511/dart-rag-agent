@@ -905,6 +905,13 @@ Current local baseline was refreshed on 2026-06-05:
   `value_assertion_failure_count = 0`. The earlier provenance-anchor smoke that
   surfaced `-4.45%` now fails the checker with value assertion mismatches,
   closing the gap where compact comparison alone passed.
+- After report-cache candidate observability exposed a same-table unit mismatch
+  on the Samsung 2023 operating-margin MAS path, ratio operands now align source
+  display units from `CALCULATION_RENDER_POLICY` when they share the same table
+  context and KRW unit family. A focused local Google-store probe reports
+  `2.54%`, keeps `6,566,976` and `258,935,494` visible, and still surfaces one
+  `reusable` report-cache candidate. The probe output was treated as a local
+  experiment artifact under `benchmarks/results/**`, not committed.
 
 ## Parser Structure Smokes
 
