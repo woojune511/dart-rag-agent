@@ -53,7 +53,7 @@ def _example(example_id: str) -> EvalExample:
     )
 
 
-def _result(example: EvalExample) -> EvalResult:
+def _result(example: EvalExample, task_artifact_trace=None) -> EvalResult:
     return EvalResult(
         id=example.id,
         question=example.question,
@@ -87,6 +87,7 @@ def _result(example: EvalExample) -> EvalResult:
         routing_confidence=None,
         latency_sec=0.1,
         numeric_final_judgement="PASS",
+        task_artifact_trace=dict(task_artifact_trace or {"integrity_status": "ok", "integrity_issue_count": 0}),
     )
 
 
@@ -111,6 +112,43 @@ class EvaluatorProgressTests(unittest.TestCase):
         self.assertEqual([event["completed"] for event in events], [0, 1, 1, 2])
         self.assertEqual(events[-1]["numeric_final_judgement"], "PASS")
         self.assertEqual(len(output["per_question"]), 2)
+
+    def test_run_aggregates_task_artifact_integrity_counts(self) -> None:
+        evaluator = RAGEvaluator.__new__(RAGEvaluator)
+        evaluator.experiment_name = "test"
+        evaluator.load_dataset = lambda: []
+
+        traces = {
+            "Q1": {
+                "integrity_status": "error",
+                "integrity_issue_count": 2,
+                "integrity_issues": [
+                    {"type": "missing_artifact_reference", "severity": "error"},
+                    {"type": "orphan_artifact", "severity": "warning"},
+                ],
+            },
+            "Q2": {
+                "integrity_status": "warning",
+                "integrity_issue_count": 1,
+                "integrity_issues": [
+                    {"type": "task_without_artifacts", "severity": "warning"},
+                ],
+            },
+        }
+        evaluator.evaluate_one = lambda example: _result(example, traces[example.id])
+
+        with patch("src.ops.evaluator.mlflow", _FakeMlflow()):
+            output = evaluator.run(
+                examples=[_example("Q1"), _example("Q2")],
+                run_name="integrity-test",
+                max_workers=1,
+            )
+
+        aggregate = output["aggregate"]
+        self.assertEqual(aggregate["task_artifact_integrity_error_count"], 1)
+        self.assertEqual(aggregate["task_artifact_integrity_warning_count"], 1)
+        self.assertEqual(aggregate["task_artifact_integrity_ok_count"], 0)
+        self.assertEqual(aggregate["task_artifact_integrity_issue_count"], 3)
 
 
 if __name__ == "__main__":

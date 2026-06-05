@@ -1987,11 +1987,10 @@
       "text": "통과 (Deterministic 1층)",
       "category": "runtime_literal",
       "fingerprint": "fdd80360b79ba3ae",
-      "count": 3,
+      "count": 2,
       "first_lines": [
-        102,
-        125,
-        150
+        112,
+        135
       ]
     },
     {

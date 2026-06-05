@@ -46,13 +46,35 @@ from src.agent.financial_graph_helpers import (
     _resolve_candidate_local_unit_hint,
     _requires_direct_numeric_grounding,
     _retrieval_hint_from_topic,
+    _resolve_runtime_calculation_trace,
     _structured_cell_period_text,
     _supplement_section_terms_for_query,
 )
-from src.agent.financial_graph_models import EvidenceExtraction, NumericExtraction
+from src.agent.financial_graph_models import (
+    CalculationPlan,
+    CalculationRenderOutput,
+    CalculationVerificationOutput,
+    EvidenceExtraction,
+    NumericExtraction,
+)
 from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask, _refine_lookup_slot_unit_from_evidence
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
+
+
+def _with_runtime_calculation_trace(state):
+    updated = dict(state)
+    if not updated.get("resolved_calculation_trace"):
+        updated["resolved_calculation_trace"] = {
+            "calculation_operands": list(updated.get("calculation_operands") or []),
+            "calculation_plan": dict(updated.get("calculation_plan") or {}),
+            "calculation_result": dict(updated.get("calculation_result") or {}),
+        }
+    return updated
+
+
+def _execute_calculation_with_runtime_trace(agent, state):
+    return agent._execute_calculation(_with_runtime_calculation_trace(state))
 
 
 class _StubStructuredLLM:
@@ -1727,7 +1749,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_adjusted_difference_result_preserves_source_unit_when_excluding_component(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": (
                     "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 "
@@ -1786,7 +1808,8 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,360백만원")
         self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,360백만원")
@@ -1798,7 +1821,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_adjusted_difference_result_uses_source_unit_with_rounded_component_operand(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
                 "active_subtask": {
@@ -1852,11 +1875,68 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,334백만원")
         self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,334백만원")
         self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,334백만원")
+
+    def test_execute_calculation_ignores_legacy_top_level_operands_and_plan(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._execute_calculation(
+            {
+                "query": "Calculate a ratio.",
+                "active_subtask": {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "ratio",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "numerator", "role": "numerator", "required": True},
+                        {"label": "denominator", "role": "denominator", "required": True},
+                    ],
+                },
+                "resolved_calculation_trace": {},
+                "calculation_operands": [
+                    {
+                        "operand_id": "legacy_a",
+                        "label": "numerator",
+                        "normalized_value": 10.0,
+                        "matched_operand_role": "numerator",
+                    },
+                    {
+                        "operand_id": "legacy_b",
+                        "label": "denominator",
+                        "normalized_value": 2.0,
+                        "matched_operand_role": "denominator",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["legacy_a", "legacy_b"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "legacy_a"},
+                        {"variable": "B", "operand_id": "legacy_b"},
+                    ],
+                    "formula": "A / B",
+                    "result_unit": "ratio",
+                },
+                "calculation_result": {"status": "legacy"},
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace["calculation_plan"], {})
+        self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
+        self.assertNotIn("calculation_operands", result)
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
 
     def test_operand_precision_refines_rounded_llm_value_from_structured_table_cell(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -2256,8 +2336,257 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
+        trace = _resolve_runtime_calculation_trace(rendered)
         self.assertIn("1,486,360백만원", rendered["answer"])
         self.assertNotIn("1,486,334백만원", rendered["answer"])
+        self.assertEqual(trace["calculation_result"]["formatted_result"], rendered["answer"])
+        self.assertNotIn("calculation_operands", rendered)
+        self.assertNotIn("calculation_plan", rendered)
+        self.assertNotIn("calculation_result", rendered)
+
+    def test_render_success_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(CalculationRenderOutput(final_answer="The result is 25.4%."))
+        rendered = agent._render_calculation_answer(
+            {
+                "query": "calculate ratio",
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {"operand_id": "op_001", "label": "numerator"},
+                        {"operand_id": "op_002", "label": "denominator"},
+                    ],
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 25.4,
+                        "result_unit": "%",
+                        "rendered_value": "25.4%",
+                    },
+                },
+                "structured_result": {},
+                "calculation_operands": [{"operand_id": "stale"}],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(rendered)
+        self.assertEqual(rendered["answer"], "The result is 25.4%.")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "The result is 25.4%.")
+        self.assertNotIn("calculation_operands", rendered)
+        self.assertNotIn("calculation_plan", rendered)
+        self.assertNotIn("calculation_result", rendered)
+
+    def test_late_runtime_numeric_answer_uses_resolved_trace(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = agent._late_runtime_numeric_answer(
+            {
+                "query": "calculate ratio",
+                "active_subtask": {"metric_label": "coverage ratio"},
+                "resolved_calculation_trace": {
+                    "calculation_operands": [],
+                    "calculation_plan": {"status": "ok", "operation": "sum"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 25.4,
+                        "result_unit": "%",
+                        "rendered_value": "25.4%",
+                        "formatted_result": "The ratio is 25.4%.",
+                    },
+                },
+                "calculation_plan": {"operation": "stale"},
+                "calculation_result": {"status": "stale", "rendered_value": "0%"},
+            },
+            "The draft answer said 0%.",
+        )
+
+        self.assertEqual(answer, "The ratio is 25.4%.")
+
+    def test_late_runtime_numeric_answer_ignores_legacy_top_level_trace(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = agent._late_runtime_numeric_answer(
+            {
+                "query": "calculate ratio",
+                "active_subtask": {"metric_label": "coverage ratio"},
+                "resolved_calculation_trace": {},
+                "calculation_plan": {"status": "ok", "operation": "sum"},
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 25.4,
+                    "result_unit": "%",
+                    "rendered_value": "25.4%",
+                    "formatted_result": "The ratio is 25.4%.",
+                },
+            },
+            "The draft answer said 0%.",
+        )
+
+        self.assertEqual(answer, "")
+
+    def test_render_structured_output_failure_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _FailingLLM()
+        rendered = agent._render_calculation_answer(
+            {
+                "query": "calculate ratio",
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {"operand_id": "op_001", "label": "numerator"},
+                        {"operand_id": "op_002", "label": "denominator"},
+                    ],
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 25.4,
+                        "result_unit": "%",
+                        "rendered_value": "25.4%",
+                    },
+                },
+                "structured_result": {},
+                "calculation_operands": [{"operand_id": "stale"}],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(rendered)
+        self.assertEqual(rendered["answer"], "25.4%")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
+        self.assertEqual(rendered["structured_result"]["formatted_result"], "25.4%")
+        self.assertNotIn("calculation_operands", rendered)
+        self.assertNotIn("calculation_plan", rendered)
+        self.assertNotIn("calculation_result", rendered)
+
+    def test_render_ignores_legacy_top_level_runtime_projection(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rendered = agent._render_calculation_answer(
+            {
+                "query": "calculate ratio",
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "calculation_operands": [{"operand_id": "legacy"}],
+                "calculation_plan": {"status": "ok", "operation": "ratio"},
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 25.4,
+                    "rendered_value": "25.4%",
+                },
+            }
+        )
+
+        self.assertEqual(rendered, {"answer": "", "compressed_answer": "", "draft_points": []})
+
+    def test_verify_structured_output_failure_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _FailingLLM()
+        verified = agent._verify_calculation_answer(
+            {
+                "query": "calculate ratio",
+                "answer": "25.4%",
+                "compressed_answer": "25.4%",
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {"operand_id": "op_001", "label": "numerator"},
+                        {"operand_id": "op_002", "label": "denominator"},
+                    ],
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 25.4,
+                        "result_unit": "%",
+                        "rendered_value": "25.4%",
+                        "formatted_result": "25.4%",
+                    },
+                },
+                "structured_result": {"status": "ok", "formatted_result": "25.4%"},
+                "calculation_operands": [{"operand_id": "stale"}],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+                "calculation_debug_trace": {},
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(verified)
+        self.assertEqual(verified["answer"], "25.4%")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
+        self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "error_keep")
+        self.assertNotIn("calculation_operands", verified)
+        self.assertNotIn("calculation_plan", verified)
+        self.assertNotIn("calculation_result", verified)
+
+    def test_verify_ignores_legacy_top_level_runtime_projection(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        verified = agent._verify_calculation_answer(
+            {
+                "query": "calculate ratio",
+                "answer": "25.4%",
+                "compressed_answer": "25.4%",
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "calculation_operands": [{"operand_id": "legacy"}],
+                "calculation_plan": {"status": "ok", "operation": "ratio"},
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 25.4,
+                    "rendered_value": "25.4%",
+                },
+                "calculation_debug_trace": {},
+            }
+        )
+
+        self.assertEqual(verified["answer"], "25.4%")
+        self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "skip")
+        self.assertEqual(
+            _resolve_runtime_calculation_trace(verified, allow_legacy_top_level=False),
+            {},
+        )
+        self.assertNotIn("calculation_operands", verified)
+        self.assertNotIn("calculation_plan", verified)
+        self.assertNotIn("calculation_result", verified)
+
+    def test_verify_success_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            CalculationVerificationOutput(
+                verdict="keep",
+                issues=[],
+                final_answer="25.4%",
+            )
+        )
+        verified = agent._verify_calculation_answer(
+            {
+                "query": "calculate ratio",
+                "answer": "25.4%",
+                "compressed_answer": "25.4%",
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {"operand_id": "op_001", "label": "numerator"},
+                        {"operand_id": "op_002", "label": "denominator"},
+                    ],
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 25.4,
+                        "result_unit": "%",
+                        "rendered_value": "25.4%",
+                        "formatted_result": "25.4%",
+                    },
+                },
+                "structured_result": {"status": "ok", "formatted_result": "25.4%"},
+                "calculation_operands": [{"operand_id": "stale"}],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+                "calculation_debug_trace": {},
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(verified)
+        self.assertEqual(verified["answer"], "25.4%")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
+        self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "keep")
+        self.assertNotIn("calculation_operands", verified)
+        self.assertNotIn("calculation_plan", verified)
+        self.assertNotIn("calculation_result", verified)
 
     def test_lookup_producer_task_preserves_binding_concept_for_generic_consumer_operand(self) -> None:
         original_singleton = ontology_module._ONTOLOGY_SINGLETON
@@ -3414,9 +3743,271 @@ class OperationContractTests(unittest.TestCase):
         self.assertTrue(_operand_row_matches_requirement(row, current_req))
         self.assertFalse(_operand_row_matches_requirement(row, prior_req))
 
+    def test_formula_plan_no_operands_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            {
+                "query": "calculate the value",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "value",
+                    "operation_family": "lookup",
+                },
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "calculation_operands": [],
+                "calculation_plan": {},
+                "calculation_result": {},
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
+        self.assertEqual(trace["calculation_plan"]["operation"], "none")
+        self.assertEqual(trace["calculation_result"], {})
+        self.assertNotIn("calculation_operands", result)
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
+
+    def test_formula_plan_ignores_legacy_top_level_operands(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            {
+                "query": "calculate the value",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "value",
+                    "operation_family": "lookup",
+                },
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "calculation_operands": [
+                    {
+                        "operand_id": "legacy",
+                        "label": "legacy value",
+                        "raw_value": "100",
+                        "normalized_value": 100.0,
+                    }
+                ],
+                "calculation_plan": {"status": "legacy"},
+                "calculation_result": {"status": "legacy"},
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
+        self.assertEqual(result["planner_debug_trace"]["reason"], "no operands")
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace["calculation_plan"]["operation"], "none")
+        self.assertEqual(trace["calculation_result"], {})
+        self.assertNotIn("calculation_operands", result)
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
+
+    def test_deterministic_operation_guard_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = agent._plan_formula_calculation(
+            _with_runtime_calculation_trace(
+            {
+                "query": "calculate the difference",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "concept_difference",
+                    "metric_label": "difference",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {"label": "value", "required": True},
+                        {"label": "value", "required": True},
+                    ],
+                },
+                "structured_result": {},
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {
+                            "operand_id": "op_001",
+                            "label": "value",
+                            "matched_operand_label": "value",
+                            "raw_value": "100",
+                            "normalized_value": 100.0,
+                        }
+                    ],
+                    "calculation_plan": {},
+                    "calculation_result": {},
+                },
+                "calculation_operands": [{"operand_id": "legacy"}],
+                "calculation_plan": {},
+                "calculation_result": {},
+                "artifacts": [],
+                "tasks": [],
+            }
+            )
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
+        self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
+        self.assertIn("distinct_operands", trace["calculation_plan"]["missing_info"])
+        self.assertEqual(trace["calculation_result"], {})
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
+
+    def test_formula_plan_structured_output_failure_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _FailingLLM()
+        result = agent._plan_formula_calculation(
+            _with_runtime_calculation_trace(
+            {
+                "query": "calculate the composite value",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "composite value",
+                    "operation_family": "generic_numeric",
+                },
+                "structured_result": {},
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {
+                            "operand_id": "op_001",
+                            "label": "value",
+                            "raw_value": "100",
+                            "normalized_value": 100.0,
+                        }
+                    ],
+                    "calculation_plan": {},
+                    "calculation_result": {},
+                },
+                "calculation_operands": [{"operand_id": "legacy"}],
+                "calculation_plan": {},
+                "calculation_result": {},
+                "artifacts": [],
+                "tasks": [],
+            }
+            )
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertTrue(result["planner_debug_trace"]["llm_invoked"])
+        self.assertIn("error", result["planner_debug_trace"])
+        self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
+        self.assertEqual(trace["calculation_plan"]["operation"], "none")
+        self.assertEqual(trace["calculation_result"], {})
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
+
+    def test_llm_formula_plan_guard_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            CalculationPlan(
+                status="ok",
+                mode="single_value",
+                operation="ratio",
+                ordered_operand_ids=["op_001"],
+                variable_bindings=[
+                    {"variable": "A", "operand_id": "op_001"},
+                    {"variable": "B", "operand_id": "op_001"},
+                ],
+                formula="A / B",
+                result_unit="ratio",
+            )
+        )
+        result = agent._plan_formula_calculation(
+            {
+                "query": "calculate a ratio",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "ratio",
+                    "operation_family": "",
+                    "required_operands": [
+                        {"label": "first value", "role": "numerator", "required": True},
+                        {"label": "second value", "role": "denominator", "required": True},
+                    ],
+                },
+                "structured_result": {},
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {
+                            "operand_id": "op_001",
+                            "label": "shared value",
+                            "raw_value": "100",
+                            "normalized_value": 100.0,
+                            "matched_operand_role": "numerator",
+                        }
+                    ],
+                    "calculation_plan": {},
+                    "calculation_result": {},
+                },
+                "calculation_operands": [{"operand_id": "legacy"}],
+                "calculation_plan": {},
+                "calculation_result": {},
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertTrue(result["planner_debug_trace"]["llm_invoked"])
+        self.assertTrue(result["planner_debug_trace"]["guard_applied"])
+        self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
+        self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
+        self.assertIn("denominator", trace["calculation_plan"]["missing_info"])
+        self.assertEqual(trace["calculation_result"], {})
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
+
+    def test_operand_extraction_structured_output_failure_omits_compatibility_mirrors(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _FailingLLM()
+        result = agent._extract_calculation_operands(
+            {
+                "query": "calculate the value",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "value",
+                    "operation_family": "generic_numeric",
+                },
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+                "evidence_items": [
+                    {
+                        "evidence_id": "ev_001",
+                        "claim": "value is 100",
+                        "quote_span": "100",
+                        "source_anchor": "[fixture]",
+                    }
+                ],
+                "evidence_bullets": ["- [fixture] value is 100"],
+                "retrieved_docs": [],
+                "seed_retrieved_docs": [],
+                "calculation_operands": [{"operand_id": "stale"}],
+                "calculation_plan": {"status": "stale"},
+                "calculation_result": {"status": "stale"},
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertIn("error", result["calculation_debug_trace"])
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace["calculation_plan"], {})
+        self.assertEqual(trace["calculation_result"], {})
+        self.assertNotIn("calculation_operands", result)
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
+
     def test_difference_task_uses_deterministic_subtract_plan(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._plan_formula_calculation(
+            _with_runtime_calculation_trace(
             {
                 "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
                 "active_subtask": {
@@ -3452,8 +4043,10 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
+            )
         )
-        plan = result["calculation_plan"]
+        trace = _resolve_runtime_calculation_trace(result)
+        plan = trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "subtract")
         self.assertEqual(plan["formula"], "A + B")
@@ -3462,6 +4055,7 @@ class OperationContractTests(unittest.TestCase):
     def test_ontology_difference_roles_use_sign_aware_subtraction(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._plan_formula_calculation(
+            _with_runtime_calculation_trace(
             {
                 "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
                 "active_subtask": {
@@ -3497,8 +4091,10 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
+            )
         )
-        plan = result["calculation_plan"]
+        trace = _resolve_runtime_calculation_trace(result)
+        plan = trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "subtract")
         self.assertEqual(plan["formula"], "A + B")
@@ -3613,7 +4209,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_compositional_difference_uses_primary_value_without_period_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
                 "active_subtask": {
@@ -3671,11 +4267,13 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        slots = result["calculation_result"]["answer_slots"]
+        trace = _resolve_runtime_calculation_trace(result)
+        slots = trace["calculation_result"]["answer_slots"]
         self.assertEqual(slots["primary_value"]["role"], "primary_value")
         self.assertEqual(slots["current_value"]["rendered_value"], "2조 22억원")
         self.assertEqual(slots["prior_value"]["rendered_value"], "-6,406억원")
         self.assertEqual(slots["delta_value"]["rendered_value"], "1조 3,616억원")
+        self.assertNotIn("calculation_result", result)
 
     def test_rendered_subtraction_answer_rewrites_double_negative_subtrahend(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3766,6 +4364,11 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
+        state["resolved_calculation_trace"] = {
+            key: state.pop(key)
+            for key in ("calculation_plan", "calculation_operands", "calculation_result")
+        }
+
         rendered = agent._render_calculation_answer(state)
 
         self.assertIn("6,406억원을 차감", rendered["answer"])
@@ -3799,7 +4402,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_difference_result_exposes_structured_value_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고 전년 대비 증감액을 계산해 줘.",
                 "active_subtask": {
@@ -3852,7 +4455,8 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["current_period"], "2023")
         self.assertEqual(calc["prior_period"], "2022")
@@ -3882,7 +4486,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_percent_difference_preserves_two_decimal_percent_rendering(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
                 "active_subtask": {
@@ -3935,7 +4539,8 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "0.10%p")
         self.assertEqual(calc["answer_slots"]["primary_value"]["status"], "ok")
@@ -3945,7 +4550,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_growth_rate_coerces_unknown_prior_unit_from_same_concept_current_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
                 "active_subtask": {
@@ -4000,19 +4605,20 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_unit"], "KRW")
         self.assertEqual(calc["answer_slots"]["prior_value"]["raw_unit"], "억원")
         self.assertEqual(calc["rendered_value"], "-0.0026%")
-        trace_operands = list((result.get("resolved_calculation_trace") or {}).get("calculation_operands") or [])
+        trace_operands = list(trace.get("calculation_operands") or [])
         prior_operand = next(row for row in trace_operands if row.get("operand_id") == "op_002")
         self.assertEqual(prior_operand["normalized_unit"], "KRW")
         self.assertEqual(prior_operand["raw_unit"], "억원")
 
     def test_growth_rate_preserves_stated_source_percent_when_available(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
                 "active_subtask": {
@@ -4064,7 +4670,8 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["rendered_value"], "11.5%")
         self.assertEqual(calc["result_value"], 11.5)
         self.assertEqual(calc["answer_slots"]["current_value"]["rendered_value"], "87.0만 대")
@@ -4082,7 +4689,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_growth_rate_recovers_duplicate_prior_operand_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘",
                 "active_subtask": {
@@ -4141,7 +4748,8 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["answer_slots"]["prior_value"]["period"], "2022년")
         self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "78.1만 대")
         self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_value"], 781000.0)
@@ -4304,7 +4912,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_failed_lookup_emits_explicit_missing_primary_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
                 "active_subtask": {
@@ -4337,16 +4945,19 @@ class OperationContractTests(unittest.TestCase):
                 },
             }
         )
-        calc = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "insufficient_operands")
         self.assertEqual(calc["answer_slots"]["operation_family"], "lookup")
         self.assertEqual(calc["answer_slots"]["primary_value"]["status"], "missing")
         self.assertEqual(calc["answer_slots"]["primary_value"]["label"], "법인세비용차감전순이익")
         self.assertEqual(calc["answer_slots"]["primary_value"]["concept"], "income_before_income_taxes")
+        self.assertNotIn("calculation_result", result)
 
     def test_lookup_plan_requires_single_direct_operand_instead_of_reconstruction(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         plan_result = agent._plan_formula_calculation(
+            _with_runtime_calculation_trace(
             {
                 "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
                 "active_subtask": {
@@ -4385,15 +4996,20 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
+            )
         )
-        self.assertEqual(plan_result["calculation_plan"]["status"], "incomplete")
-        self.assertEqual(plan_result["calculation_plan"]["mode"], "none")
+        trace = _resolve_runtime_calculation_trace(plan_result)
+        self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
+        self.assertEqual(trace["calculation_plan"]["mode"], "none")
+        self.assertNotIn("calculation_plan", plan_result)
+        self.assertNotIn("calculation_result", plan_result)
         self.assertFalse(plan_result["planner_debug_trace"]["llm_invoked"])
         self.assertTrue(plan_result["planner_debug_trace"]["guard_applied"])
 
     def test_lookup_plan_uses_single_direct_operand_when_available(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         plan_result = agent._plan_formula_calculation(
+            _with_runtime_calculation_trace(
             {
                 "query": "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
                 "active_subtask": {
@@ -4425,15 +5041,17 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
+            )
         )
-        self.assertEqual(plan_result["calculation_plan"]["status"], "ok")
-        self.assertEqual(plan_result["calculation_plan"]["operation"], "lookup")
-        self.assertEqual(plan_result["calculation_plan"]["formula"], "A")
+        trace = _resolve_runtime_calculation_trace(plan_result)
+        self.assertEqual(trace["calculation_plan"]["status"], "ok")
+        self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
+        self.assertEqual(trace["calculation_plan"]["formula"], "A")
         self.assertFalse(plan_result["planner_debug_trace"]["llm_invoked"])
 
     def test_lookup_calculation_preserves_source_table_unit_in_rendered_value(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "2023년 재고자산평가손실을 찾아줘.",
                 "active_subtask": {
@@ -4479,7 +5097,8 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        calculation_result = result["calculation_result"]
+        trace = _resolve_runtime_calculation_trace(result)
+        calculation_result = trace["calculation_result"]
         self.assertEqual(calculation_result["rendered_value"], "2,526,280천원")
         self.assertEqual(calculation_result["series"][0]["rendered_value"], "2,526,280천원")
         primary_value = calculation_result["answer_slots"]["primary_value"]
@@ -4489,7 +5108,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_ratio_calculation_rejects_duplicate_operand_binding(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._execute_calculation(
+        result = _execute_calculation_with_runtime_trace(agent,
             {
                 "query": "Calculate the ratio between two required values.",
                 "active_subtask": {
@@ -4544,10 +5163,13 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        self.assertEqual(result["calculation_result"]["status"], "insufficient_operands")
-        self.assertEqual(result["calculation_plan"]["status"], "incomplete")
-        self.assertEqual(result["calculation_plan"]["mode"], "none")
-        self.assertIn("denominator", result["calculation_plan"]["missing_info"])
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
+        self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
+        self.assertEqual(trace["calculation_plan"]["mode"], "none")
+        self.assertIn("denominator", trace["calculation_plan"]["missing_info"])
+        self.assertNotIn("calculation_result", result)
+        self.assertNotIn("calculation_plan", result)
 
     def test_operand_requirement_rejects_surrogate_metric_label(self) -> None:
         operand = {
@@ -5574,8 +6196,10 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("잉여현금흐름의 50%", result["answer"])
         self.assertNotIn("완전히 확정", result["answer"])
         self.assertEqual(result["planner_feedback"], "")
-        self.assertEqual(result["calculation_result"]["status"], "ok")
+        trace = _resolve_runtime_calculation_trace(result)
+        self.assertEqual(trace["calculation_result"]["status"], "ok")
         self.assertEqual(result["structured_result"]["status"], "ok")
+        self.assertNotIn("calculation_result", result)
 
     def test_dividend_policy_evidence_supplement_adds_cashflow_and_policy_snippets(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

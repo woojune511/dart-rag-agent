@@ -178,8 +178,18 @@ def _graph_smoke(agent: FinancialAgent, query: str) -> Dict[str, Any]:
     ]
 
     answer_payload = agent.run(query)
-    resolved_trace = _resolve_runtime_calculation_trace(answer_payload)
-    structured_result = _resolve_runtime_structured_result(answer_payload)
+    # Graph smoke is a current-run debug surface. Read the canonical projection
+    # only; top-level compatibility mirrors are for older external readers.
+    resolved_trace = _resolve_runtime_calculation_trace(
+        answer_payload,
+        allow_legacy_top_level=False,
+    )
+    structured_result = _resolve_runtime_structured_result(
+        {
+            "resolved_calculation_trace": resolved_trace,
+            "structured_result": answer_payload.get("structured_result"),
+        }
+    )
 
     return {
         "query": query,

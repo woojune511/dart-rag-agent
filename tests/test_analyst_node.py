@@ -106,8 +106,20 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         self.assertEqual(fake.calls[0]["report_scope"]["company"], "삼성전자")
         self.assertEqual(fake.calls[0]["report_scope"]["year"], "2024")
         self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.COMPLETED)
+        self.assertEqual(
+            updates["tasks"]["task_1"]["artifact_ids"],
+            ["task_1::operand_set", "task_1::calculation_plan", "task_1"],
+        )
+        self.assertEqual(set(updates["artifacts"].keys()), {"task_1::operand_set", "task_1::calculation_plan", "task_1"})
+        self.assertEqual(updates["artifacts"]["task_1::operand_set"]["kind"], "operand_set")
+        self.assertEqual(updates["artifacts"]["task_1::calculation_plan"]["kind"], "calculation_plan")
         artifact = updates["artifacts"]["task_1"]
         self.assertEqual(artifact["creator"], "Analyst")
+        self.assertEqual(artifact["kind"], "calculation_result")
+        self.assertEqual(
+            artifact["payload"]["calculation_result"]["formatted_result"],
+            "2024년 영업이익률은 10.9%입니다.",
+        )
         self.assertEqual(artifact["content"]["structured_result"]["result_unit"], "%")
         self.assertEqual(
             artifact["content"]["resolved_calculation_trace"]["calculation_plan"]["formula"],
@@ -122,6 +134,17 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         )
         self.assertIn("chunk-001", artifact["evidence_links"])
         self.assertEqual(len(updates["evidence_pool"]), 2)
+        evidence_record = updates["evidence_pool"][0]
+        self.assertEqual(evidence_record["task_id"], "task_1")
+        self.assertEqual(evidence_record["creator"], "Analyst")
+        self.assertEqual(evidence_record["kind"], "evidence_item")
+        self.assertIn("III.", evidence_record["source_anchor"])
+        self.assertEqual(evidence_record["support_level"], "direct")
+        self.assertIn("allowed_terms", evidence_record["metadata"])
+        operand_record = updates["evidence_pool"][1]
+        self.assertEqual(operand_record["kind"], "calculation_operand")
+        self.assertEqual(operand_record["metadata"]["raw_value"], "36,474,516")
+        self.assertEqual(operand_record["metadata"]["normalized_unit"], "KRW")
         self.assertIn("Analyst completed task_1 successfully", updates["execution_trace"])
 
     def test_run_analyst_marks_failed_on_incomplete_result(self) -> None:
@@ -139,6 +162,26 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         self.assertEqual(updates["artifacts"], {})
         self.assertIn("Analyst failed task_1: incomplete numeric result", updates["execution_trace"])
 
+    def test_run_analyst_rejects_legacy_top_level_runtime_projection(self) -> None:
+        fake = FakeAnalystCore(
+            result={
+                "answer": "legacy answer",
+                "structured_result": {"status": "ok"},
+                "calculation_operands": [{"label": "legacy", "value": "999"}],
+                "calculation_plan": {"mode": "legacy"},
+                "calculation_result": {"status": "ok", "value": 999},
+                "resolved_calculation_trace": {},
+            }
+        )
+        node = make_run_analyst(fake)
+
+        updates = node(_analyst_state())
+
+        self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.FAILED)
+        self.assertEqual(updates["artifacts"], {})
+        self.assertEqual(updates["evidence_pool"], [])
+        self.assertIn("Analyst failed task_1: incomplete numeric result", updates["execution_trace"])
+
     def test_full_graph_can_use_injected_analyst_node(self) -> None:
         fake = FakeAnalystCore(
             result={
@@ -149,7 +192,14 @@ class AnalystNodeMigrationTests(unittest.TestCase):
                 "resolved_calculation_trace": {
                     "calculation_result": {"status": "ok"},
                     "calculation_plan": {"mode": "single_value"},
-                    "calculation_operands": [],
+                    "calculation_operands": [
+                        {
+                            "label": "영업이익률",
+                            "raw_value": "10.9",
+                            "raw_unit": "%",
+                            "row_id": "chunk-analyst",
+                        }
+                    ],
                 },
                 "evidence_items": [],
                 "citations": ["[삼성전자 | 2024 | III. 재무에 관한 사항 > 1. 요약재무정보]"],

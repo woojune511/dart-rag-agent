@@ -85,6 +85,125 @@ Artifact store는 다음을 표현해야 한다.
 - evidence links
 - metadata
 
+Runtime callers and benchmark outputs must expose a compact
+`task_artifact_trace` projection in addition to the raw task and artifact
+records. The projection is the boundary that future Orchestrator, Analyst,
+Researcher, and Critic roles should consume before reading free-form LLM text.
+The MAS skeleton must also keep this projection on `MultiAgentState` at
+orchestration join points. Worker nodes should write artifacts with stable
+`artifact_id`, `kind`, payload, and evidence refs. The Critic should write
+`critic_report` artifacts, and the final Orchestrator merge should write an
+`aggregated_answer` artifact for the final report.
+Analyst worker tasks are `calculation` tasks and must write separate
+`operand_set`, `calculation_plan`, and primary `calculation_result` artifacts.
+Researcher worker tasks are `retrieval` tasks and must write a `retrieval_bundle`
+artifact containing retrieved candidates and provenance.
+
+The projection must include:
+
+- normalized task views with task id, kind, label, status, artifact ids,
+  artifact kinds, latest artifact id/kind/status, and latest artifact summary
+- normalized artifact views with artifact id, producer task id, kind, status,
+  summary, payload keys, and evidence refs
+- aggregate counts for tasks and artifacts
+- missing artifact ids referenced by tasks but absent from the artifact store
+- orphan artifact ids present in the store but not referenced by any task
+- an `integrity_status`, `integrity_issue_count`, and structured
+  `integrity_issues` list
+
+Integrity issues are structural runtime-contract signals, not benchmark score
+signals. Duplicate task or artifact ids and missing artifact references are
+errors. Orphan artifacts and completed or partial tasks without produced
+artifacts are warnings. These checks must stay generic; they cannot depend on
+company names, benchmark ids, financial metric names, or question-specific
+phrases.
+
+Warning-level issues are non-blocking by default. They become blocking only when
+the final aggregated answer directly depends on the warned object. If an
+`aggregated_answer` source references an orphan artifact, emit
+`final_source_orphan_artifact` as an error. If an `aggregated_answer` source
+references a completed or partial task that produced no artifacts, emit
+`final_source_task_without_artifacts` as an error. Keep the original warning in
+the trace so callers can distinguish the structural warning from its final-source
+promotion.
+
+Typed task acceptance may add required artifact-kind checks. A completed
+`calculation` task must reference all of:
+
+- `operand_set`
+- `calculation_plan`
+- `calculation_result`
+
+If any required kind is absent from the attached artifacts, the projection must
+emit `missing_required_artifact_kind` as an error with the task id, task kind,
+and missing artifact kind.
+
+Attached calculation artifacts must also carry the minimum payload shape needed
+to close a numeric answer:
+
+- `operand_set.payload.calculation_operands` must be a non-empty list
+- `calculation_plan.payload.calculation_plan` must include an operation or mode
+- `calculation_result.payload.calculation_result` must include a rendered or
+  formatted value, or non-empty `answer_slots`
+
+If the payload shape is absent, emit `missing_required_artifact_payload` with
+the task id, artifact id, artifact kind, and missing payload key. A completed
+calculation task must also preserve at least one evidence reference, either in
+artifact-level `evidence_refs` or in payload provenance fields such as evidence
+ids or source row ids. If no attached artifact preserves provenance, emit
+`missing_required_evidence_ref`.
+
+A completed `reconciliation` task must reference a `reconciliation_result`
+artifact. That artifact must contain `payload.reconciliation_result.status`. If
+the reconciliation status is `ready` or `ok`, the artifact must also preserve
+candidate or evidence provenance through artifact-level `evidence_refs` or
+payload fields such as `candidate_ids`, evidence ids, or source row ids. Missing
+kind, payload status, or ready/ok provenance should reuse the same generic
+integrity issue types: `missing_required_artifact_kind`,
+`missing_required_artifact_payload`, and `missing_required_evidence_ref`.
+
+A completed `retrieval` task must reference a `retrieval_bundle` artifact. The
+bundle must contain at least one retrieved candidate list, such as
+`retrieved_docs`, `seed_retrieved_docs`, `evidence_items`, `documents`, or the
+same fields nested under `retrieval_bundle`. Retrieved candidates must also
+preserve provenance through artifact-level `evidence_refs` or payload fields
+such as `chunk_id`, `doc_id`, source anchors, evidence ids, or source row ids.
+An empty bundle or missing provenance should emit
+`missing_required_artifact_payload` / `missing_required_evidence_ref` and block
+final close.
+
+A completed `synthesis` task must reference an `aggregated_answer` artifact.
+The artifact must contain final answer text through `final_answer`, `answer`, or
+`payload.aggregated_answer.final_answer`. It must also preserve source material
+through `subtask_results`, source task/artifact ids, or structured trace/result
+payloads such as `resolved_calculation_trace`, `structured_result`, or
+`calculation_result`. A completed synthesis answer must preserve provenance via
+artifact-level `evidence_refs` or payload provenance fields including source
+task/artifact ids, evidence ids, source row ids, source anchors, or candidate
+ids. Missing final text, missing source material, or missing provenance should
+emit the same generic integrity errors used by the other task families and block
+final close.
+
+A completed `critic` task must reference a `critic_report` artifact. The report
+must contain a verdict signal through `passed`, `verdict`, or `status`; target
+or checked task/artifact refs; and either blocking issues/findings or an
+acceptance reason/rationale/feedback. Critic reports must also preserve
+provenance through artifact-level `evidence_refs` or payload refs such as
+target, checked, source, evidence, or artifact ids. Missing verdict, target refs,
+reason/issues, or provenance should emit the same generic integrity errors and
+block final close.
+
+Final synthesis must treat `integrity_status = "error"` as a blocking
+acceptance condition. If the replan budget remains, the aggregate step should
+emit planner feedback and route back to planning. If the replan budget is
+exhausted, the final answer may preserve visible partial material but must add
+an explicit refusal/uncertainty sentence instead of closing as fully answered.
+MAS state should expose this control path explicitly through `planner_feedback`,
+`replan_budget`, and `replan_count` so callers can distinguish a replan request
+from a final blocked/refusal answer.
+Warning-level issues remain observable contract signals and should not block a
+final answer unless promoted by the final-source policy above.
+
 Orchestrator, Analyst, Researcher, Critic은 이 구조를 통해 상태를 교환한다. LLM 메시지 전문은 보조 로그일 수 있지만, 다음 단계의 입력 계약이 되어서는 안 된다.
 
 ## 5. Boundary Rules
@@ -295,3 +414,150 @@ publish a deduped provenance summary, for example under
 `calculation_result.derived_metrics.aggregate_subtask_provenance`, so debugging
 and retrospective checks can inspect child row/evidence provenance without
 re-running the agent.
+
+The compatibility `calculation_operands`, `calculation_plan`, and
+`calculation_result` mirrors are not the long-term source of truth. Caller,
+evaluator, and benchmark surfaces should consume `resolved_calculation_trace`
+first, then task/artifact ledger projections, then aggregate subtask
+projections. If the resolver must fall back to legacy top-level
+`calculation_*` fields, it must mark
+`resolved_calculation_trace.runtime_projection.source = "legacy_top_level"` and
+`legacy_fallback = true`; canonical or ledger-derived projections must set the
+same metadata with `legacy_fallback = false`.
+If only `structured_result` is available, the resolver may expose it as a
+non-legacy `structured_result` projection. If legacy top-level operands or plans
+must be combined with `structured_result`, the projection remains
+`legacy_top_level` with `legacy_fallback = true` and records
+`calculation_result_source = "structured_result"`.
+Evaluator and benchmark review exports should surface projection source,
+legacy-fallback status, and calculation-result source as first-class audit
+fields alongside the full `resolved_calculation_trace`.
+New readers that do not need external compatibility may call
+`_resolve_runtime_calculation_trace(..., allow_legacy_top_level = false)`.
+Strict mode rejects top-level `calculation_*` fallback while still allowing
+non-legacy `structured_result` projection.
+Evaluator result export, benchmark serialized/review export, eligible
+analyst/MAS artifact handoff consumers, current-runtime debug readers,
+reflection retry planning, formula planning input resolution, calculation
+execution input resolution, dependency-projection recalculation result readers,
+route-decision readers after formula planning/calculation,
+render/verification/retry preparation readers, and late runtime numeric answer
+shaping use strict mode, so those review, runtime handoff, debug, retry,
+planning, execution, routing, and answer preparation surfaces do not resurrect
+legacy top-level mirrors.
+Historical replay, retrospective readers, and public runtime projection bridges
+may opt into legacy compatibility when they read older result bundles or older
+caller surfaces. In the live agent, that bridge is limited to
+`FinancialAgent.run()`/export-facing projection; new internal current-state
+readers must use strict mode.
+Helper-level adapters may preserve legacy fallback only when their surface is
+explicitly compatibility-oriented: `_resolve_runtime_structured_result()` is for
+export/review adapters that may read older payloads, and
+`_runtime_trace_state_update()` may carry omitted trace parts from older state
+surfaces. Migrated live graph nodes should pass updated trace parts explicitly
+instead of relying on that carry-forward.
+
+Benchmark runner serialized-result, smoke-summary, and review export surfaces
+are strict current-contract projections. They may expose runtime projection
+source metadata for audit, but must not use legacy top-level `calculation_*`
+mirrors to populate exported `resolved_calculation_trace` fields.
+
+Live evaluator rows are also strict current-contract projections. Fresh
+`RAGEvaluator.evaluate_one()` scoring must consume canonical runtime projection
+only; legacy top-level `calculation_*` mirrors are reserved for replay,
+retrospective, or explicit compatibility tools.
+
+Historical answer replay is an explicit compatibility tool. It may accept
+legacy top-level `calculation_*` mirrors from older saved benchmark bundles, but
+canonical `resolved_calculation_trace` data must take precedence when both
+surfaces are present.
+
+Retrospective operand-grounding rescoring follows the same compatibility policy:
+it may accept legacy top-level operands from historical rows, but canonical
+`resolved_calculation_trace.calculation_operands` must take precedence.
+
+Retrospective evaluator ablation follows the same compatibility policy for
+historical rows. Legacy top-level operands and calculation results may be used as
+fallback inputs, but canonical trace operands/results must take precedence.
+
+Retrospective ontology retrieval ablation is not a historical row reader. It
+reruns current graph nodes against a persisted store, so it must use strict
+current-state projection and must not revive legacy top-level `calculation_*`
+mirrors for outcome operands or calculation result display.
+
+Current-run debug helpers, including `debug_math_workflow.py` and
+`debug_reference_note_workflow.py`, follow the same strict policy. Their JSON
+debug output must be based on canonical `resolved_calculation_trace` and must
+not use top-level `calculation_result` fallback to populate structured result
+display fields.
+
+`mas_analyst_smoke.py` is a mixed migration smoke reader. Direct
+`FinancialAgent.run()` outputs remain compatibility-oriented because they
+exercise the public export bridge and may compare older payloads. MAS artifact
+readers in the same smoke are current handoff readers and must stay strict:
+artifact operand counts, statuses, and calculation-result payloads must not be
+populated from legacy top-level mirrors.
+
+`FinancialAgentState.resolved_calculation_trace` should use the
+`RuntimeCalculationTrace` shape, and rows in `subtask_results` should use the
+`TaskResultRecord` shape. New graph nodes should write these typed projections
+directly and treat top-level `calculation_*` mirrors as temporary compatibility
+outputs for older internal readers.
+MAS nodes that register new ledger tasks should publish `AgentTask` entries
+through `build_agent_task()`. Planner, critic, and synthesis task creation must
+normalize task id, assignee, instruction, status, context keys, retry count,
+kind, label, dependencies, artifact ids, and blocked reason through that helper.
+MAS final synthesis should preserve the existing string `final_report` for
+caller compatibility, but also publish a typed `FinalReport` projection under
+`final_report_record`. The typed projection must carry the final answer, status,
+source task ids, source artifact ids, evidence refs, and subtask result
+summaries; the `aggregated_answer` artifact payload should mirror that record.
+MAS worker nodes should publish `EvidenceRecord` entries through
+`build_evidence_record()`. Analyst and Researcher evidence-pool rows must expose
+the common `task_id`, `creator`, `kind`, and `source_anchor` fields while
+placing producer-specific details such as allowed terms, operand values, units,
+periods, and block type under `metadata`.
+MAS critic nodes should publish `CriticReport` entries through
+`build_critic_report()`. The helper owns verdict normalization, target artifact
+refs, acceptance reason, blocking issues, deterministic score, and feedback, and
+the `critic_report` artifact payload should mirror the typed report.
+MAS nodes that write artifacts should publish `Artifact` entries through
+`build_artifact()`. The helper owns artifact id defaults, kind/status/summary
+normalization, payload projection, evidence link/ref mirroring, producer task id,
+and metadata normalization while preserving the existing compatibility `content`
+field.
+MAS consumers should read typed artifact projections first: answer and
+calculation status from `payload`, evidence from `evidence_refs`, and only then
+fall back to compatibility `content`/`evidence_links` for older callers.
+
+When a node updates the runtime trace through `_runtime_trace_state_update()`,
+the helper defaults to `include_compatibility_mirrors = false`. Branches that
+still need top-level `calculation_*` compatibility mirrors must opt in
+explicitly and explain the external reader that still requires those mirrors.
+Current converted branches include calculation verification skip, formula
+planning no-operands, formula planning missing-required-operands, and
+calculation execution failure paths, plus deterministic incomplete-plan
+branches for lookup plans and operation guard failures. Formula planning
+structured-output failures, operand extraction structured-output failures, and
+LLM formula-plan guard failures also omit compatibility mirrors once their
+readers consume `resolved_calculation_trace`. Render fallback, verification
+structured-output failure, and aggregate synthesis fallback branches follow the
+same rule. Render success, verification success, aggregate success, calculation
+execution success, and operand extraction direct/guard/synthesis/LLM success
+branches now also omit compatibility mirrors. Formula planning deterministic
+lookup/operation/ontology success branches and LLM success branches follow the
+same canonical trace contract, and the remaining formula planning
+guard/incomplete branches now do too. Formula planning reads incoming operands
+through strict current-state resolution and passes those operands explicitly
+through its canonical trace updates. Calculation execution reads incoming
+operands and plans through strict current-state resolution and passes the strict
+operands and plan explicitly through result/failure trace updates. Late runtime
+numeric answer shaping and dependency-projection recalculation result readers
+also read through strict current-state resolution. The
+non-formula reset/no-op branches in
+the calculation node also omit compatibility mirrors, and all
+`financial_graph_calculation.py` call sites now rely on the helper's mirror-free
+default. Active-task artifact projection uses strict current-state resolution as
+well: empty `resolved_calculation_trace` must not resurrect legacy top-level
+`calculation_*` fields, except for the explicit stale-aggregate to live
+non-aggregate override. Downstream readers must use `resolved_calculation_trace`.

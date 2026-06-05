@@ -88,7 +88,11 @@ def _source_row_warnings(row: Dict[str, Any]) -> List[str]:
     reason = str(grounding_debug.get("reason") or "")
     if "RESOURCE_EXHAUSTED" in reason or "429" in reason:
         warnings.append("source_grounding_cap_or_rate_limited")
-    if row.get("calculation_operands") in (None, []):
+    resolved_trace = _resolve_runtime_calculation_trace(
+        row,
+        allow_legacy_top_level=True,
+    )
+    if not resolved_trace.get("calculation_operands"):
         warnings.append("source_calculation_operands_missing")
     return warnings
 
@@ -99,14 +103,16 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
     if example is None:
         raise ValueError(f"Dataset has no example for source row id={question_id}")
 
-    resolved_trace = _resolve_runtime_calculation_trace(row)
-    calculation_operands = list(
-        row.get("calculation_operands")
-        or resolved_trace.get("calculation_operands")
-        or []
+    # Historical result rows may predate the canonical trace contract, so replay
+    # deliberately accepts legacy top-level mirrors. Canonical trace data still
+    # wins when it is present; compatibility is a fallback, not a stale override.
+    resolved_trace = _resolve_runtime_calculation_trace(
+        row,
+        allow_legacy_top_level=True,
     )
-    calculation_plan = dict(row.get("calculation_plan") or resolved_trace.get("calculation_plan") or {})
-    calculation_result = dict(row.get("calculation_result") or resolved_trace.get("calculation_result") or {})
+    calculation_operands = list(resolved_trace.get("calculation_operands") or [])
+    calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
+    calculation_result = dict(resolved_trace.get("calculation_result") or {})
     runtime_evidence = list(row.get("runtime_evidence") or [])
     contexts = []
     for evidence in runtime_evidence:

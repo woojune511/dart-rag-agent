@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict
 
 from langgraph.graph import END, StateGraph
 
-from src.agent.mas_types import MultiAgentState, ReportScope, TaskStatus
+from src.agent.mas_types import MultiAgentState, ReportScope, TaskStatus, project_mas_task_artifact_trace
 from src.agent.nodes.critic_node import run_critic
 from src.agent.nodes.dummy_nodes import (
     run_orchestrator_merge as run_dummy_orchestrator_merge,
@@ -35,8 +35,9 @@ def build_initial_state(
     *,
     report_scope: ReportScope | None = None,
     debug_force_retry_assignee: str | None = None,
+    replan_budget: int = 0,
 ) -> MultiAgentState:
-    return {
+    state: MultiAgentState = {
         "original_query": query,
         "report_scope": report_scope
         or {
@@ -52,10 +53,17 @@ def build_initial_state(
         "critic_reports": [],
         "critic_feedback": None,
         "final_report": None,
+        "final_report_record": None,
+        "task_artifact_trace": {},
+        "planner_feedback": None,
+        "replan_budget": int(replan_budget or 0),
+        "replan_count": 0,
         "execution_trace": [],
         "debug_force_retry_assignee": debug_force_retry_assignee,
         "debug_retry_emitted": False,
     }
+    state["task_artifact_trace"] = project_mas_task_artifact_trace(state)
+    return state
 
 
 def build_mas_graph(
@@ -96,6 +104,7 @@ def run_mas_graph(
     *,
     report_scope: ReportScope | None = None,
     debug_force_retry_assignee: str | None = None,
+    replan_budget: int = 0,
     orchestrator_plan_node: Callable[[MultiAgentState], Dict[str, Any]] | None = None,
     orchestrator_merge_node: Callable[[MultiAgentState], Dict[str, Any]] | None = None,
     analyst_node: Callable[[MultiAgentState], Dict[str, Any]] | None = None,
@@ -111,5 +120,6 @@ def run_mas_graph(
         query,
         report_scope=report_scope,
         debug_force_retry_assignee=debug_force_retry_assignee,
+        replan_budget=replan_budget,
     )
     return graph.invoke(initial_state)

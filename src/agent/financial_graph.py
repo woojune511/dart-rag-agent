@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _resolve_runtime_structured_result
+from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_structured_result
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 
@@ -55,7 +55,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         final_answer = _normalise_spaces(str(final.get("answer") or final.get("compressed_answer") or ""))
         answer_candidates = self._answer_evidence_numeric_candidates(final_answer) if final_answer else []
         if existing and answer_candidates:
-            projection = self._project_legacy_calculation_fields(final)
+            projection = self._project_runtime_calculation_trace(final)
             operands = list((projection or {}).get("calculation_operands") or [])
             evidence_items = self._append_operand_evidence_for_final_answer(
                 existing,
@@ -409,11 +409,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
         embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
         embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
-        legacy_projection = self._project_legacy_calculation_fields(final)
+        runtime_calculation_trace = self._project_runtime_calculation_trace(final)
         structured_result = _resolve_runtime_structured_result(
             {
                 "structured_result": final.get("structured_result", {}),
-                "resolved_calculation_trace": legacy_projection,
+                "resolved_calculation_trace": runtime_calculation_trace,
                 "calculation_result": final.get("calculation_result", {}),
             }
         )
@@ -449,7 +449,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "sentence_checks": final.get("sentence_checks", []),
             "numeric_debug_trace": final.get("numeric_debug_trace", {}),
             # Preferred structured runtime contract for external callers.
-            "resolved_calculation_trace": legacy_projection,
+            "resolved_calculation_trace": runtime_calculation_trace,
             "structured_result": structured_result,
             "calculation_debug_trace": final.get("calculation_debug_trace", {}),
             "planner_debug_trace": final.get("planner_debug_trace", {}),
@@ -473,6 +473,10 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "embedding_usage": embedding_usage,
             "tasks": final.get("tasks", []),
             "artifacts": final.get("artifacts", []),
+            "task_artifact_trace": _project_task_artifact_trace(
+                final.get("tasks", []),
+                final.get("artifacts", []),
+            ),
         }
 
 

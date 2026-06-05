@@ -79,9 +79,18 @@ class ResearcherNodeMigrationTests(unittest.TestCase):
         self.assertEqual(updates["tasks"]["task_2"]["status"], TaskStatus.COMPLETED)
         artifact = updates["artifacts"]["task_2"]
         self.assertEqual(artifact["creator"], "Researcher")
+        self.assertEqual(artifact["kind"], "retrieval_bundle")
         self.assertIn("DX와 DS", artifact["content"]["answer"])
+        self.assertEqual(artifact["payload"]["retrieved_docs"][0]["chunk_id"], "chunk-r-001")
         self.assertIn("chunk-r-001", artifact["evidence_links"])
         self.assertEqual(len(updates["evidence_pool"]), 1)
+        evidence_record = updates["evidence_pool"][0]
+        self.assertEqual(evidence_record["task_id"], "task_2")
+        self.assertEqual(evidence_record["creator"], "Researcher")
+        self.assertEqual(evidence_record["kind"], "retrieved_context")
+        self.assertIn("II.", evidence_record["source_anchor"])
+        self.assertIn("DX", evidence_record["snippet"])
+        self.assertIn("block_type", evidence_record["metadata"])
         self.assertIn("Researcher completed task_2", updates["execution_trace"])
 
     def test_run_researcher_marks_failed_on_empty_result(self) -> None:

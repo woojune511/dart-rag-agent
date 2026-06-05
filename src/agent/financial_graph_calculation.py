@@ -34,6 +34,33 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 
+def _task_artifact_integrity_feedback(trace: Dict[str, Any]) -> str:
+    status = _normalise_spaces(str(trace.get("integrity_status") or "")).lower()
+    if status != "error":
+        return ""
+    issue_surfaces: List[str] = []
+    for issue in trace.get("integrity_issues") or []:
+        if not isinstance(issue, dict):
+            continue
+        if str(issue.get("severity") or "").strip().lower() != "error":
+            continue
+        issue_type = str(issue.get("type") or "").strip()
+        if not issue_type:
+            continue
+        detail_parts = [
+            str(issue.get("task_id") or "").strip(),
+            str(issue.get("artifact_kind") or issue.get("artifact_id") or "").strip(),
+            str(issue.get("payload_key") or "").strip(),
+        ]
+        detail = ":".join(part for part in detail_parts if part)
+        issue_surfaces.append(f"{issue_type}:{detail}" if detail else issue_type)
+    issue_surface = ", ".join(sorted(set(issue_surfaces))) if issue_surfaces else "unknown_integrity_error"
+    return (
+        "Task/artifact ledger integrity error prevents final answer closure. "
+        f"Repair the required artifact contract before closing: {issue_surface}."
+    )
+
+
 def _topic_particle(value: str) -> str:
     particles = dict(CALCULATION_NARRATIVE_POLICY.get("topic_particles") or {})
     with_final = str(particles.get("with_final_consonant") or "")
@@ -1748,7 +1775,10 @@ class FinancialAgentCalculationMixin:
                 "artifacts": [],
             }
             recalculated = self._execute_calculation(recalculation_state)
-            recalculated_trace = _resolve_runtime_calculation_trace(recalculated)
+            recalculated_trace = _resolve_runtime_calculation_trace(
+                recalculated,
+                allow_legacy_top_level=False,
+            )
             recalculated_result = dict(recalculated_trace.get("calculation_result") or {})
             if _normalise_spaces(str(recalculated_result.get("status") or "")).lower() != "ok":
                 return row
@@ -5823,7 +5853,10 @@ class FinancialAgentCalculationMixin:
         state: FinancialAgentState,
         final_answer: str,
     ) -> str:
-        trace = _resolve_runtime_calculation_trace(dict(state))
+        trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         calculation_plan = dict(trace.get("calculation_plan") or {})
         calculation_result = dict(trace.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or {})
@@ -6490,6 +6523,7 @@ class FinancialAgentCalculationMixin:
                 calculation_operands=[],
                 calculation_plan={},
                 calculation_result={},
+                include_compatibility_mirrors=False,
             ),
         }
         direct_structured_rows = self._extract_structured_operands_from_reconciliation(state)
@@ -6795,6 +6829,7 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         # If reconciliation already found every required operand as clean
@@ -6844,6 +6879,7 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         if synthesis_only_retry:
@@ -6875,6 +6911,7 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         should_augment_with_docs = (
@@ -7270,6 +7307,7 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operand_rows,
                     calculation_plan={},
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         except Exception as exc:
@@ -7284,6 +7322,7 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=[],
                     calculation_plan={},
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -7381,7 +7420,10 @@ class FinancialAgentCalculationMixin:
 
     def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Translate normalized operands into an executable calculation plan."""
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         operands = list(runtime_trace.get("calculation_operands") or [])
         query = self._calc_query(state)
         active_subtask = dict(state.get("active_subtask") or {})
@@ -7411,8 +7453,10 @@ class FinancialAgentCalculationMixin:
                 },
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=empty_plan,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -7451,8 +7495,10 @@ class FinancialAgentCalculationMixin:
                     },
                     **_runtime_trace_state_update(
                         state,
+                        calculation_operands=operands,
                         calculation_plan=incomplete_plan,
                         calculation_result={},
+                        include_compatibility_mirrors=False,
                     ),
                 }
 
@@ -7508,8 +7554,10 @@ class FinancialAgentCalculationMixin:
                 "artifacts": artifacts,
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=deterministic_lookup_plan,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -7535,8 +7583,10 @@ class FinancialAgentCalculationMixin:
                     },
                     **_runtime_trace_state_update(
                         state,
+                        calculation_operands=operands,
                         calculation_plan=guarded_plan,
                         calculation_result={},
+                        include_compatibility_mirrors=False,
                     ),
                 }
             logger.info(
@@ -7585,8 +7635,10 @@ class FinancialAgentCalculationMixin:
                 "artifacts": artifacts,
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=deterministic_operation_plan,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -7621,8 +7673,10 @@ class FinancialAgentCalculationMixin:
                 },
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=guard_plan,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -7648,8 +7702,10 @@ class FinancialAgentCalculationMixin:
                     },
                     **_runtime_trace_state_update(
                         state,
+                        calculation_operands=operands,
                         calculation_plan=guarded_plan,
                         calculation_result={},
+                        include_compatibility_mirrors=False,
                     ),
                 }
             logger.info(
@@ -7698,8 +7754,10 @@ class FinancialAgentCalculationMixin:
                 "artifacts": artifacts,
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=deterministic_plan,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         structured_llm = self._llm_for_phase("formula_planning").with_structured_output(CalculationPlan)
@@ -7830,8 +7888,10 @@ class FinancialAgentCalculationMixin:
                 "artifacts": artifacts,
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=plan_data,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         except Exception as exc:
@@ -7859,8 +7919,10 @@ class FinancialAgentCalculationMixin:
                 },
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
                     calculation_plan=failed_plan,
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -8580,7 +8642,10 @@ class FinancialAgentCalculationMixin:
 
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         runtime_operands = [dict(row) for row in (runtime_trace.get("calculation_operands") or [])]
         operands = {row.get("operand_id"): row for row in runtime_operands}
         plan = dict(runtime_trace.get("calculation_plan") or {})
@@ -8630,7 +8695,8 @@ class FinancialAgentCalculationMixin:
                 "sentence_checks": [],
                 **_runtime_trace_state_update(
                     state,
-                    **({"calculation_plan": calculation_plan} if calculation_plan is not None else {}),
+                    calculation_operands=runtime_operands,
+                    calculation_plan=calculation_plan if calculation_plan is not None else plan,
                     calculation_result={
                         "status": status,
                         "result_value": None,
@@ -8642,6 +8708,7 @@ class FinancialAgentCalculationMixin:
                         "derived_metrics": {},
                         "explanation": reason,
                     },
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -8865,6 +8932,32 @@ class FinancialAgentCalculationMixin:
                 else:
                     rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
                 logger.info("[calculator] mode=%s op=%s result=%s", mode, operation, rendered_value)
+                calc_result = {
+                    "status": "ok",
+                    "result_value": result_value,
+                    "result_unit": result_unit,
+                    "rendered_value": rendered_value,
+                    "formatted_result": "",
+                    "series": result_series,
+                    "answer_slots": {
+                        "operation_family": operation_family or operation,
+                        "metric_label": metric_name,
+                        "primary_value": self._build_calculated_value_slot(
+                            label=metric_name,
+                            normalized_value=result_value,
+                            normalized_unit=normalized_unit,
+                            display_unit=result_unit,
+                            role="primary_value",
+                        ),
+                    },
+                    "derived_metrics": {
+                        "metric_name": metric_name,
+                        "yoy_growth_rates": yoy_growth_rates,
+                        "formula": formula,
+                        "pairwise_formula": pairwise_formula,
+                    },
+                    "explanation": explanation or str(plan.get("operation_text") or operation or mode),
+                }
                 return {
                     "answer": "",
                     "compressed_answer": "",
@@ -8874,32 +8967,13 @@ class FinancialAgentCalculationMixin:
                     "dropped_claim_ids": [],
                     "unsupported_sentences": [],
                     "sentence_checks": [],
-                    "calculation_result": {
-                        "status": "ok",
-                        "result_value": result_value,
-                        "result_unit": result_unit,
-                        "rendered_value": rendered_value,
-                        "formatted_result": "",
-                        "series": result_series,
-                        "answer_slots": {
-                            "operation_family": operation_family or operation,
-                            "metric_label": metric_name,
-                            "primary_value": self._build_calculated_value_slot(
-                                label=metric_name,
-                                normalized_value=result_value,
-                                normalized_unit=normalized_unit,
-                                display_unit=result_unit,
-                                role="primary_value",
-                            ),
-                        },
-                        "derived_metrics": {
-                            "metric_name": metric_name,
-                            "yoy_growth_rates": yoy_growth_rates,
-                            "formula": formula,
-                            "pairwise_formula": pairwise_formula,
-                        },
-                        "explanation": explanation or str(plan.get("operation_text") or operation or mode),
-                    },
+                    **_runtime_trace_state_update(
+                        state,
+                        calculation_operands=runtime_operands,
+                        calculation_plan=plan,
+                        calculation_result=calc_result,
+                        include_compatibility_mirrors=False,
+                    ),
                 }
 
             if not formula:
@@ -9032,6 +9106,29 @@ class FinancialAgentCalculationMixin:
             prior_row=prior_row,
         )
         logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
+        calc_result = {
+            "status": "ok",
+            "result_value": result_value,
+            "result_unit": result_display_unit or result_unit,
+            "rendered_value": rendered_with_unit,
+            "formatted_result": "",
+            "series": result_series,
+            "current_value": current_value,
+            "prior_value": prior_value,
+            "delta_value": delta_value,
+            "current_period": current_period,
+            "prior_period": prior_period,
+            "source_row_ids": source_row_ids,
+            "answer_slots": answer_slots,
+            "derived_metrics": {
+                "operand_labels": labels,
+                "formula": formula,
+                "operation_family": operation_family or operation,
+                "formula_result_value": formula_result_value,
+                "source_stated_result_used": source_stated_result_used,
+            },
+            "explanation": explanation or str(plan.get("operation_text") or operation or mode),
+        }
         result_payload = {
             "answer": "",
             "compressed_answer": "",
@@ -9041,35 +9138,11 @@ class FinancialAgentCalculationMixin:
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
             "sentence_checks": [],
-            "calculation_result": {
-                "status": "ok",
-                "result_value": result_value,
-                "result_unit": result_display_unit or result_unit,
-                "rendered_value": rendered_with_unit,
-                "formatted_result": "",
-                "series": result_series,
-                "current_value": current_value,
-                "prior_value": prior_value,
-                "delta_value": delta_value,
-                "current_period": current_period,
-                "prior_period": prior_period,
-                "source_row_ids": source_row_ids,
-                "answer_slots": answer_slots,
-                "derived_metrics": {
-                    "operand_labels": labels,
-                    "formula": formula,
-                    "operation_family": operation_family or operation,
-                    "formula_result_value": formula_result_value,
-                    "source_stated_result_used": source_stated_result_used,
-                },
-                "explanation": explanation or str(plan.get("operation_text") or operation or mode),
-            },
         }
         artifacts = list(state.get("artifacts") or [])
         tasks = list(state.get("tasks") or [])
         task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
         artifact_id = f"result:{task_id}:{len(artifacts) + 1:03d}"
-        calc_result = dict(result_payload.get("calculation_result") or {})
         artifacts = _append_artifact(
             artifacts,
             artifact_id=artifact_id,
@@ -9096,13 +9169,18 @@ class FinancialAgentCalculationMixin:
             _runtime_trace_state_update(
                 state,
                 calculation_operands=runtime_operands,
+                calculation_plan=plan,
                 calculation_result=calc_result,
+                include_compatibility_mirrors=False,
             )
         )
         return result_payload
 
     def _render_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         calculation_result = dict(runtime_trace.get("calculation_result") or {})
         plan = dict(runtime_trace.get("calculation_plan") or {})
         operands = list(runtime_trace.get("calculation_operands") or [])
@@ -9152,7 +9230,10 @@ class FinancialAgentCalculationMixin:
                 "draft_points": [slot_based_difference_answer],
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
+                    calculation_plan=plan,
                     calculation_result=calculation_result,
+                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -9191,14 +9272,20 @@ class FinancialAgentCalculationMixin:
             "draft_points": [answer] if answer else [],
             **_runtime_trace_state_update(
                 state,
+                calculation_operands=operands,
+                calculation_plan=plan,
                 calculation_result=calculation_result,
+                include_compatibility_mirrors=False,
             ),
         }
 
     def _verify_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Sanity-check that the rendered answer still matches the result."""
         answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         calculation_result = dict(runtime_trace.get("calculation_result") or {})
         plan = dict(runtime_trace.get("calculation_plan") or {})
         operands = list(runtime_trace.get("calculation_operands") or [])
@@ -9219,7 +9306,13 @@ class FinancialAgentCalculationMixin:
                 "answer": answer,
                 "compressed_answer": answer,
                 "calculation_debug_trace": debug_trace,
-                **_runtime_trace_state_update(state),
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=operands,
+                    calculation_plan=plan,
+                    calculation_result=calculation_result,
+                    include_compatibility_mirrors=False,
+                ),
             }
 
         deterministic_fallback = str(
@@ -9294,7 +9387,10 @@ class FinancialAgentCalculationMixin:
                 "calculation_debug_trace": debug_trace,
                 **_runtime_trace_state_update(
                     state,
+                    calculation_operands=operands,
+                    calculation_plan=plan,
                     calculation_result=calculation_result,
+                    include_compatibility_mirrors=False,
                 ),
             }
         except Exception as exc:
@@ -9310,6 +9406,13 @@ class FinancialAgentCalculationMixin:
                 "answer": answer,
                 "compressed_answer": answer,
                 "calculation_debug_trace": debug_trace,
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=operands,
+                    calculation_plan=plan,
+                    calculation_result=calculation_result,
+                    include_compatibility_mirrors=False,
+                ),
             }
 
     def _advance_calculation_subtask(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -9357,6 +9460,7 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=[],
                     calculation_plan={},
                     calculation_result={},
+                    include_compatibility_mirrors=False,
                 ),
             }
         return {
@@ -9661,6 +9765,14 @@ class FinancialAgentCalculationMixin:
         ):
             planner_feedback = ""
             deterministic_feedback = ""
+        task_artifact_trace = _project_task_artifact_trace(
+            state.get("tasks") or [],
+            state.get("artifacts") or [],
+        )
+        integrity_feedback = _task_artifact_integrity_feedback(task_artifact_trace)
+        if integrity_feedback:
+            planner_feedback = ""
+            deterministic_feedback = integrity_feedback
         if not deterministic_feedback:
             planner_feedback = ""
         elif not planner_feedback:
@@ -9897,12 +10009,16 @@ class FinancialAgentCalculationMixin:
                 calculation_operands=aggregate_projection["calculation_operands"],
                 calculation_plan=aggregate_projection["calculation_plan"],
                 calculation_result=aggregate_projection["calculation_result"],
+                include_compatibility_mirrors=False,
             ),
         }
 
     def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
         current_count = int(state.get("reflection_count") or 0)
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state))
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
         operands = list(runtime_trace.get("calculation_operands") or [])
         plan = dict(runtime_trace.get("calculation_plan") or {})
         calc_result = dict(runtime_trace.get("calculation_result") or {})
@@ -9963,6 +10079,7 @@ class FinancialAgentCalculationMixin:
                 calculation_operands=[],
                 calculation_plan={},
                 calculation_result={},
+                include_compatibility_mirrors=False,
             ),
         }
 
@@ -10056,7 +10173,12 @@ class FinancialAgentCalculationMixin:
             return "calculator"
         if int(state.get("reflection_count") or 0) >= 1:
             return "calculator"
-        plan = dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_plan") or {})
+        plan = dict(
+            _resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            ).get("calculation_plan") or {}
+        )
         status = str(plan.get("status") or "ok").lower()
         if status == "incomplete":
             return "reflection_replan"
@@ -10067,7 +10189,12 @@ class FinancialAgentCalculationMixin:
             return "calc_render"
         if int(state.get("reflection_count") or 0) >= 1:
             return "calc_render"
-        result = dict(_resolve_runtime_calculation_trace(dict(state)).get("calculation_result") or {})
+        result = dict(
+            _resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            ).get("calculation_result") or {}
+        )
         status = str(result.get("status") or "")
         if status in {"insufficient_operands", "parse_error"}:
             return "reflection_replan"

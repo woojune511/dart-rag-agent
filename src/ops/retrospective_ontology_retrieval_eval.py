@@ -203,12 +203,17 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
 
     calc_result = agent._execute_calculation(state)
     state.update(calc_result)
-    resolved_trace = _resolve_runtime_calculation_trace(state)
+    # This ablation reruns the current graph against a persisted store. It is
+    # retrospective in experiment design, but the runtime projection reader is
+    # strict because the rows are freshly produced, not historical saved rows.
+    resolved_trace = _resolve_runtime_calculation_trace(
+        state,
+        allow_legacy_top_level=False,
+    )
     structured_result = _resolve_runtime_structured_result(
         {
             "resolved_calculation_trace": resolved_trace,
             "structured_result": state.get("structured_result"),
-            "calculation_result": state.get("calculation_result"),
         }
     )
 

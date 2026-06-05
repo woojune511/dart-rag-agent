@@ -54,7 +54,13 @@ def _grounding_confidence(row: Dict[str, Any]) -> float:
 
 
 def _compute_new_judgement(row: Dict[str, Any]) -> Dict[str, Any]:
-    resolved_trace = _resolve_runtime_calculation_trace(row)
+    # Retrospective scoring reads fixed historical rows for comparison. Older
+    # bundles may only have top-level mirrors, but canonical trace data still
+    # wins when both surfaces are present.
+    resolved_trace = _resolve_runtime_calculation_trace(
+        row,
+        allow_legacy_top_level=True,
+    )
     operand_grounding_score, operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=list(row.get("runtime_evidence") or []),
         contexts=[],

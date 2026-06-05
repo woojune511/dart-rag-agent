@@ -83,7 +83,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             },
         }
 
-    def test_run_prefers_resolved_trace_and_nests_legacy_projection(self) -> None:
+    def test_run_prefers_resolved_trace_and_omits_flat_compatibility_mirrors(self) -> None:
         final_state = self._base_final_state()
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.graph = _FakeGraph(final_state)
@@ -100,11 +100,43 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             result["resolved_calculation_trace"]["calculation_operands"],
             [{"label": "fresh", "value": "123"}],
         )
+        self.assertEqual(
+            result["resolved_calculation_trace"]["runtime_projection"]["source"],
+            "resolved_calculation_trace",
+        )
+        self.assertFalse(
+            result["resolved_calculation_trace"]["runtime_projection"]["legacy_fallback"]
+        )
         self.assertEqual(result["retrieval_debug_trace"], {"selected_count": 1})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
+
+    def test_run_public_projection_preserves_legacy_top_level_trace_without_flat_mirrors(self) -> None:
+        final_state = self._base_final_state()
+        final_state["resolved_calculation_trace"] = {}
+        final_state["structured_result"] = {}
+        final_state["calculation_operands"] = [{"label": "legacy", "value": "25.4"}]
+        final_state["calculation_plan"] = {"status": "ok", "operation": "lookup"}
+        final_state["calculation_result"] = {
+            "status": "ok",
+            "rendered_value": "25.4%",
+            "answer_slots": {"operation_family": "lookup"},
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["resolved_calculation_trace"]
+        self.assertEqual(trace["calculation_result"]["rendered_value"], "25.4%")
+        self.assertEqual(trace["runtime_projection"]["source"], "legacy_top_level")
+        self.assertTrue(trace["runtime_projection"]["legacy_fallback"])
+        self.assertNotIn("calculation_operands", result)
+        self.assertNotIn("calculation_plan", result)
+        self.assertNotIn("calculation_result", result)
 
     def test_run_preserves_numeric_runtime_evidence_from_retrieved_docs_when_empty(self) -> None:
         final_state = self._base_final_state()
@@ -191,6 +223,780 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
 
         self.assertEqual([item["evidence_id"] for item in result["evidence_items"]], ["operand::ratio_operand"])
         self.assertIn("25.4%", result["evidence_items"][0]["quote_span"])
+
+    def test_run_projects_task_artifact_trace_for_callers(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_1",
+                "kind": "calculation",
+                "label": "ratio calculation",
+                "status": "completed",
+                "metric_family": "ratio",
+                "artifact_ids": ["artifact_1", "artifact_missing"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_1",
+                "task_id": "task_1",
+                "kind": "calculation_result",
+                "status": "ok",
+                "summary": "25.4%",
+                "payload": {"calculation_result": {"rendered_value": "25.4%"}},
+                "evidence_refs": ["ev_001"],
+            },
+            {
+                "artifact_id": "artifact_orphan",
+                "task_id": "missing_task",
+                "kind": "operand_set",
+                "status": "ok",
+                "summary": "unused",
+                "payload": {"calculation_operands": []},
+                "evidence_refs": [],
+            },
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["tasks"], final_state["tasks"])
+        self.assertEqual(result["artifacts"], final_state["artifacts"])
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["task_count"], 1)
+        self.assertEqual(trace["artifact_count"], 2)
+        self.assertEqual(trace["tasks"][0]["latest_artifact_id"], "artifact_1")
+        self.assertEqual(trace["tasks"][0]["latest_artifact_summary"], "25.4%")
+        self.assertEqual(trace["artifacts"][0]["payload_keys"], ["calculation_result"])
+        self.assertEqual(trace["orphan_artifact_ids"], ["artifact_orphan"])
+        self.assertEqual(trace["missing_artifact_ids"], ["artifact_missing"])
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            [
+                "missing_artifact_reference",
+                "orphan_artifact",
+                "missing_required_artifact_kind",
+                "missing_required_artifact_kind",
+            ],
+        )
+        self.assertEqual(
+            [
+                issue.get("artifact_kind")
+                for issue in trace["integrity_issues"]
+                if issue["type"] == "missing_required_artifact_kind"
+            ],
+            ["calculation_plan", "operand_set"],
+        )
+
+    def test_run_marks_completed_calculation_without_artifacts_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_1",
+                "kind": "calculation",
+                "label": "ratio calculation",
+                "status": "completed",
+                "metric_family": "ratio",
+                "artifact_ids": [],
+            }
+        ]
+        final_state["artifacts"] = []
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issue_count"], 5)
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            [
+                "task_without_artifacts",
+                "missing_required_artifact_kind",
+                "missing_required_artifact_kind",
+                "missing_required_artifact_kind",
+                "missing_required_evidence_ref",
+            ],
+        )
+        self.assertEqual(
+            [
+                issue.get("artifact_kind")
+                for issue in trace["integrity_issues"]
+                if issue["type"] == "missing_required_artifact_kind"
+            ],
+            ["calculation_plan", "calculation_result", "operand_set"],
+        )
+
+    def test_run_marks_completed_calculation_with_empty_payloads_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_1",
+                "kind": "calculation",
+                "label": "ratio calculation",
+                "status": "completed",
+                "metric_family": "ratio",
+                "artifact_ids": ["artifact_operand", "artifact_plan", "artifact_result"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_operand",
+                "task_id": "task_1",
+                "kind": "operand_set",
+                "status": "ok",
+                "payload": {"calculation_operands": []},
+            },
+            {
+                "artifact_id": "artifact_plan",
+                "task_id": "task_1",
+                "kind": "calculation_plan",
+                "status": "ok",
+                "payload": {"calculation_plan": {"status": "ok"}},
+            },
+            {
+                "artifact_id": "artifact_result",
+                "task_id": "task_1",
+                "kind": "calculation_result",
+                "status": "ok",
+                "payload": {"calculation_result": {"status": "ok"}},
+            },
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            [
+                "missing_required_artifact_payload",
+                "missing_required_artifact_payload",
+                "missing_required_artifact_payload",
+                "missing_required_evidence_ref",
+            ],
+        )
+        self.assertEqual(
+            [
+                issue.get("payload_key")
+                for issue in trace["integrity_issues"]
+                if issue["type"] == "missing_required_artifact_payload"
+            ],
+            [
+                "calculation_operands",
+                "calculation_plan.operation",
+                "calculation_result.rendered_value_or_answer_slots",
+            ],
+        )
+
+    def test_run_marks_completed_reconciliation_without_result_artifact_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reconcile",
+                "kind": "reconciliation",
+                "label": "reconcile operands",
+                "status": "completed",
+                "artifact_ids": [],
+            }
+        ]
+        final_state["artifacts"] = []
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["task_without_artifacts", "missing_required_artifact_kind"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["artifact_kind"], "reconciliation_result")
+
+    def test_run_marks_reconciliation_result_without_status_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reconcile",
+                "kind": "reconciliation",
+                "label": "reconcile operands",
+                "status": "completed",
+                "artifact_ids": ["artifact_reconcile"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_reconcile",
+                "task_id": "task_reconcile",
+                "kind": "reconciliation_result",
+                "status": "ok",
+                "payload": {"reconciliation_result": {}},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issues"][0]["type"], "missing_required_artifact_payload")
+        self.assertEqual(trace["integrity_issues"][0]["payload_key"], "reconciliation_result.status")
+
+    def test_run_marks_ready_reconciliation_without_provenance_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reconcile",
+                "kind": "reconciliation",
+                "label": "reconcile operands",
+                "status": "completed",
+                "artifact_ids": ["artifact_reconcile"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_reconcile",
+                "task_id": "task_reconcile",
+                "kind": "reconciliation_result",
+                "status": "ok",
+                "payload": {"reconciliation_result": {"status": "ready", "matched_operands": []}},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issues"][0]["type"], "missing_required_evidence_ref")
+        self.assertEqual(trace["integrity_issues"][0]["task_kind"], "reconciliation")
+
+    def test_run_accepts_ready_reconciliation_with_candidate_provenance(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reconcile",
+                "kind": "reconciliation",
+                "label": "reconcile operands",
+                "status": "completed",
+                "artifact_ids": ["artifact_reconcile"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_reconcile",
+                "task_id": "task_reconcile",
+                "kind": "reconciliation_result",
+                "status": "ok",
+                "payload": {
+                    "reconciliation_result": {
+                        "status": "ready",
+                        "matched_operands": [{"candidate_ids": ["ev_001"]}],
+                    }
+                },
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
+
+    def test_run_marks_completed_retrieval_without_bundle_artifact_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_retrieve",
+                "kind": "retrieval",
+                "label": "retrieve evidence",
+                "status": "completed",
+                "artifact_ids": [],
+            }
+        ]
+        final_state["artifacts"] = []
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["task_without_artifacts", "missing_required_artifact_kind", "missing_required_evidence_ref"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["artifact_kind"], "retrieval_bundle")
+
+    def test_run_marks_empty_retrieval_bundle_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_retrieve",
+                "kind": "retrieval",
+                "label": "retrieve evidence",
+                "status": "completed",
+                "artifact_ids": ["artifact_retrieve"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_retrieve",
+                "task_id": "task_retrieve",
+                "kind": "retrieval_bundle",
+                "status": "ok",
+                "payload": {"retrieved_docs": []},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["missing_required_artifact_payload", "missing_required_evidence_ref"],
+        )
+        self.assertEqual(trace["integrity_issues"][0]["payload_key"], "retrieval_bundle.items")
+
+    def test_run_accepts_retrieval_bundle_with_chunk_provenance(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_retrieve",
+                "kind": "retrieval",
+                "label": "retrieve evidence",
+                "status": "completed",
+                "artifact_ids": ["artifact_retrieve"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_retrieve",
+                "task_id": "task_retrieve",
+                "kind": "retrieval_bundle",
+                "status": "ok",
+                "payload": {"retrieved_docs": [{"chunk_id": "chunk_001", "text": "supporting evidence"}]},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
+
+    def test_run_marks_completed_synthesis_without_aggregated_answer_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_synthesis",
+                "kind": "synthesis",
+                "label": "final merge",
+                "status": "completed",
+                "artifact_ids": [],
+            }
+        ]
+        final_state["artifacts"] = []
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["task_without_artifacts", "missing_required_artifact_kind", "missing_required_evidence_ref"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["artifact_kind"], "aggregated_answer")
+
+    def test_run_marks_text_only_synthesis_answer_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_synthesis",
+                "kind": "synthesis",
+                "label": "final merge",
+                "status": "completed",
+                "artifact_ids": ["artifact_synthesis"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_synthesis",
+                "task_id": "task_synthesis",
+                "kind": "aggregated_answer",
+                "status": "ok",
+                "payload": {"final_answer": "최종 답변입니다."},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["missing_required_artifact_payload", "missing_required_evidence_ref"],
+        )
+        self.assertEqual(trace["integrity_issues"][0]["payload_key"], "aggregated_answer.source_material")
+
+    def test_run_accepts_synthesis_answer_with_source_and_evidence_refs(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_synthesis",
+                "kind": "synthesis",
+                "label": "final merge",
+                "status": "completed",
+                "artifact_ids": ["artifact_synthesis"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_synthesis",
+                "task_id": "task_synthesis",
+                "kind": "aggregated_answer",
+                "status": "ok",
+                "payload": {
+                    "final_answer": "최종 답변입니다.",
+                    "subtask_results": [{"task_id": "task_1", "answer": "근거 답변"}],
+                },
+                "evidence_refs": ["ev_001"],
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
+
+    def test_run_marks_completed_critic_without_report_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_critic",
+                "kind": "critic",
+                "label": "review outputs",
+                "status": "completed",
+                "artifact_ids": [],
+            }
+        ]
+        final_state["artifacts"] = []
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["task_without_artifacts", "missing_required_artifact_kind", "missing_required_evidence_ref"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["artifact_kind"], "critic_report")
+
+    def test_run_marks_critic_report_without_verdict_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_critic",
+                "kind": "critic",
+                "label": "review outputs",
+                "status": "completed",
+                "artifact_ids": ["artifact_critic"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_critic",
+                "task_id": "task_critic",
+                "kind": "critic_report",
+                "status": "ok",
+                "payload": {
+                    "critic_report": {
+                        "target_task_id": "task_synthesis",
+                        "acceptance_reason": "grounded",
+                    }
+                },
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issues"][0]["type"], "missing_required_artifact_payload")
+        self.assertEqual(trace["integrity_issues"][0]["payload_key"], "critic_report.verdict")
+
+    def test_run_marks_critic_report_without_target_refs_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_critic",
+                "kind": "critic",
+                "label": "review outputs",
+                "status": "completed",
+                "artifact_ids": ["artifact_critic"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_critic",
+                "task_id": "task_critic",
+                "kind": "critic_report",
+                "status": "ok",
+                "payload": {"critic_report": {"passed": True, "acceptance_reason": "grounded"}},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issues"][0]["type"], "missing_required_artifact_payload")
+        self.assertEqual(trace["integrity_issues"][0]["payload_key"], "critic_report.target_refs")
+
+    def test_run_marks_critic_report_without_reason_or_issues_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_critic",
+                "kind": "critic",
+                "label": "review outputs",
+                "status": "completed",
+                "artifact_ids": ["artifact_critic"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_critic",
+                "task_id": "task_critic",
+                "kind": "critic_report",
+                "status": "ok",
+                "payload": {"critic_report": {"passed": True, "target_task_id": "task_synthesis"}},
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issues"][0]["type"], "missing_required_artifact_payload")
+        self.assertEqual(
+            trace["integrity_issues"][0]["payload_key"],
+            "critic_report.acceptance_reason_or_issues",
+        )
+
+    def test_run_accepts_critic_report_with_target_reason_and_provenance(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_critic",
+                "kind": "critic",
+                "label": "review outputs",
+                "status": "completed",
+                "artifact_ids": ["artifact_critic"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_critic",
+                "task_id": "task_critic",
+                "kind": "critic_report",
+                "status": "ok",
+                "payload": {
+                    "critic_report": {
+                        "passed": True,
+                        "target_task_id": "task_synthesis",
+                        "target_artifact_ids": ["artifact_synthesis"],
+                        "acceptance_reason": "grounded",
+                    }
+                },
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
+
+    def test_run_keeps_orphan_artifact_warning_non_blocking_when_not_final_source(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_review",
+                "kind": "verification",
+                "label": "review",
+                "status": "completed",
+                "artifact_ids": ["artifact_review"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_review",
+                "task_id": "task_review",
+                "kind": "semantic_plan",
+                "status": "ok",
+                "payload": {"status": "ok"},
+            },
+            {
+                "artifact_id": "artifact_orphan",
+                "task_id": "missing_task",
+                "kind": "semantic_plan",
+                "status": "ok",
+                "payload": {"status": "ok"},
+            },
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "warning")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["orphan_artifact"],
+        )
+
+    def test_run_promotes_final_source_orphan_artifact_warning_to_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_synthesis",
+                "kind": "synthesis",
+                "label": "final merge",
+                "status": "completed",
+                "artifact_ids": ["artifact_synthesis"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_synthesis",
+                "task_id": "task_synthesis",
+                "kind": "aggregated_answer",
+                "status": "ok",
+                "payload": {
+                    "final_answer": "최종 답변입니다.",
+                    "source_artifact_ids": ["artifact_orphan"],
+                },
+                "evidence_refs": ["artifact_orphan"],
+            },
+            {
+                "artifact_id": "artifact_orphan",
+                "task_id": "missing_task",
+                "kind": "semantic_plan",
+                "status": "ok",
+                "payload": {"status": "ok"},
+            },
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["orphan_artifact", "final_source_orphan_artifact"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["artifact_id"], "artifact_orphan")
+
+    def test_run_promotes_final_source_task_without_artifacts_warning_to_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_source",
+                "kind": "verification",
+                "label": "source review",
+                "status": "completed",
+                "artifact_ids": [],
+            },
+            {
+                "task_id": "task_synthesis",
+                "kind": "synthesis",
+                "label": "final merge",
+                "status": "completed",
+                "artifact_ids": ["artifact_synthesis"],
+            },
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_synthesis",
+                "task_id": "task_synthesis",
+                "kind": "aggregated_answer",
+                "status": "ok",
+                "payload": {
+                    "final_answer": "최종 답변입니다.",
+                    "source_task_ids": ["task_source"],
+                },
+                "evidence_refs": ["ev_001"],
+            },
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["task_without_artifacts", "final_source_task_without_artifacts"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["task_id"], "task_source")
 
 
 if __name__ == "__main__":

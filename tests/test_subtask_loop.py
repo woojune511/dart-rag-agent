@@ -14,6 +14,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
 
 
@@ -34,6 +35,11 @@ class _StubLLM:
 
     def with_structured_output(self, _schema):
         return RunnableLambda(lambda _prompt_value: self._response)
+
+
+class _FailingStructuredLLM:
+    def with_structured_output(self, _schema):
+        return RunnableLambda(lambda _prompt_value: (_ for _ in ()).throw(RuntimeError("structured output disabled")))
 
 
 class _RecordingVectorStore:
@@ -221,9 +227,10 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
+        trace = _resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["answer"], supported_answer)
-        self.assertEqual(updated["calculation_result"]["formatted_result"], supported_answer)
-        self.assertEqual(updated["calculation_result"]["rendered_value"], supported_answer)
+        self.assertEqual(trace["calculation_result"]["formatted_result"], supported_answer)
+        self.assertEqual(trace["calculation_result"]["rendered_value"], supported_answer)
         self.assertNotIn("(303)백만원", updated["answer"])
 
     def test_aggregate_subtasks_refreshes_supported_aggregate_numeric_when_trace_is_stronger(self) -> None:
@@ -571,16 +578,18 @@ class SubtaskLoopTests(unittest.TestCase):
 
         extracted = self.agent._extract_calculation_operands(state)
         merged_state = {**state, **extracted}
-        self.assertEqual(len(extracted["calculation_operands"]), 2)
+        trace = _resolve_runtime_calculation_trace(merged_state)
+        self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(
-            [row["matched_operand_role"] for row in extracted["calculation_operands"]],
+            [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["current_period", "prior_period"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        self.assertEqual(planned["calculation_plan"]["status"], "ok")
-        self.assertEqual(planned["calculation_plan"]["operation"], "growth_rate")
-        self.assertEqual(len(planned["calculation_plan"]["ordered_operand_ids"]), 2)
+        plan_trace = _resolve_runtime_calculation_trace(planned)
+        self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
+        self.assertEqual(plan_trace["calculation_plan"]["operation"], "growth_rate")
+        self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
 
     def test_narrative_summary_subtask_routes_from_evidence_to_compress_and_then_retrieve(self) -> None:
         state = {
@@ -697,6 +706,32 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         self.assertEqual(self.agent._route_after_evidence(state), "reconcile_plan")
+
+    def test_formula_planner_route_ignores_legacy_top_level_plan_status(self) -> None:
+        state = {
+            "query": "route decision",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "reflection_count": 0,
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_plan": {"status": "incomplete"},
+        }
+
+        self.assertEqual(self.agent._route_after_formula_planner(state), "calculator")
+
+    def test_calculator_route_ignores_legacy_top_level_result_status(self) -> None:
+        state = {
+            "query": "route decision",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "reflection_count": 0,
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_result": {"status": "insufficient_operands"},
+        }
+
+        self.assertEqual(self.agent._route_after_calculator(state), "calc_render")
 
     def test_table_label_lookup_uses_period_role_for_repeated_row_labels(self) -> None:
         evidence_item = {
@@ -1065,15 +1100,17 @@ class SubtaskLoopTests(unittest.TestCase):
 
         extracted = self.agent._extract_calculation_operands(state)
         merged_state = {**state, **extracted}
+        trace = _resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
-            [row["matched_operand_role"] for row in extracted["calculation_operands"]],
+            [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["numerator_1", "denominator_1"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        self.assertEqual(planned["calculation_plan"]["status"], "ok")
-        self.assertEqual(planned["calculation_plan"]["operation"], "ratio")
-        self.assertEqual(len(planned["calculation_plan"]["ordered_operand_ids"]), 2)
+        plan_trace = _resolve_runtime_calculation_trace(planned)
+        self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
+        self.assertEqual(plan_trace["calculation_plan"]["operation"], "ratio")
+        self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
 
     def test_ratio_dependency_prefers_same_table_sibling_retrieval_slot(self) -> None:
         state = {
@@ -1260,8 +1297,9 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(ambiguous_evidence)]
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(extracted["calculation_operands"], [])
+        self.assertEqual(trace["calculation_operands"], [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_lookup_rejects_context_dependent_table_without_required_operands(self) -> None:
@@ -1316,8 +1354,9 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(ambiguous_evidence)]
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(extracted["calculation_operands"], [])
+        self.assertEqual(trace["calculation_operands"], [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_lookup_allows_context_dependent_table_when_scope_requested(self) -> None:
@@ -1379,9 +1418,10 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(scoped_evidence)]
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(len(extracted["calculation_operands"]), 1)
-        self.assertEqual(extracted["calculation_operands"][0]["raw_value"], "(718,937)")
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["raw_value"], "(718,937)")
 
     def test_ratio_rejects_context_dependent_table_operand_when_scope_not_requested(self) -> None:
         numerator_row = {
@@ -1477,7 +1517,8 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         extracted = self.agent._extract_calculation_operands(state)
-        operands = list(extracted.get("calculation_operands") or [])
+        trace = _resolve_runtime_calculation_trace(extracted)
+        operands = list(trace.get("calculation_operands") or [])
         debug_operands = list((extracted.get("calculation_debug_trace") or {}).get("operands") or [])
         all_rows = operands + debug_operands
 
@@ -1662,11 +1703,152 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
+        trace = _resolve_runtime_calculation_trace(updated)
         self.assertIn("37.47%", updated["answer"])
         self.assertNotIn("0.04%", updated["answer"])
-        self.assertIn("37.47%", updated["calculation_result"]["formatted_result"])
-        self.assertIn("37.47%", updated["calculation_result"]["rendered_value"])
-        self.assertNotIn("0.04%", updated["calculation_result"]["formatted_result"])
+        self.assertIn("37.47%", trace["calculation_result"]["formatted_result"])
+        self.assertIn("37.47%", trace["calculation_result"]["rendered_value"])
+        self.assertNotIn("0.04%", trace["calculation_result"]["formatted_result"])
+
+    def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
+        original_execute = self.agent._execute_calculation
+        calls = []
+
+        def _legacy_only_execute(state):
+            calls.append(state)
+            return {
+                "calculation_operands": list(state.get("calculation_operands") or []),
+                "calculation_plan": dict(state.get("calculation_plan") or {}),
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "999%",
+                    "formatted_result": "legacy top-level result",
+                },
+            }
+
+        self.agent._execute_calculation = _legacy_only_execute
+        try:
+            ordered = [
+                {
+                    "task_id": "task_numerator",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "selling expense",
+                                "raw_value": "4,355",
+                                "raw_unit": "hundred million",
+                                "normalized_value": 435_500_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "4,355 hundred million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_denominator",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "pre-expense profit",
+                                "raw_value": "11,623",
+                                "raw_unit": "hundred million",
+                                "normalized_value": 1_162_300_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "11,623 hundred million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "operation_family": "ratio",
+                    "answer": "CIR is 0.04%.",
+                    "status": "ok",
+                    "calculation_operands": [
+                        {
+                            "operand_id": "op_001",
+                            "label": "selling expense",
+                            "raw_value": "4,355",
+                            "raw_unit": "hundred million",
+                            "normalized_value": 4_355_000_000.0,
+                            "normalized_unit": "KRW",
+                            "matched_operand_role": "numerator_1",
+                            "source_task_id": "task_numerator",
+                        },
+                        {
+                            "operand_id": "op_002",
+                            "label": "pre-expense profit",
+                            "raw_value": "11,623",
+                            "raw_unit": "hundred million",
+                            "normalized_value": 1_162_300_000_000.0,
+                            "normalized_unit": "KRW",
+                            "matched_operand_role": "denominator_1",
+                            "source_task_id": "task_denominator",
+                        },
+                    ],
+                    "calculation_plan": {
+                        "status": "ok",
+                        "mode": "single_value",
+                        "operation": "ratio",
+                        "ordered_operand_ids": ["op_001", "op_002"],
+                        "variable_bindings": [
+                            {"variable": "A", "operand_id": "op_001"},
+                            {"variable": "B", "operand_id": "op_002"},
+                        ],
+                        "formula": "(A / B) * 100",
+                        "result_unit": "%",
+                    },
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "0.04%",
+                        "formatted_result": "CIR is 0.04%.",
+                        "answer_slots": {"operation_family": "ratio"},
+                    },
+                },
+            ]
+            state = {
+                "query": "Calculate 2023 CIR.",
+                "calc_subtasks": [
+                    {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                    {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                    {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+                ],
+            }
+            projection = {
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "source_row_ids": ["task_output:task_numerator"],
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "source_row_ids": ["task_output:task_denominator"],
+                    },
+                ],
+            }
+
+            aligned = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
+        finally:
+            self.agent._execute_calculation = original_execute
+
+        ratio_row = aligned[-1]
+        self.assertTrue(calls)
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "0.04%")
+        self.assertNotEqual(ratio_row.get("answer"), "legacy top-level result")
+        self.assertNotIn("aligned_from_source_task_slots", ratio_row)
 
     def test_ratio_recalculation_binds_lookup_slots_by_prefixed_roles(self) -> None:
         lookup_numerator = {
@@ -2007,12 +2189,13 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(extracted["calculation_debug_trace"]["retry_strategy"], "synthesize_from_task_outputs")
-        self.assertEqual(len(extracted["calculation_operands"]), 1)
-        self.assertEqual(extracted["calculation_operands"][0]["matched_operand_role"], "numerator_1")
-        self.assertTrue(extracted["calculation_operands"][0]["dependency_resolved"])
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "numerator_1")
+        self.assertTrue(trace["calculation_operands"][0]["dependency_resolved"])
 
     def test_route_after_reconcile_plan_uses_operand_extractor_for_synthesis_strategy(self) -> None:
         route = self.agent._route_after_reconcile_plan(
@@ -2140,11 +2323,12 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
-        self.assertEqual(len(extracted["calculation_operands"]), 1)
-        self.assertEqual(extracted["calculation_operands"][0]["matched_operand_role"], "numerator_1")
-        self.assertTrue(extracted["calculation_operands"][0]["dependency_resolved"])
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "numerator_1")
+        self.assertTrue(trace["calculation_operands"][0]["dependency_resolved"])
         self.assertEqual(
             extracted["calculation_debug_trace"]["missing_dependency_bindings"][0]["role"],
             "denominator_1",
@@ -2256,12 +2440,13 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(len(extracted["calculation_operands"]), 2)
+        self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(
-            [row.get("matched_operand_role") for row in extracted["calculation_operands"]],
+            [row.get("matched_operand_role") for row in trace["calculation_operands"]],
             ["numerator_1", "denominator_1"],
         )
 
@@ -2412,15 +2597,16 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(
-            len({row.get("operand_id") for row in extracted["calculation_operands"]}),
+            len({row.get("operand_id") for row in trace["calculation_operands"]}),
             2,
         )
         denominator = next(
             row
-            for row in extracted["calculation_operands"]
+            for row in trace["calculation_operands"]
             if row.get("label") == "operating profit"
         )
         self.assertEqual(denominator["raw_value"], "1,000")
@@ -2526,10 +2712,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(len(extracted["calculation_operands"]), 2)
+        self.assertEqual(len(trace["calculation_operands"]), 2)
 
     def test_ratio_dependency_fallback_rejects_rows_outside_producer_statement_scope(self) -> None:
         state = {
@@ -2681,10 +2868,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
-        self.assertEqual(len(extracted["calculation_operands"]), 1)
-        self.assertEqual(extracted["calculation_operands"][0]["matched_operand_role"], "denominator_1")
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "denominator_1")
         rejected = extracted["calculation_debug_trace"]["rejected_dependency_scope_rows"]
         self.assertEqual(len(rejected), 1)
         self.assertEqual(rejected[0]["reject_reason"], "section_scope")
@@ -2803,12 +2991,13 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(len(extracted["calculation_operands"]), 2)
+        self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(
-            {row["matched_operand_role"] for row in extracted["calculation_operands"]},
+            {row["matched_operand_role"] for row in trace["calculation_operands"]},
             {"current_period", "prior_period"},
         )
 
@@ -2928,15 +3117,17 @@ class SubtaskLoopTests(unittest.TestCase):
 
         extracted = self.agent._extract_calculation_operands(state)
         merged_state = {**state, **extracted}
+        trace = _resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
-            [row["matched_operand_role"] for row in extracted["calculation_operands"]],
+            [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["addend_1", "addend_2"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        self.assertEqual(planned["calculation_plan"]["status"], "ok")
-        self.assertEqual(planned["calculation_plan"]["operation"], "add")
-        self.assertEqual(len(planned["calculation_plan"]["ordered_operand_ids"]), 2)
+        plan_trace = _resolve_runtime_calculation_trace(planned)
+        self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
+        self.assertEqual(plan_trace["calculation_plan"]["operation"], "add")
+        self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
 
     def test_advance_subtask_records_result_and_rotates(self) -> None:
         state = {
@@ -3201,27 +3392,31 @@ class SubtaskLoopTests(unittest.TestCase):
             "2023년 연결기준 부채비율은 25.4%입니다. 2023년 연결기준 유동비율은 258.8%입니다.",
         )
         self.assertEqual(updated["selected_claim_ids"], ["ev_001", "ev_002"])
-        self.assertEqual(len(updated["calculation_operands"]), 4)
-        self.assertEqual(updated["calculation_plan"]["mode"], "aggregate_subtasks")
-        self.assertEqual(updated["calculation_plan"]["subtask_count"], 2)
-        self.assertEqual(updated["calculation_result"]["formatted_result"], updated["answer"])
+        trace = _resolve_runtime_calculation_trace(updated)
+        self.assertEqual(len(trace["calculation_operands"]), 4)
+        self.assertEqual(trace["calculation_plan"]["mode"], "aggregate_subtasks")
+        self.assertEqual(trace["calculation_plan"]["subtask_count"], 2)
+        self.assertEqual(trace["calculation_result"]["formatted_result"], updated["answer"])
         self.assertEqual(len(updated["evidence_items"]), 2)
         self.assertEqual(
             [row["evidence_id"] for row in updated["evidence_items"]],
             ["ev_001", "ev_002"],
         )
         self.assertEqual(
-            updated["calculation_result"]["derived_metrics"]["subtask_ids"],
+            trace["calculation_result"]["derived_metrics"]["subtask_ids"],
             ["task_1", "task_2"],
         )
         self.assertEqual(
-            updated["calculation_result"]["answer_slots"]["operation_family"],
+            trace["calculation_result"]["answer_slots"]["operation_family"],
             "aggregate_subtasks",
         )
         self.assertEqual(
-            len(updated["calculation_result"]["answer_slots"]["subtask_results"]),
+            len(trace["calculation_result"]["answer_slots"]["subtask_results"]),
             2,
         )
+        self.assertNotIn("calculation_operands", updated)
+        self.assertNotIn("calculation_plan", updated)
+        self.assertNotIn("calculation_result", updated)
 
     def test_aggregate_subtasks_dedupes_nested_operand_mirrors(self) -> None:
         projection = self.agent._build_aggregate_calculation_projection(
@@ -3519,8 +3714,9 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
+        trace = _resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["answer"], "90.7%")
-        self.assertEqual(updated["calculation_result"]["formatted_result"], "90.7%")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "90.7%")
         self.assertNotIn("277.94%", updated["answer"])
 
     def test_aggregate_subtasks_prefers_lookup_list_over_raw_narrative_table(self) -> None:
@@ -3894,6 +4090,33 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertEqual(current["calculation_operands"][0]["operand_id"], "rev")
 
+    def test_capture_current_subtask_result_ignores_legacy_top_level_calculation_projection(self) -> None:
+        state = {
+            "query": "calculate ratio",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "ratio",
+                "operation_family": "ratio",
+            },
+            "answer": "The ratio is 25.4%.",
+            "compressed_answer": "The ratio is 25.4%.",
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "calculation_operands": [{"operand_id": "legacy"}],
+            "calculation_plan": {"status": "ok", "operation": "ratio"},
+            "calculation_result": {"status": "ok", "rendered_value": "25.4%"},
+            "reconciliation_result": {},
+        }
+
+        current = self.agent._capture_current_subtask_result(state)
+
+        self.assertEqual(current["calculation_operands"], [])
+        self.assertEqual(current["calculation_plan"], {})
+        self.assertEqual(current["calculation_result"], {})
+        self.assertEqual(current["status"], "ok")
+
     def test_capture_current_subtask_result_promotes_single_lookup_prose_value(self) -> None:
         state = {
             "query": "2023년 연결 연구개발비용 총액을 추출하고, Harman 부문 기술 초점을 요약해 줘.",
@@ -4090,7 +4313,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("2024년부터 2026년까지", current["answer"])
         self.assertEqual(current["selected_claim_ids"], ["ev_003", "ev_002"])
 
-    def test_project_legacy_calculation_fields_prefers_ledger_trace_over_stale_top_level(self) -> None:
+    def test_project_runtime_calculation_trace_prefers_ledger_trace_over_stale_top_level(self) -> None:
         state = {
             "answer": "2023년 연결기준 부채비율은 25.4%입니다.",
             "compressed_answer": "2023년 연결기준 부채비율은 25.4%입니다.",
@@ -4146,13 +4369,15 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {"status": "stale", "rendered_value": "999%"},
         }
 
-        projected = self.agent._project_legacy_calculation_fields(state)
+        projected = self.agent._project_runtime_calculation_trace(state)
 
         self.assertEqual(len(projected["calculation_operands"]), 2)
         self.assertEqual(projected["calculation_plan"]["operation"], "divide")
         self.assertEqual(projected["calculation_result"]["rendered_value"], "25.4%")
+        self.assertEqual(projected["runtime_projection"]["source"], "task_artifact_ledger")
+        self.assertFalse(projected["runtime_projection"]["legacy_fallback"])
 
-    def test_project_legacy_calculation_fields_prefers_ledger_trace_over_stale_resolved_trace(self) -> None:
+    def test_project_runtime_calculation_trace_prefers_ledger_trace_over_stale_resolved_trace(self) -> None:
         state = {
             "answer": "2023년 연결기준 부채비율은 25.4%입니다.",
             "compressed_answer": "2023년 연결기준 부채비율은 25.4%입니다.",
@@ -4213,11 +4438,12 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        projected = self.agent._project_legacy_calculation_fields(state)
+        projected = self.agent._project_runtime_calculation_trace(state)
 
         self.assertEqual(len(projected["calculation_operands"]), 2)
         self.assertEqual(projected["calculation_plan"]["operation"], "divide")
         self.assertEqual(projected["calculation_result"]["rendered_value"], "25.4%")
+        self.assertEqual(projected["runtime_projection"]["source"], "task_artifact_ledger")
 
     def test_capture_current_subtask_result_ignores_stale_aggregate_resolved_trace(self) -> None:
         state = {
@@ -4280,7 +4506,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(current["calculation_result"]["rendered_value"], "53조 1,139억원")
         self.assertEqual(current["calculation_operands"][0]["operand_id"], "capex_2023")
 
-    def test_project_legacy_calculation_fields_prefers_live_lookup_over_stale_aggregate_trace(self) -> None:
+    def test_project_runtime_calculation_trace_prefers_live_lookup_over_stale_aggregate_trace(self) -> None:
         state = {
             "answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
             "compressed_answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
@@ -4317,11 +4543,105 @@ class SubtaskLoopTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        projected = self.agent._project_legacy_calculation_fields(state)
+        projected = self.agent._project_runtime_calculation_trace(state)
 
         self.assertEqual(projected["calculation_plan"]["operation"], "lookup")
         self.assertEqual(projected["calculation_result"]["rendered_value"], "53조 1,139억원")
         self.assertEqual(projected["calculation_operands"][0]["operand_id"], "capex_2023")
+
+    def test_project_legacy_calculation_fields_aliases_runtime_trace_projection(self) -> None:
+        state = {
+            "calculation_operands": [{"row_id": "legacy"}],
+            "calculation_plan": {"operation": "lookup"},
+            "calculation_result": {"status": "ok", "rendered_value": "123"},
+            "tasks": [],
+            "artifacts": [],
+            "subtask_results": [],
+        }
+
+        self.assertEqual(
+            self.agent._project_legacy_calculation_fields(state),
+            self.agent._project_runtime_calculation_trace(state),
+        )
+
+    def test_reflection_retry_ignores_legacy_top_level_runtime_projection(self) -> None:
+        self.agent._llm_for_phase = lambda _phase: _FailingStructuredLLM()
+        state = {
+            "query": "find the missing numeric value",
+            "topic": "missing numeric value",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "years": [],
+            "companies": [],
+            "seed_retrieved_docs": [],
+            "active_subtask": {},
+            "missing_info": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [{"label": "legacy", "value": "999"}],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        update = self.agent._plan_reflection_retry(state)
+
+        self.assertEqual(update["reflection_plan"]["retry_objective"], "find_missing_values")
+        self.assertEqual(update["planner_debug_trace"]["reflection_error"], "structured output disabled")
+
+    def test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection(self) -> None:
+        state = {
+            "query": "find the missing numeric value",
+            "topic": "missing numeric value",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "years": [],
+            "companies": [],
+            "active_subtask": {},
+            "missing_info": [],
+            "reflection_count": 0,
+            "reflection_plan": {},
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [{"label": "legacy", "value": "999"}],
+            "calculation_plan": {"missing_info": ["legacy plan"]},
+            "calculation_result": {"explanation": "legacy result"},
+        }
+
+        update = self.agent._prepare_reflection_retry(state)
+
+        self.assertEqual(update["retry_reason"], "missing operands")
+        self.assertEqual(update["missing_info"], ["missing numeric value"])
+        self.assertEqual(
+            _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
+            {},
+        )
+
+    def test_verify_calculation_skip_does_not_rewrite_compatibility_mirrors(self) -> None:
+        state = {
+            "answer": "insufficient evidence",
+            "compressed_answer": "insufficient evidence",
+            "resolved_calculation_trace": {
+                "calculation_operands": [{"row_id": "fresh"}],
+                "calculation_plan": {"operation": "none"},
+                "calculation_result": {"status": "insufficient_operands"},
+            },
+            "structured_result": {"status": "insufficient_operands"},
+            "calculation_operands": [{"row_id": "stale"}],
+            "calculation_plan": {"status": "stale"},
+            "calculation_result": {"status": "stale"},
+            "calculation_debug_trace": {},
+        }
+
+        updated = self.agent._verify_calculation_answer(state)
+
+        self.assertEqual(
+            updated["resolved_calculation_trace"]["calculation_result"]["status"],
+            "insufficient_operands",
+        )
+        self.assertEqual(updated["calculation_debug_trace"]["verification"]["reason"], "calculation_status_not_ok")
+        self.assertNotIn("calculation_operands", updated)
+        self.assertNotIn("calculation_plan", updated)
+        self.assertNotIn("calculation_result", updated)
 
     def test_route_after_aggregate_subtasks_reuses_pre_calc_planner_when_feedback_exists(self) -> None:
         route = self.agent._route_after_aggregate_subtasks(
@@ -4340,6 +4660,634 @@ class SubtaskLoopTests(unittest.TestCase):
             ),
             "cite",
         )
+
+    def test_aggregate_subtasks_replans_on_task_artifact_integrity_error(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:missing"],
+                }
+            ],
+            "artifacts": [],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("Task/artifact ledger integrity error", updated["planner_feedback"])
+        self.assertIn("missing_artifact_reference", updated["planner_feedback"])
+        self.assertEqual(
+            self.agent._route_after_aggregate_subtasks(
+                {
+                    "planner_feedback": updated["planner_feedback"],
+                    "plan_loop_count": 0,
+                }
+            ),
+            "pre_calc_planner",
+        )
+
+    def test_aggregate_subtasks_replans_on_missing_required_calculation_artifact_kind(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": []},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"operation": "lookup"}},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_artifact_kind", updated["planner_feedback"])
+        self.assertIn("calculation_result", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_replans_on_missing_required_artifact_payload(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan", "artifact:result"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": []},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok"}},
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok"}},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_artifact_payload", updated["planner_feedback"])
+        self.assertIn("missing_required_evidence_ref", updated["planner_feedback"])
+        self.assertIn("calculation_result", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_replans_on_reconciliation_integrity_error(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan", "artifact:result"],
+                },
+                {
+                    "task_id": "task_reconcile",
+                    "kind": "reconciliation",
+                    "label": "reconcile 대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:reconcile"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"label": "대상 지표", "value": "100", "row_id": "ev_1"}]},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "100억원"}},
+                },
+                {
+                    "artifact_id": "artifact:reconcile",
+                    "task_id": "task_reconcile",
+                    "kind": "reconciliation_result",
+                    "status": "ok",
+                    "payload": {"reconciliation_result": {"status": "ready", "matched_operands": []}},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_evidence_ref", updated["planner_feedback"])
+        self.assertIn("task_reconcile", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_replans_on_retrieval_integrity_error(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan", "artifact:result"],
+                },
+                {
+                    "task_id": "task_retrieve",
+                    "kind": "retrieval",
+                    "label": "retrieve 대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:retrieve"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"label": "대상 지표", "value": "100", "row_id": "ev_1"}]},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "100억원"}},
+                },
+                {
+                    "artifact_id": "artifact:retrieve",
+                    "task_id": "task_retrieve",
+                    "kind": "retrieval_bundle",
+                    "status": "ok",
+                    "payload": {"retrieved_docs": []},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_artifact_payload", updated["planner_feedback"])
+        self.assertIn("missing_required_evidence_ref", updated["planner_feedback"])
+        self.assertIn("task_retrieve", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_replans_on_synthesis_integrity_error(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan", "artifact:result"],
+                },
+                {
+                    "task_id": "task_synthesis",
+                    "kind": "synthesis",
+                    "label": "final merge",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:synthesis"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"label": "대상 지표", "value": "100", "row_id": "ev_1"}]},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "100억원"}},
+                },
+                {
+                    "artifact_id": "artifact:synthesis",
+                    "task_id": "task_synthesis",
+                    "kind": "aggregated_answer",
+                    "status": "ok",
+                    "payload": {"final_answer": "2023년 대상 지표는 100억원입니다."},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_artifact_payload", updated["planner_feedback"])
+        self.assertIn("missing_required_evidence_ref", updated["planner_feedback"])
+        self.assertIn("task_synthesis", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_replans_on_critic_integrity_error(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan", "artifact:result"],
+                },
+                {
+                    "task_id": "task_critic",
+                    "kind": "critic",
+                    "label": "review final merge",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:critic"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"label": "대상 지표", "value": "100", "row_id": "ev_1"}]},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "100억원"}},
+                },
+                {
+                    "artifact_id": "artifact:critic",
+                    "task_id": "task_critic",
+                    "kind": "critic_report",
+                    "status": "ok",
+                    "payload": {"critic_report": {"passed": True, "target_task_id": "task_synthesis"}},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_artifact_payload", updated["planner_feedback"])
+        self.assertIn("task_critic", updated["planner_feedback"])
+        self.assertIn("critic_report.acceptance_reason_or_issues", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_replans_when_final_source_has_warning_integrity(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:operand", "artifact:plan", "artifact:result"],
+                },
+                {
+                    "task_id": "task_synthesis",
+                    "kind": "synthesis",
+                    "label": "final merge",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:synthesis"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:operand",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"label": "대상 지표", "value": "100", "row_id": "ev_1"}]},
+                },
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "100억원"}},
+                },
+                {
+                    "artifact_id": "artifact:synthesis",
+                    "task_id": "task_synthesis",
+                    "kind": "aggregated_answer",
+                    "status": "ok",
+                    "payload": {
+                        "final_answer": "2023년 대상 지표는 100억원입니다.",
+                        "source_artifact_ids": ["artifact:orphan"],
+                    },
+                    "evidence_refs": ["artifact:orphan"],
+                },
+                {
+                    "artifact_id": "artifact:orphan",
+                    "task_id": "missing_task",
+                    "kind": "semantic_plan",
+                    "status": "ok",
+                    "payload": {"status": "ok"},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("final_source_orphan_artifact", updated["planner_feedback"])
+        self.assertIn("artifact:orphan", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_refuses_on_integrity_error_when_replan_budget_is_exhausted(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_1"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "대상 지표",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:missing"],
+                }
+            ],
+            "artifacts": [],
+            "calculation_result": {"status": "ok", "rendered_value": "100억원"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 2,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "initial")
+        self.assertIn("missing_artifact_reference", updated["planner_feedback"])
+        self.assertIn("원하신 답을 완전히 확정할 수는 없습니다.", updated["answer"])
 
     def test_aggregate_subtasks_can_emit_planner_feedback_for_replan(self) -> None:
         self.agent.llm = _StubLLM(
@@ -5051,10 +5999,11 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
+        trace = _resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["planner_feedback"], "")
         self.assertNotIn("완전히 확정할 수는 없습니다", updated["answer"])
         self.assertIn("메모리", updated["answer"])
-        self.assertEqual(updated["calculation_result"]["status"], "ok")
+        self.assertEqual(trace["calculation_result"]["status"], "ok")
 
     def test_aggregate_subtasks_repairs_truncated_growth_narrative_answer(self) -> None:
         self.agent.llm = _StubLLM(

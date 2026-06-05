@@ -130,12 +130,16 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
 
     calc_result = agent._execute_calculation(state)
     state.update(calc_result)
-    resolved_trace = _resolve_runtime_calculation_trace(state)
+    # Debug output is generated from a fresh current-run state, so it should
+    # inspect the canonical runtime trace only and never revive legacy mirrors.
+    resolved_trace = _resolve_runtime_calculation_trace(
+        state,
+        allow_legacy_top_level=False,
+    )
     structured_result = _resolve_runtime_structured_result(
         {
             "resolved_calculation_trace": resolved_trace,
             "structured_result": state.get("structured_result"),
-            "calculation_result": state.get("calculation_result"),
         }
     )
 

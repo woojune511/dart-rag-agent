@@ -10,7 +10,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.mas_graph import build_initial_state
-from src.agent.mas_types import TaskStatus
+from src.agent.mas_types import TaskStatus, build_critic_report
 from src.agent.nodes.critic_node import MAX_CRITIC_RETRIES, run_critic
 
 
@@ -54,7 +54,62 @@ class DeterministicCriticTests(unittest.TestCase):
 
         self.assertTrue(updates["critic_reports"][0]["passed"])
         self.assertEqual(updates["critic_reports"][0]["deterministic_score"], 1.0)
+        self.assertEqual(updates["critic_reports"][0]["verdict"], "passed")
+        self.assertEqual(updates["critic_reports"][0]["target_task_id"], "task_1")
+        self.assertEqual(updates["critic_reports"][0]["target_artifact_ids"], ["task_1"])
+        self.assertTrue(updates["critic_reports"][0]["acceptance_reason"])
+        self.assertEqual(updates["critic_reports"][0]["blocking_issues"], [])
+        self.assertEqual(
+            updates["artifacts"]["critic::task_1"]["payload"]["critic_report"],
+            updates["critic_reports"][0],
+        )
+        self.assertEqual(updates["tasks"]["critic::task_1"]["depends_on"], ["task_1"])
+        self.assertEqual(updates["tasks"]["critic::task_1"]["artifact_ids"], ["critic::task_1"])
         self.assertIn("Critic passed all artifacts (Deterministic)", updates["execution_trace"])
+
+    def test_critic_prefers_typed_payload_and_evidence_refs(self) -> None:
+        state = build_initial_state("payload-first critic check")
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "Use typed artifact payload.",
+                "status": TaskStatus.COMPLETED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+            }
+        }
+        state["artifacts"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "creator": "Analyst",
+                "artifact_id": "artifact_1",
+                "content": {
+                    "answer": "",
+                    "structured_result": {
+                        "status": "stale",
+                        "rendered_value": "999",
+                        "result_unit": "KRW",
+                    },
+                },
+                "payload": {
+                    "answer": "10.9%",
+                    "structured_result": {
+                        "status": "ok",
+                        "rendered_value": "10.9%",
+                        "result_unit": "%",
+                    },
+                },
+                "evidence_links": [],
+                "evidence_refs": ["chunk-payload"],
+            }
+        }
+
+        updates = run_critic(state)
+
+        self.assertTrue(updates["critic_reports"][0]["passed"])
+        self.assertEqual(updates["critic_reports"][0]["target_artifact_ids"], ["artifact_1"])
+        self.assertIn("chunk-payload", updates["artifacts"]["critic::task_1"]["evidence_refs"])
 
     def test_critic_rejects_analyst_artifact_without_evidence_links(self) -> None:
         state = build_initial_state("삼성전자 2024년 영업이익률 알려줘")
@@ -88,6 +143,17 @@ class DeterministicCriticTests(unittest.TestCase):
 
         self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.REJECTED_BY_CRITIC)
         self.assertFalse(updates["critic_reports"][0]["passed"])
+        self.assertEqual(updates["critic_reports"][0]["verdict"], "rejected")
+        self.assertEqual(updates["critic_reports"][0]["target_artifact_ids"], ["task_1"])
+        self.assertEqual(updates["critic_reports"][0]["acceptance_reason"], "")
+        self.assertEqual(
+            updates["critic_reports"][0]["blocking_issues"],
+            [updates["critic_reports"][0]["llm_feedback"]],
+        )
+        self.assertEqual(
+            updates["artifacts"]["critic::task_1"]["payload"]["critic_report"],
+            updates["critic_reports"][0],
+        )
         self.assertIn("grounding 실패", updates["critic_reports"][0]["llm_feedback"])
         self.assertIn("Critic rejected some artifacts (Deterministic)", updates["execution_trace"])
 
@@ -144,6 +210,36 @@ class DeterministicCriticTests(unittest.TestCase):
         self.assertEqual(updates["tasks"]["task_2"]["status"], TaskStatus.REJECTED_BY_CRITIC)
         self.assertFalse(updates["critic_reports"][0]["passed"])
         self.assertIn("리서치 근거 링크", updates["critic_reports"][0]["llm_feedback"])
+
+
+    def test_build_critic_report_normalizes_acceptance_and_blocking_fields(self) -> None:
+        passed = build_critic_report(
+            target_task_id=" task_1 ",
+            passed=True,
+            deterministic_score=1,
+            feedback=" grounded ",
+            target_artifact_id=" artifact_1 ",
+        )
+
+        self.assertEqual(passed["target_task_id"], "task_1")
+        self.assertEqual(passed["verdict"], "passed")
+        self.assertEqual(passed["target_artifact_ids"], ["artifact_1"])
+        self.assertEqual(passed["acceptance_reason"], "grounded")
+        self.assertEqual(passed["blocking_issues"], [])
+        self.assertEqual(passed["llm_feedback"], "grounded")
+
+        rejected = build_critic_report(
+            target_task_id="task_2",
+            passed=False,
+            deterministic_score=0,
+            feedback="missing evidence",
+            target_artifact_ids=["artifact_2", " "],
+        )
+
+        self.assertEqual(rejected["verdict"], "rejected")
+        self.assertEqual(rejected["target_artifact_ids"], ["artifact_2"])
+        self.assertEqual(rejected["acceptance_reason"], "")
+        self.assertEqual(rejected["blocking_issues"], ["missing evidence"])
 
 
 if __name__ == "__main__":
