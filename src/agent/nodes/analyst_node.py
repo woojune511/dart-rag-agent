@@ -146,6 +146,12 @@ def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, 
     calculation_operands = list(resolved_trace.get("calculation_operands", []) or [])
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_result = dict(structured_result or resolved_trace.get("calculation_result") or {})
+    retrieval_debug_trace = dict(result.get("retrieval_debug_trace") or {})
+    retrieval_debug_trace_history = [
+        dict(item)
+        for item in list(result.get("retrieval_debug_trace_history") or [])
+        if isinstance(item, dict)
+    ]
     if answer and not any(
         str(calculation_result.get(key) or "").strip()
         for key in ("rendered_value", "formatted_result")
@@ -189,6 +195,8 @@ def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, 
                 "citations": list(result.get("citations", []) or []),
                 "resolved_calculation_trace": resolved_trace,
                 "structured_result": structured_result,
+                "retrieval_debug_trace": retrieval_debug_trace,
+                "retrieval_debug_trace_history": retrieval_debug_trace_history,
                 "reflection_count": int(result.get("reflection_count", 0) or 0),
                 "retry_reason": str(result.get("retry_reason", "") or ""),
             },
@@ -197,6 +205,8 @@ def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, 
                 "structured_result": structured_result,
                 "resolved_calculation_trace": resolved_trace,
                 "calculation_result": calculation_result,
+                "retrieval_debug_trace": retrieval_debug_trace,
+                "retrieval_debug_trace_history": retrieval_debug_trace_history,
             },
             evidence_links=evidence_links,
         ),

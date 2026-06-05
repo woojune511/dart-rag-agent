@@ -541,7 +541,9 @@ Useful supporting points:
   `retrieval_debug_trace.report_cache_index_diagnostics`, including match
   counts and normal-retrieval execution status. Benchmark runner and MAS smoke
   can pass the path for diagnostics, but matched entries still do not serve
-  hits or bypass vector-store search.
+  hits or bypass vector-store search. MAS Analyst artifacts now preserve
+  retrieval traces, and MAS smoke summarizes cache-index diagnostics per case
+  and at the top level for handoff checks.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

@@ -934,6 +934,10 @@ Current local baseline was refreshed on 2026-06-05:
   lookup status, local-index match counts, and that normal retrieval executed;
   `enabled` and `serving_enabled` remain false even when a readable entry
   matches.
+- MAS smoke now preserves Analyst retrieval traces in artifacts and summarizes
+  cache-index diagnostics per case/top level. The unit fixture uses a tiny
+  local JSON index and asserts diagnostic matches without allowing cache
+  serving or retrieval bypass.
 
 ## Parser Structure Smokes
 

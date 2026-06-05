@@ -599,6 +599,21 @@ that exercises `--report-cache-index-path` against a tiny local index and
 checks only diagnostics, not serving behavior. Keep cache hit serving disabled
 until evidence rehydration and provenance preservation are designed.
 
+Thirtieth step completed: MAS smoke now has a handoff-level cache-index
+diagnostics assertion. Analyst artifacts preserve `retrieval_debug_trace` and
+`retrieval_debug_trace_history`, and `src/ops/mas_e2e_smoke.py` summarizes
+`report_cache_index_diagnostics` per case and at the top level. A tiny local
+JSON index fixture in the smoke unit test exercises the explicit
+`report_cache_index_path` plumbing, verifies a readable match is counted once
+even when trace data appears in both content and payload, and checks that
+`enabled = false`, `serving_enabled = false`, and normal retrieval execution
+remain visible in the summary.
+
+Next structural step: design evidence rehydration for a future cache consumer
+without enabling it yet. The design should specify which stored value/evidence
+fields are needed to reconstruct answer slots, citations, and calculation
+trace provenance before any retrieval bypass flag can become active.
+
 ### 3. Report-scoped cache
 
 현재:

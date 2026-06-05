@@ -178,6 +178,77 @@ def _summarize_report_cache_candidates(artifacts: Dict[str, Any]) -> Dict[str, A
     }
 
 
+def _find_report_cache_index_diagnostics(obj: Any, *, path: str = "") -> List[Dict[str, Any]]:
+    diagnostics_items: List[Dict[str, Any]] = []
+    if isinstance(obj, dict):
+        diagnostics = obj.get("report_cache_index_diagnostics")
+        if isinstance(diagnostics, dict):
+            index = diagnostics.get("index")
+            item = {
+                "path": path,
+                "status": str(diagnostics.get("status") or "").strip(),
+                "enabled": bool(diagnostics.get("enabled")),
+                "serving_enabled": bool(diagnostics.get("serving_enabled")),
+                "lookup_attempted": bool(diagnostics.get("lookup_attempted")),
+                "key_id": str(diagnostics.get("key_id") or "").strip(),
+                "match_count": int(diagnostics.get("match_count") or 0),
+                "readable_match_count": int(diagnostics.get("readable_match_count") or 0),
+                "normal_retrieval_executed": bool(diagnostics.get("normal_retrieval_executed")),
+                "executed_query_count": int(diagnostics.get("executed_query_count") or 0),
+            }
+            if isinstance(index, dict):
+                item["index"] = {
+                    "status": str(index.get("status") or "").strip(),
+                    "path": str(index.get("path") or "").strip(),
+                    "readable_count": int(index.get("readable_count") or 0),
+                    "blocked_count": int(index.get("blocked_count") or 0),
+                    "malformed_count": int(index.get("malformed_count") or 0),
+                }
+            diagnostics_items.append(item)
+        for key, value in obj.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            diagnostics_items.extend(_find_report_cache_index_diagnostics(value, path=child_path))
+    elif isinstance(obj, list):
+        for index, value in enumerate(obj):
+            diagnostics_items.extend(_find_report_cache_index_diagnostics(value, path=f"{path}[{index}]"))
+    return diagnostics_items
+
+
+def _summarize_report_cache_index_diagnostics(artifacts: Dict[str, Any]) -> Dict[str, Any]:
+    items: List[Dict[str, Any]] = []
+    seen: set[tuple[str, str, str, int, int, str]] = set()
+    for artifact_id, artifact in sorted(dict(artifacts or {}).items()):
+        for diagnostics in _find_report_cache_index_diagnostics(artifact, path=f"artifacts.{artifact_id}"):
+            diagnostics["artifact_id"] = str(artifact_id)
+            index = dict(diagnostics.get("index") or {})
+            dedupe_key = (
+                str(artifact_id),
+                str(diagnostics.get("key_id") or ""),
+                str(diagnostics.get("status") or ""),
+                int(diagnostics.get("match_count") or 0),
+                int(diagnostics.get("readable_match_count") or 0),
+                str(index.get("path") or ""),
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            items.append(diagnostics)
+
+    status_counts = Counter(str(item.get("status") or "").strip() for item in items)
+    status_counts.pop("", None)
+    return {
+        "count": len(items),
+        "status_counts": dict(sorted(status_counts.items())),
+        "lookup_attempted_count": sum(1 for item in items if bool(item.get("lookup_attempted"))),
+        "match_count": sum(int(item.get("match_count") or 0) for item in items),
+        "readable_match_count": sum(int(item.get("readable_match_count") or 0) for item in items),
+        "normal_retrieval_executed_count": sum(
+            1 for item in items if bool(item.get("normal_retrieval_executed"))
+        ),
+        "items": items,
+    }
+
+
 def _report_scope(
     *,
     company: str | None = None,
@@ -382,6 +453,7 @@ def run_smoke(
         task_artifact_trace = dict(final.get("task_artifact_trace") or {})
         execution_trace = list(final.get("execution_trace") or [])
         report_cache_candidates = _summarize_report_cache_candidates(artifacts)
+        report_cache_index_diagnostics = _summarize_report_cache_index_diagnostics(artifacts)
         cases.append(
             {
                 "query": query,
@@ -405,6 +477,7 @@ def run_smoke(
                     for task_id, artifact in artifacts.items()
                 },
                 "report_cache_candidates": report_cache_candidates,
+                "report_cache_index_diagnostics": report_cache_index_diagnostics,
             }
         )
 
@@ -422,11 +495,26 @@ def run_smoke(
     report_cache_status_counts: Counter[str] = Counter()
     report_cache_reason_counts: Counter[str] = Counter()
     report_cache_candidate_count = 0
+    report_cache_index_status_counts: Counter[str] = Counter()
+    report_cache_index_diagnostic_count = 0
+    report_cache_index_lookup_attempted_count = 0
+    report_cache_index_match_count = 0
+    report_cache_index_readable_match_count = 0
+    report_cache_index_normal_retrieval_count = 0
     for case in cases:
         summary = dict(case.get("report_cache_candidates") or {})
         report_cache_candidate_count += int(summary.get("count", 0) or 0)
         report_cache_status_counts.update(dict(summary.get("status_counts") or {}))
         report_cache_reason_counts.update(dict(summary.get("reason_counts") or {}))
+        index_summary = dict(case.get("report_cache_index_diagnostics") or {})
+        report_cache_index_diagnostic_count += int(index_summary.get("count", 0) or 0)
+        report_cache_index_status_counts.update(dict(index_summary.get("status_counts") or {}))
+        report_cache_index_lookup_attempted_count += int(index_summary.get("lookup_attempted_count", 0) or 0)
+        report_cache_index_match_count += int(index_summary.get("match_count", 0) or 0)
+        report_cache_index_readable_match_count += int(index_summary.get("readable_match_count", 0) or 0)
+        report_cache_index_normal_retrieval_count += int(
+            index_summary.get("normal_retrieval_executed_count", 0) or 0
+        )
     payload = {
         "store": {
             "persist_directory": str(store_dir),
@@ -444,6 +532,12 @@ def run_smoke(
             "report_cache_candidate_count": report_cache_candidate_count,
             "report_cache_candidate_status_counts": dict(sorted(report_cache_status_counts.items())),
             "report_cache_candidate_reason_counts": dict(sorted(report_cache_reason_counts.items())),
+            "report_cache_index_diagnostic_count": report_cache_index_diagnostic_count,
+            "report_cache_index_status_counts": dict(sorted(report_cache_index_status_counts.items())),
+            "report_cache_index_lookup_attempted_count": report_cache_index_lookup_attempted_count,
+            "report_cache_index_match_count": report_cache_index_match_count,
+            "report_cache_index_readable_match_count": report_cache_index_readable_match_count,
+            "report_cache_index_normal_retrieval_count": report_cache_index_normal_retrieval_count,
         },
         "cases": cases,
     }
