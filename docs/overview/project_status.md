@@ -571,6 +571,10 @@ Useful supporting points:
   match, select exactly one rehydration-ready entry, recheck value/evidence/
   citation/calculation provenance against the cache key, and enter the
   task/artifact ledger only through an explicit schema-backed producer policy.
+  `classify_report_cache_guarded_consumer_candidate()` now codifies the first
+  pure version of those blocking conditions without enabling reads: the ready
+  fixture is admissible for design, while incomplete or mismatched entries
+  require normal retrieval fallback and expose reasons.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

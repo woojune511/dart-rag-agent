@@ -11,7 +11,9 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.config.report_scoped_cache import (
     CACHE_CONSUMER_BLOCKED,
+    CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN,
     CACHE_CONSUMER_ELIGIBLE,
+    CACHE_CONSUMER_FALLBACK_REQUIRED,
     CACHE_ENTRY_BLOCKED,
     CACHE_ENTRY_READABLE,
     CACHE_ENTRY_SOURCE_ARTIFACT_STORE,
@@ -26,6 +28,7 @@ from src.config.report_scoped_cache import (
     classify_report_cache_candidate,
     classify_report_cache_consumer_candidate,
     classify_report_cache_entry,
+    classify_report_cache_guarded_consumer_candidate,
     classify_report_cache_rehydration_candidate,
     build_report_cache_rehydrated_candidate_artifact,
     missing_key_fields,
@@ -468,6 +471,137 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(result["reasons"], [])
         self.assertEqual(result["entry"]["value"]["answer_slots"]["primary_value"]["display"], "123")
         self.assertEqual(result["entry"]["value"]["citations"], ["[ACME | 2023 | section]"])
+
+    def test_guarded_consumer_admits_rehydration_ready_entry_for_design_only(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        result = classify_report_cache_guarded_consumer_candidate(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {
+                    "kind": "calculation_result",
+                    "rendered_value": "123",
+                    "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                    "calculation_trace": {
+                        "calculation_result": {"status": "ok", "rendered_value": "123"},
+                        "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                    },
+                    "citations": ["[ACME | 2023 | section]"],
+                    "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+                },
+                "provenance": {
+                    "source_row_ids": ["row-1"],
+                    "evidence_refs": ["ev-1"],
+                    "source_anchor": "section",
+                },
+            },
+            expected_key=key,
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN)
+        self.assertTrue(result["admissible"])
+        self.assertFalse(result["fallback_required"])
+        self.assertFalse(result["enabled"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertEqual(result["mode"], "trace_only")
+        self.assertEqual(result["reasons"], [])
+        self.assertEqual(result["rehydration_status"], CACHE_REHYDRATION_READY)
+
+    def test_guarded_consumer_falls_back_for_incomplete_rehydration_candidate(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = classify_report_cache_guarded_consumer_candidate(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"kind": "calculation_result", "rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            },
+            expected_key=key,
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_FALLBACK_REQUIRED)
+        self.assertFalse(result["admissible"])
+        self.assertTrue(result["fallback_required"])
+        self.assertIn("rehydration_not_ready", result["reasons"])
+        self.assertIn("missing_answer_slots", result["reasons"])
+        self.assertIn("missing_calculation_trace", result["reasons"])
+
+    def test_guarded_consumer_falls_back_for_scope_mismatch_or_ambiguous_match(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        expected_key = dict(key)
+        expected_key["source_table_id"] = "section::table:other"
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123"}},
+                "calculation_trace": {
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {"source_row_ids": ["row-1"], "evidence_refs": ["ev-1"]},
+        }
+
+        result = classify_report_cache_guarded_consumer_candidate(
+            entry,
+            expected_key=expected_key,
+            selected_match_count=2,
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_FALLBACK_REQUIRED)
+        self.assertIn("ambiguous_rehydration_match", result["reasons"])
+        self.assertIn("scope_mismatch:source_table_id", result["reasons"])
 
     def test_rehydrated_candidate_artifact_blocks_incomplete_entry_without_serving(self) -> None:
         key = normalise_report_cache_key(

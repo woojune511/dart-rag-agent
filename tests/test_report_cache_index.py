@@ -12,10 +12,13 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.config.report_scoped_cache import (  # noqa: E402
+    CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN,
+    CACHE_CONSUMER_FALLBACK_REQUIRED,
     CACHE_ENTRY_SOURCE_ARTIFACT_STORE,
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     REPORT_CACHE_ENTRY_VERSION,
     build_report_cache_rehydrated_candidate_artifact,
+    classify_report_cache_guarded_consumer_candidate,
     normalise_report_cache_key,
     report_cache_key_id,
 )
@@ -212,6 +215,22 @@ class ReportCacheIndexTests(unittest.TestCase):
             "ok",
         )
         self.assertFalse(ready["artifact"]["payload"]["report_cache_rehydration"]["serving_enabled"])
+
+    def test_fixture_guarded_consumer_classifies_ready_and_blocked_entries_without_serving(self) -> None:
+        fixture_path = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        blocked_entry, ready_entry = payload["entries"]
+
+        blocked = classify_report_cache_guarded_consumer_candidate(blocked_entry)
+        ready = classify_report_cache_guarded_consumer_candidate(ready_entry)
+
+        self.assertEqual(blocked["status"], CACHE_CONSUMER_FALLBACK_REQUIRED)
+        self.assertTrue(blocked["fallback_required"])
+        self.assertIn("missing_answer_slots", blocked["reasons"])
+        self.assertEqual(ready["status"], CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN)
+        self.assertTrue(ready["admissible"])
+        self.assertFalse(ready["enabled"])
+        self.assertFalse(ready["serving_enabled"])
 
 
 if __name__ == "__main__":

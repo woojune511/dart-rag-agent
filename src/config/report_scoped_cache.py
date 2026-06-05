@@ -37,6 +37,8 @@ CACHE_NOT_CACHEABLE = "not_cacheable"
 CACHE_CONSUMER_ELIGIBLE = "eligible"
 CACHE_CONSUMER_BLOCKED = "blocked"
 CACHE_CONSUMER_TRACE_ONLY = "trace_only"
+CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN = "admissible_for_design"
+CACHE_CONSUMER_FALLBACK_REQUIRED = "normal_retrieval_fallback"
 CACHE_ENTRY_READABLE = "readable"
 CACHE_ENTRY_BLOCKED = "blocked"
 CACHE_REHYDRATION_READY = "ready"
@@ -388,6 +390,53 @@ def classify_report_cache_rehydration_candidate(entry: Mapping[str, Any]) -> Dic
         "key": entry_classification.get("key"),
         "key_id": entry_classification.get("key_id"),
         "entry": normalised,
+    }
+
+
+def classify_report_cache_guarded_consumer_candidate(
+    entry: Mapping[str, Any],
+    *,
+    expected_key: Mapping[str, Any] | None = None,
+    selected_match_count: int = 1,
+) -> Dict[str, Any]:
+    """Assess future guarded-consumer admissibility without enabling cache reads.
+
+    This is a design contract helper, not a serving path. It classifies whether
+    a local-index entry has enough structure to be considered by a future
+    schema-backed cache consumer, while keeping the runtime mode trace-only.
+    """
+    rehydration = classify_report_cache_rehydration_candidate(entry)
+    key = dict(rehydration.get("key") or {})
+    expected = normalise_report_cache_key(expected_key or key)
+    reasons: List[str] = []
+
+    if selected_match_count < 1:
+        reasons.append("no_readable_match")
+    elif selected_match_count > 1:
+        reasons.append("ambiguous_rehydration_match")
+
+    if not bool(rehydration.get("ready")):
+        reasons.append("rehydration_not_ready")
+        reasons.extend(str(reason) for reason in list(rehydration.get("reasons") or []) if str(reason))
+
+    for field in REPORT_CACHE_KEY_FIELDS:
+        expected_value = expected.get(field, "")
+        if expected_value and key.get(field, "") != expected_value:
+            reasons.append(f"scope_mismatch:{field}")
+
+    admissible = not reasons
+    return {
+        "status": CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN if admissible else CACHE_CONSUMER_FALLBACK_REQUIRED,
+        "admissible": admissible,
+        "fallback_required": not admissible,
+        "enabled": False,
+        "serving_enabled": False,
+        "mode": CACHE_CONSUMER_TRACE_ONLY,
+        "reasons": list(dict.fromkeys(reasons)),
+        "key": key,
+        "key_id": str(rehydration.get("key_id") or ""),
+        "rehydration_status": rehydration.get("status"),
+        "rehydration_ready": bool(rehydration.get("ready")),
     }
 
 

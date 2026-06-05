@@ -336,6 +336,12 @@ When any blocking condition appears, runtime must record the diagnostic reason
 and execute normal retrieval. A cache miss must be observable, but it must not
 degrade answer correctness or weaken final-source integrity checks.
 
+`classify_report_cache_guarded_consumer_candidate()` is the current pure helper
+for this design surface. It does not enable reads; it classifies whether a
+local-index entry is structurally admissible for a future schema-backed consumer
+or must fall back to normal retrieval. Even an admissible result reports
+`enabled = false`, `serving_enabled = false`, and `mode = trace_only`.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를

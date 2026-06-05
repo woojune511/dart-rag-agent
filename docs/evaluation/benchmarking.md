@@ -979,6 +979,11 @@ Current local baseline was refreshed on 2026-06-05:
   candidate`. `report_cache_index_smoke` includes a minimal
   `rehydrated_candidate_artifacts` preview with answer/citation/evidence/trace
   counts, still outside the live task/artifact ledger.
+- `classify_report_cache_guarded_consumer_candidate` is the first pure
+  future-consumer admissibility helper. It classifies the ready fixture entry as
+  `admissible_for_design` and the blocked fixture entry as
+  `normal_retrieval_fallback`, while still reporting disabled trace-only mode
+  and enabling no cache read behavior.
 - `check_report_cache_index_smoke_contract` extracts only stable handoff fields:
   status flags, local-index match/readiness counts, rehydration reason counts,
   candidate-artifact counts, and preview booleans/counts. It intentionally does

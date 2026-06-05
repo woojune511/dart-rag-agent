@@ -749,6 +749,21 @@ the documented guarded-consumer blocking conditions, still without enabling
 cache reads. The first validator should classify a rehydration-ready fixture as
 admissible-for-design and the blocked fixture as a normal-retrieval fallback.
 
+Forty-second step completed: `classify_report_cache_guarded_consumer_candidate()`
+now codifies the first pure guarded-consumer admissibility check without
+enabling cache reads. It returns `admissible_for_design` only when a
+local-cache-index entry is rehydration-ready, scope-compatible with the expected
+key, and not ambiguous; otherwise it returns `normal_retrieval_fallback` with
+blocking reasons. The source-controlled fixture now proves the ready entry is
+admissible for design while the blocked entry falls back because it lacks the
+required rehydration surfaces. The helper still reports `enabled = false`,
+`serving_enabled = false`, and `mode = trace_only`.
+
+Next structural step: decide the schema-backed producer policy for a future
+served cache value. The two open designs are either a dedicated
+cache-rehydration task/artifact kind, or mapping cache rehydration into the
+existing calculation task contract with explicit cache-origin metadata.
+
 ### 3. Report-scoped cache
 
 현재:
