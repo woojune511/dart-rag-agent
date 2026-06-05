@@ -943,6 +943,11 @@ Current local baseline was refreshed on 2026-06-05:
   entries must preserve answer slots, citation/source-anchor material, evidence
   material, and calculation trace provenance; the classifier still reports
   serving disabled.
+- `ReportCacheIndex.lookup_diagnostics()` now includes
+  `rehydration_ready_match_count`, `rehydration_blocked_match_count`, and
+  rehydration reason counts. MAS smoke carries these through to case/top-level
+  summaries so benchmark handoff can distinguish readable local-index matches
+  from entries that are actually reconstructable.
 
 ## Parser Structure Smokes
 

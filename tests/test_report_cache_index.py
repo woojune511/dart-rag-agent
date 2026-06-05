@@ -21,7 +21,7 @@ from src.config.report_scoped_cache import (  # noqa: E402
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
 
 
-def _entry(*, source: str = CACHE_ENTRY_SOURCE_LOCAL_INDEX, value: str = "123") -> dict:
+def _entry(*, source: str = CACHE_ENTRY_SOURCE_LOCAL_INDEX, value: str = "123", rehydratable: bool = False) -> dict:
     key = normalise_report_cache_key(
         {
             "company": "ACME",
@@ -36,7 +36,7 @@ def _entry(*, source: str = CACHE_ENTRY_SOURCE_LOCAL_INDEX, value: str = "123") 
             "source_table_id": "section::table:1",
         }
     )
-    return {
+    entry = {
         "entry_version": REPORT_CACHE_ENTRY_VERSION,
         "source": source,
         "key": key,
@@ -44,6 +44,20 @@ def _entry(*, source: str = CACHE_ENTRY_SOURCE_LOCAL_INDEX, value: str = "123") 
         "value": {"kind": "calculation_result", "rendered_value": value},
         "provenance": {"source_row_ids": ["row-1"], "evidence_refs": ["ev-1"]},
     }
+    if rehydratable:
+        entry["value"].update(
+            {
+                "answer_slots": {"primary_value": {"display": value, "raw_value": value}},
+                "calculation_trace": {
+                    "calculation_result": {"status": "ok", "rendered_value": value},
+                    "calculation_operands": [{"label": "metric", "raw_value": value}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": f"metric was {value}"}],
+            }
+        )
+        entry["provenance"]["source_anchor"] = "section"
+    return entry
 
 
 class ReportCacheIndexTests(unittest.TestCase):
@@ -77,8 +91,11 @@ class ReportCacheIndexTests(unittest.TestCase):
         self.assertEqual(diagnostics["status"], "loaded")
         self.assertFalse(diagnostics["serving_enabled"])
         self.assertEqual(diagnostics["readable_count"], 1)
+        self.assertEqual(diagnostics["rehydration_ready_count"], 0)
         self.assertEqual(diagnostics["blocked_count"], 1)
         self.assertEqual(diagnostics["entries"][0]["status"], "readable")
+        self.assertEqual(diagnostics["entries"][0]["rehydration"]["status"], "blocked")
+        self.assertIn("missing_answer_slots", diagnostics["entries"][0]["rehydration"]["reasons"])
         self.assertEqual(diagnostics["entries"][1]["status"], "blocked")
         self.assertIn("non_read_source", diagnostics["entries"][1]["reasons"])
 
@@ -126,7 +143,28 @@ class ReportCacheIndexTests(unittest.TestCase):
         self.assertFalse(diagnostics["serving_enabled"])
         self.assertEqual(diagnostics["match_count"], 1)
         self.assertEqual(diagnostics["readable_match_count"], 1)
+        self.assertEqual(diagnostics["rehydration_ready_match_count"], 0)
+        self.assertEqual(diagnostics["rehydration_blocked_match_count"], 1)
+        self.assertEqual(diagnostics["rehydration_reason_counts"]["missing_answer_slots"], 1)
         self.assertEqual(diagnostics["key_id"], entry["key_id"])
+
+    def test_lookup_diagnostics_counts_rehydration_ready_matches_without_serving(self) -> None:
+        entry = _entry(rehydratable=True)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "report_cache_index.json"
+            path.write_text(json.dumps([entry], ensure_ascii=False), encoding="utf-8")
+
+            diagnostics = ReportCacheIndex(path).lookup_diagnostics(entry["key"])
+
+        self.assertEqual(diagnostics["status"], "trace_only")
+        self.assertFalse(diagnostics["enabled"])
+        self.assertFalse(diagnostics["serving_enabled"])
+        self.assertEqual(diagnostics["match_count"], 1)
+        self.assertEqual(diagnostics["readable_match_count"], 1)
+        self.assertEqual(diagnostics["rehydration_ready_match_count"], 1)
+        self.assertEqual(diagnostics["rehydration_blocked_match_count"], 0)
+        self.assertEqual(diagnostics["rehydration_reason_counts"], {})
+        self.assertEqual(diagnostics["matches"][0]["rehydration"]["status"], "ready")
 
 
 if __name__ == "__main__":

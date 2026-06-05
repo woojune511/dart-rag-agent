@@ -193,6 +193,9 @@ def _find_report_cache_index_diagnostics(obj: Any, *, path: str = "") -> List[Di
                 "key_id": str(diagnostics.get("key_id") or "").strip(),
                 "match_count": int(diagnostics.get("match_count") or 0),
                 "readable_match_count": int(diagnostics.get("readable_match_count") or 0),
+                "rehydration_ready_match_count": int(diagnostics.get("rehydration_ready_match_count") or 0),
+                "rehydration_blocked_match_count": int(diagnostics.get("rehydration_blocked_match_count") or 0),
+                "rehydration_reason_counts": dict(diagnostics.get("rehydration_reason_counts") or {}),
                 "normal_retrieval_executed": bool(diagnostics.get("normal_retrieval_executed")),
                 "executed_query_count": int(diagnostics.get("executed_query_count") or 0),
             }
@@ -201,6 +204,7 @@ def _find_report_cache_index_diagnostics(obj: Any, *, path: str = "") -> List[Di
                     "status": str(index.get("status") or "").strip(),
                     "path": str(index.get("path") or "").strip(),
                     "readable_count": int(index.get("readable_count") or 0),
+                    "rehydration_ready_count": int(index.get("rehydration_ready_count") or 0),
                     "blocked_count": int(index.get("blocked_count") or 0),
                     "malformed_count": int(index.get("malformed_count") or 0),
                 }
@@ -227,6 +231,7 @@ def _summarize_report_cache_index_diagnostics(artifacts: Dict[str, Any]) -> Dict
                 str(diagnostics.get("status") or ""),
                 int(diagnostics.get("match_count") or 0),
                 int(diagnostics.get("readable_match_count") or 0),
+                int(diagnostics.get("rehydration_ready_match_count") or 0),
                 str(index.get("path") or ""),
             )
             if dedupe_key in seen:
@@ -236,12 +241,23 @@ def _summarize_report_cache_index_diagnostics(artifacts: Dict[str, Any]) -> Dict
 
     status_counts = Counter(str(item.get("status") or "").strip() for item in items)
     status_counts.pop("", None)
+    rehydration_reason_counts: Counter[str] = Counter()
+    for item in items:
+        rehydration_reason_counts.update(dict(item.get("rehydration_reason_counts") or {}))
+    rehydration_reason_counts.pop("", None)
     return {
         "count": len(items),
         "status_counts": dict(sorted(status_counts.items())),
         "lookup_attempted_count": sum(1 for item in items if bool(item.get("lookup_attempted"))),
         "match_count": sum(int(item.get("match_count") or 0) for item in items),
         "readable_match_count": sum(int(item.get("readable_match_count") or 0) for item in items),
+        "rehydration_ready_match_count": sum(
+            int(item.get("rehydration_ready_match_count") or 0) for item in items
+        ),
+        "rehydration_blocked_match_count": sum(
+            int(item.get("rehydration_blocked_match_count") or 0) for item in items
+        ),
+        "rehydration_reason_counts": dict(sorted(rehydration_reason_counts.items())),
         "normal_retrieval_executed_count": sum(
             1 for item in items if bool(item.get("normal_retrieval_executed"))
         ),
@@ -500,6 +516,9 @@ def run_smoke(
     report_cache_index_lookup_attempted_count = 0
     report_cache_index_match_count = 0
     report_cache_index_readable_match_count = 0
+    report_cache_index_rehydration_ready_match_count = 0
+    report_cache_index_rehydration_blocked_match_count = 0
+    report_cache_index_rehydration_reason_counts: Counter[str] = Counter()
     report_cache_index_normal_retrieval_count = 0
     for case in cases:
         summary = dict(case.get("report_cache_candidates") or {})
@@ -512,6 +531,15 @@ def run_smoke(
         report_cache_index_lookup_attempted_count += int(index_summary.get("lookup_attempted_count", 0) or 0)
         report_cache_index_match_count += int(index_summary.get("match_count", 0) or 0)
         report_cache_index_readable_match_count += int(index_summary.get("readable_match_count", 0) or 0)
+        report_cache_index_rehydration_ready_match_count += int(
+            index_summary.get("rehydration_ready_match_count", 0) or 0
+        )
+        report_cache_index_rehydration_blocked_match_count += int(
+            index_summary.get("rehydration_blocked_match_count", 0) or 0
+        )
+        report_cache_index_rehydration_reason_counts.update(
+            dict(index_summary.get("rehydration_reason_counts") or {})
+        )
         report_cache_index_normal_retrieval_count += int(
             index_summary.get("normal_retrieval_executed_count", 0) or 0
         )
@@ -537,6 +565,11 @@ def run_smoke(
             "report_cache_index_lookup_attempted_count": report_cache_index_lookup_attempted_count,
             "report_cache_index_match_count": report_cache_index_match_count,
             "report_cache_index_readable_match_count": report_cache_index_readable_match_count,
+            "report_cache_index_rehydration_ready_match_count": report_cache_index_rehydration_ready_match_count,
+            "report_cache_index_rehydration_blocked_match_count": report_cache_index_rehydration_blocked_match_count,
+            "report_cache_index_rehydration_reason_counts": dict(
+                sorted(report_cache_index_rehydration_reason_counts.items())
+            ),
             "report_cache_index_normal_retrieval_count": report_cache_index_normal_retrieval_count,
         },
         "cases": cases,

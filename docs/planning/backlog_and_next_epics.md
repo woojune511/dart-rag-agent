@@ -629,6 +629,20 @@ Next structural step: add trace-only rehydration diagnostics to
 many matched readable entries are also rehydration-ready, still without serving
 hits.
 
+Thirty-second step completed: `ReportCacheIndex` now reports rehydration
+readiness as trace-only diagnostics. Local index load diagnostics attach a
+disabled `rehydration` assessment to each entry, count
+`rehydration_ready_count`, and lookup diagnostics expose
+`rehydration_ready_match_count`, `rehydration_blocked_match_count`, and
+rehydration block reason counts. MAS smoke carries those counts into per-case
+and top-level summaries. This still does not serve cache hits; the diagnostics
+only show whether a matched readable entry has enough answer/evidence/trace
+payload for a future consumer.
+
+Next structural step: build a tiny persisted-index fixture profile for
+eval-only or MAS smoke documentation so a reviewer can reproduce readable vs.
+rehydration-ready diagnostics without relying on ad hoc temporary test data.
+
 ### 3. Report-scoped cache
 
 현재:

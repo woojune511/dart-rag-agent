@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List
 from src.config.report_scoped_cache import (
     CACHE_ENTRY_READABLE,
     classify_report_cache_entry,
+    classify_report_cache_rehydration_candidate,
     report_cache_key_id,
 )
 
@@ -47,6 +48,7 @@ class ReportCacheIndex:
                 "path": "",
                 "entries": [],
                 "readable_count": 0,
+                "rehydration_ready_count": 0,
                 "blocked_count": 0,
                 "malformed_count": 0,
             }
@@ -58,6 +60,7 @@ class ReportCacheIndex:
                 "path": str(self.path),
                 "entries": [],
                 "readable_count": 0,
+                "rehydration_ready_count": 0,
                 "blocked_count": 0,
                 "malformed_count": 0,
             }
@@ -91,12 +94,27 @@ class ReportCacheIndex:
                 "error": str(exc),
                 "entries": [],
                 "readable_count": 0,
+                "rehydration_ready_count": 0,
                 "blocked_count": 0,
                 "malformed_count": 1,
             }
 
-        entries = [classify_report_cache_entry(entry) for entry in payloads]
+        entries: List[Dict[str, Any]] = []
+        for payload in payloads:
+            entry_diagnostics = classify_report_cache_entry(payload)
+            rehydration = classify_report_cache_rehydration_candidate(payload)
+            entry_diagnostics["rehydration"] = {
+                "status": rehydration.get("status"),
+                "ready": bool(rehydration.get("ready")),
+                "enabled": bool(rehydration.get("enabled")),
+                "serving_enabled": bool(rehydration.get("serving_enabled")),
+                "reasons": [str(reason) for reason in list(rehydration.get("reasons") or [])],
+            }
+            entries.append(entry_diagnostics)
         readable_count = sum(1 for entry in entries if entry.get("status") == CACHE_ENTRY_READABLE)
+        rehydration_ready_count = sum(
+            1 for entry in entries if bool(dict(entry.get("rehydration") or {}).get("ready"))
+        )
         blocked_count = len(entries) - readable_count
         return {
             "status": "loaded",
@@ -105,6 +123,7 @@ class ReportCacheIndex:
             "path": str(self.path),
             "entries": entries,
             "readable_count": readable_count,
+            "rehydration_ready_count": rehydration_ready_count,
             "blocked_count": blocked_count,
             "malformed_count": malformed_count,
         }
@@ -117,6 +136,13 @@ class ReportCacheIndex:
             for entry in list(diagnostics.get("entries") or [])
             if str(entry.get("key_id") or "") == key_id
         ]
+        rehydration_reason_counts: Dict[str, int] = {}
+        for entry in matches:
+            rehydration = dict(entry.get("rehydration") or {})
+            for reason in list(rehydration.get("reasons") or []):
+                reason_text = str(reason or "").strip()
+                if reason_text:
+                    rehydration_reason_counts[reason_text] = rehydration_reason_counts.get(reason_text, 0) + 1
         return {
             "status": "trace_only",
             "enabled": False,
@@ -124,11 +150,19 @@ class ReportCacheIndex:
             "key_id": key_id,
             "match_count": len(matches),
             "readable_match_count": sum(1 for entry in matches if entry.get("status") == CACHE_ENTRY_READABLE),
+            "rehydration_ready_match_count": sum(
+                1 for entry in matches if bool(dict(entry.get("rehydration") or {}).get("ready"))
+            ),
+            "rehydration_blocked_match_count": sum(
+                1 for entry in matches if not bool(dict(entry.get("rehydration") or {}).get("ready"))
+            ),
+            "rehydration_reason_counts": dict(sorted(rehydration_reason_counts.items())),
             "matches": matches,
             "index": {
                 "status": diagnostics.get("status"),
                 "path": diagnostics.get("path"),
                 "readable_count": diagnostics.get("readable_count", 0),
+                "rehydration_ready_count": diagnostics.get("rehydration_ready_count", 0),
                 "blocked_count": diagnostics.get("blocked_count", 0),
                 "malformed_count": diagnostics.get("malformed_count", 0),
             },

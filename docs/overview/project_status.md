@@ -547,7 +547,9 @@ Useful supporting points:
   explicit in code: `classify_report_cache_rehydration_candidate()` requires
   answer slots, citation/source-anchor material, evidence material, and
   calculation trace provenance before any future cache hit can be considered
-  rehydratable, while still reporting serving disabled.
+  rehydratable, while still reporting serving disabled. `ReportCacheIndex`
+  lookup diagnostics now count rehydration-ready vs. blocked matches and carry
+  those counts through MAS smoke summaries.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

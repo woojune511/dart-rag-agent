@@ -263,8 +263,18 @@ class MasE2ESmokeTests(unittest.TestCase):
             "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
             "key": key,
             "key_id": report_cache_key_id(key),
-            "value": {"kind": "calculation_result", "rendered_value": "123"},
-            "provenance": {"source_row_ids": ["row-1"], "evidence_refs": ["ev-1"]},
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                "calculation_trace": {
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {"source_row_ids": ["row-1"], "evidence_refs": ["ev-1"], "source_anchor": "section"},
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -321,6 +331,9 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["report_cache_index_lookup_attempted_count"], 1)
         self.assertEqual(payload["summary"]["report_cache_index_match_count"], 1)
         self.assertEqual(payload["summary"]["report_cache_index_readable_match_count"], 1)
+        self.assertEqual(payload["summary"]["report_cache_index_rehydration_ready_match_count"], 1)
+        self.assertEqual(payload["summary"]["report_cache_index_rehydration_blocked_match_count"], 0)
+        self.assertEqual(payload["summary"]["report_cache_index_rehydration_reason_counts"], {})
         self.assertEqual(payload["summary"]["report_cache_index_normal_retrieval_count"], 1)
         diagnostics = payload["cases"][0]["report_cache_index_diagnostics"]
         self.assertEqual(diagnostics["count"], 1)
@@ -330,6 +343,8 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertTrue(diagnostics["items"][0]["normal_retrieval_executed"])
         self.assertEqual(diagnostics["items"][0]["match_count"], 1)
         self.assertEqual(diagnostics["items"][0]["readable_match_count"], 1)
+        self.assertEqual(diagnostics["items"][0]["rehydration_ready_match_count"], 1)
+        self.assertEqual(diagnostics["items"][0]["rehydration_blocked_match_count"], 0)
 
     def test_run_smoke_records_compatible_store_embedding_signature(self) -> None:
         noop_node = lambda _state: {}
