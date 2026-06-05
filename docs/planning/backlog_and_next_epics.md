@@ -674,10 +674,18 @@ disabled rehydration metadata. The artifact status is `candidate`, and both
 blocked and ready entries in
 `tests/fixtures/report_cache_index/rehydration_diagnostics.json`.
 
-Next structural step: add an explicit smoke/summary surface for rehydrated
-candidate artifact counts, still outside the live task/artifact ledger, so a
-reviewer can see whether a local index contains entries that are reconstructable
-as candidate answers before any serving path exists.
+Thirty-sixth step completed: `src.ops.report_cache_index_smoke` now summarizes
+rehydrated candidate artifact counts for matched local-index entries. The
+source-controlled fixture reports `rehydrated_candidate_artifact_count = 1` and
+`rehydrated_candidate_artifact_blocked_count = 1`; the ready entry also appears
+in a minimal `rehydrated_candidate_artifacts.items` preview with answer,
+citation, evidence-item, structured-result, and calculation-trace presence
+signals. The preview remains outside the live task/artifact ledger and still
+shows disabled serving.
+
+Next structural step: add a compact contract extractor/checker for
+`report_cache_index_smoke` output so reviewers can compare only the stable
+cache-index handoff fields without diffing the full diagnostic payload.
 
 ### 3. Report-scoped cache
 

@@ -16,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
+from src.config.report_scoped_cache import build_report_cache_rehydrated_candidate_artifact  # noqa: E402
 
 
 def _read_json(path: Path) -> Any:
@@ -48,6 +49,7 @@ def _first_entry_key(index_path: Path) -> Dict[str, Any]:
 
 def _summary_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
     index = dict(diagnostics.get("index") or {})
+    candidate_artifacts = _rehydrated_candidate_artifacts_from_diagnostics(diagnostics)
     return {
         "status": str(diagnostics.get("status") or ""),
         "enabled": bool(diagnostics.get("enabled")),
@@ -62,6 +64,60 @@ def _summary_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
         "index_rehydration_ready_count": int(index.get("rehydration_ready_count") or 0),
         "index_blocked_count": int(index.get("blocked_count") or 0),
         "index_malformed_count": int(index.get("malformed_count") or 0),
+        "rehydrated_candidate_artifact_count": int(candidate_artifacts.get("count") or 0),
+        "rehydrated_candidate_artifact_blocked_count": int(candidate_artifacts.get("blocked_count") or 0),
+    }
+
+
+def _candidate_artifact_preview(result: Dict[str, Any]) -> Dict[str, Any]:
+    artifact = result.get("artifact")
+    item = {
+        "status": str(result.get("status") or ""),
+        "ready": bool(result.get("ready")),
+        "enabled": bool(result.get("enabled")),
+        "serving_enabled": bool(result.get("serving_enabled")),
+        "reasons": [str(reason) for reason in list(result.get("reasons") or [])],
+        "key_id": str(result.get("key_id") or ""),
+        "artifact": None,
+    }
+    if not isinstance(artifact, dict):
+        return item
+    payload = dict(artifact.get("payload") or {})
+    resolved_trace = dict(payload.get("resolved_calculation_trace") or {})
+    item["artifact"] = {
+        "artifact_id": str(artifact.get("artifact_id") or ""),
+        "status": str(artifact.get("status") or ""),
+        "kind": str(artifact.get("kind") or ""),
+        "summary": str(artifact.get("summary") or ""),
+        "payload_summary": {
+            "answer": str(payload.get("answer") or ""),
+            "citation_count": len(list(payload.get("citations") or [])),
+            "evidence_item_count": len(list(payload.get("evidence_items") or [])),
+            "has_structured_result": isinstance(payload.get("structured_result"), dict)
+            and bool(payload.get("structured_result")),
+            "has_resolved_calculation_trace": bool(resolved_trace),
+            "calculation_operand_count": len(list(resolved_trace.get("calculation_operands") or [])),
+            "serving_enabled": bool(dict(payload.get("report_cache_rehydration") or {}).get("serving_enabled")),
+        },
+    }
+    return item
+
+
+def _rehydrated_candidate_artifacts_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
+    items: List[Dict[str, Any]] = []
+    for index, match in enumerate(list(diagnostics.get("matches") or []), start=1):
+        if not isinstance(match, dict):
+            continue
+        result = build_report_cache_rehydrated_candidate_artifact(
+            dict(match.get("entry") or match),
+            task_id="report_cache_index_smoke",
+            artifact_id=f"report_cache_index_smoke::candidate::{index}",
+        )
+        items.append(_candidate_artifact_preview(result))
+    return {
+        "count": sum(1 for item in items if isinstance(item.get("artifact"), dict)),
+        "blocked_count": sum(1 for item in items if not isinstance(item.get("artifact"), dict)),
+        "items": items,
     }
 
 
@@ -73,12 +129,14 @@ def build_smoke_payload(
     index_path = Path(report_cache_index_path)
     key_parts = dict(key or _first_entry_key(index_path))
     diagnostics = ReportCacheIndex(index_path).lookup_diagnostics(key_parts)
+    candidate_artifacts = _rehydrated_candidate_artifacts_from_diagnostics(diagnostics)
     return {
         "report_cache_index_path": str(index_path),
         "key": key_parts,
         "key_id": str(diagnostics.get("key_id") or ""),
         "summary": _summary_from_diagnostics(diagnostics),
         "diagnostics": diagnostics,
+        "rehydrated_candidate_artifacts": candidate_artifacts,
     }
 
 

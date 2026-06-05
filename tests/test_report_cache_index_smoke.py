@@ -34,8 +34,23 @@ class ReportCacheIndexSmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["rehydration_reason_counts"]["missing_answer_slots"], 1)
         self.assertEqual(payload["summary"]["index_status"], "loaded")
         self.assertEqual(payload["summary"]["index_rehydration_ready_count"], 1)
+        self.assertEqual(payload["summary"]["rehydrated_candidate_artifact_count"], 1)
+        self.assertEqual(payload["summary"]["rehydrated_candidate_artifact_blocked_count"], 1)
         self.assertEqual(payload["diagnostics"]["matches"][0]["rehydration"]["status"], "blocked")
         self.assertEqual(payload["diagnostics"]["matches"][1]["rehydration"]["status"], "ready")
+        self.assertEqual(payload["rehydrated_candidate_artifacts"]["count"], 1)
+        self.assertEqual(payload["rehydrated_candidate_artifacts"]["blocked_count"], 1)
+        self.assertIsNone(payload["rehydrated_candidate_artifacts"]["items"][0]["artifact"])
+        candidate = payload["rehydrated_candidate_artifacts"]["items"][1]
+        self.assertFalse(candidate["serving_enabled"])
+        self.assertEqual(candidate["artifact"]["status"], "candidate")
+        self.assertEqual(candidate["artifact"]["payload_summary"]["answer"], "123")
+        self.assertEqual(candidate["artifact"]["payload_summary"]["citation_count"], 1)
+        self.assertEqual(candidate["artifact"]["payload_summary"]["evidence_item_count"], 1)
+        self.assertTrue(candidate["artifact"]["payload_summary"]["has_structured_result"])
+        self.assertTrue(candidate["artifact"]["payload_summary"]["has_resolved_calculation_trace"])
+        self.assertEqual(candidate["artifact"]["payload_summary"]["calculation_operand_count"], 1)
+        self.assertFalse(candidate["artifact"]["payload_summary"]["serving_enabled"])
 
     def test_main_prints_and_optionally_writes_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -61,6 +76,8 @@ class ReportCacheIndexSmokeTests(unittest.TestCase):
         self.assertFalse(printed["summary"]["serving_enabled"])
         self.assertEqual(printed["summary"]["rehydration_ready_match_count"], 1)
         self.assertEqual(printed["summary"]["rehydration_blocked_match_count"], 1)
+        self.assertEqual(printed["summary"]["rehydrated_candidate_artifact_count"], 1)
+        self.assertEqual(printed["rehydrated_candidate_artifacts"]["count"], 1)
 
 
 if __name__ == "__main__":

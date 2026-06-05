@@ -962,14 +962,18 @@ Current local baseline was refreshed on 2026-06-05:
   `enabled = false`, `serving_enabled = false`, `match_count = 2`,
   `readable_match_count = 2`, `rehydration_ready_match_count = 1`,
   `rehydration_blocked_match_count = 1`, and
-  `rehydration_reason_counts.missing_answer_slots = 1`.
+  `rehydration_reason_counts.missing_answer_slots = 1`. It also reports
+  `rehydrated_candidate_artifact_count = 1` and
+  `rehydrated_candidate_artifact_blocked_count = 1`.
 - The first non-serving rehydration projection is now contract-tested through
   `build_report_cache_rehydrated_candidate_artifact()`: the blocked fixture
   entry produces no artifact, while the ready fixture entry can rebuild an
   artifact-like candidate containing answer text, citations, evidence items,
   structured result, and calculation trace. The candidate stays non-serving:
   `enabled = false`, `serving_enabled = false`, and artifact `status =
-  candidate`.
+  candidate`. `report_cache_index_smoke` includes a minimal
+  `rehydrated_candidate_artifacts` preview with answer/citation/evidence/trace
+  counts, still outside the live task/artifact ledger.
 
 ## Parser Structure Smokes
 
