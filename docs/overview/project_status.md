@@ -559,8 +559,12 @@ Useful supporting points:
   candidate artifact counts and emits a minimal preview for ready entries only.
   `check_report_cache_index_smoke_contract` extracts and compares the stable
   subset of that handoff surface so reviewers do not need to diff the full
-  diagnostic payload. The fixture-backed compact baseline is source-controlled
-  under `tests/fixtures/report_cache_index/rehydration_contract_baseline.json`.
+  diagnostic payload. It can also build the fixture-backed smoke payload
+  directly from `--report-cache-index-path`, so the lightweight review command
+  compares against the source-controlled compact baseline without writing
+  generated smoke output. The fixture-backed compact baseline is
+  source-controlled under
+  `tests/fixtures/report_cache_index/rehydration_contract_baseline.json`.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

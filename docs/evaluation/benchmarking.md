@@ -955,14 +955,13 @@ Current local baseline was refreshed on 2026-06-05:
   temporary test data.
 - Reviewer handoff smoke:
   ```powershell
-  .\.venv\Scripts\python.exe -m src.ops.report_cache_index_smoke `
-    --report-cache-index-path tests\fixtures\report_cache_index\rehydration_diagnostics.json `
-    --output benchmarks\results\report_cache_index_smoke_local.json
-
   .\.venv\Scripts\python.exe -m src.ops.check_report_cache_index_smoke_contract `
-    --current benchmarks\results\report_cache_index_smoke_local.json `
+    --report-cache-index-path tests\fixtures\report_cache_index\rehydration_diagnostics.json `
     --baseline tests\fixtures\report_cache_index\rehydration_contract_baseline.json
   ```
+  This command builds the fixture-backed smoke payload in memory and compares it
+  against the source-controlled compact baseline, so it does not need to write
+  generated smoke output under `benchmarks/results/**`.
   The expected summary remains trace-only: `status = trace_only`,
   `enabled = false`, `serving_enabled = false`, `match_count = 2`,
   `readable_match_count = 2`, `rehydration_ready_match_count = 1`,

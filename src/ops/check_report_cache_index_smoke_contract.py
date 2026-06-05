@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+from src.ops.report_cache_index_smoke import build_smoke_payload
+
 
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -118,9 +120,40 @@ def check_contract(current_payload: Dict[str, Any], baseline_payload: Dict[str, 
     }
 
 
+def _parse_key_json(value: str) -> Dict[str, Any]:
+    try:
+        payload = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError(f"invalid JSON key: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise argparse.ArgumentTypeError("key JSON must be an object")
+    return dict(payload)
+
+
+def _load_current_payload(args: argparse.Namespace) -> Dict[str, Any]:
+    if args.current:
+        return _read_json(args.current)
+    return build_smoke_payload(
+        report_cache_index_path=args.report_cache_index_path,
+        key=args.key_json,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compare report-cache index smoke contract fields.")
-    parser.add_argument("--current", type=Path, required=True, help="Current report_cache_index_smoke JSON output.")
+    current_group = parser.add_mutually_exclusive_group(required=True)
+    current_group.add_argument("--current", type=Path, help="Current report_cache_index_smoke JSON output.")
+    current_group.add_argument(
+        "--report-cache-index-path",
+        type=Path,
+        help="Build current smoke output directly from a local_cache_index JSON or JSONL file.",
+    )
+    parser.add_argument(
+        "--key-json",
+        type=_parse_key_json,
+        default=None,
+        help="Optional report-cache key object when using --report-cache-index-path.",
+    )
     parser.add_argument("--baseline", type=Path, required=True, help="Baseline full output or compact contract JSON.")
     parser.add_argument(
         "--write-baseline",
@@ -130,14 +163,15 @@ def main() -> None:
     parser.add_argument("--output", type=Path, help="Optional path for the comparison/check JSON.")
     args = parser.parse_args()
 
-    current_payload = _read_json(args.current)
+    current_payload = _load_current_payload(args)
     if args.write_baseline:
         contract = extract_contract(current_payload)
         _write_json(args.baseline, contract)
         result = {
             "status": "baseline_written",
             "baseline": str(args.baseline),
-            "current": str(args.current),
+            "current": str(args.current) if args.current else "",
+            "report_cache_index_path": str(args.report_cache_index_path) if args.report_cache_index_path else "",
             "contract": contract,
         }
         if args.output:

@@ -705,6 +705,18 @@ Next structural step: use the source-controlled baseline in a lightweight
 CI-style check or PR-review command, while keeping generated smoke outputs under
 `benchmarks/results/**` untracked.
 
+Thirty-ninth step completed: `src.ops.check_report_cache_index_smoke_contract`
+can now build the fixture-backed report-cache-index smoke payload directly from
+`--report-cache-index-path` and compare it to the source-controlled compact
+baseline in one command. The older `--current` JSON path remains available for
+reviewers who want to inspect or archive full smoke output locally, but the
+lightweight PR-review path no longer needs to write generated output under
+`benchmarks/results/**`.
+
+Next structural step: decide whether this one-command contract check should be
+added to an existing local review script or a future CI workflow, keeping it
+non-serving and fixture-backed until cache reads are deliberately designed.
+
 ### 3. Report-scoped cache
 
 현재:

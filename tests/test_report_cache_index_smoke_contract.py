@@ -115,6 +115,27 @@ class ReportCacheIndexSmokeContractTests(unittest.TestCase):
             self.assertEqual(compare_result.returncode, 0, compare_result.stderr)
             self.assertIn('"status": "ok"', compare_result.stdout)
 
+    def test_cli_can_compare_fixture_smoke_directly_without_current_file(self) -> None:
+        compare_result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "src.ops.check_report_cache_index_smoke_contract",
+                "--report-cache-index-path",
+                str(FIXTURE_PATH),
+                "--baseline",
+                str(BASELINE_PATH),
+            ],
+            cwd=PROJECT_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(compare_result.returncode, 0, compare_result.stderr)
+        self.assertIn('"status": "ok"', compare_result.stdout)
+        self.assertIn('"difference_count": 0', compare_result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
