@@ -460,9 +460,21 @@ contract comparison at `status = ok`, `difference_count = 0`; the first case
 now answers `2023년 연결 기준 영업이익률은 2.54%` instead of using the separate
 statement operands that produced `-4.45%`.
 
-Next structural step: clean up provenance anchors for task-output operands whose
-value and scope are resolved from the consolidated statement but whose inherited
-`source_anchor` may still point at a parent or separate-statement section.
+Eighteenth step completed: task-output dependency operands now treat the
+producer operand artifact as the numeric source of truth when it conflicts with
+a stale rendered answer slot, and they skip broad evidence-table precision
+refinement once a resolved task-output value is already material. The dependency
+row also checks the persisted structure graph for the same value/label under the
+active report scope and requested consolidation scope, then promotes the matched
+structured node's `source_anchor`, `consolidation_scope`, `statement_type`, and
+`table_source_id`. Direct verification for the Samsung 2023 operating-margin
+query now produces `2.54%` with both operands anchored to
+`III. 재무에 관한 사항 > 2. 연결재무제표`; a live default MAS smoke kept compact
+contract comparison at `status = ok`, `difference_count = 0`.
+
+Next structural step: add value-level assertions to the compact MAS smoke
+contract, because the existing contract correctly catches topology/integrity
+regressions but does not fail when the final numeric value changes.
 
 ### 3. Report-scoped cache
 

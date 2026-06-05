@@ -885,6 +885,13 @@ Current local baseline was refreshed on 2026-06-05:
   separate-statement operands that produced `-4.45%`; case 2 still reports the
   research-and-development expense ratio as `10.95%`. The full smoke output is a
   local experiment artifact under `benchmarks/results/**`.
+- After task-output provenance repair, direct verification for the Samsung 2023
+  operating-margin query reports `2.54%` and both operands are anchored to
+  `III. 재무에 관한 사항 > 2. 연결재무제표` with `consolidated` /
+  `income_statement` metadata. The follow-up default live MAS smoke still
+  compares at `status = ok`, `difference_count = 0`; case 1 reports
+  `연결 기준 영업이익률 2.54%` and case 2 remains `10.95%`. The smoke output is a
+  local experiment artifact under `benchmarks/results/**`.
 
 ## Parser Structure Smokes
 

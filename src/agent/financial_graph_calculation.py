@@ -3524,19 +3524,88 @@ class FinancialAgentCalculationMixin:
                     or normalized_differs
                 ):
                     source_slot = preferred_slot
-            source_row_ids = _clean_source_row_ids([
-                f"task_output:{preferred_task_id}",
-                source_slot.get("source_row_id"),
-                source_slot.get("source_row_ids"),
-                sibling_result.get("source_row_ids"),
-            ])
             raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
             normalized_value = source_slot.get("normalized_value")
             if normalized_value is None:
                 normalized_value = sibling_result.get("result_value")
-            source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or sibling_result.get("source_anchor") or ""))
+            matched_operand_candidate: Dict[str, Any] = {}
+            for operand_row in list(sibling_row.get("calculation_operands") or []):
+                operand_candidate = dict(operand_row or {})
+                if not _operand_row_matches_requirement(operand_candidate, binding):
+                    continue
+                candidate_normalized = operand_candidate.get("normalized_value")
+                candidate_raw = _normalise_spaces(str(operand_candidate.get("raw_value") or ""))
+                slot_raw = _normalise_spaces(str(source_slot.get("raw_value") or source_slot.get("rendered_value") or ""))
+                values_match = False
+                try:
+                    if normalized_value is not None and candidate_normalized is not None:
+                        values_match = abs(float(normalized_value) - float(candidate_normalized)) <= 1e-6
+                except (TypeError, ValueError):
+                    values_match = False
+                if not values_match and candidate_raw and slot_raw:
+                    values_match = candidate_raw == slot_raw
+                if values_match or not matched_operand_candidate:
+                    matched_operand_candidate = operand_candidate
+                if values_match:
+                    break
+            if matched_operand_candidate:
+                candidate_normalized = matched_operand_candidate.get("normalized_value")
+                candidate_raw = _normalise_spaces(str(matched_operand_candidate.get("raw_value") or ""))
+                slot_raw = _normalise_spaces(str(source_slot.get("raw_value") or source_slot.get("rendered_value") or ""))
+                candidate_conflicts = False
+                try:
+                    if normalized_value is not None and candidate_normalized is not None:
+                        candidate_conflicts = abs(float(normalized_value) - float(candidate_normalized)) > 1e-6
+                except (TypeError, ValueError):
+                    candidate_conflicts = False
+                if not candidate_conflicts and candidate_raw and slot_raw:
+                    candidate_conflicts = candidate_raw != slot_raw
+                if candidate_conflicts and (candidate_normalized is not None or candidate_raw):
+                    updated_slot = dict(source_slot)
+                    for key in (
+                        "label",
+                        "concept",
+                        "period",
+                        "raw_value",
+                        "raw_unit",
+                        "normalized_value",
+                        "normalized_unit",
+                        "rendered_value",
+                        "source_row_id",
+                        "source_row_ids",
+                        "source_anchor",
+                        "consolidation_scope",
+                        "statement_type",
+                        "table_source_id",
+                    ):
+                        value = matched_operand_candidate.get(key)
+                        if value not in (None, "", []):
+                            updated_slot[key] = value
+                    updated_slot["status"] = updated_slot.get("status") or "ok"
+                    updated_slot["role"] = (
+                        updated_slot.get("role")
+                        or matched_operand_candidate.get("matched_operand_role")
+                        or binding.get("role")
+                        or source_slot_name
+                    )
+                    source_slot = updated_slot
+                    raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+                    normalized_value = source_slot.get("normalized_value")
+                    if normalized_value is None:
+                        normalized_value = sibling_result.get("result_value")
+            source_row_ids = _clean_source_row_ids([
+                f"task_output:{preferred_task_id}",
+                source_slot.get("source_row_id"),
+                source_slot.get("source_row_ids"),
+                matched_operand_candidate.get("source_row_id"),
+                matched_operand_candidate.get("source_row_ids"),
+                sibling_result.get("source_row_ids"),
+            ])
+            source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
             if not source_anchor:
                 for evidence_id in source_row_ids:
+                    if str(evidence_id).startswith("task_output:"):
+                        continue
                     evidence = evidence_by_id.get(evidence_id)
                     if not evidence:
                         continue
@@ -3544,18 +3613,9 @@ class FinancialAgentCalculationMixin:
                     if source_anchor:
                         break
             if not source_anchor:
-                for operand_row in list(sibling_row.get("calculation_operands") or []):
-                    operand_candidate = dict(operand_row or {})
-                    if not _operand_row_matches_requirement(operand_candidate, binding):
-                        continue
-                    source_row_ids = _clean_source_row_ids([
-                        *source_row_ids,
-                        operand_candidate.get("source_row_id"),
-                        operand_candidate.get("source_row_ids"),
-                    ])
-                    source_anchor = _normalise_spaces(str(operand_candidate.get("source_anchor") or ""))
-                    if source_anchor:
-                        break
+                source_anchor = _normalise_spaces(str(matched_operand_candidate.get("source_anchor") or ""))
+            if not source_anchor:
+                source_anchor = _normalise_spaces(str(sibling_result.get("source_anchor") or ""))
             dependency_row = {
                 "operand_id": f"dep_{preferred_task_id}_{index:03d}",
                 "evidence_id": f"task_output:{preferred_task_id}",
@@ -3577,6 +3637,15 @@ class FinancialAgentCalculationMixin:
                 "normalized_value": normalized_value,
                 "normalized_unit": normalized_unit,
                 "period": _normalise_spaces(str(source_slot.get("period") or binding.get("period") or "")),
+                "consolidation_scope": _normalise_spaces(
+                    str(source_slot.get("consolidation_scope") or matched_operand_candidate.get("consolidation_scope") or "")
+                ),
+                "statement_type": _normalise_spaces(
+                    str(source_slot.get("statement_type") or matched_operand_candidate.get("statement_type") or "")
+                ),
+                "table_source_id": _normalise_spaces(
+                    str(source_slot.get("table_source_id") or matched_operand_candidate.get("table_source_id") or "")
+                ),
                 "matched_operand_label": _normalise_spaces(str(binding.get("label") or "")),
                 "matched_operand_concept": _normalise_spaces(str(binding.get("concept") or "")),
                 "matched_operand_role": _normalise_spaces(str(binding.get("role") or "")),
@@ -3584,9 +3653,109 @@ class FinancialAgentCalculationMixin:
                 "source_slot": source_slot_name,
                 "dependency_resolved": True,
             }
+            structured_provenance = self._structured_graph_provenance_for_dependency_operand(
+                state,
+                binding=binding,
+                row=dependency_row,
+            )
+            if structured_provenance:
+                structured_anchor = _normalise_spaces(str(structured_provenance.get("source_anchor") or ""))
+                structured_chunk_uid = _normalise_spaces(str(structured_provenance.get("chunk_uid") or ""))
+                if structured_anchor:
+                    dependency_row["source_anchor"] = structured_anchor
+                if structured_chunk_uid:
+                    dependency_row["source_row_ids"] = _clean_source_row_ids([
+                        dependency_row.get("source_row_ids"),
+                        structured_chunk_uid,
+                    ])
+                for key in ("consolidation_scope", "statement_type", "table_source_id"):
+                    value = _normalise_spaces(str(structured_provenance.get(key) or ""))
+                    if value:
+                        dependency_row[key] = value
             source_evidence = self._evidence_item_for_operand_row(dependency_row, evidence_by_id)
             dependency_rows.append(self._coerce_operand_row_from_evidence(dependency_row, source_evidence))
         return dependency_rows
+
+    def _structured_graph_provenance_for_dependency_operand(
+        self,
+        state: FinancialAgentState,
+        *,
+        binding: Dict[str, Any],
+        row: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        graph = getattr(getattr(self, "vsm", None), "_structure_graph", {}) or {}
+        nodes = dict(graph.get("nodes", {}) or {})
+        if not nodes:
+            return {}
+        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+        if not raw_value:
+            return {}
+        raw_value_variants = {
+            raw_value,
+            re.sub(r"[,\s()]", "", raw_value),
+            raw_value.replace("△", "-"),
+        }
+        raw_value_variants = {item for item in raw_value_variants if item}
+        report_scope = dict(state.get("report_scope") or {})
+        desired_scope = _desired_consolidation_scope(str(state.get("query") or ""), report_scope)
+        preferred_statement_types = set(self._producer_statement_types_for_dependency_binding(state, binding))
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+        note_markers = tuple(str(item).lower() for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+        best_payload: Dict[str, Any] = {}
+        best_score = -1
+        for chunk_uid, node in nodes.items():
+            node_data = dict(node or {})
+            metadata = dict(node_data.get("metadata") or {})
+            if report_scope.get("rcept_no") and str(metadata.get("rcept_no") or "") != str(report_scope.get("rcept_no")):
+                continue
+            if report_scope.get("year") and str(metadata.get("year") or "") != str(report_scope.get("year")):
+                continue
+            surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        metadata.get("table_value_labels_text"),
+                        metadata.get("table_row_labels_text"),
+                        node_data.get("text"),
+                    )
+                )
+            )
+            if not surface:
+                continue
+            compact_surface = re.sub(r"[,\s()]", "", surface)
+            if not any(value in surface or value in compact_surface for value in raw_value_variants):
+                continue
+            if not _operand_text_match(surface, binding):
+                continue
+            node_scope = _normalise_spaces(str(metadata.get("consolidation_scope") or ""))
+            if desired_scope in {"consolidated", "separate"} and node_scope and node_scope != desired_scope:
+                continue
+            score = 10
+            statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+            if statement_type and statement_type in preferred_statement_types:
+                score += 6
+            elif preferred_statement_types and statement_type == "notes":
+                score -= 4
+            if node_scope and node_scope == desired_scope:
+                score += 4
+            section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+            section_path_lower = section_path.lower()
+            if section_path and not any(marker in section_path_lower for marker in note_markers) and "note" not in section_path_lower:
+                score += 2
+            if score <= best_score:
+                continue
+            payload = {
+                "source_anchor": self._build_source_anchor(metadata),
+                "chunk_uid": str(chunk_uid),
+                "consolidation_scope": node_scope,
+                "statement_type": statement_type,
+                "table_source_id": _normalise_spaces(str(metadata.get("table_source_id") or "")),
+            }
+            if not payload["source_anchor"]:
+                continue
+            best_payload = payload
+            best_score = score
+        return best_payload
 
     def _active_retry_strategy(self, state: FinancialAgentState) -> str:
         for candidate in (
@@ -5195,6 +5364,12 @@ class FinancialAgentCalculationMixin:
                 updated["table_source_id"] = metadata.get("table_source_id")
             updated = self._coerce_operand_period_from_evidence_surface(updated, evidence_item)
         updated = _coerce_lookup_magnitude_record(updated, evidence_item)
+        if (
+            updated.get("dependency_resolved")
+            and str(updated.get("source_row_id") or "").startswith("task_output:")
+            and updated.get("normalized_value") is not None
+        ):
+            return updated
         return self._refine_operand_precision_from_evidence_table(updated, evidence_item)
 
     def _infer_operand_unit_from_value_surface(

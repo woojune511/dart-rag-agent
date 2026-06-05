@@ -498,6 +498,13 @@ Useful supporting points:
   labels are config-driven. A live default smoke kept compact contract
   comparison clean and case 1 now reports `연결 기준 영업이익률 2.54%` instead of
   the prior separate-statement `-4.45%`.
+- Task-output dependency operands now prefer the producer operand artifact over
+  stale rendered answer slots, skip broad evidence-table precision refinement
+  for already-resolved task-output values, and repair provenance from the
+  persisted structure graph when the same value/label has a better scoped node.
+  Direct verification anchors the Samsung 2023 operating-margin operands to
+  `III. 재무에 관한 사항 > 2. 연결재무제표` with `consolidated` /
+  `income_statement`; live MAS smoke still reports case 1 as `2.54%`.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

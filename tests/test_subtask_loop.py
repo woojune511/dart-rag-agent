@@ -408,6 +408,134 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertTrue(rows[0]["dependency_resolved"])
 
+    def test_dependency_rows_prefer_matching_operand_anchor_over_sibling_result_anchor(self) -> None:
+        self.agent.vsm = type(
+            "StubVSM",
+            (),
+            {
+                "_structure_graph": {
+                    "nodes": {
+                        "chunk_consolidated_income": {
+                            "text": "operating income 6,566,976 revenue 258,935,494",
+                            "metadata": {
+                                "company": "ACME",
+                                "year": "2023",
+                                "rcept_no": "r-2023",
+                                "section_path": "III. Financial Statements > 2. Consolidated Financial Statements",
+                                "table_value_labels_text": "operating income 6,566,976 revenue 258,935,494",
+                                "table_row_labels_text": "operating income revenue",
+                                "consolidation_scope": "consolidated",
+                                "statement_type": "income_statement",
+                                "table_source_id": "consolidated-income-table",
+                            },
+                        }
+                    }
+                }
+            },
+        )()
+        state = {
+            "query": "Calculate the 2023 consolidated operating margin.",
+            "report_scope": {"company": "ACME", "year": "2023", "rcept_no": "r-2023", "consolidation": "consolidated"},
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "numerator",
+                        "concept": "operating_income",
+                        "period": "2023",
+                        "label": "operating income",
+                        "preferred_task_id": "task_income",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    }
+                ]
+            },
+            "calc_subtasks": [
+                {
+                    "task_id": "task_income",
+                    "preferred_statement_types": ["income_statement"],
+                    "required_operands": [
+                        {
+                            "role": "numerator",
+                            "concept": "operating_income",
+                            "label": "operating income",
+                            "preferred_statement_types": ["income_statement"],
+                        }
+                    ],
+                }
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_income",
+                    "metric_label": "2023 consolidated operating income",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_consolidated_income",
+                            "source_anchor": "[ACME | 2023 | III. Financial Statements > 2. Consolidated Financial Statements]",
+                            "metadata": {"consolidation_scope": "consolidated", "statement_type": "income_statement"},
+                        }
+                    ],
+                    "calculation_operands": [
+                        {
+                            "matched_operand_label": "operating income",
+                            "matched_operand_concept": "operating_income",
+                            "matched_operand_role": "numerator",
+                            "raw_value": "6,566,976",
+                            "raw_unit": "million",
+                            "normalized_value": 6_566_976_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_consolidated_income",
+                            "source_row_ids": ["ev_consolidated_income"],
+                            "source_anchor": "[ACME | 2023 | III. Financial Statements > 4. Financial Statements]",
+                            "consolidation_scope": "consolidated",
+                            "statement_type": "income_statement",
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "source_anchor": "[ACME | 2023 | III. Financial Statements > 4. Financial Statements]",
+                        "source_row_ids": ["ev_parent"],
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "operating income",
+                                "concept": "operating_income",
+                                "period": "2023",
+                                "raw_value": "(11,526,297)",
+                                "raw_unit": "million",
+                                "normalized_value": -11_526_297_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "(11,526,297)million",
+                                "source_row_id": "ev_consolidated_income",
+                                "source_row_ids": ["ev_consolidated_income"],
+                            }
+                        },
+                    },
+                }
+            ],
+        }
+        self.agent._refine_operand_precision_from_evidence_table = lambda row, _evidence: {
+            **dict(row),
+            "raw_value": "(11,526,297)",
+            "normalized_value": -11_526_297_000_000.0,
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0]["source_anchor"],
+            "[ACME | 2023 | III. Financial Statements > 2. Consolidated Financial Statements]",
+        )
+        self.assertEqual(rows[0]["raw_value"], "6,566,976")
+        self.assertEqual(rows[0]["normalized_value"], 6_566_976_000_000.0)
+        self.assertEqual(
+            rows[0]["source_row_ids"],
+            ["task_output:task_income", "ev_consolidated_income", "ev_parent", "chunk_consolidated_income"],
+        )
+        self.assertEqual(rows[0]["consolidation_scope"], "consolidated")
+        self.assertEqual(rows[0]["statement_type"], "income_statement")
+        self.assertEqual(rows[0]["table_source_id"], "consolidated-income-table")
+
     def test_dependency_rows_resolve_task_output_to_direct_source_metadata(self) -> None:
         state = {
             "active_subtask": {
