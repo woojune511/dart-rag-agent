@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 import time
 from pathlib import Path
@@ -30,7 +31,7 @@ from src.agent.nodes import (
     build_financial_orchestrator_plan_node,
     build_financial_researcher_node,
 )
-from src.storage.vector_store import VectorStoreManager
+from src.storage.vector_store import VectorStoreManager, get_embedding_runtime_spec
 
 DEFAULT_STORE_DIR = (
     Path("benchmarks/results/reference_note_phase1a/삼성전자-2024/stores/reference-note-plain-graph-2500-320")
@@ -88,6 +89,111 @@ def _progress_logger(enabled: bool) -> Callable[[str], None]:
     return log
 
 
+def _normalise_embedding_spec(spec: Dict[str, Any] | None) -> Dict[str, Any]:
+    payload = dict(spec or {})
+    dimension = payload.get("dimension")
+    try:
+        dimension = int(dimension) if dimension is not None else None
+    except (TypeError, ValueError):
+        dimension = None
+    return {
+        "provider": str(payload.get("provider") or "").strip().lower(),
+        "model_name": str(payload.get("model_name") or payload.get("model") or "").strip(),
+        "dimension": dimension,
+    }
+
+
+def _load_store_embedding_spec(store_dir: Path) -> Dict[str, Any]:
+    meta_paths = [
+        store_dir / "benchmark_cache_meta.json",
+        store_dir / "vector_store_meta.json",
+    ]
+    for meta_path in meta_paths:
+        if not meta_path.exists():
+            continue
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        candidates = [
+            dict(meta.get("store_signature") or {}).get("embedding"),
+            dict(dict(meta.get("signature") or {}).get("store_signature") or {}).get("embedding"),
+            meta.get("embedding"),
+        ]
+        for candidate in candidates:
+            if isinstance(candidate, dict):
+                normalised = _normalise_embedding_spec(candidate)
+                if any(value not in ("", None) for value in normalised.values()):
+                    return normalised
+    return {}
+
+
+def _load_chroma_collection_dimension(store_dir: Path, collection_name: str) -> int | None:
+    sqlite_path = store_dir / "chroma.sqlite3"
+    if not sqlite_path.exists():
+        return None
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(sqlite_path)
+        row = conn.execute(
+            "SELECT dimension FROM collections WHERE name = ? LIMIT 1",
+            (collection_name,),
+        ).fetchone()
+    except sqlite3.Error:
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+    if not row:
+        return None
+    try:
+        return int(row[0]) if row[0] is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _assert_store_embedding_compatible(
+    store_dir: Path,
+    collection_name: str,
+    runtime_spec: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    store_spec = _load_store_embedding_spec(store_dir)
+    chroma_dimension = _load_chroma_collection_dimension(store_dir, collection_name)
+    if chroma_dimension is not None:
+        store_spec = {
+            "provider": str(store_spec.get("provider") or ""),
+            "model_name": str(store_spec.get("model_name") or ""),
+            "dimension": store_spec.get("dimension") or chroma_dimension,
+        }
+    runtime = _normalise_embedding_spec(runtime_spec or get_embedding_runtime_spec())
+    result = {
+        "status": "unknown" if not store_spec else "ok",
+        "store_embedding": store_spec,
+        "runtime_embedding": runtime,
+    }
+    if not store_spec:
+        return result
+
+    mismatches = [
+        key
+        for key in ("provider", "model_name", "dimension")
+        if store_spec.get(key) not in ("", None)
+        and runtime.get(key) not in ("", None)
+        and store_spec.get(key) != runtime.get(key)
+    ]
+    if not mismatches:
+        return result
+
+    result["status"] = "mismatch"
+    result["mismatches"] = mismatches
+    raise ValueError(
+        "Store embedding signature mismatch "
+        f"({', '.join(mismatches)}): "
+        f"store={store_spec}, runtime={runtime}. "
+        "Pass a compatible --store-dir/--collection-name or rebuild the store."
+    )
+
+
 def _wrap_node(name: str, node: Callable[[Dict[str, Any]], Dict[str, Any]], log: Callable[[str], None]):
     def wrapped(state: Dict[str, Any]) -> Dict[str, Any]:
         started = time.monotonic()
@@ -110,6 +216,9 @@ def run_smoke(
     report_scope: Dict[str, str] | None = None,
 ) -> Dict[str, Any]:
     log = _progress_logger(progress)
+    log("check_store_embedding_signature")
+    embedding_compatibility = _assert_store_embedding_compatible(store_dir, collection_name)
+    log(f"store_embedding_signature status={embedding_compatibility['status']}")
     log("init_vector_store")
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),
@@ -184,6 +293,7 @@ def run_smoke(
             "persist_directory": str(store_dir),
             "collection_name": collection_name,
         },
+        "embedding_compatibility": embedding_compatibility,
         "report_scope": scope,
         "replan_budget": int(replan_budget or 0),
         "case_count": len(cases),
