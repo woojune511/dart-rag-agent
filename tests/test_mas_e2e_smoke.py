@@ -76,6 +76,34 @@ class MasE2ESmokeTests(unittest.TestCase):
                 "artifacts": {
                     "task_2": {
                         "content": {"answer": "repaired answer"},
+                    },
+                    "task_1": {
+                        "content": {
+                            "resolved_calculation_trace": {
+                                "report_cache_candidate": {
+                                    "status": "requires_evidence_verification",
+                                    "reasons": ["derived_result"],
+                                    "key_id": "abc123",
+                                    "key": {
+                                        "company": "ACME",
+                                        "year": "2023",
+                                    },
+                                }
+                            }
+                        },
+                        "payload": {
+                            "resolved_calculation_trace": {
+                                "report_cache_candidate": {
+                                    "status": "requires_evidence_verification",
+                                    "reasons": ["derived_result"],
+                                    "key_id": "abc123",
+                                    "key": {
+                                        "company": "ACME",
+                                        "year": "2023",
+                                    },
+                                }
+                            }
+                        },
                     }
                 },
                 "critic_reports": [{"target_task_id": "task_2", "passed": True}],
@@ -133,6 +161,24 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(case["task_artifact_integrity_status"], "ok")
         self.assertEqual(case["task_artifact_integrity_issue_count"], 0)
         self.assertEqual(case["artifact_answers"]["task_2"], "repaired answer")
+        self.assertEqual(payload["summary"]["report_cache_candidate_count"], 1)
+        self.assertEqual(
+            payload["summary"]["report_cache_candidate_status_counts"],
+            {"requires_evidence_verification": 1},
+        )
+        self.assertEqual(
+            payload["summary"]["report_cache_candidate_reason_counts"],
+            {"derived_result": 1},
+        )
+        self.assertEqual(case["report_cache_candidates"]["count"], 1)
+        self.assertEqual(
+            case["report_cache_candidates"]["items"][0]["artifact_id"],
+            "task_1",
+        )
+        self.assertEqual(
+            case["report_cache_candidates"]["items"][0]["path"],
+            "artifacts.task_1.content.resolved_calculation_trace",
+        )
         self.assertNotIn("value_contract", payload)
 
     def test_run_smoke_counts_blocked_integrity_error(self) -> None:

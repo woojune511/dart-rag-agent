@@ -245,6 +245,12 @@ projection. This projection is observability only: it records the classifier
 status, reasons, normalized key, and deterministic key id, but it must not cause
 cache read/write behavior or retrieval bypass by itself.
 
+MAS smoke and export-style observability surfaces may summarize these candidates
+by case and by status/reason count. If the same candidate appears in both
+compatibility `content` and typed `payload`, summary counts should dedupe it by
+artifact/key/status/reasons so handoff metrics describe candidate values rather
+than projection copies.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를

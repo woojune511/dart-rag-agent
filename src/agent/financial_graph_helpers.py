@@ -1282,6 +1282,16 @@ def _first_mapping(*values: Any) -> Dict[str, Any]:
     return {}
 
 
+def _source_section_from_table_id(value: Any) -> str:
+    text = _normalise_spaces(str(value or ""))
+    if not text:
+        return ""
+    marker_index = text.find("::table:")
+    if marker_index <= 0:
+        return ""
+    return text[:marker_index].strip()
+
+
 def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, Any]) -> Dict[str, Any]:
     report_scope = dict(state.get("report_scope") or {})
     active_subtask = dict(state.get("active_subtask") or {})
@@ -1302,6 +1312,12 @@ def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, An
     )
     operand = calculation_operands[0] if calculation_operands else {}
     operand_metadata = dict(operand.get("metadata") or {})
+    source_table_id = (
+        operand.get("source_table_id")
+        or operand.get("table_source_id")
+        or operand_metadata.get("source_table_id")
+        or operand_metadata.get("table_source_id")
+    )
 
     candidate = {
         **report_scope,
@@ -1349,13 +1365,9 @@ def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, An
             or operand.get("section_path")
             or operand_metadata.get("source_section")
             or operand_metadata.get("section_path")
+            or _source_section_from_table_id(source_table_id)
         ),
-        "source_table_id": (
-            operand.get("source_table_id")
-            or operand.get("table_source_id")
-            or operand_metadata.get("source_table_id")
-            or operand_metadata.get("table_source_id")
-        ),
+        "source_table_id": source_table_id,
         "source_anchor": operand.get("source_anchor") or operand_metadata.get("source_anchor"),
         "source_row_id": (
             operand.get("source_row_id")

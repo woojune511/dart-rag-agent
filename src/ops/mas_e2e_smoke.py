@@ -14,6 +14,7 @@ import json
 import sqlite3
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
@@ -111,6 +112,61 @@ def _artifact_answer(artifact: Dict[str, Any]) -> str:
     if isinstance(content, dict):
         return str(content.get("answer") or "")
     return str(content or "")
+
+
+def _find_report_cache_candidates(obj: Any, *, path: str = "") -> List[Dict[str, Any]]:
+    candidates: List[Dict[str, Any]] = []
+    if isinstance(obj, dict):
+        candidate = obj.get("report_cache_candidate")
+        if isinstance(candidate, dict):
+            item = {
+                "path": path,
+                "status": str(candidate.get("status") or "").strip(),
+                "reasons": [str(reason) for reason in list(candidate.get("reasons") or [])],
+                "key_id": str(candidate.get("key_id") or "").strip(),
+            }
+            key = candidate.get("key")
+            if isinstance(key, dict):
+                item["key"] = key
+            candidates.append(item)
+        for key, value in obj.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            candidates.extend(_find_report_cache_candidates(value, path=child_path))
+    elif isinstance(obj, list):
+        for index, value in enumerate(obj):
+            candidates.extend(_find_report_cache_candidates(value, path=f"{path}[{index}]"))
+    return candidates
+
+
+def _summarize_report_cache_candidates(artifacts: Dict[str, Any]) -> Dict[str, Any]:
+    items: List[Dict[str, Any]] = []
+    seen: set[tuple[str, str, str, tuple[str, ...]]] = set()
+    for artifact_id, artifact in sorted(dict(artifacts or {}).items()):
+        for candidate in _find_report_cache_candidates(artifact, path=f"artifacts.{artifact_id}"):
+            candidate["artifact_id"] = str(artifact_id)
+            dedupe_key = (
+                str(artifact_id),
+                str(candidate.get("key_id") or ""),
+                str(candidate.get("status") or ""),
+                tuple(str(reason) for reason in list(candidate.get("reasons") or [])),
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            items.append(candidate)
+
+    status_counts = Counter(str(item.get("status") or "").strip() for item in items)
+    status_counts.pop("", None)
+    reason_counts: Counter[str] = Counter()
+    for item in items:
+        reason_counts.update(str(reason) for reason in list(item.get("reasons") or []))
+    reason_counts.pop("", None)
+    return {
+        "count": len(items),
+        "status_counts": dict(sorted(status_counts.items())),
+        "reason_counts": dict(sorted(reason_counts.items())),
+        "items": items,
+    }
 
 
 def _report_scope(
@@ -308,6 +364,7 @@ def run_smoke(
         final_report_record = dict(final.get("final_report_record") or {})
         task_artifact_trace = dict(final.get("task_artifact_trace") or {})
         execution_trace = list(final.get("execution_trace") or [])
+        report_cache_candidates = _summarize_report_cache_candidates(artifacts)
         cases.append(
             {
                 "query": query,
@@ -330,6 +387,7 @@ def run_smoke(
                     task_id: _artifact_answer(artifact)
                     for task_id, artifact in artifacts.items()
                 },
+                "report_cache_candidates": report_cache_candidates,
             }
         )
 
@@ -344,6 +402,14 @@ def run_smoke(
         for case in cases
         if str(case.get("task_artifact_integrity_status") or "").strip() == "error"
     )
+    report_cache_status_counts: Counter[str] = Counter()
+    report_cache_reason_counts: Counter[str] = Counter()
+    report_cache_candidate_count = 0
+    for case in cases:
+        summary = dict(case.get("report_cache_candidates") or {})
+        report_cache_candidate_count += int(summary.get("count", 0) or 0)
+        report_cache_status_counts.update(dict(summary.get("status_counts") or {}))
+        report_cache_reason_counts.update(dict(summary.get("reason_counts") or {}))
     payload = {
         "store": {
             "persist_directory": str(store_dir),
@@ -357,6 +423,9 @@ def run_smoke(
             "replan_routed_count": replan_routed_count,
             "blocked_count": blocked_count,
             "integrity_error_count": integrity_error_count,
+            "report_cache_candidate_count": report_cache_candidate_count,
+            "report_cache_candidate_status_counts": dict(sorted(report_cache_status_counts.items())),
+            "report_cache_candidate_reason_counts": dict(sorted(report_cache_reason_counts.items())),
         },
         "cases": cases,
     }

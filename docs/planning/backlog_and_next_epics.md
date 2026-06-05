@@ -506,9 +506,20 @@ trace resolver preserves that projection through public output and MAS Analyst
 artifacts. This is observability only: no cache read/write or retrieval bypass
 is enabled.
 
-Next structural step: run a focused live/default MAS or eval-only trace and
-inspect `report_cache_candidate` distributions before deciding whether any
-`reusable` class should become a retrieval-bypass candidate.
+Twenty-third step completed: MAS E2E smoke output now exposes
+`report_cache_candidates` per case plus top-level candidate status/reason
+counts. Public runtime projection also backfills a read-only candidate when a
+resolved trace has enough report/value/provenance context but no candidate yet,
+and table-source ids can recover their source section for cache-key
+classification. A focused local Google-store MAS probe produced one deduped
+`reusable` candidate for the calculation artifact, but the same probe surfaced a
+value-canary risk: the operating-margin answer surface showed `2536.14%` rather
+than the expected `2.54%`. Do not promote cache retrieval-bypass behavior until
+the value canary is stable on the intended store/provider path.
+
+Next structural step: keep report-scoped cache as observability only, then close
+the operating-margin unit-scale canary on the MAS/default smoke path before
+turning any `reusable` class into a retrieval-bypass candidate.
 
 ### 3. Report-scoped cache
 

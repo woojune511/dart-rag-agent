@@ -173,6 +173,41 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(candidate["key"]["concept_id"], "operating_margin")
         self.assertIn("report-cache-v1:", candidate["key_id"])
 
+    def test_runtime_trace_cache_candidate_derives_section_from_table_id(self) -> None:
+        update = _runtime_trace_state_update(
+            {
+                "report_scope": {
+                    "company": "ACME",
+                    "report_type": "annual",
+                    "rcept_no": "r1",
+                    "year": "2023",
+                },
+                "active_subtask": {
+                    "metric_family": "metric",
+                    "metric_label": "metric",
+                },
+            },
+            calculation_operands=[
+                {
+                    "label": "metric",
+                    "raw_value": "123",
+                    "period": "2023",
+                    "consolidation_scope": "consolidated",
+                    "statement_type": "statement",
+                    "table_source_id": "section path::table:1",
+                    "source_row_id": "row-1",
+                }
+            ],
+            calculation_plan={"operation": "lookup"},
+            calculation_result={"status": "ok", "rendered_value": "123"},
+        )
+
+        candidate = update["resolved_calculation_trace"]["report_cache_candidate"]
+
+        self.assertEqual(candidate["status"], CACHE_REUSABLE)
+        self.assertEqual(candidate["key"]["source_section"], "section path")
+        self.assertEqual(candidate["key"]["source_table_id"], "section path::table:1")
+
     def test_runtime_trace_resolver_preserves_cache_candidate(self) -> None:
         resolved = _resolve_runtime_calculation_trace(
             {

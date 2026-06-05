@@ -520,8 +520,12 @@ Useful supporting points:
   `reusable`, `requires_evidence_verification`, or `not_cacheable`. Runtime
   calculation traces now carry a read-only `report_cache_candidate` projection
   with classifier status/reasons/key/key id, and MAS Analyst artifacts preserve
-  it through `resolved_calculation_trace`. No cache read/write behavior or
-  retrieval bypass is enabled yet.
+  it through `resolved_calculation_trace`. MAS E2E smoke output now reports
+  per-case `report_cache_candidates` plus top-level status/reason counts, with
+  duplicate content/payload projections counted once. A focused local
+  Google-store probe produced one `reusable` calculation candidate, but also
+  surfaced an operating-margin value-canary risk (`2536.14%` instead of
+  `2.54%`), so no cache read/write behavior or retrieval bypass is enabled yet.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.
