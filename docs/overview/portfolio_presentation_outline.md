@@ -1,119 +1,237 @@
-# Presentation Outline
+# Portfolio Presentation Outline
 
-이 문서는 취업용 포트폴리오 발표나 면접 설명용으로 바로 쓸 수 있는 슬라이드 구조다.
+This outline is for a short portfolio presentation, interview walkthrough, or
+project review. It focuses on the engineering story: turning a financial RAG
+prototype into a contract-driven runtime where answers are inspectable.
 
 ## Slide 1. Title
 
-- 프로젝트명
-- 한 줄 요약
-  - `Evidence-backed numeric QA over DART filings with multi-agent RAG and explicit calculation traces`
+**DART Multi-Agent Financial Analysis Lab**
+
+Message:
+
+- Evidence-backed numeric QA over DART filings
+- Multi-agent RAG with explicit calculation traces
+- Reviewer-ready runtime contracts instead of opaque answer text
+
+Optional visual:
+
+- One-line pipeline from user question to final answer and `task_artifact_trace`
 
 ## Slide 2. Problem
 
-- DART 공시는 길고 표 중심이며 숫자/기간/엔티티 바인딩이 어렵다
-- 일반 RAG failure mode:
-  - wrong row
-  - wrong subtotal
-  - wrong entity
-  - wrong period
-  - numeric equivalence mismatch
+Financial-document RAG failures often look small but change the answer:
+
+- wrong row, subtotal, segment, or reporting period
+- calculated value treated as a directly stated value
+- citation preserved in prose but lost in structured state
+- benchmark score improved by brittle question-specific rules
+- stale compatibility fields overriding the canonical calculation trace
+
+Message:
+
+- The hard part is not only retrieval. It is keeping evidence, calculation,
+  acceptance, and review state aligned.
 
 ## Slide 3. Goal
 
-- 단순 QA 챗봇이 아니라:
-  - 근거가 있는 답변
-  - 계산 trace
-  - 평가 가능한 결과
-  를 만드는 시스템
+Build a runtime that can answer numeric filing questions and show why the answer
+was accepted.
+
+The accepted answer should expose:
+
+- final answer text
+- citations and evidence items
+- `structured_result`
+- `resolved_calculation_trace`
+- critic acceptance state
+- `task_artifact_trace`
+- benchmark or reviewer gate status
+
+Message:
+
+- The answer is a presentation layer. The contract is the structured runtime
+  trace behind it.
 
 ## Slide 4. System Architecture
 
-- Orchestrator / Analyst / Researcher / Critic
-- shared contracts:
-  - `answer_slots`
-  - `structured_result`
-  - `resolved_calculation_trace`
+High-level flow:
+
+```text
+User question
+  -> Orchestrator plan
+      -> Analyst numeric artifacts
+      -> Researcher narrative artifacts
+      -> Critic reports
+  -> Orchestrator merge
+  -> Final answer + task_artifact_trace
+```
+
+Key shared state:
+
+- `tasks`
+- `artifacts`
+- `evidence_pool`
+- `critic_reports`
+- `task_artifact_trace`
+
+Message:
+
+- Agent communication is modeled as typed ledger state, not free-form chat.
 
 ## Slide 5. Key Design Choices
 
-- concept-first planner
-- direct-first grounding
-- deterministic calculator
-- evaluator split
+Design choices that keep the system general:
 
-이 슬라이드는 “왜 이런 분해가 필요했는가”를 강조해야 한다.
+- LLMs handle semantics; deterministic code handles execution
+- domain vocabulary stays in ontology, retrieval policy, config, or data
+- numeric answers publish `answer_slots`, `structured_result`, and
+  `resolved_calculation_trace`
+- critic acceptance is based on verdict, target refs, reasons, and blocking
+  issues, not just a score threshold
+- report-cache work is candidate-only until the safety contract is proven
 
-## Slide 6. Retrieval / Ingest Strategy
+Message:
 
-- `plain_prefix_8000_400`
-- `structural_selective_v2_prefix_2500_320`
-- `contextual_selective_v2_prefix_2500_320`
+- The project is less about prompt tuning and more about runtime boundaries.
 
-보여줄 메시지:
-- plain은 싸지만 약함
-- contextual은 강하지만 비쌈
-- structural은 중간 후보
+## Slide 6. Retrieval And Ingest Strategy
 
-## Slide 7. Benchmark Strategy
+The retrieval layer must preserve document shape, not only semantic similarity.
 
-- `runtime_contract_gate`
-  - 5문항
-- `multi_entity_grounding_gate`
-  - 3문항
+Important surfaces:
 
-이 슬라이드는 “내가 무엇을 official gate로 삼았는가”를 보여준다.
+- section/table-aware DART parsing
+- hybrid retrieval with structure-aware chunks
+- retrieval debug traces
+- evidence items with source anchors and row provenance
+- parser rules limited to recovering document structure
 
-## Slide 8. Quantitative Results
+Message:
 
-권장 표:
+- Financial filings need source shape. A relevant chunk is not enough if the
+  row, period, or table context is wrong.
 
-| candidate | runtime gate | multi-entity gate | ingest cost/time |
-| --- | --- | --- | --- |
-| plain | one fail | not default | lowest |
-| structural | pass | pass | much lower than contextual |
-| contextual | pass | pass | highest |
+## Slide 7. Numeric Execution Path
 
-핵심 메시지:
-- structural selective가 현재 운영 기본값 후보
+Numeric questions are decomposed into calculation tasks:
 
-## Slide 9. Failure Analysis
+1. identify required operands
+2. retrieve and reconcile evidence
+3. extract structured operands
+4. plan the formula
+5. execute deterministically
+6. render and verify the result
+7. expose `resolved_calculation_trace`
 
-2~3개만 고른다.
+Message:
 
-- `NAV_T1_071`
-  - current/prior binding
-- `SKH_T1_060`
-  - wrong numerator row / subtotal
-- `KBF_T1_017`
-  - percent metric + period binding
+- The calculator does not invent evidence. It assembles already-grounded
+  operands into an inspectable trace.
 
-각 케이스에 대해:
-- original failure
-- cause
-- fix
-- after result
+## Slide 8. Acceptance And Review Gates
 
-## Slide 10. What this demonstrates
+Current gates:
 
-- long-form financial RAG failure mode analysis
+- task/artifact integrity projection
+- final close blocking on integrity errors
+- critic acceptance state and rejection feedback
+- report-cache reviewer handoff
+- runtime domain-term audit
+- full unit-test discovery
+
+Representative commands:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
+.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
+.\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
+```
+
+Message:
+
+- The gates are designed to catch regressions in evidence, calculation,
+  acceptance, and overfitting boundaries.
+
+## Slide 9. Portfolio Demo
+
+Use the fixture-backed demo as the reviewer path:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
+```
+
+The demo shows:
+
+- final answer
+- citations
+- calculation trace
+- task/artifact integrity
+- critic acceptance
+- cache reviewer handoff
+
+Expected headline:
+
+- `Readiness: ready`
+- cache mode remains `candidate_only`
+- `serving_enabled = false`
+- `ledger_insertion_enabled = false`
+
+Message:
+
+- A reviewer can scan the runtime contract without needing API keys, a vector
+  store, DART downloads, or benchmark result bundles.
+
+## Slide 10. What This Demonstrates
+
+Engineering capabilities shown by the project:
+
+- long-form financial RAG failure-mode analysis
 - LLM/deterministic boundary design
-- benchmark-driven iteration
-- quality/cost tradeoff engineering
+- structured evidence and calculation provenance
+- multi-agent handoff through typed artifacts
+- contract tests and reviewer gates
+- quality/cost tradeoff awareness
 
-## Slide 11. Future Work
+Message:
 
-- `tasks + artifacts`를 source of truth로 더 강화
-- additional chunking/index experiments
-  - structural parent hybrid
-  - adaptive block selective
-  - table-first dual index
-- curated benchmark coverage 확장
+- The repo demonstrates how to make financial RAG auditable instead of merely
+  plausible.
+
+## Slide 11. Current Limits And Future Work
+
+Intentionally disabled today:
+
+- cache serving and retrieval bypass
+- automatic cache writes
+- cache candidate insertion into the live task/artifact ledger
+- LLM critic as an acceptance authority
+- benchmark-specific runtime routing branches
+
+Longer-term work:
+
+- promotion-risk management for any future cache consumer
+- cost/runtime control for larger benchmark refreshes
+- task-ledger and artifact-contract cleanup
+- broader benchmark coverage after the contract surfaces stabilize
+
+Message:
+
+- The disabled features are part of the safety story, not unfinished hidden
+  behavior.
 
 ## Slide 12. Closing
 
-- 문제를 어떻게 정의했는지
-- 어떤 설계 선택을 했는지
-- 어떤 근거로 검증했는지
+Close on three points:
 
-이 세 줄만 다시 강조하고 끝낸다.
+- The project defines financial RAG quality as an inspectable runtime contract.
+- Numeric answers are accepted through evidence, calculation trace, critic
+  state, and ledger integrity.
+- The current repo is packaged with a README, one-pager, codebase map, question
+  trace walkthrough, portfolio demo, and reviewer commands.
 
+Suggested final line:
+
+> This project is my answer to the question: how do we make a financial RAG
+> system that a reviewer can audit, not just a model that sounds confident?

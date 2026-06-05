@@ -84,6 +84,7 @@ retrieval bypass remain disabled.
 | [docs/overview/project_status.md](docs/overview/project_status.md) | Current implementation and gate status |
 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | One-page portfolio summary |
 | [docs/overview/portfolio_readme_blueprint.md](docs/overview/portfolio_readme_blueprint.md) | Suggested README/story structure |
+| [docs/overview/portfolio_presentation_outline.md](docs/overview/portfolio_presentation_outline.md) | Interview or presentation slide outline |
 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | Fixture-backed demo output and reviewer notes |
 | [docs/overview/codebase_map.md](docs/overview/codebase_map.md) | Codebase ownership and execution map |
 | [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | Example question trace |
