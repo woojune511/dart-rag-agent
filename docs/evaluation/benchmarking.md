@@ -956,7 +956,17 @@ Current local baseline was refreshed on 2026-06-05:
 - Reviewer handoff smoke:
   ```powershell
   .\.venv\Scripts\python.exe -m src.ops.report_cache_index_smoke `
-    --report-cache-index-path tests\fixtures\report_cache_index\rehydration_diagnostics.json
+    --report-cache-index-path tests\fixtures\report_cache_index\rehydration_diagnostics.json `
+    --output benchmarks\results\report_cache_index_smoke_local.json
+
+  .\.venv\Scripts\python.exe -m src.ops.check_report_cache_index_smoke_contract `
+    --current benchmarks\results\report_cache_index_smoke_local.json `
+    --baseline benchmarks\results\report_cache_index_smoke_contract_local.json `
+    --write-baseline
+
+  .\.venv\Scripts\python.exe -m src.ops.check_report_cache_index_smoke_contract `
+    --current benchmarks\results\report_cache_index_smoke_local.json `
+    --baseline benchmarks\results\report_cache_index_smoke_contract_local.json
   ```
   The expected summary remains trace-only: `status = trace_only`,
   `enabled = false`, `serving_enabled = false`, `match_count = 2`,
@@ -974,6 +984,10 @@ Current local baseline was refreshed on 2026-06-05:
   candidate`. `report_cache_index_smoke` includes a minimal
   `rehydrated_candidate_artifacts` preview with answer/citation/evidence/trace
   counts, still outside the live task/artifact ledger.
+- `check_report_cache_index_smoke_contract` extracts only stable handoff fields:
+  status flags, local-index match/readiness counts, rehydration reason counts,
+  candidate-artifact counts, and preview booleans/counts. It intentionally does
+  not compare the full matched-entry payload.
 
 ## Parser Structure Smokes
 

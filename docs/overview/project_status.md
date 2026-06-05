@@ -557,6 +557,9 @@ Useful supporting points:
   candidate payload, but it still reports disabled serving and is not wired into
   the task/artifact ledger. The handoff smoke now summarizes reconstructable
   candidate artifact counts and emits a minimal preview for ready entries only.
+  `check_report_cache_index_smoke_contract` extracts and compares the stable
+  subset of that handoff surface so reviewers do not need to diff the full
+  diagnostic payload.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

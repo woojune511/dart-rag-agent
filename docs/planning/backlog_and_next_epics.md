@@ -683,9 +683,18 @@ citation, evidence-item, structured-result, and calculation-trace presence
 signals. The preview remains outside the live task/artifact ledger and still
 shows disabled serving.
 
-Next structural step: add a compact contract extractor/checker for
-`report_cache_index_smoke` output so reviewers can compare only the stable
-cache-index handoff fields without diffing the full diagnostic payload.
+Thirty-seventh step completed: `src.ops.check_report_cache_index_smoke_contract`
+now extracts the stable report-cache-index handoff contract from full
+`report_cache_index_smoke` output. The contract covers trace-only status flags,
+match/readiness counts, rehydration reason counts, index load counts,
+rehydrated candidate artifact counts, and candidate preview booleans/counts
+without diffing the full matched-entry payload. The CLI supports
+`--write-baseline` and comparison against either full smoke output or compact
+contract JSON.
+
+Next structural step: decide whether the report-cache-index smoke contract
+baseline should remain an on-demand local reviewer artifact or whether a tiny
+source-controlled baseline is worth adding for CI-style comparison.
 
 ### 3. Report-scoped cache
 
