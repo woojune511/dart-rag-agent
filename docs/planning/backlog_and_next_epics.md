@@ -489,20 +489,35 @@ same contract from historical smoke output that has matching scope and query
 strings but no embedded contract. Explicit `--value-contract` JSON remains as an
 override for one-off checks.
 
-Next structural step: start the report-scoped cache design below, focusing
-first on key shape and which cached values still require evidence verification.
+Twenty-first step completed: report-scoped cache now has a code-level contract
+in `src/config/report_scoped_cache.py`. The first contract version normalizes
+keys from report scope (`company`, `report_type`, `rcept_no`, `year`), value
+identity (`concept_id` or `metric_label`, plus `period`), and provenance scope
+(`consolidation_scope`, `statement_type`, `source_section`, `source_table_id`).
+It classifies candidates as `reusable`, `requires_evidence_verification`, or
+`not_cacheable`, so future runtime cache reads cannot silently reuse
+synthesized/LLM-only material or values with incomplete provenance.
+
+Next structural step: wire the report-scoped cache classifier into one
+read-only trace path first, so live runs can report what would be reusable
+without bypassing retrieval yet.
 
 ### 3. Report-scoped cache
 
 현재:
 
 - cache는 주로 store/contextual ingest 재사용 쪽에 집중되어 있음
+- key/cacheability contract는 `src/config/report_scoped_cache.py`에 생겼지만,
+  아직 runtime cache read/write 동작에는 연결하지 않음
 
 다음:
 
-- `company + report_type + rcept_no + year + metric + source_section`
-  수준의 cache key를 명시
-- retrieval을 완전히 생략할 수 있는 값과, 근거 확인이 필요한 값을 구분
+- Analyst/lookup output에 read-only `report_cache_candidate` trace를 붙여
+  실제 런에서 어떤 값이 `reusable` / `requires_evidence_verification` /
+  `not_cacheable`로 분류되는지 확인
+- trace가 안정되면 `reusable` 값만 retrieval bypass 후보로 승격하고,
+  `requires_evidence_verification` 값은 source evidence 재확인을 통과해야
+  답변에 사용
 
 ### 4. Runtime critic과 offline evaluator의 역할 분리
 

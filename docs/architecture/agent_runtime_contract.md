@@ -216,6 +216,30 @@ Numeric path는 deterministic contract를 따른다. 산술, 단위 변환, oper
 
 Evaluator는 평가 정의를 담을 수 있지만, runtime agent가 evaluator trick을 따라가면 안 된다.
 
+## 5.1 Report-Scoped Value Cache Contract
+
+Report-scoped cache is a runtime contract for reusing already grounded values,
+not a shortcut around evidence. The current code-level contract lives in
+`src/config/report_scoped_cache.py`.
+
+Cache keys are versioned and normalized from:
+
+- report scope: `company`, `report_type`, `rcept_no`, `year`
+- value identity: `concept_id` or `metric_label`, plus `period`
+- provenance scope: `consolidation_scope`, `statement_type`, `source_section`,
+  and `source_table_id`
+
+A candidate value is `reusable` only when it has a complete report key, a
+structured value kind such as `structured_row`, `operand`, or
+`calculation_result`, and traceable provenance. Prose lookups, partial
+provenance, or missing statement/consolidation/section scope must be classified
+as `requires_evidence_verification` before reuse. Synthesized answers, refusals,
+LLM-only interpretations, and value-free payloads are `not_cacheable`.
+
+Cache writes and reads must use this classification before bypassing retrieval.
+If the value is not `reusable`, runtime may still use the cache as a candidate
+hint, but it must verify the source evidence again before answering.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를

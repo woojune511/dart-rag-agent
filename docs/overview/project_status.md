@@ -514,6 +514,12 @@ Useful supporting points:
   reconstruct it for matching historical smoke output. The repaired smoke
   reports `value_assertion_failure_count = 0`; the earlier bad
   provenance-anchor smoke fails as expected.
+- Report-scoped value cache design now has a code-level contract in
+  `src/config/report_scoped_cache.py`. It normalizes cache keys from report
+  scope, value identity, and provenance scope, and classifies candidates as
+  `reusable`, `requires_evidence_verification`, or `not_cacheable`. No runtime
+  cache read/write behavior is enabled yet; the next step is a read-only trace
+  integration before any retrieval bypass.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.
