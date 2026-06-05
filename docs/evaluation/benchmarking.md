@@ -938,6 +938,11 @@ Current local baseline was refreshed on 2026-06-05:
   cache-index diagnostics per case/top level. The unit fixture uses a tiny
   local JSON index and asserts diagnostic matches without allowing cache
   serving or retrieval bypass.
+- A disabled rehydration-readiness contract now separates readable cache
+  entries from entries that could reconstruct an answer. Rehydration-ready
+  entries must preserve answer slots, citation/source-anchor material, evidence
+  material, and calculation trace provenance; the classifier still reports
+  serving disabled.
 
 ## Parser Structure Smokes
 

@@ -614,6 +614,21 @@ without enabling it yet. The design should specify which stored value/evidence
 fields are needed to reconstruct answer slots, citations, and calculation
 trace provenance before any retrieval bypass flag can become active.
 
+Thirty-first step completed: report-scoped cache now has a disabled
+rehydration-readiness contract. `normalise_report_cache_entry()` preserves
+future consumer payload surfaces (`answer_slots`, `calculation_trace`,
+`citations`, and `evidence_items`), and
+`classify_report_cache_rehydration_candidate()` blocks readable entries unless
+they can reconstruct the answer slot, citation/source anchor, evidence material,
+and calculation trace provenance. Passing that classifier still reports
+`enabled = false` and `serving_enabled = false`; it defines the minimum future
+consumer contract but does not enable cache serving or retrieval bypass.
+
+Next structural step: add trace-only rehydration diagnostics to
+`ReportCacheIndex.lookup_diagnostics()` so smoke/benchmark output can show how
+many matched readable entries are also rehydration-ready, still without serving
+hits.
+
 ### 3. Report-scoped cache
 
 현재:

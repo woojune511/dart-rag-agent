@@ -39,6 +39,8 @@ CACHE_CONSUMER_BLOCKED = "blocked"
 CACHE_CONSUMER_TRACE_ONLY = "trace_only"
 CACHE_ENTRY_READABLE = "readable"
 CACHE_ENTRY_BLOCKED = "blocked"
+CACHE_REHYDRATION_READY = "ready"
+CACHE_REHYDRATION_BLOCKED = "blocked"
 
 CACHE_ENTRY_SOURCE_LOCAL_INDEX = "local_cache_index"
 CACHE_ENTRY_SOURCE_RUNTIME_TRACE = "runtime_trace_projection"
@@ -85,6 +87,12 @@ def _first_mapping(*values: Any) -> Dict[str, Any]:
         if isinstance(value, Mapping):
             return dict(value)
     return {}
+
+
+def _mapping_list(values: Any) -> List[Dict[str, Any]]:
+    if not isinstance(values, Iterable) or isinstance(values, (str, bytes, Mapping)):
+        return []
+    return [dict(item) for item in values if isinstance(item, Mapping)]
 
 
 def normalise_report_cache_key(parts: Mapping[str, Any]) -> Dict[str, str]:
@@ -304,12 +312,82 @@ def normalise_report_cache_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
             "normalized_value": normalized_value,
             "normalized_unit": _normalise_text(value_payload.get("normalized_unit") or payload.get("normalized_unit")),
             "result_unit": _normalise_text(value_payload.get("result_unit") or payload.get("result_unit")),
+            "answer_slots": _first_mapping(value_payload.get("answer_slots"), payload.get("answer_slots")),
+            "calculation_trace": _first_mapping(
+                value_payload.get("calculation_trace"),
+                value_payload.get("resolved_calculation_trace"),
+                payload.get("calculation_trace"),
+                payload.get("resolved_calculation_trace"),
+            ),
+            "citations": _string_list(value_payload.get("citations") or payload.get("citations")),
+            "evidence_items": _mapping_list(value_payload.get("evidence_items") or payload.get("evidence_items")),
         },
         "provenance": {
             "source_row_ids": source_row_ids,
             "evidence_refs": evidence_refs,
             "source_anchor": _first_text(provenance_payload.get("source_anchor"), payload.get("source_anchor")),
         },
+    }
+
+
+def classify_report_cache_rehydration_candidate(entry: Mapping[str, Any]) -> Dict[str, Any]:
+    """Validate whether a readable entry has enough payload to rebuild an answer.
+
+    This is still a disabled consumer contract. Passing this classifier does
+    not enable cache serving; it only defines the minimum material a future
+    consumer would need before considering retrieval bypass.
+    """
+    entry_classification = classify_report_cache_entry(entry)
+    normalised = dict(entry_classification.get("entry") or {})
+    value = dict(normalised.get("value") or {})
+    provenance = dict(normalised.get("provenance") or {})
+    answer_slots = dict(value.get("answer_slots") or {})
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    calculation_trace = dict(value.get("calculation_trace") or {})
+    citations = _string_list(value.get("citations"))
+    evidence_items = _mapping_list(value.get("evidence_items"))
+    reasons: List[str] = []
+
+    if not bool(entry_classification.get("readable")):
+        reasons.append("entry_not_readable")
+        reasons.extend(f"entry:{reason}" for reason in list(entry_classification.get("reasons") or []))
+
+    if not answer_slots:
+        reasons.append("missing_answer_slots")
+    if not primary_slot:
+        reasons.append("missing_primary_answer_slot")
+    elif not _first_text(
+        primary_slot.get("display"),
+        primary_slot.get("rendered_value"),
+        primary_slot.get("raw_value"),
+        primary_slot.get("value"),
+    ):
+        reasons.append("missing_primary_answer_slot_display")
+
+    if not (citations or provenance.get("source_anchor")):
+        reasons.append("missing_citation_or_source_anchor")
+    if not (evidence_items or provenance.get("evidence_refs") or provenance.get("source_row_ids")):
+        reasons.append("missing_rehydratable_evidence")
+
+    if not calculation_trace:
+        reasons.append("missing_calculation_trace")
+    else:
+        if not isinstance(calculation_trace.get("calculation_result"), Mapping):
+            reasons.append("missing_trace_calculation_result")
+        if not isinstance(calculation_trace.get("calculation_operands"), list):
+            reasons.append("missing_trace_calculation_operands")
+
+    ready = not reasons
+    return {
+        "status": CACHE_REHYDRATION_READY if ready else CACHE_REHYDRATION_BLOCKED,
+        "ready": ready,
+        "enabled": False,
+        "serving_enabled": False,
+        "reasons": list(dict.fromkeys(reasons)),
+        "entry_status": entry_classification.get("status"),
+        "key": entry_classification.get("key"),
+        "key_id": entry_classification.get("key_id"),
+        "entry": normalised,
     }
 
 

@@ -251,6 +251,31 @@ compatibility `content` and typed `payload`, summary counts should dedupe it by
 artifact/key/status/reasons so handoff metrics describe candidate values rather
 than projection copies.
 
+### Cache Consumer Rehydration Boundary
+
+A readable persisted entry is not automatically safe to use as an answer. A
+future cache consumer must first prove that the entry can be rehydrated into the
+same runtime surfaces that normal retrieval/calculation would have produced.
+The code-level readiness check is
+`classify_report_cache_rehydration_candidate()`, and it remains disabled for
+serving: `enabled = false` and `serving_enabled = false` are part of the
+contract.
+
+A rehydratable entry must include all of the following:
+
+- a readable local-cache-index entry according to `classify_report_cache_entry()`
+- `answer_slots` with a `primary_value` display/raw surface
+- citation or source-anchor material that can be shown to the user
+- rehydratable evidence material, such as evidence refs, source row ids, or
+  evidence items
+- calculation trace material with `calculation_result` and
+  `calculation_operands`
+
+If any of those surfaces are missing, the future consumer must treat the entry
+as a diagnostic candidate only and execute normal retrieval. The fallback is not
+to synthesize missing evidence from the cache value; it is to recover evidence
+through the existing retrieval and validation path.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를

@@ -18,12 +18,15 @@ from src.config.report_scoped_cache import (
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     CACHE_ENTRY_SOURCE_RUNTIME_TRACE,
     CACHE_NOT_CACHEABLE,
+    CACHE_REHYDRATION_BLOCKED,
+    CACHE_REHYDRATION_READY,
     CACHE_REQUIRES_EVIDENCE_VERIFICATION,
     CACHE_REUSABLE,
     REPORT_CACHE_ENTRY_VERSION,
     classify_report_cache_candidate,
     classify_report_cache_consumer_candidate,
     classify_report_cache_entry,
+    classify_report_cache_rehydration_candidate,
     missing_key_fields,
     normalise_report_cache_entry,
     normalise_report_cache_key,
@@ -379,6 +382,91 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(entry["value"]["rendered_value"], "123")
         self.assertEqual(entry["provenance"]["source_row_ids"], ["row-1"])
         self.assertEqual(entry["key_id"], report_cache_key_id(entry["key"]))
+
+    def test_rehydration_requires_answer_slots_citations_and_calculation_trace(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = classify_report_cache_rehydration_candidate(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"kind": "calculation_result", "rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            }
+        )
+
+        self.assertEqual(result["entry_status"], CACHE_ENTRY_READABLE)
+        self.assertEqual(result["status"], CACHE_REHYDRATION_BLOCKED)
+        self.assertFalse(result["ready"])
+        self.assertFalse(result["enabled"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertIn("missing_answer_slots", result["reasons"])
+        self.assertIn("missing_primary_answer_slot", result["reasons"])
+        self.assertIn("missing_citation_or_source_anchor", result["reasons"])
+        self.assertIn("missing_calculation_trace", result["reasons"])
+
+    def test_rehydration_ready_entry_remains_disabled_for_future_consumer(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                "calculation_trace": {
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {
+                "source_row_ids": ["row-1"],
+                "evidence_refs": ["ev-1"],
+                "source_anchor": "section",
+            },
+        }
+
+        result = classify_report_cache_rehydration_candidate(entry)
+
+        self.assertEqual(result["status"], CACHE_REHYDRATION_READY)
+        self.assertTrue(result["ready"])
+        self.assertFalse(result["enabled"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertEqual(result["reasons"], [])
+        self.assertEqual(result["entry"]["value"]["answer_slots"]["primary_value"]["display"], "123")
+        self.assertEqual(result["entry"]["value"]["citations"], ["[ACME | 2023 | section]"])
 
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
         update = _runtime_trace_state_update(
