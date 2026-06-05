@@ -664,10 +664,20 @@ handoff command only needs `--report-cache-index-path` and shows
 `serving_enabled` remain false. `tests/test_report_cache_index_smoke.py` keeps
 the emitted summary shape fixed.
 
-Next structural step: decide the first non-serving consumer contract for
-rehydrated payload shape: answer slots, citations/source anchors, evidence
-items, and calculation trace should be reconstructable into a candidate answer
-artifact without bypassing retrieval or changing final-answer behavior.
+Thirty-fifth step completed: `build_report_cache_rehydrated_candidate_artifact()`
+now defines the first non-serving projection from a rehydration-ready
+local-cache-index entry into an artifact-like candidate payload. Blocked entries
+produce no artifact; ready entries preserve answer text, citations, evidence
+items, structured result, calculation trace, report-cache key metadata, and
+disabled rehydration metadata. The artifact status is `candidate`, and both
+`enabled` and `serving_enabled` remain false. Fixture tests cover both the
+blocked and ready entries in
+`tests/fixtures/report_cache_index/rehydration_diagnostics.json`.
+
+Next structural step: add an explicit smoke/summary surface for rehydrated
+candidate artifact counts, still outside the live task/artifact ledger, so a
+reviewer can see whether a local index contains entries that are reconstructable
+as candidate answers before any serving path exists.
 
 ### 3. Report-scoped cache
 

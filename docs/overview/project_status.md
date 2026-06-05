@@ -552,6 +552,10 @@ Useful supporting points:
   those counts through MAS smoke summaries. The reviewer handoff smoke
   `src.ops.report_cache_index_smoke` prints the same trace-only diagnostic
   payload from the source-controlled fixture without running MAS or retrieval.
+  `build_report_cache_rehydrated_candidate_artifact()` now defines the first
+  non-serving projection from a rehydration-ready entry to an artifact-like
+  candidate payload, but it still reports disabled serving and is not wired into
+  the task/artifact ledger.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

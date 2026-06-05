@@ -260,6 +260,12 @@ The code-level readiness check is
 `classify_report_cache_rehydration_candidate()`, and it remains disabled for
 serving: `enabled = false` and `serving_enabled = false` are part of the
 contract.
+The optional projection helper
+`build_report_cache_rehydrated_candidate_artifact()` may rebuild the answer,
+citations, evidence items, structured result, and calculation trace into an
+artifact-like candidate payload, but that payload must remain `status =
+candidate` and must not be inserted into the task/artifact ledger as a served
+answer.
 
 A rehydratable entry must include all of the following:
 

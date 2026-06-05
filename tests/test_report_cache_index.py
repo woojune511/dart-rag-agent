@@ -15,6 +15,7 @@ from src.config.report_scoped_cache import (  # noqa: E402
     CACHE_ENTRY_SOURCE_ARTIFACT_STORE,
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     REPORT_CACHE_ENTRY_VERSION,
+    build_report_cache_rehydrated_candidate_artifact,
     normalise_report_cache_key,
     report_cache_key_id,
 )
@@ -186,6 +187,31 @@ class ReportCacheIndexTests(unittest.TestCase):
             [item["rehydration"]["status"] for item in diagnostics["matches"]],
             ["blocked", "ready"],
         )
+
+    def test_fixture_rehydrated_candidate_artifact_only_uses_ready_entry(self) -> None:
+        fixture_path = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        blocked_entry, ready_entry = payload["entries"]
+
+        blocked = build_report_cache_rehydrated_candidate_artifact(blocked_entry)
+        ready = build_report_cache_rehydrated_candidate_artifact(
+            ready_entry,
+            task_id="task_1",
+            artifact_id="cache::candidate::fixture",
+        )
+
+        self.assertFalse(blocked["ready"])
+        self.assertIsNone(blocked["artifact"])
+        self.assertTrue(ready["ready"])
+        self.assertFalse(ready["enabled"])
+        self.assertFalse(ready["serving_enabled"])
+        self.assertEqual(ready["artifact"]["status"], "candidate")
+        self.assertEqual(ready["artifact"]["payload"]["answer"], "123")
+        self.assertEqual(
+            ready["artifact"]["payload"]["resolved_calculation_trace"]["calculation_result"]["status"],
+            "ok",
+        )
+        self.assertFalse(ready["artifact"]["payload"]["report_cache_rehydration"]["serving_enabled"])
 
 
 if __name__ == "__main__":

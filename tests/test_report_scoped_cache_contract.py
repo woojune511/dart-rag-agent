@@ -27,6 +27,7 @@ from src.config.report_scoped_cache import (
     classify_report_cache_consumer_candidate,
     classify_report_cache_entry,
     classify_report_cache_rehydration_candidate,
+    build_report_cache_rehydrated_candidate_artifact,
     missing_key_fields,
     normalise_report_cache_entry,
     normalise_report_cache_key,
@@ -467,6 +468,105 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(result["reasons"], [])
         self.assertEqual(result["entry"]["value"]["answer_slots"]["primary_value"]["display"], "123")
         self.assertEqual(result["entry"]["value"]["citations"], ["[ACME | 2023 | section]"])
+
+    def test_rehydrated_candidate_artifact_blocks_incomplete_entry_without_serving(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = build_report_cache_rehydrated_candidate_artifact(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"kind": "calculation_result", "rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_REHYDRATION_BLOCKED)
+        self.assertFalse(result["ready"])
+        self.assertFalse(result["enabled"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertIsNone(result["artifact"])
+        self.assertIn("missing_answer_slots", result["reasons"])
+
+    def test_rehydrated_candidate_artifact_preserves_payload_without_serving(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                "calculation_trace": {
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {
+                "source_row_ids": ["row-1"],
+                "evidence_refs": ["ev-1"],
+                "source_anchor": "section",
+            },
+        }
+
+        result = build_report_cache_rehydrated_candidate_artifact(
+            entry,
+            task_id="task_1",
+            artifact_id="cache::candidate::1",
+        )
+
+        artifact = result["artifact"]
+        payload = artifact["payload"]
+        self.assertEqual(result["status"], CACHE_REHYDRATION_READY)
+        self.assertTrue(result["ready"])
+        self.assertFalse(result["enabled"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertEqual(artifact["artifact_id"], "cache::candidate::1")
+        self.assertEqual(artifact["task_id"], "task_1")
+        self.assertEqual(artifact["status"], "candidate")
+        self.assertFalse(artifact["metadata"]["serving_enabled"])
+        self.assertEqual(payload["answer"], "123")
+        self.assertEqual(payload["citations"], ["[ACME | 2023 | section]"])
+        self.assertEqual(payload["evidence_items"], [{"source_anchor": "section", "claim": "metric was 123"}])
+        self.assertEqual(payload["structured_result"]["answer_slots"]["primary_value"]["display"], "123")
+        self.assertEqual(payload["resolved_calculation_trace"]["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(payload["report_cache_key_id"], report_cache_key_id(key))
+        self.assertEqual(payload["report_cache_rehydration"]["status"], CACHE_REHYDRATION_READY)
+        self.assertFalse(payload["report_cache_rehydration"]["serving_enabled"])
+        self.assertIn("ev-1", artifact["evidence_refs"])
+        self.assertIn("row-1", artifact["evidence_refs"])
 
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
         update = _runtime_trace_state_update(

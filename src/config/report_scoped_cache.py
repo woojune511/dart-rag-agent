@@ -391,6 +391,98 @@ def classify_report_cache_rehydration_candidate(entry: Mapping[str, Any]) -> Dic
     }
 
 
+def build_report_cache_rehydrated_candidate_artifact(
+    entry: Mapping[str, Any],
+    *,
+    task_id: str = "",
+    artifact_id: str = "",
+) -> Dict[str, Any]:
+    """Project a rehydration-ready entry into a non-serving answer artifact.
+
+    This helper is intentionally not a cache read path. It only defines the
+    payload a future consumer would need to validate before any retrieval
+    bypass could be considered.
+    """
+    rehydration = classify_report_cache_rehydration_candidate(entry)
+    base = {
+        "status": rehydration.get("status"),
+        "ready": bool(rehydration.get("ready")),
+        "enabled": False,
+        "serving_enabled": False,
+        "reasons": [str(reason) for reason in list(rehydration.get("reasons") or [])],
+        "key": dict(rehydration.get("key") or {}),
+        "key_id": str(rehydration.get("key_id") or ""),
+        "artifact": None,
+    }
+    if not bool(rehydration.get("ready")):
+        return base
+
+    normalised = dict(rehydration.get("entry") or {})
+    value = dict(normalised.get("value") or {})
+    provenance = dict(normalised.get("provenance") or {})
+    calculation_trace = dict(value.get("calculation_trace") or {})
+    calculation_result = dict(calculation_trace.get("calculation_result") or {})
+    answer_slots = dict(value.get("answer_slots") or {})
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    rendered_value = _first_text(
+        primary_slot.get("display"),
+        primary_slot.get("rendered_value"),
+        primary_slot.get("raw_value"),
+        primary_slot.get("value"),
+        calculation_result.get("rendered_value"),
+        calculation_result.get("formatted_result"),
+        value.get("rendered_value"),
+    )
+    citations = _string_list(value.get("citations"))
+    evidence_items = _mapping_list(value.get("evidence_items"))
+    evidence_refs = _string_list(
+        citations
+        + _string_list(provenance.get("evidence_refs"))
+        + _string_list(provenance.get("source_row_ids"))
+        + [provenance.get("source_anchor")]
+    )
+    structured_result = {
+        **calculation_result,
+        "rendered_value": _first_text(calculation_result.get("rendered_value"), rendered_value),
+        "formatted_result": _first_text(calculation_result.get("formatted_result"), rendered_value),
+        "answer_slots": answer_slots,
+    }
+    payload = {
+        "answer": rendered_value,
+        "citations": citations,
+        "evidence_items": evidence_items,
+        "resolved_calculation_trace": calculation_trace,
+        "structured_result": structured_result,
+        "report_cache_key": dict(rehydration.get("key") or {}),
+        "report_cache_key_id": str(rehydration.get("key_id") or ""),
+        "report_cache_rehydration": {
+            "status": rehydration.get("status"),
+            "ready": bool(rehydration.get("ready")),
+            "enabled": False,
+            "serving_enabled": False,
+            "reasons": [],
+        },
+    }
+    base["artifact"] = {
+        "artifact_id": str(artifact_id or f"report_cache_rehydrated::{rehydration.get('key_id') or ''}").strip(),
+        "task_id": str(task_id or "").strip(),
+        "creator": "ReportCacheIndex",
+        "kind": "calculation_result",
+        "status": "candidate",
+        "summary": rendered_value,
+        "content": dict(payload),
+        "payload": dict(payload),
+        "evidence_links": evidence_refs,
+        "evidence_refs": evidence_refs,
+        "metadata": {
+            "source": "report_cache_rehydration",
+            "enabled": False,
+            "serving_enabled": False,
+        },
+    }
+    return base
+
+
 def classify_report_cache_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
     """Validate whether a persisted entry may be read as a cache hit."""
     normalised = normalise_report_cache_entry(entry)
