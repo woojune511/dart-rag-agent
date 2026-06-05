@@ -125,7 +125,9 @@ and hard to overfit.
 - LLM critic as an acceptance authority
 - benchmark-specific runtime branches
 
-## Next Useful Step
+## Reviewer Path
 
-Use [portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md) as the short
-reviewer path in portfolio, resume, or PR materials.
+For a quick review, start with
+[portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md). For an
+interview or project presentation, use
+[portfolio_presentation_outline.md](portfolio_presentation_outline.md).

@@ -149,7 +149,7 @@ Intentionally disabled:
 - LLM critic as an acceptance authority
 - benchmark-specific runtime routing branches
 
-## Next Useful Step
+## Reviewer Path
 
-Use the portfolio demo walkthrough as the short reviewer path in portfolio,
-resume, or PR materials.
+For a quick review, start with the portfolio demo walkthrough, then use the
+one-pager or presentation outline depending on the setting.
