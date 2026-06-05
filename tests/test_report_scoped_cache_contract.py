@@ -12,12 +12,20 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.config.report_scoped_cache import (
     CACHE_CONSUMER_BLOCKED,
     CACHE_CONSUMER_ELIGIBLE,
+    CACHE_ENTRY_BLOCKED,
+    CACHE_ENTRY_READABLE,
+    CACHE_ENTRY_SOURCE_ARTIFACT_STORE,
+    CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+    CACHE_ENTRY_SOURCE_RUNTIME_TRACE,
     CACHE_NOT_CACHEABLE,
     CACHE_REQUIRES_EVIDENCE_VERIFICATION,
     CACHE_REUSABLE,
+    REPORT_CACHE_ENTRY_VERSION,
     classify_report_cache_candidate,
     classify_report_cache_consumer_candidate,
+    classify_report_cache_entry,
     missing_key_fields,
+    normalise_report_cache_entry,
     normalise_report_cache_key,
     report_cache_key_id,
 )
@@ -224,6 +232,153 @@ class ReportScopedCacheContractTests(unittest.TestCase):
 
         self.assertEqual(result["status"], CACHE_CONSUMER_BLOCKED)
         self.assertIn("key_id_mismatch", result["reasons"])
+
+    def test_persisted_local_index_entry_is_readable(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "normalized_value": 123.0,
+                "normalized_unit": "KRW",
+            },
+            "provenance": {
+                "source_row_ids": ["row-1"],
+                "evidence_refs": ["ev-1"],
+                "source_anchor": "section",
+            },
+        }
+
+        result = classify_report_cache_entry(entry)
+
+        self.assertEqual(result["status"], CACHE_ENTRY_READABLE)
+        self.assertTrue(result["readable"])
+        self.assertEqual(result["reasons"], [])
+        self.assertEqual(result["entry"]["source"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
+
+    def test_runtime_trace_projection_is_not_a_read_source(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = classify_report_cache_entry(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_RUNTIME_TRACE,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_ENTRY_BLOCKED)
+        self.assertFalse(result["readable"])
+        self.assertIn("non_read_source", result["reasons"])
+
+    def test_artifact_store_projection_is_not_a_read_source(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = classify_report_cache_entry(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_ARTIFACT_STORE,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_ENTRY_BLOCKED)
+        self.assertIn("non_read_source", result["reasons"])
+
+    def test_cache_entry_requires_value_and_provenance(self) -> None:
+        result = classify_report_cache_entry(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_ENTRY_BLOCKED)
+        self.assertIn("missing_value", result["reasons"])
+        self.assertIn("missing_provenance", result["reasons"])
+
+    def test_cache_entry_normalisation_keeps_value_and_provenance_surfaces(self) -> None:
+        entry = normalise_report_cache_entry(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+                "rendered_value": "123",
+                "source_row_id": "row-1",
+            }
+        )
+
+        self.assertEqual(entry["value"]["rendered_value"], "123")
+        self.assertEqual(entry["provenance"]["source_row_ids"], ["row-1"])
+        self.assertEqual(entry["key_id"], report_cache_key_id(entry["key"]))
 
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
         update = _runtime_trace_state_update(

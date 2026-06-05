@@ -12,6 +12,7 @@ from typing import Any, Dict, Iterable, List, Mapping
 
 
 REPORT_CACHE_KEY_VERSION = "report-cache-v1"
+REPORT_CACHE_ENTRY_VERSION = "report-cache-entry-v1"
 REPORT_CACHE_KEY_FIELDS = (
     "company",
     "report_type",
@@ -36,6 +37,13 @@ CACHE_NOT_CACHEABLE = "not_cacheable"
 CACHE_CONSUMER_ELIGIBLE = "eligible"
 CACHE_CONSUMER_BLOCKED = "blocked"
 CACHE_CONSUMER_TRACE_ONLY = "trace_only"
+CACHE_ENTRY_READABLE = "readable"
+CACHE_ENTRY_BLOCKED = "blocked"
+
+CACHE_ENTRY_SOURCE_LOCAL_INDEX = "local_cache_index"
+CACHE_ENTRY_SOURCE_RUNTIME_TRACE = "runtime_trace_projection"
+CACHE_ENTRY_SOURCE_ARTIFACT_STORE = "artifact_store"
+CACHE_ENTRY_READ_SOURCES = {CACHE_ENTRY_SOURCE_LOCAL_INDEX}
 
 UNCERTAIN_TOKENS = {"", "-", "none", "null", "unknown", "n/a"}
 UNCACHEABLE_VALUE_KINDS = {
@@ -70,6 +78,13 @@ def _string_list(values: Any) -> List[str]:
     else:
         candidates = []
     return [text for text in (_normalise_text(value) for value in candidates) if text]
+
+
+def _first_mapping(*values: Any) -> Dict[str, Any]:
+    for value in values:
+        if isinstance(value, Mapping):
+            return dict(value)
+    return {}
 
 
 def normalise_report_cache_key(parts: Mapping[str, Any]) -> Dict[str, str]:
@@ -237,6 +252,102 @@ def classify_report_cache_consumer_candidate(candidate: Mapping[str, Any]) -> Di
         "enabled": False,
         "mode": CACHE_CONSUMER_TRACE_ONLY,
         "reasons": list(dict.fromkeys(reasons)),
+        "key": key,
+        "key_id": expected_key_id,
+    }
+
+
+def normalise_report_cache_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
+    """Return the reviewed persisted-entry shape for a future cache index.
+
+    Runtime trace projections and MAS artifacts may produce candidates, but a
+    readable cache hit must come from a persisted cache index entry.
+    """
+    payload = dict(entry or {})
+    key_payload = payload.get("key") if isinstance(payload.get("key"), Mapping) else payload
+    key = normalise_report_cache_key(key_payload)
+    value_payload = _first_mapping(payload.get("value"), payload.get("structured_result"))
+    provenance_payload = _first_mapping(payload.get("provenance"))
+    source_row_ids = _string_list(
+        provenance_payload.get("source_row_ids")
+        or provenance_payload.get("source_row_id")
+        or payload.get("source_row_ids")
+        or payload.get("source_row_id")
+    )
+    evidence_refs = _string_list(
+        provenance_payload.get("evidence_refs")
+        or provenance_payload.get("evidence_ref")
+        or payload.get("evidence_refs")
+        or payload.get("evidence_ref")
+    )
+    rendered_value = _first_text(
+        value_payload.get("rendered_value"),
+        value_payload.get("value_text"),
+        payload.get("rendered_value"),
+        payload.get("value_text"),
+    )
+    normalized_value = (
+        value_payload.get("normalized_value")
+        if value_payload.get("normalized_value") is not None
+        else payload.get("normalized_value")
+    )
+    return {
+        "entry_version": _normalise_text(payload.get("entry_version") or payload.get("version")),
+        "source": _normalise_text(payload.get("source") or payload.get("entry_source")),
+        "key": key,
+        "key_id": _normalise_text(payload.get("key_id")) or report_cache_key_id(key),
+        "value": {
+            "kind": _normalise_text(
+                value_payload.get("kind") or value_payload.get("value_kind") or payload.get("value_kind")
+            ),
+            "rendered_value": rendered_value,
+            "normalized_value": normalized_value,
+            "normalized_unit": _normalise_text(value_payload.get("normalized_unit") or payload.get("normalized_unit")),
+            "result_unit": _normalise_text(value_payload.get("result_unit") or payload.get("result_unit")),
+        },
+        "provenance": {
+            "source_row_ids": source_row_ids,
+            "evidence_refs": evidence_refs,
+            "source_anchor": _first_text(provenance_payload.get("source_anchor"), payload.get("source_anchor")),
+        },
+    }
+
+
+def classify_report_cache_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
+    """Validate whether a persisted entry may be read as a cache hit."""
+    normalised = normalise_report_cache_entry(entry)
+    key = dict(normalised.get("key") or {})
+    value = dict(normalised.get("value") or {})
+    provenance = dict(normalised.get("provenance") or {})
+    reasons: List[str] = []
+
+    if normalised.get("entry_version") != REPORT_CACHE_ENTRY_VERSION:
+        reasons.append("invalid_entry_version")
+    if normalised.get("source") not in CACHE_ENTRY_READ_SOURCES:
+        reasons.append("non_read_source")
+    for field in missing_key_fields(key):
+        reasons.append(f"missing_key:{field}")
+    for field in PROVENANCE_SCOPE_FIELDS:
+        if not key.get(field):
+            reasons.append(f"missing_scope:{field}")
+    if not key.get("source_table_id"):
+        reasons.append("missing_scope:source_table_id")
+
+    expected_key_id = report_cache_key_id(key)
+    if normalised.get("key_id") != expected_key_id:
+        reasons.append("key_id_mismatch")
+
+    if not (value.get("rendered_value") or value.get("normalized_value") is not None):
+        reasons.append("missing_value")
+    if not (provenance.get("source_row_ids") or provenance.get("evidence_refs") or provenance.get("source_anchor")):
+        reasons.append("missing_provenance")
+
+    readable = not reasons
+    return {
+        "status": CACHE_ENTRY_READABLE if readable else CACHE_ENTRY_BLOCKED,
+        "readable": readable,
+        "reasons": list(dict.fromkeys(reasons)),
+        "entry": normalised,
         "key": key,
         "key_id": expected_key_id,
     }

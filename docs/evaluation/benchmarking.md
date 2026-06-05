@@ -921,6 +921,10 @@ Current local baseline was refreshed on 2026-06-05:
   `report_cache_consumer_assessment` and record that normal retrieval executed.
   Focused coverage checks both eligible and blocked assessments without letting
   either case bypass vector-store search.
+- The persisted-entry boundary is now explicit: only entries sourced from a
+  future `local_cache_index` can validate as readable. Runtime trace and
+  artifact-store projections are blocked as read sources, so candidate
+  observability cannot become a cache hit by accident.
 
 ## Parser Structure Smokes
 

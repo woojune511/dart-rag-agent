@@ -558,6 +558,20 @@ Next structural step: before adding an enable flag, decide where report-cache
 entries would be persisted/read from and define the source-of-truth boundary
 between runtime trace projections, artifact stores, and any local cache index.
 
+Twenty-seventh step completed: report-scoped cache now has a persisted-entry
+source-of-truth contract. `REPORT_CACHE_ENTRY_VERSION` and
+`classify_report_cache_entry()` define the only readable source as
+`local_cache_index`; runtime trace projections and artifact-store projections
+remain candidate/audit surfaces and are blocked as cache read sources. A
+readable entry must carry a complete report/value/provenance key, matching key
+id, value surface or normalized value, and provenance refs. This is still a
+schema/validation contract only: no cache index is written, read, or used for
+retrieval bypass.
+
+Next structural step: add a read-only local cache index adapter skeleton that
+can load and validate entries with `classify_report_cache_entry()` but still
+returns trace-only diagnostics rather than serving runtime hits.
+
 ### 3. Report-scoped cache
 
 현재:
