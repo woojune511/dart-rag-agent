@@ -599,7 +599,9 @@ Useful supporting points:
   The reviewer handoff smoke and compact baseline now expose projection
   validation counts and per-candidate status/reasons, so reviewers can confirm
   the ready fixture is valid for the calculation contract while the blocked
-  fixture remains a fallback.
+  fixture remains a fallback. The repo-local review command now adds a compact
+  `reviewer_handoff` summary with `status = ready`, `mode = candidate_only`,
+  disabled serving/ledger flags, and ready/fallback projection counts.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

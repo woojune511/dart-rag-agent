@@ -21,6 +21,12 @@ class ReviewReportCacheIndexContractTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["difference_count"], 0)
+        self.assertEqual(result["reviewer_handoff"]["status"], "ready")
+        self.assertEqual(result["reviewer_handoff"]["mode"], "candidate_only")
+        self.assertFalse(result["reviewer_handoff"]["serving_enabled"])
+        self.assertFalse(result["reviewer_handoff"]["ledger_insertion_enabled"])
+        self.assertEqual(result["reviewer_handoff"]["projection_ready_count"], 1)
+        self.assertEqual(result["reviewer_handoff"]["fallback_count"], 1)
         self.assertIn("rehydration_diagnostics.json", result["report_cache_index_path"])
         self.assertIn("rehydration_contract_baseline.json", result["baseline"])
 
@@ -44,8 +50,11 @@ class ReviewReportCacheIndexContractTests(unittest.TestCase):
 
             self.assertEqual(review_result.returncode, 0, review_result.stderr)
             self.assertIn('"status": "ok"', review_result.stdout)
+            self.assertIn('"reviewer_handoff"', review_result.stdout)
             self.assertTrue(output.exists())
-            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["difference_count"], 0)
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["difference_count"], 0)
+            self.assertEqual(payload["reviewer_handoff"]["status"], "ready")
 
     def test_cli_exits_nonzero_when_contract_differs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -68,6 +77,7 @@ class ReviewReportCacheIndexContractTests(unittest.TestCase):
 
             self.assertEqual(review_result.returncode, 1)
             self.assertIn('"status": "mismatch"', review_result.stdout)
+            self.assertIn('"status": "needs_review"', review_result.stdout)
 
 
 if __name__ == "__main__":
