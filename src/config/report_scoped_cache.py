@@ -453,6 +453,16 @@ def build_report_cache_rehydrated_candidate_artifact(
     bypass could be considered.
     """
     rehydration = classify_report_cache_rehydration_candidate(entry)
+    consumer_admissibility = classify_report_cache_guarded_consumer_candidate(entry)
+    consumer_contract = {
+        "status": consumer_admissibility.get("status"),
+        "admissible": bool(consumer_admissibility.get("admissible")),
+        "fallback_required": bool(consumer_admissibility.get("fallback_required")),
+        "enabled": False,
+        "serving_enabled": False,
+        "mode": consumer_admissibility.get("mode"),
+        "reasons": [str(reason) for reason in list(consumer_admissibility.get("reasons") or [])],
+    }
     base = {
         "status": rehydration.get("status"),
         "ready": bool(rehydration.get("ready")),
@@ -461,6 +471,7 @@ def build_report_cache_rehydrated_candidate_artifact(
         "reasons": [str(reason) for reason in list(rehydration.get("reasons") or [])],
         "key": dict(rehydration.get("key") or {}),
         "key_id": str(rehydration.get("key_id") or ""),
+        "consumer_admissibility": dict(consumer_contract),
         "artifact": None,
     }
     if not bool(rehydration.get("ready")):
@@ -504,6 +515,7 @@ def build_report_cache_rehydrated_candidate_artifact(
         "structured_result": structured_result,
         "report_cache_key": dict(rehydration.get("key") or {}),
         "report_cache_key_id": str(rehydration.get("key_id") or ""),
+        "cache_origin": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
         "report_cache_rehydration": {
             "status": rehydration.get("status"),
             "ready": bool(rehydration.get("ready")),
@@ -511,6 +523,7 @@ def build_report_cache_rehydrated_candidate_artifact(
             "serving_enabled": False,
             "reasons": [],
         },
+        "consumer_admissibility": dict(consumer_contract),
     }
     base["artifact"] = {
         "artifact_id": str(artifact_id or f"report_cache_rehydrated::{rehydration.get('key_id') or ''}").strip(),
@@ -525,8 +538,13 @@ def build_report_cache_rehydrated_candidate_artifact(
         "evidence_refs": evidence_refs,
         "metadata": {
             "source": "report_cache_rehydration",
+            "cache_origin": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "report_cache_key_id": str(rehydration.get("key_id") or ""),
+            "rehydration_status": str(rehydration.get("status") or ""),
+            "consumer_admissibility_status": str(consumer_admissibility.get("status") or ""),
             "enabled": False,
             "serving_enabled": False,
+            "ledger_insertion_enabled": False,
         },
     }
     return base

@@ -764,6 +764,21 @@ served cache value. The two open designs are either a dedicated
 cache-rehydration task/artifact kind, or mapping cache rehydration into the
 existing calculation task contract with explicit cache-origin metadata.
 
+Forty-third step completed: the non-serving rehydrated candidate artifact now
+has an explicit calculation-ledger-oriented metadata contract. Ready candidates
+carry `source = report_cache_rehydration`, `cache_origin = local_cache_index`,
+`report_cache_key_id`, `rehydration_status`, guarded
+`consumer_admissibility.status`, and disabled serving/ledger insertion flags in
+addition to the preserved answer, evidence, structured-result, and calculation
+trace payload. Blocked candidates also expose guarded consumer fallback status
+without producing an artifact. No cache read, write, retrieval bypass, or ledger
+insertion behavior is enabled.
+
+Next structural step: choose the schema-backed producer policy before adding
+any serving flag. The best next contract test should validate either a
+dedicated cache-rehydration artifact kind or the mapping from a rehydrated
+candidate into the existing calculation task surfaces.
+
 ### 3. Report-scoped cache
 
 현재:

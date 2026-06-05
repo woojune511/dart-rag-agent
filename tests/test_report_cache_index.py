@@ -208,8 +208,21 @@ class ReportCacheIndexTests(unittest.TestCase):
         self.assertTrue(ready["ready"])
         self.assertFalse(ready["enabled"])
         self.assertFalse(ready["serving_enabled"])
+        self.assertEqual(ready["consumer_admissibility"]["status"], CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN)
         self.assertEqual(ready["artifact"]["status"], "candidate")
+        self.assertEqual(ready["artifact"]["metadata"]["source"], "report_cache_rehydration")
+        self.assertEqual(ready["artifact"]["metadata"]["cache_origin"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
+        self.assertEqual(
+            ready["artifact"]["metadata"]["consumer_admissibility_status"],
+            CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN,
+        )
+        self.assertFalse(ready["artifact"]["metadata"]["ledger_insertion_enabled"])
         self.assertEqual(ready["artifact"]["payload"]["answer"], "123")
+        self.assertEqual(ready["artifact"]["payload"]["cache_origin"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
+        self.assertEqual(
+            ready["artifact"]["payload"]["consumer_admissibility"]["status"],
+            CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN,
+        )
         self.assertEqual(
             ready["artifact"]["payload"]["resolved_calculation_trace"]["calculation_result"]["status"],
             "ok",

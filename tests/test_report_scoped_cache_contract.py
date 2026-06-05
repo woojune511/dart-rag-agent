@@ -635,6 +635,8 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertFalse(result["enabled"])
         self.assertFalse(result["serving_enabled"])
         self.assertIsNone(result["artifact"])
+        self.assertEqual(result["consumer_admissibility"]["status"], CACHE_CONSUMER_FALLBACK_REQUIRED)
+        self.assertFalse(result["consumer_admissibility"]["serving_enabled"])
         self.assertIn("missing_answer_slots", result["reasons"])
 
     def test_rehydrated_candidate_artifact_preserves_payload_without_serving(self) -> None:
@@ -690,15 +692,27 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(artifact["artifact_id"], "cache::candidate::1")
         self.assertEqual(artifact["task_id"], "task_1")
         self.assertEqual(artifact["status"], "candidate")
+        self.assertEqual(artifact["metadata"]["source"], "report_cache_rehydration")
+        self.assertEqual(artifact["metadata"]["cache_origin"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
+        self.assertEqual(artifact["metadata"]["report_cache_key_id"], report_cache_key_id(key))
+        self.assertEqual(artifact["metadata"]["rehydration_status"], CACHE_REHYDRATION_READY)
+        self.assertEqual(
+            artifact["metadata"]["consumer_admissibility_status"],
+            CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN,
+        )
         self.assertFalse(artifact["metadata"]["serving_enabled"])
+        self.assertFalse(artifact["metadata"]["ledger_insertion_enabled"])
         self.assertEqual(payload["answer"], "123")
         self.assertEqual(payload["citations"], ["[ACME | 2023 | section]"])
         self.assertEqual(payload["evidence_items"], [{"source_anchor": "section", "claim": "metric was 123"}])
         self.assertEqual(payload["structured_result"]["answer_slots"]["primary_value"]["display"], "123")
         self.assertEqual(payload["resolved_calculation_trace"]["calculation_result"]["rendered_value"], "123")
+        self.assertEqual(payload["cache_origin"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
         self.assertEqual(payload["report_cache_key_id"], report_cache_key_id(key))
         self.assertEqual(payload["report_cache_rehydration"]["status"], CACHE_REHYDRATION_READY)
         self.assertFalse(payload["report_cache_rehydration"]["serving_enabled"])
+        self.assertEqual(payload["consumer_admissibility"]["status"], CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN)
+        self.assertFalse(payload["consumer_admissibility"]["serving_enabled"])
         self.assertIn("ev-1", artifact["evidence_refs"])
         self.assertIn("row-1", artifact["evidence_refs"])
 

@@ -976,7 +976,11 @@ Current local baseline was refreshed on 2026-06-05:
   artifact-like candidate containing answer text, citations, evidence items,
   structured result, and calculation trace. The candidate stays non-serving:
   `enabled = false`, `serving_enabled = false`, and artifact `status =
-  candidate`. `report_cache_index_smoke` includes a minimal
+  candidate`. The artifact now also carries future ledger-facing metadata:
+  `source = report_cache_rehydration`, `cache_origin = local_cache_index`,
+  `report_cache_key_id`, `rehydration_status`, guarded
+  `consumer_admissibility.status`, and disabled ledger insertion.
+  `report_cache_index_smoke` includes a minimal
   `rehydrated_candidate_artifacts` preview with answer/citation/evidence/trace
   counts, still outside the live task/artifact ledger.
 - `classify_report_cache_guarded_consumer_candidate` is the first pure

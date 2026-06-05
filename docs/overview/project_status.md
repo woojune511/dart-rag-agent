@@ -575,6 +575,10 @@ Useful supporting points:
   pure version of those blocking conditions without enabling reads: the ready
   fixture is admissible for design, while incomplete or mismatched entries
   require normal retrieval fallback and expose reasons.
+  The non-serving rehydrated candidate artifact now carries the future
+  ledger-facing metadata needed for a later producer decision: source,
+  cache-origin, cache key id, rehydration status, guarded consumer
+  admissibility status, and disabled serving/ledger insertion flags.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

@@ -266,6 +266,11 @@ citations, evidence items, structured result, and calculation trace into an
 artifact-like candidate payload, but that payload must remain `status =
 candidate` and must not be inserted into the task/artifact ledger as a served
 answer.
+That candidate must also carry calculation-ledger-oriented metadata without
+turning into a ledger write: `source = report_cache_rehydration`,
+`cache_origin = local_cache_index`, `report_cache_key_id`,
+`rehydration_status`, guarded `consumer_admissibility.status`, and disabled
+`serving_enabled` / `ledger_insertion_enabled` flags.
 
 A rehydratable entry must include all of the following:
 
