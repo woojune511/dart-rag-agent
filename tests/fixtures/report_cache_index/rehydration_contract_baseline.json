@@ -1,0 +1,56 @@
+{
+  "status": "trace_only",
+  "enabled": false,
+  "serving_enabled": false,
+  "match_count": 2,
+  "readable_match_count": 2,
+  "rehydration_ready_match_count": 1,
+  "rehydration_blocked_match_count": 1,
+  "rehydration_reason_counts": {
+    "missing_answer_slots": 1,
+    "missing_calculation_trace": 1,
+    "missing_citation_or_source_anchor": 1,
+    "missing_primary_answer_slot": 1
+  },
+  "index_status": "loaded",
+  "index_readable_count": 2,
+  "index_rehydration_ready_count": 1,
+  "index_blocked_count": 0,
+  "index_malformed_count": 0,
+  "rehydrated_candidate_artifact_count": 1,
+  "rehydrated_candidate_artifact_blocked_count": 1,
+  "candidate_artifacts": [
+    {
+      "index": 1,
+      "status": "blocked",
+      "ready": false,
+      "serving_enabled": false,
+      "has_artifact": false,
+      "artifact_status": "",
+      "artifact_kind": "",
+      "answer_present": false,
+      "citation_count": 0,
+      "evidence_item_count": 0,
+      "has_structured_result": false,
+      "has_resolved_calculation_trace": false,
+      "calculation_operand_count": 0,
+      "artifact_serving_enabled": false
+    },
+    {
+      "index": 2,
+      "status": "ready",
+      "ready": true,
+      "serving_enabled": false,
+      "has_artifact": true,
+      "artifact_status": "candidate",
+      "artifact_kind": "calculation_result",
+      "answer_present": true,
+      "citation_count": 1,
+      "evidence_item_count": 1,
+      "has_structured_result": true,
+      "has_resolved_calculation_trace": true,
+      "calculation_operand_count": 1,
+      "artifact_serving_enabled": false
+    }
+  ]
+}

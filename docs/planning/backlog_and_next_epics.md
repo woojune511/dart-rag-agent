@@ -692,9 +692,18 @@ without diffing the full matched-entry payload. The CLI supports
 `--write-baseline` and comparison against either full smoke output or compact
 contract JSON.
 
-Next structural step: decide whether the report-cache-index smoke contract
-baseline should remain an on-demand local reviewer artifact or whether a tiny
-source-controlled baseline is worth adding for CI-style comparison.
+Thirty-eighth step completed: the report-cache-index smoke contract now has a
+source-controlled compact baseline at
+`tests/fixtures/report_cache_index/rehydration_contract_baseline.json`. The
+baseline is generated from the fixture-backed smoke output and covers the stable
+trace-only handoff fields, including candidate-artifact preview counts. Contract
+tests compare live fixture smoke output against this baseline, while local
+reviewer output can still be written under `benchmarks/results/**` and kept out
+of commits.
+
+Next structural step: use the source-controlled baseline in a lightweight
+CI-style check or PR-review command, while keeping generated smoke outputs under
+`benchmarks/results/**` untracked.
 
 ### 3. Report-scoped cache
 

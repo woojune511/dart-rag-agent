@@ -17,6 +17,7 @@ from src.ops.report_cache_index_smoke import build_smoke_payload  # noqa: E402
 
 
 FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
+BASELINE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_contract_baseline.json"
 
 
 class ReportCacheIndexSmokeContractTests(unittest.TestCase):
@@ -56,6 +57,15 @@ class ReportCacheIndexSmokeContractTests(unittest.TestCase):
         self.assertEqual(result["status"], "mismatch")
         self.assertEqual(result["difference_count"], 1)
         self.assertEqual(result["differences"][0]["path"], "rehydrated_candidate_artifact_count")
+
+    def test_source_controlled_baseline_matches_fixture_smoke_contract(self) -> None:
+        current = build_smoke_payload(report_cache_index_path=FIXTURE_PATH)
+        baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+
+        result = check_contract(current_payload=current, baseline_payload=baseline)
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["difference_count"], 0)
 
     def test_cli_writes_compact_baseline_and_compares(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
