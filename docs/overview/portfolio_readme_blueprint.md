@@ -75,9 +75,9 @@ User question
    - cache candidate insertion into the live ledger
    - benchmark-specific runtime routing rules
 
-10. **Next step**
-    - use the portfolio demo walkthrough as the short reviewer path in
-      portfolio, resume, or PR materials.
+10. **Reviewer path**
+    - start with the portfolio demo walkthrough for a compact contract scan.
+    - use the presentation outline for interview or project-review settings.
 
 ## README Opening Draft
 

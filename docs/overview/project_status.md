@@ -246,8 +246,9 @@ Useful supporting points:
    fallback now distinguishes structured-result-only and mixed legacy fallback,
    and evaluator/benchmark exports surface projection source metadata so
    remaining legacy fallback consumers can be audited from output artifacts.
-4. Use the portfolio demo walkthrough as the short reviewer path in portfolio,
-   resume, or PR materials.
+4. Reviewer path: start with the portfolio demo walkthrough for a compact
+   contract scan, then use the one-pager or presentation outline depending on
+   the setting.
 
 ### Task Ledger / Artifact Contract Focus
 
