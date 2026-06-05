@@ -263,6 +263,18 @@ def build_critic_report(
     }
 
 
+def _dedupe_strings(values: List[str]) -> List[str]:
+    seen: set[str] = set()
+    normalized: List[str] = []
+    for value in values:
+        text = str(value).strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        normalized.append(text)
+    return normalized
+
+
 def build_final_report_record(
     *,
     final_answer: str,
@@ -275,21 +287,9 @@ def build_final_report_record(
     return {
         "final_answer": str(final_answer or "").strip(),
         "status": str(status or "ok").strip() or "ok",
-        "source_task_ids": [
-            str(value).strip()
-            for value in source_task_ids
-            if str(value).strip()
-        ],
-        "source_artifact_ids": [
-            str(value).strip()
-            for value in source_artifact_ids
-            if str(value).strip()
-        ],
-        "evidence_refs": [
-            str(value).strip()
-            for value in evidence_refs
-            if str(value).strip()
-        ],
+        "source_task_ids": _dedupe_strings(source_task_ids),
+        "source_artifact_ids": _dedupe_strings(source_artifact_ids),
+        "evidence_refs": _dedupe_strings(evidence_refs),
         "subtask_results": [dict(item) for item in (subtask_results or []) if isinstance(item, dict)],
     }
 

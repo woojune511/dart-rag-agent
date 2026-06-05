@@ -425,8 +425,15 @@ The 2026-06-05 local baseline was refreshed and compared cleanly:
 output and compact contract remain local `benchmarks/results/**` artifacts, not
 source-controlled handoff files.
 
-Next structural step: use the normalized default E2E smoke and compact contract
-compare as the MAS baseline before making worker/orchestrator quality changes.
+Fourteenth step completed: MAS final report provenance now applies
+order-preserving dedupe to final `source_task_ids`, `source_artifact_ids`, and
+`evidence_refs`, and the synthesis artifact reuses the deduped final evidence
+refs. A live default smoke after the change kept compact contract comparison at
+`status = ok`, `difference_count = 0`; both cases still had five completed
+tasks, while final record and synthesis evidence refs had `duplicates = 0`.
+
+Next structural step: begin worker/orchestrator answer-quality changes using the
+normalized default E2E smoke and compact contract compare as the MAS baseline.
 
 ### 3. Report-scoped cache
 

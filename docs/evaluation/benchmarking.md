@@ -869,6 +869,9 @@ Current local baseline was refreshed on 2026-06-05:
   and both cases have `final_report_status = ok`,
   `task_artifact_integrity_status = ok`, `task_count = 5`, and
   `task_status_counts.completed = 5`.
+- After final-provenance dedupe, a default live smoke kept the compact contract
+  at `status = ok`, `difference_count = 0`, and final record / synthesis
+  evidence refs reported `duplicates = 0` for both cases.
 
 ## Parser Structure Smokes
 

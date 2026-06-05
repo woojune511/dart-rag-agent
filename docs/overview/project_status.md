@@ -476,6 +476,11 @@ Useful supporting points:
   compact baseline compare is clean: `status = ok`, `difference_count = 0`,
   `case_count = 2`, `blocked_count = 0`, `integrity_error_count = 0`, and both
   cases have five completed tasks.
+- MAS final report provenance now dedupes final source task IDs, source artifact
+  IDs, and evidence refs while preserving first-seen order; the synthesis
+  artifact uses the same deduped evidence refs as the final report record. A
+  live default smoke kept compact contract comparison clean and confirmed zero
+  duplicates in final record and synthesis evidence refs.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

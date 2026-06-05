@@ -310,7 +310,7 @@ class OrchestratorNodeTests(unittest.TestCase):
                 content={"answer": "stale analyst content"},
                 payload={"answer": "payload analyst answer"},
                 evidence_links=[],
-                evidence_refs=["payload-ref-a"],
+                evidence_refs=["payload-ref-a", "payload-ref-a", "payload-ref-shared"],
             ),
             "task_2": Artifact(
                 task_id="task_2",
@@ -319,7 +319,7 @@ class OrchestratorNodeTests(unittest.TestCase):
                 content={"answer": "stale researcher content"},
                 payload={"answer": "payload researcher answer"},
                 evidence_links=[],
-                evidence_refs=["payload-ref-b"],
+                evidence_refs=["payload-ref-shared", "payload-ref-b"],
             ),
         }
 
@@ -337,7 +337,11 @@ class OrchestratorNodeTests(unittest.TestCase):
         )
         self.assertEqual(
             updates["final_report_record"]["evidence_refs"],
-            ["payload-ref-a", "payload-ref-b"],
+            ["payload-ref-a", "payload-ref-shared", "payload-ref-b"],
+        )
+        self.assertEqual(
+            updates["artifacts"]["synthesis::final"]["evidence_refs"],
+            ["payload-ref-a", "payload-ref-shared", "payload-ref-b"],
         )
 
     def test_orchestrator_merge_blocks_final_close_on_integrity_error(self) -> None:

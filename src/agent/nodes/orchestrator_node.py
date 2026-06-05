@@ -505,6 +505,7 @@ def make_run_orchestrator_merge(
             evidence_refs=evidence_refs,
             subtask_results=subtask_results,
         )
+        final_evidence_refs = list(final_report_record.get("evidence_refs") or [])
         synthesis_task = build_agent_task(
             task_id="synthesis::final",
             assignee="Orchestrator",
@@ -524,7 +525,7 @@ def make_run_orchestrator_merge(
             summary=final_report,
             content={"answer": final_report},
             payload={**final_report_record},
-            evidence_links=evidence_refs,
+            evidence_links=final_evidence_refs,
         )
         updates = {
             "tasks": {"synthesis::final": synthesis_task},
@@ -567,6 +568,7 @@ def make_run_orchestrator_merge(
             subtask_results=subtask_results,
             status="blocked",
         )
+        blocked_evidence_refs = list(blocked_record.get("evidence_refs") or [])
         blocked_task = {
             **synthesis_task,
             "status": TaskStatus.FAILED,
@@ -584,7 +586,7 @@ def make_run_orchestrator_merge(
                 **blocked_record,
                 "blocking_integrity_issues": blocking_issues,
             },
-            evidence_links=evidence_refs,
+            evidence_links=blocked_evidence_refs,
         )
         return attach_task_artifact_trace(state, {
             "tasks": {"synthesis::final": blocked_task},
