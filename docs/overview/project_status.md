@@ -526,8 +526,10 @@ Useful supporting points:
   repair aligns same-table KRW ratio operands to the table display unit before
   formula execution; a focused local Google-store probe now reports the Samsung
   2023 operating margin as `2.54%` with one `reusable` calculation candidate.
-  Cache read/write behavior and retrieval bypass remain disabled until the
-  guarded consumer path is designed.
+  A disabled consumer-side gate now marks only read-only, complete, reason-free
+  `reusable` projections as `retrieval_bypass.eligible`, with `enabled = false`
+  and `mode = trace_only`; MAS smoke surfaces that nested assessment. Cache
+  read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

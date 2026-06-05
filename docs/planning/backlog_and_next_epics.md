@@ -533,6 +533,19 @@ consider `reusable` projections, preserve the source evidence contract, and
 fall back to normal retrieval when cache provenance or value identity is
 incomplete.
 
+Twenty-fifth step completed: report-scoped cache now has a disabled
+consumer-side gate. `classify_report_cache_consumer_candidate()` only marks a
+read-only `reusable` projection with complete report/value/provenance key,
+matching key id, empty reasons, and table provenance as `eligible`; all other
+projections are blocked with explicit reasons. Runtime traces attach this as
+`report_cache_candidate.retrieval_bypass` with `enabled = false` and
+`mode = trace_only`, and MAS smoke output surfaces the nested assessment for
+handoff review. No cache read/write or retrieval bypass behavior is enabled.
+
+Next structural step: connect the disabled consumer assessment to the earliest
+retrieval planning surface as trace-only telemetry, then verify that normal
+retrieval still runs when the assessment is blocked or disabled.
+
 ### 3. Report-scoped cache
 
 현재:

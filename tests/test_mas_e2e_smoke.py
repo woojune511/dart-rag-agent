@@ -88,6 +88,13 @@ class MasE2ESmokeTests(unittest.TestCase):
                                         "company": "ACME",
                                         "year": "2023",
                                     },
+                                    "retrieval_bypass": {
+                                        "status": "blocked",
+                                        "eligible": False,
+                                        "enabled": False,
+                                        "mode": "trace_only",
+                                        "reasons": ["candidate_not_reusable"],
+                                    },
                                 }
                             }
                         },
@@ -100,6 +107,13 @@ class MasE2ESmokeTests(unittest.TestCase):
                                     "key": {
                                         "company": "ACME",
                                         "year": "2023",
+                                    },
+                                    "retrieval_bypass": {
+                                        "status": "blocked",
+                                        "eligible": False,
+                                        "enabled": False,
+                                        "mode": "trace_only",
+                                        "reasons": ["candidate_not_reusable"],
                                     },
                                 }
                             }
@@ -178,6 +192,13 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(
             case["report_cache_candidates"]["items"][0]["path"],
             "artifacts.task_1.content.resolved_calculation_trace",
+        )
+        self.assertEqual(
+            case["report_cache_candidates"]["items"][0]["retrieval_bypass"]["status"],
+            "blocked",
+        )
+        self.assertFalse(
+            case["report_cache_candidates"]["items"][0]["retrieval_bypass"]["enabled"]
         )
         self.assertNotIn("value_contract", payload)
 

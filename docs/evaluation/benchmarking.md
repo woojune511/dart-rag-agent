@@ -912,6 +912,11 @@ Current local baseline was refreshed on 2026-06-05:
   `2.54%`, keeps `6,566,976` and `258,935,494` visible, and still surfaces one
   `reusable` report-cache candidate. The probe output was treated as a local
   experiment artifact under `benchmarks/results/**`, not committed.
+- The first report-cache consumer contract is still trace-only: reusable
+  projections now include a nested `retrieval_bypass` assessment, but the
+  assessment is emitted with `enabled = false`. Focused unit coverage checks
+  that blocked projections remain blocked and that MAS smoke output preserves
+  the nested assessment for review.
 
 ## Parser Structure Smokes
 

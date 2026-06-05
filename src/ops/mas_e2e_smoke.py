@@ -128,6 +128,15 @@ def _find_report_cache_candidates(obj: Any, *, path: str = "") -> List[Dict[str,
             key = candidate.get("key")
             if isinstance(key, dict):
                 item["key"] = key
+            retrieval_bypass = candidate.get("retrieval_bypass")
+            if isinstance(retrieval_bypass, dict):
+                item["retrieval_bypass"] = {
+                    "status": str(retrieval_bypass.get("status") or "").strip(),
+                    "eligible": bool(retrieval_bypass.get("eligible")),
+                    "enabled": bool(retrieval_bypass.get("enabled")),
+                    "mode": str(retrieval_bypass.get("mode") or "").strip(),
+                    "reasons": [str(reason) for reason in list(retrieval_bypass.get("reasons") or [])],
+                }
             candidates.append(item)
         for key, value in obj.items():
             child_path = f"{path}.{key}" if path else str(key)

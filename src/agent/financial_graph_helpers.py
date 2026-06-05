@@ -22,7 +22,11 @@ import re
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
 from src.config import get_financial_ontology
-from src.config.report_scoped_cache import classify_report_cache_candidate, report_cache_key_id
+from src.config.report_scoped_cache import (
+    classify_report_cache_candidate,
+    classify_report_cache_consumer_candidate,
+    report_cache_key_id,
+)
 from src.config.retrieval_policy import (
     CONSOLIDATION_SCOPE_POLICY,
     CONCEPT_RATIO_RESULT_UNIT_POLICY,
@@ -1379,13 +1383,15 @@ def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, An
         "evidence_refs": calculation_result.get("evidence_refs") or primary_slot.get("evidence_refs"),
     }
     classification = classify_report_cache_candidate(candidate)
-    return {
+    projection = {
         "status": classification["status"],
         "reasons": list(classification.get("reasons") or []),
         "key": dict(classification.get("key") or {}),
         "key_id": report_cache_key_id(classification.get("key") or {}),
         "read_only": True,
     }
+    projection["retrieval_bypass"] = classify_report_cache_consumer_candidate(projection)
+    return projection
 
 
 def _build_fallback_calculation_trace(

@@ -33,6 +33,9 @@ PROVENANCE_SCOPE_FIELDS = ("consolidation_scope", "statement_type", "source_sect
 CACHE_REUSABLE = "reusable"
 CACHE_REQUIRES_EVIDENCE_VERIFICATION = "requires_evidence_verification"
 CACHE_NOT_CACHEABLE = "not_cacheable"
+CACHE_CONSUMER_ELIGIBLE = "eligible"
+CACHE_CONSUMER_BLOCKED = "blocked"
+CACHE_CONSUMER_TRACE_ONLY = "trace_only"
 
 UNCERTAIN_TOKENS = {"", "-", "none", "null", "unknown", "n/a"}
 UNCACHEABLE_VALUE_KINDS = {
@@ -190,3 +193,50 @@ def classify_report_cache_candidate(candidate: Mapping[str, Any]) -> Dict[str, A
             "key": key,
         }
     return {"status": CACHE_REUSABLE, "reasons": [], "key": key}
+
+
+def classify_report_cache_consumer_candidate(candidate: Mapping[str, Any]) -> Dict[str, Any]:
+    """Assess whether a read-only projection is safe to consider for cache consumption.
+
+    This does not enable cache reads. It only marks future retrieval-bypass
+    eligibility for observability and keeps the runtime path trace-only.
+    """
+    payload = dict(candidate or {})
+    key = normalise_report_cache_key(payload.get("key") if isinstance(payload.get("key"), Mapping) else payload)
+    reasons: List[str] = []
+    if not payload:
+        reasons.append("missing_candidate")
+
+    status = _normalise_text(payload.get("status")).lower()
+    if status != CACHE_REUSABLE:
+        reasons.append("candidate_not_reusable")
+    if payload.get("read_only") is not True:
+        reasons.append("missing_read_only_projection")
+
+    candidate_reasons = [str(reason) for reason in list(payload.get("reasons") or []) if str(reason or "").strip()]
+    if candidate_reasons:
+        reasons.append("candidate_has_reasons")
+
+    for field in missing_key_fields(key):
+        reasons.append(f"missing_key:{field}")
+    for field in PROVENANCE_SCOPE_FIELDS:
+        if not key.get(field):
+            reasons.append(f"missing_scope:{field}")
+    if not key.get("source_table_id"):
+        reasons.append("missing_scope:source_table_id")
+
+    expected_key_id = report_cache_key_id(key)
+    supplied_key_id = _normalise_text(payload.get("key_id"))
+    if supplied_key_id and supplied_key_id != expected_key_id:
+        reasons.append("key_id_mismatch")
+
+    eligible = not reasons
+    return {
+        "status": CACHE_CONSUMER_ELIGIBLE if eligible else CACHE_CONSUMER_BLOCKED,
+        "eligible": eligible,
+        "enabled": False,
+        "mode": CACHE_CONSUMER_TRACE_ONLY,
+        "reasons": list(dict.fromkeys(reasons)),
+        "key": key,
+        "key_id": expected_key_id,
+    }

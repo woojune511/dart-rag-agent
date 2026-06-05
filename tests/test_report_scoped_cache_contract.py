@@ -10,10 +10,13 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.config.report_scoped_cache import (
+    CACHE_CONSUMER_BLOCKED,
+    CACHE_CONSUMER_ELIGIBLE,
     CACHE_NOT_CACHEABLE,
     CACHE_REQUIRES_EVIDENCE_VERIFICATION,
     CACHE_REUSABLE,
     classify_report_cache_candidate,
+    classify_report_cache_consumer_candidate,
     missing_key_fields,
     normalise_report_cache_key,
     report_cache_key_id,
@@ -135,6 +138,93 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(empty["status"], CACHE_NOT_CACHEABLE)
         self.assertIn("missing_value", empty["reasons"])
 
+    def test_reusable_read_only_projection_is_consumer_eligible_but_disabled(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = classify_report_cache_consumer_candidate(
+            {
+                "status": CACHE_REUSABLE,
+                "reasons": [],
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "read_only": True,
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_ELIGIBLE)
+        self.assertTrue(result["eligible"])
+        self.assertFalse(result["enabled"])
+        self.assertEqual(result["mode"], "trace_only")
+        self.assertEqual(result["reasons"], [])
+
+    def test_consumer_blocks_non_reusable_or_incomplete_projection(self) -> None:
+        result = classify_report_cache_consumer_candidate(
+            {
+                "status": CACHE_REQUIRES_EVIDENCE_VERIFICATION,
+                "reasons": ["missing_scope:statement_type"],
+                "key": {
+                    "company": "ACME",
+                    "report_type": "annual",
+                    "rcept_no": "r1",
+                    "year": "2023",
+                    "metric_label": "metric",
+                    "period": "2023",
+                    "consolidation_scope": "consolidated",
+                    "source_section": "section",
+                },
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_BLOCKED)
+        self.assertFalse(result["eligible"])
+        self.assertIn("candidate_not_reusable", result["reasons"])
+        self.assertIn("missing_read_only_projection", result["reasons"])
+        self.assertIn("candidate_has_reasons", result["reasons"])
+        self.assertIn("missing_scope:statement_type", result["reasons"])
+        self.assertIn("missing_scope:source_table_id", result["reasons"])
+
+    def test_consumer_blocks_mismatched_key_id(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = classify_report_cache_consumer_candidate(
+            {
+                "status": CACHE_REUSABLE,
+                "reasons": [],
+                "key": key,
+                "key_id": "wrong",
+                "read_only": True,
+            }
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_BLOCKED)
+        self.assertIn("key_id_mismatch", result["reasons"])
+
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
         update = _runtime_trace_state_update(
             {
@@ -172,6 +262,9 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(candidate["key"]["company"], "ACME")
         self.assertEqual(candidate["key"]["concept_id"], "operating_margin")
         self.assertIn("report-cache-v1:", candidate["key_id"])
+        self.assertTrue(candidate["retrieval_bypass"]["eligible"])
+        self.assertFalse(candidate["retrieval_bypass"]["enabled"])
+        self.assertEqual(candidate["retrieval_bypass"]["mode"], "trace_only")
 
     def test_runtime_trace_cache_candidate_derives_section_from_table_id(self) -> None:
         update = _runtime_trace_state_update(
