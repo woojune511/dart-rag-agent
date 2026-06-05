@@ -1,235 +1,147 @@
 # DART Multi-Agent Financial Analysis Lab
 
+Evidence-backed numeric QA over Korean DART filings with multi-agent RAG,
+explicit calculation traces, critic acceptance gates, and reviewer-ready runtime
+contracts.
+
 Current gate and portfolio status: [docs/overview/project_status.md](docs/overview/project_status.md)
 
-DART 전자공시 문서를 테스트베드로 삼아, **금융 문서용 multi-agent system**을 설계하고 검증하는 프로젝트입니다.  
-단순한 “공시 QA 챗봇”보다, 아래 질문에 답하는 것이 현재 목표입니다.
+## Why This Exists
 
-- 어떤 **agent topology**가 재무 문서 분석에 적합한가
-- agent 간 **communication contract**는 어떻게 설계해야 하는가
-- 각 agent의 **role / tool boundary**는 어디까지가 좋은가
-- **memory / cache / state update**는 어떤 계층으로 나눠야 하는가
-- retrieval, calculation, critique를 어떻게 분리해야 **설명 가능성**과 **정확성**을 함께 가져갈 수 있는가
+Financial-document RAG fails in ways that are easy to miss:
 
-## Agent 운영 원칙
+- the answer uses the wrong row, subtotal, segment, or period
+- a calculated value is treated as a directly stated value
+- citations survive in prose but not in structured runtime state
+- evaluator score improvements come from brittle benchmark-specific rules
+- stale compatibility fields override the canonical calculation trace
 
-자동화 에이전트가 이 저장소에서 코드를 수정하거나 실험을 돌릴 때는 [AGENTS.md](AGENTS.md)를 먼저 따른다. 특히 benchmark-specific patch 금지, evidence-first, focused verification 우선, 실험 산출물과 소스 변경 분리를 기본 규칙으로 둔다.
+This project treats those failures as runtime contract problems. The goal is not
+just to generate a plausible answer, but to expose the evidence, calculation
+trace, critic decision, and benchmark/review gate that explain why the answer
+was accepted.
 
-구현 단위의 runtime 계약은 [docs/architecture/agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md)에 둔다. canonical ingest, retrieval trace, task ledger/artifact store, parser/retrieval/numeric 경계는 이 문서를 기준으로 판단한다.
-
-## 포트폴리오 관점에서 먼저 볼 문서
-
-취업용 포트폴리오나 발표 자료를 준비하려면 아래 세 문서부터 보는 게 맞습니다.
-
-| 문서 | 용도 |
-| --- | --- |
-| [docs/overview/codebase_map.md](docs/overview/codebase_map.md) | 코드베이스를 실행 경로와 책임 경계 기준으로 파악 |
-| [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | 대표 질문 1개가 API부터 answer trace까지 흐르는 경로를 추적 |
-| [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | 문제 정의, 설계 선택, 정량 결과를 1페이지로 정리 |
-| [docs/overview/portfolio_readme_blueprint.md](docs/overview/portfolio_readme_blueprint.md) | 제출용 README를 어떤 구조로 다시 쓸지 정리 |
-| [docs/overview/portfolio_presentation_outline.md](docs/overview/portfolio_presentation_outline.md) | 면접/발표용 슬라이드 구조 |
-
-## 프로젝트 포지셔닝
-
-| 항목 | 현재 정의 |
-| --- | --- |
-| 프로젝트 성격 | DART 도메인을 사용하는 **MAS 설계/검증 실험실** |
-| 단기 목표 | MAS 확장 전제인 benchmark gate / runtime contract / artifact contract 정렬 |
-| 중기 목표 | working MAS skeleton 위에서 Analyst / Researcher / Critic 역할을 점진적으로 분리 |
-| 장기 목표 | cross-document / cross-company financial analysis |
-| 현재 구현 상태 | real `Orchestrator + Analyst + Researcher + Critic` E2E smoke까지 연결 완료 |
-| 데이터셋 상태 | single-doc curated core set `77`문항 확정, multi-report 문항은 별도 curated set으로 분리 완료 |
-
-## 목표 토폴로지
+## What The System Builds
 
 ```text
-User Query
-  -> Orchestrator
-      -> Analyst Agent   ----\
-      -> Research Agent  -----+-> Critic Stack -> Orchestrator Merge -> Final Report
-      -> Cache / Memory  -----/
+User question
+  -> Orchestrator plan
+      -> Analyst numeric artifacts
+      -> Researcher narrative artifacts
+      -> Critic reports
+  -> Orchestrator merge
+  -> Final answer + task_artifact_trace
 ```
 
-### Agent 역할
+The runtime uses shared ledger-style state instead of free-form agent chat:
 
-| Agent | 역할 | 직접 하지 않을 일 |
-| --- | --- | --- |
-| Orchestrator | task decomposition, assignment, final merge | 직접 검색/계산 |
-| Analyst | 수치 추출, formula planning, 계산 | 자유 서술형 맥락 요약 |
-| Researcher | 비정형 텍스트 탐색, why/context 추출, note traversal | 수치 계산 확정 |
-| Critic | grounding, binding, scope, completeness 검증 | 원문 검색 대행 |
+- `tasks`: planned work and ownership
+- `artifacts`: typed outputs such as operand sets, calculation plans, results,
+  retrieval bundles, critic reports, and aggregated answers
+- `evidence_pool`: source-grounded evidence records
+- `critic_reports`: acceptance/rejection reports with target refs and reasons
+- `task_artifact_trace`: compact integrity projection for callers and reviewers
 
-### Communication 모델
+## Key Engineering Decisions
 
-이 프로젝트는 agent 간 자유 채팅보다 **task ledger + artifact store**를 지향합니다.
+### LLMs For Semantics, Code For Execution
 
-| 계층 | 용도 |
+LLMs can help interpret intent, concepts, and narrative context. Deterministic
+code owns arithmetic, unit handling, dependency binding, dedupe, provenance
+checks, and final acceptance rules.
+
+### Runtime Code Stays Generic
+
+DART and financial-domain vocabulary belongs in ontology, retrieval policy,
+config, or reviewed data artifacts. Runtime control flow implements generic
+mechanisms such as required operands, evidence coverage, target refs, and
+artifact integrity.
+
+### Numeric Answers Are Structured Artifacts
+
+Numeric paths publish `answer_slots`, `structured_result`, and
+`resolved_calculation_trace`. Answer text is the presentation layer; the
+contract is the structured trace.
+
+### Critic Acceptance Is Not A Score Threshold
+
+Runtime critic acceptance is based on verdict, target refs, acceptance reasons,
+and blocking issues. Rejected critic reports block final close even when a
+diagnostic score is high, and the rejection reasons are surfaced to planner
+feedback and smoke summaries.
+
+### Report Cache Is Candidate-Only
+
+Report-scoped cache work is intentionally staged. The repo can inspect local
+cache-index candidates, validate rehydration/projection contracts, and provide a
+reviewer handoff summary, but cache serving, cache writes, ledger insertion, and
+retrieval bypass remain disabled.
+
+## Portfolio Entry Points
+
+| Document | Purpose |
 | --- | --- |
-| `tasks` | 오케스트레이터가 분해한 작업 단위 |
-| `task_results` | Analyst / Researcher가 제출한 구조화 결과 |
-| `evidence_pool` | 검색된 근거, quote, source anchor |
-| `critic_reports` | deterministic / LLM critic의 검증 결과 |
-| `final_report` | 최종 사용자 응답 |
+| [docs/overview/project_status.md](docs/overview/project_status.md) | Current implementation and gate status |
+| [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | One-page portfolio summary |
+| [docs/overview/portfolio_readme_blueprint.md](docs/overview/portfolio_readme_blueprint.md) | Suggested README/story structure |
+| [docs/overview/codebase_map.md](docs/overview/codebase_map.md) | Codebase ownership and execution map |
+| [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | Example question trace |
+| [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | Deeper technical notes |
+| [docs/architecture/agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md) | Runtime and MAS contract |
+| [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | Benchmark and review gate notes |
 
-## Memory / Cache 철학
-
-장기 메모리보다 먼저 **report-scoped cache**를 명확히 둡니다.
-
-| 계층 | 정의 |
-| --- | --- |
-| Graph State | 한 번의 실행 중 공유되는 작업 상태 |
-| Report-scoped cache | `company + report_type + rcept_no + year + metric` 기준 재사용 가능한 값 |
-| Benchmark artifacts | 실험 재현성을 위한 결과 번들 |
-| Long-term memory | 나중 단계. 현재는 우선순위 아님 |
-
-## 현재 구현 자산
-
-MAS skeleton은 연결됐지만, portfolio-grade 확장 전에는 아래 자산을
-안정적인 building block으로 고정해야 합니다.
-
-| 축 | 현재 자산 |
-| --- | --- |
-| Parser | DART 구조 보존 parser, section/table-aware chunking |
-| Retrieval | dense + BM25 + RRF hybrid, metadata filter, parent-child expansion |
-| Graph | document-structure expansion, `reference_note` phase 1a wiring |
-| Analyst core | formula planner + safe AST calculator |
-| Evaluation | operand grounding evaluator, display-aware equivalence, benchmark/replay infra |
-| Experiment loop | benchmark runner, store-fixed eval-only, retrospective replay scripts |
-
-## 현재 구현 상태
-
-| 구성 | 상태 | 비고 |
-| --- | --- | --- |
-| Orchestrator | partial | real task planning / merge node와 E2E smoke 완료 |
-| Analyst Agent | partial | existing `FinancialAgent.run()`을 MAS worker로 wrapper migration |
-| Research Agent | partial | scoped semantic retrieval + LLM summary + grounding wiring |
-| Critic Stack | partial | deterministic runtime critic live, LLM critic pending |
-| Shared task ledger | live | `tasks`, `artifacts`, `evidence_pool`, `critic_reports` 사용 중 |
-| Bounded reflection | experimental | single-agent graph 안의 checkpoint 구현, 최종 설계 아님 |
-| Parser normalization | experimental | `local_heading` 복원과 structure dump 추가, XML sanitize는 다음 단계 |
-
-## 최근 정량 근거
-
-| 결정 | baseline | proposed | 핵심 변화 |
-| --- | --- | --- | --- |
-| Evaluator support | section-hit support | operand grounding support | false negative rate `12.5% -> 0.0%` |
-| Math architecture | direct calc | formula planner + AST | strict correctness `0.556 -> 1.000` |
-| Ratio retrieval | standard retrieval | ontology-guided retrieval | calc success `0.333 -> 1.000` |
-| Analyst migration | direct single-agent run | MAS Analyst wrapper | numeric result parity `1.000`, calc status parity `1.000` |
-| Researcher migration | direct narrative core | MAS Researcher wrapper | citation parity `1.000`, critic pass `1.000` |
-| MAS E2E | no integrated MAS baseline | real `Orchestrator + Workers + Critic + Merge` | final report 생성 `2/2`, critic-triggered retry 관측 `1/2` |
-| Parser structure recovery | top-level section only | `local_heading` recovery on NAVER 2023 | `IV. 이사의 경영진단 및 분석의견` 하위 구조 복원, `II > 7`은 sanitize blocker 확인 |
-
-이 수치들은 “현재 single-agent 자산이 얼마나 강한가”를 보여주고, 이후 MAS 이식의 기준선 역할을 합니다.
-
-## 현재 우선순위
-
-현재 작업은 MAS 자체를 더 키우기 전에, MAS가 의존할 수 있는 검증 가능한
-single-agent 자산을 닫는 단계입니다.
-
-1. broader curated gate maintenance로 남은 부분점수를 runtime blocker와 evaluator calibration으로 분리
-2. concept-only planner runtime promotion check로 metric-specific rule 의존도를 축소
-3. contextual arbitration / benchmark maintenance로 structural default와 contextual quality reference의 운영 경계를 고정
-4. internal compatibility mirror cleanup으로 stale projection 위험을 줄임
-5. table payload sidecar / store-size cleanup으로 fresh-store 비용과 benchmark 재현성을 개선
-6. 그 다음 live MAS E2E baseline 위에서 Orchestrator / Researcher / Critic 품질을 측정
-
-즉 다음 단계의 초점은 “점수 잘 나오는 단일 파이프라인”에 머무는 것이 아니라,
-**검증 가능한 runtime contract를 MAS topology의 통신 계약으로 승격하는 것**입니다.
-
-## 문서 읽는 순서
-
-| 순서 | 문서 | 용도 |
-| --- | --- | --- |
-| 1 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | 문제 정의, 설계 선택, 결과를 한 번에 보기 |
-| 2 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | 핵심 기술 포인트 |
-| 3 | [docs/architecture/architecture_direction.md](docs/architecture/architecture_direction.md) | MAS 방향성과 agent/tool/memory 설계 |
-| 4 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | benchmark 운영 기준 + gate 해석 |
-| 5 | [CONTEXT.md](CONTEXT.md) | 현재 snapshot |
-| 6 | [PLAN.md](PLAN.md) | active implementation plan |
-| 7 | [DECISIONS.md](DECISIONS.md) | append-only 설계 판단 로그 |
-
-## 프로젝트 구조
+## Repository Guide
 
 ```text
 src/
-  ingestion/      DART 수집
-  processing/     DART XML 파싱 및 청킹
-  storage/        ChromaDB / BM25 / parent store
-  agent/          LangGraph 기반 분석 로직
-  api/            FastAPI 라우터
-  ops/            evaluator / benchmark runner / replay tools
-benchmarks/
-  profiles/
-  results/
-docs/
-  overview/
-  architecture/
-  evaluation/
-  planning/
-  history/
-app.py            Streamlit UI
-main.py           FastAPI entrypoint
+  agent/       runtime graph, MAS nodes, task/artifact contracts
+  config/      ontology, retrieval policy, cache classification
+  ops/         evaluator, benchmark runner, smoke/review commands
+  processing/  DART parsing and chunk preparation
+  storage/     vector/BM25 storage and retrieval support
+tests/         contract and regression tests
+docs/          architecture, evaluation, planning, and portfolio notes
+benchmarks/    profiles and local result bundles
 ```
 
-## 실행
+## Representative Checks
 
-환경 준비:
-
-```bash
-uv venv .venv
-.venv\Scripts\activate
-uv pip install -r requirements.txt
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
+.\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
 ```
 
-`.env`:
+The report-cache reviewer command should report:
 
-```text
-GOOGLE_API_KEY=...
-DART_API_KEY=...
-```
+- `status = ok`
+- `reviewer_handoff.status = ready`
+- `reviewer_handoff.mode = candidate_only`
+- `serving_enabled = false`
+- `ledger_insertion_enabled = false`
 
-Streamlit:
+## Current Status
 
-```bash
-streamlit run app.py
-```
+Implemented and validated:
 
-FastAPI:
+- section/table-aware retrieval and structured numeric traces
+- MAS skeleton with Orchestrator, Analyst, Researcher, Critic, and final merge
+- task/artifact integrity projection and final close blocking
+- critic runtime acceptance boundary and rejection feedback surface
+- candidate-only report-cache reviewer handoff
+- runtime domain-term audit to keep domain vocabulary out of runtime branches
 
-```bash
-uvicorn main:app --reload --port 8000
-```
+Intentionally disabled:
 
-## Benchmark 실행
+- cache serving and retrieval bypass
+- automatic cache writes
+- cache candidate insertion into the live task/artifact ledger
+- LLM critic as an acceptance authority
+- benchmark-specific runtime routing branches
 
-기본 screening:
+## Next Useful Step
 
-```bash
-python -m src.ops.benchmark_runner --config benchmarks/profiles/dev_fast.json
-```
-
-math 기준선:
-
-```bash
-python -m src.ops.benchmark_runner --config benchmarks/profiles/dev_math_focus.json
-```
-
-store-fixed end-to-end 빠른 회귀:
-
-```bash
-python -m src.ops.run_eval_only --config benchmarks/profiles/dev_math_focus.json --source-output-dir benchmarks/results/dev_math_focus_llmshift_2026-04-28 --output-dir benchmarks/results/dev_math_focus_evalonly_example --company-run-id samsung_2024
-```
-
-이 경로는 **기존 store를 재사용해 current agent/evaluator를 다시 실행**하는 방식입니다.  
-같은 historical answer를 대상으로 evaluator만 비교하려면 retrospective replay 스크립트를 사용해야 합니다.
-
-## 참고 문서
-
-- [docs/architecture/architecture_direction.md](docs/architecture/architecture_direction.md): MAS 방향성과 설계 원칙
-- [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md): 포트폴리오용 핵심 기술 포인트
-- [CONTEXT.md](CONTEXT.md): 현재 상태와 handoff 메모
-- [PLAN.md](PLAN.md): active implementation plan
-- [DECISIONS.md](DECISIONS.md): 중요한 설계 판단과 근거
-- [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md): benchmark 구조와 metric 해석
-- [docs/history/experiment_history.md](docs/history/experiment_history.md): 버전별 코드/실험 변화와 해석
+Add a small portfolio demo command that runs one representative question and
+prints the final answer, citations, calculation trace, task/artifact integrity
+summary, critic acceptance status, and cache reviewer handoff status side by
+side.
