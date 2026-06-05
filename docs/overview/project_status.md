@@ -505,6 +505,13 @@ Useful supporting points:
   Direct verification anchors the Samsung 2023 operating-margin operands to
   `III. 재무에 관한 사항 > 2. 연결재무제표` with `consolidated` /
   `income_statement`; live MAS smoke still reports case 1 as `2.54%`.
+- MAS E2E smoke contract comparison now also loads tracked value canaries from
+  `benchmarks/golden/mas_e2e_smoke_value_contract.json` when present. The
+  default checker still compares compact topology/integrity fields, and it now
+  fails if case 1 loses `2.54%`, `6,566,976`, or `258,935,494`, or if `-4.45%`
+  reappears in the full smoke surface. The repaired smoke reports
+  `value_assertion_failure_count = 0`; the earlier bad provenance-anchor smoke
+  fails as expected.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

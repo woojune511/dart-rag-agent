@@ -472,9 +472,21 @@ query now produces `2.54%` with both operands anchored to
 `III. 재무에 관한 사항 > 2. 연결재무제표`; a live default MAS smoke kept compact
 contract comparison at `status = ok`, `difference_count = 0`.
 
-Next structural step: add value-level assertions to the compact MAS smoke
-contract, because the existing contract correctly catches topology/integrity
-regressions but does not fail when the final numeric value changes.
+Nineteenth step completed: `check_mas_e2e_smoke_contract.py` now loads the
+tracked MAS value contract from
+`benchmarks/golden/mas_e2e_smoke_value_contract.json` when present. The checker
+still compares the compact topology/integrity contract, but it also evaluates
+full smoke output surfaces so value canaries catch numeric regressions that do
+not change task topology. For the Samsung 2023 connected/consolidated smoke,
+case 1 must include `2.54%`, `6,566,976`, and `258,935,494`, and must not include
+`-4.45%`; case 2 must include `10.95%`, `28,352,769`, and `258,935,494`. The
+repaired final smoke passes with `value_assertion_failure_count = 0`, while the
+earlier provenance-anchor smoke that surfaced `-4.45%` now fails the checker
+with value assertion mismatches.
+
+Next structural step: decide whether MAS value contracts should be generated
+from a small tracked smoke-canary profile instead of a separate golden assertion
+file.
 
 ### 3. Report-scoped cache
 

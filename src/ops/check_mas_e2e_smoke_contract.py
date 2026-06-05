@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_VALUE_CONTRACT = PROJECT_ROOT / "benchmarks" / "golden" / "mas_e2e_smoke_value_contract.json"
+
+
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
@@ -30,6 +34,86 @@ def _status_counts(task_statuses: Dict[str, Any]) -> Dict[str, int]:
     counts = Counter(_normalise_status(status) for status in dict(task_statuses or {}).values())
     counts.pop("", None)
     return dict(sorted(counts.items()))
+
+
+def _scope_matches(payload: Dict[str, Any], expected_scope: Dict[str, Any]) -> bool:
+    if not expected_scope:
+        return True
+    actual_scope = dict(payload.get("report_scope") or {})
+    if not actual_scope:
+        return False
+    for key, expected in expected_scope.items():
+        expected_text = str(expected or "").strip()
+        if expected_text and str(actual_scope.get(key) or "").strip() != expected_text:
+            return False
+    return True
+
+
+def _case_surface(case: Dict[str, Any]) -> str:
+    surfaces: List[str] = [str(case.get("final_report") or "")]
+    final_report_record = dict(case.get("final_report_record") or {})
+    for row in list(final_report_record.get("subtask_results") or []):
+        row_data = dict(row or {})
+        surfaces.append(str(row_data.get("answer") or ""))
+    artifact_answers = case.get("artifact_answers")
+    if isinstance(artifact_answers, dict):
+        surfaces.extend(str(value or "") for value in artifact_answers.values())
+    return "\n".join(surface for surface in surfaces if surface)
+
+
+def _surface_excerpt(surface: str, limit: int = 500) -> str:
+    text = str(surface or "").strip()
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}..."
+
+
+def evaluate_value_contract(payload: Dict[str, Any], value_contract: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not value_contract or not _scope_matches(payload, dict(value_contract.get("scope_match") or {})):
+        return []
+    failures: List[Dict[str, Any]] = []
+    cases = list(payload.get("cases") or [])
+    for assertion_index, assertion in enumerate(list(value_contract.get("assertions") or [])):
+        assertion_data = dict(assertion or {})
+        case_index = int(assertion_data.get("case_index", 0) or 0)
+        name = str(assertion_data.get("name") or f"assertion_{assertion_index + 1}")
+        if case_index < 1 or case_index > len(cases):
+            failures.append(
+                {
+                    "path": f"value_assertions[{assertion_index}].case_index",
+                    "baseline": case_index,
+                    "current": None,
+                    "assertion": name,
+                    "reason": "case_missing",
+                }
+            )
+            continue
+        surface = _case_surface(dict(cases[case_index - 1]))
+        for expected in list(assertion_data.get("must_include") or []):
+            expected_text = str(expected or "")
+            if expected_text and expected_text not in surface:
+                failures.append(
+                    {
+                        "path": f"value_assertions[{assertion_index}].must_include",
+                        "baseline": expected_text,
+                        "current": _surface_excerpt(surface),
+                        "assertion": name,
+                        "reason": "missing_value",
+                    }
+                )
+        for forbidden in list(assertion_data.get("must_not_include") or []):
+            forbidden_text = str(forbidden or "")
+            if forbidden_text and forbidden_text in surface:
+                failures.append(
+                    {
+                        "path": f"value_assertions[{assertion_index}].must_not_include",
+                        "baseline": f"absent:{forbidden_text}",
+                        "current": forbidden_text,
+                        "assertion": name,
+                        "reason": "forbidden_value_present",
+                    }
+                )
+    return failures
 
 
 def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -96,14 +180,21 @@ def compare_contracts(current: Dict[str, Any], baseline: Dict[str, Any]) -> List
     return differences
 
 
-def check_contract(current_payload: Dict[str, Any], baseline_payload: Dict[str, Any]) -> Dict[str, Any]:
+def check_contract(
+    current_payload: Dict[str, Any],
+    baseline_payload: Dict[str, Any],
+    value_contract_payload: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
     current = _as_contract(current_payload)
     baseline = _as_contract(baseline_payload)
     differences = compare_contracts(current=current, baseline=baseline)
+    value_failures = evaluate_value_contract(current_payload, value_contract_payload or {})
+    differences.extend(value_failures)
     return {
         "status": "ok" if not differences else "mismatch",
         "difference_count": len(differences),
         "differences": differences,
+        "value_assertion_failure_count": len(value_failures),
         "current_contract": current,
         "baseline_contract": baseline,
     }
@@ -119,6 +210,12 @@ def main() -> None:
         help="Write the current compact contract to --baseline instead of comparing.",
     )
     parser.add_argument("--output", type=Path, help="Optional path for the comparison/check JSON.")
+    parser.add_argument(
+        "--value-contract",
+        type=Path,
+        default=DEFAULT_VALUE_CONTRACT,
+        help="Optional numeric value contract JSON. Defaults to the tracked MAS E2E smoke value contract when present.",
+    )
     args = parser.parse_args()
 
     current_payload = _read_json(args.current)
@@ -136,7 +233,12 @@ def main() -> None:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return
 
-    result = check_contract(current_payload=current_payload, baseline_payload=_read_json(args.baseline))
+    value_contract_payload = _read_json(args.value_contract) if args.value_contract and args.value_contract.exists() else {}
+    result = check_contract(
+        current_payload=current_payload,
+        baseline_payload=_read_json(args.baseline),
+        value_contract_payload=value_contract_payload,
+    )
     if args.output:
         _write_json(args.output, result)
     print(json.dumps(result, ensure_ascii=False, indent=2))

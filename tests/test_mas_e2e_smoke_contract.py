@@ -12,7 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.ops.check_mas_e2e_smoke_contract import check_contract, extract_contract
+from src.ops.check_mas_e2e_smoke_contract import check_contract, evaluate_value_contract, extract_contract
 
 
 def _payload() -> dict:
@@ -36,6 +36,7 @@ def _payload() -> dict:
                 "replan_count": 0,
                 "replan_routed": False,
                 "final_report_record": {"status": "ok"},
+                "final_report": "final has value 2.54%",
                 "task_artifact_integrity_status": "ok",
             },
             {
@@ -78,6 +79,59 @@ class MasE2ESmokeContractTests(unittest.TestCase):
         paths = {item["path"] for item in result["differences"]}
         self.assertIn("cases[1].task_status_counts.completed", paths)
         self.assertIn("cases[1].task_status_counts.failed", paths)
+
+    def test_value_contract_reports_missing_and_forbidden_numeric_values(self) -> None:
+        payload = _payload()
+        payload["report_scope"] = {"company": "ACME", "year": "2023"}
+        payload["cases"][0]["final_report"] = "final has value -4.45%"
+        payload["cases"][0]["final_report_record"] = {
+            "status": "ok",
+            "subtask_results": [{"answer": "subtask has 258,935,494"}],
+        }
+        value_contract = {
+            "scope_match": {"company": "ACME", "year": "2023"},
+            "assertions": [
+                {
+                    "name": "operating_margin",
+                    "case_index": 1,
+                    "must_include": ["2.54%", "258,935,494"],
+                    "must_not_include": ["-4.45%"],
+                }
+            ],
+        }
+
+        failures = evaluate_value_contract(payload, value_contract)
+
+        self.assertEqual(len(failures), 2)
+        reasons = {failure["reason"] for failure in failures}
+        self.assertEqual(reasons, {"missing_value", "forbidden_value_present"})
+
+    def test_check_contract_includes_value_assertion_failures(self) -> None:
+        baseline = _payload()
+        current = _payload()
+        current["report_scope"] = {"company": "ACME", "year": "2023"}
+        current["cases"][0]["final_report"] = "final has value -4.45%"
+        value_contract = {
+            "scope_match": {"company": "ACME", "year": "2023"},
+            "assertions": [
+                {
+                    "name": "operating_margin",
+                    "case_index": 1,
+                    "must_include": ["2.54%"],
+                    "must_not_include": ["-4.45%"],
+                }
+            ],
+        }
+
+        result = check_contract(
+            current_payload=current,
+            baseline_payload=baseline,
+            value_contract_payload=value_contract,
+        )
+
+        self.assertEqual(result["status"], "mismatch")
+        self.assertEqual(result["value_assertion_failure_count"], 2)
+        self.assertTrue(any(item["path"].startswith("value_assertions") for item in result["differences"]))
 
     def test_cli_writes_compact_baseline_and_compares(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
