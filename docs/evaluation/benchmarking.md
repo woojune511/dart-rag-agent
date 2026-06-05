@@ -1001,7 +1001,8 @@ Current local baseline was refreshed on 2026-06-05:
   entries remain normal retrieval fallbacks.
 - `check_report_cache_index_smoke_contract` extracts only stable handoff fields:
   status flags, local-index match/readiness counts, rehydration reason counts,
-  candidate-artifact counts, and preview booleans/counts. It intentionally does
+  candidate-artifact counts, projection-validation counts, preview
+  booleans/counts, disabled flags, and fallback reasons. It intentionally does
   not compare the full matched-entry payload. The source-controlled compact
   baseline lives at
   `tests/fixtures/report_cache_index/rehydration_contract_baseline.json`.

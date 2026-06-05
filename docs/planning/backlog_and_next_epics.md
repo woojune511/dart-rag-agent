@@ -810,6 +810,20 @@ either through the fixture-backed smoke contract or the repo-local review
 command, so PR reviewers can see candidate projection validity without running
 the full test suite.
 
+Forty-sixth step completed: the projection validator is now visible in the
+reviewer handoff surface. `src.ops.report_cache_index_smoke` adds
+calculation-projection validity/fallback counts and per-candidate validation
+previews, while `src.ops.check_report_cache_index_smoke_contract` extracts the
+stable status, disabled flags, and fallback reasons into the compact baseline.
+The source-controlled baseline now proves that the ready fixture is
+`valid_for_contract` and the blocked fixture remains
+`normal_retrieval_fallback` with `projection_not_available`.
+
+Next structural step: decide whether this reviewer-surface contract is enough
+to mark the draft PR ready for review, or add one final repo-local review note
+that summarizes the cache path as candidate-only from runtime trace through
+projection validation.
+
 ### 3. Report-scoped cache
 
 현재:

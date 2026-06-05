@@ -37,8 +37,13 @@ class ReportCacheIndexSmokeContractTests(unittest.TestCase):
         self.assertEqual(contract["index_rehydration_ready_count"], 1)
         self.assertEqual(contract["rehydrated_candidate_artifact_count"], 1)
         self.assertEqual(contract["rehydrated_candidate_artifact_blocked_count"], 1)
+        self.assertEqual(contract["calculation_projection_valid_count"], 1)
+        self.assertEqual(contract["calculation_projection_fallback_count"], 1)
         self.assertEqual(len(contract["candidate_artifacts"]), 2)
         self.assertFalse(contract["candidate_artifacts"][0]["has_artifact"])
+        self.assertFalse(contract["candidate_artifacts"][0]["calculation_projection_valid_for_contract"])
+        self.assertTrue(contract["candidate_artifacts"][0]["calculation_projection_fallback_required"])
+        self.assertIn("projection_not_available", contract["candidate_artifacts"][0]["calculation_projection_reasons"])
         self.assertTrue(contract["candidate_artifacts"][1]["has_artifact"])
         self.assertEqual(contract["candidate_artifacts"][1]["artifact_status"], "candidate")
         self.assertTrue(contract["candidate_artifacts"][1]["answer_present"])
@@ -46,6 +51,14 @@ class ReportCacheIndexSmokeContractTests(unittest.TestCase):
         self.assertEqual(contract["candidate_artifacts"][1]["evidence_item_count"], 1)
         self.assertEqual(contract["candidate_artifacts"][1]["calculation_operand_count"], 1)
         self.assertFalse(contract["candidate_artifacts"][1]["artifact_serving_enabled"])
+        self.assertEqual(
+            contract["candidate_artifacts"][1]["calculation_projection_status"],
+            "valid_for_contract",
+        )
+        self.assertTrue(contract["candidate_artifacts"][1]["calculation_projection_valid_for_contract"])
+        self.assertFalse(contract["candidate_artifacts"][1]["calculation_projection_fallback_required"])
+        self.assertFalse(contract["candidate_artifacts"][1]["calculation_projection_serving_enabled"])
+        self.assertFalse(contract["candidate_artifacts"][1]["calculation_projection_ledger_insertion_enabled"])
 
     def test_check_contract_reports_candidate_count_delta(self) -> None:
         baseline = extract_contract(build_smoke_payload(report_cache_index_path=FIXTURE_PATH))

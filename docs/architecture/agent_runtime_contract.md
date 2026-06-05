@@ -325,7 +325,9 @@ with `serving_enabled = false` and `ledger_insertion_enabled = false`.
 validator for that shape. It checks the required calculation artifact kinds,
 minimum payload surfaces, preserved evidence refs, and disabled serving/ledger
 flags, then reports whether the projection is valid for the contract without
-writing it to the ledger.
+writing it to the ledger. Reviewer-facing smoke output may expose this
+validation status and fallback reasons, but it must not treat a valid candidate
+as a served answer.
 
 The consumer must recheck provenance before serving. The cached display value,
 normalized value, `answer_slots.primary_value`, citation/source anchors,

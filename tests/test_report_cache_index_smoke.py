@@ -36,13 +36,23 @@ class ReportCacheIndexSmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["index_rehydration_ready_count"], 1)
         self.assertEqual(payload["summary"]["rehydrated_candidate_artifact_count"], 1)
         self.assertEqual(payload["summary"]["rehydrated_candidate_artifact_blocked_count"], 1)
+        self.assertEqual(payload["summary"]["calculation_projection_valid_count"], 1)
+        self.assertEqual(payload["summary"]["calculation_projection_fallback_count"], 1)
         self.assertEqual(payload["diagnostics"]["matches"][0]["rehydration"]["status"], "blocked")
         self.assertEqual(payload["diagnostics"]["matches"][1]["rehydration"]["status"], "ready")
         self.assertEqual(payload["rehydrated_candidate_artifacts"]["count"], 1)
         self.assertEqual(payload["rehydrated_candidate_artifacts"]["blocked_count"], 1)
-        self.assertIsNone(payload["rehydrated_candidate_artifacts"]["items"][0]["artifact"])
+        blocked = payload["rehydrated_candidate_artifacts"]["items"][0]
+        self.assertIsNone(blocked["artifact"])
+        self.assertFalse(blocked["calculation_contract_validation"]["valid_for_contract"])
+        self.assertTrue(blocked["calculation_contract_validation"]["fallback_required"])
+        self.assertIn("projection_not_available", blocked["calculation_contract_validation"]["reasons"])
         candidate = payload["rehydrated_candidate_artifacts"]["items"][1]
         self.assertFalse(candidate["serving_enabled"])
+        self.assertTrue(candidate["calculation_contract_validation"]["valid_for_contract"])
+        self.assertFalse(candidate["calculation_contract_validation"]["fallback_required"])
+        self.assertFalse(candidate["calculation_contract_validation"]["serving_enabled"])
+        self.assertFalse(candidate["calculation_contract_validation"]["ledger_insertion_enabled"])
         self.assertEqual(candidate["artifact"]["status"], "candidate")
         self.assertEqual(candidate["artifact"]["payload_summary"]["answer"], "123")
         self.assertEqual(candidate["artifact"]["payload_summary"]["citation_count"], 1)
@@ -77,6 +87,7 @@ class ReportCacheIndexSmokeTests(unittest.TestCase):
         self.assertEqual(printed["summary"]["rehydration_ready_match_count"], 1)
         self.assertEqual(printed["summary"]["rehydration_blocked_match_count"], 1)
         self.assertEqual(printed["summary"]["rehydrated_candidate_artifact_count"], 1)
+        self.assertEqual(printed["summary"]["calculation_projection_valid_count"], 1)
         self.assertEqual(printed["rehydrated_candidate_artifacts"]["count"], 1)
 
 

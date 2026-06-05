@@ -16,7 +16,10 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
-from src.config.report_scoped_cache import build_report_cache_rehydrated_candidate_artifact  # noqa: E402
+from src.config.report_scoped_cache import (  # noqa: E402
+    build_report_cache_rehydrated_candidate_artifact,
+    validate_report_cache_calculation_contract_projection,
+)
 
 
 def _read_json(path: Path) -> Any:
@@ -50,6 +53,16 @@ def _first_entry_key(index_path: Path) -> Dict[str, Any]:
 def _summary_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
     index = dict(diagnostics.get("index") or {})
     candidate_artifacts = _rehydrated_candidate_artifacts_from_diagnostics(diagnostics)
+    calculation_projection_valid_count = sum(
+        1
+        for item in list(candidate_artifacts.get("items") or [])
+        if bool((item.get("calculation_contract_validation") or {}).get("valid_for_contract"))
+    )
+    calculation_projection_fallback_count = sum(
+        1
+        for item in list(candidate_artifacts.get("items") or [])
+        if bool((item.get("calculation_contract_validation") or {}).get("fallback_required"))
+    )
     return {
         "status": str(diagnostics.get("status") or ""),
         "enabled": bool(diagnostics.get("enabled")),
@@ -66,10 +79,33 @@ def _summary_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
         "index_malformed_count": int(index.get("malformed_count") or 0),
         "rehydrated_candidate_artifact_count": int(candidate_artifacts.get("count") or 0),
         "rehydrated_candidate_artifact_blocked_count": int(candidate_artifacts.get("blocked_count") or 0),
+        "calculation_projection_valid_count": calculation_projection_valid_count,
+        "calculation_projection_fallback_count": calculation_projection_fallback_count,
     }
 
 
-def _candidate_artifact_preview(result: Dict[str, Any]) -> Dict[str, Any]:
+def _projection_validation_preview(result: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "status": str(result.get("status") or ""),
+        "valid_for_contract": bool(result.get("valid_for_contract")),
+        "fallback_required": bool(result.get("fallback_required")),
+        "enabled": bool(result.get("enabled")),
+        "serving_enabled": bool(result.get("serving_enabled")),
+        "ledger_insertion_enabled": bool(result.get("ledger_insertion_enabled")),
+        "reasons": [str(reason) for reason in list(result.get("reasons") or [])],
+        "required_artifact_kinds": [
+            str(kind)
+            for kind in list(result.get("required_artifact_kinds") or [])
+            if str(kind).strip()
+        ],
+    }
+
+
+def _candidate_artifact_preview(
+    result: Dict[str, Any],
+    *,
+    calculation_contract_validation: Dict[str, Any],
+) -> Dict[str, Any]:
     artifact = result.get("artifact")
     item = {
         "status": str(result.get("status") or ""),
@@ -78,6 +114,7 @@ def _candidate_artifact_preview(result: Dict[str, Any]) -> Dict[str, Any]:
         "serving_enabled": bool(result.get("serving_enabled")),
         "reasons": [str(reason) for reason in list(result.get("reasons") or [])],
         "key_id": str(result.get("key_id") or ""),
+        "calculation_contract_validation": _projection_validation_preview(calculation_contract_validation),
         "artifact": None,
     }
     if not isinstance(artifact, dict):
@@ -108,12 +145,22 @@ def _rehydrated_candidate_artifacts_from_diagnostics(diagnostics: Dict[str, Any]
     for index, match in enumerate(list(diagnostics.get("matches") or []), start=1):
         if not isinstance(match, dict):
             continue
+        entry = dict(match.get("entry") or match)
         result = build_report_cache_rehydrated_candidate_artifact(
-            dict(match.get("entry") or match),
+            entry,
             task_id="report_cache_index_smoke",
             artifact_id=f"report_cache_index_smoke::candidate::{index}",
         )
-        items.append(_candidate_artifact_preview(result))
+        validation = validate_report_cache_calculation_contract_projection(
+            entry,
+            task_id="report_cache_index_smoke",
+        )
+        items.append(
+            _candidate_artifact_preview(
+                result,
+                calculation_contract_validation=validation,
+            )
+        )
     return {
         "count": sum(1 for item in items if isinstance(item.get("artifact"), dict)),
         "blocked_count": sum(1 for item in items if not isinstance(item.get("artifact"), dict)),

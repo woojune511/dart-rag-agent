@@ -19,6 +19,8 @@
   "index_malformed_count": 0,
   "rehydrated_candidate_artifact_count": 1,
   "rehydrated_candidate_artifact_blocked_count": 1,
+  "calculation_projection_valid_count": 1,
+  "calculation_projection_fallback_count": 1,
   "candidate_artifacts": [
     {
       "index": 1,
@@ -34,7 +36,19 @@
       "has_structured_result": false,
       "has_resolved_calculation_trace": false,
       "calculation_operand_count": 0,
-      "artifact_serving_enabled": false
+      "artifact_serving_enabled": false,
+      "calculation_projection_status": "normal_retrieval_fallback",
+      "calculation_projection_valid_for_contract": false,
+      "calculation_projection_fallback_required": true,
+      "calculation_projection_serving_enabled": false,
+      "calculation_projection_ledger_insertion_enabled": false,
+      "calculation_projection_reasons": [
+        "projection_not_available",
+        "missing_answer_slots",
+        "missing_primary_answer_slot",
+        "missing_citation_or_source_anchor",
+        "missing_calculation_trace"
+      ]
     },
     {
       "index": 2,
@@ -50,7 +64,13 @@
       "has_structured_result": true,
       "has_resolved_calculation_trace": true,
       "calculation_operand_count": 1,
-      "artifact_serving_enabled": false
+      "artifact_serving_enabled": false,
+      "calculation_projection_status": "valid_for_contract",
+      "calculation_projection_valid_for_contract": true,
+      "calculation_projection_fallback_required": false,
+      "calculation_projection_serving_enabled": false,
+      "calculation_projection_ledger_insertion_enabled": false,
+      "calculation_projection_reasons": []
     }
   ]
 }

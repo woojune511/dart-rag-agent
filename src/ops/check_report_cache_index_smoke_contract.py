@@ -27,6 +27,7 @@ def _as_int(value: Any) -> int:
 def _candidate_artifact_contract(item: Dict[str, Any], index: int) -> Dict[str, Any]:
     artifact = item.get("artifact")
     artifact_payload = dict(artifact.get("payload_summary") or {}) if isinstance(artifact, dict) else {}
+    validation = dict(item.get("calculation_contract_validation") or {})
     return {
         "index": index,
         "status": str(item.get("status") or ""),
@@ -42,6 +43,16 @@ def _candidate_artifact_contract(item: Dict[str, Any], index: int) -> Dict[str, 
         "has_resolved_calculation_trace": bool(artifact_payload.get("has_resolved_calculation_trace")),
         "calculation_operand_count": _as_int(artifact_payload.get("calculation_operand_count")),
         "artifact_serving_enabled": bool(artifact_payload.get("serving_enabled")),
+        "calculation_projection_status": str(validation.get("status") or ""),
+        "calculation_projection_valid_for_contract": bool(validation.get("valid_for_contract")),
+        "calculation_projection_fallback_required": bool(validation.get("fallback_required")),
+        "calculation_projection_serving_enabled": bool(validation.get("serving_enabled")),
+        "calculation_projection_ledger_insertion_enabled": bool(validation.get("ledger_insertion_enabled")),
+        "calculation_projection_reasons": [
+            str(reason)
+            for reason in list(validation.get("reasons") or [])
+            if str(reason).strip()
+        ],
     }
 
 
@@ -72,6 +83,8 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
         "rehydrated_candidate_artifact_blocked_count": _as_int(
             summary.get("rehydrated_candidate_artifact_blocked_count")
         ),
+        "calculation_projection_valid_count": _as_int(summary.get("calculation_projection_valid_count")),
+        "calculation_projection_fallback_count": _as_int(summary.get("calculation_projection_fallback_count")),
         "candidate_artifacts": candidate_items,
     }
 

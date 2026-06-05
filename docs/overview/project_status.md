@@ -589,6 +589,10 @@ Useful supporting points:
   candidate shape read-only: required artifact kinds, payload surfaces,
   evidence refs, and disabled serving/ledger flags must all pass before the
   candidate is considered valid for the contract.
+  The reviewer handoff smoke and compact baseline now expose projection
+  validation counts and per-candidate status/reasons, so reviewers can confirm
+  the ready fixture is valid for the calculation contract while the blocked
+  fixture remains a fallback.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
