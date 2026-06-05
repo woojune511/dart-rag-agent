@@ -71,6 +71,15 @@ class CriticReport(TypedDict):
     blocking_issues: NotRequired[List[str]]
 
 
+class CriticRuntimeAcceptance(TypedDict):
+    accepted: bool
+    runtime_acceptance_status: str
+    reasons: List[str]
+    target_refs: List[str]
+    deterministic_score: float
+    deterministic_score_used_for_acceptance: bool
+
+
 class FinalReport(TypedDict, total=False):
     final_answer: str
     status: str
@@ -273,6 +282,69 @@ def _dedupe_strings(values: List[str]) -> List[str]:
         seen.add(text)
         normalized.append(text)
     return normalized
+
+
+def _list_strings(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRuntimeAcceptance:
+    passed = bool(report.get("passed"))
+    verdict = str(report.get("verdict") or report.get("status") or "").strip().lower()
+    target_refs = _dedupe_strings(
+        [
+            str(report.get("target_task_id") or "").strip(),
+            str(report.get("target_artifact_id") or "").strip(),
+            *_list_strings(report.get("target_task_ids")),
+            *_list_strings(report.get("target_artifact_ids")),
+            *_list_strings(report.get("checked_task_ids")),
+            *_list_strings(report.get("checked_artifact_ids")),
+            *_list_strings(report.get("source_task_ids")),
+            *_list_strings(report.get("source_artifact_ids")),
+        ]
+    )
+    acceptance_reason = str(
+        report.get("acceptance_reason")
+        or report.get("rationale")
+        or report.get("feedback")
+        or report.get("llm_feedback")
+        or ""
+    ).strip()
+    blocking_issues = _dedupe_strings(
+        [
+            *_list_strings(report.get("blocking_issues")),
+            *_list_strings(report.get("issues")),
+            *_list_strings(report.get("findings")),
+        ]
+    )
+    reasons: List[str] = []
+    if not target_refs:
+        reasons.append("missing_target_refs")
+    if passed:
+        if verdict != "passed":
+            reasons.append("missing_passed_verdict")
+        if not acceptance_reason:
+            reasons.append("missing_acceptance_reason")
+        if blocking_issues:
+            reasons.append("passed_report_has_blocking_issues")
+    else:
+        reasons.append("critic_rejected")
+        if verdict != "rejected":
+            reasons.append("missing_rejected_verdict")
+        if not blocking_issues:
+            reasons.append("missing_blocking_issues")
+
+    accepted = passed and not reasons
+    return {
+        "accepted": accepted,
+        "runtime_acceptance_status": "accepted" if accepted else "blocked",
+        "reasons": _dedupe_strings(reasons),
+        "target_refs": target_refs,
+        "deterministic_score": float(report.get("deterministic_score") or 0.0),
+        "deterministic_score_used_for_acceptance": False,
+    }
 
 
 def build_final_report_record(

@@ -1016,7 +1016,10 @@ projection validation.
 7. table payload sidecar / store-size cleanup
 8. MAS real-node replan smoke and artifact carry-forward review
 9. MAS skeleton과 artifact schema productization
-10. Analyst / Critic / Researcher 분리
+10. Analyst / Critic / Researcher separation; first critic boundary is now
+    explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
+    target refs, acceptance reason, and blocking issues instead of
+    `deterministic_score` thresholds.
 10. agentic self-reflection 재설계
 11. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 12. cross-company 확장

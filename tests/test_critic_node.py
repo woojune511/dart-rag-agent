@@ -10,7 +10,11 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.mas_graph import build_initial_state
-from src.agent.mas_types import TaskStatus, build_critic_report
+from src.agent.mas_types import (
+    TaskStatus,
+    build_critic_report,
+    critic_report_runtime_acceptance_state,
+)
 from src.agent.nodes.critic_node import MAX_CRITIC_RETRIES, run_critic
 
 
@@ -260,6 +264,38 @@ class DeterministicCriticTests(unittest.TestCase):
         self.assertEqual(rejected["target_artifact_ids"], ["artifact_2"])
         self.assertEqual(rejected["acceptance_reason"], "")
         self.assertEqual(rejected["blocking_issues"], ["missing evidence"])
+
+    def test_runtime_acceptance_does_not_use_score_threshold(self) -> None:
+        passed = build_critic_report(
+            target_task_id="task_1",
+            passed=True,
+            deterministic_score=0,
+            feedback="grounded",
+            target_artifact_id="artifact_1",
+        )
+
+        passed_state = critic_report_runtime_acceptance_state(dict(passed))
+
+        self.assertTrue(passed_state["accepted"])
+        self.assertEqual(passed_state["runtime_acceptance_status"], "accepted")
+        self.assertEqual(passed_state["reasons"], [])
+        self.assertEqual(passed_state["target_refs"], ["task_1", "artifact_1"])
+        self.assertFalse(passed_state["deterministic_score_used_for_acceptance"])
+
+        rejected = build_critic_report(
+            target_task_id="task_2",
+            passed=False,
+            deterministic_score=1,
+            feedback="missing evidence",
+            target_artifact_id="artifact_2",
+        )
+
+        rejected_state = critic_report_runtime_acceptance_state(dict(rejected))
+
+        self.assertFalse(rejected_state["accepted"])
+        self.assertEqual(rejected_state["runtime_acceptance_status"], "blocked")
+        self.assertIn("critic_rejected", rejected_state["reasons"])
+        self.assertFalse(rejected_state["deterministic_score_used_for_acceptance"])
 
 
 if __name__ == "__main__":
