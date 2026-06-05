@@ -472,7 +472,10 @@ Useful supporting points:
   contract fields from full smoke JSON output, covering embedding compatibility,
   case count, blocked/integrity/replan summary counts, per-case final status,
   artifact-integrity status, replan flags, and task status distribution. This is
-  the default local delta check for MAS quality work.
+  the default local delta check for MAS quality work. The 2026-06-05 local
+  compact baseline compare is clean: `status = ok`, `difference_count = 0`,
+  `case_count = 2`, `blocked_count = 0`, `integrity_error_count = 0`, and both
+  cases have five completed tasks.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

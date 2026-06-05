@@ -859,6 +859,17 @@ output, rerun the checker with `--write-baseline`. Keep both the full smoke
 output and compact contract under `benchmarks/results/**` as local experiment
 artifacts unless a handoff explicitly asks to publish them.
 
+Current local baseline was refreshed on 2026-06-05:
+
+- Full output: `benchmarks/results/mas_e2e_smoke_default_2026-06-05.json`
+- Compact contract: `benchmarks/results/mas_e2e_smoke_default_contract_baseline.json`
+- Contract compare: `status = ok`, `difference_count = 0`
+- Contract summary: embedding compatibility `ok`, `case_count = 2`,
+  `blocked_count = 0`, `integrity_error_count = 0`, `replan_routed_count = 0`,
+  and both cases have `final_report_status = ok`,
+  `task_artifact_integrity_status = ok`, `task_count = 5`, and
+  `task_status_counts.completed = 5`.
+
 ## Parser Structure Smokes
 
 이 섹션은 retrieval/generation 품질이 아니라, **DART 원문 구조를 parser가 얼마나 복원하는지**를 보는 acceptance check다.

@@ -419,6 +419,11 @@ embedding compatibility status, case count, blocked/integrity/replan summary
 counts, per-case final status, artifact-integrity status, replan flags, and task
 status distribution. This lets the default E2E smoke act as a local regression
 check without treating generated final-answer prose as a strict golden string.
+The 2026-06-05 local baseline was refreshed and compared cleanly:
+`status = ok`, `difference_count = 0`, `case_count = 2`, `blocked_count = 0`,
+`integrity_error_count = 0`, and both cases have five completed tasks. The full
+output and compact contract remain local `benchmarks/results/**` artifacts, not
+source-controlled handoff files.
 
 Next structural step: use the normalized default E2E smoke and compact contract
 compare as the MAS baseline before making worker/orchestrator quality changes.
