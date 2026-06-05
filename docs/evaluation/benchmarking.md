@@ -925,6 +925,9 @@ Current local baseline was refreshed on 2026-06-05:
   future `local_cache_index` can validate as readable. Runtime trace and
   artifact-store projections are blocked as read sources, so candidate
   observability cannot become a cache hit by accident.
+- A read-only `ReportCacheIndex` diagnostics adapter now loads JSON/JSONL local
+  index payloads and validates entries without serving hits. Missing or
+  malformed files return diagnostics instead of changing runtime behavior.
 
 ## Parser Structure Smokes
 

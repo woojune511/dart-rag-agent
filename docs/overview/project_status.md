@@ -533,8 +533,10 @@ Useful supporting points:
   `retrieval_debug_trace.report_cache_consumer_assessment` and records that
   normal retrieval still executed. Persisted cache-entry validation now defines
   `local_cache_index` as the only future read source; runtime trace projections
-  and artifact-store projections remain candidate/audit surfaces. Cache
-  read/write behavior and retrieval bypass remain disabled.
+  and artifact-store projections remain candidate/audit surfaces. A read-only
+  `ReportCacheIndex` diagnostics adapter can validate JSON/JSONL local index
+  entries and lookup by cache key id, but reports `serving_enabled = false`.
+  Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

@@ -572,6 +572,18 @@ Next structural step: add a read-only local cache index adapter skeleton that
 can load and validate entries with `classify_report_cache_entry()` but still
 returns trace-only diagnostics rather than serving runtime hits.
 
+Twenty-eighth step completed: `src/storage/report_cache_index.py` now provides a
+read-only `ReportCacheIndex` diagnostics adapter. It can load JSON or JSONL
+local-cache-index payloads, validate each entry with
+`classify_report_cache_entry()`, count readable/blocked/malformed entries, and
+return lookup diagnostics by report-cache key id. The adapter always reports
+`enabled = false` / `serving_enabled = false`, so it cannot serve runtime hits or
+bypass retrieval.
+
+Next structural step: wire `ReportCacheIndex.lookup_diagnostics()` into the
+retrieval debug trace as optional trace-only telemetry, using an explicit path
+configuration and preserving normal retrieval execution.
+
 ### 3. Report-scoped cache
 
 현재:
