@@ -378,9 +378,16 @@ Eighth step completed: MAS final merge now distinguishes budgeted replan from
 budget-exhausted refusal by emitting `planner_feedback`, incrementing
 `replan_count`, and publishing a `replan_required` final projection while budget
 remains.
+Ninth step completed: the MAS graph now routes `replan_required` merge outcomes
+back to planning when budget and feedback remain. Replanning passes the
+integrity feedback into planner input, closes blocking tasks as failed with
+`blocked_reason`, and keeps final synthesis source selection limited to completed
+worker tasks and their referenced artifacts so stale artifacts do not re-enter
+the final answer.
 
-Next structural step: connect the `replan_required` signal to an actual graph
-edge back to planning, with loop limits and task/artifact carry-forward rules.
+Next structural step: run a real-node MAS smoke with the planner, Analyst,
+Researcher, Critic, and merge nodes wired together to confirm planner feedback
+is actionable outside injected-node contract tests.
 
 ### 3. Report-scoped cache
 
@@ -567,8 +574,9 @@ edge back to planning, with loop limits and task/artifact carry-forward rules.
 5. broader curated gate maintenance residual review
 6. internal compatibility mirror cleanup
 7. table payload sidecar / store-size cleanup
-8. MAS skeleton과 artifact schema productization
-9. Analyst / Critic / Researcher 분리
+8. MAS real-node replan smoke and artifact carry-forward review
+9. MAS skeleton과 artifact schema productization
+10. Analyst / Critic / Researcher 분리
 10. agentic self-reflection 재설계
 11. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 12. cross-company 확장

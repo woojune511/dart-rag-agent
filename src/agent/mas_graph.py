@@ -30,6 +30,20 @@ def check_critic_approval(state: MultiAgentState) -> str:
     return "pass"
 
 
+def check_orchestrator_merge_outcome(state: MultiAgentState) -> str:
+    final_report_record = state.get("final_report_record") or {}
+    status = str(final_report_record.get("status") or "").strip()
+    if status != "replan_required":
+        return "finish"
+    budget = int(state.get("replan_budget", 0) or 0)
+    count = int(state.get("replan_count", 0) or 0)
+    if count <= 0 or count > budget:
+        return "finish"
+    if not str(state.get("planner_feedback") or "").strip():
+        return "finish"
+    return "replan"
+
+
 def build_initial_state(
     query: str,
     *,
@@ -95,7 +109,14 @@ def build_mas_graph(
             "retry_researcher": "Researcher",
         },
     )
-    workflow.add_edge("Orchestrator_Merge", END)
+    workflow.add_conditional_edges(
+        "Orchestrator_Merge",
+        check_orchestrator_merge_outcome,
+        {
+            "finish": END,
+            "replan": "Orchestrator_Plan",
+        },
+    )
     return workflow.compile()
 
 

@@ -147,6 +147,55 @@ class OrchestratorNodeTests(unittest.TestCase):
         self.assertEqual(updates["tasks"]["task_2"]["context_keys"], ["narrative_evidence"])
         self.assertEqual(updates["execution_trace"], ["Orchestrator planned 2 tasks"])
 
+    def test_orchestrator_replan_closes_blocking_tasks_and_passes_feedback(self) -> None:
+        planner = FakePlannerCore(
+            {
+                "tasks": [
+                    {
+                        "task_id": "task_2",
+                        "assignee": "Analyst",
+                        "instruction": "Recompute with required artifacts.",
+                    }
+                ]
+            }
+        )
+        node = make_run_orchestrator_plan(planner)
+        state: MultiAgentState = build_initial_state("Question")
+        state["planner_feedback"] = "missing calculation_plan artifact"
+        state["tasks"] = {
+            "task_1": build_agent_task(
+                task_id="task_1",
+                assignee="Analyst",
+                instruction="Compute incomplete result.",
+                status=TaskStatus.COMPLETED,
+                context_keys=["numeric_values"],
+                kind="calculation",
+                artifact_ids=["task_1"],
+            )
+        }
+        state["task_artifact_trace"] = {
+            "integrity_status": "error",
+            "integrity_issues": [
+                {
+                    "type": "missing_required_artifact_kind",
+                    "severity": "error",
+                    "task_id": "task_1",
+                    "missing_artifact_kind": "calculation_plan",
+                }
+            ],
+        }
+
+        updates = node(state)
+
+        self.assertIn("[planner feedback]", planner.calls[0]["query"])
+        self.assertIn("missing calculation_plan artifact", planner.calls[0]["query"])
+        self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.FAILED)
+        self.assertEqual(updates["tasks"]["task_1"]["artifact_ids"], [])
+        self.assertIn("missing_required_artifact_kind", updates["tasks"]["task_1"]["blocked_reason"])
+        self.assertEqual(updates["tasks"]["task_2"]["status"], TaskStatus.PENDING)
+        self.assertIsNone(updates["planner_feedback"])
+        self.assertEqual(updates["execution_trace"], ["Orchestrator replanned 1 tasks"])
+
     def test_orchestrator_fallback_plans_both_generic_workers(self) -> None:
         node = make_run_orchestrator_plan(FailingPlannerCore())
         state = build_initial_state("Summarize the report and compute any requested figures.")

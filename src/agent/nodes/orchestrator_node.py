@@ -210,6 +210,44 @@ def _planner_feedback_from_integrity_issues(issues: List[Dict[str, Any]]) -> str
     )
 
 
+def _task_ids_from_integrity_issues(issues: List[Dict[str, Any]]) -> List[str]:
+    task_ids: List[str] = []
+    seen: set[str] = set()
+    for issue in issues:
+        for key in ("task_id", "producer_task_id", "source_task_id", "target_task_id"):
+            task_id = str(issue.get(key) or "").strip()
+            if task_id and task_id not in seen:
+                seen.add(task_id)
+                task_ids.append(task_id)
+    return task_ids
+
+
+def _task_updates_for_replan_carry_forward(state: MultiAgentState) -> Dict[str, AgentTask]:
+    issues = _blocking_integrity_issues(dict(state.get("task_artifact_trace") or {}))
+    if not issues:
+        return {}
+    blocked_reason = _integrity_issue_summary(issues)
+    updates: Dict[str, AgentTask] = {}
+    for task_id in _task_ids_from_integrity_issues(issues):
+        task = dict((state.get("tasks") or {}).get(task_id) or {})
+        if not task:
+            continue
+        updates[task_id] = {
+            **task,
+            "status": TaskStatus.FAILED,
+            "artifact_ids": [],
+            "blocked_reason": blocked_reason,
+        }
+    return updates
+
+
+def _query_with_planner_feedback(query: str, planner_feedback: str) -> str:
+    feedback = str(planner_feedback or "").strip()
+    if not feedback:
+        return query
+    return f"{query}\n\n[planner feedback]\n{feedback}"
+
+
 def _replan_budget_remaining(state: MultiAgentState) -> bool:
     budget = int(state.get("replan_budget", 0) or 0)
     count = int(state.get("replan_count", 0) or 0)
@@ -228,6 +266,31 @@ def _artifact_lines(artifacts: Dict[str, Artifact], creator: str) -> List[str]:
         suffix = f" | evidence={evidence_refs}" if evidence_refs else ""
         lines.append(f"{task_id}: {answer}{suffix}")
     return lines
+
+
+def _accepted_worker_source_artifacts(state: MultiAgentState) -> Dict[str, Artifact]:
+    tasks = dict(state.get("tasks") or {})
+    artifacts = dict(state.get("artifacts") or {})
+    completed_task_ids = {
+        str(task.get("task_id") or task_id).strip()
+        for task_id, task in tasks.items()
+        if task.get("assignee") in {"Analyst", "Researcher"}
+        and task.get("status") == TaskStatus.COMPLETED
+    }
+    referenced_artifact_ids = {
+        str(artifact_id).strip()
+        for task_id, task in tasks.items()
+        if str(task.get("task_id") or task_id).strip() in completed_task_ids
+        for artifact_id in (task.get("artifact_ids") or [])
+        if str(artifact_id).strip()
+    }
+    return {
+        key: artifact
+        for key, artifact in artifacts.items()
+        if artifact.get("creator") in {"Analyst", "Researcher"}
+        and str(artifact.get("task_id") or "").strip() in completed_task_ids
+        and str(artifact.get("artifact_id") or key).strip() in referenced_artifact_ids
+    }
 
 
 class FinancialOrchestratorPlannerCore:
@@ -366,17 +429,24 @@ def make_run_orchestrator_plan(
 ) -> Callable[[MultiAgentState], Dict[str, Any]]:
     def run_orchestrator_plan(state: MultiAgentState) -> Dict[str, Any]:
         query = str(state.get("original_query") or "").strip()
+        planner_feedback = str(state.get("planner_feedback") or "").strip()
+        planning_query = _query_with_planner_feedback(query, planner_feedback)
         scope = dict(state.get("report_scope") or {})
         try:
-            payload = core_runner.run(query, report_scope=scope)
+            payload = core_runner.run(planning_query, report_scope=scope)
         except Exception:
-            payload = _fallback_plan(query)
+            payload = _fallback_plan(planning_query)
 
         tasks = _normalize_plan_tasks(payload)
-        task_ledger = {task["task_id"]: task for task in tasks}
+        task_ledger = {
+            **_task_updates_for_replan_carry_forward(state),
+            **{task["task_id"]: task for task in tasks},
+        }
+        mode = "replanned" if planner_feedback else "planned"
         return attach_task_artifact_trace(state, {
             "tasks": task_ledger,
-            "execution_trace": _trace(f"Orchestrator planned {len(task_ledger)} tasks"),
+            "planner_feedback": None if planner_feedback else state.get("planner_feedback"),
+            "execution_trace": _trace(f"Orchestrator {mode} {len(tasks)} tasks"),
         })
 
     return run_orchestrator_plan
@@ -388,28 +458,23 @@ def make_run_orchestrator_merge(
     def run_orchestrator_merge(state: MultiAgentState) -> Dict[str, Any]:
         query = str(state.get("original_query") or "").strip()
         scope = dict(state.get("report_scope") or {})
-        artifacts = dict(state.get("artifacts") or {})
+        source_artifacts = _accepted_worker_source_artifacts(state)
         critic_feedback = state.get("critic_feedback")
 
         try:
             payload = core_runner.run(
                 query,
                 report_scope=scope,
-                artifacts=artifacts,
+                artifacts=source_artifacts,
                 critic_feedback=str(critic_feedback or ""),
             )
             final_report = str(payload.get("final_report") or "").strip()
         except Exception:
-            analyst_lines = _artifact_lines(artifacts, "Analyst")
-            researcher_lines = _artifact_lines(artifacts, "Researcher")
+            analyst_lines = _artifact_lines(source_artifacts, "Analyst")
+            researcher_lines = _artifact_lines(source_artifacts, "Researcher")
             merged = analyst_lines + researcher_lines
             final_report = "\n".join(merged) if merged else "현재 확보된 산출물이 없습니다."
 
-        source_artifacts = {
-            key: artifact
-            for key, artifact in artifacts.items()
-            if artifact.get("creator") in {"Analyst", "Researcher"}
-        }
         source_artifact_ids = [
             str(artifact.get("artifact_id") or key).strip()
             for key, artifact in source_artifacts.items()

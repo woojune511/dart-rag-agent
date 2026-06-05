@@ -10,7 +10,108 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.mas_graph import run_mas_graph
-from src.agent.mas_types import TaskStatus
+from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus, build_artifact
+from src.agent.nodes.orchestrator_node import make_run_orchestrator_merge, make_run_orchestrator_plan
+from src.schema import ArtifactKind
+
+
+class StatefulPlannerCore:
+    def __init__(self) -> None:
+        self.calls = []
+
+    def run(self, query: str, *, report_scope=None):
+        self.calls.append(query)
+        task_id = "task_1" if len(self.calls) == 1 else "task_2"
+        return {
+            "tasks": [
+                {
+                    "task_id": task_id,
+                    "assignee": "Analyst",
+                    "instruction": f"Compute {task_id}.",
+                }
+            ]
+        }
+
+
+def make_replan_test_analyst_node():
+    def run_analyst(state: MultiAgentState):
+        task_updates: dict[str, AgentTask] = {}
+        artifact_updates: dict[str, Artifact] = {}
+        trace: list[str] = []
+        for task_id, task in dict(state.get("tasks") or {}).items():
+            if task.get("assignee") != "Analyst" or task.get("status") != TaskStatus.PENDING:
+                continue
+            if task_id == "task_1":
+                task_updates[task_id] = {
+                    **task,
+                    "status": TaskStatus.COMPLETED,
+                    "artifact_ids": ["task_1"],
+                }
+                artifact_updates["task_1"] = build_artifact(
+                    task_id="task_1",
+                    creator="Analyst",
+                    artifact_id="task_1",
+                    kind=ArtifactKind.CALCULATION_RESULT.value,
+                    status="ok",
+                    summary="incomplete",
+                    content={"answer": "incomplete"},
+                    payload={"answer": "incomplete", "calculation_result": {"status": "ok", "formatted_result": "incomplete"}},
+                    evidence_links=["chunk://old"],
+                )
+                trace.append("Analyst completed incomplete task_1")
+                continue
+
+            evidence_refs = ["chunk://new"]
+            task_updates[task_id] = {
+                **task,
+                "status": TaskStatus.COMPLETED,
+                "artifact_ids": [f"{task_id}::operand_set", f"{task_id}::calculation_plan", task_id],
+            }
+            artifact_updates[f"{task_id}::operand_set"] = build_artifact(
+                task_id=task_id,
+                creator="Analyst",
+                artifact_id=f"{task_id}::operand_set",
+                kind=ArtifactKind.OPERAND_SET.value,
+                status="ok",
+                summary="1 operands",
+                content={"calculation_operands": [{"label": "value", "row_id": evidence_refs[0]}]},
+                payload={"calculation_operands": [{"label": "value", "row_id": evidence_refs[0]}]},
+                evidence_links=evidence_refs,
+            )
+            artifact_updates[f"{task_id}::calculation_plan"] = build_artifact(
+                task_id=task_id,
+                creator="Analyst",
+                artifact_id=f"{task_id}::calculation_plan",
+                kind=ArtifactKind.CALCULATION_PLAN.value,
+                status="ok",
+                summary="lookup",
+                content={"calculation_plan": {"mode": "lookup"}},
+                payload={"calculation_plan": {"mode": "lookup"}},
+                evidence_links=evidence_refs,
+            )
+            artifact_updates[task_id] = build_artifact(
+                task_id=task_id,
+                creator="Analyst",
+                artifact_id=task_id,
+                kind=ArtifactKind.CALCULATION_RESULT.value,
+                status="ok",
+                summary="complete",
+                content={"answer": "complete"},
+                payload={"answer": "complete", "calculation_result": {"status": "ok", "formatted_result": "complete"}},
+                evidence_links=evidence_refs,
+            )
+            trace.append(f"Analyst completed repaired {task_id}")
+        return {
+            "tasks": task_updates,
+            "artifacts": artifact_updates,
+            "execution_trace": trace,
+        }
+
+    return run_analyst
+
+
+def no_op_researcher_node(_state: MultiAgentState):
+    return {"execution_trace": []}
 
 
 class MultiAgentSkeletonTests(unittest.TestCase):
@@ -108,6 +209,37 @@ class MultiAgentSkeletonTests(unittest.TestCase):
         }
         self.assertTrue(final_critic_pass["task_1"])
         self.assertTrue(final_critic_pass["task_2"])
+
+    def test_merge_replan_required_routes_back_to_planning_once(self) -> None:
+        planner = StatefulPlannerCore()
+
+        final = run_mas_graph(
+            "repair incomplete calculation",
+            replan_budget=1,
+            orchestrator_plan_node=make_run_orchestrator_plan(planner),
+            orchestrator_merge_node=make_run_orchestrator_merge(
+                type("StaticMergeCore", (), {"run": lambda self, query, **kwargs: {"final_report": "merged"}})()
+            ),
+            analyst_node=make_replan_test_analyst_node(),
+            researcher_node=no_op_researcher_node,
+        )
+
+        self.assertEqual(len(planner.calls), 2)
+        self.assertNotIn("[planner feedback]", planner.calls[0])
+        self.assertIn("[planner feedback]", planner.calls[1])
+        self.assertEqual(final["replan_count"], 1)
+        self.assertEqual(final["tasks"]["task_1"]["status"], TaskStatus.FAILED)
+        self.assertEqual(final["tasks"]["task_1"]["artifact_ids"], [])
+        self.assertEqual(final["tasks"]["task_2"]["status"], TaskStatus.COMPLETED)
+        self.assertEqual(final["final_report_record"]["status"], "ok")
+        self.assertEqual(final["task_artifact_trace"]["integrity_status"], "ok")
+        self.assertEqual(
+            final["final_report_record"]["source_artifact_ids"],
+            ["task_2::operand_set", "task_2::calculation_plan", "task_2"],
+        )
+        self.assertNotIn("task_1", final["final_report_record"]["source_artifact_ids"])
+        self.assertIn("Orchestrator requested replan on integrity errors", final["execution_trace"])
+        self.assertIn("Orchestrator replanned 1 tasks", final["execution_trace"])
 
 
 if __name__ == "__main__":

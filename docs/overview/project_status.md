@@ -439,6 +439,12 @@ Useful supporting points:
 - MAS final merge now distinguishes replan from refusal: when replan budget
   remains it emits `planner_feedback` and a `replan_required` final projection;
   once the budget is exhausted it emits the blocked/refusal final answer.
+- MAS graph routing now consumes that `replan_required` projection: when budget
+  and planner feedback remain, `Orchestrator_Merge` routes back to
+  `Orchestrator_Plan`. The replan pass includes integrity feedback in planner
+  input, marks blocking tasks as failed with `blocked_reason`, and final
+  synthesis reads only completed worker tasks plus their referenced artifacts so
+  stale artifacts are not reused as final sources.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.
@@ -588,6 +594,9 @@ Useful supporting points:
   runtime domain-term audit passed, `tests.test_subtask_loop` passed `91`
   tests, the related answer-composition / lookup-recovery suite passed `182`
   tests, and full unittest discovery passed `687` tests.
+- MAS replan-edge follow-up is green: runtime domain-term audit passed,
+  projection/MAS focused tests passed `34` tests, and full unittest discovery
+  passed `780` tests.
 - Latest focused checks:
   - `KBF_T2_018`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
     grounding `1.0`, retrieval support `1.0`.
