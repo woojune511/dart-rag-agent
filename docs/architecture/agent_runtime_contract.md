@@ -240,6 +240,11 @@ Cache writes and reads must use this classification before bypassing retrieval.
 If the value is not `reusable`, runtime may still use the cache as a candidate
 hint, but it must verify the source evidence again before answering.
 
+Runtime calculation traces may include a read-only `report_cache_candidate`
+projection. This projection is observability only: it records the classifier
+status, reasons, normalized key, and deterministic key id, but it must not cause
+cache read/write behavior or retrieval bypass by itself.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를

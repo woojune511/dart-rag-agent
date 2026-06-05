@@ -17,6 +17,7 @@ class RuntimeCalculationTrace(TypedDict, total=False):
     calculation_operands: List[Dict[str, Any]]
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]
+    report_cache_candidate: Dict[str, Any]
     runtime_projection: RuntimeProjectionMetadata
 
 

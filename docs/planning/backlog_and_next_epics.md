@@ -498,23 +498,31 @@ It classifies candidates as `reusable`, `requires_evidence_verification`, or
 `not_cacheable`, so future runtime cache reads cannot silently reuse
 synthesized/LLM-only material or values with incomplete provenance.
 
-Next structural step: wire the report-scoped cache classifier into one
-read-only trace path first, so live runs can report what would be reusable
-without bypassing retrieval yet.
+Twenty-second step completed: runtime calculation traces now carry a read-only
+`report_cache_candidate` projection. `_runtime_trace_state_update()` classifies
+the active calculation result with `classify_report_cache_candidate()`, attaches
+status/reasons/key/key id under `resolved_calculation_trace`, and the runtime
+trace resolver preserves that projection through public output and MAS Analyst
+artifacts. This is observability only: no cache read/write or retrieval bypass
+is enabled.
+
+Next structural step: run a focused live/default MAS or eval-only trace and
+inspect `report_cache_candidate` distributions before deciding whether any
+`reusable` class should become a retrieval-bypass candidate.
 
 ### 3. Report-scoped cache
 
 현재:
 
 - cache는 주로 store/contextual ingest 재사용 쪽에 집중되어 있음
-- key/cacheability contract는 `src/config/report_scoped_cache.py`에 생겼지만,
-  아직 runtime cache read/write 동작에는 연결하지 않음
+- key/cacheability contract는 `src/config/report_scoped_cache.py`에 있고,
+  runtime calculation trace에는 read-only `report_cache_candidate`가 붙음
+- 아직 runtime cache read/write 또는 retrieval bypass 동작에는 연결하지 않음
 
 다음:
 
-- Analyst/lookup output에 read-only `report_cache_candidate` trace를 붙여
-  실제 런에서 어떤 값이 `reusable` / `requires_evidence_verification` /
-  `not_cacheable`로 분류되는지 확인
+- focused live/default MAS 또는 eval-only trace에서 어떤 값이 `reusable` /
+  `requires_evidence_verification` / `not_cacheable`로 분류되는지 확인
 - trace가 안정되면 `reusable` 값만 retrieval bypass 후보로 승격하고,
   `requires_evidence_verification` 값은 source evidence 재확인을 통과해야
   답변에 사용

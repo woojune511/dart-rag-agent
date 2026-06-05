@@ -22,6 +22,7 @@ import re
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
 from src.config import get_financial_ontology
+from src.config.report_scoped_cache import classify_report_cache_candidate, report_cache_key_id
 from src.config.retrieval_policy import (
     CONSOLIDATION_SCOPE_POLICY,
     CONCEPT_RATIO_RESULT_UNIT_POLICY,
@@ -1274,6 +1275,107 @@ def _build_runtime_calculation_trace(
     )
 
 
+def _first_mapping(*values: Any) -> Dict[str, Any]:
+    for value in values:
+        if isinstance(value, Mapping):
+            return dict(value)
+    return {}
+
+
+def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, Any]) -> Dict[str, Any]:
+    report_scope = dict(state.get("report_scope") or {})
+    active_subtask = dict(state.get("active_subtask") or {})
+    calculation_operands = [
+        dict(item)
+        for item in list(trace.get("calculation_operands") or [])
+        if isinstance(item, Mapping)
+    ]
+    calculation_plan = dict(trace.get("calculation_plan") or {})
+    calculation_result = dict(trace.get("calculation_result") or {})
+    if not (calculation_operands or calculation_plan or calculation_result):
+        return {}
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    primary_slot = _first_mapping(
+        answer_slots.get("primary_value"),
+        answer_slots.get("current_value"),
+        answer_slots.get("delta_value"),
+    )
+    operand = calculation_operands[0] if calculation_operands else {}
+    operand_metadata = dict(operand.get("metadata") or {})
+
+    candidate = {
+        **report_scope,
+        "value_kind": "calculation_result",
+        "concept_id": (
+            primary_slot.get("concept")
+            or active_subtask.get("concept_id")
+            or active_subtask.get("metric_family")
+            or state.get("target_metric_family")
+        ),
+        "metric_label": (
+            primary_slot.get("label")
+            or active_subtask.get("metric_label")
+            or calculation_result.get("metric_label")
+        ),
+        "period": (
+            primary_slot.get("period")
+            or primary_slot.get("period_label")
+            or operand.get("period")
+            or operand.get("period_label")
+            or report_scope.get("year")
+        ),
+        "value_text": (
+            calculation_result.get("rendered_value")
+            or calculation_result.get("formatted_value")
+            or calculation_result.get("formatted_result")
+            or primary_slot.get("display")
+            or primary_slot.get("value_text")
+            or primary_slot.get("rendered_value")
+        ),
+        "normalized_value": (
+            calculation_result.get("value")
+            if calculation_result.get("value") is not None
+            else primary_slot.get("normalized_value")
+        ),
+        "consolidation_scope": (
+            operand.get("consolidation_scope")
+            or operand_metadata.get("consolidation_scope")
+            or active_subtask.get("consolidation_scope")
+        ),
+        "statement_type": operand.get("statement_type") or operand_metadata.get("statement_type"),
+        "source_section": (
+            operand.get("source_section")
+            or operand.get("source_section_path")
+            or operand.get("section_path")
+            or operand_metadata.get("source_section")
+            or operand_metadata.get("section_path")
+        ),
+        "source_table_id": (
+            operand.get("source_table_id")
+            or operand.get("table_source_id")
+            or operand_metadata.get("source_table_id")
+            or operand_metadata.get("table_source_id")
+        ),
+        "source_anchor": operand.get("source_anchor") or operand_metadata.get("source_anchor"),
+        "source_row_id": (
+            operand.get("source_row_id")
+            or operand.get("source_row_ids")
+            or operand.get("row_id")
+            or primary_slot.get("source_row_id")
+            or primary_slot.get("source_row_ids")
+        ),
+        "evidence_refs": calculation_result.get("evidence_refs") or primary_slot.get("evidence_refs"),
+    }
+    classification = classify_report_cache_candidate(candidate)
+    return {
+        "status": classification["status"],
+        "reasons": list(classification.get("reasons") or []),
+        "key": dict(classification.get("key") or {}),
+        "key_id": report_cache_key_id(classification.get("key") or {}),
+        "read_only": True,
+    }
+
+
 def _build_fallback_calculation_trace(
     result: Dict[str, Any],
     *,
@@ -1328,6 +1430,7 @@ def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, A
     operands = list(resolved.get("calculation_operands") or [])
     plan = dict(resolved.get("calculation_plan") or {})
     calc_result = dict(resolved.get("calculation_result") or {})
+    report_cache_candidate = dict(resolved.get("report_cache_candidate") or {})
     source = "resolved_calculation_trace"
     if structured_result and not calc_result:
         calc_result = structured_result
@@ -1335,13 +1438,16 @@ def _normalise_resolved_calculation_trace(result: Dict[str, Any]) -> Dict[str, A
             source = "structured_result"
 
     if operands or plan or calc_result:
-        return _build_runtime_calculation_trace(
+        trace = _build_runtime_calculation_trace(
             calculation_operands=operands,
             calculation_plan=plan,
             calculation_result=calc_result,
             source=source,
             legacy_fallback=False,
         )
+        if report_cache_candidate:
+            trace["report_cache_candidate"] = report_cache_candidate
+        return trace
     return {}
 
 
@@ -1525,6 +1631,9 @@ def _runtime_trace_state_update(
         "resolved_calculation_trace": resolved_trace,
         "structured_result": structured_result,
     }
+    report_cache_candidate = _report_cache_candidate_for_trace(state, resolved_trace)
+    if report_cache_candidate:
+        resolved_trace["report_cache_candidate"] = report_cache_candidate
     if include_compatibility_mirrors:
         # Internal compatibility mirror while graph-state callers migrate.
         update.update(

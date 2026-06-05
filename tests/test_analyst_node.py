@@ -83,6 +83,10 @@ class AnalystNodeMigrationTests(unittest.TestCase):
                 ],
                 "calculation_plan": {"mode": "single_value", "formula": "A / B * 100"},
                 "calculation_result": {"status": "ok", "value": 10.9, "result_unit": "%"},
+                "report_cache_candidate": {
+                    "status": "requires_evidence_verification",
+                    "read_only": True,
+                },
             },
             "structured_result": {"status": "ok", "value": 10.9, "result_unit": "%"},
             "reflection_count": 0,
@@ -124,6 +128,13 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         self.assertEqual(
             artifact["content"]["resolved_calculation_trace"]["calculation_plan"]["formula"],
             "A / B * 100",
+        )
+        self.assertEqual(
+            artifact["content"]["resolved_calculation_trace"]["report_cache_candidate"]["status"],
+            "requires_evidence_verification",
+        )
+        self.assertTrue(
+            artifact["payload"]["resolved_calculation_trace"]["report_cache_candidate"]["read_only"]
         )
         self.assertNotIn("calculation_plan", artifact["content"])
         self.assertNotIn("calculation_result", artifact["content"])

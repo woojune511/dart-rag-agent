@@ -18,6 +18,7 @@ from src.config.report_scoped_cache import (
     normalise_report_cache_key,
     report_cache_key_id,
 )
+from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _runtime_trace_state_update
 
 
 class ReportScopedCacheContractTests(unittest.TestCase):
@@ -133,6 +134,65 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(synthesized["status"], CACHE_NOT_CACHEABLE)
         self.assertEqual(empty["status"], CACHE_NOT_CACHEABLE)
         self.assertIn("missing_value", empty["reasons"])
+
+    def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
+        update = _runtime_trace_state_update(
+            {
+                "report_scope": {
+                    "company": "ACME",
+                    "report_type": "annual",
+                    "rcept_no": "r1",
+                    "year": "2023",
+                },
+                "active_subtask": {
+                    "metric_family": "operating_margin",
+                    "metric_label": "operating margin",
+                },
+            },
+            calculation_operands=[
+                {
+                    "label": "operating income",
+                    "raw_value": "123",
+                    "period": "2023",
+                    "consolidation_scope": "consolidated",
+                    "statement_type": "income_statement",
+                    "source_section": "III. financial statements",
+                    "table_source_id": "table-1",
+                    "source_row_id": "row-1",
+                }
+            ],
+            calculation_plan={"operation": "lookup"},
+            calculation_result={"status": "ok", "rendered_value": "123"},
+        )
+
+        candidate = update["resolved_calculation_trace"]["report_cache_candidate"]
+
+        self.assertTrue(candidate["read_only"])
+        self.assertEqual(candidate["status"], CACHE_REUSABLE)
+        self.assertEqual(candidate["key"]["company"], "ACME")
+        self.assertEqual(candidate["key"]["concept_id"], "operating_margin")
+        self.assertIn("report-cache-v1:", candidate["key_id"])
+
+    def test_runtime_trace_resolver_preserves_cache_candidate(self) -> None:
+        resolved = _resolve_runtime_calculation_trace(
+            {
+                "resolved_calculation_trace": {
+                    "calculation_operands": [{"label": "metric", "value": "123"}],
+                    "calculation_plan": {"operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "report_cache_candidate": {
+                        "status": CACHE_REQUIRES_EVIDENCE_VERIFICATION,
+                        "read_only": True,
+                    },
+                }
+            },
+            allow_legacy_top_level=False,
+        )
+
+        self.assertEqual(
+            resolved["report_cache_candidate"]["status"],
+            CACHE_REQUIRES_EVIDENCE_VERIFICATION,
+        )
 
 
 if __name__ == "__main__":
