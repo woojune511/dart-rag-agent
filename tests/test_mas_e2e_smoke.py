@@ -221,6 +221,17 @@ class MasE2ESmokeTests(unittest.TestCase):
                 "task_artifact_trace": {
                     "integrity_status": "error",
                     "integrity_issue_count": 1,
+                    "integrity_issues": [
+                        {
+                            "type": "critic_report_rejected",
+                            "severity": "error",
+                            "task_id": "task_critic",
+                            "artifact_id": "artifact_critic",
+                            "runtime_acceptance_status": "blocked",
+                            "reasons": ["critic_rejected"],
+                            "target_refs": ["task_synthesis", "artifact_synthesis"],
+                        }
+                    ],
                 },
             }
 
@@ -242,6 +253,14 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["replan_routed_count"], 0)
         self.assertEqual(payload["summary"]["blocked_count"], 1)
         self.assertEqual(payload["summary"]["integrity_error_count"], 1)
+        self.assertEqual(payload["summary"]["critic_acceptance_issue_count"], 1)
+        self.assertEqual(payload["summary"]["critic_acceptance_status_counts"], {"blocked": 1})
+        self.assertEqual(payload["summary"]["critic_acceptance_reason_counts"], {"critic_rejected": 1})
+        self.assertEqual(payload["cases"][0]["critic_acceptance_issues"]["count"], 1)
+        self.assertEqual(
+            payload["cases"][0]["critic_acceptance_issues"]["items"][0]["target_refs"],
+            ["task_synthesis", "artifact_synthesis"],
+        )
 
     def test_run_smoke_surfaces_trace_only_cache_index_diagnostics(self) -> None:
         noop_node = lambda _state: {}

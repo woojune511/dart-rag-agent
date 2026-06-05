@@ -200,7 +200,10 @@ need `passed = true`, `verdict = "passed"`, target refs, an acceptance reason,
 and no blocking issues; rejected reports stay blocked even when their diagnostic
 score is high. Final close/replan integrity checks should consume
 `critic_report_runtime_acceptance_state()` so a structurally complete rejected
-critic report still blocks final close.
+critic report still blocks final close. Planner feedback and smoke/review
+handoff summaries should surface the normalized runtime acceptance status,
+reasons, and target refs so the retry path can explain why the critic blocked
+the close.
 
 Final synthesis must treat `integrity_status = "error"` as a blocking
 acceptance condition. If the replan budget remains, the aggregate step should

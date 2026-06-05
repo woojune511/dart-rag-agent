@@ -428,6 +428,8 @@ Useful supporting points:
   acceptance reason, and blocking issues as the acceptance contract while
   keeping `deterministic_score` diagnostic. Final integrity projection now uses
   that acceptance state to block structurally complete rejected critic reports.
+  Planner feedback and MAS smoke summaries surface critic acceptance status,
+  reasons, and target refs for reviewer handoff.
 - MAS planner, critic, and synthesis task creation now use the shared
   `AgentTask` builder to normalize task ids, assignees, status, context keys,
   kind/label, dependencies, artifact ids, and blocked reason.

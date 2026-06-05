@@ -11,7 +11,11 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.mas_graph import run_mas_graph
 from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus, build_artifact
-from src.agent.nodes.orchestrator_node import make_run_orchestrator_merge, make_run_orchestrator_plan
+from src.agent.nodes.orchestrator_node import (
+    _planner_feedback_from_integrity_issues,
+    make_run_orchestrator_merge,
+    make_run_orchestrator_plan,
+)
 from src.schema import ArtifactKind
 
 
@@ -31,6 +35,29 @@ class StatefulPlannerCore:
                 }
             ]
         }
+
+
+class OrchestratorIntegrityFeedbackTests(unittest.TestCase):
+    def test_planner_feedback_surfaces_critic_rejection_details(self) -> None:
+        feedback = _planner_feedback_from_integrity_issues(
+            [
+                {
+                    "type": "critic_report_rejected",
+                    "severity": "error",
+                    "task_id": "task_critic",
+                    "artifact_kind": "critic_report",
+                    "runtime_acceptance_status": "blocked",
+                    "reasons": ["critic_rejected"],
+                    "target_refs": ["task_synthesis", "artifact_synthesis"],
+                }
+            ]
+        )
+
+        self.assertIn("critic_report_rejected", feedback)
+        self.assertIn("task_critic", feedback)
+        self.assertIn("status=blocked", feedback)
+        self.assertIn("reasons=critic_rejected", feedback)
+        self.assertIn("targets=task_synthesis,artifact_synthesis", feedback)
 
 
 def make_replan_test_analyst_node():
