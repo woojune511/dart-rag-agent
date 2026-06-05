@@ -875,6 +875,10 @@ Current local baseline was refreshed on 2026-06-05:
 - After answer-bearing subtask projection cleanup, a default live smoke still
   compared at `status = ok`, `difference_count = 0`; both cases had
   `subtask_results = 2`, `empty_answers = 0`, with task ids `task_1`, `task_2`.
+- After Orchestrator answer-compression guidance, a default live smoke still
+  compared at `status = ok`, `difference_count = 0`. The sampled final answers
+  kept the numeric conclusion first and used a shorter narrative follow-up
+  without leaking evidence refs, artifact ids, or internal task ids.
 
 ## Parser Structure Smokes
 

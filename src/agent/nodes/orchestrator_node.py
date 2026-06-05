@@ -375,6 +375,16 @@ consolidation={consolidation}
         return _extract_json_payload(raw)
 
 
+MERGE_ANSWER_COMPRESSION_GUIDANCE = """[additional compression policy]
+- Start with the direct numeric conclusion when an Analyst result is present.
+- Then compress Researcher context into 2-4 material points only.
+- Preserve worker-provided values, signs, units, and periods exactly.
+- Do not copy evidence refs, artifact ids, or internal task ids into the final answer.
+- Avoid repeating the same claim across the numeric and narrative parts.
+
+"""
+
+
 class FinancialOrchestratorMergeCore:
     def __init__(self) -> None:
         api_key = os.environ.get("GOOGLE_API_KEY")
@@ -383,7 +393,8 @@ class FinancialOrchestratorMergeCore:
 
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         self.prompt = ChatPromptTemplate.from_template(
-            """당신은 금융 데이터 분석 보고서를 작성하는 Orchestrator입니다.
+            MERGE_ANSWER_COMPRESSION_GUIDANCE
+            + """당신은 금융 데이터 분석 보고서를 작성하는 Orchestrator입니다.
 
 아래 Analyst / Researcher 산출물만 사용해서 사용자의 질문에 답하세요.
 

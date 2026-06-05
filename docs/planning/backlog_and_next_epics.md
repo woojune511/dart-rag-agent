@@ -439,8 +439,18 @@ A live default smoke after the change kept compact contract comparison at
 `status = ok`, `difference_count = 0`; both cases had `subtask_results = 2`
 with `empty_answers = 0` and task ids `task_1`, `task_2`.
 
-Next structural step: tune Orchestrator final wording and compression quality
-using the normalized default E2E smoke and compact contract compare as baseline.
+Sixteenth step completed: MAS final merge now prepends an answer-compression
+policy to the Orchestrator prompt. The policy keeps numeric Analyst conclusions
+first, compresses Researcher context into a few material points, preserves
+worker-provided values/units/periods, and avoids leaking evidence refs or
+internal task ids into the final answer. A live default smoke after the change
+kept compact contract comparison at `status = ok`, `difference_count = 0`; both
+final answers started with the direct numeric conclusion and used compressed
+narrative follow-up.
+
+Next structural step: tighten Analyst scope labeling for numeric outputs using
+the existing task scope / evidence contract, then re-check the normalized E2E
+smoke wording against the compact contract baseline.
 
 ### 3. Report-scoped cache
 

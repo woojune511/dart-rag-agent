@@ -486,6 +486,11 @@ Useful supporting points:
   provenance, but they no longer appear as empty subtask answers in the final
   projection. A live default smoke kept compact contract comparison clean and
   produced two non-empty subtask results per case.
+- MAS final merge now applies explicit answer-compression guidance before the
+  existing Orchestrator prompt: numeric Analyst conclusions come first,
+  Researcher context is reduced to a few material points, worker values/units
+  are preserved, and evidence refs or internal task ids are kept out of prose.
+  A live default smoke kept compact contract comparison clean.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

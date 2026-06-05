@@ -12,6 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.agent.mas_graph import build_initial_state, run_mas_graph
 from src.agent.mas_types import Artifact, MultiAgentState, TaskStatus, build_agent_task, build_artifact
 from src.agent.nodes.orchestrator_node import (
+    MERGE_ANSWER_COMPRESSION_GUIDANCE,
     make_run_orchestrator_merge,
     make_run_orchestrator_plan,
 )
@@ -55,6 +56,14 @@ class FailingMergeCore:
 
 
 class OrchestratorNodeTests(unittest.TestCase):
+    def test_merge_compression_guidance_prioritizes_numeric_then_context(self) -> None:
+        self.assertIn("Start with the direct numeric conclusion", MERGE_ANSWER_COMPRESSION_GUIDANCE)
+        self.assertIn("2-4 material points", MERGE_ANSWER_COMPRESSION_GUIDANCE)
+        self.assertIn("Preserve worker-provided values", MERGE_ANSWER_COMPRESSION_GUIDANCE)
+        self.assertIn("Do not copy evidence refs", MERGE_ANSWER_COMPRESSION_GUIDANCE)
+        self.assertNotIn("{", MERGE_ANSWER_COMPRESSION_GUIDANCE)
+        self.assertNotIn("}", MERGE_ANSWER_COMPRESSION_GUIDANCE)
+
     def test_build_agent_task_normalizes_optional_contract_fields(self) -> None:
         task = build_agent_task(
             task_id=" task_x ",
