@@ -97,6 +97,7 @@ retrieval bypass remain disabled.
 | Final close gate | rejected critic reports produce blocking integrity errors |
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while serving remains disabled |
+| Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Test coverage | full `python -m unittest discover -s tests` has been kept green through recent contract work |
 
 ## Representative Commands
@@ -126,6 +127,5 @@ and hard to overfit.
 
 ## Next Useful Step
 
-Capture the portfolio demo output in a short walkthrough that shows the final
-answer, citations, calculation trace, task/artifact integrity summary, critic
-acceptance status, and cache reviewer handoff status side by side.
+Use [portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md) as the short
+reviewer path in portfolio, resume, or PR materials.

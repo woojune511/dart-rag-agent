@@ -76,9 +76,8 @@ User question
    - benchmark-specific runtime routing rules
 
 10. **Next step**
-    - capture the portfolio demo command output in a short walkthrough that
-      shows answer, evidence, calculation trace, critic acceptance, and cache
-      handoff status in one compact output.
+    - use the portfolio demo walkthrough as the short reviewer path in
+      portfolio, resume, or PR materials.
 
 ## README Opening Draft
 

@@ -84,6 +84,7 @@ retrieval bypass remain disabled.
 | [docs/overview/project_status.md](docs/overview/project_status.md) | Current implementation and gate status |
 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | One-page portfolio summary |
 | [docs/overview/portfolio_readme_blueprint.md](docs/overview/portfolio_readme_blueprint.md) | Suggested README/story structure |
+| [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | Fixture-backed demo output and reviewer notes |
 | [docs/overview/codebase_map.md](docs/overview/codebase_map.md) | Codebase ownership and execution map |
 | [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | Example question trace |
 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | Deeper technical notes |
@@ -121,6 +122,11 @@ The report-cache reviewer command should report:
 - `serving_enabled = false`
 - `ledger_insertion_enabled = false`
 
+The portfolio demo command should report `Readiness: ready` and show the final
+answer, citations, calculation trace, task/artifact integrity summary, critic
+acceptance, and cache reviewer handoff in one compact terminal view. See
+[docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md).
+
 ## Current Status
 
 Implemented and validated:
@@ -144,6 +150,5 @@ Intentionally disabled:
 
 ## Next Useful Step
 
-Capture the portfolio demo output in a short walkthrough so reviewers can scan
-the final answer, citations, calculation trace, task/artifact integrity summary,
-critic acceptance status, and cache reviewer handoff status side by side.
+Use the portfolio demo walkthrough as the short reviewer path in portfolio,
+resume, or PR materials.
