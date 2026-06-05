@@ -468,6 +468,11 @@ Useful supporting points:
   OpenAI-3072 Samsung 2023 structural-selective store and matching report scope.
   A default run completed 2 cases with `embedding_compatibility.status = ok`,
   `blocked_count = 0`, and `integrity_error_count = 0`.
+- `check_mas_e2e_smoke_contract.py` extracts and compares compact MAS smoke
+  contract fields from full smoke JSON output, covering embedding compatibility,
+  case count, blocked/integrity/replan summary counts, per-case final status,
+  artifact-integrity status, replan flags, and task status distribution. This is
+  the default local delta check for MAS quality work.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

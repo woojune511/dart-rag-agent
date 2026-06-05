@@ -842,6 +842,23 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 | 해석 | MAS는 이제 문서상 topology가 아니라, **task decomposition -> parallel workers -> critic retry -> merge**를 실제로 수행하는 baseline이 됐다. `mas_e2e_smoke.py`는 graph 실행 전 embedding/store compatibility를 확인하므로 stale persisted store는 LLM/API 작업 전에 중단된다. 이후 품질 개선은 이 baseline 대비 delta로 측정한다. |
 | Evidence | [benchmarks/results/mas_e2e_smoke_2026-04-30.json](benchmarks/results/mas_e2e_smoke_2026-04-30.json) |
 
+Default smoke contract compare:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.mas_e2e_smoke `
+  --progress `
+  --output benchmarks\results\mas_e2e_smoke_default_YYYY-MM-DD.json
+
+.\.venv\Scripts\python.exe -m src.ops.check_mas_e2e_smoke_contract `
+  --current benchmarks\results\mas_e2e_smoke_default_YYYY-MM-DD.json `
+  --baseline benchmarks\results\mas_e2e_smoke_default_contract_baseline.json
+```
+
+To intentionally refresh the compact contract baseline after reviewing the full
+output, rerun the checker with `--write-baseline`. Keep both the full smoke
+output and compact contract under `benchmarks/results/**` as local experiment
+artifacts unless a handoff explicitly asks to publish them.
+
 ## Parser Structure Smokes
 
 이 섹션은 retrieval/generation 품질이 아니라, **DART 원문 구조를 parser가 얼마나 복원하는지**를 보는 acceptance check다.

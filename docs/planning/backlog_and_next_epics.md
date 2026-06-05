@@ -413,9 +413,15 @@ current runtime embedding contract. A no-argument default run completed 2 cases
 with `embedding_compatibility.status = ok`, `blocked_count = 0`, and
 `integrity_error_count = 0`.
 
-Next structural step: use the normalized default E2E smoke as the baseline for
-MAS quality deltas rather than spending time debugging store/runtime embedding
-compatibility during each smoke run.
+Thirteenth step completed: `src/ops/check_mas_e2e_smoke_contract.py` now extracts
+and compares the stable MAS smoke contract from full smoke JSON output:
+embedding compatibility status, case count, blocked/integrity/replan summary
+counts, per-case final status, artifact-integrity status, replan flags, and task
+status distribution. This lets the default E2E smoke act as a local regression
+check without treating generated final-answer prose as a strict golden string.
+
+Next structural step: use the normalized default E2E smoke and compact contract
+compare as the MAS baseline before making worker/orchestrator quality changes.
 
 ### 3. Report-scoped cache
 
