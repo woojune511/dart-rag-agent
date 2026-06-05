@@ -717,6 +717,21 @@ Next structural step: decide whether this one-command contract check should be
 added to an existing local review script or a future CI workflow, keeping it
 non-serving and fixture-backed until cache reads are deliberately designed.
 
+Fortieth step completed: `src.ops.review_report_cache_index_contract` now wraps
+the report-cache-index reviewer path as a repo-local command with
+source-controlled defaults. By default it uses
+`tests/fixtures/report_cache_index/rehydration_diagnostics.json` and
+`tests/fixtures/report_cache_index/rehydration_contract_baseline.json`, builds
+the smoke payload in memory, prints the compact comparison result, and exits
+nonzero on mismatch. This keeps the review path reproducible without adding a
+new GitHub Actions workflow or writing generated smoke output.
+
+Next structural step: keep cache serving disabled and design the first guarded
+consumer-read path on paper before adding any runtime enable flag. The design
+should specify where a rehydrated candidate would enter the task/artifact
+ledger, how evidence provenance is rechecked, and which trace-only diagnostics
+would become blocking.
+
 ### 3. Report-scoped cache
 
 현재:

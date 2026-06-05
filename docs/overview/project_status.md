@@ -562,8 +562,9 @@ Useful supporting points:
   diagnostic payload. It can also build the fixture-backed smoke payload
   directly from `--report-cache-index-path`, so the lightweight review command
   compares against the source-controlled compact baseline without writing
-  generated smoke output. The fixture-backed compact baseline is
-  source-controlled under
+  generated smoke output. `src.ops.review_report_cache_index_contract` wraps
+  that fixture-backed baseline comparison as the default reviewer command. The
+  fixture-backed compact baseline is source-controlled under
   `tests/fixtures/report_cache_index/rehydration_contract_baseline.json`.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
