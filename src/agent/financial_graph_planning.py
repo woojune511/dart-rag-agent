@@ -15,7 +15,11 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _extract_segment_labels_from_query, _infer_concept_ratio_result_unit
+from src.agent.financial_graph_helpers import (
+    _extract_segment_labels_from_query,
+    _infer_concept_ratio_result_unit,
+    _report_cache_candidate_for_trace,
+)
 from src.agent.financial_graph_models import (
     ConceptPlannerOutput,
     EntityExtraction,
@@ -1728,10 +1732,16 @@ class FinancialAgentPlanningMixin:
         # Public return/export surfaces keep this compatibility bridge until
         # older callers stop sending top-level calculation mirrors. Internal
         # current-state readers should use strict resolver mode instead.
-        return _resolve_runtime_calculation_trace(
+        trace = _resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=True,
         )
+        if trace and not trace.get("report_cache_candidate"):
+            report_cache_candidate = _report_cache_candidate_for_trace(dict(state), trace)
+            if report_cache_candidate:
+                trace = dict(trace)
+                trace["report_cache_candidate"] = report_cache_candidate
+        return trace
 
     def _project_legacy_calculation_fields(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Compatibility alias while older tests and callers migrate."""

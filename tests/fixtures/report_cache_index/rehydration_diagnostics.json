@@ -1,0 +1,78 @@
+{
+  "entries": [
+    {
+      "entry_version": "report-cache-entry-v1",
+      "source": "local_cache_index",
+      "key": {
+        "company": "ACME",
+        "report_type": "annual",
+        "rcept_no": "r1",
+        "year": "2023",
+        "metric_label": "metric",
+        "period": "2023",
+        "consolidation_scope": "consolidated",
+        "statement_type": "income_statement",
+        "source_section": "section",
+        "source_table_id": "section::table:1"
+      },
+      "value": {
+        "kind": "calculation_result",
+        "rendered_value": "123"
+      },
+      "provenance": {
+        "source_row_ids": ["row-1"],
+        "evidence_refs": ["ev-1"]
+      }
+    },
+    {
+      "entry_version": "report-cache-entry-v1",
+      "source": "local_cache_index",
+      "key": {
+        "company": "ACME",
+        "report_type": "annual",
+        "rcept_no": "r1",
+        "year": "2023",
+        "metric_label": "metric",
+        "period": "2023",
+        "consolidation_scope": "consolidated",
+        "statement_type": "income_statement",
+        "source_section": "section",
+        "source_table_id": "section::table:1"
+      },
+      "value": {
+        "kind": "calculation_result",
+        "rendered_value": "123",
+        "answer_slots": {
+          "primary_value": {
+            "display": "123",
+            "raw_value": "123"
+          }
+        },
+        "calculation_trace": {
+          "calculation_result": {
+            "status": "ok",
+            "rendered_value": "123"
+          },
+          "calculation_operands": [
+            {
+              "label": "metric",
+              "raw_value": "123"
+            }
+          ]
+        },
+        "citations": ["[ACME | 2023 | section]"],
+        "evidence_items": [
+          {
+            "source_anchor": "section",
+            "claim": "metric was 123"
+          }
+        ]
+      },
+      "provenance": {
+        "source_row_ids": ["row-2"],
+        "evidence_refs": ["ev-2"],
+        "source_anchor": "section"
+      }
+    }
+  ]
+}

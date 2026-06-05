@@ -113,6 +113,42 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
 
+    def test_run_public_projection_adds_read_only_report_cache_candidate(self) -> None:
+        final_state = self._base_final_state()
+        final_state["report_scope"] = {
+            "company": "ACME",
+            "report_type": "annual",
+            "rcept_no": "r1",
+            "year": "2023",
+        }
+        final_state["active_subtask"] = {
+            "metric_family": "metric_family",
+            "metric_label": "metric label",
+        }
+        final_state["resolved_calculation_trace"]["calculation_operands"] = [
+            {
+                "label": "metric",
+                "raw_value": "123",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "statement",
+                "source_section": "section",
+                "table_source_id": "table-1",
+                "source_row_id": "row-1",
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        candidate = result["resolved_calculation_trace"]["report_cache_candidate"]
+        self.assertTrue(candidate["read_only"])
+        self.assertEqual(candidate["status"], "reusable")
+        self.assertEqual(candidate["key"]["company"], "ACME")
+        self.assertEqual(candidate["key"]["metric_label"], "metric label")
+
     def test_run_public_projection_preserves_legacy_top_level_trace_without_flat_mirrors(self) -> None:
         final_state = self._base_final_state()
         final_state["resolved_calculation_trace"] = {}

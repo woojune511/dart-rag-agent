@@ -65,6 +65,7 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                 "retrieval_query_budget": 12,
                 "focused_retrieval_query_budget": 4,
                 "retry_retrieval_query_budget": 1,
+                "report_cache_index_path": "tmp/report-cache-index.json",
                 "llm_routes": {
                     "evidence_extraction": {
                         "provider": "openrouter",
@@ -77,6 +78,7 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(config["retrieval_query_budget"], 12)
         self.assertEqual(config["focused_retrieval_query_budget"], 4)
         self.assertEqual(config["retry_retrieval_query_budget"], 1)
+        self.assertEqual(config["report_cache_index_path"], "tmp/report-cache-index.json")
         self.assertEqual(
             config["llm_routes"]["evidence_extraction"]["model"],
             "openai/gpt-4.1-mini",

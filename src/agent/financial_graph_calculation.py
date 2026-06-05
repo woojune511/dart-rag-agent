@@ -5713,6 +5713,84 @@ class FinancialAgentCalculationMixin:
                     return True
         return False
 
+    def _align_ratio_operand_units_with_shared_table_context(
+        self,
+        ordered_operands: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        if len(ordered_operands) < 2:
+            return ordered_operands
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        krw_unit = str(render_policy.get("krw_normalized_unit") or "").strip().upper()
+        if not krw_unit:
+            return ordered_operands
+        source_units = {
+            _normalise_spaces(str(item or ""))
+            for item in (render_policy.get("source_display_units") or ())
+            if _normalise_spaces(str(item or ""))
+        }
+        scale_by_unit = {
+            _normalise_spaces(str(unit or "")): float(scale)
+            for unit, scale in dict(render_policy.get("krw_display_unit_scales") or {}).items()
+            if _normalise_spaces(str(unit or ""))
+        }
+        eligible_units = {unit for unit in source_units if unit in scale_by_unit}
+        if len(eligible_units) < 2:
+            return ordered_operands
+
+        def _context_key(row: Dict[str, Any]) -> tuple[str, ...]:
+            table_id = _normalise_spaces(str(row.get("table_source_id") or row.get("source_table_id") or ""))
+            if table_id:
+                return ("table", table_id)
+            source_section = _normalise_spaces(str(row.get("source_section") or ""))
+            statement_type = _normalise_spaces(str(row.get("statement_type") or ""))
+            consolidation_scope = _normalise_spaces(str(row.get("consolidation_scope") or ""))
+            if source_section and statement_type and consolidation_scope:
+                return ("section", source_section, statement_type, consolidation_scope)
+            return ()
+
+        grouped_indexes: Dict[tuple[str, ...], List[int]] = {}
+        for index, row in enumerate(ordered_operands):
+            if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() != krw_unit:
+                continue
+            raw_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
+            if raw_unit not in eligible_units:
+                continue
+            key = _context_key(row)
+            if not key:
+                continue
+            grouped_indexes.setdefault(key, []).append(index)
+
+        aligned = [dict(row) for row in ordered_operands]
+        changed = False
+        for indexes in grouped_indexes.values():
+            if len(indexes) < 2:
+                continue
+            group_units = {
+                _normalise_spaces(str(aligned[index].get("raw_unit") or ""))
+                for index in indexes
+                if _normalise_spaces(str(aligned[index].get("raw_unit") or "")) in eligible_units
+            }
+            if len(group_units) < 2:
+                continue
+            target_unit = max(group_units, key=lambda unit: scale_by_unit.get(unit, 0.0))
+            for index in indexes:
+                row = aligned[index]
+                raw_value = str(row.get("raw_value") or "").strip()
+                current_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
+                if not raw_value or current_unit == target_unit:
+                    continue
+                normalized_value, normalized_unit = _normalise_operand_value(raw_value, target_unit)
+                if normalized_value is None or _normalise_spaces(str(normalized_unit or "")).upper() != krw_unit:
+                    continue
+                row["original_raw_unit"] = row.get("original_raw_unit") or current_unit
+                row["raw_unit"] = target_unit
+                row["normalized_value"] = normalized_value
+                row["normalized_unit"] = normalized_unit
+                row["rendered_value"] = f"{raw_value}{target_unit}"
+                row["ratio_unit_aligned_from_sibling_table"] = True
+                changed = True
+        return aligned if changed else ordered_operands
+
     def _align_ratio_operands_with_sibling_table_context(
         self,
         ordered_operands: List[Dict[str, Any]],
@@ -5722,7 +5800,7 @@ class FinancialAgentCalculationMixin:
             return ordered_operands
         evidence_pool = [dict(item) for item in (evidence_items or []) if isinstance(item, dict)]
         if not evidence_pool:
-            return ordered_operands
+            return self._align_ratio_operand_units_with_shared_table_context(ordered_operands)
         evidence_by_id = {
             str(item.get("evidence_id") or "").strip(): dict(item)
             for item in evidence_pool
@@ -5829,7 +5907,10 @@ class FinancialAgentCalculationMixin:
                 }
             )
             changed = True
-        return aligned if changed else ordered_operands
+        if changed:
+            unit_aligned = self._align_ratio_operand_units_with_shared_table_context(aligned)
+            return unit_aligned
+        return self._align_ratio_operand_units_with_shared_table_context(ordered_operands)
 
     def _align_dependency_rows_with_sibling_direct_context(
         self,

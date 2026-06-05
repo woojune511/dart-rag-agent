@@ -89,6 +89,22 @@ class AnalystNodeMigrationTests(unittest.TestCase):
                 },
             },
             "structured_result": {"status": "ok", "value": 10.9, "result_unit": "%"},
+            "retrieval_debug_trace": {
+                "report_cache_index_diagnostics": {
+                    "status": "not_configured",
+                    "enabled": False,
+                    "serving_enabled": False,
+                }
+            },
+            "retrieval_debug_trace_history": [
+                {
+                    "report_cache_index_diagnostics": {
+                        "status": "not_configured",
+                        "enabled": False,
+                        "serving_enabled": False,
+                    }
+                }
+            ],
             "reflection_count": 0,
             "retry_reason": "",
             "retrieved_docs": [
@@ -136,6 +152,11 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         self.assertTrue(
             artifact["payload"]["resolved_calculation_trace"]["report_cache_candidate"]["read_only"]
         )
+        self.assertEqual(
+            artifact["content"]["retrieval_debug_trace"]["report_cache_index_diagnostics"]["status"],
+            "not_configured",
+        )
+        self.assertEqual(len(artifact["payload"]["retrieval_debug_trace_history"]), 1)
         self.assertNotIn("calculation_plan", artifact["content"])
         self.assertNotIn("calculation_result", artifact["content"])
         self.assertNotIn("calculation_operands", artifact["content"])

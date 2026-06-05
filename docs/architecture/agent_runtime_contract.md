@@ -245,6 +245,122 @@ projection. This projection is observability only: it records the classifier
 status, reasons, normalized key, and deterministic key id, but it must not cause
 cache read/write behavior or retrieval bypass by itself.
 
+MAS smoke and export-style observability surfaces may summarize these candidates
+by case and by status/reason count. If the same candidate appears in both
+compatibility `content` and typed `payload`, summary counts should dedupe it by
+artifact/key/status/reasons so handoff metrics describe candidate values rather
+than projection copies.
+
+### Cache Consumer Rehydration Boundary
+
+A readable persisted entry is not automatically safe to use as an answer. A
+future cache consumer must first prove that the entry can be rehydrated into the
+same runtime surfaces that normal retrieval/calculation would have produced.
+The code-level readiness check is
+`classify_report_cache_rehydration_candidate()`, and it remains disabled for
+serving: `enabled = false` and `serving_enabled = false` are part of the
+contract.
+The optional projection helper
+`build_report_cache_rehydrated_candidate_artifact()` may rebuild the answer,
+citations, evidence items, structured result, and calculation trace into an
+artifact-like candidate payload, but that payload must remain `status =
+candidate` and must not be inserted into the task/artifact ledger as a served
+answer.
+That candidate must also carry calculation-ledger-oriented metadata without
+turning into a ledger write: `source = report_cache_rehydration`,
+`cache_origin = local_cache_index`, `report_cache_key_id`,
+`rehydration_status`, guarded `consumer_admissibility.status`, and disabled
+`serving_enabled` / `ledger_insertion_enabled` flags.
+
+A rehydratable entry must include all of the following:
+
+- a readable local-cache-index entry according to `classify_report_cache_entry()`
+- `answer_slots` with a `primary_value` display/raw surface
+- citation or source-anchor material that can be shown to the user
+- rehydratable evidence material, such as evidence refs, source row ids, or
+  evidence items
+- calculation trace material with `calculation_result` and
+  `calculation_operands`
+
+If any of those surfaces are missing, the future consumer must treat the entry
+as a diagnostic candidate only and execute normal retrieval. The fallback is not
+to synthesize missing evidence from the cache value; it is to recover evidence
+through the existing retrieval and validation path.
+
+### Guarded Cache Consumer Promotion Design
+
+Cache serving remains disabled until the consumer path can satisfy the same
+task/artifact contract as normal retrieval and calculation. A future
+implementation must be behind an explicit enable flag, and the default behavior
+must remain normal retrieval with trace-only diagnostics.
+
+The only allowed read source is a readable `local_cache_index` entry. Runtime
+trace projections, artifact-store projections, smoke output, and benchmark
+exports are observability surfaces only; they cannot become cache hits. A
+consumer must start from `ReportCacheIndex.lookup_diagnostics()`, select a
+single rehydration-ready match, and preserve the normal-retrieval fallback when
+there is no exact readable and rehydratable match.
+
+Before a rehydrated candidate can influence the final answer, it must enter the
+task/artifact ledger through an explicit producer policy. It must not be hidden
+inside free-form agent text or top-level compatibility fields. The future
+implementation has two acceptable shapes:
+
+- declare a dedicated cache-rehydration task/artifact kind in the schema and
+  contract, then teach integrity projection how to validate it
+- or map the rehydrated value into the existing calculation task contract by
+  producing the same required `operand_set`, `calculation_plan`, and
+  `calculation_result` artifacts with explicit cache-origin metadata
+
+Until one of those shapes is implemented and contract-tested, rehydrated output
+must stay `status = candidate` and outside the ledger.
+The first contract-tested shape is the calculation-task mapping. The helper
+`build_report_cache_calculation_contract_projection()` may project a
+rehydration-ready candidate into a candidate `calculation` task plus
+`operand_set`, `calculation_plan`, and `calculation_result` artifacts using the
+same artifact id pattern as Analyst output. This projection is still a schema
+contract only: every projected task/artifact must remain `status = candidate`
+with `serving_enabled = false` and `ledger_insertion_enabled = false`.
+`validate_report_cache_calculation_contract_projection()` is the read-only
+validator for that shape. It checks the required calculation artifact kinds,
+minimum payload surfaces, preserved evidence refs, and disabled serving/ledger
+flags, then reports whether the projection is valid for the contract without
+writing it to the ledger. Reviewer-facing smoke output may expose this
+validation status and fallback reasons, but it must not treat a valid candidate
+as a served answer.
+
+The consumer must recheck provenance before serving. The cached display value,
+normalized value, `answer_slots.primary_value`, citation/source anchors,
+evidence items or refs, source row/table ids, and calculation operands must
+agree with the cache key's report/value/provenance scope. A mismatch is a cache
+miss, not a repair opportunity. The consumer must not synthesize citations,
+operands, source rows, or calculation traces from the cached answer text.
+
+The following trace-only diagnostics become blocking for an enabled consumer:
+
+- `serving_enabled = false` or any disabled mode marker on the candidate
+- no readable `local_cache_index` match
+- more than one selected match for the same key without a deterministic tie
+  policy in config
+- `rehydration_ready = false` or any rehydration block reason
+- missing answer slots, citation/source anchors, evidence material, or
+  calculation trace material
+- cache key id mismatch or incomplete report/value/provenance key fields
+- source scope mismatch across report, statement, consolidation, section, table,
+  row, period, or value identity fields
+- ledger insertion without required artifact kinds, payload shape, and evidence
+  refs
+
+When any blocking condition appears, runtime must record the diagnostic reason
+and execute normal retrieval. A cache miss must be observable, but it must not
+degrade answer correctness or weaken final-source integrity checks.
+
+`classify_report_cache_guarded_consumer_candidate()` is the current pure helper
+for this design surface. It does not enable reads; it classifies whether a
+local-index entry is structurally admissible for a future schema-backed consumer
+or must fall back to normal retrieval. Even an admissible result reports
+`enabled = false`, `serving_enabled = false`, and `mode = trace_only`.
+
 ## 6. Concept Planner Candidate Validation
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를

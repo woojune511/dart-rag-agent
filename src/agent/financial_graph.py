@@ -126,6 +126,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         self.vsm = vector_store_manager
         self.k = k
         self.routing_config = dict(routing_config or {})
+        self.report_cache_index_path = str(self.routing_config.get("report_cache_index_path") or "").strip()
         try:
             self.retrieval_query_budget = int(self.routing_config.get("retrieval_query_budget") or 0)
         except (TypeError, ValueError):

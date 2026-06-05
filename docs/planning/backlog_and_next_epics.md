@@ -506,9 +506,323 @@ trace resolver preserves that projection through public output and MAS Analyst
 artifacts. This is observability only: no cache read/write or retrieval bypass
 is enabled.
 
-Next structural step: run a focused live/default MAS or eval-only trace and
-inspect `report_cache_candidate` distributions before deciding whether any
-`reusable` class should become a retrieval-bypass candidate.
+Twenty-third step completed: MAS E2E smoke output now exposes
+`report_cache_candidates` per case plus top-level candidate status/reason
+counts. Public runtime projection also backfills a read-only candidate when a
+resolved trace has enough report/value/provenance context but no candidate yet,
+and table-source ids can recover their source section for cache-key
+classification. A focused local Google-store MAS probe produced one deduped
+`reusable` candidate for the calculation artifact, but the same probe surfaced a
+value-canary risk: the operating-margin answer surface showed `2536.14%` rather
+than the expected `2.54%`. Do not promote cache retrieval-bypass behavior until
+the value canary is stable on the intended store/provider path.
+
+Twenty-fourth step completed: the MAS operating-margin unit-scale canary is now
+closed on the intended Google-store path. Ratio operands that come from the same
+structured table context and normalize to the same KRW unit family now align
+their source display unit from `CALCULATION_RENDER_POLICY` before formula
+execution. A focused local Google-store MAS probe for Samsung 2023 produced
+`2.54%`, preserved `6,566,976` and `258,935,494`, and still surfaced one
+deduped `reusable` report-cache candidate. Cache read/write and retrieval bypass
+remain disabled; the next step is to design the guarded consumer path rather
+than simply trusting every reusable projection.
+
+Next structural step: keep report-scoped cache as observability only while
+designing the first guarded retrieval-bypass consumer. The consumer should only
+consider `reusable` projections, preserve the source evidence contract, and
+fall back to normal retrieval when cache provenance or value identity is
+incomplete.
+
+Twenty-fifth step completed: report-scoped cache now has a disabled
+consumer-side gate. `classify_report_cache_consumer_candidate()` only marks a
+read-only `reusable` projection with complete report/value/provenance key,
+matching key id, empty reasons, and table provenance as `eligible`; all other
+projections are blocked with explicit reasons. Runtime traces attach this as
+`report_cache_candidate.retrieval_bypass` with `enabled = false` and
+`mode = trace_only`, and MAS smoke output surfaces the nested assessment for
+handoff review. No cache read/write or retrieval bypass behavior is enabled.
+
+Next structural step: connect the disabled consumer assessment to the earliest
+retrieval planning surface as trace-only telemetry, then verify that normal
+retrieval still runs when the assessment is blocked or disabled.
+
+Twenty-sixth step completed: the disabled consumer assessment is now visible on
+the retrieval planning surface. `_retrieve()` copies the current
+`report_cache_candidate.retrieval_bypass` assessment into
+`retrieval_debug_trace.report_cache_consumer_assessment`, marks whether normal
+retrieval actually executed, and records the executed query count. Focused tests
+cover both an eligible trace-only candidate and a blocked candidate; both cases
+still call the vector store search path because `enabled = false`.
+
+Next structural step: before adding an enable flag, decide where report-cache
+entries would be persisted/read from and define the source-of-truth boundary
+between runtime trace projections, artifact stores, and any local cache index.
+
+Twenty-seventh step completed: report-scoped cache now has a persisted-entry
+source-of-truth contract. `REPORT_CACHE_ENTRY_VERSION` and
+`classify_report_cache_entry()` define the only readable source as
+`local_cache_index`; runtime trace projections and artifact-store projections
+remain candidate/audit surfaces and are blocked as cache read sources. A
+readable entry must carry a complete report/value/provenance key, matching key
+id, value surface or normalized value, and provenance refs. This is still a
+schema/validation contract only: no cache index is written, read, or used for
+retrieval bypass.
+
+Next structural step: add a read-only local cache index adapter skeleton that
+can load and validate entries with `classify_report_cache_entry()` but still
+returns trace-only diagnostics rather than serving runtime hits.
+
+Twenty-eighth step completed: `src/storage/report_cache_index.py` now provides a
+read-only `ReportCacheIndex` diagnostics adapter. It can load JSON or JSONL
+local-cache-index payloads, validate each entry with
+`classify_report_cache_entry()`, count readable/blocked/malformed entries, and
+return lookup diagnostics by report-cache key id. The adapter always reports
+`enabled = false` / `serving_enabled = false`, so it cannot serve runtime hits or
+bypass retrieval.
+
+Next structural step: wire `ReportCacheIndex.lookup_diagnostics()` into the
+retrieval debug trace as optional trace-only telemetry, using an explicit path
+configuration and preserving normal retrieval execution.
+
+Twenty-ninth step completed: retrieval planning can now attach optional
+read-only local-cache-index diagnostics. `FinancialAgent` accepts an explicit
+`report_cache_index_path` through routing config, `_retrieve()` calls
+`ReportCacheIndex.lookup_diagnostics()` only when a report-cache candidate key
+is available, and `retrieval_debug_trace.report_cache_index_diagnostics`
+records lookup status, match counts, index load status, and whether normal
+retrieval executed. Benchmark runner and MAS smoke entry points can pass the
+path for trace diagnostics, but `enabled = false` and `serving_enabled = false`
+remain hard-coded; matched entries do not bypass vector-store search.
+
+Next structural step: add a handoff-focused trace fixture or smoke assertion
+that exercises `--report-cache-index-path` against a tiny local index and
+checks only diagnostics, not serving behavior. Keep cache hit serving disabled
+until evidence rehydration and provenance preservation are designed.
+
+Thirtieth step completed: MAS smoke now has a handoff-level cache-index
+diagnostics assertion. Analyst artifacts preserve `retrieval_debug_trace` and
+`retrieval_debug_trace_history`, and `src/ops/mas_e2e_smoke.py` summarizes
+`report_cache_index_diagnostics` per case and at the top level. A tiny local
+JSON index fixture in the smoke unit test exercises the explicit
+`report_cache_index_path` plumbing, verifies a readable match is counted once
+even when trace data appears in both content and payload, and checks that
+`enabled = false`, `serving_enabled = false`, and normal retrieval execution
+remain visible in the summary.
+
+Next structural step: design evidence rehydration for a future cache consumer
+without enabling it yet. The design should specify which stored value/evidence
+fields are needed to reconstruct answer slots, citations, and calculation
+trace provenance before any retrieval bypass flag can become active.
+
+Thirty-first step completed: report-scoped cache now has a disabled
+rehydration-readiness contract. `normalise_report_cache_entry()` preserves
+future consumer payload surfaces (`answer_slots`, `calculation_trace`,
+`citations`, and `evidence_items`), and
+`classify_report_cache_rehydration_candidate()` blocks readable entries unless
+they can reconstruct the answer slot, citation/source anchor, evidence material,
+and calculation trace provenance. Passing that classifier still reports
+`enabled = false` and `serving_enabled = false`; it defines the minimum future
+consumer contract but does not enable cache serving or retrieval bypass.
+
+Next structural step: add trace-only rehydration diagnostics to
+`ReportCacheIndex.lookup_diagnostics()` so smoke/benchmark output can show how
+many matched readable entries are also rehydration-ready, still without serving
+hits.
+
+Thirty-second step completed: `ReportCacheIndex` now reports rehydration
+readiness as trace-only diagnostics. Local index load diagnostics attach a
+disabled `rehydration` assessment to each entry, count
+`rehydration_ready_count`, and lookup diagnostics expose
+`rehydration_ready_match_count`, `rehydration_blocked_match_count`, and
+rehydration block reason counts. MAS smoke carries those counts into per-case
+and top-level summaries. This still does not serve cache hits; the diagnostics
+only show whether a matched readable entry has enough answer/evidence/trace
+payload for a future consumer.
+
+Next structural step: build a tiny persisted-index fixture profile for
+eval-only or MAS smoke documentation so a reviewer can reproduce readable vs.
+rehydration-ready diagnostics without relying on ad hoc temporary test data.
+
+Thirty-third step completed: a source-controlled local-cache-index fixture now
+lives at `tests/fixtures/report_cache_index/rehydration_diagnostics.json`. It
+uses one cache key with two readable local-index entries: one intentionally
+blocked for rehydration because it lacks answer slots/citation/trace material,
+and one rehydration-ready entry with answer slots, citations, evidence items,
+and calculation trace provenance. `tests/test_report_cache_index.py` reads the
+fixture directly and verifies `match_count = 2`, `readable_match_count = 2`,
+`rehydration_ready_match_count = 1`, and
+`rehydration_blocked_match_count = 1`, while serving stays disabled.
+
+Thirty-fourth step completed: `src/ops/report_cache_index_smoke.py` now prints
+a reviewer-facing trace-only diagnostics payload for a local cache index. By
+default it uses the first entry key in
+`tests/fixtures/report_cache_index/rehydration_diagnostics.json`, so the
+handoff command only needs `--report-cache-index-path` and shows
+`match_count = 2`, `readable_match_count = 2`,
+`rehydration_ready_match_count = 1`, and
+`rehydration_blocked_match_count = 1` while both `enabled` and
+`serving_enabled` remain false. `tests/test_report_cache_index_smoke.py` keeps
+the emitted summary shape fixed.
+
+Thirty-fifth step completed: `build_report_cache_rehydrated_candidate_artifact()`
+now defines the first non-serving projection from a rehydration-ready
+local-cache-index entry into an artifact-like candidate payload. Blocked entries
+produce no artifact; ready entries preserve answer text, citations, evidence
+items, structured result, calculation trace, report-cache key metadata, and
+disabled rehydration metadata. The artifact status is `candidate`, and both
+`enabled` and `serving_enabled` remain false. Fixture tests cover both the
+blocked and ready entries in
+`tests/fixtures/report_cache_index/rehydration_diagnostics.json`.
+
+Thirty-sixth step completed: `src.ops.report_cache_index_smoke` now summarizes
+rehydrated candidate artifact counts for matched local-index entries. The
+source-controlled fixture reports `rehydrated_candidate_artifact_count = 1` and
+`rehydrated_candidate_artifact_blocked_count = 1`; the ready entry also appears
+in a minimal `rehydrated_candidate_artifacts.items` preview with answer,
+citation, evidence-item, structured-result, and calculation-trace presence
+signals. The preview remains outside the live task/artifact ledger and still
+shows disabled serving.
+
+Thirty-seventh step completed: `src.ops.check_report_cache_index_smoke_contract`
+now extracts the stable report-cache-index handoff contract from full
+`report_cache_index_smoke` output. The contract covers trace-only status flags,
+match/readiness counts, rehydration reason counts, index load counts,
+rehydrated candidate artifact counts, and candidate preview booleans/counts
+without diffing the full matched-entry payload. The CLI supports
+`--write-baseline` and comparison against either full smoke output or compact
+contract JSON.
+
+Thirty-eighth step completed: the report-cache-index smoke contract now has a
+source-controlled compact baseline at
+`tests/fixtures/report_cache_index/rehydration_contract_baseline.json`. The
+baseline is generated from the fixture-backed smoke output and covers the stable
+trace-only handoff fields, including candidate-artifact preview counts. Contract
+tests compare live fixture smoke output against this baseline, while local
+reviewer output can still be written under `benchmarks/results/**` and kept out
+of commits.
+
+Next structural step: use the source-controlled baseline in a lightweight
+CI-style check or PR-review command, while keeping generated smoke outputs under
+`benchmarks/results/**` untracked.
+
+Thirty-ninth step completed: `src.ops.check_report_cache_index_smoke_contract`
+can now build the fixture-backed report-cache-index smoke payload directly from
+`--report-cache-index-path` and compare it to the source-controlled compact
+baseline in one command. The older `--current` JSON path remains available for
+reviewers who want to inspect or archive full smoke output locally, but the
+lightweight PR-review path no longer needs to write generated output under
+`benchmarks/results/**`.
+
+Next structural step: decide whether this one-command contract check should be
+added to an existing local review script or a future CI workflow, keeping it
+non-serving and fixture-backed until cache reads are deliberately designed.
+
+Fortieth step completed: `src.ops.review_report_cache_index_contract` now wraps
+the report-cache-index reviewer path as a repo-local command with
+source-controlled defaults. By default it uses
+`tests/fixtures/report_cache_index/rehydration_diagnostics.json` and
+`tests/fixtures/report_cache_index/rehydration_contract_baseline.json`, builds
+the smoke payload in memory, prints the compact comparison result, and exits
+nonzero on mismatch. This keeps the review path reproducible without adding a
+new GitHub Actions workflow or writing generated smoke output.
+
+Next structural step: keep cache serving disabled and design the first guarded
+consumer-read path on paper before adding any runtime enable flag. The design
+should specify where a rehydrated candidate would enter the task/artifact
+ledger, how evidence provenance is rechecked, and which trace-only diagnostics
+would become blocking.
+
+Forty-first step completed: the guarded report-cache consumer-read design is
+now part of `docs/architecture/agent_runtime_contract.md`. The contract keeps
+serving disabled, limits future reads to readable `local_cache_index` entries,
+requires a single rehydration-ready match, and requires provenance rechecks
+across answer slots, citations/source anchors, evidence material, calculation
+trace material, and report/value/provenance key scope. It also defines that a
+future served cache value must enter the task/artifact ledger through either a
+declared cache-rehydration schema path or the existing calculation task contract
+with required `operand_set`, `calculation_plan`, and `calculation_result`
+artifacts. Until that schema-backed producer policy exists, rehydrated output
+must remain a non-serving `candidate`.
+
+Next structural step: add a small contract helper or test-only validator for
+the documented guarded-consumer blocking conditions, still without enabling
+cache reads. The first validator should classify a rehydration-ready fixture as
+admissible-for-design and the blocked fixture as a normal-retrieval fallback.
+
+Forty-second step completed: `classify_report_cache_guarded_consumer_candidate()`
+now codifies the first pure guarded-consumer admissibility check without
+enabling cache reads. It returns `admissible_for_design` only when a
+local-cache-index entry is rehydration-ready, scope-compatible with the expected
+key, and not ambiguous; otherwise it returns `normal_retrieval_fallback` with
+blocking reasons. The source-controlled fixture now proves the ready entry is
+admissible for design while the blocked entry falls back because it lacks the
+required rehydration surfaces. The helper still reports `enabled = false`,
+`serving_enabled = false`, and `mode = trace_only`.
+
+Next structural step: decide the schema-backed producer policy for a future
+served cache value. The two open designs are either a dedicated
+cache-rehydration task/artifact kind, or mapping cache rehydration into the
+existing calculation task contract with explicit cache-origin metadata.
+
+Forty-third step completed: the non-serving rehydrated candidate artifact now
+has an explicit calculation-ledger-oriented metadata contract. Ready candidates
+carry `source = report_cache_rehydration`, `cache_origin = local_cache_index`,
+`report_cache_key_id`, `rehydration_status`, guarded
+`consumer_admissibility.status`, and disabled serving/ledger insertion flags in
+addition to the preserved answer, evidence, structured-result, and calculation
+trace payload. Blocked candidates also expose guarded consumer fallback status
+without producing an artifact. No cache read, write, retrieval bypass, or ledger
+insertion behavior is enabled.
+
+Next structural step: choose the schema-backed producer policy before adding
+any serving flag. The best next contract test should validate either a
+dedicated cache-rehydration artifact kind or the mapping from a rehydrated
+candidate into the existing calculation task surfaces.
+
+Forty-fourth step completed: the first schema-backed producer-policy direction
+is now contract-tested as a candidate-only mapping into the existing
+calculation task contract. `build_report_cache_calculation_contract_projection()`
+projects a rehydration-ready local-index entry into a candidate `calculation`
+task plus `operand_set`, `calculation_plan`, and `calculation_result` artifacts
+using the same artifact id pattern as Analyst output. The projection preserves
+cache origin, key id, rehydration status, guarded consumer admissibility, and
+evidence refs, while keeping `serving_enabled = false` and
+`ledger_insertion_enabled = false`. Blocked entries still produce no projection
+and require normal retrieval fallback.
+
+Next structural step: add a read-only integrity/projection validator for this
+candidate calculation mapping so reviewers can see whether a projected candidate
+would satisfy the existing task/artifact payload and provenance contract before
+any producer policy or serving flag is introduced.
+
+Forty-fifth step completed: the candidate calculation mapping now has a
+read-only integrity validator. `validate_report_cache_calculation_contract_projection()`
+checks that a projected candidate calculation task carries the required
+`operand_set`, `calculation_plan`, and `calculation_result` artifact kinds,
+their minimum payload surfaces, preserved evidence refs, and disabled
+serving/ledger flags. The ready fixture validates as `valid_for_contract`; the
+blocked fixture remains a normal retrieval fallback because no projection is
+available. This still does not insert the projection into the ledger and does
+not enable cache serving.
+
+Next structural step: expose this validator in the reviewer handoff surface,
+either through the fixture-backed smoke contract or the repo-local review
+command, so PR reviewers can see candidate projection validity without running
+the full test suite.
+
+Forty-sixth step completed: the projection validator is now visible in the
+reviewer handoff surface. `src.ops.report_cache_index_smoke` adds
+calculation-projection validity/fallback counts and per-candidate validation
+previews, while `src.ops.check_report_cache_index_smoke_contract` extracts the
+stable status, disabled flags, and fallback reasons into the compact baseline.
+The source-controlled baseline now proves that the ready fixture is
+`valid_for_contract` and the blocked fixture remains
+`normal_retrieval_fallback` with `projection_not_available`.
+
+Next structural step: decide whether this reviewer-surface contract is enough
+to mark the draft PR ready for review, or add one final repo-local review note
+that summarizes the cache path as candidate-only from runtime trace through
+projection validation.
 
 ### 3. Report-scoped cache
 
