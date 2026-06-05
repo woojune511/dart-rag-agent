@@ -1019,7 +1019,8 @@ projection validation.
 10. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
     target refs, acceptance reason, and blocking issues instead of
-    `deterministic_score` thresholds.
+    `deterministic_score` thresholds. The final integrity projection consumes
+    this state so rejected critic reports block final close.
 10. agentic self-reflection 재설계
 11. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 12. cross-company 확장

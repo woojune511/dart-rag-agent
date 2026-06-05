@@ -292,6 +292,7 @@ def _list_strings(value: Any) -> List[str]:
 
 def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRuntimeAcceptance:
     passed = bool(report.get("passed"))
+    has_passed_value = isinstance(report.get("passed"), bool)
     verdict = str(report.get("verdict") or report.get("status") or "").strip().lower()
     target_refs = _dedupe_strings(
         [
@@ -320,6 +321,8 @@ def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRunt
         ]
     )
     reasons: List[str] = []
+    if not has_passed_value and not verdict:
+        reasons.append("missing_verdict")
     if not target_refs:
         reasons.append("missing_target_refs")
     if passed:
@@ -330,10 +333,11 @@ def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRunt
         if blocking_issues:
             reasons.append("passed_report_has_blocking_issues")
     else:
-        reasons.append("critic_rejected")
-        if verdict != "rejected":
+        if has_passed_value and not passed:
+            reasons.append("critic_rejected")
+        if has_passed_value and verdict != "rejected":
             reasons.append("missing_rejected_verdict")
-        if not blocking_issues:
+        if has_passed_value and not blocking_issues:
             reasons.append("missing_blocking_issues")
 
     accepted = passed and not reasons

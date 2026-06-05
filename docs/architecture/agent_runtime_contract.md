@@ -198,7 +198,9 @@ Runtime critic acceptance is contract-based, not score-threshold-based.
 acceptance decision should follow the normalized report contract: passed reports
 need `passed = true`, `verdict = "passed"`, target refs, an acceptance reason,
 and no blocking issues; rejected reports stay blocked even when their diagnostic
-score is high.
+score is high. Final close/replan integrity checks should consume
+`critic_report_runtime_acceptance_state()` so a structurally complete rejected
+critic report still blocks final close.
 
 Final synthesis must treat `integrity_status = "error"` as a blocking
 acceptance condition. If the replan budget remains, the aggregate step should
