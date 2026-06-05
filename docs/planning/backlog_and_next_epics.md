@@ -779,6 +779,22 @@ any serving flag. The best next contract test should validate either a
 dedicated cache-rehydration artifact kind or the mapping from a rehydrated
 candidate into the existing calculation task surfaces.
 
+Forty-fourth step completed: the first schema-backed producer-policy direction
+is now contract-tested as a candidate-only mapping into the existing
+calculation task contract. `build_report_cache_calculation_contract_projection()`
+projects a rehydration-ready local-index entry into a candidate `calculation`
+task plus `operand_set`, `calculation_plan`, and `calculation_result` artifacts
+using the same artifact id pattern as Analyst output. The projection preserves
+cache origin, key id, rehydration status, guarded consumer admissibility, and
+evidence refs, while keeping `serving_enabled = false` and
+`ledger_insertion_enabled = false`. Blocked entries still produce no projection
+and require normal retrieval fallback.
+
+Next structural step: add a read-only integrity/projection validator for this
+candidate calculation mapping so reviewers can see whether a projected candidate
+would satisfy the existing task/artifact payload and provenance contract before
+any producer policy or serving flag is introduced.
+
 ### 3. Report-scoped cache
 
 현재:

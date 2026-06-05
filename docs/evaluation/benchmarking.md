@@ -988,6 +988,12 @@ Current local baseline was refreshed on 2026-06-05:
   `admissible_for_design` and the blocked fixture entry as
   `normal_retrieval_fallback`, while still reporting disabled trace-only mode
   and enabling no cache read behavior.
+- `build_report_cache_calculation_contract_projection` is the first
+  candidate-only producer-policy contract for the existing calculation task
+  shape. The ready fixture can be projected into candidate `operand_set`,
+  `calculation_plan`, and `calculation_result` artifacts with cache-origin
+  metadata and evidence refs; the blocked fixture produces no projection.
+  Serving and ledger insertion remain disabled.
 - `check_report_cache_index_smoke_contract` extracts only stable handoff fields:
   status flags, local-index match/readiness counts, rehydration reason counts,
   candidate-artifact counts, and preview booleans/counts. It intentionally does

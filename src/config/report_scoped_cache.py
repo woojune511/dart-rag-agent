@@ -550,6 +550,148 @@ def build_report_cache_rehydrated_candidate_artifact(
     return base
 
 
+def build_report_cache_calculation_contract_projection(
+    entry: Mapping[str, Any],
+    *,
+    task_id: str = "",
+) -> Dict[str, Any]:
+    """Project a rehydrated cache candidate onto calculation ledger surfaces.
+
+    This is a disabled schema contract helper. It does not insert anything into
+    the task/artifact ledger and does not enable cache serving; it only shows
+    the exact calculation task/artifact surfaces a future producer policy would
+    need to validate.
+    """
+    candidate = build_report_cache_rehydrated_candidate_artifact(entry, task_id=task_id)
+    base = {
+        "status": candidate.get("status"),
+        "ready": bool(candidate.get("ready")),
+        "enabled": False,
+        "serving_enabled": False,
+        "ledger_insertion_enabled": False,
+        "reasons": [str(reason) for reason in list(candidate.get("reasons") or [])],
+        "key": dict(candidate.get("key") or {}),
+        "key_id": str(candidate.get("key_id") or ""),
+        "consumer_admissibility": dict(candidate.get("consumer_admissibility") or {}),
+        "projection": None,
+    }
+    artifact = candidate.get("artifact") if isinstance(candidate.get("artifact"), Mapping) else None
+    if not artifact:
+        return base
+
+    resolved_task_id = str(task_id or artifact.get("task_id") or "report_cache_candidate_task").strip()
+    payload = dict(artifact.get("payload") or {})
+    trace = dict(payload.get("resolved_calculation_trace") or {})
+    calculation_operands = list(trace.get("calculation_operands") or [])
+    calculation_plan = dict(trace.get("calculation_plan") or {})
+    calculation_result = dict(payload.get("structured_result") or trace.get("calculation_result") or {})
+    if not any(str(calculation_result.get(key) or "").strip() for key in ("rendered_value", "formatted_result")):
+        rendered_value = str(payload.get("answer") or "").strip()
+        if rendered_value:
+            calculation_result["rendered_value"] = rendered_value
+            calculation_result["formatted_result"] = rendered_value
+    if not calculation_plan:
+        calculation_plan = {
+            "mode": "cache_rehydrated_candidate",
+            "source": "report_cache_rehydration",
+        }
+
+    common_metadata = {
+        "source": "report_cache_rehydration",
+        "cache_origin": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+        "report_cache_key_id": str(candidate.get("key_id") or ""),
+        "rehydration_status": str(candidate.get("status") or ""),
+        "consumer_admissibility_status": str(
+            (candidate.get("consumer_admissibility") or {}).get("status") or ""
+        ),
+        "enabled": False,
+        "serving_enabled": False,
+        "ledger_insertion_enabled": False,
+    }
+    evidence_refs = _string_list(artifact.get("evidence_refs") or artifact.get("evidence_links"))
+    artifact_ids = {
+        "operand": f"{resolved_task_id}::operand_set",
+        "plan": f"{resolved_task_id}::calculation_plan",
+        "result": resolved_task_id,
+    }
+    artifacts = {
+        artifact_ids["operand"]: {
+            "task_id": resolved_task_id,
+            "creator": "ReportCacheIndex",
+            "artifact_id": artifact_ids["operand"],
+            "kind": "operand_set",
+            "status": "candidate",
+            "summary": f"{len(calculation_operands)} operands",
+            "content": {"calculation_operands": calculation_operands},
+            "payload": {"calculation_operands": calculation_operands},
+            "evidence_links": evidence_refs,
+            "evidence_refs": evidence_refs,
+            "metadata": dict(common_metadata),
+        },
+        artifact_ids["plan"]: {
+            "task_id": resolved_task_id,
+            "creator": "ReportCacheIndex",
+            "artifact_id": artifact_ids["plan"],
+            "kind": "calculation_plan",
+            "status": "candidate",
+            "summary": str(calculation_plan.get("operation") or calculation_plan.get("mode") or "").strip(),
+            "content": {"calculation_plan": calculation_plan},
+            "payload": {"calculation_plan": calculation_plan},
+            "evidence_links": evidence_refs,
+            "evidence_refs": evidence_refs,
+            "metadata": dict(common_metadata),
+        },
+        artifact_ids["result"]: {
+            "task_id": resolved_task_id,
+            "creator": "ReportCacheIndex",
+            "artifact_id": artifact_ids["result"],
+            "kind": "calculation_result",
+            "status": "candidate",
+            "summary": str(artifact.get("summary") or payload.get("answer") or "").strip(),
+            "content": {
+                "answer": payload.get("answer", ""),
+                "citations": list(payload.get("citations") or []),
+                "evidence_items": list(payload.get("evidence_items") or []),
+                "resolved_calculation_trace": trace,
+                "structured_result": dict(payload.get("structured_result") or {}),
+                "report_cache_key": dict(payload.get("report_cache_key") or {}),
+                "report_cache_key_id": str(payload.get("report_cache_key_id") or ""),
+                "cache_origin": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "consumer_admissibility": dict(payload.get("consumer_admissibility") or {}),
+            },
+            "payload": {
+                "answer": payload.get("answer", ""),
+                "structured_result": dict(payload.get("structured_result") or {}),
+                "resolved_calculation_trace": trace,
+                "calculation_result": calculation_result,
+                "report_cache_key_id": str(payload.get("report_cache_key_id") or ""),
+                "cache_origin": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "consumer_admissibility": dict(payload.get("consumer_admissibility") or {}),
+            },
+            "evidence_links": evidence_refs,
+            "evidence_refs": evidence_refs,
+            "metadata": dict(common_metadata),
+        },
+    }
+    base["projection"] = {
+        "task": {
+            "task_id": resolved_task_id,
+            "kind": "calculation",
+            "status": "candidate",
+            "artifact_ids": [
+                artifact_ids["operand"],
+                artifact_ids["plan"],
+                artifact_ids["result"],
+            ],
+            "artifact_kinds": ["operand_set", "calculation_plan", "calculation_result"],
+            "metadata": dict(common_metadata),
+        },
+        "artifacts": artifacts,
+        "metadata": dict(common_metadata),
+    }
+    return base
+
+
 def classify_report_cache_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:
     """Validate whether a persisted entry may be read as a cache hit."""
     normalised = normalise_report_cache_entry(entry)

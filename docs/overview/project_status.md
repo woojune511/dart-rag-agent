@@ -579,6 +579,12 @@ Useful supporting points:
   ledger-facing metadata needed for a later producer decision: source,
   cache-origin, cache key id, rehydration status, guarded consumer
   admissibility status, and disabled serving/ledger insertion flags.
+  The first schema-backed producer-policy direction is now contract-tested as
+  a candidate-only mapping onto the existing calculation task shape:
+  `build_report_cache_calculation_contract_projection()` can produce a
+  candidate calculation task plus `operand_set`, `calculation_plan`, and
+  `calculation_result` artifacts, all still disabled for serving and ledger
+  insertion.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

@@ -17,6 +17,7 @@ from src.config.report_scoped_cache import (  # noqa: E402
     CACHE_ENTRY_SOURCE_ARTIFACT_STORE,
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     REPORT_CACHE_ENTRY_VERSION,
+    build_report_cache_calculation_contract_projection,
     build_report_cache_rehydrated_candidate_artifact,
     classify_report_cache_guarded_consumer_candidate,
     normalise_report_cache_key,
@@ -244,6 +245,45 @@ class ReportCacheIndexTests(unittest.TestCase):
         self.assertTrue(ready["admissible"])
         self.assertFalse(ready["enabled"])
         self.assertFalse(ready["serving_enabled"])
+
+    def test_fixture_calculation_contract_projection_remains_candidate_only(self) -> None:
+        fixture_path = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        blocked_entry, ready_entry = payload["entries"]
+
+        blocked = build_report_cache_calculation_contract_projection(blocked_entry, task_id="task_1")
+        ready = build_report_cache_calculation_contract_projection(ready_entry, task_id="task_1")
+
+        self.assertFalse(blocked["ready"])
+        self.assertIsNone(blocked["projection"])
+        self.assertTrue(ready["ready"])
+        self.assertFalse(ready["serving_enabled"])
+        self.assertFalse(ready["ledger_insertion_enabled"])
+        self.assertEqual(
+            ready["projection"]["task"]["artifact_ids"],
+            ["task_1::operand_set", "task_1::calculation_plan", "task_1"],
+        )
+        self.assertEqual(
+            ready["projection"]["task"]["artifact_kinds"],
+            ["operand_set", "calculation_plan", "calculation_result"],
+        )
+        self.assertEqual(
+            ready["projection"]["artifacts"]["task_1::operand_set"]["payload"]["calculation_operands"],
+            [{"label": "metric", "raw_value": "123"}],
+        )
+        self.assertEqual(
+            ready["projection"]["artifacts"]["task_1::calculation_plan"]["payload"]["calculation_plan"]["mode"],
+            "cache_rehydrated_candidate",
+        )
+        self.assertEqual(
+            ready["projection"]["artifacts"]["task_1"]["payload"]["calculation_result"]["rendered_value"],
+            "123",
+        )
+        for artifact in ready["projection"]["artifacts"].values():
+            self.assertEqual(artifact["status"], "candidate")
+            self.assertEqual(artifact["metadata"]["cache_origin"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
+            self.assertFalse(artifact["metadata"]["serving_enabled"])
+            self.assertFalse(artifact["metadata"]["ledger_insertion_enabled"])
 
 
 if __name__ == "__main__":

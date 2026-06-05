@@ -314,6 +314,13 @@ implementation has two acceptable shapes:
 
 Until one of those shapes is implemented and contract-tested, rehydrated output
 must stay `status = candidate` and outside the ledger.
+The first contract-tested shape is the calculation-task mapping. The helper
+`build_report_cache_calculation_contract_projection()` may project a
+rehydration-ready candidate into a candidate `calculation` task plus
+`operand_set`, `calculation_plan`, and `calculation_result` artifacts using the
+same artifact id pattern as Analyst output. This projection is still a schema
+contract only: every projected task/artifact must remain `status = candidate`
+with `serving_enabled = false` and `ledger_insertion_enabled = false`.
 
 The consumer must recheck provenance before serving. The cached display value,
 normalized value, `answer_slots.primary_value`, citation/source anchors,
