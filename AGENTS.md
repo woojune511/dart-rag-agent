@@ -109,6 +109,8 @@
 - Canonical ingest는 `src/config/runtime_contract.py`의 `CANONICAL_INGEST_PROFILE_ID`를 기준으로 한다. 다른 ingest는 명시적 experimental profile로만 쓴다.
 - Retrieval 변경은 `retrieval_debug_trace`로 query bundle, filter, selected chunk, policy trace를 남겨야 한다.
 - Agentic workflow는 task ledger와 artifact store를 기준으로 설계한다. 자유 텍스트 agent chat은 상태 계약으로 쓰지 않는다.
+- ChatGPT/Codex memory는 사용자 선호, 반복 작업 방식, handoff 시작 절차 같은 장기 습관만 보조적으로 참조한다. 최신 커밋, 남은 blocker, benchmark 결과, API/model 상태, 실험 산출물 위치처럼 자주 바뀌는 프로젝트 상태는 memory가 아니라 `CONTEXT.md`, `docs/overview/project_status.md`, `docs/history/experiment_history.md`, git history에 기록한다.
+- 새 세션에서 이어받을 때는 memory를 사실의 근거로 쓰지 말고, 먼저 `AGENTS.md`, `CONTEXT.md`, `docs/overview/project_status.md`, `git status`, 최근 커밋을 확인한다. memory와 repo 문서/git 상태가 충돌하면 repo 문서와 git 상태를 우선한다.
 - `src/config/retrieval_policy.py` 같은 policy 파일은 runtime branch를 숨기는 장소가 아니라, 검토 가능한 domain prior 목록이다.
 - ontology는 concept/alias/binding policy를 담고, benchmark metric recipe book이 되면 안 된다.
 - evaluator는 평가 편의를 위해 더 많은 normalization을 가질 수 있지만, agent runtime은 evaluator trick을 따라가면 안 된다.
