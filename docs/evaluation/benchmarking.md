@@ -1006,6 +1006,12 @@ Current local baseline was refreshed on 2026-06-05:
   not compare the full matched-entry payload. The source-controlled compact
   baseline lives at
   `tests/fixtures/report_cache_index/rehydration_contract_baseline.json`.
+- `review_report_cache_index_contract` is the repo-local handoff gate for this
+  candidate-only cache path. Its top-level `reviewer_handoff` field should read
+  `status = ready`, `mode = candidate_only`, `serving_enabled = false`,
+  `ledger_insertion_enabled = false`, `projection_ready_count = 1`, and
+  `fallback_count = 1`. This confirms reviewer visibility without enabling
+  cache serving, cache writes, ledger insertion, or retrieval bypass.
 
 ## Parser Structure Smokes
 

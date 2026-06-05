@@ -40,6 +40,55 @@ def _parse_key_json(value: str) -> Dict[str, Any]:
     return dict(payload)
 
 
+def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[str, Any]:
+    candidate_artifacts = [
+        dict(item)
+        for item in list(contract.get("candidate_artifacts") or [])
+        if isinstance(item, dict)
+    ]
+    serving_flags = [
+        bool(contract.get("serving_enabled")),
+        *[bool(item.get("serving_enabled")) for item in candidate_artifacts],
+        *[bool(item.get("artifact_serving_enabled")) for item in candidate_artifacts],
+        *[bool(item.get("calculation_projection_serving_enabled")) for item in candidate_artifacts],
+    ]
+    ledger_insertion_flags = [
+        bool(item.get("calculation_projection_ledger_insertion_enabled"))
+        for item in candidate_artifacts
+    ]
+    projection_ready_count = sum(
+        1
+        for item in candidate_artifacts
+        if bool(item.get("calculation_projection_valid_for_contract"))
+    )
+    fallback_count = sum(
+        1
+        for item in candidate_artifacts
+        if bool(item.get("calculation_projection_fallback_required"))
+    )
+    candidate_only_ready = (
+        status == "ok"
+        and not any(serving_flags)
+        and not any(ledger_insertion_flags)
+        and projection_ready_count > 0
+        and fallback_count > 0
+    )
+    return {
+        "status": "ready" if candidate_only_ready else "needs_review",
+        "mode": "candidate_only",
+        "serving_enabled": any(serving_flags),
+        "ledger_insertion_enabled": any(ledger_insertion_flags),
+        "projection_ready_count": projection_ready_count,
+        "fallback_count": fallback_count,
+        "review_note": (
+            "Candidate-only reviewer contract is ready; cache serving, ledger insertion, "
+            "and retrieval bypass remain disabled."
+            if candidate_only_ready
+            else "Review the contract diff or disabled-flag/projection counts before handoff."
+        ),
+    }
+
+
 def run_review(
     *,
     report_cache_index_path: str | Path = DEFAULT_REPORT_CACHE_INDEX_PATH,
@@ -50,9 +99,14 @@ def run_review(
     baseline = Path(baseline_path)
     current_payload = build_smoke_payload(report_cache_index_path=index_path, key=key)
     result = check_contract(current_payload=current_payload, baseline_payload=_read_json(baseline))
+    reviewer_handoff = _reviewer_handoff_summary(
+        result["current_contract"],
+        status=str(result["status"] or ""),
+    )
     return {
         "status": result["status"],
         "difference_count": result["difference_count"],
+        "reviewer_handoff": reviewer_handoff,
         "report_cache_index_path": str(index_path),
         "baseline": str(baseline),
         "differences": result["differences"],

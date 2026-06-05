@@ -824,6 +824,14 @@ to mark the draft PR ready for review, or add one final repo-local review note
 that summarizes the cache path as candidate-only from runtime trace through
 projection validation.
 
+Forty-seventh step completed: `src.ops.review_report_cache_index_contract` now
+emits a compact `reviewer_handoff` summary for the candidate-only cache path.
+The default fixture-backed command reports `status = ready`,
+`mode = candidate_only`, disabled serving/ledger insertion flags, one valid
+projection-ready candidate, and one fallback candidate. This is enough to treat
+the reviewer-surface contract as the handoff gate while cache serving,
+read/write behavior, ledger insertion, and retrieval bypass remain disabled.
+
 ### 3. Report-scoped cache
 
 현재:
