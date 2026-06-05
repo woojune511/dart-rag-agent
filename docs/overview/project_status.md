@@ -491,6 +491,13 @@ Useful supporting points:
   Researcher context is reduced to a few material points, worker values/units
   are preserved, and evidence refs or internal task ids are kept out of prose.
   A live default smoke kept compact contract comparison clean.
+- MAS Analyst numeric operand extraction now rejects explicit
+  consolidation-scope conflicts for direct rows and dependency task-output rows,
+  and resolved dependency rows are checked against producer statement/section
+  scope before satisfying downstream calculation tasks. Compact ratio scope
+  labels are config-driven. A live default smoke kept compact contract
+  comparison clean and case 1 now reports `연결 기준 영업이익률 2.54%` instead of
+  the prior separate-statement `-4.45%`.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

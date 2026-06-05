@@ -879,6 +879,12 @@ Current local baseline was refreshed on 2026-06-05:
   compared at `status = ok`, `difference_count = 0`. The sampled final answers
   kept the numeric conclusion first and used a shorter narrative follow-up
   without leaking evidence refs, artifact ids, or internal task ids.
+- After Analyst consolidation-scope guarding, a default live smoke still
+  compared at `status = ok`, `difference_count = 0`. Case 1 now reports the
+  connected/consolidated operating margin as `2.54%` and no longer uses the
+  separate-statement operands that produced `-4.45%`; case 2 still reports the
+  research-and-development expense ratio as `10.95%`. The full smoke output is a
+  local experiment artifact under `benchmarks/results/**`.
 
 ## Parser Structure Smokes
 

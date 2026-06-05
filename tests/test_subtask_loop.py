@@ -1524,6 +1524,280 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertFalse(any(row.get("raw_value") == "(1,180,096)" for row in all_rows))
 
+    def test_ratio_rejects_direct_rows_when_consolidation_scope_conflicts(self) -> None:
+        numerator_row = {
+            "operand_id": "direct_ratio_001",
+            "evidence_id": "ev_income",
+            "source_row_id": "ev_income",
+            "source_row_ids": ["ev_income"],
+            "source_anchor": "[ACME | 2023 | III. Financial Statements > 4. Financial Statements]",
+            "label": "operating income",
+            "raw_value": "(11,526,297)",
+            "raw_unit": "million",
+            "normalized_value": -11_526_297_000_000.0,
+            "normalized_unit": "KRW",
+            "period": "2023",
+            "consolidation_scope": "separate",
+            "matched_operand_label": "operating income",
+            "matched_operand_concept": "operating_income",
+            "matched_operand_role": "numerator",
+        }
+        denominator_row = {
+            "operand_id": "direct_ratio_002",
+            "evidence_id": "ev_revenue",
+            "source_row_id": "ev_revenue",
+            "source_row_ids": ["ev_revenue"],
+            "source_anchor": "[ACME | 2023 | III. Financial Statements > 4. Financial Statements]",
+            "label": "revenue",
+            "raw_value": "258,935,494",
+            "raw_unit": "million",
+            "normalized_value": 258_935_494_000_000.0,
+            "normalized_unit": "KRW",
+            "period": "2023",
+            "consolidation_scope": "separate",
+            "matched_operand_label": "revenue",
+            "matched_operand_concept": "revenue",
+            "matched_operand_role": "denominator",
+        }
+        income_evidence = {
+            "evidence_id": "ev_income",
+            "claim": "operating income (11,526,297) million",
+            "metadata": {
+                "consolidation_scope": "separate",
+                "section_path": "III. Financial Statements > 4. Financial Statements",
+            },
+        }
+        revenue_evidence = {
+            "evidence_id": "ev_revenue",
+            "claim": "revenue 258,935,494 million",
+            "metadata": {
+                "consolidation_scope": "separate",
+                "section_path": "III. Financial Statements > 4. Financial Statements",
+            },
+        }
+        state = {
+            "query": "Calculate the 2023 consolidated operating margin.",
+            "report_scope": {"company": "ACME", "year": "2023", "consolidation": "consolidated"},
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "operating_margin",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "operating income",
+                        "concept": "operating_income",
+                        "role": "numerator",
+                        "required": True,
+                    },
+                    {
+                        "label": "revenue",
+                        "concept": "revenue",
+                        "role": "denominator",
+                        "required": True,
+                    },
+                ],
+            },
+            "evidence_items": [income_evidence, revenue_evidence],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {"status": "ready"},
+            "calc_subtasks": [],
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            dict(numerator_row),
+            dict(denominator_row),
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: [
+            dict(income_evidence),
+            dict(revenue_evidence),
+        ]
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
+
+    def test_ratio_rejects_dependency_rows_when_consolidation_scope_conflicts(self) -> None:
+        dependency_rows = [
+            {
+                "operand_id": "task_output_001",
+                "source_row_id": "task_output:task_income",
+                "source_row_ids": ["task_output:task_income", "ev_income"],
+                "source_anchor": "[ACME | 2023 | III. Financial Statements > 4. Financial Statements]",
+                "label": "operating income",
+                "raw_value": "(11,526,297)",
+                "raw_unit": "million",
+                "normalized_value": -11_526_297_000_000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "consolidation_scope": "separate",
+                "matched_operand_label": "operating income",
+                "matched_operand_concept": "operating_income",
+                "matched_operand_role": "numerator",
+            },
+            {
+                "operand_id": "task_output_002",
+                "source_row_id": "task_output:task_revenue",
+                "source_row_ids": ["task_output:task_revenue", "ev_revenue"],
+                "source_anchor": "[ACME | 2023 | III. Financial Statements > 4. Financial Statements]",
+                "label": "revenue",
+                "raw_value": "258,935,494",
+                "raw_unit": "million",
+                "normalized_value": 258_935_494_000_000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "consolidation_scope": "separate",
+                "matched_operand_label": "revenue",
+                "matched_operand_concept": "revenue",
+                "matched_operand_role": "denominator",
+            },
+        ]
+        state = {
+            "query": "Calculate the 2023 consolidated operating margin.",
+            "report_scope": {"company": "ACME", "year": "2023", "consolidation": "consolidated"},
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "operating_margin",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "operating income",
+                        "concept": "operating_income",
+                        "role": "numerator",
+                        "required": True,
+                    },
+                    {
+                        "label": "revenue",
+                        "concept": "revenue",
+                        "role": "denominator",
+                        "required": True,
+                    },
+                ],
+            },
+            "evidence_items": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {"status": "ready"},
+            "calc_subtasks": [],
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._dependency_binding_resolution_state = lambda _state: {
+            "rows": [dict(row) for row in dependency_rows],
+            "bindings": [],
+            "resolved_keys": set(),
+            "missing_bindings": [],
+            "binding_keys": set(),
+        }
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
+
+    def test_ratio_rejects_resolved_dependency_row_outside_producer_scope(self) -> None:
+        dependency_row = {
+            "operand_id": "task_output_001",
+            "source_row_id": "task_output:task_income",
+            "source_row_ids": ["task_output:task_income", "ev_income"],
+            "source_anchor": "[ACME | 2023 | III. Financial Statements > Notes]",
+            "label": "operating income",
+            "raw_value": "12,746,074",
+            "raw_unit": "million",
+            "normalized_value": 12_746_074_000_000.0,
+            "normalized_unit": "KRW",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "statement_type": "income_statement",
+            "matched_operand_label": "operating income",
+            "matched_operand_concept": "operating_income",
+            "matched_operand_role": "numerator",
+        }
+        binding = {
+            "label": "operating income",
+            "concept": "operating_income",
+            "role": "numerator",
+            "preferred_task_id": "task_income",
+            "required": True,
+        }
+        state = {
+            "query": "Calculate the 2023 consolidated operating margin.",
+            "report_scope": {"company": "ACME", "year": "2023", "consolidation": "consolidated"},
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "operating_margin",
+                "operation_family": "ratio",
+                "required_operands": [
+                    binding,
+                    {
+                        "label": "revenue",
+                        "concept": "revenue",
+                        "role": "denominator",
+                        "required": True,
+                    },
+                ],
+            },
+            "calc_subtasks": [
+                {
+                    "task_id": "task_income",
+                    "preferred_statement_types": ["income_statement", "summary_financials"],
+                    "preferred_sections": ["Consolidated Financial Statements"],
+                    "required_operands": [
+                        {
+                            "label": "operating income",
+                            "concept": "operating_income",
+                            "role": "numerator",
+                            "preferred_statement_types": ["income_statement", "summary_financials"],
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {"status": "ready"},
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._dependency_binding_resolution_state = lambda _state: {
+            "rows": [dict(dependency_row)],
+            "bindings": [dict(binding)],
+            "resolved_keys": {("operating_income", "numerator")},
+            "missing_bindings": [],
+            "binding_keys": {("operating_income", "numerator")},
+        }
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
+
+    def test_compact_ratio_answer_preserves_common_consolidation_scope(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "2.54%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "operating margin",
+                "primary_value": {"rendered_value": "2.54%"},
+                "components_by_group": {
+                    "numerator": [{"period": "2023", "consolidation_scope": "consolidated"}],
+                    "denominator": [{"period": "2023", "consolidation_scope": "consolidated"}],
+                },
+            },
+        }
+
+        answer = self.agent._compact_ratio_answer(
+            {"active_subtask": {"metric_label": "operating margin"}},
+            calculation_result,
+        )
+
+        self.assertEqual(answer, "2023년 연결기준 operating margin은 2.54%입니다.")
+
     def test_best_direct_lookup_slot_rejects_ambiguous_context_table_without_scope(self) -> None:
         operand = {
             "label": "interest expense",

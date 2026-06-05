@@ -1966,6 +1966,25 @@ class FinancialAgentCalculationMixin:
                 answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
                 if answer:
                     return answer
+            if operation_family == "ratio" and self._ratio_component_consolidation_scope(
+                calculation_result,
+                list(row.get("calculation_operands") or []),
+            ):
+                answer = self._compact_ratio_answer(
+                    {
+                        "active_subtask": {
+                            "metric_label": row.get("metric_label") or calculation_result.get("metric_label") or "",
+                        },
+                        "resolved_calculation_trace": {
+                            "calculation_operands": list(row.get("calculation_operands") or []),
+                            "calculation_plan": dict(row.get("calculation_plan") or {}),
+                            "calculation_result": calculation_result,
+                        },
+                    },
+                    calculation_result,
+                )
+                if answer:
+                    return answer
             answer = _normalise_spaces(
                 str(
                     calculation_result.get("formatted_result")
@@ -5937,6 +5956,14 @@ class FinancialAgentCalculationMixin:
         period_pattern = str(render_policy.get("ratio_year_period_pattern") or "")
         if len(periods) == 1 and period_pattern and re.fullmatch(period_pattern, periods[0]):
             period_prefix = str(render_policy.get("ratio_period_prefix_template") or "").format(period=periods[0])
+        trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+        scope = self._ratio_component_consolidation_scope(
+            calculation_result,
+            list(trace.get("calculation_operands") or []),
+        )
+        scope_prefixes = dict(render_policy.get("consolidation_scope_answer_prefixes") or {})
+        if scope and str(scope_prefixes.get(scope) or ""):
+            period_prefix = f"{period_prefix}{scope_prefixes[scope]}"
         if metric_label and rendered_value:
             return str(render_policy.get("ratio_answer_template") or "").format(
                 period_prefix=period_prefix,
@@ -5944,6 +5971,24 @@ class FinancialAgentCalculationMixin:
                 rendered_value=rendered_value,
             )
         return rendered_value or metric_label
+
+    def _ratio_component_consolidation_scope(
+        self,
+        calculation_result: Dict[str, Any],
+        operands: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        scopes: List[str] = []
+        for entries in dict(answer_slots.get("components_by_group") or {}).values():
+            for entry in entries or []:
+                scope = _normalise_spaces(str((entry or {}).get("consolidation_scope") or ""))
+                if scope in {"consolidated", "separate"} and scope not in scopes:
+                    scopes.append(scope)
+        for operand in operands or []:
+            scope = _normalise_spaces(str((operand or {}).get("consolidation_scope") or ""))
+            if scope in {"consolidated", "separate"} and scope not in scopes:
+                scopes.append(scope)
+        return scopes[0] if len(scopes) == 1 else ""
 
     def _build_deterministic_lookup_plan(
         self,
@@ -6513,6 +6558,18 @@ class FinancialAgentCalculationMixin:
                 return any(marker in section_path_lower for marker in consolidated_markers)
             return False
 
+        def operand_conflicts_requested_scope(row: Dict[str, Any]) -> bool:
+            if desired_consolidation_scope == "unknown":
+                return False
+            scope = _normalise_spaces(str(row.get("consolidation_scope") or "unknown"))
+            if scope == desired_consolidation_scope:
+                return False
+            if desired_consolidation_scope == "consolidated":
+                return scope == "separate"
+            if desired_consolidation_scope == "separate":
+                return scope == "consolidated"
+            return False
+
         empty_result: Dict[str, Any] = {
             "calculation_debug_trace": {"coverage": "missing"},
             "answer": "",
@@ -6628,6 +6685,11 @@ class FinancialAgentCalculationMixin:
                 )
                 for row in direct_structured_rows
             ]
+            direct_structured_rows = [
+                row
+                for row in direct_structured_rows
+                if not operand_conflicts_requested_scope(row)
+            ]
         if direct_structured_rows and required_operands:
             evidence_by_id = {
                 str(item.get("evidence_id") or "").strip(): dict(item)
@@ -6742,13 +6804,26 @@ class FinancialAgentCalculationMixin:
                     direct_structured_rows,
                     required_operands=required_operands,
                 )
+            direct_structured_rows = [
+                row
+                for row in direct_structured_rows
+                if not operand_conflicts_requested_scope(row)
+            ]
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
+        if dependency_bindings and direct_structured_rows:
+            direct_structured_rows, rejected_resolved_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
+                state,
+                bindings=dependency_bindings,
+                operand_rows=direct_structured_rows,
+            )
+            rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
         if missing_dependency_bindings and direct_structured_rows:
-            direct_structured_rows, rejected_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
+            direct_structured_rows, rejected_missing_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
                 state,
                 bindings=missing_dependency_bindings,
                 operand_rows=direct_structured_rows,
             )
+            rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
         dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
         direct_dependency_fill_allowed = operation_family in {"difference", "growth_rate"} or prefer_direct_rows_over_dependency
         if dependency_binding_keys and direct_structured_rows:
@@ -8335,6 +8410,7 @@ class FinancialAgentCalculationMixin:
             "source_row_id": source_row_ids[0] if source_row_ids else "",
             "source_row_ids": source_row_ids,
             "source_anchor": str(row.get("source_anchor") or ""),
+            "consolidation_scope": str(row.get("consolidation_scope") or ""),
             "stated_change_raw_value": str(row.get("stated_change_raw_value") or ""),
             "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
         }
@@ -9189,6 +9265,13 @@ class FinancialAgentCalculationMixin:
 
         # direction_hint: Python에서 결정론적으로 계산 — LLM에게 부호 판단 위임하지 않음
         operation = str(plan.get("operation") or "")
+        operation_family = _normalise_spaces(
+            str(
+                (calculation_result.get("answer_slots") or {}).get("operation_family")
+                or calculation_result.get("operation_family")
+                or operation
+            )
+        ).lower()
         result_val = float(calculation_result.get("result_value") or 0)
         direction_hints = dict(CALCULATION_RENDER_POLICY.get("direction_hints") or {})
         direction_hint_set = dict(direction_hints.get(operation) or {})
@@ -9262,7 +9345,9 @@ class FinancialAgentCalculationMixin:
             answer,
             calculation_result=calculation_result,
         )
-        if operation == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+        if operation_family == "ratio" and self._ratio_component_consolidation_scope(calculation_result, operands):
+            answer = self._compact_ratio_answer(state, calculation_result)
+        elif operation_family == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
             answer = self._compact_ratio_answer(state, calculation_result)
 
         calculation_result["formatted_result"] = answer
@@ -9322,6 +9407,13 @@ class FinancialAgentCalculationMixin:
         ).strip()
         rendered_value = str(calculation_result.get("rendered_value") or "").strip()
         operation = str(plan.get("operation") or "")
+        operation_family = _normalise_spaces(
+            str(
+                (calculation_result.get("answer_slots") or {}).get("operation_family")
+                or calculation_result.get("operation_family")
+                or operation
+            )
+        ).lower()
         result_val = float(calculation_result.get("result_value") or 0)
         render_policy = dict(CALCULATION_RENDER_POLICY)
         direction_policy = dict((render_policy.get("direction_hints") or {}).get(operation) or {})
@@ -9359,7 +9451,9 @@ class FinancialAgentCalculationMixin:
                 final_answer,
                 calculation_result=calculation_result,
             )
-            if operation == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+            if operation_family == "ratio" and self._ratio_component_consolidation_scope(calculation_result, operands):
+                final_answer = self._compact_ratio_answer(state, calculation_result)
+            elif operation_family == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
                 final_answer = self._compact_ratio_answer(state, calculation_result)
             calculation_result["formatted_result"] = final_answer
             debug_trace = dict(state.get("calculation_debug_trace") or {})

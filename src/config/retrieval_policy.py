@@ -591,6 +591,10 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "ratio_default_metric_label": "비율",
     "ratio_year_period_pattern": r"20\d{2}",
     "ratio_period_prefix_template": "{period}년 ",
+    "consolidation_scope_answer_prefixes": {
+        "consolidated": "연결기준 ",
+        "separate": "개별기준 ",
+    },
     "ratio_answer_template": "{period_prefix}{metric_label}은 {rendered_value}입니다.",
     "lookup_list_item_template": "{label} {value}",
     "lookup_list_separator": ", ",

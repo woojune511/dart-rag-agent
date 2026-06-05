@@ -448,9 +448,21 @@ kept compact contract comparison at `status = ok`, `difference_count = 0`; both
 final answers started with the direct numeric conclusion and used compressed
 narrative follow-up.
 
-Next structural step: tighten Analyst scope labeling for numeric outputs using
-the existing task scope / evidence contract, then re-check the normalized E2E
-smoke wording against the compact contract baseline.
+Seventeenth step completed: Analyst numeric operand extraction now rejects
+explicit consolidation-scope conflicts in both direct structured rows and
+dependency task-output rows. Resolved dependency rows are also checked against
+their producer statement/section scope before they can satisfy a downstream
+calculation task, so note-scoped numeric rows cannot stand in for
+income-statement operands. Compact ratio scope labels are rendered from
+`CALCULATION_RENDER_POLICY.consolidation_scope_answer_prefixes`, keeping the
+display vocabulary in config. A live default smoke after the change kept compact
+contract comparison at `status = ok`, `difference_count = 0`; the first case
+now answers `2023년 연결 기준 영업이익률은 2.54%` instead of using the separate
+statement operands that produced `-4.45%`.
+
+Next structural step: clean up provenance anchors for task-output operands whose
+value and scope are resolved from the consolidated statement but whose inherited
+`source_anchor` may still point at a parent or separate-statement section.
 
 ### 3. Report-scoped cache
 
