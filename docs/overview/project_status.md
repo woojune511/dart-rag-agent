@@ -528,8 +528,11 @@ Useful supporting points:
   2023 operating margin as `2.54%` with one `reusable` calculation candidate.
   A disabled consumer-side gate now marks only read-only, complete, reason-free
   `reusable` projections as `retrieval_bypass.eligible`, with `enabled = false`
-  and `mode = trace_only`; MAS smoke surfaces that nested assessment. Cache
-  read/write behavior and retrieval bypass remain disabled.
+  and `mode = trace_only`; MAS smoke surfaces that nested assessment. Retrieval
+  planning now also copies the assessment into
+  `retrieval_debug_trace.report_cache_consumer_assessment` and records that
+  normal retrieval still executed. Cache read/write behavior and retrieval
+  bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

@@ -546,6 +546,18 @@ Next structural step: connect the disabled consumer assessment to the earliest
 retrieval planning surface as trace-only telemetry, then verify that normal
 retrieval still runs when the assessment is blocked or disabled.
 
+Twenty-sixth step completed: the disabled consumer assessment is now visible on
+the retrieval planning surface. `_retrieve()` copies the current
+`report_cache_candidate.retrieval_bypass` assessment into
+`retrieval_debug_trace.report_cache_consumer_assessment`, marks whether normal
+retrieval actually executed, and records the executed query count. Focused tests
+cover both an eligible trace-only candidate and a blocked candidate; both cases
+still call the vector store search path because `enabled = false`.
+
+Next structural step: before adding an enable flag, decide where report-cache
+entries would be persisted/read from and define the source-of-truth boundary
+between runtime trace projections, artifact stores, and any local cache index.
+
 ### 3. Report-scoped cache
 
 현재:

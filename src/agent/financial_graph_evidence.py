@@ -28,6 +28,7 @@ from src.agent.financial_graph_models import (
     validate_answer_slots_payload,
 )
 from src.config import get_financial_ontology
+from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
@@ -86,6 +87,33 @@ def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
         seen.add(signature)
         deduped.append(normalized)
     return deduped
+
+
+def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
+    trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+    candidate = dict(trace.get("report_cache_candidate") or {})
+    if not candidate:
+        return {
+            "status": "not_available",
+            "eligible": False,
+            "enabled": False,
+            "mode": "trace_only",
+            "reasons": ["missing_candidate"],
+            "source": "none",
+        }
+    assessment = dict(candidate.get("retrieval_bypass") or {})
+    if not assessment:
+        assessment = classify_report_cache_consumer_candidate(candidate)
+    return {
+        "status": str(assessment.get("status") or "").strip(),
+        "eligible": bool(assessment.get("eligible")),
+        "enabled": bool(assessment.get("enabled")),
+        "mode": str(assessment.get("mode") or "trace_only").strip(),
+        "reasons": [str(reason) for reason in list(assessment.get("reasons") or [])],
+        "candidate_status": str(candidate.get("status") or "").strip(),
+        "candidate_key_id": str(candidate.get("key_id") or assessment.get("key_id") or "").strip(),
+        "source": "resolved_calculation_trace.report_cache_candidate",
+    }
 
 
 def _period_balanced_queries_for_retrieval(queries: List[str]) -> List[str]:
@@ -1801,6 +1829,7 @@ class FinancialAgentEvidenceMixin:
         reflection_count = int(state.get("reflection_count") or 0)
         retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
         effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
+        report_cache_consumer_assessment = _report_cache_consumer_assessment_for_retrieval(dict(state))
 
         conditions = []
         if companies and strict_company_scope:
@@ -2134,6 +2163,11 @@ class FinancialAgentEvidenceMixin:
             "reflection_count": reflection_count,
             "retry_queries": retry_queries,
             "query_budget": query_budget_trace,
+            "report_cache_consumer_assessment": {
+                **report_cache_consumer_assessment,
+                "normal_retrieval_executed": bool(executed_queries),
+                "executed_query_count": len(executed_queries),
+            },
             "candidate_count": len(reranked),
             "seed_count": len(seed_docs),
             "selected_count": len(docs),

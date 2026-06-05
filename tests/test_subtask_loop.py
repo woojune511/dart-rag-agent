@@ -16,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
+from src.config.report_scoped_cache import report_cache_key_id
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
@@ -2546,6 +2547,106 @@ class SubtaskLoopTests(unittest.TestCase):
         query_bundle = result["retrieval_debug_trace"]["query_bundle"]
 
         self.assertTrue(any("평가손실" in query and "포함" in query for query in query_bundle))
+
+    def test_retrieve_surfaces_trace_only_cache_consumer_assessment_without_bypass(self) -> None:
+        self.agent.k = 4
+        self.agent.vsm = _RecordingVectorStore()
+        key = {
+            "company": "ACME",
+            "report_type": "annual",
+            "rcept_no": "r1",
+            "year": "2023",
+            "metric_label": "metric",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "statement_type": "statement",
+            "source_section": "section",
+            "source_table_id": "section::table:1",
+        }
+        state = {
+            "query": "metric query",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "topic": "metric",
+            "companies": ["ACME"],
+            "years": [2023],
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "metric",
+                "operation_family": "lookup",
+                "query": "metric query",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [{"label": "metric"}],
+                "calculation_plan": {"operation": "lookup"},
+                "calculation_result": {"status": "ok", "rendered_value": "123"},
+                "report_cache_candidate": {
+                    "status": "reusable",
+                    "reasons": [],
+                    "key": key,
+                    "key_id": report_cache_key_id(key),
+                    "read_only": True,
+                },
+            },
+        }
+
+        result = self.agent._retrieve(state)
+        assessment = result["retrieval_debug_trace"]["report_cache_consumer_assessment"]
+
+        self.assertTrue(self.agent.vsm.queries)
+        self.assertEqual(assessment["status"], "eligible")
+        self.assertTrue(assessment["eligible"])
+        self.assertFalse(assessment["enabled"])
+        self.assertEqual(assessment["mode"], "trace_only")
+        self.assertTrue(assessment["normal_retrieval_executed"])
+        self.assertGreaterEqual(assessment["executed_query_count"], 1)
+
+    def test_retrieve_records_blocked_cache_consumer_assessment_and_still_searches(self) -> None:
+        self.agent.k = 4
+        self.agent.vsm = _RecordingVectorStore()
+        state = {
+            "query": "metric query",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "topic": "metric",
+            "companies": ["ACME"],
+            "years": [2023],
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "metric",
+                "operation_family": "lookup",
+                "query": "metric query",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [{"label": "metric"}],
+                "calculation_plan": {"operation": "lookup"},
+                "calculation_result": {"status": "ok", "rendered_value": "123"},
+                "report_cache_candidate": {
+                    "status": "requires_evidence_verification",
+                    "reasons": ["missing_scope:statement_type"],
+                    "key": {
+                        "company": "ACME",
+                        "report_type": "annual",
+                        "rcept_no": "r1",
+                        "year": "2023",
+                        "metric_label": "metric",
+                        "period": "2023",
+                    },
+                    "read_only": True,
+                },
+            },
+        }
+
+        result = self.agent._retrieve(state)
+        assessment = result["retrieval_debug_trace"]["report_cache_consumer_assessment"]
+
+        self.assertTrue(self.agent.vsm.queries)
+        self.assertEqual(assessment["status"], "blocked")
+        self.assertFalse(assessment["eligible"])
+        self.assertFalse(assessment["enabled"])
+        self.assertIn("candidate_not_reusable", assessment["reasons"])
+        self.assertIn("candidate_has_reasons", assessment["reasons"])
+        self.assertTrue(assessment["normal_retrieval_executed"])
 
     def test_synthesis_retry_strategy_blocks_broad_fallback_for_ratio_task(self) -> None:
         state = {

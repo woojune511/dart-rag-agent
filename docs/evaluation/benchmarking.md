@@ -917,6 +917,10 @@ Current local baseline was refreshed on 2026-06-05:
   assessment is emitted with `enabled = false`. Focused unit coverage checks
   that blocked projections remain blocked and that MAS smoke output preserves
   the nested assessment for review.
+- Retrieval debug traces now surface the same disabled assessment as
+  `report_cache_consumer_assessment` and record that normal retrieval executed.
+  Focused coverage checks both eligible and blocked assessments without letting
+  either case bypass vector-store search.
 
 ## Parser Structure Smokes
 
