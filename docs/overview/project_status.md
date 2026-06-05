@@ -246,8 +246,9 @@ Useful supporting points:
    fallback now distinguishes structured-result-only and mixed legacy fallback,
    and evaluator/benchmark exports surface projection source metadata so
    remaining legacy fallback consumers can be audited from output artifacts.
-4. Add a small portfolio demo script that runs a representative query and emits
-   answer, evidence, and calculation trace side by side.
+4. Capture the portfolio demo command output in a short walkthrough so reviewers
+   can inspect answer, evidence, calculation trace, task/artifact integrity,
+   critic acceptance, and cache handoff surfaces side by side.
 
 ### Task Ledger / Artifact Contract Focus
 

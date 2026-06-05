@@ -109,6 +109,7 @@ benchmarks/    profiles and local result bundles
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests
 .\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
+.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
 .\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
 ```
 
@@ -129,6 +130,8 @@ Implemented and validated:
 - task/artifact integrity projection and final close blocking
 - critic runtime acceptance boundary and rejection feedback surface
 - candidate-only report-cache reviewer handoff
+- fixture-backed portfolio demo command for answer, evidence, trace, integrity,
+  critic, and cache handoff surfaces
 - runtime domain-term audit to keep domain vocabulary out of runtime branches
 
 Intentionally disabled:
@@ -141,7 +144,6 @@ Intentionally disabled:
 
 ## Next Useful Step
 
-Add a small portfolio demo command that runs one representative question and
-prints the final answer, citations, calculation trace, task/artifact integrity
-summary, critic acceptance status, and cache reviewer handoff status side by
-side.
+Capture the portfolio demo output in a short walkthrough so reviewers can scan
+the final answer, citations, calculation trace, task/artifact integrity summary,
+critic acceptance status, and cache reviewer handoff status side by side.
