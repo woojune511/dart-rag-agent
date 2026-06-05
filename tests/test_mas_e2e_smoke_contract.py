@@ -12,7 +12,13 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.ops.check_mas_e2e_smoke_contract import check_contract, evaluate_value_contract, extract_contract
+from src.ops import mas_e2e_smoke
+from src.ops.check_mas_e2e_smoke_contract import (
+    check_contract,
+    evaluate_value_contract,
+    extract_contract,
+    resolve_value_contract,
+)
 
 
 def _payload() -> dict:
@@ -132,6 +138,23 @@ class MasE2ESmokeContractTests(unittest.TestCase):
         self.assertEqual(result["status"], "mismatch")
         self.assertEqual(result["value_assertion_failure_count"], 2)
         self.assertTrue(any(item["path"].startswith("value_assertions") for item in result["differences"]))
+
+    def test_check_contract_generates_default_profile_value_assertions(self) -> None:
+        baseline = _payload()
+        current = _payload()
+        for payload in (baseline, current):
+            payload["report_scope"] = dict(mas_e2e_smoke.DEFAULT_SCOPE)
+            payload["cases"][0]["query"] = mas_e2e_smoke.DEFAULT_QUERIES[0]
+            payload["cases"][1]["query"] = mas_e2e_smoke.DEFAULT_QUERIES[1]
+            payload["cases"][1]["final_report"] = "final has value 10.95% with 28,352,769 and 258,935,494"
+        current["cases"][0]["final_report"] = "final has value -4.45%"
+
+        resolved = resolve_value_contract(current)
+        result = check_contract(current_payload=current, baseline_payload=baseline)
+
+        self.assertEqual(resolved["source"], "mas_e2e_smoke_default_profile")
+        self.assertEqual(result["status"], "mismatch")
+        self.assertEqual(result["value_assertion_failure_count"], 4)
 
     def test_cli_writes_compact_baseline_and_compares(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -472,21 +472,25 @@ query now produces `2.54%` with both operands anchored to
 `III. 재무에 관한 사항 > 2. 연결재무제표`; a live default MAS smoke kept compact
 contract comparison at `status = ok`, `difference_count = 0`.
 
-Nineteenth step completed: `check_mas_e2e_smoke_contract.py` now loads the
-tracked MAS value contract from
-`benchmarks/golden/mas_e2e_smoke_value_contract.json` when present. The checker
-still compares the compact topology/integrity contract, but it also evaluates
-full smoke output surfaces so value canaries catch numeric regressions that do
-not change task topology. For the Samsung 2023 connected/consolidated smoke,
-case 1 must include `2.54%`, `6,566,976`, and `258,935,494`, and must not include
-`-4.45%`; case 2 must include `10.95%`, `28,352,769`, and `258,935,494`. The
-repaired final smoke passes with `value_assertion_failure_count = 0`, while the
-earlier provenance-anchor smoke that surfaced `-4.45%` now fails the checker
-with value assertion mismatches.
+Nineteenth step completed: `check_mas_e2e_smoke_contract.py` now evaluates MAS
+value canaries in addition to the compact topology/integrity contract. For the
+Samsung 2023 connected/consolidated smoke, case 1 must include `2.54%`,
+`6,566,976`, and `258,935,494`, and must not include `-4.45%`; case 2 must
+include `10.95%`, `28,352,769`, and `258,935,494`. The repaired final smoke
+passes with `value_assertion_failure_count = 0`, while the earlier
+provenance-anchor smoke that surfaced `-4.45%` now fails the checker with value
+assertion mismatches.
 
-Next structural step: decide whether MAS value contracts should be generated
-from a small tracked smoke-canary profile instead of a separate golden assertion
-file.
+Twentieth step completed: MAS value canaries now live with the default smoke
+profile in `src/ops/mas_e2e_smoke.py` instead of a separate golden assertion
+file. `run_smoke()` embeds the profile-generated `value_contract` when the
+default smoke scope/query set is used, and the checker can also reconstruct the
+same contract from historical smoke output that has matching scope and query
+strings but no embedded contract. Explicit `--value-contract` JSON remains as an
+override for one-off checks.
+
+Next structural step: start the report-scoped cache design below, focusing
+first on key shape and which cached values still require evidence verification.
 
 ### 3. Report-scoped cache
 

@@ -10,10 +10,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_VALUE_CONTRACT = PROJECT_ROOT / "benchmarks" / "golden" / "mas_e2e_smoke_value_contract.json"
-
-
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
@@ -116,6 +112,31 @@ def evaluate_value_contract(payload: Dict[str, Any], value_contract: Dict[str, A
     return failures
 
 
+def _profile_value_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        from src.ops.mas_e2e_smoke import build_smoke_value_contract
+    except Exception:
+        return {}
+    queries = [str(dict(case or {}).get("query") or "") for case in list(payload.get("cases") or [])]
+    return build_smoke_value_contract(
+        report_scope=dict(payload.get("report_scope") or {}),
+        queries=queries,
+    )
+
+
+def resolve_value_contract(
+    payload: Dict[str, Any],
+    explicit_value_contract: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    explicit = dict(explicit_value_contract or {})
+    if explicit:
+        return explicit
+    embedded = dict(payload.get("value_contract") or {})
+    if embedded:
+        return embedded
+    return _profile_value_contract(payload)
+
+
 def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Return the stable smoke-regression surface from a full smoke payload."""
     summary = dict(payload.get("summary") or {})
@@ -188,7 +209,8 @@ def check_contract(
     current = _as_contract(current_payload)
     baseline = _as_contract(baseline_payload)
     differences = compare_contracts(current=current, baseline=baseline)
-    value_failures = evaluate_value_contract(current_payload, value_contract_payload or {})
+    value_contract = resolve_value_contract(current_payload, value_contract_payload)
+    value_failures = evaluate_value_contract(current_payload, value_contract)
     differences.extend(value_failures)
     return {
         "status": "ok" if not differences else "mismatch",
@@ -213,8 +235,7 @@ def main() -> None:
     parser.add_argument(
         "--value-contract",
         type=Path,
-        default=DEFAULT_VALUE_CONTRACT,
-        help="Optional numeric value contract JSON. Defaults to the tracked MAS E2E smoke value contract when present.",
+        help="Optional numeric value contract JSON. Overrides embedded/profile-generated value canaries.",
     )
     args = parser.parse_args()
 
@@ -233,7 +254,7 @@ def main() -> None:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return
 
-    value_contract_payload = _read_json(args.value_contract) if args.value_contract and args.value_contract.exists() else {}
+    value_contract_payload = _read_json(args.value_contract) if args.value_contract else {}
     result = check_contract(
         current_payload=current_payload,
         baseline_payload=_read_json(args.baseline),

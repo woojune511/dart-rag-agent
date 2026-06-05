@@ -859,10 +859,13 @@ output, rerun the checker with `--write-baseline`. Keep both the full smoke
 output and compact contract under `benchmarks/results/**` as local experiment
 artifacts unless a handoff explicitly asks to publish them.
 
-When `benchmarks/golden/mas_e2e_smoke_value_contract.json` exists, the checker
-also loads tracked value canaries and evaluates them against the full smoke
-output, not the compact baseline. This catches numeric value regressions even
-when task topology, integrity status, and status counts are unchanged.
+For the default smoke scope/query set, `mas_e2e_smoke.py` embeds a
+profile-generated `value_contract` in the full smoke output. The checker also
+reconstructs that same contract for matching historical smoke output that lacks
+the embedded field. Value canaries are evaluated against the full smoke output,
+not the compact baseline, so numeric value regressions are caught even when task
+topology, integrity status, and status counts are unchanged. Use
+`--value-contract` only as an explicit override for one-off checks.
 
 Current local baseline was refreshed on 2026-06-05:
 
@@ -897,8 +900,8 @@ Current local baseline was refreshed on 2026-06-05:
   compares at `status = ok`, `difference_count = 0`; case 1 reports
   `연결 기준 영업이익률 2.54%` and case 2 remains `10.95%`. The smoke output is a
   local experiment artifact under `benchmarks/results/**`.
-- After tracked value canaries were added, the same repaired smoke compares at
-  `status = ok`, `difference_count = 0`, and
+- After profile-generated value canaries were added, the same repaired smoke
+  compares at `status = ok`, `difference_count = 0`, and
   `value_assertion_failure_count = 0`. The earlier provenance-anchor smoke that
   surfaced `-4.45%` now fails the checker with value assertion mismatches,
   closing the gap where compact comparison alone passed.

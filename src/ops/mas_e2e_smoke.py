@@ -47,10 +47,63 @@ DEFAULT_SCOPE = {
     "year": "2023",
     "consolidation": "연결",
 }
-DEFAULT_QUERIES = [
-    "삼성전자 2023 사업보고서에서 영업이익률은 얼마이고, 주요 재무 리스크는 무엇인가요?",
-    "삼성전자 2023 사업보고서에서 연구개발비용 비중을 계산하고, 2023년 연구개발 성과 예시를 요약해줘.",
+DEFAULT_SMOKE_CASES = [
+    {
+        "query": "삼성전자 2023 사업보고서에서 영업이익률은 얼마이고, 주요 재무 리스크는 무엇인가요?",
+        "value_assertion": {
+            "name": "samsung_2023_operating_margin",
+            "must_include": ["2.54%", "6,566,976", "258,935,494"],
+            "must_not_include": ["-4.45%"],
+        },
+    },
+    {
+        "query": "삼성전자 2023 사업보고서에서 연구개발비용 비중을 계산하고, 2023년 연구개발 성과 예시를 요약해줘.",
+        "value_assertion": {
+            "name": "samsung_2023_rnd_ratio",
+            "must_include": ["10.95%", "28,352,769", "258,935,494"],
+            "must_not_include": [],
+        },
+    },
 ]
+DEFAULT_QUERIES = [str(case["query"]) for case in DEFAULT_SMOKE_CASES]
+
+
+def _matches_default_scope(scope: Dict[str, Any]) -> bool:
+    actual = dict(scope or {})
+    for key, expected in DEFAULT_SCOPE.items():
+        if str(actual.get(key) or "").strip() != str(expected or "").strip():
+            return False
+    return True
+
+
+def build_smoke_value_contract(
+    *,
+    report_scope: Dict[str, Any] | None = None,
+    queries: List[str] | None = None,
+) -> Dict[str, Any]:
+    scope = dict(report_scope or DEFAULT_SCOPE)
+    if not _matches_default_scope(scope):
+        return {}
+
+    query_list = [str(query or "") for query in list(queries or DEFAULT_QUERIES)]
+    assertions: List[Dict[str, Any]] = []
+    cases_by_query = {str(case["query"]): dict(case) for case in DEFAULT_SMOKE_CASES}
+    for index, query in enumerate(query_list, start=1):
+        case = cases_by_query.get(query)
+        if not case:
+            continue
+        assertion = dict(case.get("value_assertion") or {})
+        if not assertion:
+            continue
+        assertion["case_index"] = index
+        assertions.append(assertion)
+    if not assertions:
+        return {}
+    return {
+        "source": "mas_e2e_smoke_default_profile",
+        "scope_match": dict(DEFAULT_SCOPE),
+        "assertions": assertions,
+    }
 
 
 def _artifact_answer(artifact: Dict[str, Any]) -> str:
@@ -291,7 +344,7 @@ def run_smoke(
         for case in cases
         if str(case.get("task_artifact_integrity_status") or "").strip() == "error"
     )
-    return {
+    payload = {
         "store": {
             "persist_directory": str(store_dir),
             "collection_name": collection_name,
@@ -307,6 +360,10 @@ def run_smoke(
         },
         "cases": cases,
     }
+    value_contract = build_smoke_value_contract(report_scope=scope, queries=queries)
+    if value_contract:
+        payload["value_contract"] = value_contract
+    return payload
 
 
 def main() -> None:

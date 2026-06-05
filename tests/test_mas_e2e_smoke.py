@@ -17,6 +17,51 @@ from src.ops import mas_e2e_smoke
 
 
 class MasE2ESmokeTests(unittest.TestCase):
+    def test_default_smoke_profile_builds_value_contract(self) -> None:
+        contract = mas_e2e_smoke.build_smoke_value_contract(
+            report_scope=mas_e2e_smoke.DEFAULT_SCOPE,
+            queries=list(reversed(mas_e2e_smoke.DEFAULT_QUERIES)),
+        )
+
+        self.assertEqual(contract["source"], "mas_e2e_smoke_default_profile")
+        self.assertEqual(contract["scope_match"]["rcept_no"], "20240312000736")
+        self.assertEqual(contract["assertions"][0]["case_index"], 1)
+        self.assertEqual(contract["assertions"][0]["name"], "samsung_2023_rnd_ratio")
+        self.assertIn("10.95%", contract["assertions"][0]["must_include"])
+        self.assertEqual(contract["assertions"][1]["case_index"], 2)
+        self.assertEqual(contract["assertions"][1]["name"], "samsung_2023_operating_margin")
+
+    def test_run_smoke_embeds_value_contract_for_default_profile(self) -> None:
+        noop_node = lambda _state: {}
+
+        def fake_run_mas_graph(_query, **_kwargs):
+            return {
+                "tasks": {},
+                "artifacts": {},
+                "critic_reports": [],
+                "execution_trace": [],
+                "final_report_record": {"status": "ok"},
+                "task_artifact_trace": {"integrity_status": "ok"},
+            }
+
+        with (
+            patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "run_mas_graph", side_effect=fake_run_mas_graph),
+        ):
+            payload = mas_e2e_smoke.run_smoke(
+                store_dir=Path("store"),
+                collection_name="collection",
+                queries=list(mas_e2e_smoke.DEFAULT_QUERIES),
+                report_scope=dict(mas_e2e_smoke.DEFAULT_SCOPE),
+            )
+
+        self.assertEqual(payload["value_contract"]["source"], "mas_e2e_smoke_default_profile")
+        self.assertEqual(len(payload["value_contract"]["assertions"]), 2)
+
     def test_run_smoke_surfaces_replan_and_integrity_contract(self) -> None:
         graph_calls = []
         noop_node = lambda _state: {}
@@ -88,6 +133,7 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(case["task_artifact_integrity_status"], "ok")
         self.assertEqual(case["task_artifact_integrity_issue_count"], 0)
         self.assertEqual(case["artifact_answers"]["task_2"], "repaired answer")
+        self.assertNotIn("value_contract", payload)
 
     def test_run_smoke_counts_blocked_integrity_error(self) -> None:
         noop_node = lambda _state: {}
