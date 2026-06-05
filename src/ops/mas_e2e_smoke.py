@@ -335,6 +335,7 @@ def run_smoke(
     replan_budget: int = 0,
     progress: bool = False,
     report_scope: Dict[str, str] | None = None,
+    report_cache_index_path: Path | None = None,
 ) -> Dict[str, Any]:
     log = _progress_logger(progress)
     log("check_store_embedding_signature")
@@ -348,7 +349,14 @@ def run_smoke(
     log("build_nodes")
     plan_node = _wrap_node("Orchestrator_Plan", build_financial_orchestrator_plan_node(), log)
     merge_node = _wrap_node("Orchestrator_Merge", build_financial_orchestrator_merge_node(), log)
-    analyst_node = _wrap_node("Analyst", build_financial_analyst_node(vsm), log)
+    analyst_routing_config: Dict[str, Any] = {}
+    if report_cache_index_path:
+        analyst_routing_config["report_cache_index_path"] = str(report_cache_index_path)
+    analyst_node = _wrap_node(
+        "Analyst",
+        build_financial_analyst_node(vsm, routing_config=analyst_routing_config or None),
+        log,
+    )
     researcher_node = _wrap_node("Researcher", build_financial_researcher_node(vsm), log)
 
     cases: List[Dict[str, Any]] = []
@@ -427,6 +435,7 @@ def run_smoke(
         "embedding_compatibility": embedding_compatibility,
         "report_scope": scope,
         "replan_budget": int(replan_budget or 0),
+        "report_cache_index_path": str(report_cache_index_path or ""),
         "case_count": len(cases),
         "summary": {
             "replan_routed_count": replan_routed_count,
@@ -456,6 +465,11 @@ def main() -> None:
     parser.add_argument("--year")
     parser.add_argument("--consolidation")
     parser.add_argument("--progress", action="store_true", help="Print node/query progress to stderr.")
+    parser.add_argument(
+        "--report-cache-index-path",
+        type=Path,
+        help="Optional local report-cache index path for retrieval trace diagnostics only; hits are never served.",
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
@@ -465,6 +479,7 @@ def main() -> None:
         queries=args.queries or list(DEFAULT_QUERIES),
         replan_budget=args.replan_budget,
         progress=args.progress,
+        report_cache_index_path=args.report_cache_index_path,
         report_scope=_report_scope(
             company=args.company,
             report_type=args.report_type,

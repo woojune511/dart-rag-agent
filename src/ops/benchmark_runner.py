@@ -3112,6 +3112,9 @@ def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, A
         parsed = _optional_positive_int(full_eval_config.get(key))
         if parsed:
             routing_config[key] = parsed
+    report_cache_index_path = str(full_eval_config.get("report_cache_index_path") or "").strip()
+    if report_cache_index_path:
+        routing_config["report_cache_index_path"] = report_cache_index_path
     llm_routes = full_eval_config.get("llm_routes")
     if isinstance(llm_routes, dict) and llm_routes:
         routing_config["llm_routes"] = dict(llm_routes)
@@ -4614,6 +4617,11 @@ def main() -> None:
         help="Optional cap for reconciliation retry retrieval queries. Use 0 for the built-in default.",
     )
     parser.add_argument(
+        "--report-cache-index-path",
+        default="",
+        help="Optional local report-cache index path for retrieval trace diagnostics only; hits are never served.",
+    )
+    parser.add_argument(
         "--llm-route",
         action="append",
         default=[],
@@ -4669,6 +4677,8 @@ def main() -> None:
         full_eval_config["focused_retrieval_query_budget"] = max(int(args.focused_retrieval_query_budget), 0)
     if args.retry_retrieval_query_budget:
         full_eval_config["retry_retrieval_query_budget"] = max(int(args.retry_retrieval_query_budget), 0)
+    if str(args.report_cache_index_path or "").strip():
+        full_eval_config["report_cache_index_path"] = str(args.report_cache_index_path).strip()
     full_eval_config = _apply_llm_route_overrides(full_eval_config, list(args.llm_route or []))
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")

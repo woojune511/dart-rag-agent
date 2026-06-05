@@ -284,10 +284,12 @@ def build_financial_analyst_node(
     *,
     k: int = 8,
     graph_expansion_config: Dict[str, Any] | None = None,
+    routing_config: Dict[str, Any] | None = None,
 ) -> Callable[[MultiAgentState], Dict[str, Any]]:
     financial_agent = FinancialAgent(
         vector_store_manager,
         k=k,
         graph_expansion_config=graph_expansion_config,
+        routing_config=routing_config,
     )
     return make_run_analyst(financial_agent)

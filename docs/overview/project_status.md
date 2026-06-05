@@ -536,6 +536,12 @@ Useful supporting points:
   and artifact-store projections remain candidate/audit surfaces. A read-only
   `ReportCacheIndex` diagnostics adapter can validate JSON/JSONL local index
   entries and lookup by cache key id, but reports `serving_enabled = false`.
+  Retrieval planning can now attach those lookup diagnostics from an explicit
+  `report_cache_index_path` into
+  `retrieval_debug_trace.report_cache_index_diagnostics`, including match
+  counts and normal-retrieval execution status. Benchmark runner and MAS smoke
+  can pass the path for diagnostics, but matched entries still do not serve
+  hits or bypass vector-store search.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

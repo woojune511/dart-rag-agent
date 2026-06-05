@@ -928,6 +928,12 @@ Current local baseline was refreshed on 2026-06-05:
 - A read-only `ReportCacheIndex` diagnostics adapter now loads JSON/JSONL local
   index payloads and validates entries without serving hits. Missing or
   malformed files return diagnostics instead of changing runtime behavior.
+- Retrieval traces can now include
+  `report_cache_index_diagnostics` when an explicit `report_cache_index_path`
+  is supplied through benchmark config/CLI or MAS smoke. The trace records
+  lookup status, local-index match counts, and that normal retrieval executed;
+  `enabled` and `serving_enabled` remain false even when a readable entry
+  matches.
 
 ## Parser Structure Smokes
 

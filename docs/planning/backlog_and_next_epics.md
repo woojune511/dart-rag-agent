@@ -584,6 +584,21 @@ Next structural step: wire `ReportCacheIndex.lookup_diagnostics()` into the
 retrieval debug trace as optional trace-only telemetry, using an explicit path
 configuration and preserving normal retrieval execution.
 
+Twenty-ninth step completed: retrieval planning can now attach optional
+read-only local-cache-index diagnostics. `FinancialAgent` accepts an explicit
+`report_cache_index_path` through routing config, `_retrieve()` calls
+`ReportCacheIndex.lookup_diagnostics()` only when a report-cache candidate key
+is available, and `retrieval_debug_trace.report_cache_index_diagnostics`
+records lookup status, match counts, index load status, and whether normal
+retrieval executed. Benchmark runner and MAS smoke entry points can pass the
+path for trace diagnostics, but `enabled = false` and `serving_enabled = false`
+remain hard-coded; matched entries do not bypass vector-store search.
+
+Next structural step: add a handoff-focused trace fixture or smoke assertion
+that exercises `--report-cache-index-path` against a tiny local index and
+checks only diagnostics, not serving behavior. Keep cache hit serving disabled
+until evidence rehydration and provenance preservation are designed.
+
 ### 3. Report-scoped cache
 
 현재:

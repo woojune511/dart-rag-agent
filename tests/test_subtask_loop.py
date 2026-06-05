@@ -1,5 +1,6 @@
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -16,7 +17,11 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
-from src.config.report_scoped_cache import report_cache_key_id
+from src.config.report_scoped_cache import (
+    CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+    REPORT_CACHE_ENTRY_VERSION,
+    report_cache_key_id,
+)
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
@@ -2647,6 +2652,103 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("candidate_not_reusable", assessment["reasons"])
         self.assertIn("candidate_has_reasons", assessment["reasons"])
         self.assertTrue(assessment["normal_retrieval_executed"])
+
+    def test_retrieve_records_not_configured_cache_index_diagnostics_and_still_searches(self) -> None:
+        self.agent.k = 4
+        self.agent.vsm = _RecordingVectorStore()
+        self.agent.report_cache_index_path = ""
+        state = {
+            "query": "metric query",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "topic": "metric",
+            "companies": ["ACME"],
+            "years": [2023],
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "metric",
+                "operation_family": "lookup",
+                "query": "metric query",
+            },
+        }
+
+        result = self.agent._retrieve(state)
+        diagnostics = result["retrieval_debug_trace"]["report_cache_index_diagnostics"]
+
+        self.assertTrue(self.agent.vsm.queries)
+        self.assertEqual(diagnostics["status"], "not_configured")
+        self.assertFalse(diagnostics["enabled"])
+        self.assertFalse(diagnostics["serving_enabled"])
+        self.assertFalse(diagnostics["lookup_attempted"])
+        self.assertTrue(diagnostics["normal_retrieval_executed"])
+
+    def test_retrieve_records_cache_index_lookup_diagnostics_and_still_searches(self) -> None:
+        self.agent.k = 4
+        self.agent.vsm = _RecordingVectorStore()
+        key = {
+            "company": "ACME",
+            "report_type": "annual",
+            "rcept_no": "r1",
+            "year": "2023",
+            "metric_label": "metric",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "statement_type": "statement",
+            "source_section": "section",
+            "source_table_id": "section::table:1",
+        }
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {"kind": "calculation_result", "rendered_value": "123"},
+            "provenance": {"source_row_ids": ["row-1"], "evidence_refs": ["ev-1"]},
+        }
+        state = {
+            "query": "metric query",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "topic": "metric",
+            "companies": ["ACME"],
+            "years": [2023],
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "metric",
+                "operation_family": "lookup",
+                "query": "metric query",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [{"label": "metric"}],
+                "calculation_plan": {"operation": "lookup"},
+                "calculation_result": {"status": "ok", "rendered_value": "123"},
+                "report_cache_candidate": {
+                    "status": "reusable",
+                    "reasons": [],
+                    "key": key,
+                    "key_id": report_cache_key_id(key),
+                    "read_only": True,
+                },
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "report_cache_index.json"
+            path.write_text(json.dumps([entry], ensure_ascii=False), encoding="utf-8")
+            self.agent.report_cache_index_path = str(path)
+
+            result = self.agent._retrieve(state)
+
+        diagnostics = result["retrieval_debug_trace"]["report_cache_index_diagnostics"]
+
+        self.assertTrue(self.agent.vsm.queries)
+        self.assertEqual(diagnostics["status"], "trace_only")
+        self.assertFalse(diagnostics["enabled"])
+        self.assertFalse(diagnostics["serving_enabled"])
+        self.assertTrue(diagnostics["lookup_attempted"])
+        self.assertEqual(diagnostics["match_count"], 1)
+        self.assertEqual(diagnostics["readable_match_count"], 1)
+        self.assertTrue(diagnostics["normal_retrieval_executed"])
 
     def test_synthesis_retry_strategy_blocks_broad_fallback_for_ratio_task(self) -> None:
         state = {
