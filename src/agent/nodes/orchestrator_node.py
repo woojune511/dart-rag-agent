@@ -182,16 +182,43 @@ def _blocking_integrity_issues(trace: Dict[str, Any]) -> List[Dict[str, Any]]:
     ]
 
 
+def _issue_list_field(issue: Dict[str, Any], key: str) -> List[str]:
+    value = issue.get(key)
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _integrity_issue_detail(issue: Dict[str, Any]) -> str:
+    issue_type = str(issue.get("type") or "").strip()
+    parts = [issue_type] if issue_type else ["task_artifact_integrity_error"]
+    for key in ("task_id", "artifact_kind", "payload_key"):
+        text = str(issue.get(key) or "").strip()
+        if text:
+            parts.append(text)
+    if issue_type == "critic_report_rejected":
+        status = str(issue.get("runtime_acceptance_status") or "").strip()
+        if status:
+            parts.append(f"status={status}")
+        reasons = _issue_list_field(issue, "reasons")
+        if reasons:
+            parts.append(f"reasons={','.join(reasons[:3])}")
+        target_refs = _issue_list_field(issue, "target_refs")
+        if target_refs:
+            parts.append(f"targets={','.join(target_refs[:3])}")
+    return ":".join(parts)
+
+
 def _integrity_issue_summary(issues: List[Dict[str, Any]]) -> str:
-    issue_types: List[str] = []
+    issue_details: List[str] = []
     seen: set[str] = set()
     for issue in issues:
-        issue_type = str(issue.get("type") or "").strip()
-        if not issue_type or issue_type in seen:
+        issue_detail = _integrity_issue_detail(issue)
+        if not issue_detail or issue_detail in seen:
             continue
-        seen.add(issue_type)
-        issue_types.append(issue_type)
-    return ", ".join(issue_types[:5]) or "task_artifact_integrity_error"
+        seen.add(issue_detail)
+        issue_details.append(issue_detail)
+    return ", ".join(issue_details[:5]) or "task_artifact_integrity_error"
 
 
 def _blocked_final_report(final_report: str, issues: List[Dict[str, Any]]) -> str:

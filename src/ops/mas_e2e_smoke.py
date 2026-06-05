@@ -414,6 +414,43 @@ def _wrap_node(name: str, node: Callable[[Dict[str, Any]], Dict[str, Any]], log:
     return wrapped
 
 
+def _summarize_critic_acceptance_issues(task_artifact_trace: Dict[str, Any]) -> Dict[str, Any]:
+    items: List[Dict[str, Any]] = []
+    status_counts: Counter[str] = Counter()
+    reason_counts: Counter[str] = Counter()
+    for issue in task_artifact_trace.get("integrity_issues") or []:
+        if not isinstance(issue, dict) or str(issue.get("type") or "").strip() != "critic_report_rejected":
+            continue
+        status = str(issue.get("runtime_acceptance_status") or "unknown").strip() or "unknown"
+        reasons = [
+            str(reason).strip()
+            for reason in (issue.get("reasons") or [])
+            if str(reason).strip()
+        ]
+        target_refs = [
+            str(ref).strip()
+            for ref in (issue.get("target_refs") or [])
+            if str(ref).strip()
+        ]
+        status_counts[status] += 1
+        reason_counts.update(reasons)
+        items.append(
+            {
+                "task_id": str(issue.get("task_id") or "").strip(),
+                "artifact_id": str(issue.get("artifact_id") or "").strip(),
+                "runtime_acceptance_status": status,
+                "reasons": reasons,
+                "target_refs": target_refs,
+            }
+        )
+    return {
+        "count": len(items),
+        "status_counts": dict(sorted(status_counts.items())),
+        "reason_counts": dict(sorted(reason_counts.items())),
+        "items": items,
+    }
+
+
 def run_smoke(
     *,
     store_dir: Path,
@@ -470,6 +507,7 @@ def run_smoke(
         execution_trace = list(final.get("execution_trace") or [])
         report_cache_candidates = _summarize_report_cache_candidates(artifacts)
         report_cache_index_diagnostics = _summarize_report_cache_index_diagnostics(artifacts)
+        critic_acceptance_issues = _summarize_critic_acceptance_issues(task_artifact_trace)
         cases.append(
             {
                 "query": query,
@@ -488,6 +526,7 @@ def run_smoke(
                 "task_artifact_trace": task_artifact_trace,
                 "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
                 "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
+                "critic_acceptance_issues": critic_acceptance_issues,
                 "artifact_answers": {
                     task_id: _artifact_answer(artifact)
                     for task_id, artifact in artifacts.items()
@@ -520,7 +559,14 @@ def run_smoke(
     report_cache_index_rehydration_blocked_match_count = 0
     report_cache_index_rehydration_reason_counts: Counter[str] = Counter()
     report_cache_index_normal_retrieval_count = 0
+    critic_acceptance_issue_count = 0
+    critic_acceptance_status_counts: Counter[str] = Counter()
+    critic_acceptance_reason_counts: Counter[str] = Counter()
     for case in cases:
+        critic_summary = dict(case.get("critic_acceptance_issues") or {})
+        critic_acceptance_issue_count += int(critic_summary.get("count", 0) or 0)
+        critic_acceptance_status_counts.update(dict(critic_summary.get("status_counts") or {}))
+        critic_acceptance_reason_counts.update(dict(critic_summary.get("reason_counts") or {}))
         summary = dict(case.get("report_cache_candidates") or {})
         report_cache_candidate_count += int(summary.get("count", 0) or 0)
         report_cache_status_counts.update(dict(summary.get("status_counts") or {}))
@@ -557,6 +603,9 @@ def run_smoke(
             "replan_routed_count": replan_routed_count,
             "blocked_count": blocked_count,
             "integrity_error_count": integrity_error_count,
+            "critic_acceptance_issue_count": critic_acceptance_issue_count,
+            "critic_acceptance_status_counts": dict(sorted(critic_acceptance_status_counts.items())),
+            "critic_acceptance_reason_counts": dict(sorted(critic_acceptance_reason_counts.items())),
             "report_cache_candidate_count": report_cache_candidate_count,
             "report_cache_candidate_status_counts": dict(sorted(report_cache_status_counts.items())),
             "report_cache_candidate_reason_counts": dict(sorted(report_cache_reason_counts.items())),
