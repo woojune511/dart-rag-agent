@@ -12,8 +12,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -55,33 +56,87 @@ def _artifact_answer(artifact: Dict[str, Any]) -> str:
     return str(content or "")
 
 
+def _report_scope(
+    *,
+    company: str | None = None,
+    report_type: str | None = None,
+    rcept_no: str | None = None,
+    year: str | None = None,
+    consolidation: str | None = None,
+) -> Dict[str, str]:
+    scope = dict(DEFAULT_SCOPE)
+    overrides = {
+        "company": company,
+        "report_type": report_type,
+        "rcept_no": rcept_no,
+        "year": year,
+        "consolidation": consolidation,
+    }
+    for key, value in overrides.items():
+        text = str(value or "").strip()
+        if text:
+            scope[key] = text
+    return scope
+
+
+def _progress_logger(enabled: bool) -> Callable[[str], None]:
+    def log(message: str) -> None:
+        if not enabled:
+            return
+        print(f"[mas_e2e_smoke] {message}", file=sys.stderr, flush=True)
+
+    return log
+
+
+def _wrap_node(name: str, node: Callable[[Dict[str, Any]], Dict[str, Any]], log: Callable[[str], None]):
+    def wrapped(state: Dict[str, Any]) -> Dict[str, Any]:
+        started = time.monotonic()
+        log(f"node_start name={name}")
+        result = node(state)
+        elapsed = time.monotonic() - started
+        log(f"node_done name={name} elapsed={elapsed:.1f}s")
+        return result
+
+    return wrapped
+
+
 def run_smoke(
     *,
     store_dir: Path,
     collection_name: str,
     queries: List[str],
     replan_budget: int = 0,
+    progress: bool = False,
+    report_scope: Dict[str, str] | None = None,
 ) -> Dict[str, Any]:
+    log = _progress_logger(progress)
+    log("init_vector_store")
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),
         collection_name=collection_name,
     )
-    plan_node = build_financial_orchestrator_plan_node()
-    merge_node = build_financial_orchestrator_merge_node()
-    analyst_node = build_financial_analyst_node(vsm)
-    researcher_node = build_financial_researcher_node(vsm)
+    log("build_nodes")
+    plan_node = _wrap_node("Orchestrator_Plan", build_financial_orchestrator_plan_node(), log)
+    merge_node = _wrap_node("Orchestrator_Merge", build_financial_orchestrator_merge_node(), log)
+    analyst_node = _wrap_node("Analyst", build_financial_analyst_node(vsm), log)
+    researcher_node = _wrap_node("Researcher", build_financial_researcher_node(vsm), log)
 
     cases: List[Dict[str, Any]] = []
-    for query in queries:
+    scope = dict(report_scope or DEFAULT_SCOPE)
+    for index, query in enumerate(queries, start=1):
+        started = time.monotonic()
+        log(f"query_start index={index}/{len(queries)}")
         final = run_mas_graph(
             query,
-            report_scope=dict(DEFAULT_SCOPE),
+            report_scope=dict(scope),
             replan_budget=replan_budget,
             orchestrator_plan_node=plan_node,
             orchestrator_merge_node=merge_node,
             analyst_node=analyst_node,
             researcher_node=researcher_node,
         )
+        elapsed = time.monotonic() - started
+        log(f"query_done index={index}/{len(queries)} elapsed={elapsed:.1f}s")
         artifacts = dict(final.get("artifacts") or {})
         tasks = dict(final.get("tasks") or {})
         critic_reports = list(final.get("critic_reports") or [])
@@ -129,7 +184,7 @@ def run_smoke(
             "persist_directory": str(store_dir),
             "collection_name": collection_name,
         },
-        "report_scope": dict(DEFAULT_SCOPE),
+        "report_scope": scope,
         "replan_budget": int(replan_budget or 0),
         "case_count": len(cases),
         "summary": {
@@ -147,6 +202,12 @@ def main() -> None:
     parser.add_argument("--collection-name", default=DEFAULT_COLLECTION)
     parser.add_argument("--query", action="append", dest="queries")
     parser.add_argument("--replan-budget", type=int, default=0)
+    parser.add_argument("--company")
+    parser.add_argument("--report-type")
+    parser.add_argument("--rcept-no")
+    parser.add_argument("--year")
+    parser.add_argument("--consolidation")
+    parser.add_argument("--progress", action="store_true", help="Print node/query progress to stderr.")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
@@ -155,6 +216,14 @@ def main() -> None:
         collection_name=args.collection_name,
         queries=args.queries or list(DEFAULT_QUERIES),
         replan_budget=args.replan_budget,
+        progress=args.progress,
+        report_scope=_report_scope(
+            company=args.company,
+            report_type=args.report_type,
+            rcept_no=args.rcept_no,
+            year=args.year,
+            consolidation=args.consolidation,
+        ),
     )
 
     if args.output:

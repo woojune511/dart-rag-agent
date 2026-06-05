@@ -450,6 +450,17 @@ Useful supporting points:
   task/artifact integrity status, blocked case counts, and integrity-error
   counts. The live real-node smoke is environment-gated because it needs
   `GOOGLE_API_KEY`; the current change is covered by API-free contract tests.
+- Live real-node smoke was then run with a local OpenAI-3072 Samsung 2023 store
+  and matching report scope. It completed in `68.2s` with
+  `final_report_record.status = ok`, `task_artifact_trace.integrity_status =
+  ok`, `replan_count = 0`, completed Analyst / Researcher / Critic / synthesis
+  tasks, and no blocked or integrity-error cases. The earlier default-store run
+  correctly exposed a store compatibility problem (`384` stored dimension vs
+  `3072` query embeddings), not a `.env` loading issue.
+- The same live smoke exposed and closed a MAS retry-control bug: failed worker
+  tasks were being reviewed by Critic and could be resurrected as
+  `REJECTED_BY_CRITIC`, causing repeated Analyst retries. Critic now reviews
+  completed worker tasks only.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.
@@ -607,6 +618,10 @@ Useful supporting points:
   domain-term audit passed, and full unittest discovery passed `782` tests. A
   live smoke run was not executed because `GOOGLE_API_KEY` is not set in the
   current shell.
+- Follow-up live smoke with `.env`-loaded credentials is green on a compatible
+  local Samsung 2023 OpenAI-3072 store. The Critic retry-control regression fix
+  and smoke scope/progress options are covered by focused tests; full discovery
+  should be rerun after this doc update before publishing.
 - Latest focused checks:
   - `KBF_T2_018`: PASS; faithfulness `1.0`, completeness `1.0`, numeric
     grounding `1.0`, retrieval support `1.0`.

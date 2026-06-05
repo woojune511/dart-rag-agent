@@ -184,6 +184,26 @@ class DeterministicCriticTests(unittest.TestCase):
         self.assertFalse(updates["critic_reports"][0]["passed"])
         self.assertIn("최대 재시도 횟수", updates["critic_reports"][0]["llm_feedback"])
 
+    def test_critic_does_not_resurrect_failed_worker_task(self) -> None:
+        state = build_initial_state("삼성전자 2024년 영업이익률 알려줘")
+        state["tasks"] = {
+            "task_1": {
+                "task_id": "task_1",
+                "assignee": "Analyst",
+                "instruction": "영업이익률 계산",
+                "status": TaskStatus.FAILED,
+                "context_keys": ["numeric_values"],
+                "retry_count": 0,
+            }
+        }
+        state["artifacts"] = {}
+
+        updates = run_critic(state)
+
+        self.assertNotIn("task_1", updates["tasks"])
+        self.assertEqual(updates["critic_reports"], [])
+        self.assertIn("Critic passed all artifacts (Deterministic)", updates["execution_trace"])
+
     def test_critic_rejects_researcher_artifact_without_evidence_links(self) -> None:
         state = build_initial_state("삼성전자 2024년 주요 사업 현황을 요약해줘")
         state["tasks"] = {

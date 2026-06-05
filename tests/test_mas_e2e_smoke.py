@@ -16,6 +16,7 @@ from src.ops import mas_e2e_smoke
 class MasE2ESmokeTests(unittest.TestCase):
     def test_run_smoke_surfaces_replan_and_integrity_contract(self) -> None:
         graph_calls = []
+        noop_node = lambda _state: {}
 
         def fake_run_mas_graph(query, **kwargs):
             graph_calls.append({"query": query, **kwargs})
@@ -52,10 +53,10 @@ class MasE2ESmokeTests(unittest.TestCase):
 
         with (
             patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()),
-            patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value="plan_node"),
-            patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value="merge_node"),
-            patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value="analyst_node"),
-            patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value="researcher_node"),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value=noop_node),
             patch.object(mas_e2e_smoke, "run_mas_graph", side_effect=fake_run_mas_graph),
         ):
             payload = mas_e2e_smoke.run_smoke(
@@ -63,12 +64,16 @@ class MasE2ESmokeTests(unittest.TestCase):
                 collection_name="collection",
                 queries=["question"],
                 replan_budget=1,
+                report_scope=mas_e2e_smoke._report_scope(year="2023", rcept_no="20240312000736"),
             )
 
         self.assertEqual(graph_calls[0]["replan_budget"], 1)
-        self.assertEqual(graph_calls[0]["orchestrator_plan_node"], "plan_node")
-        self.assertEqual(graph_calls[0]["orchestrator_merge_node"], "merge_node")
+        self.assertEqual(graph_calls[0]["report_scope"]["year"], "2023")
+        self.assertEqual(graph_calls[0]["report_scope"]["rcept_no"], "20240312000736")
+        self.assertTrue(callable(graph_calls[0]["orchestrator_plan_node"]))
+        self.assertTrue(callable(graph_calls[0]["orchestrator_merge_node"]))
         self.assertEqual(payload["replan_budget"], 1)
+        self.assertEqual(payload["report_scope"]["year"], "2023")
         self.assertEqual(payload["summary"]["replan_routed_count"], 1)
         self.assertEqual(payload["summary"]["blocked_count"], 0)
         self.assertEqual(payload["summary"]["integrity_error_count"], 0)
@@ -81,6 +86,8 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(case["artifact_answers"]["task_2"], "repaired answer")
 
     def test_run_smoke_counts_blocked_integrity_error(self) -> None:
+        noop_node = lambda _state: {}
+
         def fake_run_mas_graph(_query, **_kwargs):
             return {
                 "tasks": {},
@@ -96,10 +103,10 @@ class MasE2ESmokeTests(unittest.TestCase):
 
         with (
             patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()),
-            patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=object()),
-            patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=object()),
-            patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=object()),
-            patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value=object()),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value=noop_node),
             patch.object(mas_e2e_smoke, "run_mas_graph", side_effect=fake_run_mas_graph),
         ):
             payload = mas_e2e_smoke.run_smoke(

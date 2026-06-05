@@ -393,10 +393,19 @@ This makes the real-node smoke observable for replan behavior without changing
 the real node wiring. The live run still requires `GOOGLE_API_KEY` and a
 store-backed query, so it remains an environment-gated smoke rather than a
 unit-test gate.
+Eleventh step completed: live real-node smoke was run against a local
+OpenAI-3072 Samsung 2023 store. The first attempt against the default Samsung
+2024 reference-note store exposed an embedding dimension mismatch
+(`384` stored vs `3072` query embeddings) and, before the Critic fix, an
+unbounded Analyst retry loop. Critic review now ignores failed worker tasks
+instead of resurrecting them as `REJECTED_BY_CRITIC`. The store-compatible
+Samsung 2023 run completed with `final_report_record.status = ok`,
+`task_artifact_trace.integrity_status = ok`, `replan_count = 0`, and completed
+Analyst / Researcher / Critic / synthesis tasks.
 
-Next structural step: run that real-node MAS smoke in an environment with
-`GOOGLE_API_KEY` and inspect whether planner feedback is actionable outside
-injected-node contract tests.
+Next structural step: decide whether `mas_e2e_smoke.py` should fail fast on
+embedding/store signature mismatch before invoking graph nodes, so default smoke
+runs do not spend LLM/API time on an incompatible persisted store.
 
 ### 3. Report-scoped cache
 

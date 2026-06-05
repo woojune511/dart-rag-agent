@@ -67,6 +67,13 @@ def _artifact_refs(artifact: Artifact | None) -> List[str]:
     return [str(item).strip() for item in refs if str(item).strip()]
 
 
+def _is_reviewable_worker_task(task: AgentTask) -> bool:
+    assignee = str(task.get("assignee") or "")
+    if assignee not in {"Analyst", "Researcher"}:
+        return False
+    return task.get("status") == TaskStatus.COMPLETED
+
+
 def _apply_rejection(
     task: AgentTask,
     feedback: List[str],
@@ -172,6 +179,8 @@ def run_critic(state: MultiAgentState) -> Dict[str, Any]:
     feedback_lines: List[str] = []
 
     for task_id, task in tasks.items():
+        if not _is_reviewable_worker_task(task):
+            continue
         artifact = artifacts.get(task_id)
         assignee = str(task.get("assignee") or "")
 
