@@ -403,9 +403,19 @@ Samsung 2023 run completed with `final_report_record.status = ok`,
 `task_artifact_trace.integrity_status = ok`, `replan_count = 0`, and completed
 Analyst / Researcher / Critic / synthesis tasks.
 
-Next structural step: decide whether `mas_e2e_smoke.py` should fail fast on
-embedding/store signature mismatch before invoking graph nodes, so default smoke
-runs do not spend LLM/API time on an incompatible persisted store.
+Twelfth step completed: `mas_e2e_smoke.py` now fails fast on embedding/store
+signature mismatch before invoking graph nodes. It reads benchmark/vector store
+metadata when present and falls back to the Chroma `collections.dimension`
+column, so stale stores stop before LLM/API work. The default E2E MAS smoke now
+points at the local OpenAI-3072 Samsung 2023 structural-selective store and
+matching report scope, keeping the no-argument smoke path compatible with the
+current runtime embedding contract. A no-argument default run completed 2 cases
+with `embedding_compatibility.status = ok`, `blocked_count = 0`, and
+`integrity_error_count = 0`.
+
+Next structural step: use the normalized default E2E smoke as the baseline for
+MAS quality deltas rather than spending time debugging store/runtime embedding
+compatibility during each smoke run.
 
 ### 3. Report-scoped cache
 

@@ -34,19 +34,22 @@ from src.agent.nodes import (
 from src.storage.vector_store import VectorStoreManager, get_embedding_runtime_spec
 
 DEFAULT_STORE_DIR = (
-    Path("benchmarks/results/reference_note_phase1a/삼성전자-2024/stores/reference-note-plain-graph-2500-320")
+    Path(
+        "benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/"
+        "삼성전자-2023/stores/structural-selective-v2-prefix-2500-320"
+    )
 )
-DEFAULT_COLLECTION = "dart_reports_v2_reference-note-plain-graph-2500-320"
+DEFAULT_COLLECTION = "dart_reports_v2_structural-selective-v2-prefix-2500-320"
 DEFAULT_SCOPE = {
     "company": "삼성전자",
     "report_type": "사업보고서",
-    "rcept_no": "20250311001085",
-    "year": "2024",
+    "rcept_no": "20240312000736",
+    "year": "2023",
     "consolidation": "연결",
 }
 DEFAULT_QUERIES = [
-    "삼성전자 2024 사업보고서에서 영업이익률은 얼마이고, 주요 재무 리스크는 무엇인가요?",
-    "삼성전자 2024 사업보고서에서 연구개발비용 비중을 계산하고, 2024년 연구개발 성과 예시를 요약해줘.",
+    "삼성전자 2023 사업보고서에서 영업이익률은 얼마이고, 주요 재무 리스크는 무엇인가요?",
+    "삼성전자 2023 사업보고서에서 연구개발비용 비중을 계산하고, 2023년 연구개발 성과 예시를 요약해줘.",
 ]
 
 

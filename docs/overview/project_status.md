@@ -461,6 +461,13 @@ Useful supporting points:
   tasks were being reviewed by Critic and could be resurrected as
   `REJECTED_BY_CRITIC`, causing repeated Analyst retries. Critic now reviews
   completed worker tasks only.
+- `mas_e2e_smoke.py` now performs an embedding/store compatibility preflight
+  before graph nodes are invoked. It reads benchmark/vector-store metadata and
+  falls back to Chroma collection dimension, so incompatible persisted stores
+  fail before LLM/API work. The no-argument smoke default now uses the local
+  OpenAI-3072 Samsung 2023 structural-selective store and matching report scope.
+  A default run completed 2 cases with `embedding_compatibility.status = ok`,
+  `blocked_count = 0`, and `integrity_error_count = 0`.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.
