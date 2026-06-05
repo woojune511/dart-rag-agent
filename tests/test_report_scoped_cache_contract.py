@@ -22,6 +22,7 @@ from src.config.report_scoped_cache import (
     CACHE_NOT_CACHEABLE,
     CACHE_REHYDRATION_BLOCKED,
     CACHE_REHYDRATION_READY,
+    CACHE_PROJECTION_VALID_FOR_CONTRACT,
     CACHE_REQUIRES_EVIDENCE_VERIFICATION,
     CACHE_REUSABLE,
     REPORT_CACHE_ENTRY_VERSION,
@@ -36,6 +37,7 @@ from src.config.report_scoped_cache import (
     normalise_report_cache_entry,
     normalise_report_cache_key,
     report_cache_key_id,
+    validate_report_cache_calculation_contract_projection,
 )
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _runtime_trace_state_update
 
@@ -798,6 +800,64 @@ class ReportScopedCacheContractTests(unittest.TestCase):
             self.assertIn("ev-1", artifact["evidence_refs"])
             self.assertIn("row-1", artifact["evidence_refs"])
 
+    def test_rehydrated_candidate_projection_validator_accepts_contract_shape_without_serving(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                "calculation_trace": {
+                    "calculation_plan": {"operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {
+                "source_row_ids": ["row-1"],
+                "evidence_refs": ["ev-1"],
+                "source_anchor": "section",
+            },
+        }
+
+        result = validate_report_cache_calculation_contract_projection(entry, task_id="task_1")
+
+        self.assertEqual(result["status"], CACHE_PROJECTION_VALID_FOR_CONTRACT)
+        self.assertTrue(result["valid_for_contract"])
+        self.assertFalse(result["fallback_required"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertFalse(result["ledger_insertion_enabled"])
+        self.assertEqual(result["reasons"], [])
+        self.assertEqual(
+            result["required_artifact_kinds"],
+            ["operand_set", "calculation_plan", "calculation_result"],
+        )
+        projection = result["projection"]
+        self.assertEqual(projection["task"]["artifact_ids"], ["task_1::operand_set", "task_1::calculation_plan", "task_1"])
+        self.assertEqual(
+            projection["artifacts"]["task_1"]["payload"]["calculation_result"]["rendered_value"],
+            "123",
+        )
+
     def test_blocked_candidate_has_no_calculation_contract_projection(self) -> None:
         key = normalise_report_cache_key(
             {
@@ -832,6 +892,43 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertFalse(result["serving_enabled"])
         self.assertFalse(result["ledger_insertion_enabled"])
         self.assertEqual(result["consumer_admissibility"]["status"], CACHE_CONSUMER_FALLBACK_REQUIRED)
+        self.assertIn("missing_answer_slots", result["reasons"])
+
+    def test_blocked_candidate_projection_validator_requires_fallback(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = validate_report_cache_calculation_contract_projection(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"kind": "calculation_result", "rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            },
+            task_id="task_1",
+        )
+
+        self.assertEqual(result["status"], CACHE_CONSUMER_FALLBACK_REQUIRED)
+        self.assertFalse(result["valid_for_contract"])
+        self.assertTrue(result["fallback_required"])
+        self.assertIsNone(result["projection"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertFalse(result["ledger_insertion_enabled"])
+        self.assertIn("projection_not_available", result["reasons"])
         self.assertIn("missing_answer_slots", result["reasons"])
 
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:

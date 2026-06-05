@@ -39,6 +39,7 @@ CACHE_CONSUMER_BLOCKED = "blocked"
 CACHE_CONSUMER_TRACE_ONLY = "trace_only"
 CACHE_CONSUMER_ADMISSIBLE_FOR_DESIGN = "admissible_for_design"
 CACHE_CONSUMER_FALLBACK_REQUIRED = "normal_retrieval_fallback"
+CACHE_PROJECTION_VALID_FOR_CONTRACT = "valid_for_contract"
 CACHE_ENTRY_READABLE = "readable"
 CACHE_ENTRY_BLOCKED = "blocked"
 CACHE_REHYDRATION_READY = "ready"
@@ -690,6 +691,131 @@ def build_report_cache_calculation_contract_projection(
         "metadata": dict(common_metadata),
     }
     return base
+
+
+def validate_report_cache_calculation_contract_projection(
+    entry: Mapping[str, Any],
+    *,
+    task_id: str = "",
+) -> Dict[str, Any]:
+    """Validate the candidate calculation projection without ledger insertion."""
+    projection_result = build_report_cache_calculation_contract_projection(entry, task_id=task_id)
+    projection_payload = projection_result.get("projection")
+    projection = projection_payload if isinstance(projection_payload, Mapping) else None
+    reasons: List[str] = []
+    required_kinds = ["operand_set", "calculation_plan", "calculation_result"]
+
+    if not projection:
+        reasons.append("projection_not_available")
+        reasons.extend(str(reason) for reason in list(projection_result.get("reasons") or []) if str(reason))
+        valid = False
+        return {
+            "status": CACHE_CONSUMER_FALLBACK_REQUIRED,
+            "valid_for_contract": valid,
+            "fallback_required": True,
+            "enabled": False,
+            "serving_enabled": False,
+            "ledger_insertion_enabled": False,
+            "reasons": list(dict.fromkeys(reasons)),
+            "projection": None,
+            "required_artifact_kinds": required_kinds,
+            "key": dict(projection_result.get("key") or {}),
+            "key_id": str(projection_result.get("key_id") or ""),
+        }
+
+    task = dict(projection.get("task") or {})
+    artifacts = dict(projection.get("artifacts") or {})
+    artifact_ids = [
+        str(value).strip()
+        for value in list(task.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+    artifact_kinds = [
+        str(value).strip()
+        for value in list(task.get("artifact_kinds") or [])
+        if str(value).strip()
+    ]
+
+    if str(task.get("kind") or "").strip() != "calculation":
+        reasons.append("task_kind_not_calculation")
+    if str(task.get("status") or "").strip() != "candidate":
+        reasons.append("task_status_not_candidate")
+    if bool((task.get("metadata") or {}).get("serving_enabled")):
+        reasons.append("task_serving_enabled")
+    if bool((task.get("metadata") or {}).get("ledger_insertion_enabled")):
+        reasons.append("task_ledger_insertion_enabled")
+
+    for required_kind in required_kinds:
+        if required_kind not in artifact_kinds:
+            reasons.append(f"missing_required_artifact_kind:{required_kind}")
+
+    attached_artifacts = [
+        dict(artifacts.get(artifact_id) or {})
+        for artifact_id in artifact_ids
+        if isinstance(artifacts.get(artifact_id), Mapping)
+    ]
+    present_artifact_ids = {
+        str(artifact.get("artifact_id") or "").strip()
+        for artifact in attached_artifacts
+        if str(artifact.get("artifact_id") or "").strip()
+    }
+    for artifact_id in artifact_ids:
+        if artifact_id not in present_artifact_ids:
+            reasons.append(f"missing_artifact:{artifact_id}")
+
+    for artifact in attached_artifacts:
+        artifact_kind = str(artifact.get("kind") or "").strip()
+        payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+        metadata = artifact.get("metadata") if isinstance(artifact.get("metadata"), Mapping) else {}
+        if str(artifact.get("status") or "").strip() != "candidate":
+            reasons.append(f"artifact_status_not_candidate:{artifact_kind or 'unknown'}")
+        if bool(metadata.get("serving_enabled")):
+            reasons.append(f"artifact_serving_enabled:{artifact_kind or 'unknown'}")
+        if bool(metadata.get("ledger_insertion_enabled")):
+            reasons.append(f"artifact_ledger_insertion_enabled:{artifact_kind or 'unknown'}")
+        if artifact_kind == "operand_set":
+            if (
+                not isinstance(payload.get("calculation_operands"), list)
+                or not payload.get("calculation_operands")
+            ):
+                reasons.append("missing_required_artifact_payload:operand_set.calculation_operands")
+        elif artifact_kind == "calculation_plan":
+            plan = payload.get("calculation_plan") if isinstance(payload.get("calculation_plan"), Mapping) else {}
+            if not plan or not _first_text(plan.get("operation"), plan.get("mode")):
+                reasons.append("missing_required_artifact_payload:calculation_plan.calculation_plan")
+        elif artifact_kind == "calculation_result":
+            result_payload = (
+                payload.get("calculation_result")
+                if isinstance(payload.get("calculation_result"), Mapping)
+                else {}
+            )
+            if not (
+                _first_text(result_payload.get("rendered_value"), result_payload.get("formatted_result"))
+                or bool(result_payload.get("answer_slots"))
+            ):
+                reasons.append("missing_required_artifact_payload:calculation_result.calculation_result")
+
+    has_evidence_ref = any(
+        _string_list(artifact.get("evidence_refs") or artifact.get("evidence_links"))
+        for artifact in attached_artifacts
+    )
+    if not has_evidence_ref:
+        reasons.append("missing_required_evidence_ref")
+
+    valid = not reasons
+    return {
+        "status": CACHE_PROJECTION_VALID_FOR_CONTRACT if valid else CACHE_CONSUMER_FALLBACK_REQUIRED,
+        "valid_for_contract": valid,
+        "fallback_required": not valid,
+        "enabled": False,
+        "serving_enabled": False,
+        "ledger_insertion_enabled": False,
+        "reasons": list(dict.fromkeys(reasons)),
+        "projection": projection,
+        "required_artifact_kinds": required_kinds,
+        "key": dict(projection_result.get("key") or {}),
+        "key_id": str(projection_result.get("key_id") or ""),
+    }
 
 
 def classify_report_cache_entry(entry: Mapping[str, Any]) -> Dict[str, Any]:

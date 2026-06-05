@@ -994,6 +994,11 @@ Current local baseline was refreshed on 2026-06-05:
   `calculation_plan`, and `calculation_result` artifacts with cache-origin
   metadata and evidence refs; the blocked fixture produces no projection.
   Serving and ledger insertion remain disabled.
+- `validate_report_cache_calculation_contract_projection` is the read-only
+  validator for that shape. It reports the ready fixture as
+  `valid_for_contract` only when the required artifact kinds, payload surfaces,
+  evidence refs, and disabled serving/ledger flags are all present; blocked
+  entries remain normal retrieval fallbacks.
 - `check_report_cache_index_smoke_contract` extracts only stable handoff fields:
   status flags, local-index match/readiness counts, rehydration reason counts,
   candidate-artifact counts, and preview booleans/counts. It intentionally does

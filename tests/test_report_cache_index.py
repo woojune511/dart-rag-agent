@@ -22,6 +22,7 @@ from src.config.report_scoped_cache import (  # noqa: E402
     classify_report_cache_guarded_consumer_candidate,
     normalise_report_cache_key,
     report_cache_key_id,
+    validate_report_cache_calculation_contract_projection,
 )
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
 
@@ -284,6 +285,23 @@ class ReportCacheIndexTests(unittest.TestCase):
             self.assertEqual(artifact["metadata"]["cache_origin"], CACHE_ENTRY_SOURCE_LOCAL_INDEX)
             self.assertFalse(artifact["metadata"]["serving_enabled"])
             self.assertFalse(artifact["metadata"]["ledger_insertion_enabled"])
+
+    def test_fixture_calculation_contract_validator_reports_ready_and_blocked_entries(self) -> None:
+        fixture_path = PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        blocked_entry, ready_entry = payload["entries"]
+
+        blocked = validate_report_cache_calculation_contract_projection(blocked_entry, task_id="task_1")
+        ready = validate_report_cache_calculation_contract_projection(ready_entry, task_id="task_1")
+
+        self.assertFalse(blocked["valid_for_contract"])
+        self.assertTrue(blocked["fallback_required"])
+        self.assertIn("projection_not_available", blocked["reasons"])
+        self.assertTrue(ready["valid_for_contract"])
+        self.assertFalse(ready["fallback_required"])
+        self.assertEqual(ready["reasons"], [])
+        self.assertFalse(ready["serving_enabled"])
+        self.assertFalse(ready["ledger_insertion_enabled"])
 
 
 if __name__ == "__main__":

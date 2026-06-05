@@ -585,6 +585,10 @@ Useful supporting points:
   candidate calculation task plus `operand_set`, `calculation_plan`, and
   `calculation_result` artifacts, all still disabled for serving and ledger
   insertion.
+  `validate_report_cache_calculation_contract_projection()` now validates that
+  candidate shape read-only: required artifact kinds, payload surfaces,
+  evidence refs, and disabled serving/ledger flags must all pass before the
+  candidate is considered valid for the contract.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are

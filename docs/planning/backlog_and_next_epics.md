@@ -795,6 +795,21 @@ candidate calculation mapping so reviewers can see whether a projected candidate
 would satisfy the existing task/artifact payload and provenance contract before
 any producer policy or serving flag is introduced.
 
+Forty-fifth step completed: the candidate calculation mapping now has a
+read-only integrity validator. `validate_report_cache_calculation_contract_projection()`
+checks that a projected candidate calculation task carries the required
+`operand_set`, `calculation_plan`, and `calculation_result` artifact kinds,
+their minimum payload surfaces, preserved evidence refs, and disabled
+serving/ledger flags. The ready fixture validates as `valid_for_contract`; the
+blocked fixture remains a normal retrieval fallback because no projection is
+available. This still does not insert the projection into the ledger and does
+not enable cache serving.
+
+Next structural step: expose this validator in the reviewer handoff surface,
+either through the fixture-backed smoke contract or the repo-local review
+command, so PR reviewers can see candidate projection validity without running
+the full test suite.
+
 ### 3. Report-scoped cache
 
 현재:

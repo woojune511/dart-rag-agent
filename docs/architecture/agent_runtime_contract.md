@@ -321,6 +321,11 @@ rehydration-ready candidate into a candidate `calculation` task plus
 same artifact id pattern as Analyst output. This projection is still a schema
 contract only: every projected task/artifact must remain `status = candidate`
 with `serving_enabled = false` and `ledger_insertion_enabled = false`.
+`validate_report_cache_calculation_contract_projection()` is the read-only
+validator for that shape. It checks the required calculation artifact kinds,
+minimum payload surfaces, preserved evidence refs, and disabled serving/ledger
+flags, then reports whether the projection is valid for the contract without
+writing it to the ledger.
 
 The consumer must recheck provenance before serving. The cached display value,
 normalized value, `answer_slots.primary_value`, citation/source anchors,
