@@ -423,6 +423,11 @@ Useful supporting points:
 - MAS critic output now uses the shared `CriticReport` builder. The typed report
   normalizes verdict, target artifact refs, acceptance reason, blocking issues,
   score, and feedback, and the `critic_report` artifact payload mirrors it.
+- MAS critic acceptance now has an explicit runtime boundary:
+  `critic_report_runtime_acceptance_state()` treats verdict, target refs,
+  acceptance reason, and blocking issues as the acceptance contract while
+  keeping `deterministic_score` diagnostic. Final integrity projection now uses
+  that acceptance state to block structurally complete rejected critic reports.
 - MAS planner, critic, and synthesis task creation now use the shared
   `AgentTask` builder to normalize task ids, assignees, status, context keys,
   kind/label, dependencies, artifact ids, and blocked reason.

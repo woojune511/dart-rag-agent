@@ -5785,7 +5785,13 @@ class SubtaskLoopTests(unittest.TestCase):
                     "task_id": "task_critic",
                     "kind": "critic_report",
                     "status": "ok",
-                    "payload": {"critic_report": {"passed": True, "target_task_id": "task_synthesis"}},
+                    "payload": {
+                        "critic_report": {
+                            "passed": True,
+                            "verdict": "passed",
+                            "target_task_id": "task_synthesis",
+                        }
+                    },
                 },
             ],
             "calculation_result": {"status": "ok", "rendered_value": "100억원"},

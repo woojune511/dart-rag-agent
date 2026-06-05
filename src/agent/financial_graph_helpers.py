@@ -80,6 +80,7 @@ from src.config.retrieval_policy import (
     numeric_section_policy_preferred_sections,
     numeric_section_policy_statement_types,
 )
+from src.agent.mas_types import critic_report_runtime_acceptance_state
 from src.agent.financial_graph_models import RuntimeCalculationTrace, validate_answer_slots_payload
 from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
 
@@ -520,44 +521,17 @@ def _project_task_artifact_trace(
                 return "aggregated_answer.source_material"
         elif artifact_kind == ArtifactKind.CRITIC_REPORT.value:
             report = payload.get("critic_report") if isinstance(payload.get("critic_report"), Mapping) else payload
-            verdict_value = report.get("verdict") or report.get("status")
-            has_passed_value = isinstance(report.get("passed"), bool)
-            if not has_passed_value and not str(verdict_value or "").strip():
+            acceptance_state = critic_report_runtime_acceptance_state(dict(report))
+            reasons = set(acceptance_state.get("reasons") or [])
+            if (
+                "missing_verdict" in reasons
+                or "missing_passed_verdict" in reasons
+                or "missing_rejected_verdict" in reasons
+            ):
                 return "critic_report.verdict"
-            target_lists = [
-                report.get("target_task_ids"),
-                report.get("target_artifact_ids"),
-                report.get("checked_task_ids"),
-                report.get("checked_artifact_ids"),
-                report.get("source_task_ids"),
-                report.get("source_artifact_ids"),
-            ]
-            target_values = [
-                report.get("target_task_id"),
-                report.get("target_artifact_id"),
-                report.get("checked_task_id"),
-                report.get("checked_artifact_id"),
-                report.get("source_task_id"),
-                report.get("source_artifact_id"),
-            ]
-            has_target_list = any(isinstance(items, list) and bool(items) for items in target_lists)
-            has_target_value = any(str(item or "").strip() for item in target_values)
-            if not has_target_list and not has_target_value:
+            if "missing_target_refs" in reasons:
                 return "critic_report.target_refs"
-            issue_lists = [
-                report.get("blocking_issues"),
-                report.get("issues"),
-                report.get("findings"),
-            ]
-            reason_values = [
-                report.get("acceptance_reason"),
-                report.get("rationale"),
-                report.get("feedback"),
-                report.get("llm_feedback"),
-            ]
-            has_issues = any(isinstance(items, list) and bool(items) for items in issue_lists)
-            has_reason = any(str(item or "").strip() for item in reason_values)
-            if not has_issues and not has_reason:
+            if "missing_acceptance_reason" in reasons or "missing_blocking_issues" in reasons:
                 return "critic_report.acceptance_reason_or_issues"
         return ""
 
@@ -802,6 +776,30 @@ def _project_task_artifact_trace(
                             "payload_key": missing_payload_key,
                         }
                     )
+                elif artifact_kind == ArtifactKind.CRITIC_REPORT.value:
+                    report = (
+                        payload.get("critic_report")
+                        if isinstance(payload.get("critic_report"), Mapping)
+                        else payload
+                    )
+                    acceptance_state = critic_report_runtime_acceptance_state(dict(report))
+                    acceptance_reasons = list(acceptance_state.get("reasons") or [])
+                    if "critic_rejected" in acceptance_reasons:
+                        integrity_issues.append(
+                            {
+                                "type": "critic_report_rejected",
+                                "severity": "error",
+                                "task_id": task.get("task_id") or "",
+                                "task_kind": task.get("kind") or "",
+                                "artifact_id": str(artifact.get("artifact_id") or "").strip(),
+                                "artifact_kind": artifact_kind,
+                                "runtime_acceptance_status": acceptance_state.get(
+                                    "runtime_acceptance_status"
+                                ),
+                                "reasons": acceptance_reasons,
+                                "target_refs": list(acceptance_state.get("target_refs") or []),
+                            }
+                        )
             has_evidence_ref = any(
                 str(value).strip()
                 for artifact in attached_artifacts

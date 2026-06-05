@@ -193,6 +193,15 @@ target, checked, source, evidence, or artifact ids. Missing verdict, target refs
 reason/issues, or provenance should emit the same generic integrity errors and
 block final close.
 
+Runtime critic acceptance is contract-based, not score-threshold-based.
+`deterministic_score` is diagnostic metadata for audit/debug traces. A runtime
+acceptance decision should follow the normalized report contract: passed reports
+need `passed = true`, `verdict = "passed"`, target refs, an acceptance reason,
+and no blocking issues; rejected reports stay blocked even when their diagnostic
+score is high. Final close/replan integrity checks should consume
+`critic_report_runtime_acceptance_state()` so a structurally complete rejected
+critic report still blocks final close.
+
 Final synthesis must treat `integrity_status = "error"` as a blocking
 acceptance condition. If the replan budget remains, the aggregate step should
 emit planner feedback and route back to planning. If the replan budget is
@@ -666,6 +675,10 @@ MAS critic nodes should publish `CriticReport` entries through
 `build_critic_report()`. The helper owns verdict normalization, target artifact
 refs, acceptance reason, blocking issues, deterministic score, and feedback, and
 the `critic_report` artifact payload should mirror the typed report.
+Consumers that need an acceptance decision should use
+`critic_report_runtime_acceptance_state()` so runtime close/retry decisions stay
+tied to verdict, target refs, reasons, and blocking issues instead of offline
+evaluator-style numeric thresholds.
 MAS nodes that write artifacts should publish `Artifact` entries through
 `build_artifact()`. The helper owns artifact id defaults, kind/status/summary
 normalization, payload projection, evidence link/ref mirroring, producer task id,
