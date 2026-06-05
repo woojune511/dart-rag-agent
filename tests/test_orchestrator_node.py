@@ -288,7 +288,7 @@ class OrchestratorNodeTests(unittest.TestCase):
                 "retry_count": 0,
                 "kind": "verification",
                 "label": "Analyst source",
-                "artifact_ids": ["artifact_1"],
+                "artifact_ids": ["artifact_1_pre", "artifact_1"],
             },
             "task_2": {
                 "task_id": "task_2",
@@ -303,6 +303,15 @@ class OrchestratorNodeTests(unittest.TestCase):
             },
         }
         state["artifacts"] = {
+            "artifact_1_pre": Artifact(
+                task_id="task_1",
+                creator="Analyst",
+                artifact_id="artifact_1_pre",
+                content={"calculation_operands": [{"label": "operand"}]},
+                payload={"calculation_operands": [{"label": "operand"}]},
+                evidence_links=[],
+                evidence_refs=["payload-ref-a"],
+            ),
             "task_1": Artifact(
                 task_id="task_1",
                 creator="Analyst",
@@ -334,6 +343,10 @@ class OrchestratorNodeTests(unittest.TestCase):
                 {"task_id": "task_1", "answer": "payload analyst answer"},
                 {"task_id": "task_2", "answer": "payload researcher answer"},
             ],
+        )
+        self.assertEqual(
+            updates["final_report_record"]["source_artifact_ids"],
+            ["artifact_1_pre", "artifact_1", "artifact_2"],
         )
         self.assertEqual(
             updates["final_report_record"]["evidence_refs"],

@@ -293,6 +293,21 @@ def _accepted_worker_source_artifacts(state: MultiAgentState) -> Dict[str, Artif
     }
 
 
+def _subtask_results(artifacts: Dict[str, Artifact]) -> List[Dict[str, str]]:
+    results: List[Dict[str, str]] = []
+    seen_task_ids: set[str] = set()
+    for key, artifact in (artifacts or {}).items():
+        answer = _artifact_answer(artifact)
+        if not answer:
+            continue
+        task_id = str(artifact.get("task_id") or key).strip()
+        if not task_id or task_id in seen_task_ids:
+            continue
+        seen_task_ids.add(task_id)
+        results.append({"task_id": task_id, "answer": answer})
+    return results
+
+
 class FinancialOrchestratorPlannerCore:
     def __init__(self) -> None:
         api_key = os.environ.get("GOOGLE_API_KEY")
@@ -491,13 +506,7 @@ def make_run_orchestrator_merge(
             for value in _artifact_refs(artifact)
             if str(value).strip()
         ] or source_artifact_ids
-        subtask_results = [
-            {
-                "task_id": str(artifact.get("task_id") or key),
-                "answer": _artifact_answer(artifact),
-            }
-            for key, artifact in source_artifacts.items()
-        ]
+        subtask_results = _subtask_results(source_artifacts)
         final_report_record = build_final_report_record(
             final_answer=final_report,
             source_task_ids=source_task_ids,

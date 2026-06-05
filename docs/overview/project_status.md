@@ -481,6 +481,11 @@ Useful supporting points:
   artifact uses the same deduped evidence refs as the final report record. A
   live default smoke kept compact contract comparison clean and confirmed zero
   duplicates in final record and synthesis evidence refs.
+- MAS final report `subtask_results` now records only answer-bearing worker
+  task results, one per task. Intermediate artifacts still remain in source
+  provenance, but they no longer appear as empty subtask answers in the final
+  projection. A live default smoke kept compact contract comparison clean and
+  produced two non-empty subtask results per case.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
   promoted to blocking errors.

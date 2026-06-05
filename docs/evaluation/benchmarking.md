@@ -872,6 +872,9 @@ Current local baseline was refreshed on 2026-06-05:
 - After final-provenance dedupe, a default live smoke kept the compact contract
   at `status = ok`, `difference_count = 0`, and final record / synthesis
   evidence refs reported `duplicates = 0` for both cases.
+- After answer-bearing subtask projection cleanup, a default live smoke still
+  compared at `status = ok`, `difference_count = 0`; both cases had
+  `subtask_results = 2`, `empty_answers = 0`, with task ids `task_1`, `task_2`.
 
 ## Parser Structure Smokes
 

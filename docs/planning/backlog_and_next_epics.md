@@ -432,8 +432,15 @@ refs. A live default smoke after the change kept compact contract comparison at
 `status = ok`, `difference_count = 0`; both cases still had five completed
 tasks, while final record and synthesis evidence refs had `duplicates = 0`.
 
-Next structural step: begin worker/orchestrator answer-quality changes using the
-normalized default E2E smoke and compact contract compare as the MAS baseline.
+Fifteenth step completed: MAS final report `subtask_results` now includes only
+answer-bearing worker task results, one per task, while source artifact
+provenance still retains intermediate artifacts such as operand sets and plans.
+A live default smoke after the change kept compact contract comparison at
+`status = ok`, `difference_count = 0`; both cases had `subtask_results = 2`
+with `empty_answers = 0` and task ids `task_1`, `task_2`.
+
+Next structural step: tune Orchestrator final wording and compression quality
+using the normalized default E2E smoke and compact contract compare as baseline.
 
 ### 3. Report-scoped cache
 
