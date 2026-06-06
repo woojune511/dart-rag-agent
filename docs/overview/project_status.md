@@ -92,6 +92,19 @@ role-separated multi-agent system using a task ledger and artifact store.
     retrieval hit@k are all `1.000`
   - average section match is `0.975`, citation coverage is `0.933`, entity
     coverage is `0.927`, and error rate is `0.0%`
+- Current store-fixed eval-only refresh after task/artifact contract fixes
+  (`benchmarks/results/current_policy_gate_after_contract_2026-06-06/`, local
+  artifact, not committed):
+  - 4 / 4 company runs passed
+  - task/artifact integrity is `ok` for 5 / 5 full-eval rows, with
+    `orphan_ids = []`
+  - average faithfulness `0.938`, completeness `0.925`, context recall
+    `1.000`, retrieval hit@k `1.000`, numeric pass rate `1.000` where
+    applicable
+  - full-eval threshold failures remain for `NAV_T2_006` (completeness
+    `0.700`) and `HYU_T2_010` (faithfulness `0.500`)
+  - `HYU_T3_072` now has faithfulness `1.000`, completeness `1.000`,
+    refusal accuracy `1.000`, and task/artifact integrity `ok`
 - Note:
   - `numeric_final_judgement = null` is not a failure for narrative or mixed
     questions when the other evaluator signals are healthy.
