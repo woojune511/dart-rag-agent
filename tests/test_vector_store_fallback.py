@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from langchain_core.documents import Document
 
 from src.storage.vector_store import VectorStoreManager
+from src.utils.embedding_usage import TrackingEmbeddings
 
 
 class _CapacityErrorVectorStore:
@@ -33,6 +34,27 @@ class _CountVectorStore:
     def similarity_search_with_score(self, query, k=4, filter=None):
         self.calls += 1
         return list(self._results)
+
+
+class _EmbeddingAwareVectorStore:
+    def __init__(self, embeddings, results):
+        self.calls = 0
+        self.embeddings = embeddings
+        self._results = results
+
+    def similarity_search_with_score(self, query, k=4, filter=None):
+        self.calls += 1
+        self.embeddings.embed_query(query)
+        return list(self._results[:k])
+
+
+class _CountingEmbeddings:
+    def __init__(self):
+        self.query_calls = 0
+
+    def embed_query(self, text):
+        self.query_calls += 1
+        return [float(len(str(text or "")))]
 
 
 class _FlakyAddVectorStore:
@@ -386,6 +408,34 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertEqual(manager.last_search_telemetry["retrieval_mode"], "cache")
         self.assertEqual(manager.last_search_telemetry["result_count"], 1)
         self.assertEqual(first_results[0][0].page_content, second_results[0][0].page_content)
+
+    def test_query_embedding_cache_reuses_vector_for_same_query_across_search_shapes(self) -> None:
+        vector_doc = Document(
+            page_content="?쒖꽕?ъ옄 珥앹븸 531,139?듭썝",
+            metadata={"company": "?쇱꽦?꾩옄", "year": 2023, "chunk_uid": "capex"},
+        )
+        inner_embeddings = _CountingEmbeddings()
+        tracking_embeddings = TrackingEmbeddings(inner_embeddings)
+        vector_store = _EmbeddingAwareVectorStore(tracking_embeddings, [(vector_doc, 0.25)])
+        manager = self._build_manager(
+            vector_store,
+            docs=["?쒖꽕?ъ옄 珥앹븸 531,139?듭썝"],
+            metadatas=[{"company": "?쇱꽦?꾩옄", "year": 2023, "chunk_uid": "capex"}],
+            scores=[1.0],
+        )
+        manager.embeddings = tracking_embeddings
+
+        first_results = manager.search("?쒖꽕?ъ옄 珥앹븸", k=1, where_filter={"company": "?쇱꽦?꾩옄"})
+        first_usage = dict(manager.last_search_telemetry["embedding_usage"])
+        second_results = manager.search("?쒖꽕?ъ옄 珥앹븸", k=2, where_filter={"year": 2023})
+        second_usage = dict(manager.last_search_telemetry["embedding_usage"])
+
+        self.assertEqual(vector_store.calls, 2)
+        self.assertEqual(inner_embeddings.query_calls, 1)
+        self.assertEqual(first_usage["query_embedding_api_calls"], 1)
+        self.assertEqual(second_usage["query_embedding_api_calls"], 0)
+        self.assertEqual(len(first_results), 1)
+        self.assertEqual(len(second_results), 1)
 
 
 if __name__ == "__main__":
