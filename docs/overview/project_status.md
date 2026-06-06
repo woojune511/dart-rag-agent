@@ -790,9 +790,9 @@ Useful supporting points:
   `python -m src.ops.audit_benchmark_fanout_cost <result-bundle>`. It reads
   existing `results.json` files and summarizes per-question retrieval traces,
   source-level fan-out, unique and duplicate executed query counts, query
-  embedding calls, top duplicate query signatures by row/source, LLM usage,
-  estimated runtime cost, and quality metrics before any new budget probe is
-  run.
+  embedding calls, top duplicate query signatures by row/source/trace/task,
+  LLM usage, estimated runtime cost, and quality metrics before any new budget
+  probe is run.
 - Initial policy-gate audit baselines:
   - `policy_gate_regression_2026-05-31_2212`: 5 questions, 11 retrieval
     traces, 93 executed queries, 89 query embedding calls, estimated runtime
@@ -809,6 +809,10 @@ Useful supporting points:
   - duplicate-query drilldown now separates likely causes: `HYU_T2_010`
     repeats focused operand-style sales-count queries, while `NAV_T2_006`
     repeats long enriched primary queries.
+  - refreshed trace/task drilldown shows `HYU_T2_010` repeats around
+    `task_1/growth_rate` across both same-trace and cross-trace patterns,
+    while `NAV_T2_006` repeats enriched primary lookup queries across
+    `task_3/lookup` and `task_4/lookup`.
 - Benchmark runner now supports focused LLM route probes without editing the
   profile via `--llm-route phase=provider:model`.
 - Local `HYU_T2_010` evidence-extraction probe with

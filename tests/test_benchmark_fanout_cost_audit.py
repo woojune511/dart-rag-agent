@@ -45,6 +45,10 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                     "retrieval_debug_trace_history": [
                                                         {
                                                             "query_budget": {
+                                                                "source": {
+                                                                    "active_subtask_id": "task_1",
+                                                                    "active_subtask_operation": "lookup",
+                                                                },
                                                                 "primary": {"selected_count": 2},
                                                                 "operand_focus": {
                                                                     "selected_count": 1,
@@ -168,6 +172,12 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(cost_detail["count"], 2)
         self.assertEqual(cost_detail["duplicate_count"], 1)
         self.assertEqual(cost_detail["sources"], {"operand_focus": 1, "retry": 1})
+        self.assertEqual(cost_detail["trace_indexes"], [1])
+        self.assertEqual(cost_detail["trace_count"], 1)
+        self.assertEqual(cost_detail["within_trace_duplicate_count"], 1)
+        self.assertEqual(cost_detail["cross_trace_repeat_count"], 0)
+        self.assertTrue(cost_detail["cross_source"])
+        self.assertEqual(cost_detail["task_contexts"], {"task_1/lookup": 2})
 
     def test_find_result_files_recurses_directories(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -219,6 +229,11 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                 "count": 2,
                                 "duplicate_count": 1,
                                 "sources": {"primary": 2},
+                                "trace_indexes": [1],
+                                "within_trace_duplicate_count": 1,
+                                "cross_trace_repeat_count": 0,
+                                "cross_source": False,
+                                "task_contexts": {"task_1/lookup": 2},
                             }
                         ],
                         "query_embedding_api_calls": 2,
@@ -232,7 +247,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertIn("# Benchmark Fan-out Cost Audit", markdown)
         self.assertIn("| primary | 2 |", markdown)
         self.assertIn("Duplicate executed queries", markdown)
-        self.assertIn("revenue 2023 (2x; primary:2)", markdown)
+        self.assertIn("revenue 2023 (2x; primary:2; traces:1; same-trace-dup:1; tasks:task_1/lookup:2)", markdown)
         self.assertIn("| Q1 | company_a | exp | 2 |", markdown)
 
 
