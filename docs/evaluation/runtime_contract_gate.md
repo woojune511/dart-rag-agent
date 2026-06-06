@@ -583,10 +583,48 @@ Latest verification:
     before landing changes to ontology-driven lookup planning, structured row
     binding, sibling evidence recovery, or aggregate numeric rendering
 
+2026-06-06 promotion baseline freeze:
+
+- Baseline id: `concept_runtime_gap_gate_7of7_2026-06-04`.
+- Profile: `benchmarks/profiles/curated_concept_runtime_gap_gate.json`.
+- Baseline local artifact:
+  `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`.
+  This remains a local experiment artifact and should not be committed.
+- Baseline scope: six company runs and seven ontology-driven concept/runtime
+  questions: `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`,
+  `POS_T1_057`, `KAB_T1_066`, and `SAM_T3_028`.
+- Baseline result: `7 / 7 PASS`; all seven rows have
+  `numeric_final_judgement = PASS`, full-eval faithfulness `1.000`, and full
+  numeric pass rate `1.000`.
+- Promotion rule: changes that affect ontology-driven lookup planning,
+  structured row binding, sibling evidence recovery, concept answer
+  composition, or aggregate numeric rendering should first run a store-fixed
+  eval-only refresh against this baseline bundle. Fresh ingest is reserved for
+  parser, ingest, cache-signature, or missing-store changes.
+
+Store-fixed eval-only command shape:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_concept_runtime_gap_gate.json `
+  --output-dir benchmarks\results\concept_gate_refresh_after_answer_composition_2026-06-04 `
+  --eval-only `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\concept_gate_refresh_after_answer_composition_2026-06-04\_logs\heartbeat_concept_baseline_evalonly_YYYY-MM-DD.jsonl
+```
+
+Expected handoff:
+
+- Summarize pass count, per-row numeric judgement, faithfulness, completeness,
+  retrieval support, and any task/artifact integrity issue.
+- Keep generated `benchmarks/results/**` material local unless a reviewer
+  explicitly asks to publish experiment artifacts.
+
 The focused blocker notes below are chronological triage records. Any
 "remaining blocker" or "promotion verdict" statement inside those notes should
-be read as the status at that point in time; the 2026-06-02 full refresh above
-is the current confirmation for the seven-question concept runtime gap gate.
+be read as the status at that point in time; the
+`concept_runtime_gap_gate_7of7_2026-06-04` baseline freeze above is the current
+promotion reference for the seven-question concept runtime gap gate.
 
 2026-06-02 focused blocker update:
 

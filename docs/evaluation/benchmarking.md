@@ -139,6 +139,20 @@ Runtime default와 trace 계약은 [../architecture/agent_runtime_contract.md](.
 
 > evaluator만 바꿔서 **같은 historical answer / runtime_evidence / calculation trace**를 재판정하려면 `retrospective_*_eval.py` 계열 replay 스크립트를 사용한다.
 
+Concept-runtime promotion baseline:
+
+- Baseline id: `concept_runtime_gap_gate_7of7_2026-06-04`.
+- Source profile: `benchmarks/profiles/curated_concept_runtime_gap_gate.json`.
+- Source artifact:
+  `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
+  (local experiment artifact, not committed).
+- Use this as the first store-fixed eval-only canary before paying for fresh
+  ingest when a change touches ontology-driven lookup planning, structured row
+  binding, sibling evidence recovery, concept answer composition, or aggregate
+  numeric rendering.
+- See `docs/evaluation/runtime_contract_gate.md` for the exact rerun command
+  and promotion handoff checklist.
+
 ### Gate Rerun Modes
 
 | 모드 | 명령 패턴 | 다시 하는 일 | 생략하는 일 | 용도 |
