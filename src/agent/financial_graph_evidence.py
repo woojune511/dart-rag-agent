@@ -120,6 +120,38 @@ def _drop_queries_already_selected(
     }
 
 
+def _limit_query_context_terms(
+    items: List[str],
+    budget: int,
+    *,
+    strategy: str = "head",
+) -> tuple[List[str], Dict[str, Any]]:
+    cleaned = [_normalise_spaces(str(item or "")) for item in items]
+    cleaned = [item for item in cleaned if item]
+    deduped = list(dict.fromkeys(cleaned))
+    if budget <= 0 or len(deduped) <= budget:
+        selected = deduped
+    elif strategy == "head_tail":
+        head_count = (budget + 1) // 2
+        tail_count = budget - head_count
+        selected = list(deduped[:head_count])
+        for item in deduped[len(deduped) - tail_count :] if tail_count else []:
+            if item not in selected:
+                selected.append(item)
+    else:
+        selected = deduped[:budget]
+    dropped_terms = [item for item in deduped if item not in selected]
+    return selected, {
+        "input_count": len(cleaned),
+        "deduped_count": len(deduped),
+        "selected_count": len(selected),
+        "budget": budget,
+        "selection_strategy": strategy,
+        "dropped_count": max(len(deduped) - len(selected), 0),
+        "dropped_terms": dropped_terms,
+    }
+
+
 def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
     trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
@@ -2031,6 +2063,22 @@ class FinancialAgentEvidenceMixin:
             primary_budget,
             dedupe=primary_budget > 0,
         )
+        hint_budget = _query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
+        section_budget = _query_budget_int(getattr(self, "preferred_section_query_budget", 8))
+        retrieval_hint_terms = [item for item in _normalise_spaces(retrieval_hint).split(" ") if item]
+        selected_retrieval_hint_terms, hint_enrichment_trace = _limit_query_context_terms(
+            retrieval_hint_terms,
+            hint_budget,
+        )
+        selected_preferred_sections, section_enrichment_trace = _limit_query_context_terms(
+            list(preferred_sections or []),
+            section_budget,
+            strategy="head_tail",
+        )
+        query_budget_trace["enrichment"] = {
+            "retrieval_hint": hint_enrichment_trace,
+            "preferred_sections": section_enrichment_trace,
+        }
         executed_queries: List[Dict[str, Any]] = []
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
@@ -2039,10 +2087,10 @@ class FinancialAgentEvidenceMixin:
                 enriched_query = f"{enriched_query} {scope_report_type}".strip()
             if scope_consolidation:
                 enriched_query = f"{enriched_query} {scope_consolidation}".strip()
-            if retrieval_hint:
-                enriched_query = f"{enriched_query} {retrieval_hint}".strip()
-            if preferred_sections:
-                enriched_query = f"{enriched_query} {' '.join(preferred_sections)}".strip()
+            if selected_retrieval_hint_terms:
+                enriched_query = f"{enriched_query} {' '.join(selected_retrieval_hint_terms)}".strip()
+            if selected_preferred_sections:
+                enriched_query = f"{enriched_query} {' '.join(selected_preferred_sections)}".strip()
             search_k = effective_k * 4
             query_trace = {
                 "source": "primary",
@@ -2050,6 +2098,10 @@ class FinancialAgentEvidenceMixin:
                 "executed_query": enriched_query,
                 "k": search_k,
                 "where_filter": where_filter,
+                "query_enrichment": {
+                    "retrieval_hint_terms": list(selected_retrieval_hint_terms),
+                    "preferred_sections": list(selected_preferred_sections),
+                },
             }
             executed_queries.append(query_trace)
             batch_docs = self.vsm.search(enriched_query, k=search_k, where_filter=where_filter)
