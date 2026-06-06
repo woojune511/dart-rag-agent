@@ -3,9 +3,9 @@
 This report packages the experiment story behind the portfolio version of the
 project. It does not introduce a new benchmark run. Instead, it summarizes
 existing repo evidence and the current publication gate into one reviewer-facing
-case study. Store-fixed policy-gate refreshes from 2026-06-06 are reported
-separately from older screening evidence, and provider-specific local artifacts
-are not treated as the current official quality baseline.
+case study. Store-fixed policy-gate refreshes from 2026-06-06 and 2026-06-07
+are reported separately from older screening evidence, and provider-specific
+local artifacts are not treated as the current official quality baseline.
 
 ## Problem
 
@@ -83,7 +83,8 @@ Primary metrics:
 - grounding: operand grounding, row candidate recovery, citation coverage,
   entity coverage
 - cost/runtime: ingest LLM call count, estimated ingest cost, ingest time
-  reduction when available
+  reduction when available, executed retrieval-query count, query-embedding
+  calls/input volume, LLM call count, and estimated runtime cost
 - contract health: task/artifact integrity, critic acceptance, trace
   preservation, domain-term audit
 
@@ -95,8 +96,8 @@ Primary metrics:
 | --- | --- | --- | --- |
 | Runtime contract gate | 5 core numeric/runtime questions | PASS | `docs/overview/project_status.md` |
 | Concept runtime gap gate | 7 ontology-driven concept questions | 7 / 7 PASS | `docs/overview/project_status.md` |
-| Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | 4 / 4 company runs passed in the latest OpenAI-backed refresh; 0 full-eval failures; average faithfulness, completeness, context recall, and retrieval hit@k are all `1.000`; the focused `HYU_T2_010` follow-up also closed with faithfulness and completeness `1.000` | `docs/overview/project_status.md`, `docs/evaluation/benchmarking.md` |
-| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest local validation passed 875 unit tests | current local publication gate |
+| Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | 4 / 4 company runs passed in the latest OpenAI-backed refresh; later 2026-06-07 store-fixed replays kept all five rows at faithfulness, completeness, context recall, and retrieval hit@k `1.000`, task/artifact integrity `ok` for 5 / 5 rows, error rate `0.0%`, and `LGE_T1_051` numeric judgement `PASS` | `docs/overview/project_status.md`, `docs/evaluation/benchmarking.md` |
+| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest local validation passed 887 unit tests | current local publication gate |
 
 ### Method Comparison
 
@@ -105,7 +106,20 @@ Primary metrics:
 | `plain_prefix_8000_400` | Fails the representative `SKH_T1_060` runtime-contract row | no contextualization calls | Keep as speed/cost baseline, not default |
 | `contextual_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass as historical quality reference | selected chunks require LLM-written context | Keep as quality reference |
 | `structural_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass | deterministic structural prefix, no per-chunk contextualization calls | Use as current operating default |
-| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest | Use as the reviewer-facing runtime story |
+| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; 2026-06-07 store-fixed replays preserved those quality signals; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest; later cost-control replays reduced observed query pressure without a quality drop | Use as the reviewer-facing runtime story |
+
+### Runtime Cost-Control Follow-Up
+
+The 2026-06-07 replays below are local, store-fixed runtime evidence. They are
+not fresh ingest benchmarks and they are not presented as isolated causal
+proof for a single optimization. They are useful because they show that the
+current quality gate stayed healthy while executed-query pressure and runtime
+cost signals were brought under tighter control.
+
+| Follow-up | Scope | Quality guard | Runtime/cost signal | Interpretation |
+| --- | --- | --- | --- | --- |
+| Retrieval hint and section-enrichment budget | focused `NAV_T2_006` / `LGE_T1_051` canary, then five-row policy-gate replay | focused canary core metrics `1.000`; full replay core metrics `1.000`, task/artifact integrity `ok` for 5 / 5 rows, error rate `0.0%`, `LGE_T1_051` numeric `PASS` | NAV query-embedding chars `7,672 -> 2,662`, tokens `1,935 -> 676`; LGE chars `6,120 -> 4,056`, tokens `1,539 -> 1,019`; full replay snapshot: 97 executed retrieval queries, 100 query-embedding calls, 13,948 query-embedding chars, 3,522 estimated query-embedding tokens, 58 LLM calls, runtime cost `$0.444073` | Shorten executed query enrichment while preserving full policy trace, reranker signals, and supplemental evidence signals |
+| Exact-text query embedding cache | five-row policy-gate replay after PR #23 | all five rows kept faithfulness, completeness, context recall, and retrieval hit@k `1.000`; task/artifact integrity `ok` for 5 / 5 rows; error rate `0.0%`; `LGE_T1_051` numeric `PASS` | observed post-cache snapshot: 88 executed retrieval queries, 89 query-embedding calls, 12,722 query-embedding chars, 3,211 estimated query-embedding tokens, 40 LLM calls, runtime cost `$0.407527` | Safe provider-call cache; treat the measured reduction as a post-cache replay result, not cache-only attribution, because live query fan-out and LLM calls also changed |
 
 ### Historical Screening Evidence
 
@@ -134,6 +148,8 @@ removing per-chunk contextualization calls.
 | Row candidate recovery rate | 0.00 | 0.67 | Structured/domain retrieval signals restored candidate rows |
 | Concept runtime gap gate | residual failures | 7 / 7 PASS | Concept lookup/composition issues closed without runtime keyword branches |
 | Policy-driven runtime gate | mixed-query regressions | latest OpenAI-backed refresh: faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; focused `HYU_T2_010` follow-up: faithfulness and completeness `1.000` | Policy-backed retrieval, display preservation, and task/artifact provenance closed the representative mixed-query failures |
+| Retrieval hint budget canary | NAV query-embedding chars `7,672`, LGE chars `6,120` | NAV chars `2,662`, LGE chars `4,056` with both focused rows at core metrics `1.000` | Reduced executed-query inflation without hiding policy/reranker evidence signals |
+| Query embedding cache replay | 97 executed queries, 100 query-embedding calls, 58 LLM calls, runtime cost `$0.444073` | 88 executed queries, 89 query-embedding calls, 40 LLM calls, runtime cost `$0.407527` | Post-cache replay improved observed runtime pressure while preserving the five-row policy gate |
 
 ## Failure Analysis
 
@@ -215,6 +231,10 @@ the gates:
   avoiding per-chunk contextualization calls
 - the contract runtime makes answer acceptance auditable through evidence,
   calculation trace, critic acceptance, and task/artifact integrity
+- cost-control work now has two layers: shorter executed-query enrichment and
+  exact-text query-embedding reuse
+- the remaining runtime-cost bottleneck is unique query fan-out and LLM planning
+  variability, not per-chunk contextualization
 
 This supports the portfolio claim: the project improved financial RAG quality
 by moving failure handling into general runtime contracts and reviewed policy
