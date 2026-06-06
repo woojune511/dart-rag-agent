@@ -2801,6 +2801,59 @@ Interpretation:
 - Generated `same_trace_guard_*` result directories are local experiment
   artifacts and should not be committed.
 
+## 2026-06-07 Cross-Trace Reuse Candidate Probe
+
+Purpose:
+
+- Verify that the trace-only `cross_trace_reuse_candidates` instrumentation
+  can observe the remaining `NAV_T2_006` sibling lookup repeats before adding
+  any guarded retrieval-result reuse.
+- Keep the run diagnostic-only: the runtime still executes normal retrieval,
+  and the probe does not serve cached hits across tasks.
+
+Command shape:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\cross_trace_reuse_nav_t2_006_2026-06-07 `
+  --company-run-id naver_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id NAV_T2_006 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\cross_trace_reuse_nav_t2_006_2026-06-07\_logs\heartbeat_nav_t2_006.jsonl
+```
+
+Audit command:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.audit_benchmark_fanout_cost `
+  benchmarks\results\cross_trace_reuse_nav_t2_006_2026-06-07 `
+  --top 5
+```
+
+Observed diagnostic result:
+
+| Row | Faithfulness | Completeness | Context recall | Retrieval hit@k | Executed | Unique | Duplicate | Cross-trace reuse candidates | Prior matches | Query embeddings | Runtime cost |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `NAV_T2_006` | 0.700 | 0.700 | 1.000 | 1.000 | 28 | 24 | 4 | 4 | 4 | 24 | `$0.137689` |
+
+Interpretation:
+
+- The new instrumentation correctly identifies the four remaining primary
+  cross-trace repeats from `task_3/lookup` to `task_4/lookup`.
+- All four current matches were already vector-store cache hits in this run,
+  so a future guarded reuse path should measure whether it reduces more than
+  trace noise before adding complexity.
+- The row quality dropped to faithfulness/completeness `0.700` in this live
+  replay even though context recall and retrieval hit@k stayed `1.000`.
+  Therefore this artifact is diagnostic evidence only, not a fresh policy-gate
+  quality baseline.
+- `src.ops.audit_benchmark_fanout_cost` now reports cross-trace reuse
+  candidates and prior matches in both summary and top-row Markdown output.
+- Generated `cross_trace_reuse_*` result directories are local experiment
+  artifacts and should not be committed.
+
 ## 2026-06-03 Adaptive Focused Retrieval Stop Smoke
 
 Purpose:

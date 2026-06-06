@@ -307,6 +307,10 @@ role-separated multi-agent system using a task ledger and artifact store.
       trace-only: it identifies same-source, same-filter, exact executed-query
       repeats from earlier traces while preserving the current retrieval
       behavior and task/artifact provenance.
+    - focused `NAV_T2_006` diagnostic replay confirmed the instrumentation
+      finds 4 cross-trace primary reuse candidates from `task_3/lookup` to
+      `task_4/lookup`; all four were already current cache hits. That replay is
+      diagnostic-only because faithfulness/completeness fell to `0.700`.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.
