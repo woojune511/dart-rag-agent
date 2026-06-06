@@ -2678,6 +2678,55 @@ Artifact policy:
   `policy_gate_budget6_smoke_2026-06-03`, and
   `policy_gate_budget7_smoke_2026-06-03`.
 
+## 2026-06-07 Policy Gate Fan-out Cost Audit Baseline
+
+Purpose:
+
+- Use the offline fan-out/cost audit before paying for another budget canary.
+- Separate measurable retrieval/runtime cost pressure from quality regressions
+  so the next budget experiment starts from rows with known fan-out patterns.
+- Treat generated `fanout_cost_audit.*` files as local benchmark artifacts
+  under `benchmarks/results/**`; do not commit them.
+
+Command shape:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.audit_benchmark_fanout_cost `
+  benchmarks\results\policy_gate_regression_2026-06-03_1138_actual `
+  --output-md benchmarks\results\policy_gate_regression_2026-06-03_1138_actual\fanout_cost_audit.md `
+  --output-json benchmarks\results\policy_gate_regression_2026-06-03_1138_actual\fanout_cost_audit.json `
+  --top 10
+```
+
+Audited local bundles:
+
+| Local bundle | Questions | Retrieval traces | Executed queries | Query embedding calls | Est. runtime cost | Avg faithfulness | Avg completeness | Notes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `policy_gate_regression_2026-05-31_2212` | 5 | 11 | 93 | 89 | `$0.406069` | 1.000 | 1.000 | Clean local quality snapshot; top fan-out rows were `NAV_T2_006` and `LGE_T1_051`. |
+| `policy_gate_regression_2026-06-03_1138_actual` | 5 | 12 | 98 | 81 | `$0.423814` | 1.000 | 0.880 | Dependency-trace pass with known narrative completeness gaps; top fan-out rows were `HYU_T2_010` and `NAV_T2_006`. |
+
+Source-level fan-out:
+
+| Local bundle | Primary executed | Operand-focus executed | Retry executed | Primary query embeddings | Operand query embeddings |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `policy_gate_regression_2026-05-31_2212` | 70 | 23 | 0 | 66 | 23 |
+| `policy_gate_regression_2026-06-03_1138_actual` | 77 | 20 | 1 | 65 | 16 |
+
+Interpretation:
+
+- The highest fan-out pressure is concentrated in mixed numeric+narrative or
+  lookup-heavy rows, especially `NAV_T2_006`, `HYU_T2_010`, and `LGE_T1_051`.
+- This matches the earlier budget smoke: reducing the global policy budget to
+  `5 / 3 / 1`, `6 / 4 / 1`, or `7 / 4 / 1` broke `NAV_T2_006`, even though
+  some other rows stayed healthy.
+- The next budget canary should not lower the default `8 / 4 / 1` globally.
+  It should target generic evidence signals instead: operand coverage,
+  narrative sibling completion, retrieved row provenance, task completion, and
+  whether operand-focus retrieval was actually needed.
+- Current checkout does not contain auditable `results.json` files for the
+  latest concept-runtime baseline or runtime-contract gate bundles, so this
+  audit baseline is policy-gate-only.
+
 ## 2026-06-03 Adaptive Focused Retrieval Stop Smoke
 
 Purpose:
