@@ -57,6 +57,27 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertTrue(any("2022년" in query for query in selected))
         self.assertEqual(trace["dropped_count"], 2)
 
+    def test_query_budget_preserves_cjk_spacing_variants(self) -> None:
+        selected, trace = _apply_query_budget(
+            [
+                "2023년 커머스 매출액",
+                "2023년 커머스매출액",
+                "2023년 커머스 매출액 부문정보",
+            ],
+            8,
+            dedupe=True,
+        )
+
+        self.assertEqual(
+            selected,
+            [
+                "2023년 커머스 매출액",
+                "2023년 커머스매출액",
+                "2023년 커머스 매출액 부문정보",
+            ],
+        )
+        self.assertEqual(trace["deduped_count"], 3)
+
     def test_executed_query_telemetry_summary_groups_by_source(self) -> None:
         summary = _summarize_executed_query_telemetry(
             [
@@ -470,8 +491,71 @@ class RetrievalScopeTests(unittest.TestCase):
         focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
         self.assertFalse(focus_trace["skipped"])
         self.assertEqual(focus_trace["skip_blocked_reason"], "narrative_sibling_subtask_present")
+        self.assertEqual(focus_trace["duplicate_drop_blocked_reason"], "narrative_sibling_subtask_present")
         self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 2)
         self.assertGreater(focus_trace["selected_count"], 0)
+
+    def test_focused_operand_retrieval_drops_primary_duplicate_queries_without_narrative_sibling(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="revenue 1,000",
+                        metadata={
+                            "chunk_id": "complete-primary",
+                            "block_type": "table",
+                            "table_row_labels_text": "revenue",
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "revenue cost ratio",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "query": "revenue",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "revenue", "role": "denominator"},
+                        {"label": "cost", "role": "numerator"},
+                    ],
+                },
+                "calc_subtasks": [
+                    {"task_id": "task_1", "operation_family": "ratio"},
+                ],
+                "report_scope": {},
+                "companies": [],
+                "years": [],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        executed = result["retrieval_debug_trace"]["executed_queries"]
+        self.assertEqual([row["base_query"] for row in executed], ["revenue", "cost"])
+        self.assertEqual([row["source"] for row in executed], ["primary", "operand_focus"])
+        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
+        self.assertFalse(focus_trace["skipped"])
+        self.assertEqual(focus_trace["selected_count_before_duplicate_drop"], 2)
+        self.assertEqual(focus_trace["duplicate_selected_query_dropped_count"], 1)
+        self.assertEqual(focus_trace["selected_count"], 1)
 
     def test_retry_query_budget_keeps_builtin_default_when_unset(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
