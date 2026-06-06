@@ -10468,6 +10468,7 @@ class FinancialAgentCalculationMixin:
             kept_evidence_ids,
         )
         artifacts = list(ledger_artifacts)
+        tasks = list(state.get("tasks") or [])
         artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
         artifacts = _append_artifact(
             artifacts,
@@ -10484,6 +10485,16 @@ class FinancialAgentCalculationMixin:
             },
             evidence_refs=selected_claim_ids,
         )
+        tasks = _upsert_task(
+            tasks,
+            task_id="aggregate",
+            kind=TaskKind.SYNTHESIS,
+            label="Aggregate subtask results",
+            status=TaskStatus.PARTIAL if planner_feedback else TaskStatus.COMPLETED,
+            query=str(state.get("query") or ""),
+            metric_family="aggregate",
+            artifact_id=artifact_id,
+        )
         return {
             "subtask_results": ordered_results,
             "subtask_loop_complete": True,
@@ -10497,6 +10508,7 @@ class FinancialAgentCalculationMixin:
             "dropped_claim_ids": [],
             "unsupported_sentences": [],
             "sentence_checks": [],
+            "tasks": tasks,
             "artifacts": artifacts,
             "evidence_items": aggregate_evidence_items or aggregate_projection.get("evidence_items", []),
             **_runtime_trace_state_update(
