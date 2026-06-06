@@ -161,6 +161,13 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
         self.assertEqual(audit["top_rows_by_executed_queries"][0]["question_id"], "Q1")
         self.assertEqual(audit["top_rows_by_duplicate_queries"][0]["question_id"], "Q1")
+        duplicate_details = audit["top_rows_by_duplicate_queries"][0]["duplicate_query_details"]
+        signatures = {row["signature"] for row in duplicate_details}
+        self.assertEqual(signatures, {"revenue 2023", "cost 2023"})
+        cost_detail = next(row for row in duplicate_details if row["signature"] == "cost 2023")
+        self.assertEqual(cost_detail["count"], 2)
+        self.assertEqual(cost_detail["duplicate_count"], 1)
+        self.assertEqual(cost_detail["sources"], {"operand_focus": 1, "retry": 1})
 
     def test_find_result_files_recurses_directories(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -198,12 +205,34 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                         "numeric_final_judgement": "PASS",
                     }
                 ],
+                "top_rows_by_duplicate_queries": [
+                    {
+                        "question_id": "Q1",
+                        "company_id": "company_a",
+                        "experiment_id": "exp",
+                        "executed_query_count": 2,
+                        "unique_executed_query_count": 1,
+                        "duplicate_executed_query_count": 1,
+                        "duplicate_query_details": [
+                            {
+                                "signature": "revenue 2023",
+                                "count": 2,
+                                "duplicate_count": 1,
+                                "sources": {"primary": 2},
+                            }
+                        ],
+                        "query_embedding_api_calls": 2,
+                        "faithfulness": 1,
+                        "completeness": 1,
+                    }
+                ],
             }
         )
 
         self.assertIn("# Benchmark Fan-out Cost Audit", markdown)
         self.assertIn("| primary | 2 |", markdown)
         self.assertIn("Duplicate executed queries", markdown)
+        self.assertIn("revenue 2023 (2x; primary:2)", markdown)
         self.assertIn("| Q1 | company_a | exp | 2 |", markdown)
 
 

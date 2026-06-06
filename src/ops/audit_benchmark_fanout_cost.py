@@ -88,6 +88,69 @@ def _query_signature(value: Any) -> str:
     return text
 
 
+def _duplicate_query_details(
+    signatures_by_source: Mapping[str, Sequence[str]],
+    *,
+    limit: int = 5,
+) -> List[Dict[str, Any]]:
+    occurrences: Dict[str, Dict[str, Any]] = {}
+    for source, signatures in signatures_by_source.items():
+        for signature in signatures:
+            if not signature:
+                continue
+            detail = occurrences.setdefault(
+                signature,
+                {
+                    "signature": signature,
+                    "count": 0,
+                    "duplicate_count": 0,
+                    "sources": defaultdict(int),
+                },
+            )
+            detail["count"] += 1
+            detail["sources"][str(source)] += 1
+
+    details: List[Dict[str, Any]] = []
+    for detail in occurrences.values():
+        count = int(detail.get("count") or 0)
+        if count <= 1:
+            continue
+        sources = dict(sorted(dict(detail.get("sources") or {}).items()))
+        details.append(
+            {
+                "signature": detail.get("signature") or "",
+                "count": count,
+                "duplicate_count": count - 1,
+                "sources": sources,
+            }
+        )
+    details.sort(
+        key=lambda item: (
+            -int(item.get("duplicate_count") or 0),
+            -int(item.get("count") or 0),
+            str(item.get("signature") or ""),
+        )
+    )
+    return details[: max(limit, 0)]
+
+
+def _format_duplicate_query_details(details: Sequence[Mapping[str, Any]], *, limit: int = 3) -> str:
+    parts: List[str] = []
+    for detail in list(details)[: max(limit, 0)]:
+        signature = str(detail.get("signature") or "")
+        if len(signature) > 80:
+            signature = f"{signature[:77]}..."
+        sources = ", ".join(
+            f"{source}:{count}"
+            for source, count in _safe_dict(detail.get("sources")).items()
+        )
+        if sources:
+            parts.append(f"{signature} ({detail.get('count')}x; {sources})")
+        else:
+            parts.append(f"{signature} ({detail.get('count')}x)")
+    return "; ".join(parts)
+
+
 def find_result_files(paths: Sequence[Path]) -> List[Path]:
     """Resolve files or directories into unique ``results.json`` files."""
 
@@ -281,6 +344,7 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         unique_source_count = len(set(signatures))
         by_source[source]["unique_executed_query_count"] += unique_source_count
         by_source[source]["duplicate_executed_query_count"] += max(len(signatures) - unique_source_count, 0)
+    duplicate_query_details = _duplicate_query_details(executed_query_signatures_by_source)
 
     llm_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(llm_usage, _safe_dict(row.get("llm_usage")), LLM_USAGE_KEYS)
@@ -300,6 +364,7 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         "operand_focus_skipped_count": operand_focus_skipped_count,
         "unique_executed_query_count": unique_executed_query_count,
         "duplicate_executed_query_count": duplicate_executed_query_count,
+        "duplicate_query_details": duplicate_query_details,
         **{key: _as_float(row.get(key)) for key in QUALITY_KEYS},
         **dict(selected),
         **dict(search_totals),
@@ -446,21 +511,25 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
             "",
             "## Top Rows By Duplicate Executed Queries",
             "",
-            "| Question | Company | Experiment | Executed | Unique | Duplicate | Query embed | Faithfulness | Completeness | Error |",
-            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+            "| Question | Company | Experiment | Executed | Unique | Duplicate | Top duplicate queries | Query embed | Faithfulness | Completeness | Error |",
+            "| --- | --- | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- |",
         ]
     )
     for row in duplicate_rows:
         if not isinstance(row, Mapping):
             continue
         lines.append(
-            "| {qid} | {company} | {experiment} | {executed} | {unique} | {duplicate} | {embed} | {faith} | {complete} | {error} |".format(
+            "| {qid} | {company} | {experiment} | {executed} | {unique} | {duplicate} | {details} | {embed} | {faith} | {complete} | {error} |".format(
                 qid=row.get("question_id") or "",
                 company=row.get("company_id") or row.get("company_label") or "",
                 experiment=row.get("experiment_id") or "",
                 executed=_format_number(row.get("executed_query_count"), 0),
                 unique=_format_number(row.get("unique_executed_query_count"), 0),
                 duplicate=_format_number(row.get("duplicate_executed_query_count"), 0),
+                details=_format_duplicate_query_details(_safe_list(row.get("duplicate_query_details"))).replace(
+                    "|",
+                    "/",
+                ),
                 embed=_format_number(row.get("query_embedding_api_calls"), 0),
                 faith=_format_number(row.get("faithfulness"), 3),
                 complete=_format_number(row.get("completeness"), 3),
@@ -468,7 +537,7 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
             )
         )
     if not duplicate_rows:
-        lines.append("| n/a |  |  |  |  |  |  |  |  |  |")
+        lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |")
 
     lines.extend(
         [
