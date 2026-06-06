@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import math
+import os
 import threading
+from collections import OrderedDict
 from typing import Any, Dict, Iterable, Mapping
 
 
@@ -72,6 +74,8 @@ class TrackingEmbeddings:
         self._lock = threading.Lock()
         self._local = threading.local()
         self._usage = zero_embedding_usage_counts()
+        self._query_cache_size = max(0, int(os.getenv("DART_QUERY_EMBEDDING_CACHE_SIZE", "512") or 512))
+        self._query_cache: "OrderedDict[str, list[float]]" = OrderedDict()
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._inner, name)
@@ -121,9 +125,32 @@ class TrackingEmbeddings:
     def snapshot_current_thread_usage(self) -> Dict[str, int]:
         return dict(self._local_usage())
 
+    def clear_query_cache(self) -> None:
+        with self._lock:
+            self._query_cache.clear()
+
     def embed_query(self, text: str, *args: Any, **kwargs: Any) -> list[float]:
-        result = self._inner.embed_query(text, *args, **kwargs)
+        if args or kwargs:
+            result = list(self._inner.embed_query(text, *args, **kwargs))
+            self._record(kind="query", texts=[text])
+            return result
+
+        cache_key = str(text or "")
+        if self._query_cache_size > 0:
+            with self._lock:
+                cached = self._query_cache.get(cache_key)
+                if cached is not None:
+                    self._query_cache.move_to_end(cache_key)
+                    return list(cached)
+
+        result = list(self._inner.embed_query(text, *args, **kwargs))
         self._record(kind="query", texts=[text])
+        if self._query_cache_size > 0:
+            with self._lock:
+                self._query_cache[cache_key] = list(result)
+                self._query_cache.move_to_end(cache_key)
+                while len(self._query_cache) > self._query_cache_size:
+                    self._query_cache.popitem(last=False)
         return result
 
     def embed_documents(self, texts: list[str], *args: Any, **kwargs: Any) -> list[list[float]]:
