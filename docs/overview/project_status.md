@@ -273,6 +273,19 @@ role-separated multi-agent system using a task ledger and artifact store.
       query-embedding calls, 13,948 query-embedding input chars, 3,522
       estimated query-embedding tokens, 58 LLM calls, and estimated runtime
       cost `$0.444073` across the five-row replay.
+    - query-embedding cache follow-up:
+      `benchmarks/results/current_policy_gate_after_query_embedding_cache_2026-06-07/`
+      (local store-fixed eval-only artifact, not committed) replayed the same
+      five policy-gate rows after PR #23 landed on `main`. Faithfulness,
+      completeness, context recall, and retrieval hit@k stayed `1.000` for all
+      five rows, task/artifact integrity stayed `ok` for 5 / 5 rows, error rate
+      stayed `0.0%`, and `LGE_T1_051` stayed `numeric_final_judgement = PASS`.
+    - observed post-cache cost/runtime snapshot: 88 executed retrieval queries,
+      89 query-embedding calls, 12,722 query-embedding input chars, 3,211
+      estimated query-embedding tokens, 40 LLM calls, and estimated runtime
+      cost `$0.407527`. Because this live replay also generated fewer executed
+      retrieval queries and LLM calls, treat the measured reduction as a
+      post-cache replay result rather than an isolated cache-only attribution.
     - residual precision signals remain non-blocking but visible for follow-up:
       average section match `0.850`, citation coverage `0.933`, and entity
       coverage `0.942`.
