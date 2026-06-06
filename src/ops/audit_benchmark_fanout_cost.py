@@ -89,39 +89,60 @@ def _query_signature(value: Any) -> str:
 
 
 def _duplicate_query_details(
-    signatures_by_source: Mapping[str, Sequence[str]],
+    occurrences: Sequence[Mapping[str, Any]],
     *,
     limit: int = 5,
 ) -> List[Dict[str, Any]]:
-    occurrences: Dict[str, Dict[str, Any]] = {}
-    for source, signatures in signatures_by_source.items():
-        for signature in signatures:
-            if not signature:
-                continue
-            detail = occurrences.setdefault(
-                signature,
-                {
-                    "signature": signature,
-                    "count": 0,
-                    "duplicate_count": 0,
-                    "sources": defaultdict(int),
-                },
-            )
-            detail["count"] += 1
-            detail["sources"][str(source)] += 1
+    details_by_signature: Dict[str, Dict[str, Any]] = {}
+    for occurrence in occurrences:
+        signature = str(occurrence.get("signature") or "")
+        if not signature:
+            continue
+        source = str(occurrence.get("source") or "unknown")
+        trace_index = _as_int(occurrence.get("trace_index"))
+        task_id = str(occurrence.get("active_task_id") or "")
+        operation = str(occurrence.get("active_task_operation") or "")
+        task_key = "/".join(part for part in (task_id, operation) if part) or "unknown"
+        detail = details_by_signature.setdefault(
+            signature,
+            {
+                "signature": signature,
+                "count": 0,
+                "duplicate_count": 0,
+                "sources": defaultdict(int),
+                "trace_indexes": set(),
+                "trace_counts": defaultdict(int),
+                "task_contexts": defaultdict(int),
+            },
+        )
+        detail["count"] += 1
+        detail["sources"][source] += 1
+        detail["trace_indexes"].add(trace_index)
+        detail["trace_counts"][trace_index] += 1
+        detail["task_contexts"][task_key] += 1
 
     details: List[Dict[str, Any]] = []
-    for detail in occurrences.values():
+    for detail in details_by_signature.values():
         count = int(detail.get("count") or 0)
         if count <= 1:
             continue
         sources = dict(sorted(dict(detail.get("sources") or {}).items()))
+        trace_counts = dict(sorted(dict(detail.get("trace_counts") or {}).items()))
+        trace_indexes = sorted(int(item) for item in set(detail.get("trace_indexes") or set()))
+        task_contexts = dict(sorted(dict(detail.get("task_contexts") or {}).items()))
+        within_trace_duplicate_count = sum(max(int(value) - 1, 0) for value in trace_counts.values())
         details.append(
             {
                 "signature": detail.get("signature") or "",
                 "count": count,
                 "duplicate_count": count - 1,
                 "sources": sources,
+                "trace_indexes": trace_indexes,
+                "trace_count": len(trace_indexes),
+                "within_trace_duplicate_count": within_trace_duplicate_count,
+                "cross_trace_repeat_count": max(len(trace_indexes) - 1, 0),
+                "cross_source": len(sources) > 1,
+                "task_contexts": task_contexts,
             }
         )
     details.sort(
@@ -144,8 +165,28 @@ def _format_duplicate_query_details(details: Sequence[Mapping[str, Any]], *, lim
             f"{source}:{count}"
             for source, count in _safe_dict(detail.get("sources")).items()
         )
+        traces = ",".join(str(item) for item in _safe_list(detail.get("trace_indexes")))
+        task_contexts = ", ".join(
+            f"{task}:{count}"
+            for task, count in _safe_dict(detail.get("task_contexts")).items()
+        )
+        qualifiers: List[str] = []
         if sources:
-            parts.append(f"{signature} ({detail.get('count')}x; {sources})")
+            qualifiers.append(sources)
+        if traces:
+            qualifiers.append(f"traces:{traces}")
+        within_trace = _as_int(detail.get("within_trace_duplicate_count"))
+        cross_trace = _as_int(detail.get("cross_trace_repeat_count"))
+        if within_trace:
+            qualifiers.append(f"same-trace-dup:{within_trace}")
+        if cross_trace:
+            qualifiers.append(f"cross-trace-repeat:{cross_trace}")
+        if bool(detail.get("cross_source")):
+            qualifiers.append("cross-source")
+        if task_contexts and task_contexts != "unknown":
+            qualifiers.append(f"tasks:{task_contexts}")
+        if qualifiers:
+            parts.append(f"{signature} ({detail.get('count')}x; {'; '.join(qualifiers)})")
         else:
             parts.append(f"{signature} ({detail.get('count')}x)")
     return "; ".join(parts)
@@ -253,10 +294,14 @@ def _trace_entries(row: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return [dict(trace)] if isinstance(trace, Mapping) and trace else []
 
 
-def _summarize_trace(trace: Mapping[str, Any]) -> Dict[str, Any]:
+def _summarize_trace(trace: Mapping[str, Any], *, trace_index: int) -> Dict[str, Any]:
     query_budget = _safe_dict(trace.get("query_budget"))
     search_summary = _safe_dict(trace.get("search_summary"))
     executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
+    executed_query_occurrences: List[Dict[str, Any]] = []
+    source_trace = _safe_dict(query_budget.get("source"))
+    active_task_id = str(source_trace.get("active_subtask_id") or "")
+    active_task_operation = str(source_trace.get("active_subtask_operation") or "")
     if isinstance(trace.get("executed_queries"), list):
         for query in trace.get("executed_queries") or []:
             if not isinstance(query, Mapping):
@@ -265,6 +310,15 @@ def _summarize_trace(trace: Mapping[str, Any]) -> Dict[str, Any]:
             signature = _query_signature(query.get("executed_query") or query.get("base_query"))
             if signature:
                 executed_query_signatures_by_source[source].append(signature)
+                executed_query_occurrences.append(
+                    {
+                        "signature": signature,
+                        "source": source,
+                        "trace_index": trace_index,
+                        "active_task_id": active_task_id,
+                        "active_task_operation": active_task_operation,
+                    }
+                )
     if not search_summary and isinstance(trace.get("executed_queries"), list):
         by_source: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
         totals: Dict[str, float] = defaultdict(float)
@@ -302,6 +356,7 @@ def _summarize_trace(trace: Mapping[str, Any]) -> Dict[str, Any]:
         "executed_query_signatures_by_source": {
             source: list(signatures) for source, signatures in executed_query_signatures_by_source.items()
         },
+        "executed_query_occurrences": executed_query_occurrences,
     }
 
 
@@ -313,9 +368,10 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     operand_focus_skipped_count = 0
     executed_query_signatures: List[str] = []
     executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
+    executed_query_occurrences: List[Dict[str, Any]] = []
 
-    for trace in traces:
-        summary = _summarize_trace(trace)
+    for trace_index, trace in enumerate(traces, start=1):
+        summary = _summarize_trace(trace, trace_index=trace_index)
         for key, value in summary["selected"].items():
             selected[key] += value
         operand_focus_skipped_count += int(summary.get("operand_focus_skipped_count") or 0)
@@ -337,6 +393,11 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
             clean_signatures = [str(item) for item in signatures if str(item)]
             executed_query_signatures.extend(clean_signatures)
             executed_query_signatures_by_source[str(source)].extend(clean_signatures)
+        executed_query_occurrences.extend(
+            dict(item)
+            for item in _safe_list(summary.get("executed_query_occurrences"))
+            if isinstance(item, Mapping)
+        )
 
     unique_executed_query_count = len(set(executed_query_signatures))
     duplicate_executed_query_count = max(len(executed_query_signatures) - unique_executed_query_count, 0)
@@ -344,7 +405,7 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         unique_source_count = len(set(signatures))
         by_source[source]["unique_executed_query_count"] += unique_source_count
         by_source[source]["duplicate_executed_query_count"] += max(len(signatures) - unique_source_count, 0)
-    duplicate_query_details = _duplicate_query_details(executed_query_signatures_by_source)
+    duplicate_query_details = _duplicate_query_details(executed_query_occurrences)
 
     llm_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(llm_usage, _safe_dict(row.get("llm_usage")), LLM_USAGE_KEYS)

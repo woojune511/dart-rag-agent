@@ -176,10 +176,10 @@ Before lowering retrieval query budgets, audit the existing result bundle:
 
 The audit is offline: it reads existing `results.json` files and summarizes
 per-question retrieval trace count, source-level fan-out, unique and duplicate
-executed query counts, top duplicate query signatures by row/source, query
-embedding calls, LLM usage, estimated runtime cost, and quality metrics. Treat
-its output as local experiment material under `benchmarks/results/**`; do not
-commit it unless a reviewer explicitly asks for benchmark artifacts.
+executed query counts, top duplicate query signatures by row/source/trace/task,
+query embedding calls, LLM usage, estimated runtime cost, and quality metrics.
+Treat its output as local experiment material under `benchmarks/results/**`; do
+not commit it unless a reviewer explicitly asks for benchmark artifacts.
 
 API 비용이나 rate/cap 문제가 있을 때는 full gate를 바로 돌리지 않는다. 기본 순서는 다음이다.
 
@@ -2725,6 +2725,10 @@ Interpretation:
   counts. The same local bundle shows `HYU_T2_010` repeats focused
   operand-style sales-count queries, while `NAV_T2_006` repeats long enriched
   primary queries. Treat these as different optimization targets.
+- Trace/task drilldown sharpens that split: `HYU_T2_010` has both same-trace
+  and cross-trace repeats around `task_1/growth_rate`, while `NAV_T2_006`
+  repeats enriched primary lookup queries across `task_3/lookup` and
+  `task_4/lookup`.
 - This matches the earlier budget smoke: reducing the global policy budget to
   `5 / 3 / 1`, `6 / 4 / 1`, or `7 / 4 / 1` broke `NAV_T2_006`, even though
   some other rows stayed healthy.
