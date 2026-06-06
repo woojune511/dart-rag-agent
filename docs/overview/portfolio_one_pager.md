@@ -97,6 +97,7 @@ retrieval bypass remain disabled.
 | Final close gate | rejected critic reports produce blocking integrity errors |
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while serving remains disabled |
+| Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Test coverage | full `python -m unittest discover -s tests` has been kept green through recent contract work |
 
