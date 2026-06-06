@@ -688,6 +688,11 @@ Useful supporting points:
   dedupe is enabled only for explicitly budgeted retrieval stages.
 - Use this for focused triage before changing retrieval policy or ontology:
   it is an execution-cost control, not a benchmark-answer rule.
+- Offline fan-out/cost audit is now available through
+  `python -m src.ops.audit_benchmark_fanout_cost <result-bundle>`. It reads
+  existing `results.json` files and summarizes per-question retrieval traces,
+  source-level fan-out, query embedding calls, LLM usage, estimated runtime
+  cost, and quality metrics before any new budget probe is run.
 - Benchmark runner now supports focused LLM route probes without editing the
   profile via `--llm-route phase=provider:model`.
 - Local `HYU_T2_010` evidence-extraction probe with

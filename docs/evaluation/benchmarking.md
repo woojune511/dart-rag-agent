@@ -165,6 +165,21 @@ Concept-runtime promotion baseline:
 
 ### Cost-Controlled Debug Loop
 
+Before lowering retrieval query budgets, audit the existing result bundle:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.audit_benchmark_fanout_cost `
+  benchmarks\results\<result-bundle> `
+  --output-md benchmarks\results\<result-bundle>\fanout_cost_audit.md `
+  --output-json benchmarks\results\<result-bundle>\fanout_cost_audit.json
+```
+
+The audit is offline: it reads existing `results.json` files and summarizes
+per-question retrieval trace count, source-level fan-out, query embedding
+calls, LLM usage, estimated runtime cost, and quality metrics. Treat its output
+as local experiment material under `benchmarks/results/**`; do not commit it
+unless a reviewer explicitly asks for benchmark artifacts.
+
 API 비용이나 rate/cap 문제가 있을 때는 full gate를 바로 돌리지 않는다. 기본 순서는 다음이다.
 
 1. `replay_full_eval_from_results`로 저장된 answer / evidence / trace를 먼저 재판정한다.
