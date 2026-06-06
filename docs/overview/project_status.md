@@ -236,6 +236,30 @@ role-separated multi-agent system using a task ledger and artifact store.
       executed-query reduction on this canary. The next cost target is primary
       query-bundle / retrieval-hint inflation rather than compacting
       evidence-diversity surfaces.
+  - Retrieval-hint inflation follow-up, 2026-06-07:
+    - local artifact:
+      `benchmarks/results/policy_gate_hint_budget_balanced_lge_nav_2026-06-07/`
+      (not committed)
+    - rejected candidate: first-N preferred-section caps were too aggressive
+      for mixed numeric+narrative retrieval; `NAV_T2_006` kept context recall
+      and retrieval hit@k at `1.000`, but faithfulness/completeness fell to
+      `0.700`.
+    - accepted guard: primary executed-query enrichment now caps retrieval hint
+      terms and applies a head/tail budget to preferred sections, while keeping
+      the full policy trace and reranker/supplemental section signals visible.
+    - focused NAV/LGE store-fixed eval-only canary preserved quality:
+      `NAV_T2_006` faithfulness/completeness/context recall/retrieval hit@k
+      all `1.000`; `LGE_T1_051` faithfulness/completeness/context
+      recall/retrieval hit@k all `1.000` with
+      `numeric_final_judgement = PASS`.
+    - cost signal: `NAV_T2_006` query-embedding input chars dropped from
+      `7,672` to `2,662` and estimated query-embedding tokens from `1,935` to
+      `676`; `LGE_T1_051` query-embedding input chars dropped from `6,120` to
+      `4,056` and estimated tokens from `1,539` to `1,019`.
+    - query shape signal: `NAV_T2_006` average executed query length dropped
+      from `213.6` to `116.6`, and `LGE_T1_051` dropped from `377.2` to
+      `248.2`, without adding company, question, or metric-specific runtime
+      branches.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.

@@ -139,6 +139,18 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             self.retry_retrieval_query_budget = int(self.routing_config.get("retry_retrieval_query_budget") or 0)
         except (TypeError, ValueError):
             self.retry_retrieval_query_budget = 0
+        try:
+            self.retrieval_hint_query_token_budget = int(
+                self.routing_config.get("retrieval_hint_query_token_budget") or 16
+            )
+        except (TypeError, ValueError):
+            self.retrieval_hint_query_token_budget = 16
+        try:
+            self.preferred_section_query_budget = int(
+                self.routing_config.get("preferred_section_query_budget") or 8
+            )
+        except (TypeError, ValueError):
+            self.preferred_section_query_budget = 8
         # Expansion keeps the initial retrieval hits intact and selectively
         # appends nearby structural context such as parent paragraphs or table
         # descriptions.

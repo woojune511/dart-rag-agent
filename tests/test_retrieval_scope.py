@@ -265,6 +265,53 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["retry"]["selected_count"], 1)
         self.assertEqual(trace["retry"]["dropped_count"], 1)
 
+    def test_query_enrichment_caps_sections_in_executed_query_only(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 0
+        agent.preferred_section_query_budget = 2
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "revenue",
+                "active_subtask": {
+                    "query": "revenue",
+                    "preferred_sections": ["Income statement", "Notes", "MDA"],
+                },
+                "report_scope": {},
+                "companies": [],
+                "years": [],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        searched = agent.vsm.queries[0]["query"]
+        self.assertIn("Income statement", searched)
+        self.assertIn("MDA", searched)
+        self.assertNotIn("Notes", searched)
+        trace = result["retrieval_debug_trace"]
+        self.assertEqual(
+            trace["policy_trace"]["preferred_sections"],
+            ["Income statement", "Notes", "MDA"],
+        )
+        section_trace = trace["query_budget"]["enrichment"]["preferred_sections"]
+        self.assertEqual(section_trace["selected_count"], 2)
+        self.assertEqual(section_trace["selection_strategy"], "head_tail")
+        self.assertEqual(section_trace["dropped_terms"], ["Notes"])
+
     def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 4
