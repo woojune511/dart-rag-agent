@@ -7262,6 +7262,88 @@ class SubtaskLoopTests(unittest.TestCase):
             for key, value in original_policy.items():
                 CALCULATION_NARRATIVE_POLICY[key] = value
 
+    def test_growth_narrative_prunes_untraced_numeric_driver_sentence(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in ("growth_query_pattern", "growth_impact_markers", "growth_narrative_markers")
+        }
+        original_driver_groups = self.agent._narrative_driver_groups
+        CALCULATION_NARRATIVE_POLICY["growth_query_pattern"] = r"growth"
+        CALCULATION_NARRATIVE_POLICY["growth_impact_markers"] = ("impact", "growth", "effect")
+        CALCULATION_NARRATIVE_POLICY["growth_narrative_markers"] = ("impact", "growth", "effect", "turnaround")
+        self.agent._narrative_driver_groups = lambda _query: []
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment revenue growth",
+                    "operation_family": "growth_rate",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue growth",
+                                "period": "2023",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "period": "2023",
+                                "rendered_value": "2,546,649 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "period": "2022",
+                                "rendered_value": "1,801,079 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "operation_family": "narrative_summary",
+                    "answer": "AcquisitionX turnaround improved segment growth.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ]
+            evidence_items = [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "AcquisitionX turnaround improved segment growth.",
+                    "quote_span": "AcquisitionX turnaround improved segment growth.",
+                }
+            ]
+            answer = (
+                "2023 segment revenue was 2,546,649 million, up 41.4% from 1,801,079 million in 2022. "
+                "AcquisitionX turnaround improved segment growth. "
+                "The acquisition effect increased operating expense by 24.3%."
+            )
+
+            pruned = self.agent._prune_irrelevant_growth_narrative_sentences(
+                query="Calculate segment revenue growth and summarize the impact of AcquisitionX.",
+                answer=answer,
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+
+            self.assertIn("41.4%", pruned)
+            self.assertIn("AcquisitionX turnaround", pruned)
+            self.assertNotIn("24.3%", pruned)
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
     def test_retrieved_doc_narrative_evidence_is_selected_for_final_answer(self) -> None:
         evidence_items = [
             {
@@ -8471,6 +8553,97 @@ class SubtaskLoopTests(unittest.TestCase):
         operand_ids = [operand["operand_id"] for operand in growth_row["calculation_operands"]]
         self.assertEqual(operand_ids.count("dep_task_3_001"), 1)
         self.assertEqual(operand_ids.count("dep_task_4_002"), 1)
+
+    def test_dependency_projection_refreshes_lookup_unit_when_direct_evidence_supports_it(self) -> None:
+        state = {
+            "query": "Calculate segment revenue growth.",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_prior",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                },
+                {"task_id": "task_growth", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_prior",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "answer": "1,801,079 thousand",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "1,801,079 thousand",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "period": "2022",
+                            "raw_value": "1,801,079",
+                            "raw_unit": "thousand",
+                            "normalized_value": 1801079000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "1,801,079 thousand",
+                            "source_row_id": "task_output:task_prior",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {"status": "ok", "rendered_value": "41.4%"},
+            },
+        ]
+        aggregate_projection = {
+            "calculation_operands": [
+                {
+                    "operand_id": "dep_task_prior_001",
+                    "source_row_id": "task_output:task_prior",
+                    "source_row_ids": ["task_output:task_prior", "ev_prior"],
+                    "source_task_id": "task_prior",
+                    "source_slot": "primary_value",
+                    "matched_operand_role": "prior_period",
+                    "matched_operand_label": "segment revenue",
+                    "matched_operand_concept": "revenue",
+                    "label": "segment revenue",
+                    "raw_value": "1,801,079",
+                    "raw_unit": "million",
+                    "normalized_value": 1801079000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2022",
+                }
+            ],
+        }
+
+        aligned = self.agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            state,
+            aggregate_projection,
+        )
+
+        prior_row = aligned[0]
+        prior_slot = prior_row["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertTrue(prior_row.get("aligned_from_dependency_projection"))
+        self.assertNotIn("thousand", prior_row["answer"])
+        self.assertEqual(prior_slot["raw_unit"], "million")
+        self.assertEqual(prior_slot["normalized_value"], 1801079000000.0)
+        self.assertEqual(prior_slot["source_row_id"], "ev_prior")
 
     def test_preferred_numeric_answer_skips_same_period_growth_row(self) -> None:
         good_row = {
