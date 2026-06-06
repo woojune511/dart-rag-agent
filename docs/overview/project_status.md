@@ -66,6 +66,19 @@ role-separated multi-agent system using a task ledger and artifact store.
   - full-eval numeric pass rate is `1.000` for all seven questions
   - `KBF_T2_018`, `POS_T1_057`, and `SAM_T3_028` answer-composition
     residuals are closed
+- Promotion baseline freeze:
+  - baseline id: `concept_runtime_gap_gate_7of7_2026-06-04`
+  - source profile:
+    `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
+  - source artifact:
+    `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
+    (local experiment artifact, not committed)
+  - future concept-runtime canaries should reuse the stored bundle through
+    store-fixed eval-only first; fresh ingest is reserved for parser, ingest,
+    cache-signature, or missing-store changes
+  - changes to ontology-driven lookup planning, structured row binding,
+    sibling evidence recovery, concept answer composition, or aggregate numeric
+    rendering should compare against this baseline before promotion
 - Main closure:
   - multi-concept lookup tasks now split into independent task-ledger entries
   - sibling table evidence can recover missing lookup slots generically
@@ -221,12 +234,9 @@ Useful supporting points:
 
 ## Next Work
 
-1. Freeze the current concept-runtime 7/7 gate as the promotion baseline and
-   use store-fixed eval-only refreshes for future canaries before paying for
-   fresh ingest.
-2. Reduce benchmark runtime and embedding cost through profiling, cache
+1. Reduce benchmark runtime and embedding cost through profiling, cache
    hygiene, and explicit retrieval query-budget controls for focused canaries.
-3. Continue projection cleanup by reducing internal writes to top-level
+2. Continue projection cleanup by reducing internal writes to top-level
    `calculation_*` mirrors now that `RuntimeCalculationTrace` and
    `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
    LLM formula-plan guard, and operand/formula planning structured-output
@@ -272,7 +282,7 @@ Useful supporting points:
    fallback now distinguishes structured-result-only and mixed legacy fallback,
    and evaluator/benchmark exports surface projection source metadata so
    remaining legacy fallback consumers can be audited from output artifacts.
-4. Reviewer path: start with the portfolio demo walkthrough for a compact
+3. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.
 
