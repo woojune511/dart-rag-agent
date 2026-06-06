@@ -302,6 +302,11 @@ role-separated multi-agent system using a task ledger and artifact store.
       signatures; the remaining duplicates are cross-trace primary repeats
       across sibling lookup tasks, so they are outside the intentionally narrow
       same-trace guard.
+    - follow-up instrumentation now records
+      `cross_trace_reuse_candidates` in each retrieval debug trace. This is
+      trace-only: it identifies same-source, same-filter, exact executed-query
+      repeats from earlier traces while preserving the current retrieval
+      behavior and task/artifact provenance.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.
