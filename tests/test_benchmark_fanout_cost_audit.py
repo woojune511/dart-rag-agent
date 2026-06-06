@@ -95,6 +95,27 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                                     "executed_query": "Cost 2023",
                                                                 },
                                                             ],
+                                                            "cross_trace_reuse_candidates": {
+                                                                "candidate_count": 1,
+                                                                "prior_match_count": 1,
+                                                                "candidates": [
+                                                                    {
+                                                                        "source": "primary",
+                                                                        "signature": "revenue 2023",
+                                                                        "executed_query": "Revenue 2023",
+                                                                        "current_trace_index": 2,
+                                                                        "current_cache_hit": True,
+                                                                        "prior_match_count": 1,
+                                                                        "prior_matches": [
+                                                                            {
+                                                                                "trace_index": 1,
+                                                                                "task_id": "task_0",
+                                                                                "operation": "lookup",
+                                                                            }
+                                                                        ],
+                                                                    }
+                                                                ],
+                                                            },
                                                         }
                                                     ],
                                                 },
@@ -148,6 +169,8 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["executed_query_count"], 5)
         self.assertEqual(summary["unique_executed_query_count"], 3)
         self.assertEqual(summary["duplicate_executed_query_count"], 2)
+        self.assertEqual(summary["cross_trace_reuse_candidate_count"], 1)
+        self.assertEqual(summary["cross_trace_reuse_prior_match_count"], 1)
         self.assertEqual(summary["query_embedding_api_calls"], 4)
         self.assertEqual(summary["primary_selected_count"], 3)
         self.assertEqual(summary["operand_focus_selected_count"], 1)
@@ -165,6 +188,13 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
         self.assertEqual(audit["top_rows_by_executed_queries"][0]["question_id"], "Q1")
         self.assertEqual(audit["top_rows_by_duplicate_queries"][0]["question_id"], "Q1")
+        self.assertEqual(audit["top_rows_by_cross_trace_reuse_candidates"][0]["question_id"], "Q1")
+        reuse_details = audit["top_rows_by_cross_trace_reuse_candidates"][0]["cross_trace_reuse_details"]
+        self.assertEqual(reuse_details[0]["signature"], "revenue 2023")
+        self.assertEqual(reuse_details[0]["prior_match_count"], 1)
+        self.assertTrue(reuse_details[0]["current_cache_hit"])
+        self.assertEqual(reuse_details[0]["prior_trace_indexes"], [1])
+        self.assertEqual(reuse_details[0]["prior_task_contexts"], {"task_0/lookup": 1})
         duplicate_details = audit["top_rows_by_duplicate_queries"][0]["duplicate_query_details"]
         signatures = {row["signature"] for row in duplicate_details}
         self.assertEqual(signatures, {"revenue 2023", "cost 2023"})
@@ -196,6 +226,8 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                     "question_count": 1,
                     "trace_count": 1,
                     "executed_query_count": 2,
+                    "cross_trace_reuse_candidate_count": 1,
+                    "cross_trace_reuse_prior_match_count": 1,
                     "query_embedding_api_calls": 2,
                     "llm_usage": {"api_calls": 1},
                     "by_source": {"primary": {"executed_query_count": 2}},
@@ -213,6 +245,30 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                         "faithfulness": 1,
                         "completeness": 1,
                         "numeric_final_judgement": "PASS",
+                    }
+                ],
+                "top_rows_by_cross_trace_reuse_candidates": [
+                    {
+                        "question_id": "Q1",
+                        "company_id": "company_a",
+                        "experiment_id": "exp",
+                        "executed_query_count": 2,
+                        "cross_trace_reuse_candidate_count": 1,
+                        "cross_trace_reuse_prior_match_count": 1,
+                        "cross_trace_reuse_details": [
+                            {
+                                "signature": "revenue 2023",
+                                "source": "primary",
+                                "prior_match_count": 1,
+                                "current_trace_index": 2,
+                                "current_cache_hit": True,
+                                "prior_trace_indexes": [1],
+                                "prior_task_contexts": {"task_0/lookup": 1},
+                            }
+                        ],
+                        "query_embedding_api_calls": 2,
+                        "faithfulness": 1,
+                        "completeness": 1,
                     }
                 ],
                 "top_rows_by_duplicate_queries": [
@@ -247,6 +303,12 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertIn("# Benchmark Fan-out Cost Audit", markdown)
         self.assertIn("| primary | 2 |", markdown)
         self.assertIn("Duplicate executed queries", markdown)
+        self.assertIn("Cross-trace reuse candidates", markdown)
+        self.assertIn("Top Rows By Cross-Trace Reuse Candidates", markdown)
+        self.assertIn(
+            "revenue 2023 (source:primary; prior:1; prior-traces:1; prior-tasks:task_0/lookup:1; current-cache-hit)",
+            markdown,
+        )
         self.assertIn("revenue 2023 (2x; primary:2; traces:1; same-trace-dup:1; tasks:task_1/lookup:2)", markdown)
         self.assertIn("| Q1 | company_a | exp | 2 |", markdown)
 

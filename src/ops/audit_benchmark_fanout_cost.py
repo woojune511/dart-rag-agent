@@ -192,6 +192,70 @@ def _format_duplicate_query_details(details: Sequence[Mapping[str, Any]], *, lim
     return "; ".join(parts)
 
 
+def _cross_trace_reuse_details(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    limit: int = 5,
+) -> List[Dict[str, Any]]:
+    details: List[Dict[str, Any]] = []
+    for candidate in list(candidates)[: max(limit, 0)]:
+        signature = str(candidate.get("signature") or _query_signature(candidate.get("executed_query")) or "")
+        if not signature:
+            continue
+        prior_matches = [
+            dict(item)
+            for item in _safe_list(candidate.get("prior_matches"))
+            if isinstance(item, Mapping)
+        ]
+        task_contexts: Dict[str, int] = defaultdict(int)
+        trace_indexes: set[int] = set()
+        for match in prior_matches:
+            trace_index = _as_int(match.get("trace_index"))
+            if trace_index:
+                trace_indexes.add(trace_index)
+            task_id = str(match.get("task_id") or "")
+            operation = str(match.get("operation") or "")
+            task_key = "/".join(part for part in (task_id, operation) if part) or "unknown"
+            task_contexts[task_key] += 1
+        details.append(
+            {
+                "signature": signature,
+                "source": str(candidate.get("source") or "unknown"),
+                "prior_match_count": _as_int(candidate.get("prior_match_count")),
+                "current_trace_index": _as_int(candidate.get("current_trace_index")),
+                "current_cache_hit": bool(candidate.get("current_cache_hit")),
+                "prior_trace_indexes": sorted(trace_indexes),
+                "prior_task_contexts": dict(sorted(task_contexts.items())),
+            }
+        )
+    return details
+
+
+def _format_cross_trace_reuse_details(details: Sequence[Mapping[str, Any]], *, limit: int = 3) -> str:
+    parts: List[str] = []
+    for detail in list(details)[: max(limit, 0)]:
+        signature = str(detail.get("signature") or "")
+        if len(signature) > 80:
+            signature = f"{signature[:77]}..."
+        task_contexts = ", ".join(
+            f"{task}:{count}"
+            for task, count in _safe_dict(detail.get("prior_task_contexts")).items()
+        )
+        traces = ",".join(str(item) for item in _safe_list(detail.get("prior_trace_indexes")))
+        qualifiers = [
+            f"source:{detail.get('source') or 'unknown'}",
+            f"prior:{_format_number(detail.get('prior_match_count'), 0)}",
+        ]
+        if traces:
+            qualifiers.append(f"prior-traces:{traces}")
+        if task_contexts and task_contexts != "unknown":
+            qualifiers.append(f"prior-tasks:{task_contexts}")
+        if bool(detail.get("current_cache_hit")):
+            qualifiers.append("current-cache-hit")
+        parts.append(f"{signature} ({'; '.join(qualifiers)})")
+    return "; ".join(parts)
+
+
 def find_result_files(paths: Sequence[Path]) -> List[Path]:
     """Resolve files or directories into unique ``results.json`` files."""
 
@@ -297,6 +361,7 @@ def _trace_entries(row: Mapping[str, Any]) -> List[Dict[str, Any]]:
 def _summarize_trace(trace: Mapping[str, Any], *, trace_index: int) -> Dict[str, Any]:
     query_budget = _safe_dict(trace.get("query_budget"))
     search_summary = _safe_dict(trace.get("search_summary"))
+    cross_trace_reuse = _safe_dict(trace.get("cross_trace_reuse_candidates"))
     executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
     executed_query_occurrences: List[Dict[str, Any]] = []
     source_trace = _safe_dict(query_budget.get("source"))
@@ -353,6 +418,11 @@ def _summarize_trace(trace: Mapping[str, Any], *, trace_index: int) -> Dict[str,
         "search_summary": search_summary,
         "selected": selected,
         "operand_focus_skipped_count": 1 if skipped_focus else 0,
+        "cross_trace_reuse_candidate_count": _as_int(cross_trace_reuse.get("candidate_count")),
+        "cross_trace_reuse_prior_match_count": _as_int(cross_trace_reuse.get("prior_match_count")),
+        "cross_trace_reuse_details": _cross_trace_reuse_details(
+            _safe_list(cross_trace_reuse.get("candidates"))
+        ),
         "executed_query_signatures_by_source": {
             source: list(signatures) for source, signatures in executed_query_signatures_by_source.items()
         },
@@ -369,12 +439,22 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     executed_query_signatures: List[str] = []
     executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
     executed_query_occurrences: List[Dict[str, Any]] = []
+    cross_trace_reuse_details: List[Dict[str, Any]] = []
+    cross_trace_reuse_candidate_count = 0
+    cross_trace_reuse_prior_match_count = 0
 
     for trace_index, trace in enumerate(traces, start=1):
         summary = _summarize_trace(trace, trace_index=trace_index)
         for key, value in summary["selected"].items():
             selected[key] += value
         operand_focus_skipped_count += int(summary.get("operand_focus_skipped_count") or 0)
+        cross_trace_reuse_candidate_count += int(summary.get("cross_trace_reuse_candidate_count") or 0)
+        cross_trace_reuse_prior_match_count += int(summary.get("cross_trace_reuse_prior_match_count") or 0)
+        cross_trace_reuse_details.extend(
+            dict(item)
+            for item in _safe_list(summary.get("cross_trace_reuse_details"))
+            if isinstance(item, Mapping)
+        )
         search_summary = _safe_dict(summary.get("search_summary"))
         for key in ("executed_query_count", "cache_hit_count", "vector_attempted_count", *EMBEDDING_USAGE_KEYS):
             number = _as_float(search_summary.get(key))
@@ -426,6 +506,9 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         "unique_executed_query_count": unique_executed_query_count,
         "duplicate_executed_query_count": duplicate_executed_query_count,
         "duplicate_query_details": duplicate_query_details,
+        "cross_trace_reuse_candidate_count": cross_trace_reuse_candidate_count,
+        "cross_trace_reuse_prior_match_count": cross_trace_reuse_prior_match_count,
+        "cross_trace_reuse_details": cross_trace_reuse_details,
         **{key: _as_float(row.get(key)) for key in QUALITY_KEYS},
         **dict(selected),
         **dict(search_totals),
@@ -461,6 +544,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             "executed_query_count",
             "unique_executed_query_count",
             "duplicate_executed_query_count",
+            "cross_trace_reuse_candidate_count",
+            "cross_trace_reuse_prior_match_count",
             "cache_hit_count",
             "vector_attempted_count",
             *EMBEDDING_USAGE_KEYS,
@@ -514,6 +599,15 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
                 str(row.get("question_id") or ""),
             ),
         )[: max(top_n, 0)],
+        "top_rows_by_cross_trace_reuse_candidates": sorted(
+            audited_rows,
+            key=lambda row: (
+                -(_as_float(row.get("cross_trace_reuse_candidate_count")) or 0.0),
+                -(_as_float(row.get("cross_trace_reuse_prior_match_count")) or 0.0),
+                -(_as_float(row.get("executed_query_count")) or 0.0),
+                str(row.get("question_id") or ""),
+            ),
+        )[: max(top_n, 0)],
     }
 
 
@@ -530,6 +624,7 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
     summary = _safe_dict(audit.get("summary"))
     rows = _safe_list(audit.get("top_rows_by_executed_queries"))
     duplicate_rows = _safe_list(audit.get("top_rows_by_duplicate_queries"))
+    reuse_rows = _safe_list(audit.get("top_rows_by_cross_trace_reuse_candidates"))
     lines = [
         "# Benchmark Fan-out Cost Audit",
         "",
@@ -541,6 +636,8 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         f"- Executed queries: `{_format_number(summary.get('executed_query_count'), 0)}`",
         f"- Unique executed queries: `{_format_number(summary.get('unique_executed_query_count'), 0)}`",
         f"- Duplicate executed queries: `{_format_number(summary.get('duplicate_executed_query_count'), 0)}`",
+        f"- Cross-trace reuse candidates: `{_format_number(summary.get('cross_trace_reuse_candidate_count'), 0)}`",
+        f"- Cross-trace prior matches: `{_format_number(summary.get('cross_trace_reuse_prior_match_count'), 0)}`",
         f"- Query embedding API calls: `{_format_number(summary.get('query_embedding_api_calls'), 0)}`",
         f"- LLM API calls: `{_format_number(_safe_dict(summary.get('llm_usage')).get('api_calls'), 0)}`",
         f"- Estimated runtime cost USD: `{_format_number(summary.get('estimated_runtime_cost_usd'), 6)}`",
@@ -598,6 +695,38 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
             )
         )
     if not duplicate_rows:
+        lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |")
+
+    lines.extend(
+        [
+            "",
+            "## Top Rows By Cross-Trace Reuse Candidates",
+            "",
+            "| Question | Company | Experiment | Candidates | Prior matches | Candidate details | Executed | Query embed | Faithfulness | Completeness | Error |",
+            "| --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- |",
+        ]
+    )
+    for row in reuse_rows:
+        if not isinstance(row, Mapping):
+            continue
+        lines.append(
+            "| {qid} | {company} | {experiment} | {candidates} | {prior} | {details} | {executed} | {embed} | {faith} | {complete} | {error} |".format(
+                qid=row.get("question_id") or "",
+                company=row.get("company_id") or row.get("company_label") or "",
+                experiment=row.get("experiment_id") or "",
+                candidates=_format_number(row.get("cross_trace_reuse_candidate_count"), 0),
+                prior=_format_number(row.get("cross_trace_reuse_prior_match_count"), 0),
+                details=_format_cross_trace_reuse_details(
+                    _safe_list(row.get("cross_trace_reuse_details"))
+                ).replace("|", "/"),
+                executed=_format_number(row.get("executed_query_count"), 0),
+                embed=_format_number(row.get("query_embedding_api_calls"), 0),
+                faith=_format_number(row.get("faithfulness"), 3),
+                complete=_format_number(row.get("completeness"), 3),
+                error=str(row.get("error") or "").replace("|", "/"),
+            )
+        )
+    if not reuse_rows:
         lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |")
 
     lines.extend(
