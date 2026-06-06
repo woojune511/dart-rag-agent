@@ -92,19 +92,32 @@ role-separated multi-agent system using a task ledger and artifact store.
     retrieval hit@k are all `1.000`
   - average section match is `0.975`, citation coverage is `0.933`, entity
     coverage is `0.927`, and error rate is `0.0%`
-- Current store-fixed eval-only refresh after task/artifact contract fixes
-  (`benchmarks/results/current_policy_gate_after_contract_2026-06-06/`, local
-  artifact, not committed):
+- Store-fixed eval-only refresh after task/artifact contract fixes
+  (`benchmarks/results/current_policy_gate_after_contract_2026-06-06/`,
+  historical local artifact, not committed):
   - 4 / 4 company runs passed
   - task/artifact integrity is `ok` for 5 / 5 full-eval rows, with
     `orphan_ids = []`
   - average faithfulness `0.938`, completeness `0.925`, context recall
     `1.000`, retrieval hit@k `1.000`, numeric pass rate `1.000` where
     applicable
-  - full-eval threshold failures remain for `NAV_T2_006` (completeness
-    `0.700`) and `HYU_T2_010` (faithfulness `0.500`)
+  - at this artifact snapshot, full-eval threshold failures remained for
+    `NAV_T2_006` (completeness `0.700`) and `HYU_T2_010` (faithfulness
+    `0.500`)
   - `HYU_T3_072` now has faithfulness `1.000`, completeness `1.000`,
     refusal accuracy `1.000`, and task/artifact integrity `ok`
+- Current focused closure after the growth narrative evidence-surface commit:
+  - commit: `3671f2a9 Preserve growth narrative evidence surfaces`
+  - focused store-fixed eval-only over the Hyundai policy-gate questions
+    completed with faithfulness `1.000`, completeness `1.000`, context recall
+    `1.000`, retrieval hit@k `1.000`, entity coverage `1.000`, and error rate
+    `0.0%`
+  - `HYU_T2_010` now preserves the evidence-visible current/prior/growth
+    displays (`87.0만 대`, `78.1만 대`, `11.5%`) while keeping the
+    policy/protectionism narrative source surface visible and deduplicated
+  - The evaluator section-support projection now accepts runtime evidence that
+    directly overlaps canonical quote text even when the local section label
+    differs from the curated expected-section surface.
 - Note:
   - `numeric_final_judgement = null` is not a failure for narrative or mixed
     questions when the other evaluator signals are healthy.
@@ -637,11 +650,12 @@ Useful supporting points:
   A local `HYU_T2_010` trace showed `12` searches for the numeric subtask
   (`primary 8`, `operand_focus 4`) and `3` searches for the narrative subtask,
   making retrieval fan-out visible without hand-counting `executed_queries`.
-- The same `HYU_T2_010` rerun exposed a remaining answer-composition issue:
-  the answer can preserve `87.0만 대` and `11.5%` while omitting the prior
+- The same `HYU_T2_010` rerun exposed an answer-composition issue that is now
+  closed by the growth narrative evidence-surface follow-up:
+  the answer could preserve `87.0만 대` and `11.5%` while omitting the prior
   `78.1만 대` display, which lowers completeness despite correct retrieval and
-  calculation. Treat this as an aggregate rendering follow-up, not a retrieval
-  budget failure.
+  calculation. This was an aggregate rendering issue, not a retrieval-budget
+  failure.
 - Cost estimation now consumes normalized Gemini response usage metadata for
   benchmark contextualization, agent runtime, and evaluator judge calls:
   - prompt/input tokens

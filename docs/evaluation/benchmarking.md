@@ -3197,3 +3197,73 @@ Decision:
 - If the next milestone needs a fully clean release table, rerun the official
   OpenAI-backed policy gate artifact or adjust answer composition/evaluator
   expectations for the two narrative terminology gaps.
+
+## 2026-06-06 Growth Narrative Evidence Surface Follow-up
+
+Purpose:
+
+- Close the focused `HYU_T2_010` answer-composition gap that remained after the
+  task/artifact contract and dependency-trace work.
+- Keep the fix generic: preserve source-visible growth displays, prior-period
+  operand surfaces, and retrieved narrative evidence without adding
+  company/question-specific runtime branches.
+
+Implementation summary:
+
+- Commit: `3671f2a9 Preserve growth narrative evidence surfaces`.
+- Aggregate growth+narrative composition now enforces source-stated growth
+  answer slots and keeps traced current/prior/growth displays visible in the
+  final answer.
+- Operand evidence appended for final answers now prefers rendered display
+  surfaces and source quotes, while filtering unselected numeric noise.
+- Retrieved narrative evidence can be promoted from the visible retrieved-doc
+  window when it supports a nonnumeric final-answer sentence.
+- The final narrative guard is limited to growth-rate aggregates, rejects
+  numeric noisy narrative rows, and avoids duplicate nonnumeric narrative
+  sentences.
+- Evaluator section support now accepts runtime evidence that directly overlaps
+  canonical evidence quote text even when the local section label differs from
+  the curated expected-section surface.
+
+Focused eval-only:
+
+```powershell
+python -m src.ops.run_eval_only `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --source-output-dir benchmarks/results/hyu_t2_010_after_compact_operand_2026-06-06 `
+  --output-dir benchmarks/results/hyu_t2_010_after_final_no_duplicate_narrative_2026-06-06 `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --experiment-id structural_selective_v2_prefix_2500_320
+```
+
+Result:
+
+- Run status: `completed`; 2 / 2 Hyundai policy-gate questions evaluated.
+- Aggregate metrics: faithfulness `1.000`, completeness `1.000`, context
+  recall `1.000`, retrieval hit@k `1.000`, citation coverage `1.000`, entity
+  coverage `1.000`, error rate `0.0%`, average score `0.896`.
+- `HYU_T2_010`: raw faithfulness `0.500`, final faithfulness `1.000` via the
+  hybrid mixed-query evidence-coverage override; section match `0.500`,
+  completeness `1.000`, context recall `1.000`, retrieval hit@k `1.000`,
+  calculation correctness `1.000`, grounded rendering correctness `1.000`, and
+  unsupported sentences `[]`.
+- The final answer preserves the evidence-visible 2023 current value, 2022
+  prior value, and source-stated `11.5%` growth display while keeping the
+  policy/protectionism narrative source surface visible without duplicating the
+  narrative sentence.
+
+Validation:
+
+- `python -m unittest discover -s tests` passed `875` tests.
+- `python -m src.ops.audit_runtime_domain_terms` passed with `215` reviewed
+  literals.
+- `git diff --check` reported no whitespace errors.
+- Generated `benchmarks/results/**` focused artifacts remain local and are not
+  committed.
+
+Decision:
+
+- Treat the focused Hyundai answer-composition gap as closed.
+- The next release-grade validation, if needed, is a fresh official
+  OpenAI-backed five-question policy gate rerun, not another Hyundai-specific
+  runtime patch.
