@@ -533,6 +533,46 @@ def _contains_section(metadata: Dict[str, Any], expected_section: str) -> bool:
     return False
 
 
+def _normalise_evidence_quote_surface(text: Any) -> str:
+    return re.sub(r"[\s,.;:!?()\[\]{}\"'`]+", "", str(text or "")).lower()
+
+
+def _text_matches_canonical_evidence_quote(text: Any, canonical_evidence: List[EvalEvidence]) -> bool:
+    surface = _normalise_evidence_quote_surface(text)
+    if not surface:
+        return False
+    text_tokens = _tokenize_ko(str(text or ""))
+    for evidence in canonical_evidence or []:
+        quote_surface = _normalise_evidence_quote_surface(evidence.quote)
+        if len(quote_surface) < 8:
+            continue
+        if quote_surface in surface or surface in quote_surface:
+            return True
+        quote_tokens = _tokenize_ko(evidence.quote)
+        if not quote_tokens or not text_tokens:
+            continue
+        overlap = quote_tokens & text_tokens
+        if len(overlap) / max(1, min(len(quote_tokens), len(text_tokens))) >= 0.6:
+            return True
+    return False
+
+
+def _runtime_evidence_matches_canonical_evidence_quote(
+    row: Dict[str, Any],
+    canonical_evidence: List[EvalEvidence],
+) -> bool:
+    evidence_text = " ".join(
+        str(value or "")
+        for value in (
+            row.get("claim"),
+            row.get("quote_span"),
+            row.get("raw_row_text"),
+            row.get("source_context"),
+        )
+    )
+    return _text_matches_canonical_evidence_quote(evidence_text, canonical_evidence)
+
+
 def _parse_source_anchor_metadata(source_anchor: Any) -> Dict[str, Any]:
     anchor = str(source_anchor or "").strip()
     if not anchor:
@@ -560,7 +600,7 @@ def _runtime_evidence_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in anchor_metadata.items():
         if value not in (None, "") and not metadata.get(key):
             metadata[key] = value
-    for key in ("company", "year", "section", "section_path"):
+    for key in ("company", "year", "section", "section_path", "parent_category"):
         value = row.get(key)
         if value not in (None, "") and not metadata.get(key):
             metadata[key] = value
@@ -592,7 +632,10 @@ def _compute_runtime_evidence_section_match_rate(example: EvalExample, runtime_e
     matched = 0
     for row in runtime_evidence:
         metadata = _runtime_evidence_metadata(row)
-        if any(_contains_section(metadata, expected_section) for expected_section in expected_sections):
+        if any(
+            _contains_section(metadata, expected_section)
+            for expected_section in expected_sections
+        ) or _runtime_evidence_matches_canonical_evidence_quote(row, example.evidence):
             matched += 1
     return matched / len(runtime_evidence)
 

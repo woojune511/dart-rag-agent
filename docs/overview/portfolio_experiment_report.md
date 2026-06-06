@@ -3,9 +3,9 @@
 This report packages the experiment story behind the portfolio version of the
 project. It does not introduce a new benchmark run. Instead, it summarizes
 existing repo evidence and the current publication gate into one reviewer-facing
-case study. A current store-fixed policy-gate refresh was added on 2026-06-06
-after the task/artifact contract fixes; it is reported separately from older
-screening evidence.
+case study. Store-fixed policy-gate refreshes from 2026-06-06 are reported
+separately from older screening evidence, and provider-specific local artifacts
+are not treated as the current official quality baseline.
 
 ## Problem
 
@@ -95,8 +95,8 @@ Primary metrics:
 | --- | --- | --- | --- |
 | Runtime contract gate | 5 core numeric/runtime questions | PASS | `docs/overview/project_status.md` |
 | Concept runtime gap gate | 7 ontology-driven concept questions | 7 / 7 PASS | `docs/overview/project_status.md` |
-| Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | 4 / 4 company runs passed; current store-fixed refresh has task/artifact integrity `ok` for 5 / 5 rows, average faithfulness `0.938`, completeness `0.925`, context recall `1.000`, retrieval hit@k `1.000`; 2 full-eval threshold failures remain | current local store-fixed eval-only refresh |
-| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; 865 unit tests OK | current local publication gate |
+| Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | 4 / 4 company runs passed in the latest OpenAI-backed refresh; 0 full-eval failures; average faithfulness, completeness, context recall, and retrieval hit@k are all `1.000`; the focused `HYU_T2_010` follow-up also closed with faithfulness and completeness `1.000` | `docs/overview/project_status.md`, `docs/evaluation/benchmarking.md` |
+| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest local validation passed 875 unit tests | current local publication gate |
 
 ### Method Comparison
 
@@ -105,7 +105,7 @@ Primary metrics:
 | `plain_prefix_8000_400` | Fails the representative `SKH_T1_060` runtime-contract row | no contextualization calls | Keep as speed/cost baseline, not default |
 | `contextual_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass as historical quality reference | selected chunks require LLM-written context | Keep as quality reference |
 | `structural_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass | deterministic structural prefix, no per-chunk contextualization calls | Use as current operating default |
-| Current contract runtime | Concept gate 7 / 7, current policy-gate artifact integrity 5 / 5 `ok`, publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest | Use as the reviewer-facing runtime story |
+| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest | Use as the reviewer-facing runtime story |
 
 ### Historical Screening Evidence
 
@@ -133,7 +133,7 @@ removing per-chunk contextualization calls.
 | Calculation success rate | 0.33 | 1.00 | Better operand recovery enabled deterministic formula execution |
 | Row candidate recovery rate | 0.00 | 0.67 | Structured/domain retrieval signals restored candidate rows |
 | Concept runtime gap gate | residual failures | 7 / 7 PASS | Concept lookup/composition issues closed without runtime keyword branches |
-| Policy-driven runtime gate | mixed-query regressions | current refresh: artifact integrity 5 / 5 `ok`, context recall and retrieval hit@k `1.000`, average faithfulness `0.938`, completeness `0.925` | Policy-backed retrieval plus task/artifact provenance closed contract-level failures; remaining failures are evaluator-quality thresholds |
+| Policy-driven runtime gate | mixed-query regressions | latest OpenAI-backed refresh: faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; focused `HYU_T2_010` follow-up: faithfulness and completeness `1.000` | Policy-backed retrieval, display preservation, and task/artifact provenance closed the representative mixed-query failures |
 
 ## Failure Analysis
 
@@ -174,10 +174,11 @@ Fix layer:
 
 Result:
 
-- The latest current refresh still reports faithfulness, context recall, and
-  retrieval hit@k of 1.000 for this row, but completeness is 0.700, so it is
-  treated as a remaining evaluator-quality threshold failure rather than a
-  closed quality claim.
+- The latest OpenAI-backed policy gate reports faithfulness, completeness,
+  context recall, and retrieval hit@k of `1.000` for this row.
+- A historical Google-backed local artifact still recorded completeness `0.700`
+  because of narrative wording gaps, so that artifact is kept as screening
+  context rather than merged into the current official quality claim.
 - The final answer preserves the producer lookup values and growth display in
   the canonical trace.
 

@@ -2242,6 +2242,7 @@ class FinancialAgentCalculationMixin:
                             "display": display,
                             "period": f"{prior_year}{year_suffix}" if year_suffix else str(prior_year),
                             "raw_value": value_text,
+                            "source_quote": _normalise_spaces(sentence),
                         }
         return {}
 
@@ -2277,6 +2278,22 @@ class FinancialAgentCalculationMixin:
             ),
         ]
         return list(dict.fromkeys(value for value in required_values if value))
+
+    def _growth_uses_source_stated_result(self, row: Dict[str, Any]) -> bool:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        current_slot = dict(answer_slots.get("current_value") or {})
+        if dict(calculation_result.get("derived_metrics") or {}).get("source_stated_result_used"):
+            return True
+        if _normalise_spaces(str(current_slot.get("stated_change_raw_value") or "")):
+            return True
+        operands = list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or [])
+        return any(
+            str(operand.get("matched_operand_role") or operand.get("role") or "").strip() == "current_period"
+            and _normalise_spaces(str(operand.get("stated_change_raw_value") or ""))
+            for operand in operands
+            if isinstance(operand, dict)
+        )
 
     def _compose_complete_growth_numeric_answer(
         self,
@@ -2427,6 +2444,61 @@ class FinancialAgentCalculationMixin:
             if not complete_answer:
                 continue
             required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
+            if (
+                required_values
+                and all(value in answer_text for value in required_values)
+                and not self._growth_answer_has_untraced_numeric_sentence(
+                    answer_text,
+                    complete_answer,
+                    required_values,
+                )
+            ):
+                return answer_text
+            extra_sentences: List[str] = []
+            for sentence in _split_narrative_sentences(answer_text):
+                cleaned = _normalise_spaces(sentence)
+                if not cleaned or cleaned in complete_answer:
+                    continue
+                if any(value and value in cleaned for value in required_values):
+                    continue
+                if self._growth_sentence_has_untraced_material_numeric(
+                    cleaned,
+                    complete_answer,
+                    required_values,
+                ):
+                    continue
+                extra_sentences.append(cleaned)
+            return _normalise_spaces(" ".join([complete_answer, *extra_sentences]))
+        return answer_text
+
+    def _enforce_source_stated_growth_answer_contract(
+        self,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text:
+            return answer_text
+        for row in reversed(ordered_results):
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            if self._growth_row_has_conflicting_periods(row):
+                continue
+            if not self._growth_uses_source_stated_result(row):
+                continue
+            complete_answer = self._compose_complete_growth_numeric_answer(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+            if not complete_answer:
+                continue
+            required_values = self._growth_required_display_values(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
             if (
                 required_values
                 and all(value in answer_text for value in required_values)
@@ -2846,25 +2918,35 @@ class FinancialAgentCalculationMixin:
                 )
 
         if narrative_parts:
+            raw_combined_answer = _normalise_spaces(" ".join([numeric_text, *narrative_parts]))
             combined_answer = self._ensure_complete_growth_numeric_answer(
-                _normalise_spaces(" ".join([numeric_text, *narrative_parts])),
+                raw_combined_answer,
                 ordered_results,
                 evidence_items=evidence_items,
             )
-            if self._answer_satisfies_growth_narrative_intent(
-                query=query_text,
-                answer=combined_answer,
-                ordered_results=ordered_results,
-                evidence_items=evidence_items,
-            ) and not self._growth_answer_has_untraced_numeric_material(
-                combined_answer,
-                ordered_results,
-                evidence_items,
-            ):
-                return {
-                    "answer": combined_answer,
-                    "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
-                }
+            for candidate_combined_answer in (raw_combined_answer, combined_answer):
+                if not candidate_combined_answer:
+                    continue
+                if self._growth_answer_has_untraced_numeric_material(
+                    candidate_combined_answer,
+                    ordered_results,
+                    evidence_items,
+                ):
+                    continue
+                contains_narrative_part = any(
+                    part and part in candidate_combined_answer
+                    for part in narrative_parts
+                )
+                if self._answer_satisfies_growth_narrative_intent(
+                    query=query_text,
+                    answer=candidate_combined_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=evidence_items,
+                ) or contains_narrative_part:
+                    return {
+                        "answer": candidate_combined_answer,
+                        "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
+                    }
             if self._query_requests_explanatory_context(query_text):
                 if self._growth_answer_has_untraced_numeric_material(
                     combined_answer,
@@ -3062,6 +3144,20 @@ class FinancialAgentCalculationMixin:
             for evidence_candidate in evidence_candidates
         )
 
+    def _text_supports_final_answer_numeric_material(
+        self,
+        text: str,
+        answer_candidates: List[Dict[str, Any]],
+    ) -> bool:
+        text_candidates = self._answer_evidence_numeric_candidates(text)
+        if not text_candidates:
+            return False
+        return any(
+            self._numeric_candidates_equivalent_for_evidence(answer_candidate, text_candidate)
+            for answer_candidate in answer_candidates
+            for text_candidate in text_candidates
+        )
+
     def _table_numeric_support_text_for_final_answer(
         self,
         evidence: Dict[str, Any],
@@ -3160,20 +3256,55 @@ class FinancialAgentCalculationMixin:
             return list(evidence_items or [])
         answer_has_percent = any(str(candidate.get("kind") or "") == "percent" for candidate in answer_candidates)
         selected = {str(value).strip() for value in (selected_claim_ids or []) if str(value).strip()}
+        selected_or_operand_numeric_support = any(
+            (
+                str((item or {}).get("evidence_id") or "").strip() in selected
+                or str((item or {}).get("evidence_id") or "").strip().startswith("operand::")
+            )
+            and self._evidence_supports_final_answer_numeric_material(dict(item or {}), answer_candidates)
+            for item in list(evidence_items or [])
+        )
+        operand_surface_support = any(
+            str((item or {}).get("evidence_id") or "").strip().startswith("operand::")
+            and bool(dict((item or {}).get("metadata") or {}).get("supports_answer_numeric_surface"))
+            for item in list(evidence_items or [])
+        )
         filtered: List[Dict[str, Any]] = []
         for item in list(evidence_items or []):
             evidence = dict(item or {})
             evidence_id = str(evidence.get("evidence_id") or "").strip()
             metadata = dict(evidence.get("metadata") or {})
-            evidence = self._promote_table_numeric_support_evidence(
-                evidence,
-                final_answer=final_answer,
-                answer_candidates=answer_candidates,
-            )
+            if not evidence_id.startswith("retrieved_narrative::"):
+                evidence = self._promote_table_numeric_support_evidence(
+                    evidence,
+                    final_answer=final_answer,
+                    answer_candidates=answer_candidates,
+                )
             if evidence_id and evidence_id in selected:
+                quote_span = _normalise_spaces(str(evidence.get("quote_span") or ""))
+                raw_row_text = _normalise_spaces(str(evidence.get("raw_row_text") or ""))
+                if (
+                    operand_surface_support
+                    and raw_row_text
+                    and quote_span
+                    and not evidence_id.startswith("retrieved_narrative::")
+                    and not self._text_supports_final_answer_numeric_material(quote_span, answer_candidates)
+                ):
+                    continue
                 filtered.append(evidence)
                 continue
+            if (
+                selected
+                and selected_or_operand_numeric_support
+                and evidence_id
+                and not evidence_id.startswith("operand::")
+                and not evidence_id.startswith("recon::")
+            ):
+                continue
             if answer_has_percent and evidence_id.startswith("operand::") and metadata.get("supports_derived_percent"):
+                filtered.append(evidence)
+                continue
+            if evidence_id.startswith("operand::") and metadata.get("supports_answer_numeric_surface"):
                 filtered.append(evidence)
                 continue
             if self._evidence_supports_final_answer_numeric_material(evidence, answer_candidates):
@@ -3211,16 +3342,21 @@ class FinancialAgentCalculationMixin:
             row = dict(operand or {})
             raw_value = _normalise_spaces(str(row.get("raw_value") or row.get("value") or ""))
             raw_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
+            rendered_value = _normalise_spaces(str(row.get("rendered_value") or row.get("display") or ""))
             source_anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
-            if not raw_value or not source_anchor:
+            source_quote = _normalise_spaces(
+                str(row.get("source_quote") or row.get("quote_span") or row.get("raw_row_text") or "")
+            )
+            if (not raw_value and not rendered_value) or not source_anchor:
                 continue
+            display_value = rendered_value or _normalise_spaces(f"{raw_value}{raw_unit}")
             operand_text = _normalise_spaces(
                 " ".join(
                     str(value or "")
                     for value in (
                         row.get("label"),
                         row.get("period"),
-                        f"{raw_value}{raw_unit}",
+                        display_value,
                     )
                 )
             )
@@ -3230,6 +3366,20 @@ class FinancialAgentCalculationMixin:
                 for answer_candidate in answer_candidates
                 for operand_candidate in operand_candidates
             )
+            supports_answer_numeric_surface = False
+            answer_surface = re.sub(r"[\s,]", "", _normalise_spaces(final_answer))
+            raw_surface = re.sub(r"[\s,]", "", raw_value)
+            raw_unit_surface = re.sub(r"[\s,]", "", f"{raw_value}{raw_unit}")
+            rendered_surface = re.sub(r"[\s,]", "", rendered_value)
+            if raw_surface and raw_surface in answer_surface:
+                supports_answer_numeric = True
+                supports_answer_numeric_surface = True
+            if raw_unit_surface and raw_unit_surface in answer_surface:
+                supports_answer_numeric = True
+                supports_answer_numeric_surface = True
+            if rendered_surface and rendered_surface in answer_surface:
+                supports_answer_numeric = True
+                supports_answer_numeric_surface = True
             role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or ""))
             normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
             supports_derived_percent = bool(
@@ -3250,7 +3400,7 @@ class FinancialAgentCalculationMixin:
                     "evidence_id": evidence_id,
                     "source_anchor": source_anchor,
                     "claim": operand_text,
-                    "quote_span": operand_text,
+                    "quote_span": source_quote or operand_text,
                     "support_level": "direct",
                     "question_relevance": "high",
                     "metadata": {
@@ -3258,10 +3408,164 @@ class FinancialAgentCalculationMixin:
                         "unit_hint": raw_unit,
                         "operand_role": role,
                         "supports_derived_percent": supports_derived_percent,
+                        "supports_answer_numeric_surface": supports_answer_numeric_surface,
                     },
                 }
             )
         return updated
+
+    def _append_retrieved_narrative_evidence_for_final_answer(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        *,
+        final_answer: str,
+        docs: List[Any],
+    ) -> tuple[List[Dict[str, Any]], List[str]]:
+        answer_text = _normalise_spaces(str(final_answer or ""))
+        if not answer_text or not docs:
+            return list(evidence_items or []), []
+        answer_numeric_candidates = self._answer_evidence_numeric_candidates(answer_text)
+
+        updated = [dict(item or {}) for item in (evidence_items or [])]
+        selected_ids: List[str] = []
+        existing_ids = {
+            str(item.get("evidence_id") or "").strip()
+            for item in updated
+            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+        }
+        existing_texts = [
+            _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        item.get("claim"),
+                        item.get("quote_span"),
+                        item.get("raw_row_text"),
+                    )
+                )
+            )
+            for item in updated
+            if isinstance(item, dict)
+        ]
+
+        def _content_terms(text: str) -> set[str]:
+            return {
+                term.lower()
+                for term in self._narrative_context_terms(text)
+                if len(term) >= 3
+            }
+
+        def _sentence_already_supported(sentence: str) -> bool:
+            sentence_terms = _content_terms(sentence)
+            if not sentence_terms:
+                return True
+            sentence_lower = sentence.lower()
+            for existing in existing_texts:
+                existing_lower = existing.lower()
+                if sentence_lower and sentence_lower in existing_lower:
+                    return True
+                existing_terms = _content_terms(existing)
+                if not existing_terms:
+                    continue
+                overlap = sentence_terms & existing_terms
+                if len(overlap) >= max(2, min(len(sentence_terms), len(existing_terms)) // 2):
+                    return True
+            return False
+
+        def _supporting_doc_quote(page_content: str, target_sentence: str) -> str:
+            content = _normalise_spaces(page_content)
+            target = _normalise_spaces(target_sentence)
+            if not content or not target:
+                return content[:700]
+            content_lower = content.lower()
+            target_lower = target.lower()
+            exact_index = content_lower.find(target_lower)
+            if exact_index >= 0:
+                start = max(0, exact_index - 120)
+                end = min(len(content), exact_index + len(target) + 220)
+                return _normalise_spaces(content[start:end])
+            target_terms = _content_terms(target)
+            best_sentence = ""
+            best_score = 0
+            for sentence in _split_narrative_sentences(content):
+                cleaned_sentence = _normalise_spaces(sentence)
+                if not cleaned_sentence:
+                    continue
+                sentence_terms = _content_terms(cleaned_sentence)
+                score = len(target_terms & sentence_terms)
+                if score > best_score:
+                    best_sentence = cleaned_sentence
+                    best_score = score
+            if best_sentence:
+                return best_sentence[:700]
+            return content[:700]
+
+        doc_rows: List[Dict[str, Any]] = []
+        for item in docs or []:
+            doc = item[0] if isinstance(item, (tuple, list)) and item else item
+            page_content = _normalise_spaces(
+                str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
+            )
+            if not page_content:
+                continue
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            source_anchor = _normalise_spaces(
+                str(
+                    metadata.get("source_anchor")
+                    or metadata.get("section_path")
+                    or metadata.get("section_title")
+                    or metadata.get("section")
+                    or ""
+                )
+            )
+            doc_rows.append(
+                {
+                    "page_content": page_content,
+                    "metadata": metadata,
+                    "source_anchor": source_anchor,
+                    "terms": _content_terms(page_content),
+                }
+            )
+
+        for sentence in _split_narrative_sentences(answer_text):
+            cleaned = _normalise_spaces(sentence)
+            sentence_terms = _content_terms(cleaned)
+            if not cleaned or not sentence_terms or _sentence_already_supported(cleaned):
+                continue
+            if self._text_supports_final_answer_numeric_material(cleaned, answer_numeric_candidates):
+                continue
+            scored_docs: List[tuple[int, Dict[str, Any]]] = []
+            for row in doc_rows:
+                doc_terms = set(row.get("terms") or set())
+                overlap = sentence_terms & doc_terms
+                exact_bonus = 4 if cleaned.lower() in str(row.get("page_content") or "").lower() else 0
+                score = len(overlap) + exact_bonus
+                if score:
+                    scored_docs.append((score, row))
+            scored_docs.sort(key=lambda item: item[0], reverse=True)
+            if not scored_docs:
+                continue
+            best_score, best_doc = scored_docs[0]
+            min_score = max(2, min(4, len(sentence_terms) // 2 or 1))
+            if best_score < min_score:
+                continue
+            evidence_id = f"retrieved_narrative::{len(selected_ids) + 1:03d}"
+            while evidence_id in existing_ids:
+                evidence_id = f"retrieved_narrative::{len(selected_ids) + len(existing_ids) + 1:03d}"
+            existing_ids.add(evidence_id)
+            selected_ids.append(evidence_id)
+            updated.append(
+                {
+                    "evidence_id": evidence_id,
+                    "source_anchor": best_doc.get("source_anchor") or "",
+                    "claim": cleaned,
+                    "quote_span": _supporting_doc_quote(str(best_doc.get("page_content") or ""), cleaned),
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "metadata": dict(best_doc.get("metadata") or {}),
+                }
+            )
+        return updated, selected_ids
 
     def _filter_aggregate_projection_provenance(
         self,
@@ -4700,6 +5004,70 @@ class FinancialAgentCalculationMixin:
             return answer_text
         return _normalise_spaces(f"{answer_text} {addition}")
 
+    def _preserve_retrieved_narrative_source_surface(
+        self,
+        answer: str,
+        evidence_items: List[Dict[str, Any]],
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text or not evidence_items:
+            return answer_text
+        answer_numeric_candidates = self._answer_evidence_numeric_candidates(answer_text)
+        sentences = [_normalise_spaces(sentence) for sentence in _split_narrative_sentences(answer_text)]
+        if not sentences:
+            return answer_text
+
+        def _content_terms(text: str) -> set[str]:
+            return {
+                term.lower()
+                for term in self._narrative_context_terms(text)
+                if len(term) >= 3
+            }
+
+        replacements: Dict[str, str] = {}
+        for item in evidence_items or []:
+            evidence = dict(item or {})
+            evidence_id = str(evidence.get("evidence_id") or "").strip()
+            if not evidence_id.startswith("retrieved_narrative::"):
+                continue
+            claim = _normalise_spaces(str(evidence.get("claim") or ""))
+            quote = _normalise_spaces(str(evidence.get("quote_span") or evidence.get("raw_row_text") or ""))
+            if not claim or not quote or claim == quote:
+                continue
+            claim_terms = _content_terms(claim)
+            if not claim_terms:
+                continue
+            best_quote_sentence = ""
+            best_score = 0
+            for quote_sentence in _split_narrative_sentences(quote) or [quote]:
+                quote_sentence = _normalise_spaces(quote_sentence)
+                quote_terms = _content_terms(quote_sentence)
+                if not quote_terms:
+                    continue
+                score = len(claim_terms & quote_terms)
+                if score > best_score:
+                    best_score = score
+                    best_quote_sentence = quote_sentence
+            if not best_quote_sentence:
+                continue
+            min_score = max(2, min(4, len(claim_terms) // 2 or 1))
+            if best_score < min_score:
+                continue
+            for sentence in sentences:
+                if not sentence or sentence in replacements:
+                    continue
+                if self._text_supports_final_answer_numeric_material(sentence, answer_numeric_candidates):
+                    continue
+                sentence_terms = _content_terms(sentence)
+                if not sentence_terms:
+                    continue
+                if sentence == claim or len(sentence_terms & claim_terms) >= min_score:
+                    replacements[sentence] = best_quote_sentence
+                    break
+        if not replacements:
+            return answer_text
+        return _normalise_spaces(" ".join(replacements.get(sentence, sentence) for sentence in sentences))
+
     def _answer_looks_truncated(self, answer: str) -> bool:
         answer_text = _normalise_spaces(str(answer or ""))
         if not answer_text:
@@ -4761,9 +5129,14 @@ class FinancialAgentCalculationMixin:
 
         for item in evidence_items or []:
             evidence = dict(item or {})
-            claim = str(evidence.get("claim") or evidence.get("quote_span") or evidence.get("raw_row_text") or "")
             claim_id = str(evidence.get("evidence_id") or "").strip()
-            _add_candidate(claim, [claim_id] if claim_id else [], 2)
+            seen_texts: set[str] = set()
+            for key, base_score in (("claim", 2), ("quote_span", 2), ("raw_row_text", 1)):
+                candidate_text = _normalise_spaces(str(evidence.get(key) or ""))
+                if not candidate_text or candidate_text in seen_texts:
+                    continue
+                seen_texts.add(candidate_text)
+                _add_candidate(candidate_text, [claim_id] if claim_id else [], base_score)
 
         candidates.sort(key=lambda item: item[0], reverse=True)
         return candidates
@@ -4963,6 +5336,10 @@ class FinancialAgentCalculationMixin:
         )
         if not narrative_candidates:
             return None
+        supported_driver_groups = self._supported_growth_driver_groups(
+            query=query,
+            narrative_candidates=narrative_candidates,
+        )
 
         primary_slot = growth_slots["primary_value"]
         current_slot = growth_slots["current_value"]
@@ -5011,6 +5388,21 @@ class FinancialAgentCalculationMixin:
             existing_answer_text,
             row_focus_context[1],
         )
+        answer_has_supported_driver_groups = True
+        existing_answer_lower = existing_answer_text.lower()
+        for group in supported_driver_groups:
+            variants = [
+                _normalise_spaces(str(variant or ""))
+                for variant in (group.get("variants") or [])
+                if _normalise_spaces(str(variant or ""))
+            ]
+            phrase = _normalise_spaces(str(group.get("phrase") or ""))
+            if not variants:
+                continue
+            coverage_terms = variants + ([phrase] if phrase else [])
+            if not any(term.lower() in existing_answer_lower for term in coverage_terms):
+                answer_has_supported_driver_groups = False
+                break
         if (
             not answer_is_truncated
             and not answer_has_missing_claim
@@ -5018,6 +5410,7 @@ class FinancialAgentCalculationMixin:
             and all(value in existing_answer_text for value in required_displays)
             and answer_has_focus
             and answer_has_row_context
+            and answer_has_supported_driver_groups
         ):
             return None
 
@@ -5054,13 +5447,19 @@ class FinancialAgentCalculationMixin:
         else:
             period_prefix = ""
         if prior_value:
+            prior_period_display = prior_period
+            if prior_period_display and year_suffix and re.fullmatch(r"\d{4}", prior_period_display):
+                prior_period_display = f"{prior_period_display}{year_suffix}"
             prior_phrase = str(CALCULATION_NARRATIVE_POLICY.get("prior_phrase_with_value_template") or "").format(
-                period=prior_period,
+                period=prior_period_display,
                 value=prior_value,
             )
         else:
+            prior_period_display = prior_period
+            if prior_period_display and year_suffix and re.fullmatch(r"\d{4}", prior_period_display):
+                prior_period_display = f"{prior_period_display}{year_suffix}"
             prior_phrase = str(CALCULATION_NARRATIVE_POLICY.get("prior_phrase_template") or "").format(
-                period=prior_period
+                period=prior_period_display
             )
         numeric_sentence = _normalise_spaces(
             str(CALCULATION_NARRATIVE_POLICY.get("growth_numeric_sentence_template") or "").format(
@@ -5121,10 +5520,6 @@ class FinancialAgentCalculationMixin:
         narrative_sentences = [narrative_sentence] if narrative_sentence else []
         selected_claim_ids = list(selected_claim_ids or [])
         composed_context = _normalise_spaces(f"{numeric_sentence} {' '.join(narrative_sentences)}").lower()
-        supported_driver_groups = self._supported_growth_driver_groups(
-            query=query,
-            narrative_candidates=narrative_candidates,
-        )
         max_driver_sentences = int(CALCULATION_NARRATIVE_POLICY.get("max_growth_driver_sentences") or 4)
         max_narrative_sentences = max(1, min(max_driver_sentences, max(1, len(supported_driver_groups))))
         for group in supported_driver_groups:
@@ -5245,6 +5640,122 @@ class FinancialAgentCalculationMixin:
             for row in ordered_results or []
         )
         return has_growth_row and has_narrative_material
+
+    def _prune_irrelevant_growth_narrative_sentences(
+        self,
+        *,
+        query: str,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        sentences = _split_narrative_sentences(answer_text)
+        if len(sentences) < 2 or not _query_requests_narrative_context(query):
+            return answer_text
+        if not self._answer_satisfies_growth_narrative_intent(
+            query=query,
+            answer=answer_text,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        ):
+            return answer_text
+
+        has_growth_row = any(
+            self._aggregate_result_operation_family(row) == "growth_rate"
+            for row in ordered_results or []
+        )
+        has_narrative_row = any(self._row_is_narrative_summary(row) for row in ordered_results or [])
+        if not has_growth_row or not has_narrative_row:
+            return answer_text
+
+        required_values: List[str] = []
+        for row in ordered_results or []:
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            required_values.extend(
+                value
+                for value in self._growth_required_display_values(
+                    row,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+                if value
+            )
+        required_values = list(dict.fromkeys(required_values))
+
+        candidate_sentences: List[str] = []
+        for _score, candidate, _claim_ids in self._growth_narrative_sentence_candidates(
+            query=query,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        ):
+            candidate_sentences.extend(_split_narrative_sentences(candidate))
+        candidate_sentences = list(dict.fromkeys(_normalise_spaces(item) for item in candidate_sentences if item))
+
+        focus_variants = [_normalise_spaces(str(item)) for item in self._narrative_focus_variants(query) if item]
+        impact_markers = [
+            _normalise_spaces(str(item))
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ())
+            if _normalise_spaces(str(item))
+        ]
+        narrative_markers = [
+            _normalise_spaces(str(item))
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+            if _normalise_spaces(str(item))
+        ]
+
+        def _token_overlap_supported(sentence: str, candidate: str) -> bool:
+            sentence_terms = {
+                term.lower()
+                for term in self._narrative_context_terms(sentence)
+                if len(term) >= 3
+            }
+            candidate_terms = {
+                term.lower()
+                for term in self._narrative_context_terms(candidate)
+                if len(term) >= 3
+            }
+            if not sentence_terms or not candidate_terms:
+                return False
+            overlap = sentence_terms & candidate_terms
+            return len(overlap) >= max(2, min(len(sentence_terms), len(candidate_terms)) // 2)
+
+        def _is_supported_sentence(sentence: str) -> bool:
+            cleaned = _normalise_spaces(sentence)
+            if not cleaned:
+                return False
+            if any(value and value in cleaned for value in required_values):
+                return True
+            cleaned_lower = cleaned.lower()
+            for candidate in candidate_sentences:
+                candidate_lower = candidate.lower()
+                if candidate_lower and (candidate_lower in cleaned_lower or cleaned_lower in candidate_lower):
+                    return True
+                if _token_overlap_supported(cleaned, candidate):
+                    return True
+            if any(marker and marker in cleaned for marker in impact_markers + narrative_markers):
+                return any(variant and variant.lower() in cleaned_lower for variant in focus_variants)
+            return False
+
+        kept_sentences = [sentence for sentence in sentences if _is_supported_sentence(sentence)]
+        if len(kept_sentences) == len(sentences) or not kept_sentences:
+            return answer_text
+        pruned_answer = _normalise_spaces(" ".join(kept_sentences))
+        if not self._answer_satisfies_growth_narrative_intent(
+            query=query,
+            answer=pruned_answer,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        ):
+            return answer_text
+        if self._growth_answer_has_untraced_numeric_material(
+            pruned_answer,
+            ordered_results,
+            evidence_items,
+        ):
+            return answer_text
+        return pruned_answer
 
     def _coerce_operand_unit_from_evidence(
         self,
@@ -6069,16 +6580,32 @@ class FinancialAgentCalculationMixin:
     ) -> List[Dict[str, Any]]:
         if len(ordered_operands) != 2:
             return ordered_operands
-        current_row = next(
-            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "current_period"),
+        current_index = next(
+            (
+                index
+                for index, row in enumerate(ordered_operands)
+                if str(row.get("matched_operand_role") or "").strip() == "current_period"
+            ),
             None,
         )
-        prior_row = next(
-            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "prior_period"),
+        prior_index = next(
+            (
+                index
+                for index, row in enumerate(ordered_operands)
+                if str(row.get("matched_operand_role") or "").strip() == "prior_period"
+            ),
             None,
         )
-        if not current_row or not prior_row:
+        if current_index is None and prior_index is None:
+            current_index, prior_index = 0, 1
+        elif current_index is None and prior_index is not None:
+            current_index = next((index for index in range(len(ordered_operands)) if index != prior_index), None)
+        elif prior_index is None and current_index is not None:
+            prior_index = next((index for index in range(len(ordered_operands)) if index != current_index), None)
+        if current_index is None or prior_index is None or current_index == prior_index:
             return ordered_operands
+        current_row = dict(ordered_operands[current_index])
+        prior_row = dict(ordered_operands[prior_index])
         current_concept = _normalise_spaces(str(current_row.get("matched_operand_concept") or ""))
         prior_concept = _normalise_spaces(str(prior_row.get("matched_operand_concept") or ""))
         if current_concept and prior_concept and current_concept != prior_concept:
@@ -6131,8 +6658,8 @@ class FinancialAgentCalculationMixin:
             "unit_alignment_source": "growth_raw_scale_match",
         }
         updated_rows = []
-        for row in ordered_operands:
-            if str(row.get("operand_id") or "") == str(updated_prior.get("operand_id") or ""):
+        for index, row in enumerate(ordered_operands):
+            if index == prior_index:
                 updated_rows.append(updated_prior)
             else:
                 updated_rows.append(row)
@@ -6181,6 +6708,7 @@ class FinancialAgentCalculationMixin:
             "normalized_value": normalized_value,
             "normalized_unit": normalized_unit or prior_row.get("normalized_unit") or "",
             "rendered_value": display,
+            "source_quote": recovered.get("source_quote") or prior_row.get("source_quote") or "",
             "prior_recovery_source": "evidence_period_display",
         }
         updated_rows = []
@@ -9174,7 +9702,7 @@ class FinancialAgentCalculationMixin:
                 for row in ordered_operands
                 if str(row.get("matched_operand_concept") or "").strip()
             }
-            if len(concept_keys) == 1:
+            if len(concept_keys) <= 1:
                 known_rows = [
                     row
                     for row in ordered_operands
@@ -9920,6 +10448,10 @@ class FinancialAgentCalculationMixin:
         ordered_results = self._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
         ordered_results = self._promote_stronger_nested_aggregate_results(ordered_results)
         ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        has_growth_rate_result = any(
+            self._aggregate_result_operation_family(row) == "growth_rate"
+            for row in ordered_results
+        )
         answer_parts = [
             _normalise_spaces(str(row.get("answer") or ""))
             for row in ordered_results
@@ -10157,8 +10689,23 @@ class FinancialAgentCalculationMixin:
                     if str(claim_id).strip()
                 ]
         if numeric_answer_locked:
-            final_answer = complete_numeric_answer
-            composition_selected_claim_ids = []
+            if has_narrative_summary and has_growth_rate_result:
+                refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
+                    query=str(state.get("query") or ""),
+                    current_answer=final_answer,
+                    numeric_answer=complete_numeric_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=aggregate_evidence_items,
+                )
+                final_answer = _normalise_spaces(str(refreshed_answer.get("answer") or complete_numeric_answer))
+                composition_selected_claim_ids = [
+                    str(claim_id).strip()
+                    for claim_id in (refreshed_answer.get("selected_claim_ids") or [])
+                    if str(claim_id).strip()
+                ]
+            else:
+                final_answer = complete_numeric_answer
+                composition_selected_claim_ids = []
             calculation_projection_override = None
             planner_feedback = ""
             deterministic_feedback = ""
@@ -10376,6 +10923,13 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
             docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
         )
+        if has_narrative_summary:
+            final_answer = self._prune_irrelevant_growth_narrative_sentences(
+                query=str(state.get("query") or ""),
+                answer=final_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
         final_conflicting_narrative: Dict[str, Any] = {}
         if not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
             final_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
@@ -10441,7 +10995,34 @@ class FinancialAgentCalculationMixin:
                 )
         runtime_numeric_answer = self._late_runtime_numeric_answer(state, final_answer)
         if runtime_numeric_answer:
-            final_answer = runtime_numeric_answer
+            if has_narrative_summary and has_growth_rate_result:
+                refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
+                    query=str(state.get("query") or ""),
+                    current_answer=final_answer,
+                    numeric_answer=runtime_numeric_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=aggregate_evidence_items,
+                )
+                final_answer = _normalise_spaces(str(refreshed_answer.get("answer") or runtime_numeric_answer))
+                selected_claim_ids = list(
+                    dict.fromkeys(
+                        [
+                            *selected_claim_ids,
+                            *[
+                                str(claim_id).strip()
+                                for claim_id in (refreshed_answer.get("selected_claim_ids") or [])
+                                if str(claim_id).strip()
+                            ],
+                        ]
+                    )
+                )
+            else:
+                final_answer = runtime_numeric_answer
+        final_answer = self._enforce_source_stated_growth_answer_contract(
+            final_answer,
+            ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
         if final_answer:
             aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
             if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
@@ -10453,6 +11034,169 @@ class FinancialAgentCalculationMixin:
             operands=list(aggregate_projection.get("calculation_operands") or []),
             final_answer=final_answer,
         )
+        narrative_docs = list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or [])
+        aggregate_evidence_items, retrieved_narrative_claim_ids = self._append_retrieved_narrative_evidence_for_final_answer(
+            aggregate_evidence_items,
+            final_answer=final_answer,
+            docs=narrative_docs,
+        )
+        if retrieved_narrative_claim_ids:
+            selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *retrieved_narrative_claim_ids]))
+            source_surface_answer = self._preserve_retrieved_narrative_source_surface(
+                final_answer,
+                aggregate_evidence_items,
+            )
+            if source_surface_answer != final_answer:
+                final_answer = source_surface_answer
+                aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                    aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        if has_narrative_summary and not self._answer_satisfies_growth_narrative_intent(
+            query=str(state.get("query") or ""),
+            answer=final_answer,
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        ):
+            repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
+                query=str(state.get("query") or ""),
+                ordered_results=ordered_results,
+                existing_answer=final_answer,
+                evidence_items=aggregate_evidence_items,
+            )
+            repaired_answer = _normalise_spaces(
+                str((repaired_growth_narrative_answer or {}).get("compressed_answer") or "")
+            )
+            if repaired_answer and self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=repaired_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            ):
+                final_answer = repaired_answer
+                selected_claim_ids = list(
+                    dict.fromkeys(
+                        [
+                            *selected_claim_ids,
+                            *[
+                                str(claim_id).strip()
+                                for claim_id in ((repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [])
+                                if str(claim_id).strip()
+                            ],
+                        ]
+                    )
+                )
+                aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                    aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+                    aggregate_evidence_items,
+                    operands=list(aggregate_projection.get("calculation_operands") or []),
+                    final_answer=final_answer,
+                )
+        contracted_answer = self._enforce_source_stated_growth_answer_contract(
+            final_answer,
+            ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
+        if contracted_answer != final_answer:
+            final_answer = contracted_answer
+            aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+            if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+            aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+                aggregate_evidence_items,
+                operands=list(aggregate_projection.get("calculation_operands") or []),
+                final_answer=final_answer,
+            )
+        source_surface_answer = self._preserve_retrieved_narrative_source_surface(
+            final_answer,
+            aggregate_evidence_items,
+        )
+        if source_surface_answer != final_answer:
+            final_answer = source_surface_answer
+            aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+            if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        if final_answer and has_narrative_summary and has_growth_rate_result:
+            missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
+            final_answer_is_missing = any(marker and marker in final_answer for marker in missing_markers)
+            final_has_nonnumeric_narrative = False
+            for sentence in _split_narrative_sentences(final_answer):
+                cleaned_sentence = _normalise_spaces(sentence)
+                if not cleaned_sentence or self._answer_evidence_numeric_candidates(cleaned_sentence):
+                    continue
+                sentence_terms = [
+                    term
+                    for term in self._narrative_context_terms(cleaned_sentence)
+                    if len(term) >= 3
+                ]
+                if len(sentence_terms) >= 2:
+                    final_has_nonnumeric_narrative = True
+                    break
+            final_answer_terms = {
+                term.lower()
+                for term in self._narrative_context_terms(final_answer)
+                if len(term) >= 3
+            }
+            narrative_rows = [
+                row
+                for row in ordered_results
+                if self._row_is_narrative_summary(row)
+            ] if not (final_answer_is_missing or final_has_nonnumeric_narrative) else []
+            for row in narrative_rows:
+                row_answer = _normalise_spaces(
+                    str(
+                        row.get("answer")
+                        or (row.get("calculation_result") or {}).get("formatted_result")
+                        or (row.get("calculation_result") or {}).get("rendered_value")
+                        or ""
+                    )
+                )
+                if not row_answer or row_answer in final_answer:
+                    continue
+                if any(marker and marker in row_answer for marker in missing_markers):
+                    continue
+                if self._answer_evidence_numeric_candidates(row_answer):
+                    continue
+                row_answer_terms = {
+                    term.lower()
+                    for term in self._narrative_context_terms(row_answer)
+                    if len(term) >= 3
+                }
+                if row_answer_terms and final_answer_terms:
+                    overlap = row_answer_terms & final_answer_terms
+                    if len(overlap) >= max(2, min(len(row_answer_terms), len(final_answer_terms)) // 2):
+                        continue
+                if self._narrative_summary_conflicts_with_growth_trace(
+                    row_answer,
+                    ordered_results,
+                    aggregate_evidence_items,
+                ):
+                    continue
+                combined_answer = _normalise_spaces(f"{final_answer} {row_answer}")
+                if self._growth_answer_has_untraced_numeric_material(
+                    combined_answer,
+                    ordered_results,
+                    aggregate_evidence_items,
+                ):
+                    continue
+                final_answer = combined_answer
+                aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                    aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+                selected_claim_ids = list(
+                    dict.fromkeys(
+                        [
+                            *selected_claim_ids,
+                            *[
+                                str(claim_id).strip()
+                                for claim_id in (row.get("selected_claim_ids") or [])
+                                if str(claim_id).strip()
+                            ],
+                        ]
+                    )
+                )
+                break
         aggregate_evidence_items = self._filter_aggregate_evidence_for_final_answer(
             aggregate_evidence_items,
             final_answer=final_answer,
@@ -10463,6 +11207,24 @@ class FinancialAgentCalculationMixin:
             for item in aggregate_evidence_items
             if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
         ]
+        if kept_evidence_ids:
+            kept_evidence_id_set = set(kept_evidence_ids)
+            selected_claim_ids = list(
+                dict.fromkeys(
+                    [
+                        *[
+                            claim_id
+                            for claim_id in selected_claim_ids
+                            if claim_id in kept_evidence_id_set
+                        ],
+                        *[
+                            evidence_id
+                            for evidence_id in kept_evidence_ids
+                            if evidence_id.startswith("operand::")
+                        ],
+                    ]
+                )
+            )
         aggregate_projection = self._filter_aggregate_projection_provenance(
             aggregate_projection,
             kept_evidence_ids,

@@ -22,7 +22,7 @@ from src.config.report_scoped_cache import (
     REPORT_CACHE_ENTRY_VERSION,
     report_cache_key_id,
 )
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY
 
 
 class _StubStructuredLLM:
@@ -1017,6 +1017,76 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(prior["raw_unit"], "백만원")
         self.assertEqual(prior["normalized_value"], 1801079000000.0)
         self.assertEqual(prior["unit_alignment_source"], "growth_raw_scale_match")
+
+    def test_execute_growth_aligns_units_when_only_one_concept_is_known(self) -> None:
+        state = {
+            "query": "Calculate segment revenue growth.",
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "segment revenue growth",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {"label": "segment revenue", "concept": "revenue", "role": "current_period"},
+                    {"label": "segment revenue", "concept": "revenue", "role": "prior_period"},
+                ],
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "current",
+                        "matched_operand_role": "operand",
+                        "matched_operand_concept": "",
+                        "label": "segment revenue",
+                        "raw_value": "2,546,649",
+                        "raw_unit": "백만원",
+                        "normalized_value": 2546649000000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "prior",
+                        "matched_operand_role": "prior_period",
+                        "matched_operand_concept": "revenue",
+                        "label": "segment revenue",
+                        "raw_value": "1,801,079",
+                        "raw_unit": "천원",
+                        "normalized_value": 1801079000.0,
+                        "normalized_unit": "KRW",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "operation_family": "growth_rate",
+                    "formula": "((A - B) / B) * 100",
+                    "result_unit": "%",
+                    "ordered_operand_ids": ["current", "prior"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "current"},
+                        {"variable": "B", "operand_id": "prior"},
+                    ],
+                },
+                "calculation_result": {},
+            },
+        }
+
+        result = self.agent._execute_calculation(state)
+        trace = result["resolved_calculation_trace"]
+        prior = next(
+            row
+            for row in trace["calculation_operands"]
+            if row.get("operand_id") == "prior"
+        )
+
+        self.assertEqual(prior["raw_unit"], "백만원")
+        self.assertEqual(prior["normalized_value"], 1801079000000.0)
+        self.assertEqual(prior["unit_alignment_source"], "growth_raw_scale_match")
+        self.assertAlmostEqual(
+            trace["calculation_result"]["result_value"],
+            41.396,
+            places=2,
+        )
 
     def test_reconcile_short_circuits_when_dependency_outputs_are_fully_resolved(self) -> None:
         state = {
@@ -7108,6 +7178,499 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("41.4%", updated["answer"])
         self.assertIn("Poshmark acquisition", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
+
+    def test_growth_narrative_prunes_irrelevant_supported_lead_sentence(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in ("growth_query_pattern", "growth_impact_markers", "growth_narrative_markers")
+        }
+        CALCULATION_NARRATIVE_POLICY["growth_query_pattern"] = r"growth"
+        CALCULATION_NARRATIVE_POLICY["growth_impact_markers"] = ("impact", "response", "PolicyA")
+        CALCULATION_NARRATIVE_POLICY["growth_narrative_markers"] = ("impact", "response", "PolicyA")
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "regional sales volume growth",
+                    "answer": "11.5%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "regional sales volume growth",
+                                "period": "2023",
+                                "rendered_value": "11.5%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "regional sales volume",
+                                "period": "2023",
+                                "rendered_value": "870,000 units",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "regional sales volume",
+                                "period": "2022",
+                                "rendered_value": "781,000 units",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "policy context",
+                    "answer": "The report says PolicyA requires an active response.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_policy"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ]
+            evidence_items = [
+                {
+                    "evidence_id": "ev_policy",
+                    "claim": "The report says PolicyA requires an active response.",
+                    "quote_span": "PolicyA requires an active response.",
+                    "support_level": "direct",
+                }
+            ]
+            answer = (
+                "The company improves customer service through pricing. "
+                "2023 regional sales volume was 870,000 units, up 11.5% from 781,000 units in 2022. "
+                "The report says PolicyA requires an active response."
+            )
+
+            pruned = self.agent._prune_irrelevant_growth_narrative_sentences(
+                query="Calculate 2023 regional sales volume growth and summarize the impact of PolicyA.",
+                answer=answer,
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+
+            self.assertNotIn("customer service through pricing", pruned)
+            self.assertIn("870,000 units", pruned)
+            self.assertIn("11.5%", pruned)
+            self.assertIn("PolicyA requires an active response", pruned)
+        finally:
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
+    def test_retrieved_doc_narrative_evidence_is_selected_for_final_answer(self) -> None:
+        evidence_items = [
+            {
+                "evidence_id": "ev_numeric",
+                "source_anchor": "[ExampleCo | 2023 | Market]",
+                "claim": "2023 regional sales volume was 870,000 units, up 11.5%.",
+                "quote_span": "2023 regional sales volume was 870,000 units, up 11.5%.",
+            }
+        ]
+        docs = [
+            (
+                Document(
+                    page_content="The report says PolicyA requires an active response from management.",
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "Management discussion",
+                    },
+                ),
+                0.9,
+            )
+        ]
+
+        updated, selected_ids = self.agent._append_retrieved_narrative_evidence_for_final_answer(
+            evidence_items,
+            final_answer=(
+                "2023 regional sales volume was 870,000 units, up 11.5%. "
+                "The report says PolicyA requires an active response from management."
+            ),
+            docs=docs,
+        )
+
+        self.assertEqual(len(selected_ids), 1)
+        self.assertTrue(selected_ids[0].startswith("retrieved_narrative::"))
+        selected = next(item for item in updated if item["evidence_id"] == selected_ids[0])
+        self.assertIn("PolicyA requires an active response", selected["claim"])
+        self.assertEqual(selected["metadata"]["section_path"], "Management discussion")
+
+    def test_retrieved_narrative_source_surface_replaces_overstated_paraphrase(self) -> None:
+        answer = (
+            "2023 regional sales volume was 870,000 units, up 11.5%. "
+            "The company stated that PolicyA requires an active response."
+        )
+        updated = self.agent._preserve_retrieved_narrative_source_surface(
+            answer,
+            [
+                {
+                    "evidence_id": "retrieved_narrative::001",
+                    "claim": "The company stated that PolicyA requires an active response.",
+                    "quote_span": "PolicyA requires an active response from management.",
+                }
+            ],
+        )
+
+        self.assertIn("870,000 units", updated)
+        self.assertIn("11.5%", updated)
+        self.assertIn("PolicyA requires an active response from management.", updated)
+        self.assertNotIn("The company stated", updated)
+
+    def test_growth_narrative_composition_uses_evidence_quote_driver_groups(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in ("growth_query_pattern", "growth_impact_markers", "growth_narrative_markers")
+        }
+        original_driver_groups = self.agent._narrative_driver_groups
+        CALCULATION_NARRATIVE_POLICY["growth_query_pattern"] = r"growth"
+        CALCULATION_NARRATIVE_POLICY["growth_impact_markers"] = ("impact", "growth", "turnaround")
+        CALCULATION_NARRATIVE_POLICY["growth_narrative_markers"] = ("impact", "growth", "turnaround")
+        self.agent._narrative_driver_groups = lambda _query: [
+            {
+                "label": "store_growth",
+                "variants": ("StoreA", "BrandB"),
+                "phrase": "StoreA and BrandB growth",
+            },
+            {
+                "label": "turnaround",
+                "variants": ("AcquisitionX",),
+                "phrase": "AcquisitionX turnaround",
+            },
+        ]
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment revenue growth",
+                    "answer": "41.4%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue growth",
+                                "period": "2023",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "period": "2023",
+                                "rendered_value": "2,546,649 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "period": "2022",
+                                "rendered_value": "1,801,079 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "impact context",
+                    "answer": "AcquisitionX turnaround improved segment growth.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ]
+            evidence_items = [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "AcquisitionX turnaround improved segment growth.",
+                    "quote_span": "StoreA and BrandB growth plus AcquisitionX turnaround improved segment growth.",
+                    "support_level": "direct",
+                }
+            ]
+            existing_answer = (
+                "2023 segment revenue was 2,546,649 million, up 41.4% "
+                "from 1,801,079 million in 2022. "
+                "AcquisitionX turnaround improved segment growth."
+            )
+
+            composed = self.agent._compose_growth_narrative_answer(
+                query="Calculate 2023 segment revenue growth and explain the impact of AcquisitionX.",
+                ordered_results=ordered_results,
+                existing_answer=existing_answer,
+                evidence_items=evidence_items,
+            )
+
+            self.assertIsNotNone(composed)
+            self.assertIn("StoreA", composed["compressed_answer"])
+            self.assertIn("BrandB", composed["compressed_answer"])
+            self.assertIn("ev_driver", composed["selected_claim_ids"])
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
+    def test_source_stated_growth_composition_preserves_traced_prior_display(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in (
+                "growth_query_pattern",
+                "growth_impact_markers",
+                "growth_narrative_markers",
+                "growth_numeric_sentence_template",
+                "prior_phrase_with_value_template",
+                "prior_phrase_template",
+                "period_year_suffix",
+                "period_prefix_with_year_template",
+                "period_prefix_template",
+                "direction_words",
+            )
+        }
+        CALCULATION_NARRATIVE_POLICY["growth_query_pattern"] = r"growth"
+        CALCULATION_NARRATIVE_POLICY["growth_impact_markers"] = ("impact", "needed")
+        CALCULATION_NARRATIVE_POLICY["growth_narrative_markers"] = ("impact", "needed")
+        CALCULATION_NARRATIVE_POLICY["growth_numeric_sentence_template"] = (
+            "{period_prefix}{metric_label} was {current_value}, {prior_phrase}{growth_value} {direction_word}."
+        )
+        CALCULATION_NARRATIVE_POLICY["prior_phrase_with_value_template"] = "from {period} {value}, "
+        CALCULATION_NARRATIVE_POLICY["prior_phrase_template"] = "from {period}, "
+        CALCULATION_NARRATIVE_POLICY["period_year_suffix"] = "Y"
+        CALCULATION_NARRATIVE_POLICY["period_prefix_with_year_template"] = "{period}Y "
+        CALCULATION_NARRATIVE_POLICY["period_prefix_template"] = "{period} "
+        CALCULATION_NARRATIVE_POLICY["direction_words"] = {"increase": "up", "growth": "up", "decrease": "down"}
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "regional sales volume growth",
+                    "answer": "11.5%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "regional sales volume growth",
+                                "period": "2023",
+                                "normalized_value": 11.5,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "11.5%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "regional sales volume",
+                                "period": "2023",
+                                "rendered_value": "870.0 thousand units",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "regional sales volume",
+                                "period": "2022",
+                                "rendered_value": "781.0 thousand units",
+                            },
+                        },
+                    },
+                    "calculation_operands": [
+                        {
+                            "matched_operand_role": "current_period",
+                            "stated_change_raw_value": "11.5",
+                            "stated_change_raw_unit": "%",
+                        }
+                    ],
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "policy context",
+                    "answer": "Policy response is needed.",
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ]
+            composed = self.agent._compose_growth_narrative_answer(
+                query="Calculate regional sales volume growth and explain policy impact.",
+                ordered_results=ordered_results,
+                existing_answer="",
+                evidence_items=[
+                    {
+                        "evidence_id": "ev_policy",
+                        "claim": "Policy response is needed.",
+                        "quote_span": "Policy response is needed.",
+                    }
+                ],
+            )
+
+            self.assertIsNotNone(composed)
+            self.assertIn("870.0 thousand units", composed["compressed_answer"])
+            self.assertIn("11.5%", composed["compressed_answer"])
+            self.assertIn("781.0 thousand units", composed["compressed_answer"])
+            self.assertIn("from 2022Y 781.0 thousand units", composed["compressed_answer"])
+            numeric_answer = self.agent._compose_complete_growth_numeric_answer(
+                ordered_results[0],
+                ordered_results,
+                evidence_items=[],
+            )
+            self.assertIn("870.0 thousand units", numeric_answer)
+            self.assertIn("11.5%", numeric_answer)
+            self.assertIn("781.0 thousand units", numeric_answer)
+        finally:
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
+    def test_source_stated_growth_contract_restores_missing_prior_phrase(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in (
+                "growth_numeric_sentence_template",
+                "prior_phrase_with_value_template",
+                "direction_words",
+            )
+        }
+        CALCULATION_NARRATIVE_POLICY["growth_numeric_sentence_template"] = (
+            "{period_prefix}{metric_label} was {current_value}, {prior_phrase}{growth_value} {direction_word}."
+        )
+        CALCULATION_NARRATIVE_POLICY["prior_phrase_with_value_template"] = "from {period} {value}, "
+        CALCULATION_NARRATIVE_POLICY["direction_words"] = {"increase": "up", "growth": "up", "decrease": "down"}
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "regional sales volume growth",
+                    "answer": "11.5%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "derived_metrics": {"source_stated_result_used": True},
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "regional sales volume growth",
+                                "period": "2023",
+                                "normalized_value": 11.5,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "11.5%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "regional sales volume",
+                                "period": "2023",
+                                "rendered_value": "870.0 thousand units",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "regional sales volume",
+                                "period": "2022",
+                                "rendered_value": "781.0 thousand units",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "policy context",
+                    "answer": "Policy response is needed.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_policy"],
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ]
+            incomplete_answer = (
+                "2023 regional sales volume was 870.0 thousand units, 11.5% up. "
+                "Policy response is needed."
+            )
+
+            contracted = self.agent._enforce_source_stated_growth_answer_contract(
+                incomplete_answer,
+                ordered_results,
+                evidence_items=[],
+            )
+
+            self.assertIn("870.0 thousand units", contracted)
+            self.assertIn("11.5%", contracted)
+            self.assertIn("Policy response is needed.", contracted)
+            self.assertIn("781.0 thousand units", contracted)
+        finally:
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
+    def test_selected_and_operand_evidence_filter_drops_unselected_numeric_chunk(self) -> None:
+        evidence_items = [
+            {
+                "evidence_id": "ev_selected",
+                "claim": "2023 regional sales volume was 870,000 units and growth was 11.5%.",
+                "quote_span": "2023 regional sales volume was 870,000 units and growth was 11.5%.",
+            },
+            {
+                "evidence_id": "operand::prior",
+                "claim": "2022 regional sales volume 781,000 units",
+                "quote_span": "2022 regional sales volume 781,000 units",
+                "metadata": {"supports_answer_numeric_surface": True},
+            },
+            {
+                "evidence_id": "ev_unselected_long_chunk",
+                "claim": "Unrelated lead text. 2022 regional sales volume 781,000 units appears later.",
+                "quote_span": "Unrelated lead text.",
+                "raw_row_text": "Unrelated lead text. 2022 regional sales volume 781,000 units appears later.",
+            },
+        ]
+
+        filtered = self.agent._filter_aggregate_evidence_for_final_answer(
+            evidence_items,
+            final_answer=(
+                "2023 regional sales volume was 870,000 units, up 11.5% "
+                "from 781,000 units in 2022."
+            ),
+            selected_claim_ids=["ev_selected", "ev_unselected_long_chunk"],
+        )
+
+        filtered_ids = [item["evidence_id"] for item in filtered]
+        self.assertIn("ev_selected", filtered_ids)
+        self.assertIn("operand::prior", filtered_ids)
+        self.assertNotIn("ev_unselected_long_chunk", filtered_ids)
+
+    def test_operand_evidence_uses_rendered_display_surface(self) -> None:
+        updated = self.agent._append_operand_evidence_for_final_answer(
+            [],
+            operands=[
+                {
+                    "operand_id": "prior",
+                    "matched_operand_role": "prior_period",
+                    "label": "regional sales volume",
+                    "period": "2022",
+                    "raw_value": "781000",
+                    "raw_unit": "units",
+                    "rendered_value": "781.0 thousand units",
+                    "normalized_value": 781000.0,
+                    "normalized_unit": "COUNT",
+                    "source_anchor": "[ExampleCo | 2022 | Sales]",
+                    "source_quote": "The 2022 regional sales volume was 781.0 thousand units.",
+                }
+            ],
+            final_answer="2023 sales rose 11.5% from 781.0 thousand units in 2022.",
+        )
+
+        self.assertEqual(len(updated), 1)
+        self.assertEqual(updated[0]["evidence_id"], "operand::prior")
+        self.assertEqual(updated[0]["quote_span"], "The 2022 regional sales volume was 781.0 thousand units.")
+        self.assertTrue(updated[0]["metadata"]["supports_answer_numeric_surface"])
+        filtered = self.agent._filter_aggregate_evidence_for_final_answer(
+            updated,
+            final_answer="2023 sales rose 11.5% from 781.0 thousand units in 2022.",
+            selected_claim_ids=[],
+        )
+        self.assertEqual([item["evidence_id"] for item in filtered], ["operand::prior"])
 
     def test_growth_narrative_requires_all_supported_policy_driver_groups(self) -> None:
         original_driver_groups = self.agent._narrative_driver_groups

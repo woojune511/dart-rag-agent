@@ -25,6 +25,7 @@ from src.ops.evaluator import (
     _normalise_math_operand_value,
     _numeric_values_equivalent,
     _operand_matches,
+    EvalEvidence,
     EvalExample,
     RAGEvaluator,
     _format_runtime_evidence_for_numeric_judge,
@@ -149,6 +150,46 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
 
         self.assertEqual(_compute_runtime_evidence_retrieval_hit_at_k(example, runtime_evidence), 1.0)
         self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
+
+    def test_section_match_accepts_canonical_quote_when_section_label_differs(self) -> None:
+        example = EvalExample(
+            id="quote_section_surface",
+            question="Calculate US sales growth and summarize the policy context.",
+            ground_truth="US sales increased 11.5% to 870 thousand units.",
+            company="Example Motors",
+            year=2023,
+            section="Overseas market",
+            expected_sections=["II. Business > Overseas market"],
+            evidence=[
+                EvalEvidence(
+                    section_path="II. Business > Overseas market",
+                    quote="2023 US market sales increased 11.5% to 870 thousand units",
+                )
+            ],
+        )
+        runtime_evidence = [
+            {
+                "claim": "2023 US market sales increased 11.5% to 870 thousand units.",
+                "quote_span": "2023 US market sales increased 11.5% to 870 thousand units.",
+                "metadata": {
+                    "company": "Example Motors",
+                    "year": 2023,
+                    "section_path": "II. Business > 7. Other notes",
+                    "parent_category": "US market",
+                },
+            },
+            {
+                "claim": "A separate policy context sentence.",
+                "quote_span": "A separate policy context sentence.",
+                "metadata": {
+                    "company": "Example Motors",
+                    "year": 2023,
+                    "section_path": "IV. Risk factors",
+                },
+            },
+        ]
+
+        self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 0.5)
 
     def test_ndcg_is_capped_when_multiple_docs_match_single_expected_section(self) -> None:
         example = EvalExample(
