@@ -175,10 +175,11 @@ Before lowering retrieval query budgets, audit the existing result bundle:
 ```
 
 The audit is offline: it reads existing `results.json` files and summarizes
-per-question retrieval trace count, source-level fan-out, query embedding
-calls, LLM usage, estimated runtime cost, and quality metrics. Treat its output
-as local experiment material under `benchmarks/results/**`; do not commit it
-unless a reviewer explicitly asks for benchmark artifacts.
+per-question retrieval trace count, source-level fan-out, unique and duplicate
+executed query counts, query embedding calls, LLM usage, estimated runtime
+cost, and quality metrics. Treat its output as local experiment material under
+`benchmarks/results/**`; do not commit it unless a reviewer explicitly asks for
+benchmark artifacts.
 
 API 비용이나 rate/cap 문제가 있을 때는 full gate를 바로 돌리지 않는다. 기본 순서는 다음이다.
 
@@ -2700,10 +2701,10 @@ Command shape:
 
 Audited local bundles:
 
-| Local bundle | Questions | Retrieval traces | Executed queries | Query embedding calls | Est. runtime cost | Avg faithfulness | Avg completeness | Notes |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `policy_gate_regression_2026-05-31_2212` | 5 | 11 | 93 | 89 | `$0.406069` | 1.000 | 1.000 | Clean local quality snapshot; top fan-out rows were `NAV_T2_006` and `LGE_T1_051`. |
-| `policy_gate_regression_2026-06-03_1138_actual` | 5 | 12 | 98 | 81 | `$0.423814` | 1.000 | 0.880 | Dependency-trace pass with known narrative completeness gaps; top fan-out rows were `HYU_T2_010` and `NAV_T2_006`. |
+| Local bundle | Questions | Retrieval traces | Executed queries | Unique queries | Duplicate queries | Query embedding calls | Est. runtime cost | Avg faithfulness | Avg completeness | Notes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `policy_gate_regression_2026-05-31_2212` | 5 | 11 | 93 | not recorded by the original audit | not recorded by the original audit | 89 | `$0.406069` | 1.000 | 1.000 | Clean local quality snapshot; top fan-out rows were `NAV_T2_006` and `LGE_T1_051`. |
+| `policy_gate_regression_2026-06-03_1138_actual` | 5 | 12 | 98 | 81 | 17 | 81 | `$0.423814` | 1.000 | 0.880 | Dependency-trace pass with known narrative completeness gaps; top duplicate pressure row is `HYU_T2_010`, followed by `NAV_T2_006`. |
 
 Source-level fan-out:
 
@@ -2716,6 +2717,10 @@ Interpretation:
 
 - The highest fan-out pressure is concentrated in mixed numeric+narrative or
   lookup-heavy rows, especially `NAV_T2_006`, `HYU_T2_010`, and `LGE_T1_051`.
+- Duplicate executed-query pressure is separately visible now. On
+  `policy_gate_regression_2026-06-03_1138_actual`, 17 of 98 executed queries
+  were duplicate executed-query signatures, with `HYU_T2_010` accounting for
+  the largest row-level duplicate count.
 - This matches the earlier budget smoke: reducing the global policy budget to
   `5 / 3 / 1`, `6 / 4 / 1`, or `7 / 4 / 1` broke `NAV_T2_006`, even though
   some other rows stayed healthy.
