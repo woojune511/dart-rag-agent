@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-04
+Last updated: 2026-06-07
 
 ## Positioning
 
@@ -191,6 +191,27 @@ role-separated multi-agent system using a task ledger and artifact store.
         source-visible abbreviations are preserved after numeric locking and
         slot-based answer composition; faithfulness `1.000`, completeness
         `1.000`, numeric final judgement `PASS`
+  - Focused fan-out canary, 2026-06-07:
+    - local artifact:
+      `benchmarks/results/policy_gate_fanout_canary_2026-06-07/`
+      (not committed)
+    - scope: `NAV_T2_006`, `LGE_T1_051`, and `HYU_T2_010` store-fixed
+      eval-only over the policy-driven runtime gate profile
+    - cost/fan-out audit: 3 questions, 8 retrieval traces, 74 executed
+      retrieval queries, 70 query-embedding calls, 40 LLM calls, estimated
+      runtime cost `$0.358414`
+    - initial result: `LGE_T1_051` and `HYU_T2_010` passed; `NAV_T2_006`
+      exposed a stale dependency-unit display and an over-broad narrative
+      sentence with an untraced `24.3%` operating-expense KPI
+    - repair: dependency projection now refreshes a lookup slot when the
+      projected operand carries direct evidence provenance and a corrected
+      unit, and growth-narrative pruning rejects driver sentences whose
+      numeric material is not present in the supported candidate evidence
+    - focused rerun:
+      `benchmarks/results/policy_gate_fanout_canary_nav_final_2026-06-07/`
+      reports `NAV_T2_006` faithfulness `1.000`, completeness `1.000`,
+      context recall `1.000`, retrieval hit@k `1.000`, answer relevancy
+      `0.707`, and error rate `0.0%`
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.

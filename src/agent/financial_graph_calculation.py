@@ -1929,6 +1929,7 @@ class FinancialAgentCalculationMixin:
                 continue
 
             source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
+            direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
             if f"task_output:{task_id}" in source_ids:
                 candidate_normalized = candidate.get("normalized_value")
                 current_normalized = current_slot.get("normalized_value")
@@ -1940,10 +1941,24 @@ class FinancialAgentCalculationMixin:
                         normalized_differs = candidate_normalized != current_normalized
                 except (TypeError, ValueError):
                     normalized_differs = candidate_normalized != current_normalized
-                if candidate_raw == current_raw and normalized_differs:
+                candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
+                current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+                current_source_ids = _clean_source_row_ids(
+                    [current_slot.get("source_row_id"), current_slot.get("source_row_ids")]
+                )
+                direct_current_source_ids = [
+                    source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
+                ]
+                evidence_backed_unit_realignment = bool(
+                    direct_source_ids
+                    and (not direct_current_source_ids or bool(set(direct_source_ids) & set(direct_current_source_ids)))
+                    and candidate_unit
+                    and current_unit
+                    and candidate_unit != current_unit
+                )
+                if candidate_raw == current_raw and normalized_differs and not evidence_backed_unit_realignment:
                     aligned_results.append(row)
                     continue
-            direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
             component_slot = self._build_operand_value_slot(
                 candidate,
                 default_role=str(
@@ -5704,6 +5719,7 @@ class FinancialAgentCalculationMixin:
             for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
             if _normalise_spaces(str(item))
         ]
+        allowed_narrative_numeric_surface = _normalise_spaces(" ".join([*candidate_sentences, *required_values]))
 
         def _token_overlap_supported(sentence: str, candidate: str) -> bool:
             sentence_terms = {
@@ -5724,6 +5740,12 @@ class FinancialAgentCalculationMixin:
         def _is_supported_sentence(sentence: str) -> bool:
             cleaned = _normalise_spaces(sentence)
             if not cleaned:
+                return False
+            if self._growth_sentence_has_untraced_material_numeric(
+                cleaned,
+                allowed_narrative_numeric_surface,
+                required_values,
+            ):
                 return False
             if any(value and value in cleaned for value in required_values):
                 return True
