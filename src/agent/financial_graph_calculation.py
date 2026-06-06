@@ -113,6 +113,74 @@ def _narrative_sentence_looks_abbreviated_fragment(sentence: str, markers: tuple
 
 
 class FinancialAgentCalculationMixin:
+    def _calculation_operand_source_refs(self, operand_rows: List[Dict[str, Any]]) -> List[str]:
+        refs: List[str] = []
+        for row in operand_rows or []:
+            if not isinstance(row, dict):
+                continue
+            refs.extend(
+                _clean_source_row_ids(
+                    [
+                        row.get("evidence_id"),
+                        row.get("evidence_ids"),
+                        row.get("source_evidence_id"),
+                        row.get("source_evidence_ids"),
+                        row.get("source_row_id"),
+                        row.get("source_row_ids"),
+                        row.get("row_id"),
+                        row.get("row_ids"),
+                        row.get("candidate_id"),
+                        row.get("candidate_ids"),
+                    ]
+                )
+            )
+        return list(dict.fromkeys(refs))
+
+    def _enrich_reconciliation_artifact_refs(
+        self,
+        artifacts: List[Dict[str, Any]],
+        *,
+        task_id: str,
+        operand_rows: List[Dict[str, Any]],
+        extra_refs: Optional[List[Any]] = None,
+        task_ids: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        refs = list(
+            dict.fromkeys(
+                [
+                    *self._calculation_operand_source_refs(operand_rows),
+                    *_clean_source_row_ids(extra_refs or []),
+                ]
+            )
+        )
+        if not refs:
+            return artifacts
+        target_task_id = str(task_id or "").strip()
+        target_task_ids = {
+            str(value).strip()
+            for value in [target_task_id, *(task_ids or [])]
+            if str(value).strip()
+        }
+        updated: List[Dict[str, Any]] = []
+        for artifact in artifacts or []:
+            item = dict(artifact)
+            if str(item.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
+                updated.append(item)
+                continue
+            if target_task_ids and str(item.get("task_id") or "").strip() not in target_task_ids:
+                updated.append(item)
+                continue
+            payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            result = payload.get("reconciliation_result") if isinstance(payload, dict) else {}
+            status = str(result.get("status") if isinstance(result, dict) else "").strip().lower()
+            if status not in {"ok", "ready"}:
+                updated.append(item)
+                continue
+            merged_refs = list(dict.fromkeys([*(item.get("evidence_refs") or []), *refs]))
+            item["evidence_refs"] = merged_refs
+            updated.append(item)
+        return updated
+
     def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
         if not isinstance(slot, dict) or not slot:
             return False
@@ -7172,6 +7240,11 @@ class FinancialAgentCalculationMixin:
             artifacts = list(state.get("artifacts") or [])
             tasks = list(state.get("tasks") or [])
             task_id = str(active_subtask.get("task_id") or "calc")
+            artifacts = self._enrich_reconciliation_artifact_refs(
+                artifacts,
+                task_id=task_id,
+                operand_rows=direct_structured_rows,
+            )
             artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
             artifacts = _append_artifact(
                 artifacts,
@@ -7601,6 +7674,11 @@ class FinancialAgentCalculationMixin:
             artifacts = list(state.get("artifacts") or [])
             tasks = list(state.get("tasks") or [])
             task_id = str(active_subtask.get("task_id") or "calc")
+            artifacts = self._enrich_reconciliation_artifact_refs(
+                artifacts,
+                task_id=task_id,
+                operand_rows=operand_rows,
+            )
             artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
             artifacts = _append_artifact(
                 artifacts,
@@ -10115,9 +10193,76 @@ class FinancialAgentCalculationMixin:
         ):
             planner_feedback = ""
             deterministic_feedback = ""
+        source_task_ids = [
+            str(row.get("task_id") or "").strip()
+            for row in ordered_results
+            if str(row.get("task_id") or "").strip()
+        ]
+        selected_claim_ids_for_integrity = list(
+            dict.fromkeys(
+                [
+                    *[
+                        claim_id
+                        for row in ordered_results
+                        for claim_id in (row.get("selected_claim_ids") or [])
+                        if str(claim_id).strip()
+                    ],
+                    *composition_selected_claim_ids,
+                ]
+            )
+        )
+        ordered_result_source_refs = _clean_source_row_ids(
+            [
+                value
+                for row in ordered_results
+                for value in [
+                    row.get("source_row_id"),
+                    row.get("source_row_ids"),
+                    (row.get("calculation_result") or {}).get("source_row_id")
+                    if isinstance(row.get("calculation_result"), dict)
+                    else None,
+                    (row.get("calculation_result") or {}).get("source_row_ids")
+                    if isinstance(row.get("calculation_result"), dict)
+                    else None,
+                    (row.get("answer_slots") or {}).get("source_row_id")
+                    if isinstance(row.get("answer_slots"), dict)
+                    else None,
+                    (row.get("answer_slots") or {}).get("source_row_ids")
+                    if isinstance(row.get("answer_slots"), dict)
+                    else None,
+                ]
+            ]
+        )
+        projection_for_integrity = (
+            calculation_projection_override
+            if isinstance(calculation_projection_override, dict) and calculation_projection_override
+            else preliminary_projection
+        )
+        projection_result_for_integrity = dict(projection_for_integrity.get("calculation_result") or {})
+        projection_slots_for_integrity = dict(projection_result_for_integrity.get("answer_slots") or {})
+        state_result_for_integrity = dict(state.get("calculation_result") or {})
+        state_slots_for_integrity = dict(state_result_for_integrity.get("answer_slots") or {})
+        ledger_artifacts = self._enrich_reconciliation_artifact_refs(
+            list(state.get("artifacts") or []),
+            task_id="",
+            task_ids=source_task_ids,
+            operand_rows=list(projection_for_integrity.get("calculation_operands") or []),
+            extra_refs=[
+                projection_result_for_integrity.get("source_row_id"),
+                projection_result_for_integrity.get("source_row_ids"),
+                projection_slots_for_integrity.get("source_row_id"),
+                projection_slots_for_integrity.get("source_row_ids"),
+                state_result_for_integrity.get("source_row_id"),
+                state_result_for_integrity.get("source_row_ids"),
+                state_slots_for_integrity.get("source_row_id"),
+                state_slots_for_integrity.get("source_row_ids"),
+                ordered_result_source_refs,
+                selected_claim_ids_for_integrity,
+            ],
+        )
         task_artifact_trace = _project_task_artifact_trace(
             state.get("tasks") or [],
-            state.get("artifacts") or [],
+            ledger_artifacts,
         )
         integrity_feedback = _task_artifact_integrity_feedback(task_artifact_trace)
         if integrity_feedback:
@@ -10322,7 +10467,7 @@ class FinancialAgentCalculationMixin:
             aggregate_projection,
             kept_evidence_ids,
         )
-        artifacts = list(state.get("artifacts") or [])
+        artifacts = list(ledger_artifacts)
         artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
         artifacts = _append_artifact(
             artifacts,

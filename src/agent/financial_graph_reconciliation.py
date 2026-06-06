@@ -102,6 +102,39 @@ class FinancialAgentReconciliationMixin:
             "retry_strategy": "",
         }
 
+    def _reconciliation_evidence_refs(self, result: Dict[str, Any]) -> List[str]:
+        values: List[Any] = []
+        for item in result.get("matched_operands") or []:
+            if not isinstance(item, dict):
+                continue
+            values.extend(
+                [
+                    item.get("candidate_ids"),
+                    item.get("candidate_id"),
+                    item.get("source_row_ids"),
+                    item.get("source_row_id"),
+                    item.get("source_evidence_ids"),
+                    item.get("source_evidence_id"),
+                    item.get("evidence_ids"),
+                    item.get("evidence_id"),
+                    item.get("row_ids"),
+                    item.get("row_id"),
+                ]
+            )
+        refs: List[str] = []
+
+        def _append(value: Any) -> None:
+            if isinstance(value, (list, tuple, set)):
+                for nested in value:
+                    _append(nested)
+                return
+            cleaned = str(value).strip()
+            if cleaned and cleaned.lower() not in {"none", "null", "nan"} and cleaned not in refs:
+                refs.append(cleaned)
+
+        _append(values)
+        return refs
+
     def _structured_candidate_unit_hint(
         self,
         *,
@@ -1279,12 +1312,6 @@ class FinancialAgentReconciliationMixin:
             tasks = list(state.get("tasks") or [])
             task_id = str(active_subtask.get("task_id") or "reconcile")
             artifact_id = f"reconcile:{task_id}:{len(artifacts) + 1:03d}"
-            candidate_ids = [
-                str(match_id).strip()
-                for item in (result.get("matched_operands") or [])
-                for match_id in (item.get("candidate_ids") or [])
-                if str(match_id).strip()
-            ]
             artifacts = _append_artifact(
                 artifacts,
                 artifact_id=artifact_id,
@@ -1293,7 +1320,7 @@ class FinancialAgentReconciliationMixin:
                 status=status,
                 summary="reconciliation=ready(dependency_outputs)",
                 payload={"reconciliation_result": result},
-                evidence_refs=candidate_ids,
+                evidence_refs=self._reconciliation_evidence_refs(result),
             )
             tasks = _upsert_task(
                 tasks,
@@ -1358,12 +1385,6 @@ class FinancialAgentReconciliationMixin:
         tasks = list(state.get("tasks") or [])
         task_id = str(active_subtask.get("task_id") or "reconcile")
         artifact_id = f"reconcile:{task_id}:{len(artifacts) + 1:03d}"
-        candidate_ids = [
-            str(match_id).strip()
-            for item in (result.get("matched_operands") or [])
-            for match_id in (item.get("candidate_ids") or [])
-            if str(match_id).strip()
-        ]
         artifacts = _append_artifact(
             artifacts,
             artifact_id=artifact_id,
@@ -1372,7 +1393,7 @@ class FinancialAgentReconciliationMixin:
             status=status,
             summary=f"reconciliation={status}",
             payload={"reconciliation_result": result},
-            evidence_refs=candidate_ids,
+            evidence_refs=self._reconciliation_evidence_refs(result),
         )
         tasks = _upsert_task(
             tasks,

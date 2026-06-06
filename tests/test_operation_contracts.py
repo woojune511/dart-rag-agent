@@ -1197,6 +1197,30 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("2023 1,294,367 million KRW", evidence[0]["quote_span"])
         self.assertEqual(evidence[0]["raw_row_text"], evidence[0]["quote_span"])
 
+    def test_reconciliation_evidence_refs_include_source_row_provenance(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = {
+            "status": "ready",
+            "matched_operands": [
+                {
+                    "label": "Lookup value",
+                    "matched": True,
+                    "candidate_ids": [],
+                    "source_row_ids": ["row:alpha"],
+                },
+                {
+                    "label": "Related value",
+                    "matched": True,
+                    "source_row_id": "row:beta",
+                    "evidence_ids": ["ev:beta"],
+                },
+            ],
+        }
+
+        refs = agent._reconciliation_evidence_refs(result)
+
+        self.assertEqual(refs, ["row:alpha", "row:beta", "ev:beta"])
+
     def test_inventory_loss_ontology_removes_ambiguous_reversal_aliases(self) -> None:
         concept = self.ontology.concept("inventory_valuation_loss") or {}
         aliases = list(concept.get("aliases") or [])
