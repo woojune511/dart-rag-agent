@@ -260,6 +260,22 @@ role-separated multi-agent system using a task ledger and artifact store.
       from `213.6` to `116.6`, and `LGE_T1_051` dropped from `377.2` to
       `248.2`, without adding company, question, or metric-specific runtime
       branches.
+    - post-merge full policy-gate confirmation:
+      `benchmarks/results/current_policy_gate_after_hint_budget_full_2026-06-07/`
+      (local store-fixed eval-only artifact, not committed) replayed all five
+      policy-gate rows after PR #21 landed on `main`. Faithfulness,
+      completeness, context recall, and retrieval hit@k were all `1.000` for
+      `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`, and
+      `SAM_T2_078`; error rate was `0.0%`, task/artifact integrity was `ok`
+      for 5 / 5 rows, and the only numeric-applicable row (`LGE_T1_051`)
+      returned `numeric_final_judgement = PASS`.
+    - full-gate cost/runtime snapshot: 97 executed retrieval queries, 100
+      query-embedding calls, 13,948 query-embedding input chars, 3,522
+      estimated query-embedding tokens, 58 LLM calls, and estimated runtime
+      cost `$0.444073` across the five-row replay.
+    - residual precision signals remain non-blocking but visible for follow-up:
+      average section match `0.850`, citation coverage `0.933`, and entity
+      coverage `0.942`.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.
