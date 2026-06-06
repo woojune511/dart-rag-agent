@@ -212,6 +212,30 @@ role-separated multi-agent system using a task ledger and artifact store.
       reports `NAV_T2_006` faithfulness `1.000`, completeness `1.000`,
       context recall `1.000`, retrieval hit@k `1.000`, answer relevancy
       `0.707`, and error rate `0.0%`
+  - Query-budget follow-up, 2026-06-07:
+    - local artifacts:
+      `benchmarks/results/policy_gate_query_dedupe_numeric_only_nav_2026-06-07/`,
+      and
+      `benchmarks/results/policy_gate_query_dedupe_numeric_only_lge_hyu_2026-06-07/`
+      (not committed); intermediate compact-signature screening runs were
+      removed after summarization
+    - rejected candidate: compact CJK-spacing query signatures reduced
+      `NAV_T2_006` executed retrieval queries from `42` to `37` and agent
+      query-embedding calls from `39` to `34`, but dropped a narrative query
+      surface and lowered faithfulness from `1.000` to `0.500`
+    - accepted guard: exact duplicate focused/retry queries are removed only
+      when no `narrative_summary` sibling task is present; mixed
+      numeric+narrative retrieval now records
+      `duplicate_drop_blocked_reason = narrative_sibling_subtask_present`
+      and preserves the focused retrieval fan-out
+    - safety check: the final NAV mixed rerun preserved faithfulness `1.000`,
+      completeness `1.000`, context recall `1.000`, retrieval hit@k `1.000`,
+      answer relevancy `0.739`, and error rate `0.0%`
+    - LGE/HYU focused rerun preserved quality (`LGE_T1_051` numeric `PASS`;
+      both questions faithfulness/completeness `1.000`), but showed no material
+      executed-query reduction on this canary. The next cost target is primary
+      query-bundle / retrieval-hint inflation rather than compacting
+      evidence-diversity surfaces.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.

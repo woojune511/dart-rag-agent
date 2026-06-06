@@ -75,6 +75,13 @@ def _query_budget_int(value: Any) -> int:
     return max(parsed, 0)
 
 
+def _retrieval_query_signature(query: Any) -> str:
+    normalized = _normalise_spaces(str(query or "")).lower()
+    if not normalized:
+        return ""
+    return re.sub(r"\s+", " ", normalized)
+
+
 def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
     seen: set[str] = set()
     deduped: List[str] = []
@@ -82,12 +89,35 @@ def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
         normalized = _normalise_spaces(str(query or ""))
         if not normalized:
             continue
-        signature = re.sub(r"\s+", " ", normalized).lower()
+        signature = _retrieval_query_signature(normalized)
         if signature in seen:
             continue
         seen.add(signature)
         deduped.append(normalized)
     return deduped
+
+
+def _drop_queries_already_selected(
+    queries: List[str],
+    selected_queries: List[str],
+) -> tuple[List[str], Dict[str, Any]]:
+    selected_signatures = {
+        signature
+        for signature in (_retrieval_query_signature(query) for query in selected_queries)
+        if signature
+    }
+    kept: List[str] = []
+    dropped: List[str] = []
+    for query in queries:
+        signature = _retrieval_query_signature(query)
+        if signature and signature in selected_signatures:
+            dropped.append(query)
+            continue
+        kept.append(query)
+    return kept, {
+        "duplicate_selected_query_dropped_count": len(dropped),
+        "duplicate_selected_query_dropped_queries": dropped,
+    }
 
 
 def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -2040,6 +2070,18 @@ class FinancialAgentEvidenceMixin:
         skip_blocked_reason = ""
         if _has_narrative_sibling_subtask(state, active_subtask):
             skip_blocked_reason = "narrative_sibling_subtask_present"
+        if not skip_blocked_reason:
+            focused_operand_queries, duplicate_focus_trace = _drop_queries_already_selected(
+                focused_operand_queries,
+                query_bundle,
+            )
+            query_budget_trace["operand_focus"].update(duplicate_focus_trace)
+            query_budget_trace["operand_focus"]["selected_count_before_duplicate_drop"] = query_budget_trace[
+                "operand_focus"
+            ].get("selected_count", 0)
+            query_budget_trace["operand_focus"]["selected_count"] = len(focused_operand_queries)
+        else:
+            query_budget_trace["operand_focus"]["duplicate_drop_blocked_reason"] = skip_blocked_reason
         if focused_operand_queries and bool(primary_operand_coverage.get("complete")) and not skip_blocked_reason:
             query_budget_trace["operand_focus"]["skipped"] = True
             query_budget_trace["operand_focus"]["skip_reason"] = "primary_required_operand_coverage_complete"
@@ -2079,6 +2121,19 @@ class FinancialAgentEvidenceMixin:
             retry_budget,
             dedupe=configured_retry_budget > 0,
         )
+        if not skip_blocked_reason:
+            retry_queries, duplicate_retry_trace = _drop_queries_already_selected(
+                retry_queries,
+                [*query_bundle, *focused_operand_queries],
+            )
+            query_budget_trace["retry"].update(duplicate_retry_trace)
+            query_budget_trace["retry"]["selected_count_before_duplicate_drop"] = query_budget_trace["retry"].get(
+                "selected_count",
+                0,
+            )
+            query_budget_trace["retry"]["selected_count"] = len(retry_queries)
+        else:
+            query_budget_trace["retry"]["duplicate_drop_blocked_reason"] = skip_blocked_reason
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries:
