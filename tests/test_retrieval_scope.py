@@ -3,7 +3,11 @@ import unittest
 from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_evidence import _apply_query_budget, _summarize_executed_query_telemetry
+from src.agent.financial_graph_evidence import (
+    _apply_query_budget,
+    _cross_trace_reuse_candidate_diagnostics,
+    _summarize_executed_query_telemetry,
+)
 from src.agent.financial_graph_helpers import _should_apply_strict_company_scope
 
 
@@ -125,6 +129,63 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["primary"]["executed_query_count"], 2)
         self.assertEqual(summary["by_source"]["primary"]["cache_hit_count"], 1)
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
+
+    def test_cross_trace_reuse_candidate_diagnostics_matches_prior_same_source_filter_query(self) -> None:
+        diagnostics = _cross_trace_reuse_candidate_diagnostics(
+            [
+                {
+                    "source": "primary",
+                    "base_query": "Revenue",
+                    "executed_query": "Revenue 2023",
+                    "where_filter": {"year": 2023},
+                    "search_telemetry": {"cache_hit": True},
+                },
+                {
+                    "source": "operand_focus",
+                    "base_query": "Revenue",
+                    "executed_query": "Revenue 2023",
+                    "where_filter": {"year": 2023},
+                },
+            ],
+            [
+                {
+                    "query_budget": {
+                        "source": {
+                            "active_subtask_id": "task_1",
+                            "active_subtask_operation": "lookup",
+                        }
+                    },
+                    "executed_queries": [
+                        {
+                            "source": "primary",
+                            "base_query": "Revenue",
+                            "executed_query": "  revenue   2023 ",
+                            "where_filter": {"year": 2023},
+                        },
+                        {
+                            "source": "primary",
+                            "base_query": "Revenue",
+                            "executed_query": "Revenue 2023",
+                            "where_filter": {"year": 2022},
+                        },
+                    ],
+                }
+            ],
+            current_trace_index=2,
+        )
+
+        self.assertEqual(diagnostics["mode"], "trace_only")
+        self.assertEqual(diagnostics["scope"], "cross_trace_same_source_same_filter_exact_signature")
+        self.assertEqual(diagnostics["candidate_count"], 1)
+        self.assertEqual(diagnostics["prior_match_count"], 1)
+        self.assertEqual(diagnostics["by_source"]["primary"]["candidate_count"], 1)
+        self.assertEqual(len(diagnostics["candidates"]), 1)
+        candidate = diagnostics["candidates"][0]
+        self.assertEqual(candidate["source"], "primary")
+        self.assertTrue(candidate["current_cache_hit"])
+        self.assertEqual(candidate["prior_matches"][0]["trace_index"], 1)
+        self.assertEqual(candidate["prior_matches"][0]["task_id"], "task_1")
+        self.assertEqual(candidate["prior_matches"][0]["operation"], "lookup")
 
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(
@@ -311,6 +372,68 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(section_trace["selected_count"], 2)
         self.assertEqual(section_trace["selection_strategy"], "head_tail")
         self.assertEqual(section_trace["dropped_terms"], ["Notes"])
+
+    def test_retrieve_records_cross_trace_reuse_candidates_without_skipping_search(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "Revenue 2023",
+                "active_subtask": {
+                    "task_id": "task_2",
+                    "operation_family": "lookup",
+                    "retrieval_queries": ["Revenue 2023"],
+                },
+                "report_scope": {"year": 2023},
+                "companies": [],
+                "years": [2023],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": [],
+                "topic": "",
+                "format_preference": "table",
+                "retrieval_debug_trace_history": [
+                    {
+                        "query_budget": {
+                            "source": {
+                                "active_subtask_id": "task_1",
+                                "active_subtask_operation": "lookup",
+                            }
+                        },
+                        "executed_queries": [
+                            {
+                                "source": "primary",
+                                "base_query": "Revenue 2023",
+                                "executed_query": (
+                                    "Revenue 2023 IV. 이사의 경영진단 및 분석의견 "
+                                    "II. 사업의 내용 사업의 개요 나. 영업실적"
+                                ),
+                                "where_filter": {"year": 2023},
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(len(agent.vsm.queries), 1)
+        trace = result["retrieval_debug_trace"]
+        reuse = trace["cross_trace_reuse_candidates"]
+        self.assertEqual(reuse["candidate_count"], 1)
+        self.assertEqual(reuse["prior_match_count"], 1)
+        self.assertEqual(reuse["current_trace_index"], 2)
+        self.assertEqual(reuse["candidates"][0]["prior_matches"][0]["task_id"], "task_1")
+        self.assertEqual(len(result["retrieval_debug_trace_history"]), 2)
 
     def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

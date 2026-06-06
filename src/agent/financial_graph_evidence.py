@@ -358,6 +358,102 @@ def _summarize_executed_query_telemetry(executed_queries: List[Dict[str, Any]]) 
     return summary
 
 
+def _filter_signature(value: Any) -> str:
+    if value in (None, ""):
+        return ""
+    try:
+        return json.dumps(value, sort_keys=True, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _trace_task_context(trace: Dict[str, Any]) -> Dict[str, str]:
+    source = dict((trace.get("query_budget") or {}).get("source") or {})
+    return {
+        "task_id": str(source.get("active_subtask_id") or ""),
+        "operation": str(source.get("active_subtask_operation") or ""),
+    }
+
+
+def _cross_trace_reuse_candidate_diagnostics(
+    executed_queries: List[Dict[str, Any]],
+    previous_traces: List[Dict[str, Any]],
+    *,
+    current_trace_index: int,
+    max_candidates: int = 20,
+) -> Dict[str, Any]:
+    previous_by_key: Dict[tuple[str, str, str], List[Dict[str, Any]]] = {}
+    for trace_offset, trace in enumerate(previous_traces, start=1):
+        if not isinstance(trace, dict):
+            continue
+        task_context = _trace_task_context(trace)
+        for query_trace in trace.get("executed_queries") or []:
+            if not isinstance(query_trace, dict):
+                continue
+            source = _normalise_spaces(str(query_trace.get("source") or "unknown")) or "unknown"
+            signature = _retrieval_query_signature(query_trace.get("executed_query"))
+            if not signature:
+                continue
+            filter_signature = _filter_signature(query_trace.get("where_filter"))
+            key = (source, signature, filter_signature)
+            previous_by_key.setdefault(key, []).append(
+                {
+                    "trace_index": trace_offset,
+                    "task_id": task_context.get("task_id", ""),
+                    "operation": task_context.get("operation", ""),
+                    "source": source,
+                    "base_query": query_trace.get("base_query"),
+                    "executed_query": query_trace.get("executed_query"),
+                    "cache_hit": bool((query_trace.get("search_telemetry") or {}).get("cache_hit")),
+                }
+            )
+
+    candidates: List[Dict[str, Any]] = []
+    by_source: Dict[str, Dict[str, int]] = {}
+    for query_trace in executed_queries:
+        source = _normalise_spaces(str(query_trace.get("source") or "unknown")) or "unknown"
+        signature = _retrieval_query_signature(query_trace.get("executed_query"))
+        if not signature:
+            continue
+        filter_signature = _filter_signature(query_trace.get("where_filter"))
+        prior_matches = previous_by_key.get((source, signature, filter_signature), [])
+        if not prior_matches:
+            continue
+        source_summary = by_source.setdefault(source, {"candidate_count": 0, "prior_match_count": 0})
+        source_summary["candidate_count"] += 1
+        source_summary["prior_match_count"] += len(prior_matches)
+        if len(candidates) >= max(max_candidates, 0):
+            continue
+        candidates.append(
+            {
+                "source": source,
+                "signature": signature,
+                "base_query": query_trace.get("base_query"),
+                "executed_query": query_trace.get("executed_query"),
+                "where_filter_signature": filter_signature,
+                "current_trace_index": current_trace_index,
+                "current_cache_hit": bool((query_trace.get("search_telemetry") or {}).get("cache_hit")),
+                "prior_match_count": len(prior_matches),
+                "prior_matches": prior_matches[:5],
+            }
+        )
+
+    candidate_count = sum(int(item.get("candidate_count") or 0) for item in by_source.values())
+    prior_match_count = sum(int(item.get("prior_match_count") or 0) for item in by_source.values())
+    return {
+        "enabled": True,
+        "mode": "trace_only",
+        "scope": "cross_trace_same_source_same_filter_exact_signature",
+        "candidate_count": candidate_count,
+        "prior_match_count": prior_match_count,
+        "previous_trace_count": len(previous_traces),
+        "current_trace_index": current_trace_index,
+        "by_source": by_source,
+        "candidates": candidates,
+        "truncated": candidate_count > len(candidates),
+    }
+
+
 def _period_target_for_operand(operand: Dict[str, Any], query_years: List[str], report_scope: Dict[str, Any]) -> str:
     label = _normalise_spaces(str(operand.get("label") or ""))
     match = re.search(r"(20\d{2})년?", label)
@@ -2375,6 +2471,16 @@ class FinancialAgentEvidenceMixin:
                     "rcept_no": metadata.get("rcept_no"),
                 }
             )
+        retrieval_debug_trace_history = [
+            dict(item)
+            for item in (state.get("retrieval_debug_trace_history") or [])
+            if isinstance(item, dict)
+        ]
+        cross_trace_reuse_candidates = _cross_trace_reuse_candidate_diagnostics(
+            executed_queries,
+            retrieval_debug_trace_history,
+            current_trace_index=len(retrieval_debug_trace_history) + 1,
+        )
         retrieval_debug_trace = {
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
@@ -2385,6 +2491,7 @@ class FinancialAgentEvidenceMixin:
             "retry_queries": retry_queries,
             "query_budget": query_budget_trace,
             "executed_duplicate_guard": executed_duplicate_trace,
+            "cross_trace_reuse_candidates": cross_trace_reuse_candidates,
             "report_cache_consumer_assessment": {
                 **report_cache_consumer_assessment,
                 "normal_retrieval_executed": bool(executed_queries),
@@ -2420,11 +2527,6 @@ class FinancialAgentEvidenceMixin:
             format_preference,
             len(docs),
         )
-        retrieval_debug_trace_history = [
-            dict(item)
-            for item in (state.get("retrieval_debug_trace_history") or [])
-            if isinstance(item, dict)
-        ]
         retrieval_debug_trace_history.append(retrieval_debug_trace)
         return {
             "seed_retrieved_docs": seed_docs,
