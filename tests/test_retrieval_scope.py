@@ -633,8 +633,8 @@ class RetrievalScopeTests(unittest.TestCase):
         )
 
         searched = [row["query"] for row in agent.vsm.queries]
-        self.assertEqual(len(searched), 5)
-        self.assertEqual(sum(1 for query in searched if "primary one" in query), 2)
+        self.assertEqual(len(searched), 4)
+        self.assertEqual(sum(1 for query in searched if "primary one" in query), 1)
         self.assertTrue(any("retry three" in query for query in searched))
         self.assertFalse(any("retry four" in query for query in searched))
         trace = result["retrieval_debug_trace"]["query_budget"]
@@ -644,6 +644,71 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["retry"]["budget"], 3)
         self.assertEqual(trace["retry"]["selected_count"], 3)
         self.assertEqual(trace["retry"]["dropped_count"], 1)
+        duplicate_guard = result["retrieval_debug_trace"]["executed_duplicate_guard"]
+        self.assertTrue(duplicate_guard["enabled"])
+        self.assertEqual(duplicate_guard["scope"], "same_trace_same_source_exact_signature")
+        self.assertEqual(duplicate_guard["dropped_count"], 1)
+        self.assertEqual(duplicate_guard["by_source"]["primary"]["dropped_count"], 1)
+
+    def test_executed_duplicate_guard_preserves_cross_source_queries(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 4
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 1
+        agent.focused_retrieval_query_budget = 4
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="revenue 1,000",
+                        metadata={
+                            "chunk_id": "partial-primary",
+                            "block_type": "table",
+                            "table_row_labels_text": "revenue",
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        result = agent._retrieve(
+            {
+                "query": "revenue cost ratio",
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "query": "revenue",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {"label": "revenue", "role": "denominator"},
+                        {"label": "cost", "role": "numerator"},
+                    ],
+                },
+                "calc_subtasks": [
+                    {"task_id": "task_1", "operation_family": "ratio"},
+                    {"task_id": "task_2", "operation_family": "narrative_summary"},
+                ],
+                "report_scope": {},
+                "companies": [],
+                "years": [],
+                "section_filter": None,
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "reflection_count": 0,
+                "retry_queries": ["cost"],
+                "topic": "",
+                "format_preference": "table",
+            }
+        )
+
+        executed = result["retrieval_debug_trace"]["executed_queries"]
+        self.assertEqual([row["source"] for row in executed], ["primary", "operand_focus", "operand_focus", "retry"])
+        self.assertEqual([row["base_query"] for row in executed], ["revenue", "revenue", "cost", "cost"])
+        duplicate_guard = result["retrieval_debug_trace"]["executed_duplicate_guard"]
+        self.assertEqual(duplicate_guard["dropped_count"], 0)
 
     def test_multi_source_receipts_override_primary_receipt_filter(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

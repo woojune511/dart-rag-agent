@@ -120,6 +120,42 @@ def _drop_queries_already_selected(
     }
 
 
+def _drop_duplicate_executed_query(
+    seen_signatures_by_source: Dict[str, set[str]],
+    trace: Dict[str, Any],
+    *,
+    source: str,
+    executed_query: str,
+    base_query: str,
+) -> bool:
+    source_key = _normalise_spaces(str(source or "unknown")) or "unknown"
+    signature = _retrieval_query_signature(executed_query)
+    if not signature:
+        return False
+    seen = seen_signatures_by_source.setdefault(source_key, set())
+    if signature not in seen:
+        seen.add(signature)
+        return False
+
+    by_source = trace.setdefault("by_source", {})
+    source_trace = by_source.setdefault(
+        source_key,
+        {
+            "dropped_count": 0,
+            "dropped_queries": [],
+        },
+    )
+    source_trace["dropped_count"] = int(source_trace.get("dropped_count") or 0) + 1
+    source_trace.setdefault("dropped_queries", []).append(
+        {
+            "base_query": base_query,
+            "executed_query": executed_query,
+        }
+    )
+    trace["dropped_count"] = int(trace.get("dropped_count") or 0) + 1
+    return True
+
+
 def _limit_query_context_terms(
     items: List[str],
     budget: int,
@@ -2079,6 +2115,13 @@ class FinancialAgentEvidenceMixin:
             "retrieval_hint": hint_enrichment_trace,
             "preferred_sections": section_enrichment_trace,
         }
+        executed_duplicate_trace: Dict[str, Any] = {
+            "enabled": True,
+            "scope": "same_trace_same_source_exact_signature",
+            "dropped_count": 0,
+            "by_source": {},
+        }
+        seen_executed_query_signatures_by_source: Dict[str, set[str]] = {}
         executed_queries: List[Dict[str, Any]] = []
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
@@ -2091,6 +2134,14 @@ class FinancialAgentEvidenceMixin:
                 enriched_query = f"{enriched_query} {' '.join(selected_retrieval_hint_terms)}".strip()
             if selected_preferred_sections:
                 enriched_query = f"{enriched_query} {' '.join(selected_preferred_sections)}".strip()
+            if _drop_duplicate_executed_query(
+                seen_executed_query_signatures_by_source,
+                executed_duplicate_trace,
+                source="primary",
+                executed_query=enriched_query,
+                base_query=base_query,
+            ):
+                continue
             search_k = effective_k * 4
             query_trace = {
                 "source": "primary",
@@ -2151,6 +2202,14 @@ class FinancialAgentEvidenceMixin:
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
             for focused_query in focused_operand_queries:
+                if _drop_duplicate_executed_query(
+                    seen_executed_query_signatures_by_source,
+                    executed_duplicate_trace,
+                    source="operand_focus",
+                    executed_query=focused_query,
+                    base_query=focused_query,
+                ):
+                    continue
                 search_k = max(effective_k * 2, 8)
                 query_trace = {
                     "source": "operand_focus",
@@ -2189,6 +2248,14 @@ class FinancialAgentEvidenceMixin:
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries:
+                if _drop_duplicate_executed_query(
+                    seen_executed_query_signatures_by_source,
+                    executed_duplicate_trace,
+                    source="retry",
+                    executed_query=retry_query,
+                    base_query=retry_query,
+                ):
+                    continue
                 search_k = max(effective_k * 2, 8)
                 query_trace = {
                     "source": "retry",
@@ -2317,6 +2384,7 @@ class FinancialAgentEvidenceMixin:
             "reflection_count": reflection_count,
             "retry_queries": retry_queries,
             "query_budget": query_budget_trace,
+            "executed_duplicate_guard": executed_duplicate_trace,
             "report_cache_consumer_assessment": {
                 **report_cache_consumer_assessment,
                 "normal_retrieval_executed": bool(executed_queries),

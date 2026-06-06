@@ -2729,6 +2729,10 @@ Interpretation:
   and cross-trace repeats around `task_1/growth_rate`, while `NAV_T2_006`
   repeats enriched primary lookup queries across `task_3/lookup` and
   `task_4/lookup`.
+- The first runtime guard after this audit is intentionally narrow: drop
+  same-trace, same-source, exact-normalized executed-query duplicates only.
+  Cross-source fallback repeats, cross-trace repeats, and CJK spacing variants
+  remain visible rather than being compacted.
 - This matches the earlier budget smoke: reducing the global policy budget to
   `5 / 3 / 1`, `6 / 4 / 1`, or `7 / 4 / 1` broke `NAV_T2_006`, even though
   some other rows stayed healthy.
