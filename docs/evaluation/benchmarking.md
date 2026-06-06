@@ -2744,6 +2744,63 @@ Interpretation:
   latest concept-runtime baseline or runtime-contract gate bundles, so this
   audit baseline is policy-gate-only.
 
+## 2026-06-07 Same-Trace Duplicate Guard Focused Replay
+
+Purpose:
+
+- Validate the first narrow duplicate-query runtime guard on the two rows with
+  the largest duplicate pressure in the fan-out audit.
+- Keep the validation store-fixed and focused before paying for a broader
+  policy-gate replay.
+- Avoid turning cross-trace or cross-source repeats into hidden runtime
+  behavior; those are separate optimization surfaces.
+
+Command shape:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks\results\same_trace_guard_hyu_t2_010_2026-06-07 `
+  --company-run-id hyundai_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id HYU_T2_010 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks\results\same_trace_guard_hyu_t2_010_2026-06-07\_logs\heartbeat_hyu_t2_010.jsonl
+```
+
+The `NAV_T2_006` replay used the same profile and heartbeat pattern with
+`--company-run-id naver_2023_policy_driven_runtime_gate` and
+`--output-dir benchmarks\results\same_trace_guard_nav_t2_006_2026-06-07`.
+
+Focused row comparison:
+
+| Row | Artifact | Faithfulness | Completeness | Context recall | Retrieval hit@k | Executed | Unique | Duplicate | Agent query embeddings | Agent LLM calls | Agent LLM tokens | Notes |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `HYU_T2_010` | historical audit baseline `policy_gate_regression_2026-06-03_1138_actual` | 1.000 | 1.000 | 1.000 | 1.000 | 28 | 15 | 13 | 16 | 11 | 233,731 | Largest duplicate-pressure row; includes same-trace and cross-trace operand repeats. |
+| `HYU_T2_010` | `same_trace_guard_hyu_t2_010_2026-06-07` | 1.000 | 1.000 | 1.000 | 1.000 | 16 | 16 | 0 | 17 | 10 | 223,167 | Replay has no duplicate executed-query signatures; guard `dropped_count` was 0 because this live plan did not emit exact same-trace duplicates. |
+| `NAV_T2_006` | historical audit baseline `policy_gate_regression_2026-06-03_1138_actual` | 1.000 | 0.700 | 1.000 | 1.000 | 27 | 23 | 4 | 24 | 10 | 107,859 | Repeats long enriched primary lookup queries across sibling lookup tasks. |
+| `NAV_T2_006` | `same_trace_guard_nav_t2_006_2026-06-07` | 1.000 | 1.000 | 1.000 | 1.000 | 28 | 24 | 4 | 25 | 11 | 173,890 | Quality stayed healthy; remaining duplicates are cross-trace primary repeats and should not be attributed to the same-trace guard. |
+
+Focused single-question runtime snapshots:
+
+| Row | Artifact | Runtime cost | Total LLM tokens | Query embedding calls | Latency |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `HYU_T2_010` | `same_trace_guard_hyu_t2_010_2026-06-07` | `$0.126045` | 251,169 | 19 | 114.7s |
+| `NAV_T2_006` | `same_trace_guard_nav_t2_006_2026-06-07` | `$0.103743` | 212,527 | 27 | 109.8s |
+
+Interpretation:
+
+- The narrow guard did not cause a focused quality regression on the two audit
+  rows most likely to expose duplicate-query side effects.
+- The focused replays are not causal proof of a broad cost reduction. HYU's
+  replay fan-out improved, but the guard did not directly drop a query in that
+  live run; NAV still has cross-trace primary repeats.
+- The remaining cost target is therefore not another same-trace exact-string
+  dedupe. It is sibling-task query reuse or cross-trace retrieval-result
+  sharing, with task/artifact provenance kept visible.
+- Generated `same_trace_guard_*` result directories are local experiment
+  artifacts and should not be committed.
+
 ## 2026-06-03 Adaptive Focused Retrieval Stop Smoke
 
 Purpose:
