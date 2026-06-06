@@ -15,7 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
 from src.config.report_scoped_cache import (
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
@@ -5702,6 +5702,12 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(reconcile_artifact["evidence_refs"], ["row:source", "claim:source"])
         self.assertNotIn("missing_required_evidence_ref", updated["planner_feedback"])
+        trace = _project_task_artifact_trace(updated["tasks"], updated["artifacts"])
+        aggregate_task = next(task for task in trace["tasks"] if task["task_id"] == "aggregate")
+
+        self.assertEqual(trace["orphan_artifact_ids"], [])
+        self.assertEqual(aggregate_task["kind"], "synthesis")
+        self.assertEqual(aggregate_task["latest_artifact_kind"], "aggregated_answer")
 
     def test_aggregate_subtasks_replans_on_retrieval_integrity_error(self) -> None:
         self.agent.llm = _StubLLM(

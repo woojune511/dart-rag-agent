@@ -1505,7 +1505,7 @@ def _resolve_runtime_calculation_trace(
     subtask_results = [dict(item) for item in (result.get("subtask_results") or [])]
 
     active_task_id = str((result.get("active_subtask") or {}).get("task_id") or "").strip()
-    if not active_task_id:
+    if not active_task_id and not subtask_results:
         calc_task_ids = [
             str(task.get("task_id") or "").strip()
             for task in (result.get("tasks") or [])
