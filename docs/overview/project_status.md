@@ -813,6 +813,11 @@ Useful supporting points:
     `task_1/growth_rate` across both same-trace and cross-trace patterns,
     while `NAV_T2_006` repeats enriched primary lookup queries across
     `task_3/lookup` and `task_4/lookup`.
+  - same-trace execution duplicate guard now drops only exact-normalized
+    repeated executed queries within the same retrieval source. It keeps
+    query-budget selection semantics, CJK spacing variants, cross-source
+    fallback repeats, and cross-trace repeats intact while recording
+    `retrieval_debug_trace.executed_duplicate_guard`.
 - Benchmark runner now supports focused LLM route probes without editing the
   profile via `--llm-route phase=provider:model`.
 - Local `HYU_T2_010` evidence-extraction probe with
