@@ -2980,6 +2980,68 @@ class SubtaskLoopTests(unittest.TestCase):
             "denominator_1",
         )
 
+    def test_direct_structured_operands_enrich_reconciliation_artifact_refs(self) -> None:
+        state = {
+            "query": "Return the requested value.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "requested value",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "requested value",
+                "operation_family": "lookup",
+            },
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "reconciliation",
+                    "label": "reconcile requested value",
+                    "status": "completed",
+                    "artifact_ids": ["reconcile:task_1:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "reconcile:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "reconciliation_result",
+                    "status": "ok",
+                    "payload": {"reconciliation_result": {"status": "ready", "matched_operands": []}},
+                    "evidence_refs": [],
+                }
+            ],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_001",
+                "evidence_id": "ev_source",
+                "source_row_ids": ["row_source"],
+                "label": "Requested value",
+                "raw_value": "100",
+                "normalized_value": 100.0,
+                "matched_operand_label": "Requested value",
+                "matched_operand_role": "value",
+            }
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+
+        extracted = self.agent._extract_calculation_operands(state)
+        reconcile_artifact = next(
+            artifact
+            for artifact in extracted["artifacts"]
+            if artifact["artifact_id"] == "reconcile:task_1:001"
+        )
+
+        self.assertEqual(reconcile_artifact["evidence_refs"], ["ev_source", "row_source"])
+
     def test_ratio_missing_dependency_binding_can_fall_back_to_retrieved_docs(self) -> None:
         state = {
             "query": "Calculate employee benefits as a share of 2023 operating expense.",
@@ -5561,6 +5623,85 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated["planner_mode"], "replan")
         self.assertIn("missing_required_evidence_ref", updated["planner_feedback"])
         self.assertIn("task_reconcile", updated["planner_feedback"])
+
+    def test_aggregate_subtasks_uses_current_task_source_refs_for_reconciliation_artifact(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "The requested value is 100.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "Return the requested value.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "requested value"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "requested value",
+                "operation_family": "lookup",
+            },
+            "subtask_results": [],
+            "answer": "The requested value is 100.",
+            "compressed_answer": "The requested value is 100.",
+            "selected_claim_ids": ["claim:source"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "reconciliation",
+                    "label": "reconcile requested value",
+                    "status": "completed",
+                    "artifact_ids": ["reconcile:task_1:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "reconcile:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "reconciliation_result",
+                    "status": "ready",
+                    "payload": {"reconciliation_result": {"status": "ready", "matched_operands": []}},
+                    "evidence_refs": [],
+                }
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "100",
+                "source_row_ids": ["row:source"],
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "requested value",
+                        "raw_value": "100",
+                        "rendered_value": "100",
+                        "source_row_id": "row:source",
+                        "source_row_ids": ["row:source"],
+                    },
+                },
+            },
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        reconcile_artifact = next(
+            artifact
+            for artifact in updated["artifacts"]
+            if artifact["artifact_id"] == "reconcile:task_1:001"
+        )
+
+        self.assertEqual(reconcile_artifact["evidence_refs"], ["row:source", "claim:source"])
+        self.assertNotIn("missing_required_evidence_ref", updated["planner_feedback"])
 
     def test_aggregate_subtasks_replans_on_retrieval_integrity_error(self) -> None:
         self.agent.llm = _StubLLM(
