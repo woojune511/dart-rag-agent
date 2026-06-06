@@ -289,6 +289,19 @@ role-separated multi-agent system using a task ledger and artifact store.
     - residual precision signals remain non-blocking but visible for follow-up:
       average section match `0.850`, citation coverage `0.933`, and entity
       coverage `0.942`.
+    - same-trace duplicate guard validation:
+      `benchmarks/results/same_trace_guard_hyu_t2_010_2026-06-07/` and
+      `benchmarks/results/same_trace_guard_nav_t2_006_2026-06-07/`
+      (local store-fixed eval-only artifacts, not committed) replayed the two
+      highest duplicate-pressure rows from the fan-out audit. Both preserved
+      faithfulness, completeness, context recall, and retrieval hit@k at
+      `1.000` with error rate `0.0%`. `HYU_T2_010` replayed with 16 executed
+      retrieval queries and no duplicate executed-query signatures, versus the
+      historical audit baseline of 28 executed / 15 unique / 13 duplicate.
+      `NAV_T2_006` replayed with 28 executed / 24 unique / 4 duplicate
+      signatures; the remaining duplicates are cross-trace primary repeats
+      across sibling lookup tasks, so they are outside the intentionally narrow
+      same-trace guard.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.
