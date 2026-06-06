@@ -73,6 +73,24 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                                     },
                                                                 },
                                                             },
+                                                            "executed_queries": [
+                                                                {
+                                                                    "source": "primary",
+                                                                    "executed_query": "Revenue 2023",
+                                                                },
+                                                                {
+                                                                    "source": "primary",
+                                                                    "executed_query": "Revenue 2023",
+                                                                },
+                                                                {
+                                                                    "source": "operand_focus",
+                                                                    "executed_query": "Cost 2023",
+                                                                },
+                                                                {
+                                                                    "source": "retry",
+                                                                    "executed_query": "Cost 2023",
+                                                                },
+                                                            ],
                                                         }
                                                     ],
                                                 },
@@ -93,6 +111,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                         "executed_queries": [
                                                             {
                                                                 "source": "primary",
+                                                                "executed_query": "Narrative driver",
                                                                 "search_telemetry": {
                                                                     "cache_hit": False,
                                                                     "vector_attempted": True,
@@ -123,6 +142,8 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["result_file_count"], 1)
         self.assertEqual(summary["question_count"], 2)
         self.assertEqual(summary["executed_query_count"], 5)
+        self.assertEqual(summary["unique_executed_query_count"], 3)
+        self.assertEqual(summary["duplicate_executed_query_count"], 2)
         self.assertEqual(summary["query_embedding_api_calls"], 4)
         self.assertEqual(summary["primary_selected_count"], 3)
         self.assertEqual(summary["operand_focus_selected_count"], 1)
@@ -135,8 +156,11 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertAlmostEqual(summary["avg_faithfulness"], 0.75)
         self.assertEqual(summary["numeric_pass_count"], 1)
         self.assertEqual(summary["by_source"]["primary"]["executed_query_count"], 3)
+        self.assertEqual(summary["by_source"]["primary"]["unique_executed_query_count"], 2)
+        self.assertEqual(summary["by_source"]["primary"]["duplicate_executed_query_count"], 1)
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
         self.assertEqual(audit["top_rows_by_executed_queries"][0]["question_id"], "Q1")
+        self.assertEqual(audit["top_rows_by_duplicate_queries"][0]["question_id"], "Q1")
 
     def test_find_result_files_recurses_directories(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -165,6 +189,8 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                         "company_id": "company_a",
                         "experiment_id": "exp",
                         "executed_query_count": 2,
+                        "unique_executed_query_count": 1,
+                        "duplicate_executed_query_count": 1,
                         "primary_selected_count": 2,
                         "query_embedding_api_calls": 2,
                         "faithfulness": 1,
@@ -177,6 +203,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
 
         self.assertIn("# Benchmark Fan-out Cost Audit", markdown)
         self.assertIn("| primary | 2 |", markdown)
+        self.assertIn("Duplicate executed queries", markdown)
         self.assertIn("| Q1 | company_a | exp | 2 |", markdown)
 
 

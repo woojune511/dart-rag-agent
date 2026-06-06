@@ -83,6 +83,11 @@ def _safe_list(value: Any) -> List[Any]:
     return list(value) if isinstance(value, list) else []
 
 
+def _query_signature(value: Any) -> str:
+    text = " ".join(str(value or "").strip().lower().split())
+    return text
+
+
 def find_result_files(paths: Sequence[Path]) -> List[Path]:
     """Resolve files or directories into unique ``results.json`` files."""
 
@@ -188,6 +193,15 @@ def _trace_entries(row: Mapping[str, Any]) -> List[Dict[str, Any]]:
 def _summarize_trace(trace: Mapping[str, Any]) -> Dict[str, Any]:
     query_budget = _safe_dict(trace.get("query_budget"))
     search_summary = _safe_dict(trace.get("search_summary"))
+    executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
+    if isinstance(trace.get("executed_queries"), list):
+        for query in trace.get("executed_queries") or []:
+            if not isinstance(query, Mapping):
+                continue
+            source = str(query.get("source") or "unknown")
+            signature = _query_signature(query.get("executed_query") or query.get("base_query"))
+            if signature:
+                executed_query_signatures_by_source[source].append(signature)
     if not search_summary and isinstance(trace.get("executed_queries"), list):
         by_source: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
         totals: Dict[str, float] = defaultdict(float)
@@ -222,6 +236,9 @@ def _summarize_trace(trace: Mapping[str, Any]) -> Dict[str, Any]:
         "search_summary": search_summary,
         "selected": selected,
         "operand_focus_skipped_count": 1 if skipped_focus else 0,
+        "executed_query_signatures_by_source": {
+            source: list(signatures) for source, signatures in executed_query_signatures_by_source.items()
+        },
     }
 
 
@@ -231,6 +248,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     search_totals: Dict[str, float] = defaultdict(float)
     by_source: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
     operand_focus_skipped_count = 0
+    executed_query_signatures: List[str] = []
+    executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
 
     for trace in traces:
         summary = _summarize_trace(trace)
@@ -249,6 +268,19 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
                 number = _as_float(source_summary.get(key))
                 if number is not None:
                     by_source[str(source)][key] += number
+        for source, signatures in _safe_dict(summary.get("executed_query_signatures_by_source")).items():
+            if not isinstance(signatures, list):
+                continue
+            clean_signatures = [str(item) for item in signatures if str(item)]
+            executed_query_signatures.extend(clean_signatures)
+            executed_query_signatures_by_source[str(source)].extend(clean_signatures)
+
+    unique_executed_query_count = len(set(executed_query_signatures))
+    duplicate_executed_query_count = max(len(executed_query_signatures) - unique_executed_query_count, 0)
+    for source, signatures in executed_query_signatures_by_source.items():
+        unique_source_count = len(set(signatures))
+        by_source[source]["unique_executed_query_count"] += unique_source_count
+        by_source[source]["duplicate_executed_query_count"] += max(len(signatures) - unique_source_count, 0)
 
     llm_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(llm_usage, _safe_dict(row.get("llm_usage")), LLM_USAGE_KEYS)
@@ -266,6 +298,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         "numeric_final_judgement": row.get("numeric_final_judgement"),
         "trace_count": len(traces),
         "operand_focus_skipped_count": operand_focus_skipped_count,
+        "unique_executed_query_count": unique_executed_query_count,
+        "duplicate_executed_query_count": duplicate_executed_query_count,
         **{key: _as_float(row.get(key)) for key in QUALITY_KEYS},
         **dict(selected),
         **dict(search_totals),
@@ -299,6 +333,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             "retry_selected_count",
             "operand_focus_skipped_count",
             "executed_query_count",
+            "unique_executed_query_count",
+            "duplicate_executed_query_count",
             "cache_hit_count",
             "vector_attempted_count",
             *EMBEDDING_USAGE_KEYS,
@@ -344,6 +380,14 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
         },
         "rows": audited_rows,
         "top_rows_by_executed_queries": sorted_rows[: max(top_n, 0)],
+        "top_rows_by_duplicate_queries": sorted(
+            audited_rows,
+            key=lambda row: (
+                -(_as_float(row.get("duplicate_executed_query_count")) or 0.0),
+                -(_as_float(row.get("executed_query_count")) or 0.0),
+                str(row.get("question_id") or ""),
+            ),
+        )[: max(top_n, 0)],
     }
 
 
@@ -359,6 +403,7 @@ def _format_number(value: Any, digits: int = 3) -> str:
 def render_markdown(audit: Mapping[str, Any]) -> str:
     summary = _safe_dict(audit.get("summary"))
     rows = _safe_list(audit.get("top_rows_by_executed_queries"))
+    duplicate_rows = _safe_list(audit.get("top_rows_by_duplicate_queries"))
     lines = [
         "# Benchmark Fan-out Cost Audit",
         "",
@@ -368,6 +413,8 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         f"- Questions: `{_format_number(summary.get('question_count'), 0)}`",
         f"- Retrieval traces: `{_format_number(summary.get('trace_count'), 0)}`",
         f"- Executed queries: `{_format_number(summary.get('executed_query_count'), 0)}`",
+        f"- Unique executed queries: `{_format_number(summary.get('unique_executed_query_count'), 0)}`",
+        f"- Duplicate executed queries: `{_format_number(summary.get('duplicate_executed_query_count'), 0)}`",
         f"- Query embedding API calls: `{_format_number(summary.get('query_embedding_api_calls'), 0)}`",
         f"- LLM API calls: `{_format_number(_safe_dict(summary.get('llm_usage')).get('api_calls'), 0)}`",
         f"- Estimated runtime cost USD: `{_format_number(summary.get('estimated_runtime_cost_usd'), 6)}`",
@@ -375,22 +422,53 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         "",
         "## Retrieval By Source",
         "",
-        "| Source | Executed queries | Cache hits | Vector attempts | Query embedding calls |",
-        "| --- | ---: | ---: | ---: | ---: |",
+        "| Source | Executed queries | Unique queries | Duplicate queries | Cache hits | Vector attempts | Query embedding calls |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for source, values in _safe_dict(summary.get("by_source")).items():
         source_values = _safe_dict(values)
         lines.append(
-            "| {source} | {executed} | {cache} | {vector} | {embed} |".format(
+            "| {source} | {executed} | {unique} | {duplicate} | {cache} | {vector} | {embed} |".format(
                 source=source,
                 executed=_format_number(source_values.get("executed_query_count"), 0),
+                unique=_format_number(source_values.get("unique_executed_query_count"), 0),
+                duplicate=_format_number(source_values.get("duplicate_executed_query_count"), 0),
                 cache=_format_number(source_values.get("cache_hit_count"), 0),
                 vector=_format_number(source_values.get("vector_attempted_count"), 0),
                 embed=_format_number(source_values.get("query_embedding_api_calls"), 0),
             )
         )
     if not _safe_dict(summary.get("by_source")):
-        lines.append("| n/a |  |  |  |  |")
+        lines.append("| n/a |  |  |  |  |  |  |")
+
+    lines.extend(
+        [
+            "",
+            "## Top Rows By Duplicate Executed Queries",
+            "",
+            "| Question | Company | Experiment | Executed | Unique | Duplicate | Query embed | Faithfulness | Completeness | Error |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        ]
+    )
+    for row in duplicate_rows:
+        if not isinstance(row, Mapping):
+            continue
+        lines.append(
+            "| {qid} | {company} | {experiment} | {executed} | {unique} | {duplicate} | {embed} | {faith} | {complete} | {error} |".format(
+                qid=row.get("question_id") or "",
+                company=row.get("company_id") or row.get("company_label") or "",
+                experiment=row.get("experiment_id") or "",
+                executed=_format_number(row.get("executed_query_count"), 0),
+                unique=_format_number(row.get("unique_executed_query_count"), 0),
+                duplicate=_format_number(row.get("duplicate_executed_query_count"), 0),
+                embed=_format_number(row.get("query_embedding_api_calls"), 0),
+                faith=_format_number(row.get("faithfulness"), 3),
+                complete=_format_number(row.get("completeness"), 3),
+                error=str(row.get("error") or "").replace("|", "/"),
+            )
+        )
+    if not duplicate_rows:
+        lines.append("| n/a |  |  |  |  |  |  |  |  |  |")
 
     lines.extend(
         [

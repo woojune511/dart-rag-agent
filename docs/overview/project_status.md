@@ -789,8 +789,9 @@ Useful supporting points:
 - Offline fan-out/cost audit is now available through
   `python -m src.ops.audit_benchmark_fanout_cost <result-bundle>`. It reads
   existing `results.json` files and summarizes per-question retrieval traces,
-  source-level fan-out, query embedding calls, LLM usage, estimated runtime
-  cost, and quality metrics before any new budget probe is run.
+  source-level fan-out, unique and duplicate executed query counts, query
+  embedding calls, LLM usage, estimated runtime cost, and quality metrics
+  before any new budget probe is run.
 - Initial policy-gate audit baselines:
   - `policy_gate_regression_2026-05-31_2212`: 5 questions, 11 retrieval
     traces, 93 executed queries, 89 query embedding calls, estimated runtime
@@ -798,10 +799,12 @@ Useful supporting points:
   - `policy_gate_regression_2026-06-03_1138_actual`: 5 questions, 12
     retrieval traces, 98 executed queries, 81 query embedding calls,
     estimated runtime cost `$0.423814`, average faithfulness/completeness
-    `1.000 / 0.880`.
+    `1.000 / 0.880`; refreshed duplicate-query audit shows 81 unique executed
+    query signatures and 17 duplicate executed query signatures.
   - top fan-out pressure remains concentrated in `NAV_T2_006`, `HYU_T2_010`,
-    and `LGE_T1_051`; the next canary should target generic evidence signals
-    rather than lowering the global `8 / 4 / 1` budget.
+    and `LGE_T1_051`; duplicate-query pressure is highest on `HYU_T2_010`;
+    the next canary should target generic evidence signals rather than
+    lowering the global `8 / 4 / 1` budget.
 - Benchmark runner now supports focused LLM route probes without editing the
   profile via `--llm-route phase=provider:model`.
 - Local `HYU_T2_010` evidence-extraction probe with
