@@ -52,6 +52,7 @@
 - `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/`
 - `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`
 - `benchmarks/results/mas_e2e_smoke_failure_diagnostics_2026-06-07/`
+- `benchmarks/results/mas_direct_worker_probe_2026-06-07/`
 
 ### 무엇을 검증했나
 
@@ -79,6 +80,7 @@ Follow-up diagnostic surface:
 | Run | Key diagnostic |
 | --- | --- |
 | `mas_e2e_smoke_failure_diagnostics_2026-06-07` | `worker_failure_count = 4`, `worker_failure_missing_artifact_count = 4`, `worker_failure_assignee_counts = {"Analyst": 2, "Researcher": 2}`, `worker_failure_reason_counts = {"incomplete numeric result": 2, "empty narrative result": 2, "missing_worker_artifact": 4}` |
+| `mas_direct_worker_probe_2026-06-07` | Planner created `2` Analyst and `2` Researcher tasks, but direct Analyst status was `no_retrieved_docs = 2` and direct Researcher status was `no_raw_retrieval = 2`; store inventory reported `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, and `structure_graph_node_count = 0` |
 
 The follow-up changed only smoke observability and CLI robustness: failed worker
 diagnostics are now surfaced per case and in the summary, and `--output` creates
@@ -92,9 +94,11 @@ experiment artifact.
   reading.
 - This is not a critic acceptance bug. Critic rejection issue counts stayed
   `0`; the final close was blocked by lack of source material.
-- The next diagnostic step should run direct Analyst and Researcher probes
-  against the same default store/scope to separate store, retrieval, planner,
-  and default-query causes before changing self-reflection or critic policy.
+- The direct worker probe separates the immediate blocker from planner,
+  self-reflection, critic, and final merge behavior. The current default store
+  path is effectively empty in this workspace, so the next step should restore
+  a valid default smoke store or make the MAS smoke preflight fail before LLM
+  work when collection and sidecar counts are all zero.
 
 
 ## 큰 흐름
