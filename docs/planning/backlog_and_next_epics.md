@@ -932,8 +932,8 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 다음:
 
-- 이 섹션은 닫힘. 다음 구조 작업은 `calculation_debug_trace` debug ownership
-  분리다
+- 이 섹션은 닫힘. `calculation_debug_trace` debug ownership 분리와 initial
+  live-state compatibility seed 제거까지 완료했다.
 
 ### 5. Self-reflection을 retry rule이 아닌 capability로 재정의
 

@@ -92,6 +92,10 @@ is internal representation cleanup, not a new answer-quality fix.
   marks `calculation_debug_trace` optional and exposes the owned public debug
   surface as `debug_traces.calculation`; the old top-level
   `calculation_debug_trace` remains a compatibility bridge in `FinancialAgent.run()`.
+- 2026-06-07: removed initial live-state seeding for optional top-level
+  calculation mirrors and `calculation_debug_trace`. Calculation nodes may still
+  write the debug scratch field when they have diagnostic material, but a fresh
+  run no longer starts with empty compatibility fields.
 
 ## Next Implementation Candidate
 
@@ -100,6 +104,9 @@ behavior:
 
 - audit whether public compatibility bridges still need to accept the optional
   legacy calculation mirror keys and top-level debug bridge;
+- audit calculation-node scratch writes separately from public compatibility
+  projection, so debug diagnostics can remain available without reintroducing a
+  required state field;
 - update tests that seed stale top-level fields so they remain explicit
   compatibility or regression fixtures;
 - avoid deleting historical-tool fallback until old result-bundle replay is no

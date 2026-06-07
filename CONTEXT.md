@@ -430,6 +430,7 @@
 - internal calculation mirror cleanup 1차 작업은 2026-06-07에 닫았다. Aggregate reconciliation artifact enrichment가 더 이상 stale top-level `calculation_result`의 `source_row_ids` / answer-slot source refs를 evidence refs로 보강하지 않고, canonical projection / ordered subtask refs / selected claims만 사용한다. 회귀 테스트는 canonical `resolved_calculation_trace` source refs는 보존하고 stale top-level refs는 replan-triggering integrity gap으로 남기는 두 경로를 고정한다. `tests.test_subtask_loop` `143`개와 runtime domain-term audit이 통과했다.
 - internal calculation mirror cleanup state-typing follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 optional compatibility mirror로 내려갔다. Focused projection test와 runtime domain-term audit이 통과했다.
 - internal calculation debug ownership follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 `calculation_debug_trace`는 optional compatibility bridge가 됐고, owned public debug surface는 `debug_traces.calculation`으로 분리했다.
+- internal compatibility bridge initial-state follow-up도 2026-06-07에 닫았다. `FinancialAgent.run()`은 더 이상 optional top-level `calculation_operands` / `calculation_plan` / `calculation_result` / `calculation_debug_trace`를 빈 값으로 seed하지 않는다.
 - runtime critic / offline evaluator boundary follow-up 1차 작업은 2026-06-07에 reviewer/demo surface 정리로 시작했다. `portfolio_demo`와 `mas_researcher_smoke`는 이제 `passed` / `deterministic_score`를 직접 acceptance로 보지 않고 `critic_report_runtime_acceptance_state()`의 status, reasons, target refs, score-used flag를 노출한다. Focused demo/smoke/critic tests `14`개가 통과했다.
 - runtime critic / final merge acceptance follow-up은 2026-06-07에 target carry-forward를 보강했다. Critic rejection integrity issue는 raw `target_refs`뿐 아니라 ledger에 존재하는 `target_task_ids` / `target_artifact_ids`를 분리해 노출하고, Orchestrator replan carry-forward는 rejected worker target task도 failed 처리한다. Focused MAS/projection tests와 runtime domain-term audit이 통과했다.
 - runtime critic / offline evaluator boundary follow-up은 2026-06-07에 helper level까지 닫았다. `critic_report_runtime_acceptance_state()`는 `passed` / `verdict` / `status` verdict signal을 normalize하고, conflicting verdict signal은 block하며, rejected report는 diagnostic score가 높아도 blocked로 남긴다. `deterministic_score_used_for_acceptance = false`를 유지한다. Focused critic/projection/demo tests와 runtime domain-term audit이 통과했다.
@@ -463,7 +464,8 @@
   - `FinancialAgent.run()` public bridge와 retrospective/replay tools만 명시적 compatibility fallback을 유지한다.
   - `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 이제 optional compatibility mirror다.
   - `calculation_debug_trace`도 optional compatibility bridge가 됐고, owned public debug surface는 `debug_traces.calculation`이다.
-  - 다음 cleanup은 legacy calculation mirror key와 top-level debug bridge를 계속 public compatibility로 유지해야 하는지 점검하는 순서다.
+  - initial live state에서도 optional top-level compatibility mirror seed를 제거했다.
+  - 다음 cleanup은 calculation-node scratch writes와 public compatibility projection을 더 분리할 수 있는지 점검하는 순서다.
 - 현재 더 중요한 운영 질문은 planner보다 ingest candidate selection이다.
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다

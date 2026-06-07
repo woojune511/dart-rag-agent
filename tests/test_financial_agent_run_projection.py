@@ -7,8 +7,10 @@ from src.agent.financial_graph_models import FinancialAgentState
 class _FakeGraph:
     def __init__(self, final_state):
         self._final_state = final_state
+        self.initial_state = None
 
     def invoke(self, initial):
+        self.initial_state = dict(initial)
         return dict(self._final_state)
 
 
@@ -121,6 +123,20 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
+
+    def test_run_initial_state_does_not_seed_optional_calculation_mirrors(self) -> None:
+        final_state = self._base_final_state()
+        fake_graph = _FakeGraph(final_state)
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = fake_graph
+        agent.vsm = object()
+
+        agent.run("test question")
+
+        self.assertNotIn("calculation_operands", fake_graph.initial_state)
+        self.assertNotIn("calculation_plan", fake_graph.initial_state)
+        self.assertNotIn("calculation_result", fake_graph.initial_state)
+        self.assertNotIn("calculation_debug_trace", fake_graph.initial_state)
 
     def test_run_projects_calculation_debug_trace_under_debug_traces(self) -> None:
         final_state = self._base_final_state()

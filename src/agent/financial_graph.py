@@ -468,13 +468,6 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "numeric_debug_trace": {},
             "resolved_calculation_trace": {},
             "structured_result": {},
-            # Compatibility-only flat mirrors. Runtime truth is carried in
-            # `resolved_calculation_trace` / `structured_result` and, beneath
-            # that, the task/artifact ledger.
-            "calculation_operands": [],
-            "calculation_plan": {},
-            "calculation_result": {},
-            "calculation_debug_trace": {},
             "planner_debug_trace": {},
             "missing_info": [],
             "reflection_count": 0,
