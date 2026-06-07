@@ -1,6 +1,7 @@
 {
   "profile_track": "mainline_curated",
   "profile_role": "contextual_arbitration_reference",
+  "status_note": "Manual quality-reference profile for explicit structural-vs-contextual arbitration only. Do not use for routine triage, single-question canaries, or everyday regression checks.",
   "dataset_track": "curated_dart_review",
   "defaults": {
     "k": 8,

@@ -418,17 +418,15 @@
 | --- | --- | --- |
 | 1 | broader curated gate maintenance | closed canary 유지보수와 completeness/render calibration을 runtime blocker와 분리 |
 | 2 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
-| 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
-| 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
-| 5 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
+| 3 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
+| 4 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
 
 ## 현재 우선순위 요약
 
 1. `curated_single_doc_core` / broader gate maintenance
 2. concept-only planner runtime promotion check
-3. contextual arbitration / benchmark maintenance 정리
-4. internal compatibility mirror cleanup scope 결정
-5. table payload sidecar / store-size cleanup
+3. internal compatibility mirror cleanup scope 결정
+4. table payload sidecar / store-size cleanup
 
 ## 현재 해석
 
@@ -448,6 +446,10 @@
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
   - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
 - 따라서 다음 구현은 **concept planner shadow 확대 + benchmark maintenance** 쪽으로 돌아가는 흐름이 맞다.
+- contextual arbitration / benchmark maintenance 정리는 2026-06-07에 문서와 profile metadata 기준으로 닫았다.
+  - routine structural profiles에는 `profile_track/profile_role/status_note`로 operating-default 역할을 명시했다.
+  - contextual arbitration profile에는 manual quality-reference 용도와 routine triage 금지 조건을 명시했다.
+  - `dataset_curation_log.md`는 `structural_selective_v2`를 current operating default, `contextual_selective_v2`를 arbitration-only historical quality reference로 정리했다.
 - immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding/evaluator trace compatibility, `NAV_T3_007` numeric gate, `SAM_T3_028` source-level numeric blocker는 now closed다.
 - `KBF_T2_043` material-gap/narrative numeric blocker도 PR #35 이후 focused eval-only 기준으로 closed다.
   - `numeric_final_judgement = PASS`
