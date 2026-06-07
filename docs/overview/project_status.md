@@ -382,6 +382,8 @@ Recently closed:
   cache flags, `review_report_cache_index_contract` reports
   `reviewer_handoff.status = ready`, and README / one-pager / demo walkthrough
   now use the same cache safety surface.
+- `src.ops.portfolio_review_gates` now aggregates the portfolio demo, cache
+  reviewer, and reflection promotion gates into one reviewer proof bundle.
 
 Current next decisions:
 
@@ -398,10 +400,9 @@ Current next decisions:
    contract with explicit cache-origin metadata; serving, writes, retrieval
    bypass, and live ledger insertion remain disabled until live/default MAS or
    store-fixed eval-only traces justify a promotion.
-3. Gate maintenance: rerun `portfolio_demo` and
-   `review_report_cache_index_contract` whenever runtime surfaces change; run
-   broader benchmark refreshes only when a source change can plausibly affect
-   gate quality or cost.
+3. Gate maintenance: rerun `portfolio_review_gates` whenever reviewer-facing
+   runtime surfaces change; run broader benchmark refreshes only when a source
+   change can plausibly affect gate quality or cost.
 
 ### Task Ledger / Artifact Contract Focus
 

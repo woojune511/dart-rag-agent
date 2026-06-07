@@ -124,6 +124,7 @@ benchmarks/    profiles and local result bundles
 .\.venv\Scripts\python.exe -m src.ops.portfolio_demo
 .\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
 .\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
+.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
 ```
 
 The report-cache reviewer command should report:
@@ -140,6 +141,8 @@ The portfolio demo command should report `Readiness: ready` and show the final
 answer, citations, calculation trace, task/artifact integrity summary, critic
 acceptance, and cache reviewer handoff in one compact terminal view. See
 [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md).
+The portfolio review gates command should report aggregate `status = ready`
+when the demo, cache reviewer, and reflection promotion gates all pass.
 
 ## Current Status
 
@@ -154,6 +157,8 @@ Implemented and validated:
   and ledger insertion disabled
 - fixture-backed portfolio demo command for answer, evidence, trace, integrity,
   critic, and cache handoff surfaces
+- aggregate portfolio review gate bundle for demo, cache, and reflection
+  promotion proof
 - runtime domain-term audit to keep domain vocabulary out of runtime branches
 
 Intentionally disabled:
@@ -168,11 +173,13 @@ Intentionally disabled:
 
 For a quick review:
 
-1. Run `python -m src.ops.portfolio_demo` to scan the answer, citation,
+1. Run `python -m src.ops.portfolio_review_gates` to confirm the aggregate
+   reviewer proof bundle.
+2. Run `python -m src.ops.portfolio_demo` to scan the answer, citation,
    calculation, integrity, critic, and cache-handoff surfaces.
-2. Read [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md)
+3. Read [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md)
    for the concise engineering story.
-3. Use [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
+4. Use [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
    for the problem, method, quantitative comparison, and failure analysis.
 
 The current reviewer claim is narrow: canonical runtime state is carried by
