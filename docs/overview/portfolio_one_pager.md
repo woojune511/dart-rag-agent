@@ -44,6 +44,9 @@ and which gate would catch a regression.
   issues
 - shared `tasks`, `artifacts`, `evidence_pool`, `critic_reports`, and
   `task_artifact_trace` contracts replace ad hoc agent chat state
+- self-reflection retry decisions are bounded as `ReflectionRequest ->
+  ReflectionPlan -> ReflectionAction -> ReflectionReport`, then recorded as a
+  `reflection_report` artifact when retry preparation runs
 
 ### Runtime Acceptance Gates
 
@@ -94,13 +97,14 @@ retrieval bypass remain disabled.
 | --- | --- |
 | Runtime contract | `task_artifact_trace` exposes task/artifact integrity status and structured issues |
 | Critic boundary | `critic_report_runtime_acceptance_state()` separates runtime acceptance from diagnostic scores |
+| Reflection boundary | `reflection_report` artifacts record retry action, budget use, targets, and blocking issues without accepting final answers |
 | Final close gate | rejected critic reports produce blocking integrity errors |
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
 | Runtime cleanup | canonical calculation state lives in `resolved_calculation_trace` / artifacts; legacy top-level calculation/debug fields are optional compatibility bridges |
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while serving remains disabled |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
-| Test coverage | full `python -m unittest discover -s tests` has been kept green through recent contract work |
+| Test coverage | latest full `python -m unittest discover -s tests` passed 940 tests after reflection ledger handoff |
 
 ## Representative Commands
 
@@ -116,8 +120,8 @@ retrieval bypass remain disabled.
 This project shows how to turn a financial RAG prototype into a contract-driven
 runtime. The core engineering work is not prompt tuning; it is designing the
 handoff between retrieval, structured evidence, deterministic calculation,
-critic acceptance, and benchmark review so that improvements remain auditable
-and hard to overfit.
+bounded reflection, critic acceptance, and benchmark review so that
+improvements remain auditable and hard to overfit.
 
 ## What Is Still Intentionally Disabled
 

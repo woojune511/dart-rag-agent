@@ -383,6 +383,9 @@ Useful supporting points:
 3. Reviewer proof maintenance: rerun `portfolio_demo` and
    `review_report_cache_index_contract` when runtime surfaces change, then keep
    README, one-pager, demo walkthrough, and experiment report aligned.
+   Latest refresh after reflection ledger handoff: `portfolio_demo` reported
+   `Readiness: ready`, cache reviewer contract reported `status = ok` and
+   `reviewer_handoff.status = ready`, and full unit discovery passed 940 tests.
 
 ### Task Ledger / Artifact Contract Focus
 
