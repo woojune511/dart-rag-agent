@@ -11973,6 +11973,41 @@ class FinancialAgentCalculationMixin:
             reflection_action=reflection_action,
             reflection_request=dict(state.get("reflection_request") or {}),
         )
+        active_subtask = dict(state.get("active_subtask") or {})
+        target_task_id = str(active_subtask.get("task_id") or "").strip()
+        reflection_task_id = f"reflection:{target_task_id or 'global'}:{current_count + 1:03d}"
+        artifacts = list(state.get("artifacts") or [])
+        artifact_id = f"{reflection_task_id}:report"
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=artifact_id,
+            task_id=reflection_task_id,
+            kind=ArtifactKind.REFLECTION_REPORT,
+            status=str(reflection_report.get("outcome") or "retry_prepared"),
+            summary=f"reflection={reflection_report.get('action_taken') or retry_strategy}",
+            payload={
+                "reflection_report": reflection_report,
+                "reflection_action": reflection_action,
+                "reflection_request": dict(state.get("reflection_request") or {}),
+                "reflection_plan": reflection_plan,
+            },
+            evidence_refs=[],
+        )
+        tasks = _upsert_task(
+            list(state.get("tasks") or []),
+            task_id=reflection_task_id,
+            kind=TaskKind.REFLECTION,
+            label=f"reflect {target_task_id or 'global'}",
+            status=TaskStatus.COMPLETED,
+            query=str(state.get("query") or ""),
+            metric_family=str(active_subtask.get("metric_family") or ""),
+            constraints={
+                "target_task_ids": list(reflection_report.get("target_task_ids") or []),
+                "target_artifact_ids": list(reflection_report.get("target_artifact_ids") or []),
+                "action_taken": str(reflection_report.get("action_taken") or ""),
+            },
+            artifact_id=artifact_id,
+        )
         retry_reason = (
             str(reflection_plan.get("explanation") or "")
             or str(plan.get("explanation") or "")
@@ -11995,6 +12030,8 @@ class FinancialAgentCalculationMixin:
             "retry_queries": list(reflection_action.get("retry_queries") or []),
             "reflection_action": reflection_action,
             "reflection_report": reflection_report,
+            "tasks": tasks,
+            "artifacts": artifacts,
             "evidence_bullets": [],
             "evidence_items": [],
             "evidence_status": "missing",
