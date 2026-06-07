@@ -103,7 +103,7 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
 | Runtime cleanup | canonical calculation state lives in `resolved_calculation_trace` / artifacts; legacy top-level calculation/debug fields are optional compatibility bridges |
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while bypass, writes, serving, and ledger insertion remain disabled |
-| Cache promotion evidence | `report_cache_promotion_evidence_gate` covers ready, incomplete, and ambiguous cache-index entries without enabling cache behavior |
+| Cache promotion evidence | `report_cache_promotion_evidence_gate` covers fixture plus trace-summary ready, incomplete, and ambiguous cache-index entries without enabling cache behavior |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, and reflection promotion proof into one ready/not-ready command |

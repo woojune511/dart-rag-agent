@@ -1,0 +1,96 @@
+{
+  "summary_id": "store_fixed_candidate_promotion_trace_summary_v1",
+  "source_type": "store_fixed_eval_only_trace_summary",
+  "source_note": "Reviewed summary distilled from local store-fixed eval-only traces; raw benchmark result bundles remain uncommitted.",
+  "reflection_promotion_cases": [
+    {
+      "case_id": "trace_summary_retry_retrieval_preserves_evidence",
+      "eligible": true,
+      "reflection_triggered": true,
+      "expected_action": "retry_retrieval",
+      "reflection_report": {
+        "outcome": "retry_prepared",
+        "action_taken": "retry_retrieval",
+        "budget_consumed": 1,
+        "target_task_ids": ["trace_summary_task_retry_retrieval"],
+        "target_artifact_ids": ["trace_summary_artifact_retry_result"],
+        "final_acceptance_authority": "critic_orchestrator_handoff"
+      },
+      "initial_status": "missing_retrieval_material",
+      "final_status": "accepted",
+      "task_artifact_trace": {
+        "integrity_status": "ok"
+      },
+      "calculation_trace_status": "ok",
+      "evidence_supported": true,
+      "baseline_step_count": 7,
+      "reflected_step_count": 9
+    },
+    {
+      "case_id": "trace_summary_clean_pass_skips_reflection",
+      "eligible": false,
+      "reflection_triggered": false,
+      "expected_action": "none",
+      "reflection_report": {},
+      "initial_status": "accepted",
+      "final_status": "accepted",
+      "task_artifact_trace": {
+        "integrity_status": "ok"
+      },
+      "calculation_trace_status": "ok",
+      "evidence_supported": true,
+      "baseline_step_count": 4,
+      "reflected_step_count": 4
+    }
+  ],
+  "report_cache_promotion_cases": [
+    {
+      "name": "trace_summary_ready_candidate_only",
+      "status": "ready",
+      "ready": true,
+      "fallback_required": false,
+      "selected_match_count": 1,
+      "reasons": [],
+      "consumer_admissibility_status": "admissible_for_design",
+      "producer_policy_status": "ready",
+      "producer_policy_ready": true,
+      "serving_enabled": false,
+      "ledger_insertion_enabled": false,
+      "retrieval_bypass_enabled": false,
+      "final_acceptance_enabled": false,
+      "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator"
+    },
+    {
+      "name": "trace_summary_ambiguous_candidate_fallback",
+      "status": "normal_retrieval_fallback",
+      "ready": false,
+      "fallback_required": true,
+      "selected_match_count": 2,
+      "reasons": ["ambiguous_rehydration_match"],
+      "consumer_admissibility_status": "normal_retrieval_fallback",
+      "producer_policy_status": "ready",
+      "producer_policy_ready": true,
+      "serving_enabled": false,
+      "ledger_insertion_enabled": false,
+      "retrieval_bypass_enabled": false,
+      "final_acceptance_enabled": false,
+      "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator"
+    },
+    {
+      "name": "trace_summary_incomplete_candidate_fallback",
+      "status": "normal_retrieval_fallback",
+      "ready": false,
+      "fallback_required": true,
+      "selected_match_count": 1,
+      "reasons": ["missing_answer_slots"],
+      "consumer_admissibility_status": "normal_retrieval_fallback",
+      "producer_policy_status": "blocked",
+      "producer_policy_ready": false,
+      "serving_enabled": false,
+      "ledger_insertion_enabled": false,
+      "retrieval_bypass_enabled": false,
+      "final_acceptance_enabled": false,
+      "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator"
+    }
+  ]
+}

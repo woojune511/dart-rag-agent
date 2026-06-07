@@ -22,7 +22,8 @@ Current repo surfaces:
   `report_cache_index_path` is explicitly configured.
 - `src.ops.review_report_cache_index_contract` is the reviewer handoff gate.
 - `src.ops.report_cache_promotion_evidence_gate` is the first focused
-  promotion-evidence gate for ready, incomplete, and ambiguous cache matches.
+  promotion-evidence gate for ready, incomplete, and ambiguous cache matches
+  across the local-index fixture and a reviewed store-fixed trace summary.
 
 The latest reviewer gate expectation is:
 
@@ -37,8 +38,9 @@ The latest reviewer gate expectation is:
 - one projection-ready candidate and one fallback candidate in the fixture
 - one producer-policy-ready candidate and one producer-policy fallback in the
   fixture
-- promotion evidence reports one ready case, two fallback cases, and no enabled
-  serving, retrieval-bypass, ledger-insertion, or final-acceptance flags
+- promotion evidence reports ready and fallback cases from fixture plus trace
+  summary inputs, with no enabled serving, retrieval-bypass, ledger-insertion,
+  or final-acceptance flags
 
 ## Capability Pipeline
 
@@ -159,12 +161,13 @@ The first focused promotion-evidence increment is now present but non-enabling:
 `src.ops.report_cache_promotion_evidence_gate` show that a complete local-index
 entry can satisfy the guarded consumer plus producer-policy contracts, while
 incomplete and ambiguous entries still require normal retrieval fallback. The
-gate also keeps retrieval bypass, serving, ledger insertion, and final
-acceptance disabled.
+gate also consumes a reviewed store-fixed trace summary so the same ready and
+fallback expectations are checked outside the raw fixture path. It keeps
+retrieval bypass, serving, ledger insertion, and final acceptance disabled.
 
 ## Current Interpretation
 
 The current system is ready for reviewer handoff as a candidate-only cache
 capability. It is not ready for serving or live ledger insertion. The next
-increment should expand promotion evidence with store-fixed or live/default MAS
-traces before any enable flag is considered.
+increment should expand promotion evidence with additional live/default MAS
+trace summaries before any enable flag is considered.
