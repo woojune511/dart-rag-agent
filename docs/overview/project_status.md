@@ -368,11 +368,13 @@ Useful supporting points:
    hygiene, and explicit retrieval query-budget controls for focused canaries.
    The next cost canary should target cross-trace sibling-task reuse only when
    provenance and retrieved evidence visibility stay intact.
-2. Investigate material-gap replan behavior for non-gate `UNCERTAIN` cases
-   such as `KBF_T2_043`. The `NAV_T2_006` mixed-synthesis gap from the
-   cross-trace diagnostic replay is now closed by the retrieved-driver
-   evidence preservation follow-up, so it should not drive another runtime
-   patch unless a fresh artifact reproduces a new failure mode.
+2. Maintain non-gate material-gap and mixed numeric/narrative canaries with
+   store-fixed focused replays rather than new runtime patches by default.
+   `NAV_T2_006` is closed by the retrieved-driver evidence preservation
+   follow-up, and `KBF_T2_043` is closed by the contract-driven material-gap
+   follow-up in PR #35. Treat future work on these cases as
+   completeness/render calibration unless a fresh artifact reproduces a new
+   runtime blocker.
 3. Continue projection cleanup by reducing internal writes to top-level
    `calculation_*` mirrors now that `RuntimeCalculationTrace` and
    `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
@@ -907,15 +909,20 @@ Useful supporting points:
     runtime-contract company set: `NAV_T2_006`, `SAM_T3_028`, `KBF_T2_043`,
     and `SKH_T3_080`.
   - `SAM_T3_028` and `SKH_T3_080` passed numerically.
-  - At this snapshot, `KBF_T2_043` returned `UNCERTAIN`, and `NAV_T2_006`
-    produced no numeric judgement with noisy mixed synthesis.
-  - These two non-PASS cases are not budget-truncation failures: their executed
-    query traces were `1/1` and `2/2`, with no dropped primary, operand-focused,
-    or retry queries.
-  - The budget is therefore still a viable default candidate. `NAV_T2_006` was
-    later closed by the policy-gate LLM-evidence path and retrieved-driver
-    evidence preservation follow-up; the remaining quality cleanup target from
-    this inventory is material-gap replan behavior.
+  - At this historical snapshot, `KBF_T2_043` returned `UNCERTAIN`, and
+    `NAV_T2_006` produced no numeric judgement with noisy mixed synthesis.
+  - These two non-PASS cases were not budget-truncation failures: their
+    executed query traces were `1/1` and `2/2`, with no dropped primary,
+    operand-focused, or retry queries.
+  - The budget is therefore still a viable default candidate. Both named
+    quality targets have since been closed: `NAV_T2_006` by the policy-gate
+    LLM-evidence path and retrieved-driver evidence preservation follow-up,
+    and `KBF_T2_043` by PR #35's contract-driven material-gap follow-up.
+    `KBF_T2_043`'s focused eval-only replay returned
+    `numeric_final_judgement = PASS`, `faithfulness = 1.0`,
+    `numeric_grounding = 1.0`, `context_recall = 0.9`, and
+    `completeness = 0.7`, so remaining work is broader replay and
+    completeness/render calibration, not a known material-gap blocker.
 - Official LLM-evidence-path canary after fallback removal:
   - `NAV_T2_006` passed under the policy-driven gate profile with `8 / 4 / 1`.
   - Final answer preserved `41.4%` and the Poshmark/smart-store/brand-store

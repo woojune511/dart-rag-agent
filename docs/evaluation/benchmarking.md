@@ -543,11 +543,18 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
     - `faithfulness = 1.0`
     - `completeness = 1.0`
     로 닫혔다
+  - `KBF_T2_043`는 PR #35의 contract-driven material-gap follow-up 이후 focused eval-only에서
+    - `numeric_final_judgement = PASS`
+    - `faithfulness = 1.0`
+    - `numeric_grounding = 1.0`
+    - `context_recall = 0.9`
+    - `completeness = 0.7`
+    로 닫혔다. 남은 gap은 known runtime blocker가 아니라 broader replay와 completeness/render calibration 대상으로 본다.
 
 즉 최신 판단은 다음과 같다.
 
 - `structural_selective_v2`는 현재 routine curated validation의 operating default다
-- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, `SAM_T3_028` fresh structural blocker, targeted official follow-up blocker는 닫혔다
+- multi-report CAPEX blocker, `MIX_T1_046` share-of-total blocker, `SAM_T3_028` fresh structural blocker, `KBF_T2_043` material-gap blocker, targeted official follow-up blocker는 닫혔다
 - fresh-store 회귀는 retrieval coverage보다 task/dependency ledger와 multi-report inventory가 더 중요한 병목임이 확인됐다
 - mixed numeric+narrative query는 숫자 correctness만으로 닫지 않고, aggregate synthesis가 question-level context evidence까지 최종 문장에 반영해야 한다
 - `structural_parent_hybrid_v2` probe 결과, parent digest는 현재 3문항 probe에서 default 승격 근거를 만들지 못했다

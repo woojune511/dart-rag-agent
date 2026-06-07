@@ -295,9 +295,16 @@ Non-gate bounded-query inventory:
     dropped any primary, operand-focused, or retry queries.
   - `8 / 4 / 1` remains a viable retrieval-budget default candidate.
   - The non-gate inventory exposed separate runtime quality work:
-    `NAV_T2_006` needs synthesis/noise control for mixed numeric+narrative
-    answers, and `KBF_T2_043` needs replan/material-gap handling for
+    `NAV_T2_006` needed synthesis/noise control for mixed numeric+narrative
+    answers, and `KBF_T2_043` needed replan/material-gap handling for
     numeric+narrative growth questions.
+  - Follow-up status: both named quality targets are now closed. `NAV_T2_006`
+    passed through the policy-gate LLM-evidence path and retrieved-driver
+    evidence preservation follow-up. `KBF_T2_043` passed in the PR #35
+    focused eval-only replay with `numeric_final_judgement = PASS`,
+    `faithfulness = 1.0`, `numeric_grounding = 1.0`, `context_recall = 0.9`,
+    and `completeness = 0.7`. Treat the older `UNCERTAIN` as historical
+    screening evidence, not the current blocker state.
 
 Historical answer replay:
 

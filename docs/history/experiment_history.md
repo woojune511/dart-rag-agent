@@ -867,8 +867,41 @@
 - The quality fix is evidence preservation: if the planner/retrieval policy has
   already recovered a relevant driver sentence, aggregate composition must keep
   it visible rather than relying on a later synthesizer to reconstruct it.
-- The remaining non-gate quality cleanup target is material-gap replan behavior
-  such as `KBF_T2_043`, not the closed `NAV_T2_006` mixed-synthesis gap.
+- At this point, the remaining non-gate quality cleanup target was
+  material-gap replan behavior such as `KBF_T2_043`, not the closed
+  `NAV_T2_006` mixed-synthesis gap. This was later closed by the
+  `KBF_T2_043` material-gap follow-up described below.
+
+## KBF_T2_043 Material-Gap Follow-Up Close (2026-06-07)
+
+Reference:
+
+- PR #35: `Improve contract-driven narrative numeric handling`
+
+### Result
+
+- Focused store-fixed eval-only replay closed the material-gap/narrative
+  numeric blocker.
+- Metrics:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `numeric_grounding = 1.0`
+  - `context_recall = 0.9`
+  - `completeness = 0.7`
+  - `retrieval_hit_at_k = 0.0`
+  - `absolute_error_rate = 0.0`
+  - `unit_consistency_pass = 1.0`
+
+### Interpretation
+
+- The original non-gate inventory result remains useful as historical
+  screening evidence: `KBF_T2_043` was not a query-budget truncation failure.
+- The follow-up fix was contract-driven rather than benchmark-specific:
+  material-gap detection, source-visible growth display preservation, and
+  policy-required realized context handling were generalized through runtime
+  contracts and policy data.
+- Remaining work for this case is broader replay and completeness/render
+  calibration, not a known material-gap runtime blocker.
 
 ## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
 

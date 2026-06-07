@@ -416,7 +416,7 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | broader curated gate maintenance | `SAM_T2_002` narrative completeness 등 남은 calibration을 runtime blocker와 분리 |
+| 1 | broader curated gate maintenance | closed canary 유지보수와 completeness/render calibration을 runtime blocker와 분리 |
 | 2 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
 | 3 | contextual arbitration / benchmark maintenance 정리 | structural default와 contextual quality reference의 운영 경계를 문서와 profile에 고정 |
 | 4 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
@@ -449,6 +449,13 @@
   - `structural_selective_v2`는 현재 routine default로 가장 실용적인 middle ground다
 - 따라서 다음 구현은 **concept planner shadow 확대 + benchmark maintenance** 쪽으로 돌아가는 흐름이 맞다.
 - immediate blocker였던 `SAM_T2_002` follow-up rerun, `MIX_T1_046` denominator binding/evaluator trace compatibility, `NAV_T3_007` numeric gate, `SAM_T3_028` source-level numeric blocker는 now closed다.
+- `KBF_T2_043` material-gap/narrative numeric blocker도 PR #35 이후 focused eval-only 기준으로 closed다.
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `numeric_grounding = 1.0`
+  - `context_recall = 0.9`
+  - `completeness = 0.7`
+  - 남은 일은 broader replay와 completeness/render calibration이지, 현재 알려진 material-gap runtime blocker는 아니다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
 - focused blocker reclassification에서 `HYU_T2_010`과 `HYU_T3_072`는 targeted smoke 기준으로 닫혔다.
 - policy-driven track은 2026-05-29 공식 profile rerun과 summary 재계산 기준으로 닫혔다.
