@@ -370,9 +370,10 @@ Useful supporting points:
 
 ## Next Work
 
-1. Internal compatibility bridge follow-up: audit calculation-node scratch
-   debug writes separately from the public compatibility projection. Do not
-   reintroduce required top-level calculation/debug state for new live runs.
+1. Internal compatibility bridge follow-up: keep calculation-node diagnostics
+   on the explicit scratch helpers and avoid direct top-level debug-key writes
+   in new callsites. Do not reintroduce required top-level calculation/debug
+   state for new live runs.
 2. Reviewer proof maintenance: rerun `portfolio_demo` and
    `review_report_cache_index_contract` when runtime surfaces change, then keep
    README, one-pager, demo walkthrough, and experiment report aligned.
@@ -455,6 +456,10 @@ Useful supporting points:
   `calculation_plan`, and `calculation_result` as optional compatibility
   mirrors. `calculation_debug_trace` is also optional; `FinancialAgent.run()`
   no longer seeds these optional compatibility fields in the initial live state.
+- Calculation-node diagnostic writes are now routed through explicit scratch
+  helpers, while the public `FinancialAgent.run()` compatibility bridge uses
+  the runtime-contract field constant. This keeps internal diagnostics available
+  without making top-level debug state required again.
 - `_runtime_trace_state_update()` can now omit top-level `calculation_*`
   compatibility mirrors. The first applied branch is calculation verification
   skip for non-ok calculation results, which keeps `resolved_calculation_trace`

@@ -18,6 +18,7 @@ from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.config import get_financial_ontology
+from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 from src.config.retrieval_policy import (
     CALCULATION_FEEDBACK_POLICY,
     CALCULATION_NARRATIVE_POLICY,
@@ -33,6 +34,24 @@ from src.config.retrieval_policy import (
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _calculation_debug_state_update(
+    state: FinancialAgentState,
+    update: Optional[Dict[str, Any]] = None,
+    **entries: Any,
+) -> Dict[str, Any]:
+    """Return the optional internal calculation diagnostic scratch update."""
+    debug_trace = dict(state.get(CALCULATION_DEBUG_TRACE_FIELD) or {})
+    if update:
+        debug_trace.update(dict(update))
+    debug_trace.update(entries)
+    return {CALCULATION_DEBUG_TRACE_FIELD: debug_trace}
+
+
+def _clear_calculation_debug_state() -> Dict[str, Any]:
+    """Clear the optional calculation diagnostic scratch field between attempts."""
+    return {CALCULATION_DEBUG_TRACE_FIELD: {}}
 
 
 def _task_artifact_integrity_feedback(trace: Dict[str, Any]) -> str:
@@ -7913,7 +7932,7 @@ class FinancialAgentCalculationMixin:
             return False
 
         empty_result: Dict[str, Any] = {
-            "calculation_debug_trace": {"coverage": "missing"},
+            **_calculation_debug_state_update(state, coverage="missing"),
             "answer": "",
             "evidence_items": evidence_items,
             "evidence_bullets": evidence_bullets,
@@ -8229,15 +8248,16 @@ class FinancialAgentCalculationMixin:
                 len(direct_structured_rows),
             )
             return {
-                "calculation_debug_trace": {
-                    "coverage": coverage,
-                    "source": "dependency_binding_guard",
-                    "retry_strategy": retry_strategy,
-                    "dependency_operands": dependency_rows,
-                    "missing_dependency_bindings": missing_dependency_bindings,
-                    "rejected_dependency_scope_rows": rejected_dependency_scope_rows,
-                    "operands": direct_structured_rows,
-                },
+                **_calculation_debug_state_update(
+                    state,
+                    coverage=coverage,
+                    source="dependency_binding_guard",
+                    retry_strategy=retry_strategy,
+                    dependency_operands=dependency_rows,
+                    missing_dependency_bindings=missing_dependency_bindings,
+                    rejected_dependency_scope_rows=rejected_dependency_scope_rows,
+                    operands=direct_structured_rows,
+                ),
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": coverage,
@@ -8285,12 +8305,13 @@ class FinancialAgentCalculationMixin:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_debug_trace": {
-                    "coverage": "sufficient",
-                    "source": "structured_row_direct",
-                    "dependency_operands": dependency_rows,
-                    "operands": direct_structured_rows,
-                },
+                **_calculation_debug_state_update(
+                    state,
+                    coverage="sufficient",
+                    source="structured_row_direct",
+                    dependency_operands=dependency_rows,
+                    operands=direct_structured_rows,
+                ),
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": "sufficient",
@@ -8318,13 +8339,14 @@ class FinancialAgentCalculationMixin:
                 len(direct_structured_rows),
             )
             return {
-                "calculation_debug_trace": {
-                    "coverage": coverage,
-                    "source": "dependency_synthesis_only",
-                    "retry_strategy": retry_strategy,
-                    "dependency_operands": dependency_rows,
-                    "operands": direct_structured_rows,
-                },
+                **_calculation_debug_state_update(
+                    state,
+                    coverage=coverage,
+                    source="dependency_synthesis_only",
+                    retry_strategy=retry_strategy,
+                    dependency_operands=dependency_rows,
+                    operands=direct_structured_rows,
+                ),
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": coverage,
@@ -8719,11 +8741,12 @@ class FinancialAgentCalculationMixin:
                 artifact_id=artifact_id,
             )
             return {
-                "calculation_debug_trace": {
-                    "coverage": merged_coverage,
-                    "direct_structured_rows": direct_structured_rows,
-                    "operands": operand_rows,
-                },
+                **_calculation_debug_state_update(
+                    state,
+                    coverage=merged_coverage,
+                    direct_structured_rows=direct_structured_rows,
+                    operands=operand_rows,
+                ),
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": str(merged_coverage),
@@ -8740,7 +8763,7 @@ class FinancialAgentCalculationMixin:
         except Exception as exc:
             logger.warning("[calc_operands] structured output failed: %s", exc)
             return {
-                "calculation_debug_trace": {"coverage": "missing", "error": str(exc)},
+                **_calculation_debug_state_update(state, coverage="missing", error=str(exc)),
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": "missing",
@@ -10734,15 +10757,16 @@ class FinancialAgentCalculationMixin:
             }
 
         if str(calculation_result.get("status") or "") != "ok":
-            debug_trace = dict(state.get("calculation_debug_trace") or {})
-            debug_trace["verification"] = {
-                "verdict": "skip",
-                "reason": "calculation_status_not_ok",
-            }
             return {
                 "answer": answer,
                 "compressed_answer": answer,
-                "calculation_debug_trace": debug_trace,
+                **_calculation_debug_state_update(
+                    state,
+                    verification={
+                        "verdict": "skip",
+                        "reason": "calculation_status_not_ok",
+                    },
+                ),
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
@@ -10808,15 +10832,6 @@ class FinancialAgentCalculationMixin:
             elif operation_family == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
                 final_answer = self._compact_ratio_answer(state, calculation_result)
             calculation_result["formatted_result"] = final_answer
-            debug_trace = dict(state.get("calculation_debug_trace") or {})
-            debug_trace["verification"] = {
-                "verdict": verdict,
-                "issues": list(verified.issues or []),
-                "input_answer": answer,
-                "final_answer": final_answer,
-                "rendered_value": rendered_value,
-                "direction_hint": direction_hint,
-            }
             return {
                 "answer": final_answer,
                 "compressed_answer": final_answer,
@@ -10830,7 +10845,17 @@ class FinancialAgentCalculationMixin:
                         "supporting_claim_ids": state.get("selected_claim_ids", []),
                     }
                 ] if answer else [],
-                "calculation_debug_trace": debug_trace,
+                **_calculation_debug_state_update(
+                    state,
+                    verification={
+                        "verdict": verdict,
+                        "issues": list(verified.issues or []),
+                        "input_answer": answer,
+                        "final_answer": final_answer,
+                        "rendered_value": rendered_value,
+                        "direction_hint": direction_hint,
+                    },
+                ),
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
@@ -10841,17 +10866,18 @@ class FinancialAgentCalculationMixin:
             }
         except Exception as exc:
             logger.warning("[calc_verify] structured output failed, keeping rendered answer: %s", exc)
-            debug_trace = dict(state.get("calculation_debug_trace") or {})
-            debug_trace["verification"] = {
-                "verdict": "error_keep",
-                "error": str(exc),
-                "input_answer": answer,
-                "rendered_value": rendered_value,
-            }
             return {
                 "answer": answer,
                 "compressed_answer": answer,
-                "calculation_debug_trace": debug_trace,
+                **_calculation_debug_state_update(
+                    state,
+                    verification={
+                        "verdict": "error_keep",
+                        "error": str(exc),
+                        "input_answer": answer,
+                        "rendered_value": rendered_value,
+                    },
+                ),
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
@@ -10892,7 +10918,7 @@ class FinancialAgentCalculationMixin:
                 "sentence_checks": [],
                 "answer": "",
                 "citations": [],
-                "calculation_debug_trace": {},
+                **_clear_calculation_debug_state(),
                 "planner_debug_trace": {},
                 "missing_info": [],
                 "reflection_count": 0,
@@ -11899,7 +11925,7 @@ class FinancialAgentCalculationMixin:
             "sentence_checks": [],
             "answer": "",
             "citations": [],
-            "calculation_debug_trace": {},
+            **_clear_calculation_debug_state(),
             "planner_debug_trace": {},
             "reflection_plan": reflection_plan,
             **_runtime_trace_state_update(
