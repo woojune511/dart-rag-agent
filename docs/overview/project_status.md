@@ -827,6 +827,12 @@ Useful supporting points:
   dedupe is enabled only for explicitly budgeted retrieval stages.
 - Use this for focused triage before changing retrieval policy or ontology:
   it is an execution-cost control, not a benchmark-answer rule.
+- Table payload sidecar cleanup now exposes store-size telemetry without a new
+  benchmark run. `table_payloads.json` records payload count, referenced node
+  count, unique payload bytes, repeated inline byte estimate, and deduplicated
+  bytes saved estimate. `rebuild_vector_store.py` also reports source/output
+  sidecar summaries so fresh-store rebuilds can verify that structured table
+  payload dedupe survived the rebuild path.
 - Offline fan-out/cost audit is now available through
   `python -m src.ops.audit_benchmark_fanout_cost <result-bundle>`. It reads
   existing `results.json` files and summarizes per-question retrieval traces,

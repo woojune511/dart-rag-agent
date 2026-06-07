@@ -291,6 +291,33 @@ def _elapsed_sec(started_at: float) -> float:
     return round(time.perf_counter() - started_at, 6)
 
 
+def _table_payload_sidecar_stats(
+    payloads: Dict[str, Dict[str, str]],
+    nodes: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    payload_json_bytes = {
+        payload_id: len(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+        for payload_id, payload in dict(payloads or {}).items()
+    }
+    referenced_ids: List[str] = []
+    for node in dict(nodes or {}).values():
+        metadata = dict((node or {}).get("metadata") or {})
+        payload_id = str(metadata.get(_TABLE_PAYLOAD_ID_KEY) or "").strip()
+        if payload_id and payload_id in payload_json_bytes:
+            referenced_ids.append(payload_id)
+
+    inline_payload_bytes = sum(payload_json_bytes[payload_id] for payload_id in referenced_ids)
+    unique_payload_bytes = sum(payload_json_bytes.values())
+    return {
+        "payload_count": len(payload_json_bytes),
+        "referenced_node_count": len(referenced_ids),
+        "metadata_keys": list(_TABLE_PAYLOAD_METADATA_KEYS),
+        "unique_payload_bytes": unique_payload_bytes,
+        "inline_payload_bytes_estimate": inline_payload_bytes,
+        "deduplicated_payload_bytes_saved_estimate": max(0, inline_payload_bytes - unique_payload_bytes),
+    }
+
+
 class VectorStoreManager:
     def __init__(
         self,
@@ -647,8 +674,9 @@ class VectorStoreManager:
                 encoding="utf-8",
             )
             self._table_payloads = payloads
+            stats = _table_payload_sidecar_stats(payloads, dict(graph.get("nodes", {}) or {}))
             self._table_payloads_path.write_text(
-                json.dumps({"version": 1, "payloads": payloads}, ensure_ascii=False),
+                json.dumps({"version": 1, "payloads": payloads, "stats": stats}, ensure_ascii=False),
                 encoding="utf-8",
             )
         except Exception as e:

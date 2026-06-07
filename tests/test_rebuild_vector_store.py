@@ -120,6 +120,24 @@ class RebuildVectorStoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             source = _write_source_store(root)
+            graph = json.loads((source / "document_structure_graph.json").read_text(encoding="utf-8"))
+            graph["nodes"]["a"]["metadata"]["table_payload_id"] = "table_payload:abc"
+            (source / "document_structure_graph.json").write_text(json.dumps(graph), encoding="utf-8")
+            (source / "table_payloads.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "payloads": {
+                            "table_payload:abc": {
+                                "table_row_records_json": "[rows]",
+                                "table_value_records_json": "[values]",
+                            }
+                        },
+                        "stats": {"payload_count": 1, "referenced_node_count": 1},
+                    }
+                ),
+                encoding="utf-8",
+            )
             output = root / "rebuilt_store"
 
             with patch("src.ops.rebuild_vector_store.VectorStoreManager", _FakeVectorStoreManager):
@@ -143,6 +161,10 @@ class RebuildVectorStoreTests(unittest.TestCase):
         self.assertTrue(summary["health"]["ok"])
         self.assertEqual(manager.kwargs["collection_name"], "test_collection")
         self.assertEqual(manager.added["chunks"], ["first chunk", "second chunk"])
+        self.assertEqual(manager.added["metadatas"][0]["table_row_records_json"], "[rows]")
+        self.assertTrue(summary["source_table_payload_sidecar"]["exists"])
+        self.assertEqual(summary["source_table_payload_sidecar"]["payload_count"], 1)
+        self.assertEqual(summary["source_table_payload_sidecar"]["stats"]["payload_count"], 1)
         self.assertFalse(manager.added["resume"])
         self.assertEqual(manager.added["batch_size"], 16)
         self.assertEqual(manager.parents, {"p1": "parent text"})

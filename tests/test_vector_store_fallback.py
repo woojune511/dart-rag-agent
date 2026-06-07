@@ -375,6 +375,9 @@ class VectorStoreFallbackTests(unittest.TestCase):
             self.assertNotIn("table_row_records_json", metadata_1)
             self.assertEqual(metadata_1["table_payload_id"], metadata_2["table_payload_id"])
             self.assertEqual(len(sidecar["payloads"]), 1)
+            self.assertEqual(sidecar["stats"]["payload_count"], 1)
+            self.assertEqual(sidecar["stats"]["referenced_node_count"], 2)
+            self.assertGreater(sidecar["stats"]["deduplicated_payload_bytes_saved_estimate"], 0)
 
             reloaded = object.__new__(VectorStoreManager)
             reloaded._graph_path = manager._graph_path

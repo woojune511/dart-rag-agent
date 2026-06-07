@@ -67,6 +67,27 @@ def _load_table_payloads(source_store: Path) -> Dict[str, Dict[str, str]]:
     }
 
 
+def _table_payload_sidecar_summary(store: Path) -> Dict[str, Any]:
+    path = store / "table_payloads.json"
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "payload_count": 0,
+            "json_bytes": 0,
+        }
+    payload = _load_json(path)
+    raw_payloads = payload.get("payloads", payload)
+    stats = payload.get("stats") if isinstance(payload.get("stats"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": True,
+        "payload_count": len(raw_payloads) if isinstance(raw_payloads, dict) else 0,
+        "json_bytes": path.stat().st_size,
+        "stats": dict(stats or {}),
+    }
+
+
 def load_structure_graph_documents(source_store: Path) -> Tuple[List[str], List[dict], Dict[str, str]]:
     graph = _load_json(source_store / "document_structure_graph.json")
     table_payloads = _load_table_payloads(source_store)
@@ -209,6 +230,7 @@ def rebuild_vector_store(
     resume: bool = False,
     external_health_check: bool = True,
 ) -> Dict[str, Any]:
+    source_table_payload_sidecar = _table_payload_sidecar_summary(source_store)
     chunks, metadatas, parents = load_structure_graph_documents(source_store)
     backup_store: Path | None = None
     if in_place:
@@ -264,6 +286,8 @@ def rebuild_vector_store(
         "documents": len(chunks),
         "parents": len(parents),
         "resume": bool(resume),
+        "source_table_payload_sidecar": source_table_payload_sidecar,
+        "output_table_payload_sidecar": _table_payload_sidecar_summary(output_store),
         "add_result": add_result,
         "health": health,
     }
