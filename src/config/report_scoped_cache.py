@@ -44,6 +44,8 @@ CACHE_ENTRY_READABLE = "readable"
 CACHE_ENTRY_BLOCKED = "blocked"
 CACHE_REHYDRATION_READY = "ready"
 CACHE_REHYDRATION_BLOCKED = "blocked"
+CACHE_PRODUCER_POLICY_READY = "ready"
+CACHE_PRODUCER_POLICY_BLOCKED = "blocked"
 
 CACHE_ENTRY_SOURCE_LOCAL_INDEX = "local_cache_index"
 CACHE_ENTRY_SOURCE_RUNTIME_TRACE = "runtime_trace_projection"
@@ -843,6 +845,66 @@ def validate_report_cache_calculation_contract_projection(
         "required_artifact_kinds": required_kinds,
         "key": dict(projection_result.get("key") or {}),
         "key_id": str(projection_result.get("key_id") or ""),
+    }
+
+
+def build_report_cache_producer_policy_projection(
+    entry: Mapping[str, Any],
+    *,
+    task_id: str = "",
+) -> Dict[str, Any]:
+    """Return the disabled producer-policy surface for a cache-derived candidate.
+
+    The policy intentionally reuses the calculation task/artifact contract and
+    does not insert the candidate into the live task/artifact ledger.
+    """
+    validation = validate_report_cache_calculation_contract_projection(entry, task_id=task_id)
+    projection = validation.get("projection") if isinstance(validation.get("projection"), Mapping) else None
+    metadata = dict(projection.get("metadata") or {}) if projection else {}
+    task = dict(projection.get("task") or {}) if projection else {}
+    artifacts = dict(projection.get("artifacts") or {}) if projection else {}
+    artifact_kinds = [
+        str(value).strip()
+        for value in list(task.get("artifact_kinds") or [])
+        if str(value).strip()
+    ]
+    required_kinds = [
+        str(value).strip()
+        for value in list(validation.get("required_artifact_kinds") or [])
+        if str(value).strip()
+    ]
+    missing_kinds = [kind for kind in required_kinds if kind not in artifact_kinds]
+    valid = bool(validation.get("valid_for_contract")) and not missing_kinds
+    disabled_flags = {
+        "enabled": False,
+        "serving_enabled": False,
+        "ledger_insertion_enabled": False,
+    }
+    return {
+        "status": CACHE_PRODUCER_POLICY_READY if valid else CACHE_PRODUCER_POLICY_BLOCKED,
+        "ready": valid,
+        "policy": "calculation_task_contract",
+        "source": "report_cache_rehydration",
+        "cache_origin": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+        "report_cache_key_id": str(validation.get("key_id") or metadata.get("report_cache_key_id") or ""),
+        "rehydration_status": str(metadata.get("rehydration_status") or ""),
+        "consumer_admissibility_status": str(metadata.get("consumer_admissibility_status") or ""),
+        **disabled_flags,
+        "fallback_required": bool(validation.get("fallback_required")) or not valid,
+        "reasons": list(dict.fromkeys([str(reason) for reason in list(validation.get("reasons") or [])])),
+        "task_kind": str(task.get("kind") or ""),
+        "task_status": str(task.get("status") or ""),
+        "required_artifact_kinds": required_kinds,
+        "artifact_kinds": artifact_kinds,
+        "missing_artifact_kinds": missing_kinds,
+        "artifact_count": len(artifacts),
+        "calculation_contract_validation": {
+            "status": str(validation.get("status") or ""),
+            "valid_for_contract": bool(validation.get("valid_for_contract")),
+            "fallback_required": bool(validation.get("fallback_required")),
+            **disabled_flags,
+        },
+        "projection": projection,
     }
 
 

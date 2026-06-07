@@ -155,6 +155,8 @@ Implemented and validated:
 - bounded self-reflection request/action/report handoff through the ledger
 - candidate-only report-cache reviewer handoff with bypass, writes, serving,
   and ledger insertion disabled
+- code-backed report-cache producer policy that maps future cache-derived
+  candidates to the existing calculation task/artifact contract
 - fixture-backed portfolio demo command for answer, evidence, trace, integrity,
   critic, and cache handoff surfaces
 - aggregate portfolio review gate bundle for demo, cache, and reflection

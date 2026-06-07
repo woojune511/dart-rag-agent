@@ -13,7 +13,8 @@ ledger state.
 Current repo surfaces:
 
 - `src/config/report_scoped_cache.py` owns pure key, candidate, entry,
-  rehydration, guarded-consumer, and calculation-projection helpers.
+  rehydration, guarded-consumer, calculation-projection, and producer-policy
+  projection helpers.
 - `report_cache_capability_status()` exposes the current disabled capability
   boundary as a code-level status helper.
 - Runtime calculation traces may carry a read-only `report_cache_candidate`.
@@ -32,6 +33,8 @@ The latest reviewer gate expectation is:
 - `serving_enabled = false`
 - `ledger_insertion_enabled = false`
 - one projection-ready candidate and one fallback candidate in the fixture
+- one producer-policy-ready candidate and one producer-policy fallback in the
+  fixture
 
 ## Capability Pipeline
 
@@ -57,7 +60,8 @@ authorizes retrieval bypass, cache writes, or live ledger insertion.
 | `ReportCacheRehydrationCandidate` | answer slots, citation/source anchor, evidence material, calculation trace | rehydration classifier | disabled consumer contract |
 | `GuardedConsumerAssessment` | selected match count, key match, rehydration readiness, fallback reasons | guarded consumer classifier | trace-only |
 | `CalculationContractProjection` | candidate calculation task, `operand_set`, `calculation_plan`, `calculation_result`, evidence refs, disabled flags | projection helper | candidate-only, not inserted |
-| `ReviewerHandoff` | status, mode, disabled flags, projection-ready count, fallback count | review command | reviewer gate |
+| `ProducerPolicyProjection` | calculation task policy name, required artifact kinds, cache-origin metadata, disabled flags, fallback reasons | producer-policy helper | candidate-only, not inserted |
+| `ReviewerHandoff` | status, mode, disabled flags, projection-ready/fallback counts, producer-policy ready/fallback counts | review command | reviewer gate |
 
 ## Required Invariants
 
@@ -93,11 +97,12 @@ authorizes retrieval bypass, cache writes, or live ledger insertion.
 
 ## Producer Policy Decision
 
-The current producer-policy decision is to reuse the existing calculation task
-contract for any future cache-derived ledger candidate. A rehydrated cache
-entry may project to a candidate `calculation` task with `operand_set`,
-`calculation_plan`, and `calculation_result` artifacts, carrying explicit
-cache-origin metadata:
+The current producer-policy decision is now a code-level contract in
+`build_report_cache_producer_policy_projection()`: any future cache-derived
+ledger candidate must reuse the existing calculation task contract. A
+rehydrated cache entry may project to a candidate `calculation` task with
+`operand_set`, `calculation_plan`, and `calculation_result` artifacts, carrying
+explicit cache-origin metadata:
 
 - `source = report_cache_rehydration`
 - `cache_origin = local_cache_index`

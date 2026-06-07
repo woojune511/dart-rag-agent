@@ -27,6 +27,8 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertEqual(result["portfolio_demo"]["readiness"], "ready")
         self.assertEqual(result["cache_reviewer"]["status"], "ok")
         self.assertEqual(result["cache_reviewer"]["reviewer_handoff_status"], "ready")
+        self.assertEqual(result["cache_reviewer"]["producer_policy_ready_count"], 1)
+        self.assertEqual(result["cache_reviewer"]["producer_policy_fallback_count"], 1)
         self.assertFalse(result["cache_reviewer"]["serving_enabled"])
         self.assertFalse(result["cache_reviewer"]["ledger_insertion_enabled"])
         self.assertEqual(result["reflection_promotion"]["status"], "ready")
@@ -46,6 +48,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertIn("Portfolio Demo:", text)
         self.assertIn("Cache Reviewer:", text)
         self.assertIn("Reflection Promotion:", text)
+        self.assertIn("producer_policy_ready_count:", text)
         self.assertIn("false_recovery_rate:", text)
 
     def test_cli_writes_json_output(self) -> None:

@@ -51,6 +51,12 @@ def run_review_gates() -> Dict[str, Any]:
                 cache_review.get("reviewer_handoff") or {}
             ).get("status"),
             "mode": dict(cache_review.get("reviewer_handoff") or {}).get("mode"),
+            "producer_policy_ready_count": dict(
+                cache_review.get("reviewer_handoff") or {}
+            ).get("producer_policy_ready_count"),
+            "producer_policy_fallback_count": dict(
+                cache_review.get("reviewer_handoff") or {}
+            ).get("producer_policy_fallback_count"),
             "serving_enabled": bool(
                 dict(cache_review.get("reviewer_handoff") or {}).get("serving_enabled")
             ),
@@ -88,6 +94,8 @@ def render_text(result: Dict[str, Any]) -> str:
         f"  - status: {cache.get('status')}",
         f"  - reviewer_handoff_status: {cache.get('reviewer_handoff_status')}",
         f"  - mode: {cache.get('mode')}",
+        f"  - producer_policy_ready_count: {cache.get('producer_policy_ready_count')}",
+        f"  - producer_policy_fallback_count: {cache.get('producer_policy_fallback_count')}",
         "",
         "Reflection Promotion:",
         f"  - status: {reflection.get('status')}",

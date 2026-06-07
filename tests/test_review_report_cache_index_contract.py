@@ -31,6 +31,8 @@ class ReviewReportCacheIndexContractTests(unittest.TestCase):
         self.assertIn("reviewer_handoff", result["reviewer_handoff"]["capability_pipeline"])
         self.assertEqual(result["reviewer_handoff"]["projection_ready_count"], 1)
         self.assertEqual(result["reviewer_handoff"]["fallback_count"], 1)
+        self.assertEqual(result["reviewer_handoff"]["producer_policy_ready_count"], 1)
+        self.assertEqual(result["reviewer_handoff"]["producer_policy_fallback_count"], 1)
         self.assertIn("rehydration_diagnostics.json", result["report_cache_index_path"])
         self.assertIn("rehydration_contract_baseline.json", result["baseline"])
 

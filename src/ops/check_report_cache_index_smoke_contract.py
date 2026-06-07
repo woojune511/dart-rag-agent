@@ -28,6 +28,7 @@ def _candidate_artifact_contract(item: Dict[str, Any], index: int) -> Dict[str, 
     artifact = item.get("artifact")
     artifact_payload = dict(artifact.get("payload_summary") or {}) if isinstance(artifact, dict) else {}
     validation = dict(item.get("calculation_contract_validation") or {})
+    producer_policy = dict(item.get("producer_policy") or {})
     return {
         "index": index,
         "status": str(item.get("status") or ""),
@@ -51,6 +52,30 @@ def _candidate_artifact_contract(item: Dict[str, Any], index: int) -> Dict[str, 
         "calculation_projection_reasons": [
             str(reason)
             for reason in list(validation.get("reasons") or [])
+            if str(reason).strip()
+        ],
+        "producer_policy_status": str(producer_policy.get("status") or ""),
+        "producer_policy_ready": bool(producer_policy.get("ready")),
+        "producer_policy_name": str(producer_policy.get("policy") or ""),
+        "producer_policy_task_kind": str(producer_policy.get("task_kind") or ""),
+        "producer_policy_task_status": str(producer_policy.get("task_status") or ""),
+        "producer_policy_artifact_count": _as_int(producer_policy.get("artifact_count")),
+        "producer_policy_artifact_kinds": [
+            str(kind)
+            for kind in list(producer_policy.get("artifact_kinds") or [])
+            if str(kind).strip()
+        ],
+        "producer_policy_fallback_required": bool(producer_policy.get("fallback_required")),
+        "producer_policy_enabled": bool(producer_policy.get("enabled")),
+        "producer_policy_serving_enabled": bool(producer_policy.get("serving_enabled")),
+        "producer_policy_ledger_insertion_enabled": bool(
+            producer_policy.get("ledger_insertion_enabled")
+        ),
+        "producer_policy_source": str(producer_policy.get("source") or ""),
+        "producer_policy_cache_origin": str(producer_policy.get("cache_origin") or ""),
+        "producer_policy_reasons": [
+            str(reason)
+            for reason in list(producer_policy.get("reasons") or [])
             if str(reason).strip()
         ],
     }
@@ -85,6 +110,8 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
         ),
         "calculation_projection_valid_count": _as_int(summary.get("calculation_projection_valid_count")),
         "calculation_projection_fallback_count": _as_int(summary.get("calculation_projection_fallback_count")),
+        "producer_policy_ready_count": _as_int(summary.get("producer_policy_ready_count")),
+        "producer_policy_fallback_count": _as_int(summary.get("producer_policy_fallback_count")),
         "candidate_artifacts": candidate_items,
     }
 

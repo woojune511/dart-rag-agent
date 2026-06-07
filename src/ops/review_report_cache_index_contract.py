@@ -53,9 +53,11 @@ def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[
         *[bool(item.get("serving_enabled")) for item in candidate_artifacts],
         *[bool(item.get("artifact_serving_enabled")) for item in candidate_artifacts],
         *[bool(item.get("calculation_projection_serving_enabled")) for item in candidate_artifacts],
+        *[bool(item.get("producer_policy_serving_enabled")) for item in candidate_artifacts],
     ]
     ledger_insertion_flags = [
         bool(item.get("calculation_projection_ledger_insertion_enabled"))
+        or bool(item.get("producer_policy_ledger_insertion_enabled"))
         for item in candidate_artifacts
     ]
     projection_ready_count = sum(
@@ -68,6 +70,12 @@ def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[
         for item in candidate_artifacts
         if bool(item.get("calculation_projection_fallback_required"))
     )
+    producer_policy_ready_count = sum(
+        1 for item in candidate_artifacts if bool(item.get("producer_policy_ready"))
+    )
+    producer_policy_fallback_count = sum(
+        1 for item in candidate_artifacts if bool(item.get("producer_policy_fallback_required"))
+    )
     candidate_only_ready = (
         status == "ok"
         and capability.get("status") == "candidate_only"
@@ -79,6 +87,8 @@ def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[
         and not any(ledger_insertion_flags)
         and projection_ready_count > 0
         and fallback_count > 0
+        and producer_policy_ready_count > 0
+        and producer_policy_fallback_count > 0
     )
     return {
         "status": "ready" if candidate_only_ready else "needs_review",
@@ -91,6 +101,8 @@ def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[
         "capability_pipeline": list(capability.get("pipeline") or []),
         "projection_ready_count": projection_ready_count,
         "fallback_count": fallback_count,
+        "producer_policy_ready_count": producer_policy_ready_count,
+        "producer_policy_fallback_count": producer_policy_fallback_count,
         "review_note": (
             "Candidate-only reviewer contract is ready; cache serving, ledger insertion, "
             "and retrieval bypass remain disabled."

@@ -21,6 +21,8 @@
   "rehydrated_candidate_artifact_blocked_count": 1,
   "calculation_projection_valid_count": 1,
   "calculation_projection_fallback_count": 1,
+  "producer_policy_ready_count": 1,
+  "producer_policy_fallback_count": 1,
   "candidate_artifacts": [
     {
       "index": 1,
@@ -48,6 +50,26 @@
         "missing_primary_answer_slot",
         "missing_citation_or_source_anchor",
         "missing_calculation_trace"
+      ],
+      "producer_policy_status": "blocked",
+      "producer_policy_ready": false,
+      "producer_policy_name": "calculation_task_contract",
+      "producer_policy_task_kind": "",
+      "producer_policy_task_status": "",
+      "producer_policy_artifact_count": 0,
+      "producer_policy_artifact_kinds": [],
+      "producer_policy_fallback_required": true,
+      "producer_policy_enabled": false,
+      "producer_policy_serving_enabled": false,
+      "producer_policy_ledger_insertion_enabled": false,
+      "producer_policy_source": "report_cache_rehydration",
+      "producer_policy_cache_origin": "local_cache_index",
+      "producer_policy_reasons": [
+        "projection_not_available",
+        "missing_answer_slots",
+        "missing_primary_answer_slot",
+        "missing_citation_or_source_anchor",
+        "missing_calculation_trace"
       ]
     },
     {
@@ -70,7 +92,25 @@
       "calculation_projection_fallback_required": false,
       "calculation_projection_serving_enabled": false,
       "calculation_projection_ledger_insertion_enabled": false,
-      "calculation_projection_reasons": []
+      "calculation_projection_reasons": [],
+      "producer_policy_status": "ready",
+      "producer_policy_ready": true,
+      "producer_policy_name": "calculation_task_contract",
+      "producer_policy_task_kind": "calculation",
+      "producer_policy_task_status": "candidate",
+      "producer_policy_artifact_count": 3,
+      "producer_policy_artifact_kinds": [
+        "operand_set",
+        "calculation_plan",
+        "calculation_result"
+      ],
+      "producer_policy_fallback_required": false,
+      "producer_policy_enabled": false,
+      "producer_policy_serving_enabled": false,
+      "producer_policy_ledger_insertion_enabled": false,
+      "producer_policy_source": "report_cache_rehydration",
+      "producer_policy_cache_origin": "local_cache_index",
+      "producer_policy_reasons": []
     }
   ]
 }
