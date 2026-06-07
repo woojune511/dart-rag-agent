@@ -566,6 +566,8 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["embedding_compatibility"]["status"], "ok")
         self.assertEqual(payload["embedding_compatibility"]["store_embedding"], runtime_spec)
         self.assertEqual(payload["embedding_compatibility"]["runtime_embedding"], runtime_spec)
+        self.assertTrue(payload["store_inventory"]["known_artifact_present"])
+        self.assertFalse(payload["store_inventory"]["empty_material"])
 
     def test_run_smoke_fails_before_graph_on_embedding_signature_mismatch(self) -> None:
         runtime_spec = {
@@ -599,6 +601,47 @@ class MasE2ESmokeTests(unittest.TestCase):
                 patch.object(mas_e2e_smoke, "run_mas_graph") as run_mas_graph,
             ):
                 with self.assertRaisesRegex(ValueError, "Store embedding signature mismatch.*dimension"):
+                    mas_e2e_smoke.run_smoke(
+                        store_dir=store_dir,
+                        collection_name="collection",
+                        queries=["question"],
+                    )
+
+        vector_store_manager.assert_not_called()
+        run_mas_graph.assert_not_called()
+
+    def test_run_smoke_fails_before_graph_on_empty_chroma_collection(self) -> None:
+        runtime_spec = {
+            "provider": "openai",
+            "model_name": "text-embedding-3-large",
+            "dimension": 3072,
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store_dir = Path(temp_dir)
+            conn = sqlite3.connect(store_dir / "chroma.sqlite3")
+            try:
+                conn.execute("CREATE TABLE collections (id TEXT NOT NULL, name TEXT NOT NULL, dimension INTEGER)")
+                conn.execute("CREATE TABLE segments (id TEXT NOT NULL, collection TEXT NOT NULL)")
+                conn.execute("CREATE TABLE embeddings (id INTEGER, segment_id TEXT NOT NULL)")
+                conn.execute(
+                    "INSERT INTO collections (id, name, dimension) VALUES (?, ?, ?)",
+                    ("collection-id", "collection", 3072),
+                )
+                conn.execute(
+                    "INSERT INTO segments (id, collection) VALUES (?, ?)",
+                    ("segment-id", "collection-id"),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            with (
+                patch.object(mas_e2e_smoke, "get_embedding_runtime_spec", return_value=runtime_spec),
+                patch.object(mas_e2e_smoke, "VectorStoreManager") as vector_store_manager,
+                patch.object(mas_e2e_smoke, "run_mas_graph") as run_mas_graph,
+            ):
+                with self.assertRaisesRegex(ValueError, "Store appears empty for MAS smoke"):
                     mas_e2e_smoke.run_smoke(
                         store_dir=store_dir,
                         collection_name="collection",

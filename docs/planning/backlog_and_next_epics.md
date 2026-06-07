@@ -909,12 +909,15 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   `no_raw_retrieval = 2`였고, store inventory는 `chroma_count = 0`,
   `bm25_doc_count = 0`, `parent_count = 0`, `structure_graph_node_count = 0`
   이었다
+- 2026-06-07 empty-store preflight는 `mas_e2e_smoke`가 empty default store에서
+  VectorStoreManager / LLM work를 시작하지 않도록 막는다. Chroma collection은
+  있지만 embedding count와 sidecar material count가 모두 `0`이면
+  `Store appears empty for MAS smoke`로 조기 실패한다
 
 다음:
 
-- 다음 follow-up은 default MAS smoke가 empty store에서 LLM work를 시작하지
-  않도록 store preflight를 강화하거나, default smoke가 참조하는 valid local
-  store를 재설정하는 것이다
+- 다음 follow-up은 default smoke가 참조하는 valid local store를 재설정하거나,
+  재생성 절차를 문서/명령으로 고정하는 것이다
 - runtime critic은 task acceptance와 final merge 보호용이고, offline
   evaluator는 benchmark/scorecard용이라는 경계는 유지한다
 
