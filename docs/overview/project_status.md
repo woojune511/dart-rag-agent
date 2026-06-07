@@ -572,6 +572,11 @@ Useful supporting points:
   that acceptance state to block structurally complete rejected critic reports.
   Planner feedback and MAS smoke summaries surface critic acceptance status,
   reasons, and target refs for reviewer handoff.
+- Portfolio demo and Researcher smoke review outputs now use the same
+  `critic_report_runtime_acceptance_state()` helper instead of reading
+  `passed` or `deterministic_score` as direct acceptance signals. Their JSON
+  surfaces expose runtime acceptance status, reasons, target refs, and whether
+  the diagnostic score was used for acceptance.
 - MAS planner, critic, and synthesis task creation now use the shared
   `AgentTask` builder to normalize task ids, assignees, status, context keys,
   kind/label, dependencies, artifact ids, and blocked reason.

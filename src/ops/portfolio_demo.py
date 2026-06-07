@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+from src.agent.mas_types import critic_report_runtime_acceptance_state
 from src.ops.review_report_cache_index_contract import run_review
 
 
@@ -44,15 +45,22 @@ def _summarize_task_artifact_trace(trace: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _summarize_critic_acceptance(report: Dict[str, Any]) -> Dict[str, Any]:
-    passed = bool(report.get("passed")) and str(report.get("verdict") or "") == "passed"
+    acceptance = critic_report_runtime_acceptance_state(dict(report))
     blocking_issues = list(report.get("blocking_issues") or [])
+    target_artifact_ids = list(report.get("target_artifact_ids") or [])
     return {
-        "status": "accepted" if passed and not blocking_issues else "rejected",
+        "status": acceptance.get("runtime_acceptance_status"),
         "verdict": report.get("verdict"),
         "target_task_id": report.get("target_task_id"),
-        "target_artifact_ids": list(report.get("target_artifact_ids") or []),
+        "target_artifact_ids": target_artifact_ids,
+        "target_refs": list(acceptance.get("target_refs") or []),
         "acceptance_reason": str(report.get("acceptance_reason") or ""),
         "blocking_issues": blocking_issues,
+        "runtime_acceptance_reasons": list(acceptance.get("reasons") or []),
+        "deterministic_score": acceptance.get("deterministic_score"),
+        "deterministic_score_used_for_acceptance": bool(
+            acceptance.get("deterministic_score_used_for_acceptance")
+        ),
     }
 
 
