@@ -322,6 +322,54 @@ class DeterministicCriticTests(unittest.TestCase):
         self.assertIn("critic_rejected", rejected_state["reasons"])
         self.assertFalse(rejected_state["deterministic_score_used_for_acceptance"])
 
+    def test_runtime_acceptance_normalizes_verdict_or_status_without_score_threshold(self) -> None:
+        verdict_only_passed = {
+            "verdict": "passed",
+            "target_task_id": "task_1",
+            "target_artifact_ids": ["artifact_1"],
+            "acceptance_reason": "grounded",
+            "deterministic_score": 0.0,
+        }
+
+        passed_state = critic_report_runtime_acceptance_state(dict(verdict_only_passed))
+
+        self.assertTrue(passed_state["accepted"])
+        self.assertEqual(passed_state["runtime_acceptance_status"], "accepted")
+        self.assertEqual(passed_state["reasons"], [])
+        self.assertFalse(passed_state["deterministic_score_used_for_acceptance"])
+
+        status_only_rejected = {
+            "status": "rejected",
+            "target_task_id": "task_2",
+            "target_artifact_ids": ["artifact_2"],
+            "blocking_issues": ["missing evidence"],
+            "deterministic_score": 1.0,
+        }
+
+        rejected_state = critic_report_runtime_acceptance_state(dict(status_only_rejected))
+
+        self.assertFalse(rejected_state["accepted"])
+        self.assertEqual(rejected_state["runtime_acceptance_status"], "blocked")
+        self.assertIn("critic_rejected", rejected_state["reasons"])
+        self.assertFalse(rejected_state["deterministic_score_used_for_acceptance"])
+
+    def test_runtime_acceptance_blocks_conflicting_verdict_signals(self) -> None:
+        report = {
+            "passed": True,
+            "verdict": "rejected",
+            "target_task_id": "task_1",
+            "target_artifact_ids": ["artifact_1"],
+            "acceptance_reason": "grounded",
+            "deterministic_score": 1.0,
+        }
+
+        state = critic_report_runtime_acceptance_state(dict(report))
+
+        self.assertFalse(state["accepted"])
+        self.assertEqual(state["runtime_acceptance_status"], "blocked")
+        self.assertIn("conflicting_verdict_signal", state["reasons"])
+        self.assertFalse(state["deterministic_score_used_for_acceptance"])
+
 
 if __name__ == "__main__":
     unittest.main()

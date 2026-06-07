@@ -348,10 +348,24 @@ def _list_strings(value: Any) -> List[str]:
     return []
 
 
-def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRuntimeAcceptance:
-    passed = bool(report.get("passed"))
+def _critic_verdict_signal(report: Dict[str, Any]) -> tuple[str, bool]:
     has_passed_value = isinstance(report.get("passed"), bool)
-    verdict = str(report.get("verdict") or report.get("status") or "").strip().lower()
+    bool_signal = "passed" if bool(report.get("passed")) else "rejected" if has_passed_value else ""
+    text_signal = str(report.get("verdict") or report.get("status") or "").strip().lower()
+    if text_signal in {"passed", "accepted", "ok", "success"}:
+        text_signal = "passed"
+    elif text_signal in {"rejected", "blocked", "failed", "error"}:
+        text_signal = "rejected"
+    elif text_signal:
+        text_signal = "unknown"
+    if bool_signal and text_signal and bool_signal != text_signal:
+        return bool_signal, True
+    return bool_signal or text_signal, False
+
+
+def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRuntimeAcceptance:
+    verdict, conflicting_verdict_signal = _critic_verdict_signal(report)
+    passed = verdict == "passed"
     target_refs = _dedupe_strings(
         [
             str(report.get("target_task_id") or "").strip(),
@@ -379,23 +393,23 @@ def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRunt
         ]
     )
     reasons: List[str] = []
-    if not has_passed_value and not verdict:
+    if not verdict:
         reasons.append("missing_verdict")
+    elif verdict == "unknown":
+        reasons.append("unknown_verdict")
+    if conflicting_verdict_signal:
+        reasons.append("conflicting_verdict_signal")
     if not target_refs:
         reasons.append("missing_target_refs")
     if passed:
-        if verdict != "passed":
-            reasons.append("missing_passed_verdict")
         if not acceptance_reason:
             reasons.append("missing_acceptance_reason")
         if blocking_issues:
             reasons.append("passed_report_has_blocking_issues")
     else:
-        if has_passed_value and not passed:
+        if verdict == "rejected":
             reasons.append("critic_rejected")
-        if has_passed_value and verdict != "rejected":
-            reasons.append("missing_rejected_verdict")
-        if has_passed_value and not blocking_issues:
+        if verdict == "rejected" and not blocking_issues:
             reasons.append("missing_blocking_issues")
 
     accepted = passed and not reasons

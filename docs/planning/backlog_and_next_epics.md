@@ -923,11 +923,17 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   에 source-controlled baseline으로 고정했다. `check_mas_e2e_smoke_contract`는
   이 baseline을 기본값으로 사용하고, focused contract test가 live smoke
   구조와 value canary를 함께 검증한다
+- 2026-06-07 runtime critic / offline evaluator boundary follow-up은 helper
+  level까지 닫았다. `critic_report_runtime_acceptance_state()`는 `passed` /
+  `verdict` / `status` verdict signal을 normalize하고, conflicting verdict
+  signal은 block하며, rejected report는 diagnostic score가 높아도 blocked로
+  유지한다. `deterministic_score_used_for_acceptance = false`가 scorecard와
+  runtime acceptance 경계를 고정한다
 
 다음:
 
-- runtime critic은 task acceptance와 final merge 보호용이고, offline
-  evaluator는 benchmark/scorecard용이라는 경계는 유지한다
+- 이 섹션은 닫힘. 다음 구조 작업은 `calculation_debug_trace` debug ownership
+  분리다
 
 ### 5. Self-reflection을 retry rule이 아닌 capability로 재정의
 

@@ -370,13 +370,10 @@ Useful supporting points:
 
 ## Next Work
 
-1. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
-   acceptance focused on structurally visible worker artifacts, while offline
-   evaluator scorecards remain a separate review surface.
-2. Internal calculation debug ownership follow-up: split
+1. Internal calculation debug ownership follow-up: split
    `calculation_debug_trace` into a narrower debug contract before reducing its
    required state shape.
-3. Reviewer path: start with the portfolio demo walkthrough for a compact
+2. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.
 
@@ -580,6 +577,11 @@ Useful supporting points:
   `passed` or `deterministic_score` as direct acceptance signals. Their JSON
   surfaces expose runtime acceptance status, reasons, target refs, and whether
   the diagnostic score was used for acceptance.
+- Runtime critic / offline evaluator boundary follow-up is closed at the helper
+  level. `critic_report_runtime_acceptance_state()` now normalizes verdict
+  signals from `passed`, `verdict`, or `status`, blocks conflicting verdict
+  signals, keeps rejected reports blocked even with high diagnostic scores, and
+  still reports `deterministic_score_used_for_acceptance = false`.
 - MAS planner, critic, and synthesis task creation now use the shared
   `AgentTask` builder to normalize task ids, assignees, status, context keys,
   kind/label, dependencies, artifact ids, and blocked reason.
