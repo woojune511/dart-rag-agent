@@ -418,15 +418,13 @@
 | --- | --- | --- |
 | 1 | broader curated gate maintenance | closed canary 유지보수와 completeness/render calibration을 runtime blocker와 분리 |
 | 2 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
-| 3 | internal compatibility mirror cleanup scope 결정 | stale `calculation_*` projection 위험을 줄일 다음 refactor 범위 확정 |
-| 4 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
+| 3 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
 
 ## 현재 우선순위 요약
 
 1. `curated_single_doc_core` / broader gate maintenance
 2. concept-only planner runtime promotion check
-3. internal compatibility mirror cleanup scope 결정
-4. table payload sidecar / store-size cleanup
+3. table payload sidecar / store-size cleanup
 
 ## 현재 해석
 
@@ -441,6 +439,10 @@
   - aggregate evidence propagation
   - evaluator numeric pass `1.0`
 - public/runtime contract 정리는 거의 끝났고, 남은 리팩터링은 internal mirror 정리 쪽에 가깝다.
+- internal compatibility mirror cleanup scope는 2026-06-07에 `docs/architecture/internal_calculation_mirror_cleanup.md`로 정리했다.
+  - live graph readers는 strict `resolved_calculation_trace`를 써야 한다.
+  - `FinancialAgent.run()` public bridge와 retrospective/replay tools만 명시적 compatibility fallback을 유지한다.
+  - 다음 code cleanup은 `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result` typing 축소 여부를 테스트와 함께 검토하는 순서다.
 - 현재 더 중요한 운영 질문은 planner보다 ingest candidate selection이다.
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다

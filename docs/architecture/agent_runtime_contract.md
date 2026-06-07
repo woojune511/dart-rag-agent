@@ -614,6 +614,12 @@ export/review adapters that may read older payloads, and
 surfaces. Migrated live graph nodes should pass updated trace parts explicitly
 instead of relying on that carry-forward.
 
+The remaining cleanup scope for internal top-level `calculation_*` mirrors is
+tracked in
+[`internal_calculation_mirror_cleanup.md`](internal_calculation_mirror_cleanup.md).
+That note separates live strict readers, public compatibility bridges,
+historical replay tools, and internal scratch-state cleanup candidates.
+
 Benchmark runner serialized-result, smoke-summary, and review export surfaces
 are strict current-contract projections. They may expose runtime projection
 source metadata for audit, but must not use legacy top-level `calculation_*`
