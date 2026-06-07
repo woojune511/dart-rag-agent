@@ -184,6 +184,10 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["replan_routed_count"], 1)
         self.assertEqual(payload["summary"]["blocked_count"], 0)
         self.assertEqual(payload["summary"]["integrity_error_count"], 0)
+        self.assertEqual(
+            payload["summary"]["final_acceptance_outcome_counts"],
+            {"replan_succeeded": 1},
+        )
         self.assertEqual(payload["summary"]["final_source_task_count"], 1)
         self.assertEqual(payload["summary"]["final_source_artifact_count"], 1)
         self.assertEqual(payload["summary"]["final_evidence_ref_count"], 1)
@@ -192,6 +196,9 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(case["replan_count"], 1)
         self.assertFalse(case["replan_requested"])
         self.assertTrue(case["replan_routed"])
+        self.assertEqual(case["final_acceptance_outcome"]["outcome"], "replan_succeeded")
+        self.assertEqual(case["final_acceptance_outcome"]["final_report_status"], "ok")
+        self.assertEqual(case["final_acceptance_outcome"]["replan_count"], 1)
         self.assertEqual(case["task_artifact_integrity_status"], "ok")
         self.assertEqual(case["task_artifact_integrity_issue_count"], 0)
         self.assertEqual(case["final_carry_forward"]["source_task_ids"], ["task_2"])
@@ -256,6 +263,8 @@ class MasE2ESmokeTests(unittest.TestCase):
                             "runtime_acceptance_status": "blocked",
                             "reasons": ["critic_rejected"],
                             "target_refs": ["task_synthesis", "artifact_synthesis"],
+                            "target_task_ids": ["task_synthesis"],
+                            "target_artifact_ids": ["artifact_synthesis"],
                         }
                     ],
                 },
@@ -279,6 +288,10 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["replan_routed_count"], 0)
         self.assertEqual(payload["summary"]["blocked_count"], 1)
         self.assertEqual(payload["summary"]["integrity_error_count"], 1)
+        self.assertEqual(
+            payload["summary"]["final_acceptance_outcome_counts"],
+            {"blocked_without_replan": 1},
+        )
         self.assertEqual(payload["summary"]["critic_acceptance_issue_count"], 1)
         self.assertEqual(payload["summary"]["critic_acceptance_status_counts"], {"blocked": 1})
         self.assertEqual(payload["summary"]["critic_acceptance_reason_counts"], {"critic_rejected": 1})
@@ -286,6 +299,18 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(
             payload["cases"][0]["critic_acceptance_issues"]["items"][0]["target_refs"],
             ["task_synthesis", "artifact_synthesis"],
+        )
+        self.assertEqual(
+            payload["cases"][0]["critic_acceptance_issues"]["items"][0]["target_task_ids"],
+            ["task_synthesis"],
+        )
+        self.assertEqual(
+            payload["cases"][0]["critic_acceptance_issues"]["items"][0]["target_artifact_ids"],
+            ["artifact_synthesis"],
+        )
+        self.assertEqual(
+            payload["cases"][0]["final_acceptance_outcome"]["outcome"],
+            "blocked_without_replan",
         )
 
     def test_run_smoke_surfaces_trace_only_cache_index_diagnostics(self) -> None:

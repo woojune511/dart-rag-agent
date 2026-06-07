@@ -433,6 +433,16 @@ def _summarize_critic_acceptance_issues(task_artifact_trace: Dict[str, Any]) -> 
             for ref in (issue.get("target_refs") or [])
             if str(ref).strip()
         ]
+        target_task_ids = [
+            str(ref).strip()
+            for ref in (issue.get("target_task_ids") or [])
+            if str(ref).strip()
+        ]
+        target_artifact_ids = [
+            str(ref).strip()
+            for ref in (issue.get("target_artifact_ids") or [])
+            if str(ref).strip()
+        ]
         status_counts[status] += 1
         reason_counts.update(reasons)
         items.append(
@@ -442,6 +452,8 @@ def _summarize_critic_acceptance_issues(task_artifact_trace: Dict[str, Any]) -> 
                 "runtime_acceptance_status": status,
                 "reasons": reasons,
                 "target_refs": target_refs,
+                "target_task_ids": target_task_ids,
+                "target_artifact_ids": target_artifact_ids,
             }
         )
     return {
@@ -449,6 +461,46 @@ def _summarize_critic_acceptance_issues(task_artifact_trace: Dict[str, Any]) -> 
         "status_counts": dict(sorted(status_counts.items())),
         "reason_counts": dict(sorted(reason_counts.items())),
         "items": items,
+    }
+
+
+def _summarize_final_acceptance_outcome(
+    *,
+    final_report_record: Dict[str, Any],
+    task_artifact_trace: Dict[str, Any],
+    execution_trace: List[str],
+    replan_count: int,
+    replan_budget: int,
+    critic_acceptance_issues: Dict[str, Any],
+) -> Dict[str, Any]:
+    final_status = str(final_report_record.get("status") or "").strip() or "unknown"
+    integrity_status = str(task_artifact_trace.get("integrity_status") or "").strip() or "unknown"
+    trace_text = " | ".join(str(item or "") for item in execution_trace)
+    replan_routed = "Orchestrator replanned" in trace_text
+    replan_requested = final_status == "replan_required"
+    blocked = final_status == "blocked"
+    if replan_requested:
+        outcome = "replan_pending"
+    elif blocked and replan_count > 0:
+        outcome = "blocked_after_replan"
+    elif blocked:
+        outcome = "blocked_without_replan"
+    elif replan_routed and final_status == "ok":
+        outcome = "replan_succeeded"
+    elif final_status == "ok":
+        outcome = "accepted_without_replan"
+    else:
+        outcome = "unknown"
+    return {
+        "outcome": outcome,
+        "final_report_status": final_status,
+        "task_artifact_integrity_status": integrity_status,
+        "replan_budget": int(replan_budget or 0),
+        "replan_count": int(replan_count or 0),
+        "replan_requested": replan_requested,
+        "replan_routed": replan_routed,
+        "blocked": blocked,
+        "critic_acceptance_issue_count": int(critic_acceptance_issues.get("count", 0) or 0),
     }
 
 
@@ -510,6 +562,16 @@ def run_smoke(
         report_cache_index_diagnostics = _summarize_report_cache_index_diagnostics(artifacts)
         critic_acceptance_issues = _summarize_critic_acceptance_issues(task_artifact_trace)
         final_carry_forward = project_final_report_carry_forward(final_report_record)
+        replan_count = int(final.get("replan_count", 0) or 0)
+        case_replan_budget = int(final.get("replan_budget", replan_budget) or 0)
+        final_acceptance_outcome = _summarize_final_acceptance_outcome(
+            final_report_record=final_report_record,
+            task_artifact_trace=task_artifact_trace,
+            execution_trace=execution_trace,
+            replan_count=replan_count,
+            replan_budget=case_replan_budget,
+            critic_acceptance_issues=critic_acceptance_issues,
+        )
         cases.append(
             {
                 "query": query,
@@ -518,14 +580,15 @@ def run_smoke(
                 "critic_reports": critic_reports,
                 "critic_feedback": final.get("critic_feedback"),
                 "planner_feedback": final.get("planner_feedback"),
-                "replan_budget": int(final.get("replan_budget", replan_budget) or 0),
-                "replan_count": int(final.get("replan_count", 0) or 0),
+                "replan_budget": case_replan_budget,
+                "replan_count": replan_count,
                 "replan_requested": final_report_record.get("status") == "replan_required",
                 "replan_routed": "Orchestrator replanned" in " | ".join(execution_trace),
                 "execution_trace": execution_trace,
                 "final_report": final.get("final_report"),
                 "final_report_record": final_report_record,
                 "final_carry_forward": final_carry_forward,
+                "final_acceptance_outcome": final_acceptance_outcome,
                 "task_artifact_trace": task_artifact_trace,
                 "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
                 "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
@@ -565,6 +628,7 @@ def run_smoke(
     critic_acceptance_issue_count = 0
     critic_acceptance_status_counts: Counter[str] = Counter()
     critic_acceptance_reason_counts: Counter[str] = Counter()
+    final_acceptance_outcome_counts: Counter[str] = Counter()
     final_source_task_count = 0
     final_source_artifact_count = 0
     final_evidence_ref_count = 0
@@ -579,6 +643,9 @@ def run_smoke(
         critic_acceptance_issue_count += int(critic_summary.get("count", 0) or 0)
         critic_acceptance_status_counts.update(dict(critic_summary.get("status_counts") or {}))
         critic_acceptance_reason_counts.update(dict(critic_summary.get("reason_counts") or {}))
+        outcome = str(dict(case.get("final_acceptance_outcome") or {}).get("outcome") or "").strip()
+        if outcome:
+            final_acceptance_outcome_counts[outcome] += 1
         summary = dict(case.get("report_cache_candidates") or {})
         report_cache_candidate_count += int(summary.get("count", 0) or 0)
         report_cache_status_counts.update(dict(summary.get("status_counts") or {}))
@@ -622,6 +689,7 @@ def run_smoke(
             "critic_acceptance_issue_count": critic_acceptance_issue_count,
             "critic_acceptance_status_counts": dict(sorted(critic_acceptance_status_counts.items())),
             "critic_acceptance_reason_counts": dict(sorted(critic_acceptance_reason_counts.items())),
+            "final_acceptance_outcome_counts": dict(sorted(final_acceptance_outcome_counts.items())),
             "report_cache_candidate_count": report_cache_candidate_count,
             "report_cache_candidate_status_counts": dict(sorted(report_cache_status_counts.items())),
             "report_cache_candidate_reason_counts": dict(sorted(report_cache_reason_counts.items())),

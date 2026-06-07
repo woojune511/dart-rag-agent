@@ -611,8 +611,12 @@ Useful supporting points:
 - `mas_e2e_smoke.py` now supports replan-budgeted real-node smoke runs and
   exports replan counts, routed-replan status, final report records,
   task/artifact integrity status, blocked case counts, and integrity-error
-  counts. The live real-node smoke is environment-gated because it needs
-  `GOOGLE_API_KEY`; the current change is covered by API-free contract tests.
+  counts. It also exposes `final_acceptance_outcome` per case and
+  `final_acceptance_outcome_counts` in the summary, so reviewer artifacts can
+  distinguish accepted-without-replan, replan-succeeded, blocked, and pending
+  replan outcomes. The live real-node smoke is environment-gated because it
+  needs `GOOGLE_API_KEY`; the current change is covered by API-free contract
+  tests.
 - Live real-node smoke was then run with a local OpenAI-3072 Samsung 2023 store
   and matching report scope. It completed in `68.2s` with
   `final_report_record.status = ok`, `task_artifact_trace.integrity_status =
@@ -634,8 +638,9 @@ Useful supporting points:
 - `check_mas_e2e_smoke_contract.py` extracts and compares compact MAS smoke
   contract fields from full smoke JSON output, covering embedding compatibility,
   case count, blocked/integrity/replan summary counts, per-case final status,
-  artifact-integrity status, replan flags, and task status distribution. This is
-  the default local delta check for MAS quality work. The 2026-06-05 local
+  final acceptance outcome, artifact-integrity status, replan flags, and task
+  status distribution. This is the default local delta check for MAS quality
+  work. The 2026-06-05 local
   compact baseline compare is clean: `status = ok`, `difference_count = 0`,
   `case_count = 2`, `blocked_count = 0`, `integrity_error_count = 0`, and both
   cases have five completed tasks.
