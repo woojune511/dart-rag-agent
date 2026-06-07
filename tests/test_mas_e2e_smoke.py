@@ -550,7 +550,7 @@ class MasE2ESmokeTests(unittest.TestCase):
 
             with (
                 patch.object(mas_e2e_smoke, "get_embedding_runtime_spec", return_value=runtime_spec),
-                patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()),
+                patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()) as vector_store_manager,
                 patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=noop_node),
                 patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=noop_node),
                 patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=noop_node),
@@ -568,6 +568,70 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["embedding_compatibility"]["runtime_embedding"], runtime_spec)
         self.assertTrue(payload["store_inventory"]["known_artifact_present"])
         self.assertFalse(payload["store_inventory"]["empty_material"])
+        self.assertEqual(vector_store_manager.call_args.kwargs["embedding_provider"], "openai")
+        self.assertEqual(vector_store_manager.call_args.kwargs["embedding_model_name"], "text-embedding-3-large")
+
+    def test_run_smoke_defaults_embedding_runtime_to_store_signature(self) -> None:
+        noop_node = lambda _state: {}
+        default_runtime = {
+            "provider": "openai",
+            "model_name": "text-embedding-3-large",
+            "dimension": 3072,
+        }
+        store_runtime = {
+            "provider": "google",
+            "model_name": "models/gemini-embedding-2",
+            "dimension": 3072,
+        }
+
+        def fake_get_embedding_runtime_spec(provider=None, model_name=None):
+            if provider == "google":
+                return store_runtime
+            return default_runtime
+
+        def fake_run_mas_graph(_query, **_kwargs):
+            return {
+                "tasks": {},
+                "artifacts": {},
+                "critic_reports": [],
+                "execution_trace": [],
+                "final_report_record": {"status": "ok"},
+                "task_artifact_trace": {"integrity_status": "ok"},
+            }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store_dir = Path(temp_dir)
+            (store_dir / "benchmark_cache_meta.json").write_text(
+                json.dumps(
+                    {
+                        "store_signature": {
+                            "collection_name": "collection",
+                            "embedding": store_runtime,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(mas_e2e_smoke, "get_embedding_runtime_spec", side_effect=fake_get_embedding_runtime_spec),
+                patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()) as vector_store_manager,
+                patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=noop_node),
+                patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=noop_node),
+                patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=noop_node),
+                patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value=noop_node),
+                patch.object(mas_e2e_smoke, "run_mas_graph", side_effect=fake_run_mas_graph),
+            ):
+                payload = mas_e2e_smoke.run_smoke(
+                    store_dir=store_dir,
+                    collection_name="collection",
+                    queries=["question"],
+                )
+
+        self.assertEqual(payload["embedding_compatibility"]["status"], "ok")
+        self.assertEqual(payload["embedding_compatibility"]["runtime_embedding"], store_runtime)
+        self.assertEqual(vector_store_manager.call_args.kwargs["embedding_provider"], "google")
+        self.assertEqual(vector_store_manager.call_args.kwargs["embedding_model_name"], "models/gemini-embedding-2")
 
     def test_run_smoke_fails_before_graph_on_embedding_signature_mismatch(self) -> None:
         runtime_spec = {
@@ -605,6 +669,8 @@ class MasE2ESmokeTests(unittest.TestCase):
                         store_dir=store_dir,
                         collection_name="collection",
                         queries=["question"],
+                        embedding_provider="openai",
+                        embedding_model="text-embedding-3-large",
                     )
 
         vector_store_manager.assert_not_called()
@@ -646,6 +712,8 @@ class MasE2ESmokeTests(unittest.TestCase):
                         store_dir=store_dir,
                         collection_name="collection",
                         queries=["question"],
+                        embedding_provider="openai",
+                        embedding_model="text-embedding-3-large",
                     )
 
         vector_store_manager.assert_not_called()

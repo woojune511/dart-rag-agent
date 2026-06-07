@@ -370,16 +370,14 @@ Useful supporting points:
 
 ## Next Work
 
-1. MAS default smoke store restoration: the empty-store preflight now stops
-   `mas_e2e_smoke` before VectorStoreManager / LLM work when the current
-   default store has zero Chroma embeddings and zero sidecar material. Next
-   work should restore a valid default smoke store or document the rebuild path.
-2. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
+1. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
    acceptance focused on structurally visible worker artifacts, while offline
    evaluator scorecards remain a separate review surface.
-3. Internal calculation debug ownership follow-up: split
+2. Internal calculation debug ownership follow-up: split
    `calculation_debug_trace` into a narrower debug contract before reducing its
    required state shape.
+3. MAS smoke baseline contract refresh: decide whether the valid default-store
+   compact contract should become the source-controlled baseline.
 4. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.
@@ -658,6 +656,17 @@ Useful supporting points:
   fails before LLM work with `Store appears empty for MAS smoke`. A live default
   run now stops in about `5s` at this preflight instead of spending worker/API
   time and ending as material-empty.
+- The default MAS smoke store has been restored to the populated Samsung 2023
+  structural-selective store under
+  `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`. The
+  smoke now derives its embedding runtime from the store signature by default,
+  so this Google `models/gemini-embedding-2` store opens with a matching Google
+  embedding runtime even when the general environment default would prefer
+  OpenAI. The override-free live default smoke now reports
+  `embedding_compatibility.status = ok`, `chroma_embedding_count = 967`,
+  `accepted_without_replan = 2`, `blocked_count = 0`, integrity errors `0`,
+  worker failures `0`, final source tasks `4`, final source artifacts `8`, and
+  final evidence refs `55`.
 - Earlier live real-node smoke was run with a local OpenAI-3072 Samsung 2023
   store and matching report scope. It completed in `68.2s` with
   `final_report_record.status = ok`, `task_artifact_trace.integrity_status =
@@ -669,13 +678,10 @@ Useful supporting points:
   tasks were being reviewed by Critic and could be resurrected as
   `REJECTED_BY_CRITIC`, causing repeated Analyst retries. Critic now reviews
   completed worker tasks only.
-- `mas_e2e_smoke.py` now performs an embedding/store compatibility preflight
-  before graph nodes are invoked. It reads benchmark/vector-store metadata and
-  falls back to Chroma collection dimension, so incompatible persisted stores
-  fail before LLM/API work. The no-argument smoke default now uses the local
-  OpenAI-3072 Samsung 2023 structural-selective store and matching report scope.
-  A default run completed 2 cases with `embedding_compatibility.status = ok`,
-  `blocked_count = 0`, and `integrity_error_count = 0`.
+- `mas_e2e_smoke.py` performs an embedding/store compatibility preflight before
+  graph nodes are invoked. It reads benchmark/vector-store metadata and falls
+  back to Chroma collection dimension, so incompatible persisted stores fail
+  before LLM/API work.
 - `check_mas_e2e_smoke_contract.py` extracts and compares compact MAS smoke
   contract fields from full smoke JSON output, covering embedding compatibility,
   case count, blocked/integrity/replan summary counts, per-case final status,

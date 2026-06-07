@@ -37,7 +37,7 @@ from src.storage.vector_store import VectorStoreManager, get_embedding_runtime_s
 
 DEFAULT_STORE_DIR = (
     Path(
-        "benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/"
+        "benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/"
         "삼성전자-2023/stores/structural-selective-v2-prefix-2500-320"
     )
 )
@@ -516,6 +516,30 @@ def _assert_store_embedding_compatible(
     )
 
 
+def _resolve_smoke_embedding_runtime_spec(
+    store_dir: Path,
+    *,
+    embedding_provider: str = "",
+    embedding_model: str = "",
+) -> Dict[str, Any]:
+    provider = str(embedding_provider or "").strip()
+    model = str(embedding_model or "").strip()
+    if provider or model:
+        return get_embedding_runtime_spec(
+            provider=provider or None,
+            model_name=model or None,
+        )
+    store_spec = _load_store_embedding_spec(store_dir)
+    store_provider = str(store_spec.get("provider") or "").strip()
+    store_model = str(store_spec.get("model_name") or "").strip()
+    if store_provider or store_model:
+        return get_embedding_runtime_spec(
+            provider=store_provider or None,
+            model_name=store_model or None,
+        )
+    return get_embedding_runtime_spec()
+
+
 def _wrap_node(name: str, node: Callable[[Dict[str, Any]], Dict[str, Any]], log: Callable[[str], None]):
     def wrapped(state: Dict[str, Any]) -> Dict[str, Any]:
         started = time.monotonic()
@@ -711,10 +735,21 @@ def run_smoke(
     progress: bool = False,
     report_scope: Dict[str, str] | None = None,
     report_cache_index_path: Path | None = None,
+    embedding_provider: str = "",
+    embedding_model: str = "",
 ) -> Dict[str, Any]:
     log = _progress_logger(progress)
     log("check_store_embedding_signature")
-    embedding_compatibility = _assert_store_embedding_compatible(store_dir, collection_name)
+    embedding_runtime_spec = _resolve_smoke_embedding_runtime_spec(
+        store_dir,
+        embedding_provider=embedding_provider,
+        embedding_model=embedding_model,
+    )
+    embedding_compatibility = _assert_store_embedding_compatible(
+        store_dir,
+        collection_name,
+        runtime_spec=embedding_runtime_spec,
+    )
     log(f"store_embedding_signature status={embedding_compatibility['status']}")
     log("check_store_material")
     store_inventory = _assert_store_has_material(store_dir, collection_name)
@@ -729,6 +764,8 @@ def run_smoke(
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),
         collection_name=collection_name,
+        embedding_provider=str(embedding_runtime_spec.get("provider") or ""),
+        embedding_model_name=str(embedding_runtime_spec.get("model_name") or ""),
     )
     log("build_nodes")
     plan_node = _wrap_node("Orchestrator_Plan", build_financial_orchestrator_plan_node(), log)
@@ -951,6 +988,8 @@ def main() -> None:
     parser.add_argument("--rcept-no")
     parser.add_argument("--year")
     parser.add_argument("--consolidation")
+    parser.add_argument("--embedding-provider", default="")
+    parser.add_argument("--embedding-model", default="")
     parser.add_argument("--progress", action="store_true", help="Print node/query progress to stderr.")
     parser.add_argument(
         "--report-cache-index-path",
@@ -967,6 +1006,8 @@ def main() -> None:
         replan_budget=args.replan_budget,
         progress=args.progress,
         report_cache_index_path=args.report_cache_index_path,
+        embedding_provider=args.embedding_provider,
+        embedding_model=args.embedding_model,
         report_scope=_report_scope(
             company=args.company,
             report_type=args.report_type,

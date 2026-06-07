@@ -416,15 +416,15 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | MAS default smoke valid-store restoration | default smoke가 참조하는 valid local store 재설정 또는 재생성 절차 고정 |
-| 2 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
-| 3 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
+| 1 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
+| 2 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
+| 3 | MAS smoke baseline contract refresh | valid default store 기준 compact contract를 source-controlled baseline으로 둘지 결정 |
 
 ## 현재 우선순위 요약
 
-1. MAS default smoke valid-store restoration
-2. runtime critic / evaluator boundary follow-up
-3. internal calculation debug ownership follow-up
+1. runtime critic / evaluator boundary follow-up
+2. internal calculation debug ownership follow-up
+3. MAS smoke baseline contract refresh
 
 ## 현재 해석
 
@@ -440,6 +440,7 @@
 - MAS smoke material-empty 진단 surface는 2026-06-07에 추가했다. `mas_e2e_smoke`는 이제 case/summary에 `worker_failure_diagnostics`를 노출하고 `--output` 부모 디렉터리를 자동 생성한다. Live/default refresh는 `worker_failure_count = 4`, `worker_failure_missing_artifact_count = 4`, Analyst failures `2`, Researcher failures `2`, incomplete numeric result reasons `2`, empty narrative result reasons `2`, missing worker artifact reasons `4`를 보고했다. Raw artifact는 `benchmarks/results/mas_e2e_smoke_failure_diagnostics_2026-06-07/`에 local-only로 남긴다.
 - MAS direct worker material probe는 2026-06-07에 추가했다. `src.ops.mas_direct_worker_probe`는 full MAS/Critic/final merge 없이 planner task instruction을 Analyst/Researcher core에 직접 넣고 material status와 store inventory를 기록한다. Live/default probe는 planner가 Analyst `2`개와 Researcher `2`개 task를 만들었지만 direct Analyst `no_retrieved_docs = 2`, direct Researcher `no_raw_retrieval = 2`였고, default store inventory는 `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, `structure_graph_node_count = 0`이었다. Raw artifact는 `benchmarks/results/mas_direct_worker_probe_2026-06-07/`에 local-only로 남긴다. 즉 현재 blocker는 planner/critic/final merge가 아니라 empty default store preflight 문제다.
 - MAS default smoke empty-store preflight는 2026-06-07에 추가했다. `mas_e2e_smoke`는 VectorStoreManager / LLM work 전에 Chroma collection embedding count와 sidecar material count를 확인한다. Collection은 있지만 `chroma_embedding_count = 0`, `parent_count = 0`, `structure_graph_node_count = 0`, `table_payload_count = 0`이면 `Store appears empty for MAS smoke`로 조기 실패한다. Live/default run은 약 `5s` 안에 이 preflight에서 실패해 더 이상 빈 store로 worker/API 시간을 쓰지 않는다. 다음 작업은 valid local default store 재설정 또는 재생성 절차 고정이다.
+- MAS default smoke valid-store restoration은 2026-06-07에 닫았다. Default store는 populated Samsung 2023 structural-selective store `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/삼성전자-2023/stores/structural-selective-v2-prefix-2500-320`로 이동했고, `mas_e2e_smoke`는 store signature를 읽어 Google `models/gemini-embedding-2` runtime으로 VectorStoreManager를 연다. Override 없는 live default smoke는 `accepted_without_replan = 2`, `blocked_count = 0`, `integrity_error_count = 0`, `worker_failure_count = 0`, final source tasks `4`, source artifacts `8`, evidence refs `55`를 보고했다. Raw artifact는 `benchmarks/results/mas_default_valid_store_restored_2026-06-07/`에 local-only로 남긴다.
 - MAS skeleton과 artifact schema productization 1차 작업은 2026-06-07에 닫았다. `FinalCarryForwardProjection`과 `project_final_report_carry_forward()`를 MAS schema layer로 올렸고, smoke output은 이제 이 shared helper에서 final source task/artifact/evidence/subtask-result counts와 ids를 만든다. Orchestrator와 dummy MAS merge도 `subtask_results` row에 selected worker `artifact_id` / `source_artifact_id`를 보존한다. 관련 MAS API-free tests `29`개와 runtime domain-term audit이 통과했다.
 - mixed growth+narrative answer-language polish 1차 작업은 2026-06-07에 닫았다. 최종 aggregate answer surface에서 받침 있는 한글 음절 뒤의 잘못된 conjunctive particle을 generic하게 정리하고, `RuntimeCalculationTrace.calculation_result.formatted_result`도 같은 surface를 보존한다. 이 변경은 회사명/benchmark ID/driver keyword branch 없이 answer surface 후처리만 수행하며, focused aggregate regression과 runtime domain-term audit이 통과했다.
 - mixed growth+narrative retrieval fan-out control 1차 작업은 2026-06-07에 audit surface 보강으로 닫았다. `audit_benchmark_fanout_cost.py`는 이제 cross-trace reuse candidates 중 current cache hit / miss counts를 row와 summary, Markdown table에 노출한다. 따라서 `NAV_T2_006` 같은 sibling lookup repeats가 이미 cache-hit로 막힌 관측 항목인지, 실제 추가 비용 후보인지 구분할 수 있다. 새 benchmark는 돌리지 않았다.
