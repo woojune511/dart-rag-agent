@@ -552,6 +552,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "reflection_plan": final.get("reflection_plan", {}),
             "reflection_request": final.get("reflection_request", {}),
             "reflection_action": final.get("reflection_action", {}),
+            "reflection_report": final.get("reflection_report", {}),
             "semantic_plan": final.get("semantic_plan", {}),
             "calc_subtasks": final.get("calc_subtasks", []),
             "retrieval_queries": final.get("retrieval_queries", []),

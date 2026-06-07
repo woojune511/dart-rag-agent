@@ -1,5 +1,6 @@
 import unittest
 
+from src.agent.financial_graph_calculation import _reflection_report_from_action
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_graph_reconciliation import (
     ALLOWED_REFLECTION_RETRY_STRATEGIES,
@@ -111,6 +112,52 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         )
 
         self.assertEqual(request["remaining_retry_budget"], 0)
+
+    def test_reflection_report_records_retry_handoff(self) -> None:
+        report = _reflection_report_from_action(
+            {
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "result_artifact_id": "artifact_1",
+                }
+            },
+            reflection_action={
+                "action_type": "retry_retrieval",
+                "retry_queries": ["find value"],
+                "retrieval_scope_hints": [],
+                "synthesis_source_ids": [],
+                "stop_reason": "",
+            },
+            reflection_request={"failure_status": "incomplete"},
+        )
+
+        self.assertEqual(report["outcome"], "retry_prepared")
+        self.assertEqual(report["action_taken"], "retry_retrieval")
+        self.assertEqual(report["budget_consumed"], 1)
+        self.assertEqual(report["target_task_ids"], ["task_1"])
+        self.assertEqual(report["target_artifact_ids"], ["artifact_1"])
+        self.assertEqual(report["blocking_issues"], [])
+
+    def test_reflection_report_records_stop_reason_without_retry_budget(self) -> None:
+        report = _reflection_report_from_action(
+            {"active_subtask": {"task_id": "task_1"}},
+            reflection_action={
+                "action_type": "stop_insufficient",
+                "retry_queries": [],
+                "retrieval_scope_hints": [],
+                "synthesis_source_ids": [],
+                "stop_reason": "no grounded evidence",
+            },
+            reflection_request={"failure_status": "missing_evidence"},
+        )
+
+        self.assertEqual(report["outcome"], "stop_requested")
+        self.assertEqual(report["action_taken"], "stop_insufficient")
+        self.assertEqual(report["budget_consumed"], 0)
+        self.assertEqual(
+            report["blocking_issues"],
+            [{"type": "stop_insufficient", "reason": "no grounded evidence"}],
+        )
 
 
 if __name__ == "__main__":

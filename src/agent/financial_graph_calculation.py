@@ -15,7 +15,18 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, ReflectionAction, validate_answer_slots_payload
+from src.agent.financial_graph_models import (
+    AggregateSynthesisOutput,
+    CalculationPlan,
+    CalculationRenderOutput,
+    CalculationResult,
+    CalculationVerificationOutput,
+    FinancialAgentState,
+    OperandExtraction,
+    ReflectionAction,
+    ReflectionReport,
+    validate_answer_slots_payload,
+)
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.config import get_financial_ontology
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
@@ -74,6 +85,41 @@ def _reflection_action_from_plan(
             if str(item).strip()
         ],
         "stop_reason": str(reflection_plan.get("explanation") or ""),
+    }
+
+
+def _reflection_report_from_action(
+    state: FinancialAgentState,
+    *,
+    reflection_action: ReflectionAction,
+    reflection_request: Dict[str, Any],
+) -> ReflectionReport:
+    action_type = _normalise_spaces(str(reflection_action.get("action_type") or "")).lower()
+    stop_reason = str(reflection_action.get("stop_reason") or "").strip()
+    active_subtask = dict(state.get("active_subtask") or {})
+    task_id = str(active_subtask.get("task_id") or "").strip()
+    artifact_id = str(
+        active_subtask.get("artifact_id")
+        or active_subtask.get("result_artifact_id")
+        or active_subtask.get("source_artifact_id")
+        or ""
+    ).strip()
+    blocking_issues: List[Dict[str, Any]] = []
+    if action_type == "stop_insufficient":
+        blocking_issues.append(
+            {
+                "type": "stop_insufficient",
+                "reason": stop_reason
+                or str(reflection_request.get("failure_status") or "insufficient evidence"),
+            }
+        )
+    return {
+        "outcome": "stop_requested" if action_type == "stop_insufficient" else "retry_prepared",
+        "action_taken": action_type,
+        "budget_consumed": 0 if action_type == "stop_insufficient" else 1,
+        "target_task_ids": [task_id] if task_id else [],
+        "target_artifact_ids": [artifact_id] if artifact_id else [],
+        "blocking_issues": blocking_issues,
     }
 
 
@@ -11922,6 +11968,11 @@ class FinancialAgentCalculationMixin:
             retry_queries=retry_queries,
             retry_strategy=retry_strategy,
         )
+        reflection_report = _reflection_report_from_action(
+            state,
+            reflection_action=reflection_action,
+            reflection_request=dict(state.get("reflection_request") or {}),
+        )
         retry_reason = (
             str(reflection_plan.get("explanation") or "")
             or str(plan.get("explanation") or "")
@@ -11943,6 +11994,7 @@ class FinancialAgentCalculationMixin:
             "retry_strategy": str(reflection_action.get("action_type") or retry_strategy),
             "retry_queries": list(reflection_action.get("retry_queries") or []),
             "reflection_action": reflection_action,
+            "reflection_report": reflection_report,
             "evidence_bullets": [],
             "evidence_items": [],
             "evidence_status": "missing",

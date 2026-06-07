@@ -29,6 +29,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertIn("debug_traces", FinancialAgentState.__optional_keys__)
         self.assertIn("reflection_request", FinancialAgentState.__optional_keys__)
         self.assertIn("reflection_action", FinancialAgentState.__optional_keys__)
+        self.assertIn("reflection_report", FinancialAgentState.__optional_keys__)
         self.assertNotIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
 
     def _base_final_state(self):
@@ -123,6 +124,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(result["retrieval_debug_trace"], {"selected_count": 1})
         self.assertEqual(result["reflection_request"], {})
         self.assertEqual(result["reflection_action"], {})
+        self.assertEqual(result["reflection_report"], {})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
