@@ -136,6 +136,8 @@ Current gates:
 - task/artifact integrity projection
 - final close blocking on integrity errors
 - critic acceptance state and rejection feedback
+- canonical calculation trace projection, with legacy top-level mirrors kept
+  only as optional compatibility bridges
 - report-cache reviewer handoff
 - runtime domain-term audit
 - full unit-test discovery
@@ -170,6 +172,13 @@ The demo shows:
 - task/artifact integrity
 - critic acceptance
 - cache reviewer handoff
+
+Reviewer note:
+
+- Treat `resolved_calculation_trace`, `structured_result`, and
+  `task_artifact_trace` as the primary contract surfaces. Top-level
+  calculation/debug mirrors exist only for compatibility with older callers or
+  result bundles.
 
 Expected headline:
 
