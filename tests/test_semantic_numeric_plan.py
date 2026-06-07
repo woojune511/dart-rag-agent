@@ -215,6 +215,58 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ],
         )
 
+    def test_wealth_management_policy_adds_aum_narrative_hints_without_polluting_growth_operands(self) -> None:
+        import src.config.ontology as ontology_module
+        from src.config.ontology import FinancialOntologyManager
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager()
+            result = agent._plan_semantic_numeric_tasks(
+                {
+                    "query": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+                    "query_type": "comparison",
+                    "intent": "comparison",
+                    "topic": "순수수료이익 전년 대비 증가율 및 자산관리(WM) 부문 성과",
+                    "report_scope": {"company": "금융회사", "year": 2023, "report_type": "사업보고서"},
+                    "planner_mode": "initial",
+                    "planner_feedback": "",
+                    "plan_loop_count": 0,
+                    "target_metric_family": "",
+                    "target_metric_family_hint": "",
+                    "companies": ["금융회사"],
+                    "years": [2023, 2022],
+                    "section_filter": None,
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertFalse(result["semantic_plan"]["fallback_to_general_search"])
+        numeric_tasks = [
+            task
+            for task in result["calc_subtasks"]
+            if str(task.get("operation_family") or "") != "narrative_summary"
+        ]
+        self.assertTrue(numeric_tasks)
+        growth_task = next(
+            task
+            for task in numeric_tasks
+            if str(task.get("operation_family") or "") == "growth_rate"
+        )
+        self.assertEqual(
+            [row.get("concept") for row in growth_task["required_operands"]],
+            ["net_fee_income", "net_fee_income"],
+        )
+        narrative_task = result["calc_subtasks"][-1]
+        self.assertEqual(narrative_task["operation_family"], "narrative_summary")
+        self.assertTrue(any("총관리자산 AUM" in query for query in narrative_task["retrieval_queries"]))
+        self.assertIn("재무건전성 등 기타 참고사항", narrative_task["preferred_sections"])
+
     def test_general_ira_policy_context_does_not_open_ampc_concept_task(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager

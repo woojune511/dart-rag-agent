@@ -1618,6 +1618,54 @@ class FinancialAgentEvidenceMixin:
                 default=0,
             )
 
+        realized_policies = [
+            policy
+            for policy in active_policies
+            if narrative_policy_terms([policy], "realized_terms")
+            and (narrative_policy_terms([policy], "focus_terms") or query_focus_markers)
+        ]
+
+        def _policy_realized_priority_for_policy(item: Any, policy: Dict[str, Any]) -> tuple[int, float]:
+            doc, score = item
+            metadata = getattr(doc, "metadata", {}) or {}
+            block_type = str(metadata.get("block_type") or "").strip().lower()
+            period_focus = str(metadata.get("period_focus") or "").strip().lower()
+            section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
+            surface_lower = _doc_surface(doc).lower()
+            policy_focus_terms = narrative_policy_terms([policy], "focus_terms")
+            if not policy_focus_terms:
+                policy_focus_terms = list(query_focus_markers)
+            policy_realized_terms = narrative_policy_terms([policy], "realized_terms")
+            required_realized_terms = narrative_policy_terms([policy], "required_realized_terms")
+            focus_hits = sum(1 for marker in policy_focus_terms if marker.lower() in surface_lower)
+            realized_hits = sum(1 for marker in policy_realized_terms if marker.lower() in surface_lower)
+            if required_realized_terms and not any(
+                marker.lower() in surface_lower for marker in required_realized_terms
+            ):
+                return 0, float(score)
+            if not (focus_hits and realized_hits):
+                return 0, float(score)
+            priority = min(focus_hits, 4) * 2 + min(realized_hits, 4) * 3
+            if block_type == "table":
+                priority += 2
+            if period_focus == "current":
+                priority += 2
+            if any(marker in section_path for marker in preferred_section_markers):
+                priority += 2
+            if any(marker in section_path for marker in paragraph_priority_sections):
+                priority += 1
+            return priority, float(score)
+
+        def _policy_realized_priority(item: Any) -> tuple[int, float]:
+            fallback_score = float(item[1] if isinstance(item, (tuple, list)) and len(item) > 1 else 0.0)
+            return max(
+                (_policy_realized_priority_for_policy(item, policy) for policy in realized_policies),
+                default=(0, fallback_score),
+            )
+
+        def _selected_policy_realized_count(policy: Dict[str, Any]) -> int:
+            return sum(1 for item in selected if _policy_realized_priority_for_policy(item, policy)[0] > 0)
+
         focus_table_fill_limit = 0
         if entity_slot_groups and focus_groups:
             focus_table_fill_limit = min(
@@ -1951,6 +1999,57 @@ class FinancialAgentEvidenceMixin:
 
             _append_dividend_specific_doc(_is_payout_doc)
             _append_dividend_specific_doc(_is_policy_doc)
+
+        for realized_policy in realized_policies:
+            if _selected_policy_realized_count(realized_policy) > 0:
+                continue
+            policy_realized_candidates = []
+            for item in reranked:
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                metadata = getattr(doc, "metadata", {}) or {}
+                chunk_id = str(metadata.get("chunk_id") or "")
+                if chunk_id and chunk_id in seen_chunk_ids:
+                    continue
+                if _policy_realized_priority_for_policy(item, realized_policy)[0] <= 0:
+                    continue
+                policy_realized_candidates.append(item)
+            if policy_realized_candidates and len(selected) < effective_k:
+                best_item = sorted(
+                    policy_realized_candidates,
+                    key=lambda candidate: _policy_realized_priority_for_policy(candidate, realized_policy),
+                    reverse=True,
+                )[0]
+                selected.append(best_item)
+                best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
+                best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                if best_chunk_id:
+                    seen_chunk_ids.add(best_chunk_id)
+            elif policy_realized_candidates and effective_k > 0:
+                best_item = sorted(
+                    policy_realized_candidates,
+                    key=lambda candidate: _policy_realized_priority_for_policy(candidate, realized_policy),
+                    reverse=True,
+                )[0]
+                replacement_index = None
+                replacement_key: tuple[int, float] = (10_000, float("inf"))
+                for index, selected_item in enumerate(selected):
+                    priority, score = _policy_realized_priority_for_policy(selected_item, realized_policy)
+                    if priority > 0:
+                        continue
+                    candidate_key = (priority, float(score))
+                    if candidate_key < replacement_key:
+                        replacement_index = index
+                        replacement_key = candidate_key
+                if replacement_index is not None:
+                    old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
+                    old_chunk_id = str((getattr(old_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                    if old_chunk_id:
+                        seen_chunk_ids.discard(old_chunk_id)
+                    selected[replacement_index] = best_item
+                    best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
+                    best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                    if best_chunk_id:
+                        seen_chunk_ids.add(best_chunk_id)
 
         final_candidates = []
         for item in reranked:
@@ -4119,6 +4218,166 @@ class FinancialAgentEvidenceMixin:
 
         return supplemented
 
+    def _supplement_policy_realized_evidence(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        docs,
+        *,
+        query: str,
+        anchor_lookup: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        if not docs or not _query_requests_narrative_context(query):
+            return evidence_items
+
+        active_policies = self._active_narrative_policies_for_query(query)
+        query_focus_terms = self._query_focus_markers(query)
+        if not active_policies:
+            return evidence_items
+
+        supplemented = [dict(item) for item in evidence_items]
+        seen_keys = {
+            _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(item.get("source_anchor") or ""),
+                        str(item.get("quote_span") or item.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            for item in supplemented
+        }
+        existing_surface = _normalise_spaces(
+            " ".join(
+                part
+                for item in supplemented
+                for part in (
+                    str(item.get("claim") or ""),
+                    str(item.get("quote_span") or ""),
+                    str(item.get("raw_row_text") or ""),
+                )
+                if part
+            )
+        ).lower()
+
+        def _candidate_for_policy(policy: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            focus_terms = list(
+                dict.fromkeys(
+                    [
+                        *query_focus_terms,
+                        *narrative_policy_terms([policy], "focus_terms"),
+                    ]
+                )
+            )
+            realized_terms = narrative_policy_terms([policy], "realized_terms")
+            causal_terms = narrative_policy_terms([policy], "causal_terms")
+            required_realized_terms = narrative_policy_terms([policy], "required_realized_terms")
+            if required_realized_terms and any(term.lower() in existing_surface for term in required_realized_terms):
+                return None
+            if not focus_terms or not (realized_terms or causal_terms):
+                return None
+
+            best_candidate: Optional[Dict[str, Any]] = None
+            best_score = float("-inf")
+
+            for item in docs:
+                doc = item[0] if isinstance(item, (tuple, list)) else item
+                metadata = getattr(doc, "metadata", {}) or {}
+                block_type = str(metadata.get("block_type") or "").strip().lower()
+                if block_type not in {"paragraph", "table"}:
+                    continue
+                surface = _normalise_spaces(
+                    " ".join(
+                        part
+                        for part in (
+                            str(getattr(doc, "page_content", "") or ""),
+                            str(metadata.get("table_context") or ""),
+                            str(metadata.get("table_row_labels_text") or ""),
+                            str(metadata.get("table_value_labels_text") or ""),
+                            str(metadata.get("table_summary_text") or ""),
+                        )
+                        if part
+                    )
+                )
+                if not surface:
+                    continue
+                lowered_surface = surface.lower()
+                required_hits = [
+                    term for term in required_realized_terms if term and term.lower() in lowered_surface
+                ]
+                if required_realized_terms and not required_hits:
+                    continue
+                focus_hits = [term for term in focus_terms if term and term.lower() in lowered_surface]
+                if not focus_hits:
+                    continue
+                realized_hits = [term for term in realized_terms if term and term.lower() in lowered_surface]
+                causal_hits = [term for term in causal_terms if term and term.lower() in lowered_surface]
+                if realized_terms and not realized_hits:
+                    continue
+                if causal_terms and not causal_hits and not realized_hits:
+                    continue
+
+                driver_terms = list(dict.fromkeys([*required_hits, *realized_hits, *focus_hits, *causal_hits]))
+                snippet = self._extract_driver_snippet(surface, driver_terms) or surface[:220]
+                score = float(
+                    len(required_hits) * 8
+                    + len(realized_hits) * 4
+                    + len(focus_hits) * 2
+                    + len(causal_hits)
+                )
+                if block_type == "table":
+                    score += 2.0
+                elif block_type == "paragraph":
+                    score += 1.0
+                try:
+                    score += min(float(item[1] or 0.0), 1.0) if isinstance(item, (tuple, list)) and len(item) > 1 else 0.0
+                except (TypeError, ValueError):
+                    pass
+                if score <= best_score:
+                    continue
+
+                anchor = self._build_source_anchor(metadata)
+                best_score = score
+                best_candidate = {
+                    "evidence_id": f"ev_{len(supplemented) + 1:03d}",
+                    "source_anchor": anchor,
+                    "claim": snippet,
+                    "quote_span": snippet,
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                    "metadata": self._resolve_anchor_metadata(
+                        anchor_lookup,
+                        anchor,
+                        quote_surface=snippet,
+                        claim_surface=snippet,
+                    ),
+                }
+            return best_candidate
+
+        for policy in active_policies:
+            best_candidate = _candidate_for_policy(policy)
+            if not best_candidate:
+                continue
+            dedupe_key = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(best_candidate.get("source_anchor") or ""),
+                        str(best_candidate.get("quote_span") or best_candidate.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            if dedupe_key and dedupe_key in seen_keys:
+                continue
+            if dedupe_key:
+                seen_keys.add(dedupe_key)
+            best_candidate["evidence_id"] = f"ev_{len(supplemented) + 1:03d}"
+            supplemented.append(best_candidate)
+        return supplemented
+
     def _augment_narrative_answer_with_supported_drivers(
         self,
         answer: str,
@@ -5320,6 +5579,12 @@ class FinancialAgentEvidenceMixin:
             evidence_items = self._filter_evidence_items_for_required_operands(evidence_items, state)
             if operation_family == "narrative_summary":
                 evidence_items = self._supplement_dividend_policy_evidence(
+                    evidence_items,
+                    docs,
+                    query=str(state.get("query") or ""),
+                    anchor_lookup=anchor_lookup,
+                )
+                evidence_items = self._supplement_policy_realized_evidence(
                     evidence_items,
                     docs,
                     query=str(state.get("query") or ""),

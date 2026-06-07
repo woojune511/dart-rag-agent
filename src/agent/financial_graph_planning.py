@@ -1695,11 +1695,44 @@ class FinancialAgentPlanningMixin:
         ordered_results: List[Dict[str, Any]],
         final_answer: str,
     ) -> Dict[str, Any]:
-        aggregate_projection = _build_aggregate_calculation_projection(ordered_results, final_answer)
+        projection_rows: List[Dict[str, Any]] = []
+        for row in ordered_results:
+            is_conflicting_growth = (
+                self._aggregate_result_operation_family(dict(row)) == "growth_rate"
+                and self._growth_row_has_conflicting_periods(dict(row))
+            )
+            if not is_conflicting_growth:
+                projection_rows.append(row)
+                continue
+            material_gap = self._material_gap_feedback_for_subtask_result(dict(row))
+            row_copy = dict(row)
+            calculation_result = dict(row_copy.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row_copy.get("answer_slots") or {})
+            answer_slots["source_row_ids"] = []
+            calculation_result.update(
+                {
+                    "answer_slots": answer_slots,
+                    "source_row_ids": [],
+                    "source_evidence_ids": [],
+                    "material_gap_feedback": material_gap,
+                }
+            )
+            row_copy.update(
+                {
+                    "calculation_operands": [],
+                    "calculation_result": calculation_result,
+                    "source_row_ids": [],
+                    "source_evidence_ids": [],
+                    "material_gap_feedback": material_gap,
+                }
+            )
+            projection_rows.append(row_copy)
+
+        aggregate_projection = _build_aggregate_calculation_projection(projection_rows, final_answer)
         aggregate_evidence: List[Dict[str, Any]] = []
         seen_evidence_ids: set[str] = set()
 
-        for row in ordered_results:
+        for row in projection_rows:
             for evidence in list(row.get("runtime_evidence") or []):
                 evidence_row = dict(evidence)
                 evidence_id = str(evidence_row.get("evidence_id") or "").strip()

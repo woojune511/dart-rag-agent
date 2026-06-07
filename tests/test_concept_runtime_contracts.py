@@ -80,5 +80,55 @@ class ConceptRuntimeContractTests(unittest.TestCase):
             )
 
 
+    def test_concept_runtime_builds_growth_task_for_net_fee_income_aliases(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            plan = _build_semantic_numeric_plan(
+                query="2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산해 줘",
+                topic="순수수료이익 전년 대비 증가율",
+                intent="comparison",
+                report_scope={"company": "금융회사", "year": 2023, "report_type": "사업보고서"},
+                target_metric_family="",
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(plan["status"], "concept_fallback")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "concept_growth_rate")
+        self.assertEqual(task["operation_family"], "growth_rate")
+        self.assertEqual(
+            [(row["label"], row["role"], row["concept"], row.get("unit_family")) for row in task["required_operands"]],
+            [
+                ("2023년 순수수료이익", "current_period", "net_fee_income", "KRW"),
+                ("2022년 순수수료이익", "prior_period", "net_fee_income", "KRW"),
+            ],
+        )
+        for operand in task["required_operands"]:
+            self.assertIn("순수수료손익", operand.get("aliases") or [])
+            self.assertEqual(
+                operand.get("surface_contract"),
+                {
+                    "positive": [
+                        "순수수료이익",
+                        "순수수료손익",
+                        "순수수수료이익",
+                        "순수수수료손익",
+                        "수수료이익",
+                        "수수료손익",
+                    ],
+                    "negative": [
+                        "수수료비용",
+                        "수수료 비용",
+                    ],
+                },
+            )
+        self.assertTrue(any("2023년 2022년 순수수료이익" in query for query in task["retrieval_queries"]))
+        self.assertTrue(any("순수수료손익" in query for query in task["retrieval_queries"]))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -551,6 +551,9 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
     "sentence_terminal_suffix": ".",
     "max_growth_driver_sentences": 4,
     "source_visible_term_note_template": "원문 표기: {terms}.",
+    "policy_required_realized_footnote_suffix_pattern": r"\s*주\d+\)?\s*$",
+    "policy_required_realized_current_change_template": "{label}{topic_particle} {current_value}{unit}이며 전년대비 {change_value}{unit}입니다.",
+    "policy_required_realized_current_template": "{label}{topic_particle} {current_value}{unit}입니다.",
 }
 
 
@@ -1505,6 +1508,28 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
             "계약의 목적 및 내용",
             "예상효과",
         ),
+    },
+    {
+        "name": "wealth_management_aum",
+        "trigger_terms": ("자산관리", "WM", "wealth management"),
+        "retrieval_query_suffixes": (
+            "자산관리 WM 총관리자산 AUM 계열사별 총관리자산",
+            "총관리자산 AUM 전년대비 증가 은행 증권 자산운용 부동산신탁",
+        ),
+        "preferred_sections": (
+            "II. 사업의 내용 > 5. 재무건전성 등 기타 참고사항",
+            "재무건전성 등 기타 참고사항",
+            "그 밖에 투자의사결정에 필요한 사항",
+            "영업의 현황",
+        ),
+        "paragraph_priority_sections": (
+            "재무건전성 등 기타 참고사항",
+            "그 밖에 투자의사결정에 필요한 사항",
+        ),
+        "focus_terms": ("자산관리", "wm", "총관리자산", "aum", "계열사별"),
+        "causal_terms": ("증가", "전년대비", "성장", "영향"),
+        "realized_terms": ("총관리자산", "AUM", "전년대비", "계열사별"),
+        "required_realized_terms": ("총관리자산", "AUM"),
     },
     {
         "name": "investment_entity_summary",
