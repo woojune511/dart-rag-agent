@@ -370,9 +370,9 @@ Useful supporting points:
 
 ## Next Work
 
-1. Internal calculation debug ownership follow-up: split
-   `calculation_debug_trace` into a narrower debug contract before reducing its
-   required state shape.
+1. Internal compatibility bridge follow-up: audit whether callers still need
+   optional legacy calculation mirror keys and the top-level
+   `calculation_debug_trace` bridge after `debug_traces.calculation` adoption.
 2. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.

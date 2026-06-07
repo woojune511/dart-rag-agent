@@ -18,7 +18,8 @@ is internal representation cleanup, not a new answer-quality fix.
 | task/artifact ledger `operand_set`, `calculation_plan`, `calculation_result` | typed MAS/runtime artifact contract | keep |
 | top-level `calculation_*` in public/export payloads | legacy compatibility fallback | do not reintroduce |
 | top-level `calculation_*` in live graph state | internal scratch/migration mirror | reduce after callsite audit |
-| `calculation_debug_trace` | internal debug state | keep until debug trace ownership is separated |
+| `debug_traces.calculation` | owned calculation debug surface | keep |
+| `calculation_debug_trace` | legacy top-level debug compatibility bridge | optional only |
 
 ## Reader Categories
 
@@ -35,8 +36,8 @@ is internal representation cleanup, not a new answer-quality fix.
 - `src/agent/financial_graph_models.py` still carries top-level calculation
   state keys on `FinancialAgentState`, but `calculation_operands`,
   `calculation_plan`, and `calculation_result` are now typed as optional
-  compatibility mirrors. `calculation_debug_trace` remains a required debug
-  surface until debug trace ownership is separated.
+  compatibility mirrors. `calculation_debug_trace` is also optional; the owned
+  debug surface is `debug_traces.calculation`.
 - `src/agent/financial_graph_helpers.py` owns the compatibility boundary:
   `_resolve_runtime_calculation_trace()` can allow or reject top-level fallback,
   and `_runtime_trace_state_update()` defaults to
@@ -66,9 +67,9 @@ is internal representation cleanup, not a new answer-quality fix.
 3. Stop adding new top-level `calculation_*` writes. New runtime updates should
    use `_runtime_trace_state_update()` and leave
    `include_compatibility_mirrors = false`.
-4. Split debug ownership before removing `calculation_debug_trace` from
-   `FinancialAgentState`. It is a debug surface, not a calculation-result
-   compatibility mirror.
+4. Keep `calculation_debug_trace` as a top-level compatibility bridge only while
+   callers migrate to `debug_traces.calculation`. It is not a required runtime
+   state surface.
 5. Remove top-level `calculation_operands`, `calculation_plan`, and
    `calculation_result` from `FinancialAgentState` only after compatibility
    bridges and typed adapters no longer require them as accepted optional keys.
@@ -86,18 +87,19 @@ is internal representation cleanup, not a new answer-quality fix.
 - 2026-06-07: closed the state typing follow-up for legacy calculation mirrors.
   `FinancialAgentState` now marks top-level `calculation_operands`,
   `calculation_plan`, and `calculation_result` as optional compatibility
-  mirrors, while keeping `calculation_debug_trace` required as the still-owned
-  debug surface. Focused projection tests lock this state-shape distinction.
+  mirrors. Focused projection tests lock this state-shape distinction.
+- 2026-06-07: closed the debug ownership follow-up. `FinancialAgentState` now
+  marks `calculation_debug_trace` optional and exposes the owned public debug
+  surface as `debug_traces.calculation`; the old top-level
+  `calculation_debug_trace` remains a compatibility bridge in `FinancialAgent.run()`.
 
 ## Next Implementation Candidate
 
-The next code cleanup should target debug ownership and compatibility bridge
-boundaries, not answer behavior:
+The next code cleanup should target compatibility bridge boundaries, not answer
+behavior:
 
-- split `calculation_debug_trace` ownership into a narrower debug surface before
-  changing its required state shape;
 - audit whether public compatibility bridges still need to accept the optional
-  legacy calculation mirror keys;
+  legacy calculation mirror keys and top-level debug bridge;
 - update tests that seed stale top-level fields so they remain explicit
   compatibility or regression fixtures;
 - avoid deleting historical-tool fallback until old result-bundle replay is no

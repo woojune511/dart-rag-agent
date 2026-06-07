@@ -1090,11 +1090,11 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. MAS default smoke material-empty blocker diagnosis
-2. runtime critic / offline evaluator boundary follow-up
+1. internal compatibility bridge boundary follow-up
+2. reviewer / portfolio walkthrough polish
 3. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
-4. internal calculation debug ownership follow-up
+4. MAS default smoke material-empty blocker diagnosis
 5. agentic self-reflection 재설계
 6. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 7. cross-company 확장

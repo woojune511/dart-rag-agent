@@ -21,6 +21,10 @@ class RuntimeCalculationTrace(TypedDict, total=False):
     runtime_projection: RuntimeProjectionMetadata
 
 
+class DebugTraceBundle(TypedDict, total=False):
+    calculation: Dict[str, Any]
+
+
 class TaskResultRecord(TypedDict, total=False):
     task_id: str
     metric_family: str
@@ -79,7 +83,8 @@ class FinancialAgentState(TypedDict):
     calculation_operands: NotRequired[List[Dict[str, Any]]]
     calculation_plan: NotRequired[Dict[str, Any]]
     calculation_result: NotRequired[Dict[str, Any]]
-    calculation_debug_trace: Dict[str, Any]
+    calculation_debug_trace: NotRequired[Dict[str, Any]]
+    debug_traces: NotRequired[DebugTraceBundle]
     planner_debug_trace: Dict[str, Any]
     missing_info: List[str]
     reflection_count: int

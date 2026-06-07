@@ -19,12 +19,13 @@ class _FakeDoc:
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
-    def test_state_typing_keeps_legacy_calculation_mirrors_optional(self) -> None:
+    def test_state_typing_keeps_legacy_calculation_and_debug_surfaces_optional(self) -> None:
         self.assertIn("calculation_operands", FinancialAgentState.__optional_keys__)
         self.assertIn("calculation_plan", FinancialAgentState.__optional_keys__)
         self.assertIn("calculation_result", FinancialAgentState.__optional_keys__)
-        self.assertNotIn("calculation_debug_trace", FinancialAgentState.__optional_keys__)
-        self.assertIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
+        self.assertIn("calculation_debug_trace", FinancialAgentState.__optional_keys__)
+        self.assertIn("debug_traces", FinancialAgentState.__optional_keys__)
+        self.assertNotIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
 
     def _base_final_state(self):
         return {
@@ -61,7 +62,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "calculation_operands": [{"label": "stale", "value": "999"}],
             "calculation_plan": {"status": "stale"},
             "calculation_result": {"status": "stale", "rendered_value": "999"},
-            "calculation_debug_trace": {},
+            "calculation_debug_trace": {"source": "unit_test"},
             "planner_debug_trace": {},
             "missing_info": [],
             "reflection_count": 0,
@@ -120,6 +121,39 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
+
+    def test_run_projects_calculation_debug_trace_under_debug_traces(self) -> None:
+        final_state = self._base_final_state()
+        final_state["calculation_debug_trace"] = {
+            "source": "structured_row_direct",
+            "coverage": "sufficient",
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(
+            result["debug_traces"]["calculation"],
+            {"source": "structured_row_direct", "coverage": "sufficient"},
+        )
+        self.assertEqual(
+            result["calculation_debug_trace"],
+            result["debug_traces"]["calculation"],
+        )
+
+    def test_run_debug_trace_projection_tolerates_missing_calculation_debug_trace(self) -> None:
+        final_state = self._base_final_state()
+        final_state.pop("calculation_debug_trace", None)
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["debug_traces"]["calculation"], {})
+        self.assertEqual(result["calculation_debug_trace"], {})
 
     def test_run_public_projection_adds_read_only_report_cache_candidate(self) -> None:
         final_state = self._base_final_state()

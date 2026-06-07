@@ -416,11 +416,11 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
+| 1 | internal compatibility bridge follow-up | optional legacy calculation mirror key와 top-level `calculation_debug_trace` bridge가 아직 필요한지 점검 |
 
 ## 현재 우선순위 요약
 
-1. internal calculation debug ownership follow-up
+1. internal compatibility bridge follow-up
 
 ## 현재 해석
 
@@ -428,7 +428,8 @@
 - report-scoped cache capability design은 2026-06-07 기준 candidate-only handoff gate까지 닫았다. `src.ops.review_report_cache_index_contract` 기본 fixture-backed review는 `status = ok`, `difference_count = 0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, projection-ready candidate `1`, fallback candidate `1`을 보고한다. Cache serving, read/write, ledger insertion, retrieval bypass는 모두 disabled로 남는다.
 - material-gap / mixed narrative canary maintenance는 2026-06-07에 `docs/evaluation/material_gap_mixed_canary_maintenance.md`로 정리했다. `KBF_T2_043`은 closed runtime blocker이자 broader replay/completeness-render calibration watch item이고, `NAV_T2_006`은 closed mixed numeric+narrative quality target으로 policy-gate regression coverage에 남긴다. 새 artifact가 material evidence / dependency / trace / final synthesis failure를 재현하기 전에는 full benchmark나 runtime patch를 기본값으로 쓰지 않는다.
 - internal calculation mirror cleanup 1차 작업은 2026-06-07에 닫았다. Aggregate reconciliation artifact enrichment가 더 이상 stale top-level `calculation_result`의 `source_row_ids` / answer-slot source refs를 evidence refs로 보강하지 않고, canonical projection / ordered subtask refs / selected claims만 사용한다. 회귀 테스트는 canonical `resolved_calculation_trace` source refs는 보존하고 stale top-level refs는 replan-triggering integrity gap으로 남기는 두 경로를 고정한다. `tests.test_subtask_loop` `143`개와 runtime domain-term audit이 통과했다.
-- internal calculation mirror cleanup state-typing follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 optional compatibility mirror로 내려갔고, `calculation_debug_trace`만 debug ownership 분리 전 required surface로 남긴다. Focused projection test와 runtime domain-term audit이 통과했다.
+- internal calculation mirror cleanup state-typing follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 optional compatibility mirror로 내려갔다. Focused projection test와 runtime domain-term audit이 통과했다.
+- internal calculation debug ownership follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 `calculation_debug_trace`는 optional compatibility bridge가 됐고, owned public debug surface는 `debug_traces.calculation`으로 분리했다.
 - runtime critic / offline evaluator boundary follow-up 1차 작업은 2026-06-07에 reviewer/demo surface 정리로 시작했다. `portfolio_demo`와 `mas_researcher_smoke`는 이제 `passed` / `deterministic_score`를 직접 acceptance로 보지 않고 `critic_report_runtime_acceptance_state()`의 status, reasons, target refs, score-used flag를 노출한다. Focused demo/smoke/critic tests `14`개가 통과했다.
 - runtime critic / final merge acceptance follow-up은 2026-06-07에 target carry-forward를 보강했다. Critic rejection integrity issue는 raw `target_refs`뿐 아니라 ledger에 존재하는 `target_task_ids` / `target_artifact_ids`를 분리해 노출하고, Orchestrator replan carry-forward는 rejected worker target task도 failed 처리한다. Focused MAS/projection tests와 runtime domain-term audit이 통과했다.
 - runtime critic / offline evaluator boundary follow-up은 2026-06-07에 helper level까지 닫았다. `critic_report_runtime_acceptance_state()`는 `passed` / `verdict` / `status` verdict signal을 normalize하고, conflicting verdict signal은 block하며, rejected report는 diagnostic score가 높아도 blocked로 남긴다. `deterministic_score_used_for_acceptance = false`를 유지한다. Focused critic/projection/demo tests와 runtime domain-term audit이 통과했다.
@@ -461,7 +462,8 @@
   - live graph readers는 strict `resolved_calculation_trace`를 써야 한다.
   - `FinancialAgent.run()` public bridge와 retrospective/replay tools만 명시적 compatibility fallback을 유지한다.
   - `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 이제 optional compatibility mirror다.
-  - 다음 cleanup은 `calculation_debug_trace` debug ownership을 분리한 뒤 required state shape를 줄일 수 있는지 검토하는 순서다.
+  - `calculation_debug_trace`도 optional compatibility bridge가 됐고, owned public debug surface는 `debug_traces.calculation`이다.
+  - 다음 cleanup은 legacy calculation mirror key와 top-level debug bridge를 계속 public compatibility로 유지해야 하는지 점검하는 순서다.
 - 현재 더 중요한 운영 질문은 planner보다 ingest candidate selection이다.
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다
