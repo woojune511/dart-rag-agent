@@ -550,6 +550,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "retry_queries": final.get("retry_queries", []),
             "reconciliation_retry_count": final.get("reconciliation_retry_count", 0),
             "reflection_plan": final.get("reflection_plan", {}),
+            "reflection_action": final.get("reflection_action", {}),
             "semantic_plan": final.get("semantic_plan", {}),
             "calc_subtasks": final.get("calc_subtasks", []),
             "retrieval_queries": final.get("retrieval_queries", []),

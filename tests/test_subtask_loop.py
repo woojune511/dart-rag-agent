@@ -5492,6 +5492,9 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(update["retry_reason"], "missing operands")
         self.assertEqual(update["missing_info"], ["missing numeric value"])
+        self.assertEqual(update["reflection_action"]["action_type"], "retry_retrieval")
+        self.assertEqual(update["reflection_action"]["retry_queries"], update["retry_queries"])
+        self.assertEqual(update["reflection_action"]["stop_reason"], "")
         self.assertEqual(
             _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
             {},

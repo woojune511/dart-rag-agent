@@ -38,6 +38,50 @@ class TaskResultRecord(TypedDict, total=False):
     selected_claim_ids: List[str]
 
 
+ReflectionRetryStrategy = Literal[
+    "retry_retrieval",
+    "synthesize_from_task_outputs",
+    "stop_insufficient",
+]
+
+
+class ReflectionRequest(TypedDict, total=False):
+    query: str
+    active_task_id: str
+    failure_status: str
+    missing_info: List[str]
+    runtime_trace_summary: Dict[str, Any]
+    evidence_summary: Dict[str, Any]
+    remaining_retry_budget: int
+
+
+class ReflectionPlanRecord(TypedDict, total=False):
+    status: str
+    retry_objective: str
+    retry_strategy: ReflectionRetryStrategy
+    missing_info: List[str]
+    subqueries: List[str]
+    preferred_sections: List[str]
+    explanation: str
+
+
+class ReflectionAction(TypedDict, total=False):
+    action_type: ReflectionRetryStrategy
+    retry_queries: List[str]
+    retrieval_scope_hints: List[str]
+    synthesis_source_ids: List[str]
+    stop_reason: str
+
+
+class ReflectionReport(TypedDict, total=False):
+    outcome: str
+    action_taken: str
+    budget_consumed: int
+    target_task_ids: List[str]
+    target_artifact_ids: List[str]
+    blocking_issues: List[Dict[str, Any]]
+
+
 class FinancialAgentState(TypedDict):
     query: str
     report_scope: Dict[str, Any]
@@ -93,6 +137,7 @@ class FinancialAgentState(TypedDict):
     retry_queries: List[str]
     reconciliation_retry_count: int
     reflection_plan: Dict[str, Any]
+    reflection_action: NotRequired[ReflectionAction]
     semantic_plan: Dict[str, Any]
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]

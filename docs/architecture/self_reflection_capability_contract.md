@@ -74,15 +74,18 @@ No other strategy should be accepted without updating this contract and tests.
 
 ## First Implementation Increment
 
-The next code PR should avoid changing answer behavior. It should only make the
-contract boundary visible:
+The first code increment avoids changing answer behavior. It makes the contract
+boundary visible:
 
-1. Add typed helper functions or TypedDicts for request, plan, action, and
-   report.
-2. Make `_plan_reflection_retry()` return a normalized plan through one helper.
-3. Make `_prepare_reflection_retry()` consume a normalized action shape.
-4. Add tests for allowed strategies, retry budget, and legacy trace rejection.
+1. Add TypedDicts for request, plan, action, and report.
+2. Make `_plan_reflection_retry()` normalize planner output through one helper.
+3. Make `_prepare_reflection_retry()` expose a normalized action shape.
+4. Add tests for allowed strategies and legacy trace rejection.
 5. Keep current graph routes intact.
+
+Current status: TypedDicts, plan normalization, and action projection are in
+place. The next increment should build a dedicated request builder and then add
+a `ReflectionReport` handoff without changing final acceptance behavior.
 
 ## Non-Goals
 
