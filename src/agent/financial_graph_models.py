@@ -139,6 +139,7 @@ class FinancialAgentState(TypedDict):
     reflection_plan: Dict[str, Any]
     reflection_request: NotRequired[ReflectionRequest]
     reflection_action: NotRequired[ReflectionAction]
+    reflection_report: NotRequired[ReflectionReport]
     semantic_plan: Dict[str, Any]
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]

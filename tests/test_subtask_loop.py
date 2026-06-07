@@ -5500,6 +5500,9 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(update["reflection_action"]["action_type"], "retry_retrieval")
         self.assertEqual(update["reflection_action"]["retry_queries"], update["retry_queries"])
         self.assertEqual(update["reflection_action"]["stop_reason"], "")
+        self.assertEqual(update["reflection_report"]["outcome"], "retry_prepared")
+        self.assertEqual(update["reflection_report"]["action_taken"], "retry_retrieval")
+        self.assertEqual(update["reflection_report"]["budget_consumed"], 1)
         self.assertEqual(
             _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
             {},

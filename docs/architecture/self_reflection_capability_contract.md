@@ -80,12 +80,16 @@ boundary visible:
 1. Add TypedDicts for request, plan, action, and report.
 2. Make `_plan_reflection_retry()` normalize planner output through one helper.
 3. Make `_prepare_reflection_retry()` expose a normalized action shape.
-4. Add tests for allowed strategies and legacy trace rejection.
-5. Keep current graph routes intact.
+4. Make `_prepare_reflection_retry()` emit a bounded `ReflectionReport` handoff.
+5. Add tests for allowed strategies, legacy trace rejection, and report shape.
+6. Keep current graph routes intact.
 
 Current status: TypedDicts, request builder, plan normalization, and action
-projection are in place. The next increment should add a `ReflectionReport`
-handoff without changing final acceptance behavior.
+projection are in place. `_prepare_reflection_retry()` now also records a
+`ReflectionReport` with the selected action, retry budget consumption,
+target task/artifact ids when visible, and blocking issues for
+`stop_insufficient`. This is a handoff record only; final acceptance behavior
+and graph routes are unchanged.
 
 ## Non-Goals
 
