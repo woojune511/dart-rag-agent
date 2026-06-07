@@ -83,9 +83,9 @@ boundary visible:
 4. Add tests for allowed strategies and legacy trace rejection.
 5. Keep current graph routes intact.
 
-Current status: TypedDicts, plan normalization, and action projection are in
-place. The next increment should build a dedicated request builder and then add
-a `ReflectionReport` handoff without changing final acceptance behavior.
+Current status: TypedDicts, request builder, plan normalization, and action
+projection are in place. The next increment should add a `ReflectionReport`
+handoff without changing final acceptance behavior.
 
 ## Non-Goals
 

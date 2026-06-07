@@ -374,8 +374,8 @@ Useful supporting points:
    define reflection as a capability with explicit inputs, outputs, limits, and
    task/artifact ledger effects. The initial contract is documented in
    `docs/architecture/self_reflection_capability_contract.md`; the first code
-   increment adds TypedDict surfaces plus plan/action normalization without
-   changing answer behavior.
+   increments add TypedDict surfaces, strict request building, and plan/action
+   normalization without changing answer behavior.
 2. Report-scoped cache capability promotion: only after the reflection boundary
    is clearer, decide whether `REFERENCE_NOTE` and cache candidates should
    become a disabled capability contract rather than ad hoc reviewer diagnostics.
