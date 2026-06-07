@@ -18,6 +18,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
 from src.config.report_scoped_cache import (  # noqa: E402
     build_report_cache_rehydrated_candidate_artifact,
+    build_report_cache_producer_policy_projection,
     validate_report_cache_calculation_contract_projection,
 )
 
@@ -63,6 +64,16 @@ def _summary_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
         for item in list(candidate_artifacts.get("items") or [])
         if bool((item.get("calculation_contract_validation") or {}).get("fallback_required"))
     )
+    producer_policy_ready_count = sum(
+        1
+        for item in list(candidate_artifacts.get("items") or [])
+        if bool((item.get("producer_policy") or {}).get("ready"))
+    )
+    producer_policy_fallback_count = sum(
+        1
+        for item in list(candidate_artifacts.get("items") or [])
+        if bool((item.get("producer_policy") or {}).get("fallback_required"))
+    )
     return {
         "status": str(diagnostics.get("status") or ""),
         "enabled": bool(diagnostics.get("enabled")),
@@ -81,6 +92,8 @@ def _summary_from_diagnostics(diagnostics: Dict[str, Any]) -> Dict[str, Any]:
         "rehydrated_candidate_artifact_blocked_count": int(candidate_artifacts.get("blocked_count") or 0),
         "calculation_projection_valid_count": calculation_projection_valid_count,
         "calculation_projection_fallback_count": calculation_projection_fallback_count,
+        "producer_policy_ready_count": producer_policy_ready_count,
+        "producer_policy_fallback_count": producer_policy_fallback_count,
     }
 
 
@@ -105,6 +118,7 @@ def _candidate_artifact_preview(
     result: Dict[str, Any],
     *,
     calculation_contract_validation: Dict[str, Any],
+    producer_policy: Dict[str, Any],
 ) -> Dict[str, Any]:
     artifact = result.get("artifact")
     item = {
@@ -115,6 +129,31 @@ def _candidate_artifact_preview(
         "reasons": [str(reason) for reason in list(result.get("reasons") or [])],
         "key_id": str(result.get("key_id") or ""),
         "calculation_contract_validation": _projection_validation_preview(calculation_contract_validation),
+        "producer_policy": {
+            "status": str(producer_policy.get("status") or ""),
+            "ready": bool(producer_policy.get("ready")),
+            "policy": str(producer_policy.get("policy") or ""),
+            "task_kind": str(producer_policy.get("task_kind") or ""),
+            "task_status": str(producer_policy.get("task_status") or ""),
+            "required_artifact_kinds": [
+                str(kind)
+                for kind in list(producer_policy.get("required_artifact_kinds") or [])
+                if str(kind).strip()
+            ],
+            "artifact_kinds": [
+                str(kind)
+                for kind in list(producer_policy.get("artifact_kinds") or [])
+                if str(kind).strip()
+            ],
+            "artifact_count": int(producer_policy.get("artifact_count") or 0),
+            "fallback_required": bool(producer_policy.get("fallback_required")),
+            "enabled": bool(producer_policy.get("enabled")),
+            "serving_enabled": bool(producer_policy.get("serving_enabled")),
+            "ledger_insertion_enabled": bool(producer_policy.get("ledger_insertion_enabled")),
+            "source": str(producer_policy.get("source") or ""),
+            "cache_origin": str(producer_policy.get("cache_origin") or ""),
+            "reasons": [str(reason) for reason in list(producer_policy.get("reasons") or [])],
+        },
         "artifact": None,
     }
     if not isinstance(artifact, dict):
@@ -155,10 +194,15 @@ def _rehydrated_candidate_artifacts_from_diagnostics(diagnostics: Dict[str, Any]
             entry,
             task_id="report_cache_index_smoke",
         )
+        producer_policy = build_report_cache_producer_policy_projection(
+            entry,
+            task_id="report_cache_index_smoke",
+        )
         items.append(
             _candidate_artifact_preview(
                 result,
                 calculation_contract_validation=validation,
+                producer_policy=producer_policy,
             )
         )
     return {

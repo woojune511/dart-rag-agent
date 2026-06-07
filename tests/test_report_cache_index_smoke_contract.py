@@ -39,10 +39,15 @@ class ReportCacheIndexSmokeContractTests(unittest.TestCase):
         self.assertEqual(contract["rehydrated_candidate_artifact_blocked_count"], 1)
         self.assertEqual(contract["calculation_projection_valid_count"], 1)
         self.assertEqual(contract["calculation_projection_fallback_count"], 1)
+        self.assertEqual(contract["producer_policy_ready_count"], 1)
+        self.assertEqual(contract["producer_policy_fallback_count"], 1)
         self.assertEqual(len(contract["candidate_artifacts"]), 2)
         self.assertFalse(contract["candidate_artifacts"][0]["has_artifact"])
         self.assertFalse(contract["candidate_artifacts"][0]["calculation_projection_valid_for_contract"])
         self.assertTrue(contract["candidate_artifacts"][0]["calculation_projection_fallback_required"])
+        self.assertFalse(contract["candidate_artifacts"][0]["producer_policy_ready"])
+        self.assertTrue(contract["candidate_artifacts"][0]["producer_policy_fallback_required"])
+        self.assertFalse(contract["candidate_artifacts"][0]["producer_policy_ledger_insertion_enabled"])
         self.assertIn("projection_not_available", contract["candidate_artifacts"][0]["calculation_projection_reasons"])
         self.assertTrue(contract["candidate_artifacts"][1]["has_artifact"])
         self.assertEqual(contract["candidate_artifacts"][1]["artifact_status"], "candidate")
@@ -59,6 +64,26 @@ class ReportCacheIndexSmokeContractTests(unittest.TestCase):
         self.assertFalse(contract["candidate_artifacts"][1]["calculation_projection_fallback_required"])
         self.assertFalse(contract["candidate_artifacts"][1]["calculation_projection_serving_enabled"])
         self.assertFalse(contract["candidate_artifacts"][1]["calculation_projection_ledger_insertion_enabled"])
+        self.assertTrue(contract["candidate_artifacts"][1]["producer_policy_ready"])
+        self.assertEqual(
+            contract["candidate_artifacts"][1]["producer_policy_name"],
+            "calculation_task_contract",
+        )
+        self.assertEqual(contract["candidate_artifacts"][1]["producer_policy_task_kind"], "calculation")
+        self.assertEqual(
+            contract["candidate_artifacts"][1]["producer_policy_artifact_kinds"],
+            ["operand_set", "calculation_plan", "calculation_result"],
+        )
+        self.assertFalse(contract["candidate_artifacts"][1]["producer_policy_serving_enabled"])
+        self.assertFalse(contract["candidate_artifacts"][1]["producer_policy_ledger_insertion_enabled"])
+        self.assertEqual(
+            contract["candidate_artifacts"][1]["producer_policy_source"],
+            "report_cache_rehydration",
+        )
+        self.assertEqual(
+            contract["candidate_artifacts"][1]["producer_policy_cache_origin"],
+            "local_cache_index",
+        )
 
     def test_check_contract_reports_candidate_count_delta(self) -> None:
         baseline = extract_contract(build_smoke_payload(report_cache_index_path=FIXTURE_PATH))

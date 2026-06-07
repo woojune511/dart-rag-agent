@@ -384,6 +384,10 @@ Recently closed:
   now use the same cache safety surface.
 - `src.ops.portfolio_review_gates` now aggregates the portfolio demo, cache
   reviewer, and reflection promotion gates into one reviewer proof bundle.
+- Report-cache producer policy now has a code-level candidate-only wrapper:
+  `build_report_cache_producer_policy_projection()` requires future cache
+  ledger candidates to reuse the calculation task/artifact contract while
+  keeping serving and ledger insertion disabled.
 
 Current next decisions:
 
@@ -395,11 +399,12 @@ Current next decisions:
    the base fixture set and a store-fixed candidate surface fixture before any
    active retry behavior is promoted.
 2. Report-cache producer policy: now documented in
-   `docs/architecture/report_cache_capability_contract.md`. Future
-   cache-derived ledger candidates should map to the existing calculation task
-   contract with explicit cache-origin metadata; serving, writes, retrieval
-   bypass, and live ledger insertion remain disabled until live/default MAS or
-   store-fixed eval-only traces justify a promotion.
+   `docs/architecture/report_cache_capability_contract.md` and code-backed by
+   `build_report_cache_producer_policy_projection()`. Future cache-derived
+   ledger candidates map to the existing calculation task contract with
+   explicit cache-origin metadata; serving, writes, retrieval bypass, and live
+   ledger insertion remain disabled until live/default MAS or store-fixed
+   eval-only traces justify a promotion.
 3. Gate maintenance: rerun `portfolio_review_gates` whenever reviewer-facing
    runtime surfaces change; run broader benchmark refreshes only when a source
    change can plausibly affect gate quality or cost.
