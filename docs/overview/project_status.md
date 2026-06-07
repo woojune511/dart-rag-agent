@@ -674,6 +674,12 @@ Useful supporting points:
   Researcher context is reduced to a few material points, worker values/units
   are preserved, and evidence refs or internal task ids are kept out of prose.
   A live default smoke kept compact contract comparison clean.
+- MAS E2E smoke now exposes final carry-forward provenance explicitly. Each
+  case includes `final_carry_forward` with source task/artifact ids, evidence
+  refs, subtask result ids, and their counts. The compact smoke contract also
+  compares final source task/artifact/evidence/subtask-result counts, so a
+  real-node replan run can reveal whether the final answer carried forward the
+  repaired worker artifacts rather than only reporting that replan routed.
 - MAS Analyst numeric operand extraction now rejects explicit
   consolidation-scope conflicts for direct rows and dependency task-output rows,
   and resolved dependency rows are checked against producer statement/section

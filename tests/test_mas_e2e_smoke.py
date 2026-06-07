@@ -14,6 +14,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.ops import mas_e2e_smoke
+from src.ops.check_mas_e2e_smoke_contract import extract_contract
 from src.config.report_scoped_cache import (
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     REPORT_CACHE_ENTRY_VERSION,
@@ -139,7 +140,16 @@ class MasE2ESmokeTests(unittest.TestCase):
                 "final_report": "merged repaired answer",
                 "final_report_record": {
                     "status": "ok",
+                    "source_task_ids": ["task_2"],
                     "source_artifact_ids": ["task_2"],
+                    "evidence_refs": ["ev:task_2"],
+                    "subtask_results": [
+                        {
+                            "task_id": "task_2",
+                            "artifact_id": "task_2",
+                            "answer": "repaired answer",
+                        }
+                    ],
                 },
                 "task_artifact_trace": {
                     "integrity_status": "ok",
@@ -174,12 +184,21 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["replan_routed_count"], 1)
         self.assertEqual(payload["summary"]["blocked_count"], 0)
         self.assertEqual(payload["summary"]["integrity_error_count"], 0)
+        self.assertEqual(payload["summary"]["final_source_task_count"], 1)
+        self.assertEqual(payload["summary"]["final_source_artifact_count"], 1)
+        self.assertEqual(payload["summary"]["final_evidence_ref_count"], 1)
+        self.assertEqual(payload["summary"]["final_subtask_result_count"], 1)
         case = payload["cases"][0]
         self.assertEqual(case["replan_count"], 1)
         self.assertFalse(case["replan_requested"])
         self.assertTrue(case["replan_routed"])
         self.assertEqual(case["task_artifact_integrity_status"], "ok")
         self.assertEqual(case["task_artifact_integrity_issue_count"], 0)
+        self.assertEqual(case["final_carry_forward"]["source_task_ids"], ["task_2"])
+        self.assertEqual(case["final_carry_forward"]["source_artifact_ids"], ["task_2"])
+        self.assertEqual(case["final_carry_forward"]["evidence_refs"], ["ev:task_2"])
+        self.assertEqual(case["final_carry_forward"]["subtask_task_ids"], ["task_2"])
+        self.assertEqual(case["final_carry_forward"]["subtask_artifact_ids"], ["task_2"])
         self.assertEqual(case["artifact_answers"]["task_2"], "repaired answer")
         self.assertEqual(payload["summary"]["report_cache_candidate_count"], 1)
         self.assertEqual(
@@ -207,6 +226,13 @@ class MasE2ESmokeTests(unittest.TestCase):
             case["report_cache_candidates"]["items"][0]["retrieval_bypass"]["enabled"]
         )
         self.assertNotIn("value_contract", payload)
+
+        contract = extract_contract(payload)
+        self.assertEqual(contract["final_source_task_count"], 1)
+        self.assertEqual(contract["final_source_artifact_count"], 1)
+        self.assertEqual(contract["final_evidence_ref_count"], 1)
+        self.assertEqual(contract["final_subtask_result_count"], 1)
+        self.assertEqual(contract["cases"][0]["final_source_artifact_count"], 1)
 
     def test_run_smoke_counts_blocked_integrity_error(self) -> None:
         noop_node = lambda _state: {}

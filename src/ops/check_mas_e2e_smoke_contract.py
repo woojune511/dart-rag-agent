@@ -143,6 +143,7 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
     cases = []
     for index, case in enumerate(list(payload.get("cases") or []), start=1):
         final_report_record = dict(case.get("final_report_record") or {})
+        final_carry_forward = dict(case.get("final_carry_forward") or {})
         cases.append(
             {
                 "index": index,
@@ -155,6 +156,10 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "task_status_counts": _status_counts(dict(case.get("task_statuses") or {})),
                 "replan_count": int(case.get("replan_count", 0) or 0),
                 "replan_routed": bool(case.get("replan_routed")),
+                "final_source_task_count": int(final_carry_forward.get("source_task_count", 0) or 0),
+                "final_source_artifact_count": int(final_carry_forward.get("source_artifact_count", 0) or 0),
+                "final_evidence_ref_count": int(final_carry_forward.get("evidence_ref_count", 0) or 0),
+                "final_subtask_result_count": int(final_carry_forward.get("subtask_result_count", 0) or 0),
             }
         )
 
@@ -166,6 +171,10 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
         "blocked_count": int(summary.get("blocked_count", 0) or 0),
         "integrity_error_count": int(summary.get("integrity_error_count", 0) or 0),
         "replan_routed_count": int(summary.get("replan_routed_count", 0) or 0),
+        "final_source_task_count": int(summary.get("final_source_task_count", 0) or 0),
+        "final_source_artifact_count": int(summary.get("final_source_artifact_count", 0) or 0),
+        "final_evidence_ref_count": int(summary.get("final_evidence_ref_count", 0) or 0),
+        "final_subtask_result_count": int(summary.get("final_subtask_result_count", 0) or 0),
         "cases": cases,
     }
 

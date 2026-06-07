@@ -451,6 +451,38 @@ def _summarize_critic_acceptance_issues(task_artifact_trace: Dict[str, Any]) -> 
     }
 
 
+def _list_strings(values: Any) -> List[str]:
+    return [str(value).strip() for value in list(values or []) if str(value).strip()]
+
+
+def _summarize_final_carry_forward(final_report_record: Dict[str, Any]) -> Dict[str, Any]:
+    subtask_results = [
+        dict(item)
+        for item in list(final_report_record.get("subtask_results") or [])
+        if isinstance(item, dict)
+    ]
+    subtask_task_ids = _list_strings(item.get("task_id") for item in subtask_results)
+    subtask_artifact_ids = _list_strings(
+        item.get("artifact_id") or item.get("source_artifact_id")
+        for item in subtask_results
+    )
+    source_task_ids = _list_strings(final_report_record.get("source_task_ids"))
+    source_artifact_ids = _list_strings(final_report_record.get("source_artifact_ids"))
+    evidence_refs = _list_strings(final_report_record.get("evidence_refs"))
+    return {
+        "status": str(final_report_record.get("status") or "").strip(),
+        "source_task_count": len(source_task_ids),
+        "source_artifact_count": len(source_artifact_ids),
+        "evidence_ref_count": len(evidence_refs),
+        "subtask_result_count": len(subtask_results),
+        "source_task_ids": source_task_ids,
+        "source_artifact_ids": source_artifact_ids,
+        "evidence_refs": evidence_refs,
+        "subtask_task_ids": subtask_task_ids,
+        "subtask_artifact_ids": subtask_artifact_ids,
+    }
+
+
 def run_smoke(
     *,
     store_dir: Path,
@@ -508,6 +540,7 @@ def run_smoke(
         report_cache_candidates = _summarize_report_cache_candidates(artifacts)
         report_cache_index_diagnostics = _summarize_report_cache_index_diagnostics(artifacts)
         critic_acceptance_issues = _summarize_critic_acceptance_issues(task_artifact_trace)
+        final_carry_forward = _summarize_final_carry_forward(final_report_record)
         cases.append(
             {
                 "query": query,
@@ -523,6 +556,7 @@ def run_smoke(
                 "execution_trace": execution_trace,
                 "final_report": final.get("final_report"),
                 "final_report_record": final_report_record,
+                "final_carry_forward": final_carry_forward,
                 "task_artifact_trace": task_artifact_trace,
                 "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
                 "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
@@ -562,7 +596,16 @@ def run_smoke(
     critic_acceptance_issue_count = 0
     critic_acceptance_status_counts: Counter[str] = Counter()
     critic_acceptance_reason_counts: Counter[str] = Counter()
+    final_source_task_count = 0
+    final_source_artifact_count = 0
+    final_evidence_ref_count = 0
+    final_subtask_result_count = 0
     for case in cases:
+        carry_forward = dict(case.get("final_carry_forward") or {})
+        final_source_task_count += int(carry_forward.get("source_task_count", 0) or 0)
+        final_source_artifact_count += int(carry_forward.get("source_artifact_count", 0) or 0)
+        final_evidence_ref_count += int(carry_forward.get("evidence_ref_count", 0) or 0)
+        final_subtask_result_count += int(carry_forward.get("subtask_result_count", 0) or 0)
         critic_summary = dict(case.get("critic_acceptance_issues") or {})
         critic_acceptance_issue_count += int(critic_summary.get("count", 0) or 0)
         critic_acceptance_status_counts.update(dict(critic_summary.get("status_counts") or {}))
@@ -603,6 +646,10 @@ def run_smoke(
             "replan_routed_count": replan_routed_count,
             "blocked_count": blocked_count,
             "integrity_error_count": integrity_error_count,
+            "final_source_task_count": final_source_task_count,
+            "final_source_artifact_count": final_source_artifact_count,
+            "final_evidence_ref_count": final_evidence_ref_count,
+            "final_subtask_result_count": final_subtask_result_count,
             "critic_acceptance_issue_count": critic_acceptance_issue_count,
             "critic_acceptance_status_counts": dict(sorted(critic_acceptance_status_counts.items())),
             "critic_acceptance_reason_counts": dict(sorted(critic_acceptance_reason_counts.items())),

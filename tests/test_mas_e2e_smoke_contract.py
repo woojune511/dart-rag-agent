@@ -29,6 +29,10 @@ def _payload() -> dict:
             "replan_routed_count": 0,
             "blocked_count": 0,
             "integrity_error_count": 0,
+            "final_source_task_count": 1,
+            "final_source_artifact_count": 1,
+            "final_evidence_ref_count": 2,
+            "final_subtask_result_count": 1,
         },
         "cases": [
             {
@@ -42,6 +46,12 @@ def _payload() -> dict:
                 "replan_count": 0,
                 "replan_routed": False,
                 "final_report_record": {"status": "ok"},
+                "final_carry_forward": {
+                    "source_task_count": 1,
+                    "source_artifact_count": 1,
+                    "evidence_ref_count": 2,
+                    "subtask_result_count": 1,
+                },
                 "final_report": "final has value 2.54%",
                 "task_artifact_integrity_status": "ok",
             },
@@ -55,6 +65,12 @@ def _payload() -> dict:
                 "replan_count": 1,
                 "replan_routed": True,
                 "final_report_record": {"status": "ok"},
+                "final_carry_forward": {
+                    "source_task_count": 0,
+                    "source_artifact_count": 0,
+                    "evidence_ref_count": 0,
+                    "subtask_result_count": 0,
+                },
                 "task_artifact_integrity_status": "ok",
             },
         ],
@@ -69,8 +85,16 @@ class MasE2ESmokeContractTests(unittest.TestCase):
         self.assertEqual(contract["case_count"], 2)
         self.assertEqual(contract["blocked_count"], 0)
         self.assertEqual(contract["integrity_error_count"], 0)
+        self.assertEqual(contract["final_source_task_count"], 1)
+        self.assertEqual(contract["final_source_artifact_count"], 1)
+        self.assertEqual(contract["final_evidence_ref_count"], 2)
+        self.assertEqual(contract["final_subtask_result_count"], 1)
         self.assertEqual(contract["cases"][0]["final_report_status"], "ok")
         self.assertEqual(contract["cases"][0]["task_status_counts"], {"completed": 3})
+        self.assertEqual(contract["cases"][0]["final_source_task_count"], 1)
+        self.assertEqual(contract["cases"][0]["final_source_artifact_count"], 1)
+        self.assertEqual(contract["cases"][0]["final_evidence_ref_count"], 2)
+        self.assertEqual(contract["cases"][0]["final_subtask_result_count"], 1)
         self.assertEqual(contract["cases"][1]["task_status_counts"], {"completed": 1, "failed": 1})
         self.assertTrue(contract["cases"][1]["replan_routed"])
 

@@ -449,6 +449,13 @@ kept compact contract comparison at `status = ok`, `difference_count = 0`; both
 final answers started with the direct numeric conclusion and used compressed
 narrative follow-up.
 
+Carry-forward review completed: MAS E2E smoke now exposes final carry-forward
+provenance explicitly. Each case reports `final_carry_forward` with source
+task/artifact ids, evidence refs, subtask task/artifact ids, and counts; the
+compact smoke contract compares those counts. This keeps the real-node replan
+smoke from only saying "replan routed" and makes it clear whether repaired
+worker artifacts actually reached the final report.
+
 Seventeenth step completed: Analyst numeric operand extraction now rejects
 explicit consolidation-scope conflicts in both direct structured rows and
 dependency task-output rows. Resolved dependency rows are also checked against
@@ -1016,21 +1023,20 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. MAS real-node replan smoke and artifact carry-forward review
-2. mixed growth+narrative retrieval fan-out control and answer-language polish
-3. MAS skeleton과 artifact schema productization
-4. Analyst / Critic / Researcher separation; first critic boundary is now
+1. mixed growth+narrative retrieval fan-out control and answer-language polish
+2. MAS skeleton과 artifact schema productization
+3. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
     target refs, acceptance reason, and blocking issues instead of
     `deterministic_score` thresholds. The final integrity projection consumes
     this state so rejected critic reports block final close and exposes the
     acceptance status, reasons, and target refs through planner feedback plus
     MAS smoke summaries.
-5. broader curated gate maintenance refresh when a new broader artifact
+4. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
-6. agentic self-reflection 재설계
-7. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-8. cross-company 확장
+5. agentic self-reflection 재설계
+6. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+7. cross-company 확장
 
 ## 지금 당장 하지 않을 것
 
