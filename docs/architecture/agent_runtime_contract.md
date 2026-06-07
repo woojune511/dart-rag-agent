@@ -624,6 +624,12 @@ may opt into legacy compatibility when they read older result bundles or older
 caller surfaces. In the live agent, that bridge is limited to
 `FinancialAgent.run()`/export-facing projection; new internal current-state
 readers must use strict mode.
+
+Reflection retry behavior is being moved toward a bounded capability contract.
+See [self_reflection_capability_contract.md](self_reflection_capability_contract.md)
+for the target request/plan/action/report boundary and allowed retry
+strategies.
+
 Helper-level adapters may preserve legacy fallback only when their surface is
 explicitly compatibility-oriented: `_resolve_runtime_structured_result()` is for
 export/review adapters that may read older payloads, and
