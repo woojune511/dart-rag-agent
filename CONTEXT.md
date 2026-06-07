@@ -416,20 +416,21 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | material-gap / mixed narrative canary maintenance | 새 runtime patch 전 store-fixed canary로 blocker와 calibration debt를 분리 |
-| 2 | internal calculation mirror cleanup follow-up | state typing/debug ownership 정리 전 남은 compatibility surface를 audit |
-| 3 | broader curated gate maintenance refresh | 새 broader artifact가 실제 blocker를 재현할 때만 refresh |
+| 1 | internal calculation mirror cleanup follow-up | state typing/debug ownership 정리 전 남은 compatibility surface를 audit |
+| 2 | broader curated gate maintenance refresh | 새 broader artifact가 실제 blocker를 재현할 때만 refresh |
+| 3 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
 
 ## 현재 우선순위 요약
 
-1. material-gap / mixed narrative canary maintenance
-2. internal calculation mirror cleanup follow-up
-3. broader curated gate maintenance refresh when a new artifact reproduces a blocker
+1. internal calculation mirror cleanup follow-up
+2. broader curated gate maintenance refresh when a new artifact reproduces a blocker
+3. runtime critic / evaluator boundary follow-up
 
 ## 현재 해석
 
 - Analyst / Critic / Researcher separation 1차 작업은 2026-06-07에 닫았다. `WorkerArtifactBoundary`와 `project_worker_artifact_boundary()`를 MAS schema layer에 추가해 worker artifact의 payload-first answer, selected artifact id, task id, role, kind/status, evidence refs dedupe를 공유 projection으로 고정했다. Critic review와 Orchestrator final synthesis는 이제 같은 worker-artifact boundary helper를 통해 artifact를 읽는다. 관련 Critic/Orchestrator/MAS graph tests `24`개가 통과했다.
 - report-scoped cache capability design은 2026-06-07 기준 candidate-only handoff gate까지 닫았다. `src.ops.review_report_cache_index_contract` 기본 fixture-backed review는 `status = ok`, `difference_count = 0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, projection-ready candidate `1`, fallback candidate `1`을 보고한다. Cache serving, read/write, ledger insertion, retrieval bypass는 모두 disabled로 남는다.
+- material-gap / mixed narrative canary maintenance는 2026-06-07에 `docs/evaluation/material_gap_mixed_canary_maintenance.md`로 정리했다. `KBF_T2_043`은 closed runtime blocker이자 broader replay/completeness-render calibration watch item이고, `NAV_T2_006`은 closed mixed numeric+narrative quality target으로 policy-gate regression coverage에 남긴다. 새 artifact가 material evidence / dependency / trace / final synthesis failure를 재현하기 전에는 full benchmark나 runtime patch를 기본값으로 쓰지 않는다.
 - internal calculation mirror cleanup 1차 작업은 2026-06-07에 닫았다. Aggregate reconciliation artifact enrichment가 더 이상 stale top-level `calculation_result`의 `source_row_ids` / answer-slot source refs를 evidence refs로 보강하지 않고, canonical projection / ordered subtask refs / selected claims만 사용한다. 회귀 테스트는 canonical `resolved_calculation_trace` source refs는 보존하고 stale top-level refs는 replan-triggering integrity gap으로 남기는 두 경로를 고정한다. `tests.test_subtask_loop` `143`개와 runtime domain-term audit이 통과했다.
 - MAS skeleton과 artifact schema productization 1차 작업은 2026-06-07에 닫았다. `FinalCarryForwardProjection`과 `project_final_report_carry_forward()`를 MAS schema layer로 올렸고, smoke output은 이제 이 shared helper에서 final source task/artifact/evidence/subtask-result counts와 ids를 만든다. Orchestrator와 dummy MAS merge도 `subtask_results` row에 selected worker `artifact_id` / `source_artifact_id`를 보존한다. 관련 MAS API-free tests `29`개와 runtime domain-term audit이 통과했다.
 - mixed growth+narrative answer-language polish 1차 작업은 2026-06-07에 닫았다. 최종 aggregate answer surface에서 받침 있는 한글 음절 뒤의 잘못된 conjunctive particle을 generic하게 정리하고, `RuntimeCalculationTrace.calculation_result.formatted_result`도 같은 surface를 보존한다. 이 변경은 회사명/benchmark ID/driver keyword branch 없이 answer surface 후처리만 수행하며, focused aggregate regression과 runtime domain-term audit이 통과했다.

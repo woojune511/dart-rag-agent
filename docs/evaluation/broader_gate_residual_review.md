@@ -49,9 +49,11 @@ fresh full benchmark run before more targeted work. The maintenance rule is:
 4. Use monitored fresh ingest only when parser/ingest/cache-signature changes or
    missing/stale stores make store-fixed replay invalid.
 
+For the dedicated material-gap and mixed numeric/narrative maintenance policy,
+see `docs/evaluation/material_gap_mixed_canary_maintenance.md`.
+
 ## Next Priority
 
-The next implementation priority moves to MAS real-node replan smoke and
-artifact carry-forward review. Broader curated maintenance should return only
-when a new broader artifact reproduces a concrete blocker rather than display,
-entity-normalization, or completeness-render calibration debt.
+Broader curated maintenance should return only when a new broader artifact
+reproduces a concrete blocker rather than display, entity-normalization, or
+completeness-render calibration debt.

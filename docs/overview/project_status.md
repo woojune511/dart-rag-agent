@@ -370,14 +370,7 @@ Useful supporting points:
 
 ## Next Work
 
-1. Maintain non-gate material-gap and mixed numeric/narrative canaries with
-   store-fixed focused replays rather than new runtime patches by default.
-   `NAV_T2_006` is closed by the retrieved-driver evidence preservation
-   follow-up, and `KBF_T2_043` is closed by the contract-driven material-gap
-   follow-up in PR #35. Treat future work on these cases as
-   completeness/render calibration unless a fresh artifact reproduces a new
-   runtime blocker.
-2. Continue projection cleanup by reducing internal writes to top-level
+1. Continue projection cleanup by reducing internal writes to top-level
    `calculation_*` mirrors now that `RuntimeCalculationTrace` and
    `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
    LLM formula-plan guard, and operand/formula planning structured-output
@@ -968,6 +961,17 @@ Useful supporting points:
     `NAV_T1_030` is display/entity normalization debt, and `KBF_T2_043` is a
     broader replay plus completeness/render calibration watch item unless a new
     artifact reproduces a material-gap runtime failure.
+- Material-gap / mixed narrative canary maintenance:
+  - Review record:
+    `docs/evaluation/material_gap_mixed_canary_maintenance.md`
+  - Current decision: `KBF_T2_043` and `NAV_T2_006` are maintenance watch items,
+    not active runtime blockers.
+  - Reopen them only when a fresh artifact reproduces a concrete material
+    evidence, dependency binding, stale trace, unsupported numeric, or final
+    synthesis failure.
+  - Cross-trace duplicate pressure, isolated completeness/render calibration,
+    and historical non-PASS rows superseded by focused evidence are not enough
+    to justify a new runtime patch or full benchmark.
 - Official LLM-evidence-path canary after fallback removal:
   - `NAV_T2_006` passed under the policy-driven gate profile with `8 / 4 / 1`.
   - Final answer preserved `41.4%` and the Poshmark/smart-store/brand-store
