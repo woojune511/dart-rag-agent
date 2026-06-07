@@ -370,52 +370,14 @@ Useful supporting points:
 
 ## Next Work
 
-1. Continue projection cleanup by reducing internal writes to top-level
-   `calculation_*` mirrors now that `RuntimeCalculationTrace` and
-   `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
-   LLM formula-plan guard, and operand/formula planning structured-output
-   failure branches now use `include_compatibility_mirrors = false`. Render,
-   verification, and aggregate synthesis fallback branches now do the same; the
-   render, verification, and aggregate success branches have also moved to
-   canonical trace readers. `_execute_calculation` success and operand
-   extraction direct/guard/synthesis/LLM success readers now also consume the
-   canonical trace while those branches omit top-level mirrors. Formula planning
-   deterministic lookup/operation/ontology success and LLM success readers now
-   do the same, and the remaining formula planning guard/incomplete branches
-   are now also mirror-free. Formula planning now reads incoming operands with
-   strict current-state resolution and preserves them explicitly in canonical
-   trace updates, so legacy top-level operands cannot seed a new formula plan.
-   Calculation execution now also reads operands and plans with strict
-   current-state resolution, preserving the strict operands and plan through
-   result/failure trace updates. Late runtime numeric answer shaping now also
-   uses strict current-state resolution, so legacy top-level calculation results
-   cannot rewrite final answers. Dependency-projection recalculation readers now
-   also use strict current-state resolution for `_execute_calculation()` outputs,
-   so legacy top-level recalculation results cannot refresh aggregate rows. The
-   calculation node's remaining non-formula
-   reset/no-op branches now also omit top-level mirrors, and
-   `_runtime_trace_state_update()` now defaults to mirror-free canonical trace
-   publication. Helper-level compatibility fallback is documented and tested for
-   export/review structured-result adapters and omitted trace-part carry-forward
-   only. Benchmark runner serialized results, smoke summaries, and review
-   exports are strict current-contract projection surfaces: they surface
-   projection source metadata without re-promoting legacy top-level mirrors into
-   resolved traces. Live evaluator rows now follow the same strict contract for
-   fresh scoring, rejecting stale top-level mirrors while retaining canonical
-   projection metadata. Historical answer replay is the first explicitly
-   classified ops compatibility reader: it accepts legacy top-level mirrors from
-   older saved bundles, but treats them as fallback behind canonical
-   `resolved_calculation_trace`. Retrospective operand-grounding rescoring now
-   follows the same policy for historical rows, and retrospective evaluator
-   ablation now applies it to both operand and calculation-result inputs.
-   Retrospective ontology retrieval ablation reruns the current graph against a
-   persisted store, so it is now documented and tested as a strict
-   current-runtime projection reader. Current-run debug helpers are now also
-   documented and tested as strict readers, including structured-result output
-   paths that no longer revive stale top-level calculation results. Resolver
-   fallback now distinguishes structured-result-only and mixed legacy fallback,
-   and evaluator/benchmark exports surface projection source metadata so
-   remaining legacy fallback consumers can be audited from output artifacts.
+1. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
+   acceptance focused on structurally visible worker artifacts, while offline
+   evaluator scorecards remain a separate review surface.
+2. Broader curated gate maintenance refresh only when a new broader artifact
+   reproduces a blocker rather than calibration debt.
+3. Internal calculation debug ownership follow-up: split
+   `calculation_debug_trace` into a narrower debug contract before reducing its
+   required state shape.
 4. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.
@@ -494,6 +456,10 @@ Useful supporting points:
   `RuntimeCalculationTrace` and `subtask_results` as `TaskResultRecord`; the old
   `_project_legacy_calculation_fields()` name remains only as a compatibility
   alias for `_project_runtime_calculation_trace()`.
+- `FinancialAgentState` now marks top-level `calculation_operands`,
+  `calculation_plan`, and `calculation_result` as optional compatibility
+  mirrors. `calculation_debug_trace` remains required until debug trace
+  ownership is split.
 - `_runtime_trace_state_update()` can now omit top-level `calculation_*`
   compatibility mirrors. The first applied branch is calculation verification
   skip for non-ok calculation results, which keeps `resolved_calculation_trace`

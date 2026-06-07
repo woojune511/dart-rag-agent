@@ -32,10 +32,11 @@ is internal representation cleanup, not a new answer-quality fix.
 
 ## Findings From 2026-06-07 Audit
 
-- `src/agent/financial_graph_models.py` still declares top-level
-  `calculation_operands`, `calculation_plan`, `calculation_result`, and
-  `calculation_debug_trace` on `FinancialAgentState`. These are the main
-  remaining state-shape mirrors.
+- `src/agent/financial_graph_models.py` still carries top-level calculation
+  state keys on `FinancialAgentState`, but `calculation_operands`,
+  `calculation_plan`, and `calculation_result` are now typed as optional
+  compatibility mirrors. `calculation_debug_trace` remains a required debug
+  surface until debug trace ownership is separated.
 - `src/agent/financial_graph_helpers.py` owns the compatibility boundary:
   `_resolve_runtime_calculation_trace()` can allow or reject top-level fallback,
   and `_runtime_trace_state_update()` defaults to
@@ -69,8 +70,8 @@ is internal representation cleanup, not a new answer-quality fix.
    `FinancialAgentState`. It is a debug surface, not a calculation-result
    compatibility mirror.
 5. Remove top-level `calculation_operands`, `calculation_plan`, and
-   `calculation_result` from `FinancialAgentState` only after live graph nodes,
-   tests, and any typed adapters no longer require them as working-state keys.
+   `calculation_result` from `FinancialAgentState` only after compatibility
+   bridges and typed adapters no longer require them as accepted optional keys.
 6. Keep explicit compatibility support for historical replay and retrospective
    tools. Their contract is to read old artifacts safely while preferring
    canonical `resolved_calculation_trace` when present.
@@ -82,14 +83,21 @@ is internal representation cleanup, not a new answer-quality fix.
   `calculation_result` source refs. Focused regression tests cover canonical
   `resolved_calculation_trace` source-ref preservation and stale top-level
   source-ref rejection.
+- 2026-06-07: closed the state typing follow-up for legacy calculation mirrors.
+  `FinancialAgentState` now marks top-level `calculation_operands`,
+  `calculation_plan`, and `calculation_result` as optional compatibility
+  mirrors, while keeping `calculation_debug_trace` required as the still-owned
+  debug surface. Focused projection tests lock this state-shape distinction.
 
 ## Next Implementation Candidate
 
-The next code cleanup should still target state typing and tests, not answer
-behavior:
+The next code cleanup should target debug ownership and compatibility bridge
+boundaries, not answer behavior:
 
-- introduce a narrower internal scratch-state note or helper for calculation
-  working values;
+- split `calculation_debug_trace` ownership into a narrower debug surface before
+  changing its required state shape;
+- audit whether public compatibility bridges still need to accept the optional
+  legacy calculation mirror keys;
 - update tests that seed stale top-level fields so they remain explicit
   compatibility or regression fixtures;
 - avoid deleting historical-tool fallback until old result-bundle replay is no
