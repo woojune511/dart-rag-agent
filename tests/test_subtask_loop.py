@@ -9653,6 +9653,82 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("41.4%", updated["answer"])
         self.assertIn("Poshmark", updated["answer"])
 
+    def test_aggregate_subtasks_polishes_korean_conjunctive_particle_noise(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": (
+                        "2023년 커머스 부문 매출액은 2조 5,466억원이며, 2022년 1조 8,011억원 대비 "
+                        "41.4% 성장했습니다. 스마트스토어와 브랜드스토어의 성장와 연결 편입 효과도 "
+                        "실적 성장에 기여했습니다."
+                    ),
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 커머스 부문 매출 성장률을 계산하고, 커머스 실적 성장 배경을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_2"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "커머스 부문 매출 성장률",
+                    "answer": "커머스 부문 매출은 전년 대비 41.4% 성장했습니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출 성장률",
+                                "period": "2023",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "period": "2023",
+                                "rendered_value": "2조 5,466억원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "커머스 부문 매출액",
+                                "period": "2022",
+                                "rendered_value": "1조 8,011억원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "answer": "스마트스토어와 브랜드스토어의 성장, 연결 편입 효과가 실적 성장에 기여했습니다.",
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("스마트스토어와", updated["answer"])
+        self.assertIn("성장과 연결 편입 효과", updated["answer"])
+        self.assertNotIn("성장와", updated["answer"])
+        self.assertEqual(trace["calculation_result"]["formatted_result"], updated["answer"])
+
     def test_aggregate_subtasks_repairs_growth_answer_omitting_operand_values(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(

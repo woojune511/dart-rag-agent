@@ -321,6 +321,12 @@ role-separated multi-agent system using a task ledger and artifact store.
       faithfulness, completeness, context recall, and retrieval hit@k to
       `1.000` with error rate `0.0%`; the local result bundle remains an
       experiment artifact and was not committed.
+    - Follow-up answer-language polish is code-tested only, not a new
+      benchmark result: final aggregate mixed growth+narrative answers now
+      apply a generic surface correction for malformed Korean conjunctive
+      particles after Hangul final consonants, while keeping the canonical
+      `RuntimeCalculationTrace.calculation_result.formatted_result` aligned
+      with the displayed answer.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.
@@ -364,10 +370,9 @@ Useful supporting points:
 
 ## Next Work
 
-1. Reduce benchmark runtime and embedding cost through profiling, cache
-   hygiene, and explicit retrieval query-budget controls for focused canaries.
-   The next cost canary should target cross-trace sibling-task reuse only when
-   provenance and retrieved evidence visibility stay intact.
+1. Productize the MAS skeleton and typed artifact schema beyond smoke-level
+   contract checks, starting from the existing carry-forward provenance
+   surface rather than adding a new broad agent workflow.
 2. Maintain non-gate material-gap and mixed numeric/narrative canaries with
    store-fixed focused replays rather than new runtime patches by default.
    `NAV_T2_006` is closed by the retrieved-driver evidence preservation

@@ -76,6 +76,28 @@ def _topic_particle(value: str) -> str:
     return without_final
 
 
+def _polish_korean_particle_pairs(text: str) -> str:
+    surface = _normalise_spaces(str(text or ""))
+    if not surface:
+        return surface
+    conjunctive_with_vowel = chr(0xC640)
+    conjunctive_with_final = chr(0xACFC)
+
+    def _replace_final_consonant_wa(match: re.Match[str]) -> str:
+        stem = match.group("stem")
+        last = stem[-1]
+        codepoint = ord(last)
+        if 0xAC00 <= codepoint <= 0xD7A3 and (codepoint - 0xAC00) % 28:
+            return f"{stem}{conjunctive_with_final}"
+        return match.group(0)
+
+    return re.sub(
+        rf"(?P<stem>[\uac00-\ud7a3A-Za-z0-9·/&\-\)\]]*[\uac00-\ud7a3]){conjunctive_with_vowel}(?=\s|[,.!?。]|$)",
+        _replace_final_consonant_wa,
+        surface,
+    )
+
+
 def _split_narrative_sentences(text: str) -> List[str]:
     surface = _normalise_spaces(str(text or ""))
     if not surface:
@@ -11731,6 +11753,12 @@ class FinancialAgentCalculationMixin:
         )
         if pruned_focus_answer != final_answer:
             final_answer = pruned_focus_answer
+            aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+            if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        polished_answer = _polish_korean_particle_pairs(final_answer)
+        if polished_answer != final_answer:
+            final_answer = polished_answer
             aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
             if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
                 aggregate_projection["calculation_result"]["rendered_value"] = final_answer

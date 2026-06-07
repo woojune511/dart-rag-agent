@@ -1029,15 +1029,15 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. mixed growth+narrative answer-language polish
-2. MAS skeleton과 artifact schema productization
-3. Analyst / Critic / Researcher separation; first critic boundary is now
+1. MAS skeleton과 artifact schema productization
+2. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
     target refs, acceptance reason, and blocking issues instead of
     `deterministic_score` thresholds. The final integrity projection consumes
     this state so rejected critic reports block final close and exposes the
     acceptance status, reasons, and target refs through planner feedback plus
     MAS smoke summaries.
+3. internal calculation mirror cleanup
 4. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
 5. agentic self-reflection 재설계
