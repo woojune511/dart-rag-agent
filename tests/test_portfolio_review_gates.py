@@ -33,10 +33,13 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertFalse(result["cache_reviewer"]["serving_enabled"])
         self.assertFalse(result["cache_reviewer"]["ledger_insertion_enabled"])
         self.assertEqual(result["cache_promotion_evidence"]["status"], "ready")
-        self.assertEqual(result["cache_promotion_evidence"]["ready_count"], 1)
-        self.assertEqual(result["cache_promotion_evidence"]["fallback_count"], 2)
+        self.assertEqual(result["cache_promotion_evidence"]["ready_count"], 2)
+        self.assertEqual(result["cache_promotion_evidence"]["fallback_count"], 4)
+        self.assertEqual(result["cache_promotion_evidence"]["trace_summary_count"], 1)
         self.assertTrue(result["cache_promotion_evidence"]["disabled_flags_ok"])
         self.assertEqual(result["reflection_promotion"]["status"], "ready")
+        self.assertEqual(result["reflection_promotion"]["case_count"], 10)
+        self.assertEqual(result["reflection_promotion"]["trace_summary_count"], 1)
         self.assertTrue(result["reflection_promotion"]["report_contract_ok"])
         self.assertEqual(
             result["reflection_promotion"]["promotion_signals"]["false_recovery_rate"],
@@ -55,6 +58,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertIn("Cache Reviewer:", text)
         self.assertIn("Cache Promotion Evidence:", text)
         self.assertIn("Reflection Promotion:", text)
+        self.assertIn("trace_summary_count:", text)
         self.assertIn("report_contract_ok:", text)
         self.assertIn("producer_policy_ready_count:", text)
         self.assertIn("false_recovery_rate:", text)

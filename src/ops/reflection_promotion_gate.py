@@ -16,6 +16,14 @@ DEFAULT_STORE_FIXED_CASES_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "reflection_promotion_gate" / "store_fixed_cases.json"
 )
 DEFAULT_CASES_PATHS = (DEFAULT_CASES_PATH, DEFAULT_STORE_FIXED_CASES_PATH)
+DEFAULT_TRACE_SUMMARY_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "promotion_trace_summary"
+    / "store_fixed_candidate_summary.json"
+)
+DEFAULT_TRACE_SUMMARY_PATHS = (DEFAULT_TRACE_SUMMARY_PATH,)
 REQUIRED_ACTIONS = {
     "retry_retrieval",
     "synthesize_from_task_outputs",
@@ -43,6 +51,20 @@ def _combine_payloads(payloads: List[Dict[str, Any]]) -> Dict[str, Any]:
         "gate_id": "+".join(gate_ids),
         "fixture_count": len(payloads),
         "source_gate_ids": gate_ids,
+        "cases": cases,
+    }
+
+
+def _payload_from_trace_summary(path: Path) -> Dict[str, Any]:
+    payload = _read_json_object(path)
+    cases = [
+        dict(case)
+        for case in list(payload.get("reflection_promotion_cases") or [])
+        if isinstance(case, dict)
+    ]
+    return {
+        "gate_id": str(payload.get("summary_id") or path.stem),
+        "case_source": str(payload.get("source_type") or "trace_summary"),
         "cases": cases,
     }
 
@@ -237,11 +259,25 @@ def run_gate(*, cases_path: str | Path = DEFAULT_CASES_PATH) -> Dict[str, Any]:
 def run_gate_suite(
     *,
     cases_paths: List[str | Path] | None = None,
+    trace_summary_paths: List[str | Path] | None = None,
 ) -> Dict[str, Any]:
     paths = [Path(path) for path in (cases_paths or list(DEFAULT_CASES_PATHS))]
-    result = evaluate_cases(_combine_payloads([_read_json_object(path) for path in paths]))
+    trace_paths = [
+        Path(path)
+        for path in (
+            trace_summary_paths
+            if trace_summary_paths is not None
+            else list(DEFAULT_TRACE_SUMMARY_PATHS)
+        )
+    ]
+    payloads = [_read_json_object(path) for path in paths]
+    trace_payloads = [_payload_from_trace_summary(path) for path in trace_paths]
+    result = evaluate_cases(_combine_payloads(payloads + trace_payloads))
+    result["fixture_count"] = len(paths)
     result["cases_path"] = str(paths[0]) if len(paths) == 1 else ""
     result["cases_paths"] = [str(path) for path in paths]
+    result["trace_summary_count"] = len(trace_paths)
+    result["trace_summary_paths"] = [str(path) for path in trace_paths]
     return result
 
 
@@ -285,6 +321,16 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--trace-summary",
+        type=Path,
+        action="append",
+        default=None,
+        help=(
+            "Path to a promotion trace summary JSON. May be repeated. "
+            "Defaults to the reviewed store-fixed trace summary fixture."
+        ),
+    )
+    parser.add_argument(
         "--format",
         choices=("text", "json"),
         default="text",
@@ -301,7 +347,7 @@ def _write_output(path: Path, text: str) -> None:
 
 def main(argv: List[str] | None = None) -> int:
     args = parse_args(argv)
-    result = run_gate_suite(cases_paths=args.cases)
+    result = run_gate_suite(cases_paths=args.cases, trace_summary_paths=args.trace_summary)
     if args.format == "json":
         rendered = f"{json.dumps(result, ensure_ascii=False, indent=2)}\n"
     else:

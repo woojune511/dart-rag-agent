@@ -27,7 +27,8 @@ class ReflectionPromotionGateTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "ready")
         self.assertEqual(result["fixture_count"], 2)
-        self.assertEqual(result["case_count"], 8)
+        self.assertEqual(result["trace_summary_count"], 1)
+        self.assertEqual(result["case_count"], 10)
         self.assertTrue(result["required_actions_present"])
         self.assertTrue(result["report_contract_ok"])
         self.assertEqual(result["report_contract_issue_case_ids"], [])
@@ -41,6 +42,10 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         self.assertIn("reflection_promotion_gate_fixture_v1", result["source_gate_ids"])
         self.assertIn(
             "reflection_promotion_gate_store_fixed_candidate_v1",
+            result["source_gate_ids"],
+        )
+        self.assertIn(
+            "store_fixed_candidate_promotion_trace_summary_v1",
             result["source_gate_ids"],
         )
 
@@ -171,7 +176,8 @@ class ReflectionPromotionGateTests(unittest.TestCase):
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "ready")
             self.assertEqual(payload["fixture_count"], 2)
-            self.assertEqual(payload["case_count"], 8)
+            self.assertEqual(payload["trace_summary_count"], 1)
+            self.assertEqual(payload["case_count"], 10)
             self.assertEqual(payload["promotion_signals"]["false_recovery_rate"], 0.0)
 
     def test_cli_accepts_repeated_cases_paths(self) -> None:
@@ -199,7 +205,8 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         payload = json.loads(gate_result.stdout)
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["fixture_count"], 2)
-        self.assertEqual(payload["case_count"], 8)
+        self.assertEqual(payload["trace_summary_count"], 1)
+        self.assertEqual(payload["case_count"], 10)
 
 
 if __name__ == "__main__":

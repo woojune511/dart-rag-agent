@@ -388,10 +388,10 @@ Recently closed:
   `build_report_cache_producer_policy_projection()` requires future cache
   ledger candidates to reuse the calculation task/artifact contract while
   keeping serving and ledger insertion disabled.
-- `src.ops.report_cache_promotion_evidence_gate` now provides the first focused
-  cache promotion evidence gate: one ready local-index candidate, one
-  incomplete-entry fallback, and one ambiguous-match fallback, all with serving,
-  retrieval bypass, ledger insertion, and final acceptance disabled.
+- `src.ops.report_cache_promotion_evidence_gate` now provides focused cache
+  promotion evidence over the local-index fixture plus a reviewed store-fixed
+  trace summary: ready candidates and incomplete/ambiguous fallbacks all keep
+  serving, retrieval bypass, ledger insertion, and final acceptance disabled.
 - `src.ops.reflection_promotion_gate` now also validates the reflection report
   handoff contract: bounded budget consumption, accepted-case target refs,
   stop-insufficient blocking issues, and critic/orchestrator final acceptance
@@ -404,16 +404,17 @@ Current next decisions:
    `src.ops.reflection_promotion_gate` provides the first fixture-backed gate
    for `reflection_trigger_rate`, `recovery_rate`, `false_recovery_rate`,
    `latency_delta`, integrity preservation, and reflection-report contract
-   shape. Its default run now covers both the base fixture set and a store-fixed
-   candidate surface fixture before any active retry behavior is promoted.
+   shape. Its default run now covers the base fixture set, a store-fixed
+   candidate surface fixture, and a reviewed store-fixed trace summary before
+   any active retry behavior is promoted.
 2. Report-cache promotion evidence: producer policy is documented in
    `docs/architecture/report_cache_capability_contract.md` and code-backed by
    `build_report_cache_producer_policy_projection()`. Future cache-derived
    ledger candidates map to the existing calculation task contract with
-   explicit cache-origin metadata. The first focused promotion-evidence gate is
-   fixture-backed only; serving, writes, retrieval bypass, final acceptance, and
-   live ledger insertion remain disabled until live/default MAS or store-fixed
-   eval-only traces justify a promotion.
+   explicit cache-origin metadata. The focused promotion-evidence gate now uses
+   fixture plus reviewed store-fixed trace-summary inputs; serving, writes,
+   retrieval bypass, final acceptance, and live ledger insertion remain disabled
+   until additional live/default MAS traces justify a promotion.
 3. Gate maintenance: rerun `portfolio_review_gates` whenever reviewer-facing
    runtime surfaces change; run broader benchmark refreshes only when a source
    change can plausibly affect gate quality or cost.

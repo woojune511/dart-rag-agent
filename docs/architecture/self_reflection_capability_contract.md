@@ -139,14 +139,15 @@ Promotion is blocked if any reflected accepted answer:
 ## Promotion Test Plan
 
 The repo-local `src.ops.reflection_promotion_gate` command is the first
-fixture-backed version of this gate. Its default run evaluates both the base
-fixture set and a store-fixed candidate surface fixture. The gate also checks
-that triggered reflection reports include bounded budget consumption, target
-task/artifact refs for accepted reflected cases, blocking issues for
-`stop_insufficient`, and `final_acceptance_authority =
+fixture plus trace-summary version of this gate. Its default run evaluates the
+base fixture set, a store-fixed candidate surface fixture, and a reviewed
+store-fixed trace summary distilled from local eval-only artifacts. The gate
+also checks that triggered reflection reports include bounded budget
+consumption, target task/artifact refs for accepted reflected cases, blocking
+issues for `stop_insufficient`, and `final_acceptance_authority =
 critic_orchestrator_handoff` rather than reflection. A future active-reflection
-PR should keep that gate green or extend it with additional store-fixed cases
-before any broader benchmark refresh:
+PR should keep that gate green or extend it with additional store-fixed or
+live/default trace summaries before any broader benchmark refresh:
 
 1. Unit tests for trigger eligibility, request construction, allowed strategies,
    budget consumption, and `ReflectionReport` ledger shape.

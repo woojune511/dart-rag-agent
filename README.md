@@ -144,9 +144,9 @@ acceptance, and cache reviewer handoff in one compact terminal view. See
 [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md).
 The portfolio review gates command should report aggregate `status = ready`
 when the demo, cache reviewer, and reflection promotion gates all pass.
-The report-cache promotion evidence gate should report one ready case, two
-fallback cases, and disabled serving, retrieval-bypass, ledger-insertion, and
-final-acceptance flags.
+The report-cache promotion evidence gate should report fixture plus trace
+summary coverage, with ready and fallback cases and disabled serving,
+retrieval-bypass, ledger-insertion, and final-acceptance flags.
 
 ## Current Status
 
@@ -163,8 +163,8 @@ Implemented and validated:
   and ledger insertion disabled
 - code-backed report-cache producer policy that maps future cache-derived
   candidates to the existing calculation task/artifact contract
-- fixture-backed report-cache promotion evidence gate for ready, incomplete,
-  and ambiguous local-index entries without enabling cache behavior
+- fixture plus trace-summary report-cache promotion evidence gate for ready,
+  incomplete, and ambiguous local-index entries without enabling cache behavior
 - fixture-backed portfolio demo command for answer, evidence, trace, integrity,
   critic, and cache handoff surfaces
 - aggregate portfolio review gate bundle for demo, cache, and reflection
