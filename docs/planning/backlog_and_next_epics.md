@@ -862,18 +862,27 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 현재:
 
-- cache는 주로 store/contextual ingest 재사용 쪽에 집중되어 있음
 - key/cacheability contract는 `src/config/report_scoped_cache.py`에 있고,
   runtime calculation trace에는 read-only `report_cache_candidate`가 붙음
-- 아직 runtime cache read/write 또는 retrieval bypass 동작에는 연결하지 않음
+- readable `local_cache_index` fixture, rehydration readiness, guarded
+  consumer admissibility, candidate artifact projection, calculation-task
+  projection, read-only projection validation, and reviewer handoff are all
+  contract-tested
+- `src.ops.review_report_cache_index_contract` is the repo-local handoff gate:
+  the default fixture-backed review reports `status = ok`, `difference_count =
+  0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, one valid
+  projection-ready candidate, and one normal-retrieval fallback candidate
+- runtime cache serving, cache read/write, ledger insertion, and retrieval
+  bypass remain disabled
 
 다음:
 
-- focused live/default MAS 또는 eval-only trace에서 어떤 값이 `reusable` /
-  `requires_evidence_verification` / `not_cacheable`로 분류되는지 확인
-- trace가 안정되면 `reusable` 값만 retrieval bypass 후보로 승격하고,
-  `requires_evidence_verification` 값은 source evidence 재확인을 통과해야
-  답변에 사용
+- do not add a serving flag yet
+- future work should start from live/default MAS or eval-only traces only when
+  deciding whether real runtime values produce enough candidate-only cache
+  evidence to justify a separate producer policy
+- until then, treat the cache path as a documented capability boundary rather
+  than an answer path
 
 ### 4. Runtime critic과 offline evaluator의 역할 분리
 
@@ -1041,14 +1050,13 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. report-scoped cache capability design
-2. material-gap / mixed narrative canary maintenance
-3. internal calculation mirror cleanup follow-up
-4. broader curated gate maintenance refresh when a new broader artifact
+1. material-gap / mixed narrative canary maintenance
+2. internal calculation mirror cleanup follow-up
+3. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
-5. agentic self-reflection 재설계
-6. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-7. cross-company 확장
+4. agentic self-reflection 재설계
+5. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+6. cross-company 확장
 
 ## 지금 당장 하지 않을 것
 

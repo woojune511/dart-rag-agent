@@ -370,18 +370,14 @@ Useful supporting points:
 
 ## Next Work
 
-1. Design the report-scoped cache capability boundary while keeping cache
-   serving disabled. The next useful step is to specify where a future
-   rehydrated cache candidate would enter the task/artifact ledger and which
-   integrity checks it must satisfy before it can affect an answer.
-2. Maintain non-gate material-gap and mixed numeric/narrative canaries with
+1. Maintain non-gate material-gap and mixed numeric/narrative canaries with
    store-fixed focused replays rather than new runtime patches by default.
    `NAV_T2_006` is closed by the retrieved-driver evidence preservation
    follow-up, and `KBF_T2_043` is closed by the contract-driven material-gap
    follow-up in PR #35. Treat future work on these cases as
    completeness/render calibration unless a fresh artifact reproduces a new
    runtime blocker.
-3. Continue projection cleanup by reducing internal writes to top-level
+2. Continue projection cleanup by reducing internal writes to top-level
    `calculation_*` mirrors now that `RuntimeCalculationTrace` and
    `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
    LLM formula-plan guard, and operand/formula planning structured-output
@@ -804,6 +800,10 @@ Useful supporting points:
   fixture remains a fallback. The repo-local review command now adds a compact
   `reviewer_handoff` summary with `status = ready`, `mode = candidate_only`,
   disabled serving/ledger flags, and ready/fallback projection counts.
+  The current fixture-backed review command reports `status = ok`,
+  `difference_count = 0`, one valid projection-ready candidate, and one normal
+  retrieval fallback candidate; this is the handoff gate for the candidate-only
+  cache capability.
   Cache read/write behavior and retrieval bypass remain disabled.
 - Warning-level integrity signals are non-blocking by default, but final-source
   dependencies on orphan artifacts or artifactless completed/partial tasks are
