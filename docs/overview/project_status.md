@@ -311,6 +311,16 @@ role-separated multi-agent system using a task ledger and artifact store.
       finds 4 cross-trace primary reuse candidates from `task_3/lookup` to
       `task_4/lookup`; all four were already current cache hits. That replay is
       diagnostic-only because faithfulness/completeness fell to `0.700`.
+    - PR #33 follow-up closed the diagnostic replay's narrative wording gap:
+      aggregate growth+narrative composition now promotes missing
+      policy-backed driver evidence from `seed_retrieved_docs` /
+      `retrieved_docs` when the active aggregate evidence lacks a required
+      driver group. This preserves the retrieved source surface without adding
+      company names, benchmark IDs, or driver keywords to runtime control flow.
+    - Focused `NAV_T2_006` store-fixed eval-only repair recovered
+      faithfulness, completeness, context recall, and retrieval hit@k to
+      `1.000` with error rate `0.0%`; the local result bundle remains an
+      experiment artifact and was not committed.
   - Validation: runtime domain-term audit passed, focused dependency-growth and
     aggregate preservation regression tests passed, the full unittest suite
     passed, and the full policy gate completed without embedding quota errors.
@@ -356,7 +366,14 @@ Useful supporting points:
 
 1. Reduce benchmark runtime and embedding cost through profiling, cache
    hygiene, and explicit retrieval query-budget controls for focused canaries.
-2. Continue projection cleanup by reducing internal writes to top-level
+   The next cost canary should target cross-trace sibling-task reuse only when
+   provenance and retrieved evidence visibility stay intact.
+2. Investigate material-gap replan behavior for non-gate `UNCERTAIN` cases
+   such as `KBF_T2_043`. The `NAV_T2_006` mixed-synthesis gap from the
+   cross-trace diagnostic replay is now closed by the retrieved-driver
+   evidence preservation follow-up, so it should not drive another runtime
+   patch unless a fresh artifact reproduces a new failure mode.
+3. Continue projection cleanup by reducing internal writes to top-level
    `calculation_*` mirrors now that `RuntimeCalculationTrace` and
    `TaskResultRecord` typed contracts exist. Deterministic incomplete-plan,
    LLM formula-plan guard, and operand/formula planning structured-output
@@ -402,7 +419,7 @@ Useful supporting points:
    fallback now distinguishes structured-result-only and mixed legacy fallback,
    and evaluator/benchmark exports surface projection source metadata so
    remaining legacy fallback consumers can be audited from output artifacts.
-3. Reviewer path: start with the portfolio demo walkthrough for a compact
+4. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.
 
@@ -890,14 +907,15 @@ Useful supporting points:
     runtime-contract company set: `NAV_T2_006`, `SAM_T3_028`, `KBF_T2_043`,
     and `SKH_T3_080`.
   - `SAM_T3_028` and `SKH_T3_080` passed numerically.
-  - `KBF_T2_043` returned `UNCERTAIN`, and `NAV_T2_006` produced no numeric
-    judgement with noisy mixed synthesis.
+  - At this snapshot, `KBF_T2_043` returned `UNCERTAIN`, and `NAV_T2_006`
+    produced no numeric judgement with noisy mixed synthesis.
   - These two non-PASS cases are not budget-truncation failures: their executed
     query traces were `1/1` and `2/2`, with no dropped primary, operand-focused,
     or retry queries.
-  - The budget is therefore still a viable default candidate; the next work is
-    separate runtime quality cleanup for noisy synthesis and material-gap
-    replan behavior.
+  - The budget is therefore still a viable default candidate. `NAV_T2_006` was
+    later closed by the policy-gate LLM-evidence path and retrieved-driver
+    evidence preservation follow-up; the remaining quality cleanup target from
+    this inventory is material-gap replan behavior.
 - Official LLM-evidence-path canary after fallback removal:
   - `NAV_T2_006` passed under the policy-driven gate profile with `8 / 4 / 1`.
   - Final answer preserved `41.4%` and the Poshmark/smart-store/brand-store
@@ -908,6 +926,17 @@ Useful supporting points:
   - Final narrative retrieval trace selected `3` primary queries, `0`
     operand-focus queries, and `0` retry queries while recording the broader
     state-level query count as `61`.
+- Retrieved-driver evidence preservation follow-up:
+  - A later same-store diagnostic replay showed that cross-trace instrumentation
+    could expose already-cached repeated lookup queries while the final answer
+    lost one source-visible growth driver group.
+  - PR #33 fixed the aggregate evidence path generically: if policy-backed
+    narrative driver groups are visible in retrieved docs but missing from
+    aggregate evidence, runtime promotes the source sentence into evidence
+    before final mixed numeric+narrative composition.
+  - Focused `NAV_T2_006` repair metrics recovered faithfulness, completeness,
+    context recall, and retrieval hit@k to `1.000`; this is treated as local
+    store-fixed repair evidence, not a fresh official benchmark.
 
 ## Latest Fresh Concept Gate Refresh
 

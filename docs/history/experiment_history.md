@@ -813,6 +813,63 @@
   현재 7/7 gate를 baseline으로 잡고 runtime cost, promotion risk, task-ledger
   boundary를 관리하는 단계로 넘어간다.
 
+## Retrieved Driver Evidence Preservation Follow-up (2026-06-07)
+
+참조:
+
+- `benchmarks/results/nav_t2_006_driver_doc_repair_evalonly_2026-06-07/`
+  (local store-fixed repair artifact, not committed)
+
+### 배경
+
+- Same-trace duplicate guard 이후 `NAV_T2_006` diagnostic replay에서
+  retrieval health는 유지됐지만 final answer가 source-visible growth driver
+  하나를 빠뜨리는 현상이 다시 보였다.
+- 이 실패는 retrieval miss나 benchmark-specific answer mismatch가 아니라,
+  aggregate growth+narrative composition이 retrieved docs에 남아 있는
+  policy-backed driver evidence를 evidence item으로 보존하지 못한 문제로
+  분류했다.
+
+### 코드 / 테스트 변화
+
+- `src/agent/financial_graph_calculation.py`
+  - aggregate evidence assembly 전에 policy-backed narrative driver groups를
+    확인한다.
+  - 해당 driver surface가 current evidence에는 없지만 `seed_retrieved_docs`
+    또는 `retrieved_docs`에 source-visible sentence로 남아 있으면
+    `retrieved_driver::*` evidence item으로 승격한다.
+  - 회사명, benchmark ID, commerce-specific keyword branch는 추가하지 않고,
+    retrieval policy가 제공한 driver groups와 retrieved evidence surface만
+    사용한다.
+- `tests/test_subtask_loop.py`
+  - retrieved docs가 missing growth driver evidence를 보강하는 helper test
+    추가.
+  - aggregate growth+narrative answer가 promoted retrieved-driver evidence를
+    final answer와 selected claim ids에 반영하는 regression test 추가.
+
+### 핵심 결과
+
+- Focused `NAV_T2_006` store-fixed eval-only repair:
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - context recall `1.000`
+  - retrieval hit@k `1.000`
+  - error rate `0.0%`
+- 검증:
+  - targeted subtask-loop regression tests: `2` tests OK
+  - runtime domain-language audit passed
+  - full unittest discovery passed before PR publication
+
+### 해석
+
+- Cross-trace repeated retrieval surfaces remain a runtime/cost topic, not a
+  quality blocker by themselves.
+- The quality fix is evidence preservation: if the planner/retrieval policy has
+  already recovered a relevant driver sentence, aggregate composition must keep
+  it visible rather than relying on a later synthesizer to reconstruct it.
+- The remaining non-gate quality cleanup target is material-gap replan behavior
+  such as `KBF_T2_043`, not the closed `NAV_T2_006` mixed-synthesis gap.
+
 ## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
 
 참조:
