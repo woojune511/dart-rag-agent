@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, validate_answer_slots_payload
+from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationPlan, CalculationRenderOutput, CalculationResult, CalculationVerificationOutput, FinancialAgentState, OperandExtraction, ReflectionAction, validate_answer_slots_payload
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.config import get_financial_ontology
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
@@ -52,6 +52,29 @@ def _calculation_debug_state_update(
 def _clear_calculation_debug_state() -> Dict[str, Any]:
     """Clear the optional calculation diagnostic scratch field between attempts."""
     return {CALCULATION_DEBUG_TRACE_FIELD: {}}
+
+
+def _reflection_action_from_plan(
+    reflection_plan: Dict[str, Any],
+    *,
+    retry_queries: List[str],
+    retry_strategy: str,
+) -> ReflectionAction:
+    return {
+        "action_type": retry_strategy,
+        "retry_queries": list(retry_queries),
+        "retrieval_scope_hints": [
+            str(item).strip()
+            for item in (reflection_plan.get("preferred_sections") or [])
+            if str(item).strip()
+        ],
+        "synthesis_source_ids": [
+            str(item).strip()
+            for item in (reflection_plan.get("synthesis_source_ids") or [])
+            if str(item).strip()
+        ],
+        "stop_reason": str(reflection_plan.get("explanation") or ""),
+    }
 
 
 def _task_artifact_integrity_feedback(trace: Dict[str, Any]) -> str:
@@ -11891,6 +11914,14 @@ class FinancialAgentCalculationMixin:
         if not missing_info:
             missing_info = self._infer_missing_info(state, operands)
         retry_queries = self._finalize_retry_queries(state, reflection_plan, missing_info)
+        retry_strategy = _normalise_spaces(
+            str(reflection_plan.get("retry_strategy") or state.get("retry_strategy") or "retry_retrieval")
+        ).lower()
+        reflection_action = _reflection_action_from_plan(
+            reflection_plan,
+            retry_queries=retry_queries,
+            retry_strategy=retry_strategy,
+        )
         retry_reason = (
             str(reflection_plan.get("explanation") or "")
             or str(plan.get("explanation") or "")
@@ -11909,10 +11940,9 @@ class FinancialAgentCalculationMixin:
             "missing_info": missing_info,
             "reflection_count": current_count + 1,
             "retry_reason": retry_reason,
-            "retry_strategy": _normalise_spaces(
-                str(reflection_plan.get("retry_strategy") or state.get("retry_strategy") or "retry_retrieval")
-            ).lower(),
-            "retry_queries": retry_queries,
+            "retry_strategy": str(reflection_action.get("action_type") or retry_strategy),
+            "retry_queries": list(reflection_action.get("retry_queries") or []),
+            "reflection_action": reflection_action,
             "evidence_bullets": [],
             "evidence_items": [],
             "evidence_status": "missing",

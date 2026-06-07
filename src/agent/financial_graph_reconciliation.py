@@ -16,12 +16,61 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import _coerce_lookup_magnitude_value
-from src.agent.financial_graph_models import FinancialAgentState, ReconciliationCandidateRerank, ReflectionQueryPlan
+from src.agent.financial_graph_models import (
+    FinancialAgentState,
+    ReconciliationCandidateRerank,
+    ReflectionPlanRecord,
+    ReflectionQueryPlan,
+)
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import RECONCILIATION_POLICY
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_REFLECTION_RETRY_STRATEGIES = {
+    "retry_retrieval",
+    "synthesize_from_task_outputs",
+    "stop_insufficient",
+}
+
+
+def _normalise_reflection_plan_record(
+    plan: Dict[str, Any],
+    *,
+    fallback_plan: Dict[str, Any],
+    missing_info: List[str],
+    preferred_sections: List[str],
+) -> ReflectionPlanRecord:
+    plan_data = dict(plan or {})
+    plan_data["missing_info"] = [
+        str(item).strip()
+        for item in (plan_data.get("missing_info") or [])
+        if str(item).strip()
+    ]
+    plan_data["subqueries"] = [
+        _normalise_spaces(str(item))
+        for item in (plan_data.get("subqueries") or [])
+        if _normalise_spaces(str(item))
+    ]
+    plan_data["preferred_sections"] = [
+        _normalise_spaces(str(item))
+        for item in (plan_data.get("preferred_sections") or [])
+        if _normalise_spaces(str(item))
+    ]
+    retry_strategy = _normalise_spaces(str(plan_data.get("retry_strategy") or "")).lower()
+    if retry_strategy not in ALLOWED_REFLECTION_RETRY_STRATEGIES:
+        retry_strategy = str(fallback_plan.get("retry_strategy") or "retry_retrieval")
+    plan_data["retry_strategy"] = retry_strategy
+    if not plan_data["missing_info"]:
+        plan_data["missing_info"] = list(missing_info)
+    if not plan_data["preferred_sections"]:
+        plan_data["preferred_sections"] = list(preferred_sections[:3])
+    if not plan_data["subqueries"]:
+        plan_data = dict(fallback_plan)
+        plan_data["explanation"] = "fallback to heuristic because reflection planner returned no subqueries"
+    return plan_data
+
 
 class FinancialAgentReconciliationMixin:
     def _active_subtask_with_sibling_lookup_surfaces(
@@ -1912,33 +1961,12 @@ class FinancialAgentReconciliationMixin:
                     "heuristic_plan": json.dumps(heuristic_plan, ensure_ascii=False, indent=2),
                 }
             )
-            plan_data = reflection_plan.model_dump()
-            plan_data["missing_info"] = [
-                str(item).strip()
-                for item in (plan_data.get("missing_info") or [])
-                if str(item).strip()
-            ]
-            plan_data["subqueries"] = [
-                _normalise_spaces(str(item))
-                for item in (plan_data.get("subqueries") or [])
-                if _normalise_spaces(str(item))
-            ]
-            plan_data["preferred_sections"] = [
-                _normalise_spaces(str(item))
-                for item in (plan_data.get("preferred_sections") or [])
-                if _normalise_spaces(str(item))
-            ]
-            retry_strategy = _normalise_spaces(str(plan_data.get("retry_strategy") or "")).lower()
-            if retry_strategy not in {"retry_retrieval", "synthesize_from_task_outputs", "stop_insufficient"}:
-                retry_strategy = str(heuristic_plan.get("retry_strategy") or "retry_retrieval")
-            plan_data["retry_strategy"] = retry_strategy
-            if not plan_data["missing_info"]:
-                plan_data["missing_info"] = missing_info
-            if not plan_data["preferred_sections"]:
-                plan_data["preferred_sections"] = preferred_sections[:3]
-            if not plan_data["subqueries"]:
-                plan_data = heuristic_plan
-                plan_data["explanation"] = "fallback to heuristic because reflection planner returned no subqueries"
+            plan_data = _normalise_reflection_plan_record(
+                reflection_plan.model_dump(),
+                fallback_plan=heuristic_plan,
+                missing_info=missing_info,
+                preferred_sections=preferred_sections,
+            )
             logger.info(
                 "[reflection_replan] status=%s retry_objective=%s subqueries=%s",
                 plan_data.get("status"),
