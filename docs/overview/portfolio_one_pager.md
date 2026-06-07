@@ -89,7 +89,8 @@ patches should generalize across questions instead of memorizing benchmark IDs.
 
 Report-scoped cache work is intentionally staged. The current system can inspect
 and validate cache candidates, but cache serving, writes, ledger insertion, and
-retrieval bypass remain disabled.
+retrieval bypass remain disabled. The disabled capability boundary is documented
+in [report_cache_capability_contract.md](../architecture/report_cache_capability_contract.md).
 
 ## Evidence Of Progress
 
