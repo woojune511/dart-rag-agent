@@ -370,26 +370,31 @@ Useful supporting points:
 
 ## Next Work
 
-1. Agentic self-reflection redesign: stop growing rule-based retry branches and
-   define reflection as a capability with explicit inputs, outputs, limits, and
-   task/artifact ledger effects. The initial contract is documented in
-   `docs/architecture/self_reflection_capability_contract.md`; the first code
-   increments add TypedDict surfaces, strict request building, plan/action
-   normalization, `ReflectionReport` handoff, and `reflection_report`
-   task/artifact ledger projection without changing answer behavior.
-2. Report-scoped cache capability promotion: only after the reflection boundary
-   is clearer, decide whether `REFERENCE_NOTE` and cache candidates should
-   become a disabled capability contract rather than ad hoc reviewer diagnostics.
-   Current decision: keep serving/write/ledger insertion/retrieval bypass
-   disabled, capture the boundary in
-   `docs/architecture/report_cache_capability_contract.md`, and expose the
-   current candidate-only mode through `report_cache_capability_status()`.
-3. Reviewer proof maintenance: rerun `portfolio_demo` and
-   `review_report_cache_index_contract` when runtime surfaces change, then keep
-   README, one-pager, demo walkthrough, and experiment report aligned.
-   Latest refresh after reflection ledger handoff: `portfolio_demo` reported
-   `Readiness: ready`, cache reviewer contract reported `status = ok` and
-   `reviewer_handoff.status = ready`, and full unit discovery passed 940 tests.
+Recently closed:
+
+- Agentic self-reflection now has documented request/plan/action/report
+  boundaries plus `ReflectionReport` and `reflection_report` task/artifact
+  ledger projection. This does not change final answer acceptance behavior.
+- Report-scoped cache is now a documented and code-level disabled capability:
+  `report_cache_capability_status()` exposes `candidate_only` mode while
+  retrieval bypass, writes, serving, and ledger insertion remain disabled.
+- Reviewer-facing proof was refreshed: `portfolio_demo` prints the disabled
+  cache flags, `review_report_cache_index_contract` reports
+  `reviewer_handoff.status = ready`, and README / one-pager / demo walkthrough
+  now use the same cache safety surface.
+
+Current next decisions:
+
+1. Reflection promotion criteria: define the focused test/eval signals that
+   would justify changing reflection from a bounded handoff surface into an
+   active retry capability. Do not add more rule-based retry branches.
+2. Report-cache producer policy: keep the current cache path disabled until
+   live/default MAS or store-fixed eval-only traces show enough candidate-only
+   cache material to justify a schema-backed producer policy.
+3. Gate maintenance: rerun `portfolio_demo` and
+   `review_report_cache_index_contract` whenever runtime surfaces change; run
+   broader benchmark refreshes only when a source change can plausibly affect
+   gate quality or cost.
 
 ### Task Ledger / Artifact Contract Focus
 
