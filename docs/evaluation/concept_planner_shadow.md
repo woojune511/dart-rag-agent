@@ -356,6 +356,45 @@ Updated promotion verdict:
   store-fixed bundle when available, or with a monitored fresh run if the store
   must be rebuilt.
 
+2026-06-07 empirical replay:
+
+- Profile:
+  - `benchmarks/profiles/curated_runtime_contract_gate.json`
+- Command shape:
+  - `benchmark_runner --config benchmarks/profiles/curated_runtime_contract_gate.json --output-dir benchmarks/results/nav_t1_030_projection_replay_2026-06-07 --company-run-id naver_2023_runtime_contract_gate --eval-only --question-id NAV_T1_030 --progress-heartbeat-sec 30 --heartbeat-log <path>`
+- Store/cache source:
+  - copied local `naver-2023` bundle from
+    `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`
+    into a new local replay directory before running eval-only, to avoid
+    overwriting the older artifact
+- Result:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.000`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `ndcg_at_5 = 1.000`
+  - `context_precision_at_5 = 1.000`
+  - `section_match_rate = 1.000`
+  - `citation_coverage = 0.667`
+  - `entity_coverage = 0.500`
+  - `completeness = 1.000`
+  - `numeric_pass_rate = 1.000`
+  - `avg_score = 0.896`
+  - `error_rate = 0.0%`
+- Interpretation:
+  - The original evaluator-visible retrieval/section blocker is closed for
+    this replay: runtime evidence now exposes cash-flow calculation provenance
+    strongly enough for hit@k and section match to reach `1.000`.
+  - Broad concept-planner promotion should still keep a residual caveat for
+    citation/entity surfaces. The replay citations include the relevant NAVER
+    2023 source anchors, but citation coverage remains `0.667` and entity
+    coverage remains `0.500`, so the remaining work is citation/entity surface
+    normalization or display projection, not arithmetic, retrieval coverage, or
+    FCF-specific planning.
+- Artifact policy:
+  - `benchmarks/results/nav_t1_030_projection_replay_2026-06-07/` is a local
+    experiment artifact and should not be committed.
+
 Validation:
 
 - `python -m unittest tests.test_operation_contracts tests.test_semantic_numeric_plan tests.test_subtask_loop`

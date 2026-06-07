@@ -456,6 +456,13 @@
   - `context_recall = 0.9`
   - `completeness = 0.7`
   - 남은 일은 broader replay와 completeness/render calibration이지, 현재 알려진 material-gap runtime blocker는 아니다.
+- `NAV_T1_030` FCF concept-planner promotion residual은 projection follow-up 이후 focused eval-only에서 numeric/retrieval/section 기준으로 닫혔다.
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.0`
+  - `retrieval_hit_at_k = 1.0`
+  - `section_match_rate = 1.0`
+  - `completeness = 1.0`
+  - 남은 caveat는 `citation_coverage = 0.667`, `entity_coverage = 0.5`이며, 이는 arithmetic/retrieval/planning 문제가 아니라 citation/entity surface normalization 또는 display projection 문제다.
 - `structural_parent_hybrid_v2` probe에서 드러난 `MIX_T1_046` 실패는 parent digest 문제가 아니라 ratio material-binding 문제였고, calculation fallback이 dependency guard를 우회해 retrieved docs를 활용하되 연결/별도 scope와 operand concept을 지키도록 보강해 닫았다.
 - focused blocker reclassification에서 `HYU_T2_010`과 `HYU_T3_072`는 targeted smoke 기준으로 닫혔다.
 - policy-driven track은 2026-05-29 공식 profile rerun과 summary 재계산 기준으로 닫혔다.
