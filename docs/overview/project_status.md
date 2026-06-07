@@ -370,10 +370,10 @@ Useful supporting points:
 
 ## Next Work
 
-1. Continue projection cleanup by reducing internal writes to top-level
-   `calculation_*` mirrors now that `RuntimeCalculationTrace`,
-   `TaskResultRecord`, and MAS worker/final artifact projections have
-   schema-backed readers.
+1. Design the report-scoped cache capability boundary while keeping cache
+   serving disabled. The next useful step is to specify where a future
+   rehydrated cache candidate would enter the task/artifact ledger and which
+   integrity checks it must satisfy before it can affect an answer.
 2. Maintain non-gate material-gap and mixed numeric/narrative canaries with
    store-fixed focused replays rather than new runtime patches by default.
    `NAV_T2_006` is closed by the retrieved-driver evidence preservation
@@ -562,6 +562,11 @@ Useful supporting points:
 - Dependency-projection recalculation now reads `_execute_calculation()` outputs
   through strict current-state resolution. Focused tests cover rejection of
   legacy top-level recalculation results.
+- Aggregate reconciliation artifact enrichment now ignores stale top-level
+  `calculation_result` source refs. Reconciliation evidence refs are enriched
+  from canonical aggregate projection material, ordered subtask source refs, and
+  selected claims; focused tests cover both canonical source-ref preservation
+  and stale top-level source-ref rejection.
 - `_runtime_trace_state_update()` now defaults to omitting top-level
   compatibility mirrors. Compatibility mirrors remain available only as an
   explicit opt-in for older external readers.

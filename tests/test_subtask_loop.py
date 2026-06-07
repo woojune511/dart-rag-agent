@@ -5841,25 +5841,36 @@ class SubtaskLoopTests(unittest.TestCase):
                     "evidence_refs": [],
                 }
             ],
-            "calculation_result": {
-                "status": "ok",
-                "rendered_value": "100",
-                "source_row_ids": ["row:source"],
-                "answer_slots": {
-                    "operation_family": "lookup",
-                    "primary_value": {
-                        "status": "ok",
-                        "role": "primary_value",
-                        "label": "requested value",
-                        "raw_value": "100",
-                        "rendered_value": "100",
-                        "source_row_id": "row:source",
-                        "source_row_ids": ["row:source"],
+            "resolved_calculation_trace": {
+                "calculation_operands": [],
+                "calculation_plan": {"operation": "lookup"},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "100",
+                    "source_row_ids": ["row:source"],
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "requested value",
+                            "raw_value": "100",
+                            "rendered_value": "100",
+                            "source_row_id": "row:source",
+                            "source_row_ids": ["row:source"],
+                        },
                     },
                 },
             },
-            "calculation_operands": [],
-            "calculation_plan": {},
+            "structured_result": {
+                "status": "ok",
+                "rendered_value": "100",
+            },
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "stale",
+                "source_row_ids": ["row:stale"],
+            },
             "reconciliation_result": {"status": "ready"},
             "planner_feedback": "",
             "planner_mode": "initial",
@@ -5881,6 +5892,82 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["orphan_artifact_ids"], [])
         self.assertEqual(aggregate_task["kind"], "synthesis")
         self.assertEqual(aggregate_task["latest_artifact_kind"], "aggregated_answer")
+
+    def test_aggregate_subtasks_ignores_stale_top_level_source_refs_for_reconciliation_artifact(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "The requested value is 100.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "Return the requested value.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "requested value"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "requested value",
+                "operation_family": "lookup",
+            },
+            "subtask_results": [],
+            "answer": "The requested value is 100.",
+            "compressed_answer": "The requested value is 100.",
+            "selected_claim_ids": [],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "reconciliation",
+                    "label": "reconcile requested value",
+                    "status": "completed",
+                    "artifact_ids": ["reconcile:task_1:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "reconcile:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "reconciliation_result",
+                    "status": "ready",
+                    "payload": {"reconciliation_result": {"status": "ready", "matched_operands": []}},
+                    "evidence_refs": [],
+                }
+            ],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "100",
+                "source_row_ids": ["row:stale"],
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "rendered_value": "100",
+                        "source_row_id": "row:stale",
+                    },
+                },
+            },
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 0,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        reconcile_artifact = next(
+            artifact
+            for artifact in updated["artifacts"]
+            if artifact["artifact_id"] == "reconcile:task_1:001"
+        )
+
+        self.assertEqual(reconcile_artifact["evidence_refs"], [])
+        self.assertEqual(updated["planner_mode"], "replan")
+        self.assertIn("missing_required_evidence_ref", updated["planner_feedback"])
 
     def test_aggregate_subtasks_replans_on_retrieval_integrity_error(self) -> None:
         self.agent.llm = _StubLLM(

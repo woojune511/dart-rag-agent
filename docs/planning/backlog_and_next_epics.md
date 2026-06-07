@@ -1041,9 +1041,9 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. internal calculation mirror cleanup
-2. report-scoped cache capability design
-3. material-gap / mixed narrative canary maintenance
+1. report-scoped cache capability design
+2. material-gap / mixed narrative canary maintenance
+3. internal calculation mirror cleanup follow-up
 4. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
 5. agentic self-reflection 재설계

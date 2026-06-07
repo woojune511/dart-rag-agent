@@ -43,6 +43,10 @@ is internal representation cleanup, not a new answer-quality fix.
 - Most live graph readers already use strict mode or mirror-free updates.
   `financial_graph_calculation.py` call sites rely on the helper default and
   pass `include_compatibility_mirrors = false` on explicit update branches.
+- Aggregate reconciliation artifact enrichment now uses canonical aggregate
+  projection material, ordered subtask source refs, and selected claims. It no
+  longer reads top-level `calculation_result` source refs when deciding whether
+  to backfill reconciliation artifact evidence refs.
 - `FinancialAgent.run()` still uses `_project_runtime_calculation_trace()` as a
   public compatibility bridge. This is intentional while older callers may still
   send or inspect legacy top-level fields.
@@ -71,9 +75,17 @@ is internal representation cleanup, not a new answer-quality fix.
    tools. Their contract is to read old artifacts safely while preferring
    canonical `resolved_calculation_trace` when present.
 
+## Completed Increment
+
+- 2026-06-07: closed one live aggregate reader gap. Reconciliation artifact
+  evidence refs are no longer backfilled from stale top-level
+  `calculation_result` source refs. Focused regression tests cover canonical
+  `resolved_calculation_trace` source-ref preservation and stale top-level
+  source-ref rejection.
+
 ## Next Implementation Candidate
 
-The smallest code cleanup should target state typing and tests, not runtime
+The next code cleanup should still target state typing and tests, not answer
 behavior:
 
 - introduce a narrower internal scratch-state note or helper for calculation

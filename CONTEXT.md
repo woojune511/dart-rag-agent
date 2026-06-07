@@ -416,19 +416,20 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | internal calculation mirror cleanup | canonical runtime trace 중심으로 legacy compatibility mirror를 축소 |
-| 2 | report-scoped cache capability design | trace-only cache 후보를 명시적 capability boundary로 설계 |
-| 3 | material-gap / mixed narrative canary maintenance | 새 runtime patch 전 store-fixed canary로 blocker와 calibration debt를 분리 |
+| 1 | report-scoped cache capability design | trace-only cache 후보를 명시적 capability boundary로 설계 |
+| 2 | material-gap / mixed narrative canary maintenance | 새 runtime patch 전 store-fixed canary로 blocker와 calibration debt를 분리 |
+| 3 | internal calculation mirror cleanup follow-up | state typing/debug ownership 정리 전 남은 compatibility surface를 audit |
 
 ## 현재 우선순위 요약
 
-1. internal calculation mirror cleanup
-2. report-scoped cache capability design
-3. material-gap / mixed narrative canary maintenance
+1. report-scoped cache capability design
+2. material-gap / mixed narrative canary maintenance
+3. internal calculation mirror cleanup follow-up
 
 ## 현재 해석
 
 - Analyst / Critic / Researcher separation 1차 작업은 2026-06-07에 닫았다. `WorkerArtifactBoundary`와 `project_worker_artifact_boundary()`를 MAS schema layer에 추가해 worker artifact의 payload-first answer, selected artifact id, task id, role, kind/status, evidence refs dedupe를 공유 projection으로 고정했다. Critic review와 Orchestrator final synthesis는 이제 같은 worker-artifact boundary helper를 통해 artifact를 읽는다. 관련 Critic/Orchestrator/MAS graph tests `24`개가 통과했다.
+- internal calculation mirror cleanup 1차 작업은 2026-06-07에 닫았다. Aggregate reconciliation artifact enrichment가 더 이상 stale top-level `calculation_result`의 `source_row_ids` / answer-slot source refs를 evidence refs로 보강하지 않고, canonical projection / ordered subtask refs / selected claims만 사용한다. 회귀 테스트는 canonical `resolved_calculation_trace` source refs는 보존하고 stale top-level refs는 replan-triggering integrity gap으로 남기는 두 경로를 고정한다. `tests.test_subtask_loop` `143`개와 runtime domain-term audit이 통과했다.
 - MAS skeleton과 artifact schema productization 1차 작업은 2026-06-07에 닫았다. `FinalCarryForwardProjection`과 `project_final_report_carry_forward()`를 MAS schema layer로 올렸고, smoke output은 이제 이 shared helper에서 final source task/artifact/evidence/subtask-result counts와 ids를 만든다. Orchestrator와 dummy MAS merge도 `subtask_results` row에 selected worker `artifact_id` / `source_artifact_id`를 보존한다. 관련 MAS API-free tests `29`개와 runtime domain-term audit이 통과했다.
 - mixed growth+narrative answer-language polish 1차 작업은 2026-06-07에 닫았다. 최종 aggregate answer surface에서 받침 있는 한글 음절 뒤의 잘못된 conjunctive particle을 generic하게 정리하고, `RuntimeCalculationTrace.calculation_result.formatted_result`도 같은 surface를 보존한다. 이 변경은 회사명/benchmark ID/driver keyword branch 없이 answer surface 후처리만 수행하며, focused aggregate regression과 runtime domain-term audit이 통과했다.
 - mixed growth+narrative retrieval fan-out control 1차 작업은 2026-06-07에 audit surface 보강으로 닫았다. `audit_benchmark_fanout_cost.py`는 이제 cross-trace reuse candidates 중 current cache hit / miss counts를 row와 summary, Markdown table에 노출한다. 따라서 `NAV_T2_006` 같은 sibling lookup repeats가 이미 cache-hit로 막힌 관측 항목인지, 실제 추가 비용 후보인지 구분할 수 있다. 새 benchmark는 돌리지 않았다.

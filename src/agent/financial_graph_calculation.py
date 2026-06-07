@@ -11292,8 +11292,6 @@ class FinancialAgentCalculationMixin:
         )
         projection_result_for_integrity = dict(projection_for_integrity.get("calculation_result") or {})
         projection_slots_for_integrity = dict(projection_result_for_integrity.get("answer_slots") or {})
-        state_result_for_integrity = dict(state.get("calculation_result") or {})
-        state_slots_for_integrity = dict(state_result_for_integrity.get("answer_slots") or {})
         ledger_artifacts = self._enrich_reconciliation_artifact_refs(
             list(state.get("artifacts") or []),
             task_id="",
@@ -11304,10 +11302,6 @@ class FinancialAgentCalculationMixin:
                 projection_result_for_integrity.get("source_row_ids"),
                 projection_slots_for_integrity.get("source_row_id"),
                 projection_slots_for_integrity.get("source_row_ids"),
-                state_result_for_integrity.get("source_row_id"),
-                state_result_for_integrity.get("source_row_ids"),
-                state_slots_for_integrity.get("source_row_id"),
-                state_slots_for_integrity.get("source_row_ids"),
                 ordered_result_source_refs,
                 selected_claim_ids_for_integrity,
             ],
