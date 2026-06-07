@@ -194,6 +194,11 @@ def render_text(demo: Dict[str, Any]) -> str:
             "Cache Reviewer Handoff:",
             f"  - status: {cache_handoff.get('status')}",
             f"  - mode: {cache_handoff.get('mode')}",
+            (
+                "  - retrieval_bypass_enabled: "
+                f"{_format_bool(cache_handoff.get('retrieval_bypass_enabled'))}"
+            ),
+            f"  - write_enabled: {_format_bool(cache_handoff.get('write_enabled'))}",
             f"  - serving_enabled: {_format_bool(cache_handoff.get('serving_enabled'))}",
             (
                 "  - ledger_insertion_enabled: "

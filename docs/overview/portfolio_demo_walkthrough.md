@@ -33,7 +33,8 @@ contract to look for is:
 - reflection retry state, when triggered, is persisted as a `reflection_report`
   artifact rather than an unbounded graph escape hatch
 - critic acceptance is exposed as target refs, verdict/status, and reasons
-- report-cache material remains candidate-only and non-serving
+- report-cache material remains candidate-only with retrieval bypass, writes,
+  serving, and ledger insertion disabled
 - legacy top-level calculation/debug fields are compatibility bridges, not the
   source of truth for new live runs
 
@@ -70,6 +71,8 @@ Critic Acceptance:
 Cache Reviewer Handoff:
   - status: ready
   - mode: candidate_only
+  - retrieval_bypass_enabled: false
+  - write_enabled: false
   - serving_enabled: false
   - ledger_insertion_enabled: false
 ```
@@ -85,7 +88,7 @@ Cache Reviewer Handoff:
 | `Task/Artifact Integrity` | The MAS ledger projection is present and clean |
 | `reflection_report` artifacts | Retry/reflection actions are inspectable through the same ledger contract when a retry is prepared |
 | `Critic Acceptance` | Runtime acceptance uses target refs, verdict, and reasons |
-| `Cache Reviewer Handoff` | Cache candidates remain candidate-only and non-serving |
+| `Cache Reviewer Handoff` | Cache candidates remain candidate-only with bypass/write/serving/ledger insertion disabled |
 
 The important portfolio point is not the fixture value itself. The point is that
 the command exposes the same surfaces that are risky in financial-document RAG:

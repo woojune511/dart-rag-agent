@@ -130,6 +130,8 @@ The report-cache reviewer command should report:
 - `status = ok`
 - `reviewer_handoff.status = ready`
 - `reviewer_handoff.mode = candidate_only`
+- `retrieval_bypass_enabled = false`
+- `write_enabled = false`
 - `serving_enabled = false`
 - `ledger_insertion_enabled = false`
 
@@ -147,7 +149,8 @@ Implemented and validated:
 - task/artifact integrity projection and final close blocking
 - critic runtime acceptance boundary and rejection feedback surface
 - bounded self-reflection request/action/report handoff through the ledger
-- candidate-only report-cache reviewer handoff
+- candidate-only report-cache reviewer handoff with bypass, writes, serving,
+  and ledger insertion disabled
 - fixture-backed portfolio demo command for answer, evidence, trace, integrity,
   critic, and cache handoff surfaces
 - runtime domain-term audit to keep domain vocabulary out of runtime branches
