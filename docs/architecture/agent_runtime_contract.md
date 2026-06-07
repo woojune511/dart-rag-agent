@@ -207,10 +207,12 @@ block final close.
 
 Runtime critic acceptance is contract-based, not score-threshold-based.
 `deterministic_score` is diagnostic metadata for audit/debug traces. A runtime
-acceptance decision should follow the normalized report contract: passed reports
-need `passed = true`, `verdict = "passed"`, target refs, an acceptance reason,
-and no blocking issues; rejected reports stay blocked even when their diagnostic
-score is high. Final close/replan integrity checks should consume
+acceptance decision should follow the normalized report contract: `passed`,
+`verdict`, or `status` may provide the verdict signal, but conflicting verdict
+signals block acceptance. Accepted reports need a normalized passed verdict,
+target refs, an acceptance reason, and no blocking issues; rejected reports stay
+blocked even when their diagnostic score is high. Final close/replan integrity
+checks should consume
 `critic_report_runtime_acceptance_state()` so a structurally complete rejected
 critic report still blocks final close. Planner feedback and smoke/review
 handoff summaries should surface the normalized runtime acceptance status,

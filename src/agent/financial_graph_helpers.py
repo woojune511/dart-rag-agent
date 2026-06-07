@@ -525,8 +525,8 @@ def _project_task_artifact_trace(
             reasons = set(acceptance_state.get("reasons") or [])
             if (
                 "missing_verdict" in reasons
-                or "missing_passed_verdict" in reasons
-                or "missing_rejected_verdict" in reasons
+                or "unknown_verdict" in reasons
+                or "conflicting_verdict_signal" in reasons
             ):
                 return "critic_report.verdict"
             if "missing_target_refs" in reasons:

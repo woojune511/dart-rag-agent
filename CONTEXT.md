@@ -416,13 +416,11 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
-| 2 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
+| 1 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
 
 ## 현재 우선순위 요약
 
-1. runtime critic / evaluator boundary follow-up
-2. internal calculation debug ownership follow-up
+1. internal calculation debug ownership follow-up
 
 ## 현재 해석
 
@@ -433,6 +431,7 @@
 - internal calculation mirror cleanup state-typing follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 optional compatibility mirror로 내려갔고, `calculation_debug_trace`만 debug ownership 분리 전 required surface로 남긴다. Focused projection test와 runtime domain-term audit이 통과했다.
 - runtime critic / offline evaluator boundary follow-up 1차 작업은 2026-06-07에 reviewer/demo surface 정리로 시작했다. `portfolio_demo`와 `mas_researcher_smoke`는 이제 `passed` / `deterministic_score`를 직접 acceptance로 보지 않고 `critic_report_runtime_acceptance_state()`의 status, reasons, target refs, score-used flag를 노출한다. Focused demo/smoke/critic tests `14`개가 통과했다.
 - runtime critic / final merge acceptance follow-up은 2026-06-07에 target carry-forward를 보강했다. Critic rejection integrity issue는 raw `target_refs`뿐 아니라 ledger에 존재하는 `target_task_ids` / `target_artifact_ids`를 분리해 노출하고, Orchestrator replan carry-forward는 rejected worker target task도 failed 처리한다. Focused MAS/projection tests와 runtime domain-term audit이 통과했다.
+- runtime critic / offline evaluator boundary follow-up은 2026-06-07에 helper level까지 닫았다. `critic_report_runtime_acceptance_state()`는 `passed` / `verdict` / `status` verdict signal을 normalize하고, conflicting verdict signal은 block하며, rejected report는 diagnostic score가 높아도 blocked로 남긴다. `deterministic_score_used_for_acceptance = false`를 유지한다. Focused critic/projection/demo tests와 runtime domain-term audit이 통과했다.
 - MAS smoke baseline contract refresh도 2026-06-07에 닫았다. valid default-store compact contract는 `tests/fixtures/mas_e2e_smoke/default_valid_store_contract_baseline.json`로 source-controlled baseline이 됐고, `check_mas_e2e_smoke_contract`는 이 baseline을 기본값으로 사용한다. Focused MAS smoke contract tests가 통과했다.
 - MAS smoke critic/replan observability follow-up은 2026-06-07에 닫았다. `mas_e2e_smoke`는 이제 case별 `final_acceptance_outcome`과 summary `final_acceptance_outcome_counts`를 노출해 `accepted_without_replan`, `replan_succeeded`, `blocked_without_replan`, `blocked_after_replan`, `replan_pending`을 구분한다. Critic issue items도 `target_task_ids` / `target_artifact_ids`를 표시하고, compact smoke contract가 final acceptance outcome을 비교한다.
 - Live/default MAS smoke outcome refresh는 2026-06-07에 material-empty blocker를 재현했다. 기본 `replan_budget = 0` run은 `final_acceptance_outcome_counts = {"blocked_without_replan": 2}`, `blocked_count = 2`, `final_source_* = 0`이고, `--replan-budget 1` run은 `{"blocked_after_replan": 2}`, `replan_routed_count = 2`, `final_source_* = 0`이다. 두 케이스 모두 Analyst/Researcher task가 incomplete/empty material로 failed였고 critic rejection issue는 없었다. Raw artifacts는 `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/`와 `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`에 local-only로 남긴다.
