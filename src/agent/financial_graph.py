@@ -23,7 +23,7 @@ from src.agent.financial_graph_contextual import (
     DEFAULT_CONTEXT_MAX_WORKERS,
     FinancialAgentContextualMixin,
 )
-from src.agent.financial_graph_models import FinancialAgentState
+from src.agent.financial_graph_models import DebugTraceBundle, FinancialAgentState
 from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 from src.routing import QueryRouter
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
@@ -87,6 +87,9 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             row["metadata"] = metadata
             enriched.append(row)
         return enriched
+
+    def _project_debug_traces(self, final: Dict[str, Any]) -> DebugTraceBundle:
+        return {"calculation": dict(final.get("calculation_debug_trace") or {})}
 
     def _augment_citations_from_runtime_evidence(
         self,
@@ -505,6 +508,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 "calculation_result": final.get("calculation_result", {}),
             }
         )
+        debug_traces = self._project_debug_traces(final)
         citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
         return {
             "query": final["query"],
@@ -540,7 +544,10 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             # Preferred structured runtime contract for external callers.
             "resolved_calculation_trace": runtime_calculation_trace,
             "structured_result": structured_result,
-            "calculation_debug_trace": final.get("calculation_debug_trace", {}),
+            "debug_traces": debug_traces,
+            # Compatibility bridge for callers that have not moved to
+            # `debug_traces.calculation` yet.
+            "calculation_debug_trace": debug_traces.get("calculation", {}),
             "planner_debug_trace": final.get("planner_debug_trace", {}),
             "missing_info": final.get("missing_info", []),
             "reflection_count": final.get("reflection_count", 0),
