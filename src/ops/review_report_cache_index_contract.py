@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+from src.config.report_scoped_cache import report_cache_capability_status
 from src.ops.check_report_cache_index_smoke_contract import check_contract
 from src.ops.report_cache_index_smoke import build_smoke_payload
 
@@ -41,6 +42,7 @@ def _parse_key_json(value: str) -> Dict[str, Any]:
 
 
 def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[str, Any]:
+    capability = report_cache_capability_status()
     candidate_artifacts = [
         dict(item)
         for item in list(contract.get("candidate_artifacts") or [])
@@ -68,6 +70,11 @@ def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[
     )
     candidate_only_ready = (
         status == "ok"
+        and capability.get("status") == "candidate_only"
+        and not bool(capability.get("retrieval_bypass_enabled"))
+        and not bool(capability.get("write_enabled"))
+        and not bool(capability.get("serving_enabled"))
+        and not bool(capability.get("ledger_insertion_enabled"))
         and not any(serving_flags)
         and not any(ledger_insertion_flags)
         and projection_ready_count > 0
@@ -75,9 +82,13 @@ def _reviewer_handoff_summary(contract: Dict[str, Any], *, status: str) -> Dict[
     )
     return {
         "status": "ready" if candidate_only_ready else "needs_review",
-        "mode": "candidate_only",
+        "mode": capability.get("mode"),
+        "capability_status": capability.get("status"),
+        "retrieval_bypass_enabled": bool(capability.get("retrieval_bypass_enabled")),
+        "write_enabled": bool(capability.get("write_enabled")),
         "serving_enabled": any(serving_flags),
         "ledger_insertion_enabled": any(ledger_insertion_flags),
+        "capability_pipeline": list(capability.get("pipeline") or []),
         "projection_ready_count": projection_ready_count,
         "fallback_count": fallback_count,
         "review_note": (

@@ -22,6 +22,7 @@ from src.config.report_scoped_cache import (  # noqa: E402
     classify_report_cache_guarded_consumer_candidate,
     normalise_report_cache_key,
     report_cache_key_id,
+    report_cache_capability_status,
     validate_report_cache_calculation_contract_projection,
 )
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
@@ -67,6 +68,27 @@ def _entry(*, source: str = CACHE_ENTRY_SOURCE_LOCAL_INDEX, value: str = "123", 
 
 
 class ReportCacheIndexTests(unittest.TestCase):
+    def test_report_cache_capability_status_is_candidate_only(self) -> None:
+        status = report_cache_capability_status()
+
+        self.assertEqual(status["status"], "candidate_only")
+        self.assertEqual(status["mode"], "candidate_only")
+        self.assertFalse(status["retrieval_bypass_enabled"])
+        self.assertFalse(status["write_enabled"])
+        self.assertFalse(status["serving_enabled"])
+        self.assertFalse(status["ledger_insertion_enabled"])
+        self.assertEqual(
+            status["pipeline"],
+            [
+                "runtime_trace_candidate",
+                "persisted_local_index_entry",
+                "rehydration_candidate",
+                "guarded_consumer_assessment",
+                "disabled_calculation_contract_projection",
+                "reviewer_handoff",
+            ],
+        )
+
     def test_missing_index_reports_diagnostics_without_serving(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             diagnostics = ReportCacheIndex(Path(temp_dir) / "missing.json").load_diagnostics()

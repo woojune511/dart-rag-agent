@@ -381,8 +381,9 @@ Useful supporting points:
    is clearer, decide whether `REFERENCE_NOTE` and cache candidates should
    become a disabled capability contract rather than ad hoc reviewer diagnostics.
    Current decision: keep serving/write/ledger insertion/retrieval bypass
-   disabled and capture the boundary in
-   `docs/architecture/report_cache_capability_contract.md`.
+   disabled, capture the boundary in
+   `docs/architecture/report_cache_capability_contract.md`, and expose the
+   current candidate-only mode through `report_cache_capability_status()`.
 3. Reviewer proof maintenance: rerun `portfolio_demo` and
    `review_report_cache_index_contract` when runtime surfaces change, then keep
    README, one-pager, demo walkthrough, and experiment report aligned.

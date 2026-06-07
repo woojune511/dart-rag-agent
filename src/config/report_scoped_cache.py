@@ -50,6 +50,21 @@ CACHE_ENTRY_SOURCE_RUNTIME_TRACE = "runtime_trace_projection"
 CACHE_ENTRY_SOURCE_ARTIFACT_STORE = "artifact_store"
 CACHE_ENTRY_READ_SOURCES = {CACHE_ENTRY_SOURCE_LOCAL_INDEX}
 
+REPORT_CACHE_CAPABILITY_STATUS = "candidate_only"
+REPORT_CACHE_CAPABILITY_MODE = "candidate_only"
+REPORT_CACHE_CAPABILITY_PIPELINE = (
+    "runtime_trace_candidate",
+    "persisted_local_index_entry",
+    "rehydration_candidate",
+    "guarded_consumer_assessment",
+    "disabled_calculation_contract_projection",
+    "reviewer_handoff",
+)
+REPORT_CACHE_RETRIEVAL_BYPASS_ENABLED = False
+REPORT_CACHE_WRITE_ENABLED = False
+REPORT_CACHE_SERVING_ENABLED = False
+REPORT_CACHE_LEDGER_INSERTION_ENABLED = False
+
 UNCERTAIN_TOKENS = {"", "-", "none", "null", "unknown", "n/a"}
 UNCACHEABLE_VALUE_KINDS = {
     "synthesized_answer",
@@ -96,6 +111,19 @@ def _mapping_list(values: Any) -> List[Dict[str, Any]]:
     if not isinstance(values, Iterable) or isinstance(values, (str, bytes, Mapping)):
         return []
     return [dict(item) for item in values if isinstance(item, Mapping)]
+
+
+def report_cache_capability_status() -> Dict[str, Any]:
+    """Return the reviewed non-serving report-cache capability boundary."""
+    return {
+        "status": REPORT_CACHE_CAPABILITY_STATUS,
+        "mode": REPORT_CACHE_CAPABILITY_MODE,
+        "retrieval_bypass_enabled": REPORT_CACHE_RETRIEVAL_BYPASS_ENABLED,
+        "write_enabled": REPORT_CACHE_WRITE_ENABLED,
+        "serving_enabled": REPORT_CACHE_SERVING_ENABLED,
+        "ledger_insertion_enabled": REPORT_CACHE_LEDGER_INSERTION_ENABLED,
+        "pipeline": list(REPORT_CACHE_CAPABILITY_PIPELINE),
+    }
 
 
 def normalise_report_cache_key(parts: Mapping[str, Any]) -> Dict[str, str]:
