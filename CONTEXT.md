@@ -416,18 +416,19 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | concept-only planner runtime promotion check | shadow-level gap closure 이후 retrieval/grounding 영향만 focused gate로 검증 |
-| 2 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
-| 3 | broader curated gate maintenance residual review | 새 broader artifact가 runtime blocker를 재현할 때만 calibration debt와 분리 |
+| 1 | table payload sidecar / store-size cleanup | large structured table payload 반복 저장을 줄여 fresh-store 비용과 HNSW 리스크 축소 |
+| 2 | broader curated gate maintenance residual review | 새 broader artifact가 runtime blocker를 재현할 때만 calibration debt와 분리 |
+| 3 | MAS real-node replan smoke and artifact carry-forward review | task/artifact 계약이 real-node 경로에서도 유지되는지 확인 |
 
 ## 현재 우선순위 요약
 
-1. concept-only planner runtime promotion check
-2. table payload sidecar / store-size cleanup
-3. broader curated gate maintenance residual review
+1. table payload sidecar / store-size cleanup
+2. broader curated gate maintenance residual review
+3. MAS real-node replan smoke and artifact carry-forward review
 
 ## 현재 해석
 
+- concept-only planner runtime promotion check는 2026-06-07 문서 refresh로 닫았다. 현재 기준은 `concept_runtime_gap_gate_7of7_2026-06-04`이며, broad default 승격이 아니라 future concept-runtime 변경 전 store-fixed gate로 재확인할 promotion baseline이다.
 - 지금 시스템은 “질문 1개 -> 답 1개” 구조에서 더 멀어져, `task + artifact + structured table object + final synthesizer` 중심으로 이동 중이다.
 - planner는 점점 benchmark-shaped metric family보다 **concept + operation + material gathering** 쪽으로 옮겨가고 있다.
 - answer completeness와 최종 refusal은 planner가 아니라 final synthesizer / aggregate 단계가 책임지는 방향으로 경계가 정리되고 있다.

@@ -170,10 +170,14 @@ Runtime follow-up:
 - The reusable gate profile is now
   `benchmarks/profiles/curated_concept_runtime_gap_gate.json`.
 - A 2026-06-01 reusable-profile rerun changed the promotion interpretation:
-  `KBF_T2_018` is now closed as a small percent-rounding evaluator issue, while
-  `SKH_T3_080`, `CEL_T1_013`, and `CEL_T3_040` remain runtime blockers after
-  tightening multi-value numeric equivalence. Concept-only planner promotion is
-  still blocked until those three close through generic runtime contracts.
+  `KBF_T2_018` was closed as a small percent-rounding evaluator issue, while
+  `SKH_T3_080`, `CEL_T1_013`, and `CEL_T3_040` still needed generic runtime
+  contract work after tightening multi-value numeric equivalence.
+- That 2026-06-01 blocker read is historical. The later
+  `concept_runtime_gap_gate_7of7_2026-06-04` baseline closed the curated
+  concept runtime gap gate as `7 / 7 PASS`; future planner/runtime promotion
+  checks should treat this document's earlier blocker list as triage history,
+  not current status.
 
 Implementation boundary:
 
@@ -238,19 +242,47 @@ Promotion verdict:
 - The concept planner is a **limited runtime-promotion candidate** for numeric
   planning because every curated shadow case now produces explicit
   concept/operation/operand-role tasks and none falls back to general search.
-- It should not be promoted as a broad runtime default yet. The current shadow
-  check is planner-only; it does not prove retrieval, reconciliation, answer
-  rendering, or evaluator behavior.
-- The next validation step is an end-to-end, store-fixed runtime gate on the
-  same families that recently closed: `NAV_T1_071`, `KBF_T1_017`,
-  `MIX_T1_021`, `SKH_T1_060`, and the implicit ratio/FCF prompts where stores
-  are available.
+- It should not be promoted as a broad runtime default from shadow results
+  alone. Shadow checks prove planner shape; they do not prove retrieval,
+  reconciliation, answer rendering, or evaluator behavior.
+- The later end-to-end promotion baseline is
+  `concept_runtime_gap_gate_7of7_2026-06-04`, which should be used as the
+  frozen runtime gate before changing ontology-driven lookup planning,
+  structured row binding, sibling recovery, answer composition, or aggregate
+  numeric rendering.
 
 Artifact policy:
 
 - `benchmarks/results/tmp_concept_planner_canary_2026-06-01.json` and
   `benchmarks/results/tmp_curated_concept_planner_shadow_2026-06-01.json` are
   local planner-shadow outputs and should not be committed.
+
+## 2026-06-07 Runtime Promotion Refresh
+
+This refresh reconciles the planner-shadow record with the current runtime gate
+status. It did not run a new benchmark.
+
+Current baseline:
+
+- Baseline id: `concept_runtime_gap_gate_7of7_2026-06-04`
+- Profile: `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
+- Scope: 6 company runs and 7 curated concept-runtime questions
+- Status recorded in `CONTEXT.md`, `docs/overview/project_status.md`, and
+  `docs/evaluation/runtime_contract_gate.md`: `7 / 7 PASS`
+
+Interpretation:
+
+- Concept-only planning is no longer blocked by the 2026-06-01
+  `SKH_T3_080`, `CEL_T1_013`, and `CEL_T3_040` residual list.
+- This is still a limited promotion baseline, not a broad runtime-default
+  switch. Any change that relies on concept-only planning must refresh the
+  store-fixed runtime gate first when the relevant stores are available.
+- The local experiment artifact under
+  `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
+  has been pruned and should not be treated as a complete rerun bundle. If a
+  new empirical check is needed, use a monitored store-fixed eval-only run
+  first, and move to fresh ingest only when the stored bundle is missing or
+  stale.
 
 ## 2026-06-01 Store-Fixed Runtime Promotion Smoke
 
