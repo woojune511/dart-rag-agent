@@ -24,6 +24,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.mas_graph import run_mas_graph
+from src.agent.mas_types import critic_report_runtime_acceptance_state
 from src.agent.nodes.researcher_node import (
     NarrativeResearcherCore,
     build_financial_researcher_node,
@@ -93,6 +94,20 @@ def _critic_report_for_task(final_state: Dict[str, Any], task_id: str) -> Dict[s
     return {}
 
 
+def _critic_acceptance_summary(report: Dict[str, Any]) -> Dict[str, Any]:
+    acceptance = critic_report_runtime_acceptance_state(dict(report))
+    return {
+        "accepted": bool(acceptance.get("accepted")),
+        "status": acceptance.get("runtime_acceptance_status"),
+        "reasons": list(acceptance.get("reasons") or []),
+        "target_refs": list(acceptance.get("target_refs") or []),
+        "deterministic_score": acceptance.get("deterministic_score"),
+        "deterministic_score_used_for_acceptance": bool(
+            acceptance.get("deterministic_score_used_for_acceptance")
+        ),
+    }
+
+
 def run_smoke(
     *,
     store_dir: Path,
@@ -133,7 +148,8 @@ def run_smoke(
         mas_citations = _artifact_citations(mas_final)
         evidence_links = _artifact_evidence_links(mas_final)
         critic_report = _critic_report_for_task(mas_final, "task_2")
-        critic_passed = bool(critic_report.get("passed", False))
+        critic_acceptance = _critic_acceptance_summary(critic_report)
+        critic_passed = bool(critic_acceptance.get("accepted"))
 
         answer_match = direct_answer == mas_answer
         citation_match = direct_citations == mas_citations
@@ -158,6 +174,7 @@ def run_smoke(
                 "mas_evidence_link_count": len(evidence_links),
                 "evidence_link_nonempty": evidence_link_nonempty,
                 "critic_report": critic_report,
+                "critic_acceptance": critic_acceptance,
                 "critic_passed": critic_passed,
                 "mas_execution_trace": list(mas_final.get("execution_trace") or []),
             }
@@ -177,6 +194,7 @@ def run_smoke(
             "citation_match_rate": citation_match_count / total,
             "evidence_link_nonempty_rate": evidence_link_nonempty_count / total,
             "critic_pass_rate": critic_pass_count / total,
+            "critic_runtime_acceptance_rate": critic_pass_count / total,
         },
         "cases": cases,
     }

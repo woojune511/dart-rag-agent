@@ -888,12 +888,15 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 현재:
 
-- evaluator 자산은 강하지만 runtime critic은 아직 명시적 agent가 아님
+- evaluator 자산은 강하고 runtime critic acceptance helper도 생겼다
+- reviewer/demo/smoke 출력은 shared runtime acceptance helper를 사용한다
 
 다음:
 
 - runtime critic은 task acceptance와 final merge 보호용
 - offline evaluator는 benchmark/scorecard용
+- 남은 follow-up은 live/default MAS trace에서 critic artifact가 final merge
+  acceptance를 충분히 보호하는지 확인하는 쪽이다
 
 ### 5. Self-reflection을 retry rule이 아닌 capability로 재정의
 
