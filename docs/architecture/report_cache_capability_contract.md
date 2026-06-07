@@ -14,6 +14,8 @@ Current repo surfaces:
 
 - `src/config/report_scoped_cache.py` owns pure key, candidate, entry,
   rehydration, guarded-consumer, and calculation-projection helpers.
+- `report_cache_capability_status()` exposes the current disabled capability
+  boundary as a code-level status helper.
 - Runtime calculation traces may carry a read-only `report_cache_candidate`.
 - Retrieval may include cache-index diagnostics in `retrieval_debug_trace` when
   `report_cache_index_path` is explicitly configured.
@@ -25,6 +27,8 @@ The latest reviewer gate expectation is:
 - `difference_count = 0`
 - `reviewer_handoff.status = ready`
 - `reviewer_handoff.mode = candidate_only`
+- `reviewer_handoff.retrieval_bypass_enabled = false`
+- `reviewer_handoff.write_enabled = false`
 - `serving_enabled = false`
 - `ledger_insertion_enabled = false`
 - one projection-ready candidate and one fallback candidate in the fixture
@@ -72,6 +76,8 @@ authorizes retrieval bypass, cache writes, or live ledger insertion.
 - `enabled`, `serving_enabled`, `ledger_insertion_enabled`, and retrieval-bypass
   behavior must remain false until a separate promotion explicitly changes the
   contract and tests.
+- `report_cache_capability_status()` is the code-level source for the current
+  candidate-only mode, disabled flags, and reviewer pipeline.
 - Cache candidates may not mark final answers accepted. Acceptance remains with
   task/artifact integrity and critic/orchestrator contracts.
 
