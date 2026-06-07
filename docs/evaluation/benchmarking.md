@@ -885,10 +885,10 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 | --- | --- |
 | 목적 | real `Orchestrator + Analyst + Researcher + Critic + Merge`가 mixed-intent 질의에서 끝까지 한 바퀴 도는지 확인 |
 | 스크립트 | [src/ops/mas_e2e_smoke.py](src/ops/mas_e2e_smoke.py) |
-| 현재 default store | `structural-selective-v2-prefix-2500-320` on `삼성전자 2023` (`OpenAI text-embedding-3-large`, `3072` dim) |
+| 현재 default store | `policy_gate_regression_2026-06-03_1138_actual/삼성전자-2023` `structural-selective-v2-prefix-2500-320`; store signature selects Google `models/gemini-embedding-2`, `3072` dim |
 | 질의 수 | `2` |
 | 주요 결과 | final report 생성 `2/2`, critic pass 최종 `2/2`, critic-triggered analyst retry 관측 `1/2` |
-| 해석 | MAS는 이제 문서상 topology가 아니라, **task decomposition -> parallel workers -> critic retry -> merge**를 실제로 수행하는 baseline이 됐다. `mas_e2e_smoke.py`는 graph 실행 전 embedding/store compatibility를 확인하므로 stale persisted store는 LLM/API 작업 전에 중단된다. 이후 품질 개선은 이 baseline 대비 delta로 측정한다. |
+| 해석 | MAS는 이제 문서상 topology가 아니라, **task decomposition -> parallel workers -> critic retry -> merge**를 실제로 수행하는 baseline이 됐다. `mas_e2e_smoke.py`는 graph 실행 전 embedding/store compatibility와 empty-store material을 확인하므로 stale/empty persisted store는 LLM/API 작업 전에 중단된다. 이후 품질 개선은 이 baseline 대비 delta로 측정한다. |
 | Evidence | [benchmarks/results/mas_e2e_smoke_2026-04-30.json](benchmarks/results/mas_e2e_smoke_2026-04-30.json) |
 
 Default smoke contract compare:

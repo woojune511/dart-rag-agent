@@ -82,6 +82,7 @@ Follow-up diagnostic surface:
 | `mas_e2e_smoke_failure_diagnostics_2026-06-07` | `worker_failure_count = 4`, `worker_failure_missing_artifact_count = 4`, `worker_failure_assignee_counts = {"Analyst": 2, "Researcher": 2}`, `worker_failure_reason_counts = {"incomplete numeric result": 2, "empty narrative result": 2, "missing_worker_artifact": 4}` |
 | `mas_direct_worker_probe_2026-06-07` | Planner created `2` Analyst and `2` Researcher tasks, but direct Analyst status was `no_retrieved_docs = 2` and direct Researcher status was `no_raw_retrieval = 2`; store inventory reported `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, and `structure_graph_node_count = 0` |
 | empty-store preflight | `mas_e2e_smoke` now stops before `VectorStoreManager` / LLM work when the Chroma collection exists but embeddings and sidecar material are all zero; the live default run fails in about `5s` with `Store appears empty for MAS smoke` |
+| `mas_default_valid_store_restored_2026-06-07` | Default store moved to the populated Samsung 2023 policy-gate store and the smoke derives embedding runtime from store signature; override-free live run reports `accepted_without_replan = 2`, `blocked_count = 0`, `integrity_error_count = 0`, `worker_failure_count = 0`, final source tasks `4`, artifacts `8`, and evidence refs `55` |
 
 The follow-up changed only smoke observability and CLI robustness: failed worker
 diagnostics are now surfaced per case and in the summary, and `--output` creates
@@ -95,12 +96,11 @@ experiment artifact.
   reading.
 - This is not a critic acceptance bug. Critic rejection issue counts stayed
   `0`; the final close was blocked by lack of source material.
-- The direct worker probe separates the immediate blocker from planner,
-  self-reflection, critic, and final merge behavior. The current default store
-  path is effectively empty in this workspace, and `mas_e2e_smoke` now fails
-  before LLM work when collection and sidecar counts are all zero. The next
-  step is to restore a valid default smoke store or document a rebuild/refresh
-  path for that store.
+- The direct worker probe separated the immediate blocker from planner,
+  self-reflection, critic, and final merge behavior. The empty-store preflight
+  now prevents API waste when collection and sidecar counts are all zero, and
+  the default smoke has been restored to a populated store with matching
+  store-signature embedding runtime selection.
 
 
 ## 큰 흐름

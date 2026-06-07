@@ -913,11 +913,16 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   VectorStoreManager / LLM work를 시작하지 않도록 막는다. Chroma collection은
   있지만 embedding count와 sidecar material count가 모두 `0`이면
   `Store appears empty for MAS smoke`로 조기 실패한다
+- 2026-06-07 valid-store restoration은 default smoke를 populated Samsung 2023
+  policy-gate store로 되돌렸고, `mas_e2e_smoke`는 store signature 기반
+  embedding runtime을 기본으로 사용한다. Override 없는 live default run은
+  `accepted_without_replan = 2`, `blocked_count = 0`, integrity errors `0`,
+  worker failures `0`을 보고했다
 
 다음:
 
-- 다음 follow-up은 default smoke가 참조하는 valid local store를 재설정하거나,
-  재생성 절차를 문서/명령으로 고정하는 것이다
+- 다음 follow-up은 valid default-store compact contract를
+  source-controlled baseline으로 둘지 결정하는 것이다
 - runtime critic은 task acceptance와 final merge 보호용이고, offline
   evaluator는 benchmark/scorecard용이라는 경계는 유지한다
 
