@@ -1113,9 +1113,9 @@ Current practical priority, 2026-06-07:
 1. Reflection promotion gate: keep `src.ops.reflection_promotion_gate` green
    across the base fixture and store-fixed candidate surfaces before any active
    retry behavior is promoted.
-2. Report-cache producer policy decision: keep the cache path disabled until
-   live/default MAS or store-fixed eval-only traces justify a schema-backed
-   producer policy.
+2. Report-cache promotion evidence: keep the cache path disabled and use the
+   documented calculation-task producer policy only after live/default MAS or
+   store-fixed eval-only traces justify a promotion.
 3. Broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt.
 4. MAS default smoke maintenance only when the default store/preflight contract
@@ -1131,6 +1131,7 @@ Current practical priority, 2026-06-07:
 - reflection_report ledger projection
 - report-cache capability boundary documentation
 - report-cache capability status helper and reviewer proof surface
+- report-cache producer policy decision
 
 ## 지금 당장 하지 않을 것
 

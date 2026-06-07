@@ -392,9 +392,12 @@ Current next decisions:
    `latency_delta`, and integrity preservation. Its default run now covers both
    the base fixture set and a store-fixed candidate surface fixture before any
    active retry behavior is promoted.
-2. Report-cache producer policy: keep the current cache path disabled until
-   live/default MAS or store-fixed eval-only traces show enough candidate-only
-   cache material to justify a schema-backed producer policy.
+2. Report-cache producer policy: now documented in
+   `docs/architecture/report_cache_capability_contract.md`. Future
+   cache-derived ledger candidates should map to the existing calculation task
+   contract with explicit cache-origin metadata; serving, writes, retrieval
+   bypass, and live ledger insertion remain disabled until live/default MAS or
+   store-fixed eval-only traces justify a promotion.
 3. Gate maintenance: rerun `portfolio_demo` and
    `review_report_cache_index_contract` whenever runtime surfaces change; run
    broader benchmark refreshes only when a source change can plausibly affect
