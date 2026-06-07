@@ -33,7 +33,7 @@
 | [Evaluator + Routing Cascade v1 (2026-04-23)](#evaluator--routing-cascade-v1-2026-04-23) | evaluator + routing 구조 개편 | query routing을 cascade로 재구성 |
 | [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
-| [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, 현재 blocker는 material-empty failure |
+| [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
 ## 보는 법
 
@@ -83,6 +83,7 @@ Follow-up diagnostic surface:
 | `mas_direct_worker_probe_2026-06-07` | Planner created `2` Analyst and `2` Researcher tasks, but direct Analyst status was `no_retrieved_docs = 2` and direct Researcher status was `no_raw_retrieval = 2`; store inventory reported `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, and `structure_graph_node_count = 0` |
 | empty-store preflight | `mas_e2e_smoke` now stops before `VectorStoreManager` / LLM work when the Chroma collection exists but embeddings and sidecar material are all zero; the live default run fails in about `5s` with `Store appears empty for MAS smoke` |
 | `mas_default_valid_store_restored_2026-06-07` | Default store moved to the populated Samsung 2023 policy-gate store and the smoke derives embedding runtime from store signature; override-free live run reports `accepted_without_replan = 2`, `blocked_count = 0`, `integrity_error_count = 0`, `worker_failure_count = 0`, final source tasks `4`, artifacts `8`, and evidence refs `55` |
+| source-controlled compact baseline | `tests/fixtures/mas_e2e_smoke/default_valid_store_contract_baseline.json` now captures the reviewed valid-store compact contract; `check_mas_e2e_smoke_contract` uses it by default while raw live smoke output remains local-only |
 
 The follow-up changed only smoke observability and CLI robustness: failed worker
 diagnostics are now surfaced per case and in the summary, and `--output` creates

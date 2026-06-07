@@ -1,0 +1,62 @@
+{
+  "embedding_compatibility_status": "ok",
+  "case_count": 2,
+  "blocked_count": 0,
+  "integrity_error_count": 0,
+  "replan_routed_count": 0,
+  "final_acceptance_outcome_counts": {
+    "accepted_without_replan": 2
+  },
+  "final_source_task_count": 4,
+  "final_source_artifact_count": 8,
+  "final_evidence_ref_count": 55,
+  "final_subtask_result_count": 4,
+  "worker_failure_count": 0,
+  "worker_failure_missing_artifact_count": 0,
+  "worker_failure_assignee_counts": {},
+  "worker_failure_reason_counts": {},
+  "cases": [
+    {
+      "index": 1,
+      "query": "삼성전자 2023 사업보고서에서 영업이익률은 얼마이고, 주요 재무 리스크는 무엇인가요?",
+      "final_report_status": "ok",
+      "final_acceptance_outcome": "accepted_without_replan",
+      "task_artifact_integrity_status": "ok",
+      "task_count": 5,
+      "task_status_counts": {
+        "completed": 5
+      },
+      "replan_count": 0,
+      "replan_routed": false,
+      "final_source_task_count": 2,
+      "final_source_artifact_count": 4,
+      "final_evidence_ref_count": 28,
+      "final_subtask_result_count": 2,
+      "worker_failure_count": 0,
+      "worker_failure_missing_artifact_count": 0,
+      "worker_failure_assignee_counts": {},
+      "worker_failure_reason_counts": {}
+    },
+    {
+      "index": 2,
+      "query": "삼성전자 2023 사업보고서에서 연구개발비용 비중을 계산하고, 2023년 연구개발 성과 예시를 요약해줘.",
+      "final_report_status": "ok",
+      "final_acceptance_outcome": "accepted_without_replan",
+      "task_artifact_integrity_status": "ok",
+      "task_count": 5,
+      "task_status_counts": {
+        "completed": 5
+      },
+      "replan_count": 0,
+      "replan_routed": false,
+      "final_source_task_count": 2,
+      "final_source_artifact_count": 4,
+      "final_evidence_ref_count": 27,
+      "final_subtask_result_count": 2,
+      "worker_failure_count": 0,
+      "worker_failure_missing_artifact_count": 0,
+      "worker_failure_assignee_counts": {},
+      "worker_failure_reason_counts": {}
+    }
+  ]
+}

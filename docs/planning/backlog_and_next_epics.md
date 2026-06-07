@@ -918,11 +918,14 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   embedding runtime을 기본으로 사용한다. Override 없는 live default run은
   `accepted_without_replan = 2`, `blocked_count = 0`, integrity errors `0`,
   worker failures `0`을 보고했다
+- 2026-06-07 MAS smoke baseline contract refresh는 valid default-store compact
+  contract를 `tests/fixtures/mas_e2e_smoke/default_valid_store_contract_baseline.json`
+  에 source-controlled baseline으로 고정했다. `check_mas_e2e_smoke_contract`는
+  이 baseline을 기본값으로 사용하고, focused contract test가 live smoke
+  구조와 value canary를 함께 검증한다
 
 다음:
 
-- 다음 follow-up은 valid default-store compact contract를
-  source-controlled baseline으로 둘지 결정하는 것이다
 - runtime critic은 task acceptance와 final merge 보호용이고, offline
   evaluator는 benchmark/scorecard용이라는 경계는 유지한다
 

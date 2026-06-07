@@ -376,9 +376,7 @@ Useful supporting points:
 2. Internal calculation debug ownership follow-up: split
    `calculation_debug_trace` into a narrower debug contract before reducing its
    required state shape.
-3. MAS smoke baseline contract refresh: decide whether the valid default-store
-   compact contract should become the source-controlled baseline.
-4. Reviewer path: start with the portfolio demo walkthrough for a compact
+3. Reviewer path: start with the portfolio demo walkthrough for a compact
    contract scan, then use the one-pager or presentation outline depending on
    the setting.
 
@@ -687,10 +685,12 @@ Useful supporting points:
   case count, blocked/integrity/replan summary counts, per-case final status,
   final acceptance outcome, artifact-integrity status, replan flags, and task
   status distribution. This is the default local delta check for MAS quality
-  work. The 2026-06-05 local
-  compact baseline compare is clean: `status = ok`, `difference_count = 0`,
-  `case_count = 2`, `blocked_count = 0`, `integrity_error_count = 0`, and both
-  cases have five completed tasks.
+  work. The 2026-06-07 valid-store compact baseline is now source-controlled at
+  `tests/fixtures/mas_e2e_smoke/default_valid_store_contract_baseline.json`.
+  The default compare is clean: `status = ok`, `difference_count = 0`,
+  `case_count = 2`, `blocked_count = 0`, `integrity_error_count = 0`,
+  `accepted_without_replan = 2`, `worker_failure_count = 0`, and both cases
+  have five completed tasks.
 - MAS final report provenance now dedupes final source task IDs, source artifact
   IDs, and evidence refs while preserving first-seen order; the synthesis
   artifact uses the same deduped evidence refs as the final report record. A
