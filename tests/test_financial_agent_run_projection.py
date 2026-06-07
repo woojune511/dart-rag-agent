@@ -27,6 +27,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertIn("calculation_result", FinancialAgentState.__optional_keys__)
         self.assertIn("calculation_debug_trace", FinancialAgentState.__optional_keys__)
         self.assertIn("debug_traces", FinancialAgentState.__optional_keys__)
+        self.assertIn("reflection_request", FinancialAgentState.__optional_keys__)
         self.assertIn("reflection_action", FinancialAgentState.__optional_keys__)
         self.assertNotIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
 
@@ -120,6 +121,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             result["resolved_calculation_trace"]["runtime_projection"]["legacy_fallback"]
         )
         self.assertEqual(result["retrieval_debug_trace"], {"selected_count": 1})
+        self.assertEqual(result["reflection_request"], {})
         self.assertEqual(result["reflection_action"], {})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)

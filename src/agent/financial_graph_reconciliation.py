@@ -21,6 +21,7 @@ from src.agent.financial_graph_models import (
     ReconciliationCandidateRerank,
     ReflectionPlanRecord,
     ReflectionQueryPlan,
+    ReflectionRequest,
 )
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import RECONCILIATION_POLICY
@@ -33,6 +34,8 @@ ALLOWED_REFLECTION_RETRY_STRATEGIES = {
     "synthesize_from_task_outputs",
     "stop_insufficient",
 }
+
+DEFAULT_REFLECTION_RETRY_BUDGET = 1
 
 
 def _normalise_reflection_plan_record(
@@ -72,7 +75,56 @@ def _normalise_reflection_plan_record(
     return plan_data
 
 
+def _reflection_runtime_trace_summary(state: FinancialAgentState) -> Dict[str, Any]:
+    runtime_trace = _resolve_runtime_calculation_trace(
+        dict(state),
+        allow_legacy_top_level=False,
+    )
+    operands = list(runtime_trace.get("calculation_operands") or [])
+    plan = dict(runtime_trace.get("calculation_plan") or {})
+    result = dict(runtime_trace.get("calculation_result") or {})
+    return {
+        "operand_count": len(operands),
+        "plan_status": str(plan.get("status") or ""),
+        "plan_operation": str(plan.get("operation") or plan.get("mode") or ""),
+        "result_status": str(result.get("status") or ""),
+        "result_explanation": str(result.get("explanation") or ""),
+    }
+
+
+def _reflection_evidence_summary(state: FinancialAgentState) -> Dict[str, Any]:
+    return {
+        "evidence_item_count": len(list(state.get("evidence_items") or [])),
+        "retrieved_doc_count": len(list(state.get("retrieved_docs") or [])),
+        "seed_retrieved_doc_count": len(list(state.get("seed_retrieved_docs") or [])),
+        "evidence_status": str(state.get("evidence_status") or ""),
+    }
+
+
 class FinancialAgentReconciliationMixin:
+    def _build_reflection_request(
+        self,
+        state: FinancialAgentState,
+        *,
+        missing_info: List[str],
+        failure_status: str,
+    ) -> ReflectionRequest:
+        active_subtask = dict(state.get("active_subtask") or {})
+        reflection_count = int(state.get("reflection_count") or 0)
+        return {
+            "query": str(state.get("query") or ""),
+            "active_task_id": str(active_subtask.get("task_id") or ""),
+            "failure_status": str(failure_status or ""),
+            "missing_info": [
+                str(item).strip()
+                for item in missing_info
+                if str(item).strip()
+            ],
+            "runtime_trace_summary": _reflection_runtime_trace_summary(state),
+            "evidence_summary": _reflection_evidence_summary(state),
+            "remaining_retry_budget": max(DEFAULT_REFLECTION_RETRY_BUDGET - reflection_count, 0),
+        }
+
     def _active_subtask_with_sibling_lookup_surfaces(
         self,
         active_subtask: Dict[str, Any],
@@ -1868,6 +1920,16 @@ class FinancialAgentReconciliationMixin:
         ]
         if not missing_info:
             missing_info = self._infer_missing_info(state, operands)
+        failure_status = (
+            str(calc_result.get("status") or "")
+            or str(plan.get("status") or "")
+            or str(state.get("evidence_status") or "")
+        )
+        reflection_request = self._build_reflection_request(
+            state,
+            missing_info=missing_info,
+            failure_status=failure_status,
+        )
 
         ratio_query = _is_ratio_percent_query(query)
         percent_point_query = _is_percent_point_difference_query(query)
@@ -1975,10 +2037,12 @@ class FinancialAgentReconciliationMixin:
             )
             return {
                 "reflection_plan": plan_data,
+                "reflection_request": reflection_request,
                 "missing_info": plan_data.get("missing_info", []),
                 "retry_reason": str(plan_data.get("explanation") or ""),
                 "planner_debug_trace": {
                     **dict(state.get("planner_debug_trace") or {}),
+                    "reflection_request": reflection_request,
                     "reflection_plan": plan_data,
                     "reflection_seed_sections": seed_sections,
                     "reflection_llm_invoked": True,
@@ -1990,10 +2054,12 @@ class FinancialAgentReconciliationMixin:
             fallback_plan["explanation"] = f"heuristic fallback after reflection planner error: {exc}"
             return {
                 "reflection_plan": fallback_plan,
+                "reflection_request": reflection_request,
                 "missing_info": fallback_plan.get("missing_info", []),
                 "retry_reason": str(fallback_plan.get("explanation") or ""),
                 "planner_debug_trace": {
                     **dict(state.get("planner_debug_trace") or {}),
+                    "reflection_request": reflection_request,
                     "reflection_plan": fallback_plan,
                     "reflection_seed_sections": seed_sections,
                     "reflection_llm_invoked": True,

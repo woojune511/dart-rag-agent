@@ -137,6 +137,7 @@ class FinancialAgentState(TypedDict):
     retry_queries: List[str]
     reconciliation_retry_count: int
     reflection_plan: Dict[str, Any]
+    reflection_request: NotRequired[ReflectionRequest]
     reflection_action: NotRequired[ReflectionAction]
     semantic_plan: Dict[str, Any]
     calc_subtasks: List[Dict[str, Any]]

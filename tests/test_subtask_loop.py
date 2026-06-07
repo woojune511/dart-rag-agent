@@ -5467,6 +5467,11 @@ class SubtaskLoopTests(unittest.TestCase):
         update = self.agent._plan_reflection_retry(state)
 
         self.assertEqual(update["reflection_plan"]["retry_objective"], "find_missing_values")
+        self.assertEqual(update["reflection_request"]["remaining_retry_budget"], 1)
+        self.assertEqual(
+            update["planner_debug_trace"]["reflection_request"],
+            update["reflection_request"],
+        )
         self.assertEqual(update["planner_debug_trace"]["reflection_error"], "structured output disabled")
 
     def test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection(self) -> None:
