@@ -943,11 +943,16 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 다음:
 
+- `ReflectionRequest`
 - `ReflectionPlan`
-- deterministic executor
-- `VerificationReport`
+- `ReflectionAction`
+- `ReflectionReport`
 
 구조로 재설계
+
+첫 단계는 `docs/architecture/self_reflection_capability_contract.md`로 닫았다.
+다음 구현 PR은 answer behavior를 바꾸지 않고 request/plan/action/report
+helper 또는 TypedDict 경계를 추가하는 것부터 시작한다.
 
 ## Major Future Epics
 
@@ -1090,14 +1095,19 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. internal compatibility bridge boundary follow-up
-2. reviewer / portfolio walkthrough polish
+1. agentic self-reflection 재설계
+2. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 3. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
-4. MAS default smoke material-empty blocker diagnosis
-5. agentic self-reflection 재설계
-6. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-7. cross-company 확장
+4. MAS default smoke maintenance only when the default store/preflight contract
+   changes
+5. cross-company 확장
+
+완료되어 기본 우선순위에서 내려간 항목:
+
+- internal compatibility bridge boundary follow-up
+- reviewer / portfolio walkthrough polish
+- MAS default smoke material-empty blocker diagnosis
 
 ## 지금 당장 하지 않을 것
 
@@ -1108,5 +1118,5 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 핵심 원칙:
 
-- 지금은 **검증 가능한 runtime contract를 MAS communication contract로 승격하는 구조 개선**을 우선한다
+- 지금은 **rule-based retry 분기를 capability/contract 경계로 재설계하는 구조 개선**을 우선한다
 - **이미 맞는 답을 더 점수 잘 받게 만들기 위한 local patch**는 뒤로 미룬다

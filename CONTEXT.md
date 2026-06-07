@@ -416,11 +416,11 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | compatibility bridge helper guardrail | 새 계산 debug callsite가 scratch helper를 우회해 top-level debug key를 직접 쓰지 않도록 유지 |
+| 1 | agentic self-reflection redesign | rule-based retry 분기를 더 늘리지 않고 reflection을 capability/contract 경계로 재정의 |
 
 ## 현재 우선순위 요약
 
-1. compatibility bridge helper guardrail
+1. agentic self-reflection redesign
 
 ## 현재 해석
 
@@ -433,6 +433,8 @@
 - internal compatibility bridge initial-state follow-up도 2026-06-07에 닫았다. `FinancialAgent.run()`은 더 이상 optional top-level `calculation_operands` / `calculation_plan` / `calculation_result` / `calculation_debug_trace`를 빈 값으로 seed하지 않는다.
 - portfolio reviewer path refresh는 2026-06-07에 닫았다. README, one-pager, demo walkthrough, presentation outline, project status는 reviewer가 `resolved_calculation_trace` / `structured_result` / `task_artifact_trace`를 primary contract로 보고 top-level calculation/debug mirror를 compatibility bridge로 해석하도록 맞춘다.
 - internal compatibility bridge scratch-write audit도 2026-06-07에 닫았다. 계산 노드 diagnostic write는 `_calculation_debug_state_update()` / `_clear_calculation_debug_state()` helper를 통하고, public `FinancialAgent.run()` bridge는 runtime-contract field constant를 사용한다.
+- backlog/status refresh도 2026-06-07에 닫았다. 완료된 compatibility bridge / reviewer polish / MAS empty-store diagnosis 항목은 기본 우선순위에서 내렸고, 다음 구조 작업은 agentic self-reflection 재설계로 정렬했다.
+- self-reflection capability contract 초안도 2026-06-07에 추가했다. 다음 구현은 answer behavior를 바꾸지 않고 `ReflectionRequest` / `ReflectionPlan` / `ReflectionAction` / `ReflectionReport` helper 또는 TypedDict 경계를 먼저 만드는 순서다.
 - runtime critic / offline evaluator boundary follow-up 1차 작업은 2026-06-07에 reviewer/demo surface 정리로 시작했다. `portfolio_demo`와 `mas_researcher_smoke`는 이제 `passed` / `deterministic_score`를 직접 acceptance로 보지 않고 `critic_report_runtime_acceptance_state()`의 status, reasons, target refs, score-used flag를 노출한다. Focused demo/smoke/critic tests `14`개가 통과했다.
 - runtime critic / final merge acceptance follow-up은 2026-06-07에 target carry-forward를 보강했다. Critic rejection integrity issue는 raw `target_refs`뿐 아니라 ledger에 존재하는 `target_task_ids` / `target_artifact_ids`를 분리해 노출하고, Orchestrator replan carry-forward는 rejected worker target task도 failed 처리한다. Focused MAS/projection tests와 runtime domain-term audit이 통과했다.
 - runtime critic / offline evaluator boundary follow-up은 2026-06-07에 helper level까지 닫았다. `critic_report_runtime_acceptance_state()`는 `passed` / `verdict` / `status` verdict signal을 normalize하고, conflicting verdict signal은 block하며, rejected report는 diagnostic score가 높아도 blocked로 남긴다. `deterministic_score_used_for_acceptance = false`를 유지한다. Focused critic/projection/demo tests와 runtime domain-term audit이 통과했다.

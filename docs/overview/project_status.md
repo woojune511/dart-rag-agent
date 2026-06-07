@@ -370,11 +370,14 @@ Useful supporting points:
 
 ## Next Work
 
-1. Internal compatibility bridge follow-up: keep calculation-node diagnostics
-   on the explicit scratch helpers and avoid direct top-level debug-key writes
-   in new callsites. Do not reintroduce required top-level calculation/debug
-   state for new live runs.
-2. Reviewer proof maintenance: rerun `portfolio_demo` and
+1. Agentic self-reflection redesign: stop growing rule-based retry branches and
+   define reflection as a capability with explicit inputs, outputs, limits, and
+   task/artifact ledger effects. The initial contract is documented in
+   `docs/architecture/self_reflection_capability_contract.md`.
+2. Report-scoped cache capability promotion: only after the reflection boundary
+   is clearer, decide whether `REFERENCE_NOTE` and cache candidates should
+   become a disabled capability contract rather than ad hoc reviewer diagnostics.
+3. Reviewer proof maintenance: rerun `portfolio_demo` and
    `review_report_cache_index_contract` when runtime surfaces change, then keep
    README, one-pager, demo walkthrough, and experiment report aligned.
 
