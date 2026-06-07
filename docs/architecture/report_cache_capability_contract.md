@@ -91,12 +91,50 @@ authorizes retrieval bypass, cache writes, or live ledger insertion.
   mechanism.
 - Do not add benchmark-specific cache rules.
 
+## Producer Policy Decision
+
+The current producer-policy decision is to reuse the existing calculation task
+contract for any future cache-derived ledger candidate. A rehydrated cache
+entry may project to a candidate `calculation` task with `operand_set`,
+`calculation_plan`, and `calculation_result` artifacts, carrying explicit
+cache-origin metadata:
+
+- `source = report_cache_rehydration`
+- `cache_origin = local_cache_index`
+- `report_cache_key_id`
+- `rehydration_status`
+- `consumer_admissibility_status`
+- `enabled = false`
+- `serving_enabled = false`
+- `ledger_insertion_enabled = false`
+
+This is the preferred policy because it keeps cache-derived values inside the
+same artifact integrity contract as ordinary numeric answers. It also avoids a
+parallel acceptance path: final answer acceptance still belongs to
+task/artifact integrity plus critic/orchestrator handoff, not to cache
+availability.
+
+Rejected-for-now alternative:
+
+- Add a dedicated `cache_rehydration` task/artifact kind.
+
+That alternative remains available only if future evidence shows that
+cache-derived material cannot be represented safely as candidate calculation
+artifacts. Until then, a dedicated kind would add a second ledger path and make
+acceptance harder to audit.
+
+The producer policy does not enable live ledger insertion. It defines only the
+schema that a future promotion would have to satisfy before insertion could be
+considered.
+
 ## Promotion Preconditions
 
 Before any future serving or ledger insertion flag can be enabled, the repo
 must add a new promotion increment that:
 
-1. Defines a schema-backed producer policy for cache-derived ledger artifacts.
+1. Keeps cache-derived ledger candidates mapped to the calculation task
+   contract above, or explicitly updates this producer-policy decision with a
+   stronger reason for a dedicated `cache_rehydration` kind.
 2. Runs the existing reviewer handoff gate and adds a focused contract test for
    the new enabled flag.
 3. Demonstrates that normal retrieval fallback still happens for blocked,
