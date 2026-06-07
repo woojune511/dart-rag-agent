@@ -389,9 +389,9 @@ Current next decisions:
    `docs/architecture/self_reflection_capability_contract.md`, and
    `src.ops.reflection_promotion_gate` provides the first fixture-backed gate
    for `reflection_trigger_rate`, `recovery_rate`, `false_recovery_rate`,
-   `latency_delta`, and integrity preservation. The next implementation step is
-   extending that gate with store-fixed cases before any active retry behavior
-   is promoted.
+   `latency_delta`, and integrity preservation. Its default run now covers both
+   the base fixture set and a store-fixed candidate surface fixture before any
+   active retry behavior is promoted.
 2. Report-cache producer policy: keep the current cache path disabled until
    live/default MAS or store-fixed eval-only traces show enough candidate-only
    cache material to justify a schema-backed producer policy.

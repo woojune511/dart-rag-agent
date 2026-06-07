@@ -12,16 +12,22 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.ops.reflection_promotion_gate import evaluate_cases, render_text, run_gate  # noqa: E402
+from src.ops.reflection_promotion_gate import (  # noqa: E402
+    evaluate_cases,
+    render_text,
+    run_gate,
+    run_gate_suite,
+)
 
 
 class ReflectionPromotionGateTests(unittest.TestCase):
     def test_run_gate_reports_documented_promotion_signals(self) -> None:
-        result = run_gate()
+        result = run_gate_suite()
         signals = result["promotion_signals"]
 
         self.assertEqual(result["status"], "ready")
-        self.assertEqual(result["case_count"], 4)
+        self.assertEqual(result["fixture_count"], 2)
+        self.assertEqual(result["case_count"], 8)
         self.assertTrue(result["required_actions_present"])
         self.assertTrue(result["clean_pass_no_trigger"])
         self.assertTrue(result["stop_insufficient_no_acceptance"])
@@ -30,6 +36,19 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         self.assertEqual(signals["false_recovery_rate"], 0.0)
         self.assertEqual(signals["integrity_preservation_rate"], 1.0)
         self.assertIn("latency_delta", signals)
+        self.assertIn("reflection_promotion_gate_fixture_v1", result["source_gate_ids"])
+        self.assertIn(
+            "reflection_promotion_gate_store_fixed_candidate_v1",
+            result["source_gate_ids"],
+        )
+
+    def test_run_gate_legacy_single_fixture_path_still_works(self) -> None:
+        result = run_gate()
+
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["fixture_count"], 1)
+        self.assertEqual(result["case_count"], 4)
+        self.assertEqual(len(result["cases_paths"]), 1)
 
     def test_false_recovery_blocks_promotion(self) -> None:
         fixture_path = (
@@ -52,7 +71,7 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         )
 
     def test_render_text_includes_signal_names(self) -> None:
-        text = render_text(run_gate())
+        text = render_text(run_gate_suite())
 
         self.assertIn("# Reflection Promotion Gate", text)
         self.assertIn("reflection_trigger_rate", text)
@@ -85,7 +104,36 @@ class ReflectionPromotionGateTests(unittest.TestCase):
             self.assertIn('"status": "ready"', gate_result.stdout)
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "ready")
+            self.assertEqual(payload["fixture_count"], 2)
+            self.assertEqual(payload["case_count"], 8)
             self.assertEqual(payload["promotion_signals"]["false_recovery_rate"], 0.0)
+
+    def test_cli_accepts_repeated_cases_paths(self) -> None:
+        fixture_dir = PROJECT_ROOT / "tests" / "fixtures" / "reflection_promotion_gate"
+
+        gate_result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "src.ops.reflection_promotion_gate",
+                "--format",
+                "json",
+                "--cases",
+                str(fixture_dir / "cases.json"),
+                "--cases",
+                str(fixture_dir / "store_fixed_cases.json"),
+            ],
+            cwd=PROJECT_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(gate_result.returncode, 0, gate_result.stderr)
+        payload = json.loads(gate_result.stdout)
+        self.assertEqual(payload["status"], "ready")
+        self.assertEqual(payload["fixture_count"], 2)
+        self.assertEqual(payload["case_count"], 8)
 
 
 if __name__ == "__main__":

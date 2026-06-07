@@ -139,9 +139,10 @@ Promotion is blocked if any reflected accepted answer:
 ## Promotion Test Plan
 
 The repo-local `src.ops.reflection_promotion_gate` command is the first
-fixture-backed version of this gate. A future active-reflection PR should keep
-that gate green or extend it with store-fixed cases before any broader
-benchmark refresh:
+fixture-backed version of this gate. Its default run evaluates both the base
+fixture set and a store-fixed candidate surface fixture. A future
+active-reflection PR should keep that gate green or extend it with additional
+store-fixed cases before any broader benchmark refresh:
 
 1. Unit tests for trigger eligibility, request construction, allowed strategies,
    budget consumption, and `ReflectionReport` ledger shape.

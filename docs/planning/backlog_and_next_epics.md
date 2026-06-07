@@ -1110,8 +1110,9 @@ helper 또는 TypedDict 경계를 추가하는 것부터 시작한다.
 
 Current practical priority, 2026-06-07:
 
-1. Reflection promotion gate: extend `src.ops.reflection_promotion_gate` with
-   store-fixed cases before any active retry behavior is promoted.
+1. Reflection promotion gate: keep `src.ops.reflection_promotion_gate` green
+   across the base fixture and store-fixed candidate surfaces before any active
+   retry behavior is promoted.
 2. Report-cache producer policy decision: keep the cache path disabled until
    live/default MAS or store-fixed eval-only traces justify a schema-backed
    producer policy.
