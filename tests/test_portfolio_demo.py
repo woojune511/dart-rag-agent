@@ -28,6 +28,8 @@ class PortfolioDemoTests(unittest.TestCase):
         self.assertEqual(demo["task_artifact_integrity"]["integrity_status"], "ok")
         self.assertEqual(demo["critic_acceptance"]["status"], "accepted")
         self.assertEqual(demo["cache_reviewer_handoff"]["status"], "ready")
+        self.assertFalse(demo["cache_reviewer_handoff"]["retrieval_bypass_enabled"])
+        self.assertFalse(demo["cache_reviewer_handoff"]["write_enabled"])
         self.assertFalse(demo["cache_reviewer_handoff"]["serving_enabled"])
 
     def test_demo_critic_acceptance_uses_runtime_contract_not_score(self) -> None:
@@ -69,6 +71,8 @@ class PortfolioDemoTests(unittest.TestCase):
         self.assertIn("Task/Artifact Integrity:", text)
         self.assertIn("Critic Acceptance:", text)
         self.assertIn("Cache Reviewer Handoff:", text)
+        self.assertIn("retrieval_bypass_enabled:", text)
+        self.assertIn("write_enabled:", text)
 
     def test_cli_writes_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -102,7 +102,7 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Final close gate | rejected critic reports produce blocking integrity errors |
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
 | Runtime cleanup | canonical calculation state lives in `resolved_calculation_trace` / artifacts; legacy top-level calculation/debug fields are optional compatibility bridges |
-| Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while serving remains disabled |
+| Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while bypass, writes, serving, and ledger insertion remain disabled |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Test coverage | latest full `python -m unittest discover -s tests` passed 940 tests after reflection ledger handoff |
