@@ -370,11 +370,13 @@ Useful supporting points:
 
 ## Next Work
 
-1. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
+1. MAS default smoke material-empty blocker diagnosis: the latest live/default
+   smoke outcome refresh shows both Analyst and Researcher failing without
+   material, so next work should separate store/retrieval/planner/default-query
+   causes before self-reflection redesign.
+2. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
    acceptance focused on structurally visible worker artifacts, while offline
    evaluator scorecards remain a separate review surface.
-2. Broader curated gate maintenance refresh only when a new broader artifact
-   reproduces a blocker rather than calibration debt.
 3. Internal calculation debug ownership follow-up: split
    `calculation_debug_trace` into a narrower debug contract before reducing its
    required state shape.
@@ -617,8 +619,20 @@ Useful supporting points:
   replan outcomes. The live real-node smoke is environment-gated because it
   needs `GOOGLE_API_KEY`; the current change is covered by API-free contract
   tests.
-- Live real-node smoke was then run with a local OpenAI-3072 Samsung 2023 store
-  and matching report scope. It completed in `68.2s` with
+- A 2026-06-07 live/default outcome refresh now exposes a current material-empty
+  blocker rather than an acceptance-contract ambiguity. With default
+  `replan_budget = 0`, the run produced `final_acceptance_outcome_counts =
+  {"blocked_without_replan": 2}`, `blocked_count = 2`, and all final source
+  counts at `0`. With `--replan-budget 1`, the run routed replans for both
+  cases but still ended at `{"blocked_after_replan": 2}` with all final source
+  counts at `0`. In both runs Analyst and Researcher tasks failed with
+  incomplete/empty material while critic rejection issue counts stayed `0`.
+  Raw outputs are local experiment artifacts under
+  `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/` and
+  `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`; keep
+  them out of commits.
+- Earlier live real-node smoke was run with a local OpenAI-3072 Samsung 2023
+  store and matching report scope. It completed in `68.2s` with
   `final_report_record.status = ok`, `task_artifact_trace.integrity_status =
   ok`, `replan_count = 0`, completed Analyst / Researcher / Critic / synthesis
   tasks, and no blocked or integrity-error cases. The earlier default-store run

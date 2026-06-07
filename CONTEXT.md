@@ -416,14 +416,14 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
-| 2 | broader curated gate maintenance refresh | 새 broader artifact가 실제 blocker를 재현할 때만 refresh |
+| 1 | MAS default smoke material-empty blocker diagnosis | live/default MAS smoke에서 Analyst/Researcher가 모두 material 없이 실패하는 원인 분리 |
+| 2 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
 | 3 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
 
 ## 현재 우선순위 요약
 
-1. runtime critic / evaluator boundary follow-up
-2. broader curated gate maintenance refresh when a new artifact reproduces a blocker
+1. MAS default smoke material-empty blocker diagnosis
+2. runtime critic / evaluator boundary follow-up
 3. internal calculation debug ownership follow-up
 
 ## 현재 해석
@@ -436,6 +436,7 @@
 - runtime critic / offline evaluator boundary follow-up 1차 작업은 2026-06-07에 reviewer/demo surface 정리로 시작했다. `portfolio_demo`와 `mas_researcher_smoke`는 이제 `passed` / `deterministic_score`를 직접 acceptance로 보지 않고 `critic_report_runtime_acceptance_state()`의 status, reasons, target refs, score-used flag를 노출한다. Focused demo/smoke/critic tests `14`개가 통과했다.
 - runtime critic / final merge acceptance follow-up은 2026-06-07에 target carry-forward를 보강했다. Critic rejection integrity issue는 raw `target_refs`뿐 아니라 ledger에 존재하는 `target_task_ids` / `target_artifact_ids`를 분리해 노출하고, Orchestrator replan carry-forward는 rejected worker target task도 failed 처리한다. Focused MAS/projection tests와 runtime domain-term audit이 통과했다.
 - MAS smoke critic/replan observability follow-up은 2026-06-07에 닫았다. `mas_e2e_smoke`는 이제 case별 `final_acceptance_outcome`과 summary `final_acceptance_outcome_counts`를 노출해 `accepted_without_replan`, `replan_succeeded`, `blocked_without_replan`, `blocked_after_replan`, `replan_pending`을 구분한다. Critic issue items도 `target_task_ids` / `target_artifact_ids`를 표시하고, compact smoke contract가 final acceptance outcome을 비교한다.
+- Live/default MAS smoke outcome refresh는 2026-06-07에 material-empty blocker를 재현했다. 기본 `replan_budget = 0` run은 `final_acceptance_outcome_counts = {"blocked_without_replan": 2}`, `blocked_count = 2`, `final_source_* = 0`이고, `--replan-budget 1` run은 `{"blocked_after_replan": 2}`, `replan_routed_count = 2`, `final_source_* = 0`이다. 두 케이스 모두 Analyst/Researcher task가 incomplete/empty material로 failed였고 critic rejection issue는 없었다. Raw artifacts는 `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/`와 `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`에 local-only로 남긴다.
 - MAS skeleton과 artifact schema productization 1차 작업은 2026-06-07에 닫았다. `FinalCarryForwardProjection`과 `project_final_report_carry_forward()`를 MAS schema layer로 올렸고, smoke output은 이제 이 shared helper에서 final source task/artifact/evidence/subtask-result counts와 ids를 만든다. Orchestrator와 dummy MAS merge도 `subtask_results` row에 selected worker `artifact_id` / `source_artifact_id`를 보존한다. 관련 MAS API-free tests `29`개와 runtime domain-term audit이 통과했다.
 - mixed growth+narrative answer-language polish 1차 작업은 2026-06-07에 닫았다. 최종 aggregate answer surface에서 받침 있는 한글 음절 뒤의 잘못된 conjunctive particle을 generic하게 정리하고, `RuntimeCalculationTrace.calculation_result.formatted_result`도 같은 surface를 보존한다. 이 변경은 회사명/benchmark ID/driver keyword branch 없이 answer surface 후처리만 수행하며, focused aggregate regression과 runtime domain-term audit이 통과했다.
 - mixed growth+narrative retrieval fan-out control 1차 작업은 2026-06-07에 audit surface 보강으로 닫았다. `audit_benchmark_fanout_cost.py`는 이제 cross-trace reuse candidates 중 current cache hit / miss counts를 row와 summary, Markdown table에 노출한다. 따라서 `NAV_T2_006` 같은 sibling lookup repeats가 이미 cache-hit로 막힌 관측 항목인지, 실제 추가 비용 후보인지 구분할 수 있다. 새 benchmark는 돌리지 않았다.
