@@ -317,9 +317,9 @@ Results:
   Runtime metrics: `numeric_final_judgement = PASS`, `faithfulness = 1.0`,
   `context_recall = 1.0`, `completeness = 1.0`,
   `calculation_correctness = 1.0`.
-- Remaining `NAV_T1_030` blocker: evaluator-visible retrieval metrics are still
-  weak (`retrieval_hit_at_k = 0.0`, `section_match_rate = 0.0`,
-  `citation_coverage = 0.667`, `entity_coverage = 0.5`). This means FCF is
+- At this checkpoint, `NAV_T1_030` still had weak evaluator-visible retrieval
+  metrics (`retrieval_hit_at_k = 0.0`, `section_match_rate = 0.0`,
+  `citation_coverage = 0.667`, `entity_coverage = 0.5`). That made FCF
   numerically closed but not yet promotion-ready as an official runtime gate.
 
 Updated promotion verdict:
@@ -327,9 +327,9 @@ Updated promotion verdict:
 - `NAV_T1_071` and `MIX_T1_021` support limited promotion for those operation
   families.
 - `NAV_T1_030` blocks broad default promotion until retrieval/evidence
-  visibility is fixed. The next work should improve cash-flow evidence
-  projection and evaluator-visible citation/section support, not add a
-  question-specific calculation rule.
+  visibility is fixed. The next work should improve evidence projection and
+  evaluator-visible citation/section support, not add a question-specific
+  calculation rule.
 
 2026-06-07 projection follow-up:
 
@@ -393,6 +393,55 @@ Updated promotion verdict:
     FCF-specific planning.
 - Artifact policy:
   - `benchmarks/results/nav_t1_030_projection_replay_2026-06-07/` is a local
+    experiment artifact and should not be committed.
+
+2026-06-07 surface-normalization replay:
+
+- Change under test:
+  - Evaluator runtime-evidence contexts now include metadata surfaces such as
+    company, year, section path, statement type, and source anchor.
+  - Citation coverage can use runtime evidence metadata directly when the
+    final citation list has lossy or duplicated anchor strings.
+  - Entity coverage accepts compact Korean surface variants for evaluator
+    matching, such as possessive `의` differences, amount-label suffix `액`,
+    and numeric year labels with or without `년`.
+- This is evaluator-layer normalization only. It does not change retrieval,
+  routing, answer composition, or add company-, benchmark-, or FCF-specific
+  runtime behavior.
+- Command shape:
+  - `benchmark_runner --config benchmarks/profiles/curated_runtime_contract_gate.json --output-dir benchmarks/results/nav_t1_030_surface_replay_2026-06-07 --company-run-id naver_2023_runtime_contract_gate --eval-only --question-id NAV_T1_030 --progress-heartbeat-sec 30 --heartbeat-log <path>`
+- Store/cache source:
+  - copied the same local `naver-2023` bundle from
+    `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`
+    into a fresh local replay directory before running eval-only.
+- Result:
+  - `numeric_final_judgement = PASS`
+  - `faithfulness = 1.000`
+  - `answer_relevancy = 0.707`
+  - `context_recall = 1.000`
+  - `retrieval_hit_at_k = 1.000`
+  - `ndcg_at_5 = 1.000`
+  - `context_precision_at_5 = 1.000`
+  - `section_match_rate = 1.000`
+  - `citation_coverage = 1.000`
+  - `entity_coverage = 0.750`
+  - `completeness = 1.000`
+  - `refusal_accuracy = 1.000`
+  - `numeric_pass_rate = 1.000`
+  - `avg_score = 0.951`
+  - `error_rate = 0.0%`
+- Interpretation:
+  - The prior residual citation-surface gap is closed for this focused replay:
+    runtime evidence metadata supplies the expected company, year, and
+    statement-section contract even when citation strings are noisy.
+  - Entity coverage improves from `0.500` to `0.750`. The remaining miss is a
+    display/metric-label surface issue rather than an arithmetic, retrieval,
+    section, or evidence-provenance blocker.
+  - The result supports promoting the generic runtime projection path with a
+    smaller residual caveat around display/entity normalization. It should not
+    be treated as a fresh full benchmark or a new official cross-profile score.
+- Artifact policy:
+  - `benchmarks/results/nav_t1_030_surface_replay_2026-06-07/` is a local
     experiment artifact and should not be committed.
 
 Validation:

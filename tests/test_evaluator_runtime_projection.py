@@ -17,6 +17,8 @@ from src.ops.evaluator import (
     _collect_aggregate_subtask_provenance,
     _compute_runtime_evidence_retrieval_hit_at_k,
     _compute_runtime_evidence_section_match_rate,
+    _compute_runtime_evidence_citation_coverage,
+    _compute_entity_coverage,
     _compute_ndcg_at_k,
     _contains_section,
     _compute_numeric_result_correctness,
@@ -150,6 +152,51 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
 
         self.assertEqual(_compute_runtime_evidence_retrieval_hit_at_k(example, runtime_evidence), 1.0)
         self.assertEqual(_compute_runtime_evidence_section_match_rate(example, runtime_evidence), 1.0)
+
+    def test_runtime_evidence_metadata_supports_citation_coverage(self) -> None:
+        example = EvalExample(
+            id="cash_flow_citation_surface",
+            question="연결기준 잉여현금흐름을 계산해 줘.",
+            ground_truth="영업활동현금흐름에서 유형자산 취득액을 차감",
+            company="네이버",
+            year=2023,
+            section="재무제표",
+            expected_sections=["III. 재무에 관한 사항 > 연결현금흐름표"],
+            company_aliases=["NAVER"],
+        )
+        runtime_evidence = [
+            {
+                "claim": "영업활동현금흐름 | 제 25 기 2,002,233,273,518 원",
+                "quote_span": "영업활동현금흐름 2,002,233,273,518",
+                "source_anchor": "[NAVER | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표]",
+                "metadata": {
+                    "company": "NAVER",
+                    "year": 2023,
+                    "section_path": "III. 재무에 관한 사항 > 2. 연결재무제표",
+                    "statement_type": "cash_flow",
+                },
+            }
+        ]
+
+        self.assertEqual(_compute_runtime_evidence_citation_coverage(example, runtime_evidence), 1.0)
+
+    def test_entity_coverage_accepts_korean_amount_surface_variants(self) -> None:
+        example = EvalExample(
+            id="cash_flow_entity_surface",
+            question="연결기준 잉여현금흐름을 계산해 줘.",
+            ground_truth="영업활동현금흐름에서 유형자산 취득액을 차감",
+            company="네이버",
+            year=2023,
+            section="재무제표",
+            required_entities=["2023년", "영업활동현금흐름", "유형자산 취득액"],
+        )
+        contexts = [
+            "NAVER\n2023\nIII. 재무에 관한 사항 > 연결현금흐름표\n"
+            "영업활동현금흐름 2,002,233,273,518\n"
+            "유형자산의 취득 (640,623,697,250)"
+        ]
+
+        self.assertEqual(_compute_entity_coverage(example, contexts), 1.0)
 
     def test_section_match_accepts_canonical_quote_when_section_label_differs(self) -> None:
         example = EvalExample(

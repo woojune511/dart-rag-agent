@@ -646,10 +646,18 @@ def _build_runtime_evidence_contexts(runtime_evidence: List[Dict[str, Any]], lim
     for row in runtime_evidence:
         metadata = _runtime_evidence_metadata(row)
         section_path = str(metadata.get("section_path") or metadata.get("section") or "").strip()
+        company = str(metadata.get("company") or "").strip()
+        year = str(metadata.get("year") or "").strip()
+        statement_type = str(metadata.get("statement_type") or "").strip()
+        source_anchor = str(row.get("source_anchor") or "").strip()
         claim = str(row.get("claim") or "").strip()
         quote_span = str(row.get("quote_span") or row.get("raw_row_text") or row.get("quote") or "").strip()
         source_context = str(row.get("source_context") or "").strip()
-        text_parts = [part for part in [section_path, claim, quote_span, source_context] if part]
+        text_parts = [
+            part
+            for part in [company, year, section_path, statement_type, source_anchor, claim, quote_span, source_context]
+            if part
+        ]
         if not text_parts:
             continue
         context = "\n".join(text_parts)
@@ -1886,6 +1894,44 @@ def _compute_citation_coverage(example: EvalExample, citations: List[str]) -> fl
     return sum(1.0 for matched in checks if matched) / len(checks)
 
 
+def _compute_runtime_evidence_citation_coverage(
+    example: EvalExample,
+    runtime_evidence: List[Dict[str, Any]],
+) -> float:
+    if not runtime_evidence:
+        return 0.0
+    expected_sections = _expected_sections_for_example(example)
+    if not expected_sections:
+        return 0.0
+    metadata_rows = [_runtime_evidence_metadata(row) for row in runtime_evidence]
+    text_blob = " ".join(
+        " ".join(
+            str(value or "")
+            for value in (
+                row.get("source_anchor"),
+                row.get("claim"),
+                row.get("quote_span"),
+                row.get("source_context"),
+            )
+        )
+        for row in runtime_evidence
+    ).lower()
+    company_match = any(_metadata_company_matches_example(example, metadata) for metadata in metadata_rows)
+    if not company_match:
+        company_match = _citation_mentions_example_company(example, text_blob)
+    year_match = any(
+        str(metadata.get("year") or "").strip() == str(example.year)
+        for metadata in metadata_rows
+    ) or str(example.year) in text_blob
+    section_match = any(
+        _contains_section(metadata, expected_section)
+        for metadata in metadata_rows
+        for expected_section in expected_sections
+    )
+    checks = [company_match, year_match, section_match]
+    return sum(1.0 for matched in checks if matched) / len(checks)
+
+
 def _compact_text_preview(text: str, limit: int = 220) -> str:
     flattened = " ".join((text or "").split())
     if len(flattened) <= limit:
@@ -1924,15 +1970,19 @@ def _entity_aliases(example: EvalExample, entity: str) -> List[str]:
 
 def _contains_entity_variant(text: str, variants: List[str]) -> bool:
     lowered = (text or "").lower()
-    compact_text = re.sub(r"\s+", "", lowered)
+    compact_text_variants = _entity_compact_surface_variants(lowered)
     for variant in variants:
         normalized_variant = re.sub(r"\s+", " ", str(variant or "").lower()).strip()
         if not normalized_variant:
             continue
         if normalized_variant in lowered:
             return True
-        compact_variant = re.sub(r"\s+", "", normalized_variant)
-        if compact_variant and compact_variant in compact_text:
+        compact_variant_surfaces = _entity_compact_surface_variants(normalized_variant)
+        if any(
+            compact_variant and compact_text and compact_variant in compact_text
+            for compact_variant in compact_variant_surfaces
+            for compact_text in compact_text_variants
+        ):
             return True
         tokens = [token for token in normalized_variant.split(" ") if token]
         if len(tokens) >= 2:
@@ -1940,6 +1990,21 @@ def _contains_entity_variant(text: str, variants: List[str]) -> bool:
             if re.search(ordered_pattern, lowered):
                 return True
     return False
+
+
+def _entity_compact_surface_variants(text: str) -> List[str]:
+    compact = re.sub(r"\s+", "", str(text or "").lower())
+    if not compact:
+        return []
+    variants = {compact, compact.replace("의", "")}
+    suffix_variants: set[str] = set()
+    for value in variants:
+        if value.endswith("액") and len(value) > 1:
+            suffix_variants.add(value[:-1])
+        if value.endswith("년") and len(value) > 1 and value[:-1].isdigit():
+            suffix_variants.add(value[:-1])
+    variants.update(suffix_variants)
+    return [value for value in variants if value]
 
 
 def _compute_entity_coverage(example: EvalExample, contexts: List[str]) -> Optional[float]:
@@ -3377,6 +3442,11 @@ class RAGEvaluator:
                 _compute_runtime_evidence_section_match_rate(example, runtime_evidence),
             )
         citation_coverage = _compute_citation_coverage(example, citations)
+        if runtime_evidence:
+            citation_coverage = max(
+                citation_coverage,
+                _compute_runtime_evidence_citation_coverage(example, runtime_evidence),
+            )
         missing_info_compliance = _compute_missing_info_compliance(example, answer)
         numeric_eval: Dict[str, Any] = {}
         is_numeric_gate_question = (
