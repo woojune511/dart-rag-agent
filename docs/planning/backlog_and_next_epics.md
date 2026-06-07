@@ -845,10 +845,9 @@ The source-controlled baseline now proves that the ready fixture is
 `valid_for_contract` and the blocked fixture remains
 `normal_retrieval_fallback` with `projection_not_available`.
 
-Next structural step: decide whether this reviewer-surface contract is enough
-to mark the draft PR ready for review, or add one final repo-local review note
-that summarizes the cache path as candidate-only from runtime trace through
-projection validation.
+This reviewer-surface contract is now the repo-local handoff gate for the
+disabled cache capability. It is intentionally a review surface, not a serving
+surface.
 
 Forty-seventh step completed: `src.ops.review_report_cache_index_contract` now
 emits a compact `reviewer_handoff` summary for the candidate-only cache path.
@@ -857,6 +856,10 @@ The default fixture-backed command reports `status = ready`,
 projection-ready candidate, and one fallback candidate. This is enough to treat
 the reviewer-surface contract as the handoff gate while cache serving,
 read/write behavior, ledger insertion, and retrieval bypass remain disabled.
+
+Forty-eighth step completed: `report_cache_capability_status()` now exposes the
+code-level disabled capability boundary. The portfolio demo and reviewer-facing
+docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 ### 3. Report-scoped cache
 
@@ -872,15 +875,17 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   the default fixture-backed review reports `status = ok`, `difference_count =
   0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, one valid
   projection-ready candidate, and one normal-retrieval fallback candidate
+- `report_cache_capability_status()` exposes the current candidate-only mode,
+  disabled flags, and handoff pipeline used by reviewer-facing commands
 - runtime cache serving, cache read/write, ledger insertion, and retrieval
   bypass remain disabled
 
 다음:
 
 - do not add a serving flag yet
-- future work should start from live/default MAS or eval-only traces only when
-  deciding whether real runtime values produce enough candidate-only cache
-  evidence to justify a separate producer policy
+- future work should start from live/default MAS or store-fixed eval-only traces
+  only when deciding whether real runtime values produce enough candidate-only
+  cache evidence to justify a separate producer policy
 - until then, treat the cache path as a documented capability boundary rather
   than an answer path
 
@@ -1101,13 +1106,29 @@ helper 또는 TypedDict 경계를 추가하는 것부터 시작한다.
    reproduces a blocker rather than calibration debt
 4. MAS default smoke maintenance only when the default store/preflight contract
    changes
-5. cross-company 확장
+
+Current practical priority, 2026-06-07:
+
+1. Reflection promotion criteria: define the focused test/eval signals for
+   turning bounded reflection handoff into an active retry capability.
+2. Report-cache producer policy decision: keep the cache path disabled until
+   live/default MAS or store-fixed eval-only traces justify a schema-backed
+   producer policy.
+3. Broader curated gate maintenance refresh when a new broader artifact
+   reproduces a blocker rather than calibration debt.
+4. MAS default smoke maintenance only when the default store/preflight contract
+   changes.
+5. Cross-document / cross-company expansion.
 
 완료되어 기본 우선순위에서 내려간 항목:
 
 - internal compatibility bridge boundary follow-up
 - reviewer / portfolio walkthrough polish
 - MAS default smoke material-empty blocker diagnosis
+- reflection request/plan/action/report handoff
+- reflection_report ledger projection
+- report-cache capability boundary documentation
+- report-cache capability status helper and reviewer proof surface
 
 ## 지금 당장 하지 않을 것
 
