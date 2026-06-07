@@ -80,6 +80,7 @@ def run_review_gates() -> Dict[str, Any]:
             "status": reflection_gate.get("status"),
             "fixture_count": reflection_gate.get("fixture_count"),
             "case_count": reflection_gate.get("case_count"),
+            "report_contract_ok": bool(reflection_gate.get("report_contract_ok")),
             "promotion_signals": dict(reflection_gate.get("promotion_signals") or {}),
         },
     }
@@ -119,6 +120,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"  - status: {reflection.get('status')}",
         f"  - fixture_count: {reflection.get('fixture_count')}",
         f"  - case_count: {reflection.get('case_count')}",
+        f"  - report_contract_ok: {str(bool(reflection.get('report_contract_ok'))).lower()}",
         f"  - false_recovery_rate: {signals.get('false_recovery_rate'):.3f}",
         f"  - integrity_preservation_rate: {signals.get('integrity_preservation_rate'):.3f}",
     ]

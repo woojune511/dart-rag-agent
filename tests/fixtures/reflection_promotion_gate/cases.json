@@ -9,7 +9,10 @@
       "reflection_report": {
         "outcome": "retry_prepared",
         "action_taken": "retry_retrieval",
-        "budget_consumed": 1
+        "budget_consumed": 1,
+        "target_task_ids": ["task_retry_retrieval"],
+        "target_artifact_ids": ["artifact_retry_retrieval_result"],
+        "final_acceptance_authority": "critic_orchestrator_handoff"
       },
       "initial_status": "missing_evidence",
       "final_status": "accepted",
@@ -29,7 +32,10 @@
       "reflection_report": {
         "outcome": "retry_prepared",
         "action_taken": "synthesize_from_task_outputs",
-        "budget_consumed": 1
+        "budget_consumed": 1,
+        "target_task_ids": ["task_synthesize_outputs"],
+        "target_artifact_ids": ["artifact_synthesis_result"],
+        "final_acceptance_authority": "critic_orchestrator_handoff"
       },
       "initial_status": "incomplete_synthesis",
       "final_status": "accepted",
@@ -50,6 +56,8 @@
         "outcome": "stop_requested",
         "action_taken": "stop_insufficient",
         "budget_consumed": 0,
+        "target_task_ids": ["task_stop_insufficient"],
+        "target_artifact_ids": [],
         "blocking_issues": [
           {
             "type": "stop_insufficient",
