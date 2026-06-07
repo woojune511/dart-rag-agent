@@ -37,7 +37,7 @@ The runtime uses shared ledger-style state instead of free-form agent chat:
 
 - `tasks`: planned work and ownership
 - `artifacts`: typed outputs such as operand sets, calculation plans, results,
-  retrieval bundles, critic reports, and aggregated answers
+  retrieval bundles, reflection reports, critic reports, and aggregated answers
 - `evidence_pool`: source-grounded evidence records
 - `critic_reports`: acceptance/rejection reports with target refs and reasons
 - `task_artifact_trace`: compact integrity projection for callers and reviewers
@@ -69,6 +69,14 @@ Runtime critic acceptance is based on verdict, target refs, acceptance reasons,
 and blocking issues. Rejected critic reports block final close even when a
 diagnostic score is high, and the rejection reasons are surfaced to planner
 feedback and smoke summaries.
+
+### Reflection Is A Bounded Capability
+
+Self-reflection is modeled as `ReflectionRequest -> ReflectionPlan ->
+ReflectionAction -> ReflectionReport`. Retry preparation records the report as a
+`reflection_report` artifact on a `reflection` task, so reviewers can inspect
+what action was proposed without giving reflection authority to accept final
+answers.
 
 ### Report Cache Is Candidate-Only
 
@@ -137,6 +145,7 @@ Implemented and validated:
 - MAS skeleton with Orchestrator, Analyst, Researcher, Critic, and final merge
 - task/artifact integrity projection and final close blocking
 - critic runtime acceptance boundary and rejection feedback surface
+- bounded self-reflection request/action/report handoff through the ledger
 - candidate-only report-cache reviewer handoff
 - fixture-backed portfolio demo command for answer, evidence, trace, integrity,
   critic, and cache handoff surfaces
@@ -162,5 +171,6 @@ For a quick review:
    for the problem, method, quantitative comparison, and failure analysis.
 
 The current reviewer claim is narrow: canonical runtime state is carried by
-typed traces and artifacts, while legacy calculation/debug mirrors are optional
-compatibility bridges and are not seeded into new live runs.
+typed traces and artifacts, reflection retry decisions are recorded as bounded
+handoff reports, and legacy calculation/debug mirrors are optional compatibility
+bridges that are not seeded into new live runs.

@@ -30,6 +30,8 @@ contract to look for is:
 - canonical numeric state is exposed through `resolved_calculation_trace` and
   `structured_result`
 - MAS handoff state is exposed through `task_artifact_trace`
+- reflection retry state, when triggered, is persisted as a `reflection_report`
+  artifact rather than an unbounded graph escape hatch
 - critic acceptance is exposed as target refs, verdict/status, and reasons
 - report-cache material remains candidate-only and non-serving
 - legacy top-level calculation/debug fields are compatibility bridges, not the
@@ -81,13 +83,14 @@ Cache Reviewer Handoff:
 | `Citations` | The answer keeps source anchors visible to callers |
 | `Calculation Trace` | Numeric output is backed by operands, plan, and result |
 | `Task/Artifact Integrity` | The MAS ledger projection is present and clean |
+| `reflection_report` artifacts | Retry/reflection actions are inspectable through the same ledger contract when a retry is prepared |
 | `Critic Acceptance` | Runtime acceptance uses target refs, verdict, and reasons |
 | `Cache Reviewer Handoff` | Cache candidates remain candidate-only and non-serving |
 
 The important portfolio point is not the fixture value itself. The point is that
 the command exposes the same surfaces that are risky in financial-document RAG:
 source grounding, calculation provenance, agent handoff integrity, critic
-acceptance, and cache safety.
+acceptance, bounded retry/reflection handoff, and cache safety.
 
 ## Source Files
 

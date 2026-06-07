@@ -31,6 +31,7 @@ plain retrieval-and-answer pipeline if it:
 - binds numeric operands to structured rows and source evidence
 - executes arithmetic deterministically
 - publishes `structured_result` and `resolved_calculation_trace`
+- records bounded self-reflection retries as `reflection_report` artifacts
 - blocks final close on task/artifact integrity errors and rejected critic
   reports
 - keeps domain vocabulary in ontology, retrieval policy, config, or data rather
@@ -97,7 +98,7 @@ Primary metrics:
 | Runtime contract gate | 5 core numeric/runtime questions | PASS | `docs/overview/project_status.md` |
 | Concept runtime gap gate | 7 ontology-driven concept questions | 7 / 7 PASS | `docs/overview/project_status.md` |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | 4 / 4 company runs passed in the latest OpenAI-backed refresh; later 2026-06-07 store-fixed replays kept all five rows at faithfulness, completeness, context recall, and retrieval hit@k `1.000`, task/artifact integrity `ok` for 5 / 5 rows, error rate `0.0%`, and `LGE_T1_051` numeric judgement `PASS` | `docs/overview/project_status.md`, `docs/evaluation/benchmarking.md` |
-| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest local validation passed 887 unit tests | current local publication gate |
+| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest local validation passed 940 unit tests after reflection ledger handoff | current local publication gate |
 
 ### Method Comparison
 
@@ -106,7 +107,7 @@ Primary metrics:
 | `plain_prefix_8000_400` | Fails the representative `SKH_T1_060` runtime-contract row | no contextualization calls | Keep as speed/cost baseline, not default |
 | `contextual_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass as historical quality reference | selected chunks require LLM-written context | Keep as quality reference |
 | `structural_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass | deterministic structural prefix, no per-chunk contextualization calls | Use as current operating default |
-| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; 2026-06-07 store-fixed replays preserved those quality signals; PR #33 recovered the `NAV_T2_006` retrieved-driver wording gap in a focused repair; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest; later cost-control replays reduced observed query pressure without a quality drop | Use as the reviewer-facing runtime story |
+| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; 2026-06-07 store-fixed replays preserved those quality signals; reflection retry decisions are now recorded as `reflection_report` artifacts; PR #33 recovered the `NAV_T2_006` retrieved-driver wording gap in a focused repair; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest; later cost-control replays reduced observed query pressure without a quality drop | Use as the reviewer-facing runtime story |
 
 ### Runtime Cost-Control Follow-Up
 
