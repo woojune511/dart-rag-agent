@@ -506,6 +506,18 @@ official curated benchmark profile은 `auto_fetch_missing_report = true`를 켜 
 
 official gate 통과만으로 mainline default를 확정하지는 않는다. 현재는 wider curated set에서도 같은 후보가 버티는지 별도로 본다.
 
+2026-06-07 residual review:
+
+- Current review record:
+  `docs/evaluation/broader_gate_residual_review.md`
+- No new benchmark was run for this review.
+- Current decision: no active broader curated runtime blocker is open. `NAV_T1_030`
+  and `KBF_T2_043` remain visible as calibration / future broader-replay watch
+  items, not active runtime blockers.
+- Broader maintenance should become active again only when a new artifact
+  reproduces a concrete runtime evidence, dependency, calculation, or provenance
+  failure.
+
 현재 follow-up 해석:
 
 - `curated_multi_report_smoke`

@@ -929,6 +929,14 @@ Useful supporting points:
     `numeric_grounding = 1.0`, `context_recall = 0.9`, and
     `completeness = 0.7`, so remaining work is broader replay and
     completeness/render calibration, not a known material-gap blocker.
+- Broader curated residual review:
+  - Review record:
+    `docs/evaluation/broader_gate_residual_review.md`
+  - No new benchmark was run for this review.
+  - Current decision: no active broader curated runtime blocker is open.
+    `NAV_T1_030` is display/entity normalization debt, and `KBF_T2_043` is a
+    broader replay plus completeness/render calibration watch item unless a new
+    artifact reproduces a material-gap runtime failure.
 - Official LLM-evidence-path canary after fallback removal:
   - `NAV_T2_006` passed under the policy-driven gate profile with `8 / 4 / 1`.
   - Final answer preserved `41.4%` and the Poshmark/smart-store/brand-store

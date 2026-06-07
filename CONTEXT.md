@@ -416,18 +416,19 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | broader curated gate maintenance residual review | 새 broader artifact가 runtime blocker를 재현할 때만 calibration debt와 분리 |
-| 2 | MAS real-node replan smoke and artifact carry-forward review | task/artifact 계약이 real-node 경로에서도 유지되는지 확인 |
-| 3 | mixed growth+narrative retrieval fan-out control and answer-language polish | 품질 gate와 무관한 답변 표현/검색 폭 개선을 별도 관리 |
+| 1 | MAS real-node replan smoke and artifact carry-forward review | task/artifact 계약이 real-node 경로에서도 유지되는지 확인 |
+| 2 | mixed growth+narrative retrieval fan-out control and answer-language polish | 품질 gate와 무관한 답변 표현/검색 폭 개선을 별도 관리 |
+| 3 | MAS skeleton과 artifact schema productization | smoke에서 확인한 task/artifact contract를 reusable runtime shape로 정리 |
 
 ## 현재 우선순위 요약
 
-1. broader curated gate maintenance residual review
-2. MAS real-node replan smoke and artifact carry-forward review
-3. mixed growth+narrative retrieval fan-out control and answer-language polish
+1. MAS real-node replan smoke and artifact carry-forward review
+2. mixed growth+narrative retrieval fan-out control and answer-language polish
+3. MAS skeleton과 artifact schema productization
 
 ## 현재 해석
 
+- broader curated gate maintenance residual review는 2026-06-07에 `docs/evaluation/broader_gate_residual_review.md`로 닫았다. 새 benchmark는 돌리지 않았고, 현재 active broader runtime blocker는 없다. `NAV_T1_030`은 display/entity normalization debt, `KBF_T2_043`은 broader replay + completeness/render calibration watch item으로만 추적한다.
 - table payload sidecar / store-size cleanup 1차 작업은 2026-06-07에 닫았다. 기존 sidecar/dedupe 경로는 유지하고 `table_payloads.json`에 payload count, referenced node count, unique/inline byte estimate, dedupe saved estimate를 기록하게 했으며, rebuild summary도 source/output sidecar 규모를 노출한다. 새 benchmark/store artifact는 만들지 않았다.
 - concept-only planner runtime promotion check는 2026-06-07 문서 refresh로 닫았다. 현재 기준은 `concept_runtime_gap_gate_7of7_2026-06-04`이며, broad default 승격이 아니라 future concept-runtime 변경 전 store-fixed gate로 재확인할 promotion baseline이다.
 - 지금 시스템은 “질문 1개 -> 답 1개” 구조에서 더 멀어져, `task + artifact + structured table object + final synthesizer` 중심으로 이동 중이다.

@@ -92,8 +92,8 @@ contract로 승격할 준비를 끝내는 것**이다.
 현재 backlog는 portfolio long-term goal과 아래 순서로 연결한다.
 
 1. **Gate / contract prerequisites**
-   - broader curated gate maintenance residual review when fresh artifacts show
-     a new blocker
+   - broader curated gate maintenance residual refreshes when fresh artifacts
+     show a new blocker
    - concept-runtime promotion baseline refreshes before future planner/runtime
      changes
    - table payload sidecar store-size telemetry refreshes before fresh-store
@@ -1016,18 +1016,18 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. broader curated gate maintenance residual review when a new broader artifact
-   reproduces a blocker rather than calibration debt
-2. MAS real-node replan smoke and artifact carry-forward review
-3. mixed growth+narrative retrieval fan-out control and answer-language polish
-4. MAS skeleton과 artifact schema productization
-5. Analyst / Critic / Researcher separation; first critic boundary is now
+1. MAS real-node replan smoke and artifact carry-forward review
+2. mixed growth+narrative retrieval fan-out control and answer-language polish
+3. MAS skeleton과 artifact schema productization
+4. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
     target refs, acceptance reason, and blocking issues instead of
     `deterministic_score` thresholds. The final integrity projection consumes
     this state so rejected critic reports block final close and exposes the
     acceptance status, reasons, and target refs through planner feedback plus
     MAS smoke summaries.
+5. broader curated gate maintenance refresh when a new broader artifact
+   reproduces a blocker rather than calibration debt
 6. agentic self-reflection 재설계
 7. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 8. cross-company 확장
