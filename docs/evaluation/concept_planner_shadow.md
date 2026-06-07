@@ -331,6 +331,31 @@ Updated promotion verdict:
   projection and evaluator-visible citation/section support, not add a
   question-specific calculation rule.
 
+2026-06-07 projection follow-up:
+
+- The public `FinancialAgent.run()` projection now promotes calculation-trace
+  operand evidence into runtime evidence even when the graph did not emit
+  separate top-level evidence rows.
+- Runtime evidence metadata is filled from report scope when the operand row
+  only carries a source anchor. The same evidence anchors are also exposed as
+  citations, so evaluator-visible retrieval, section, and citation surfaces can
+  see calculation provenance instead of depending only on the final retrieved
+  window.
+- This is a generic provenance projection change: it uses existing
+  calculation trace operands, source anchors, report scope, and final-answer
+  numeric surfaces. It does not add FCF-, company-, or benchmark-specific
+  retrieval/routing behavior.
+- Verification:
+  - `python -m src.ops.audit_runtime_domain_terms`
+  - `python -m unittest tests.test_financial_agent_run_projection tests.test_evaluator_runtime_projection tests.test_operation_contracts`
+  - `python -m unittest tests.test_benchmark_runner_runtime_projection tests.test_eval_company_aliases tests.test_structured_operand_extraction`
+  - `python -m unittest discover -s tests`
+- Benchmark replay status: the local store-fixed bundle referenced by the
+  older smoke note was not available in this workspace. The next empirical
+  check should rerun `NAV_T1_030` under `curated_runtime_contract_gate` with a
+  store-fixed bundle when available, or with a monitored fresh run if the store
+  must be rebuilt.
+
 Validation:
 
 - `python -m unittest tests.test_operation_contracts tests.test_semantic_numeric_plan tests.test_subtask_loop`

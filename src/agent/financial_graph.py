@@ -49,12 +49,84 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
     _SECTION_BIAS_BY_QUERY_TYPE = SECTION_BIAS_BY_QUERY_TYPE
 
+    def _runtime_evidence_defaults(self, final: Dict[str, Any]) -> Dict[str, Any]:
+        report_scope = dict(final.get("report_scope") or {})
+        company = str(report_scope.get("company") or "").strip()
+        if not company:
+            companies = [str(value).strip() for value in (final.get("companies") or []) if str(value).strip()]
+            company = companies[0] if companies else ""
+        year = report_scope.get("year")
+        if year in (None, ""):
+            years = list(final.get("years") or [])
+            year = years[0] if years else None
+        return {"company": company, "year": year}
+
+    def _enrich_runtime_evidence_metadata(
+        self,
+        final: Dict[str, Any],
+        evidence_items: list[Dict[str, Any]],
+    ) -> list[Dict[str, Any]]:
+        defaults = self._runtime_evidence_defaults(final)
+        enriched: list[Dict[str, Any]] = []
+        for item in list(evidence_items or []):
+            row = dict(item or {})
+            metadata = dict(row.get("metadata") or {})
+            if defaults.get("company") and not metadata.get("company"):
+                metadata["company"] = defaults["company"]
+            if defaults.get("year") not in (None, "") and not metadata.get("year"):
+                metadata["year"] = defaults["year"]
+            if not str(row.get("source_anchor") or "").strip():
+                anchor = (
+                    metadata.get("source_anchor")
+                    or metadata.get("section_path")
+                    or metadata.get("section_title")
+                    or metadata.get("section")
+                )
+                if anchor:
+                    row["source_anchor"] = _normalise_spaces(str(anchor))
+            row["metadata"] = metadata
+            enriched.append(row)
+        return enriched
+
+    def _augment_citations_from_runtime_evidence(
+        self,
+        citations: list[str],
+        runtime_evidence: list[Dict[str, Any]],
+    ) -> list[str]:
+        updated = [str(item).strip() for item in (citations or []) if str(item).strip()]
+        seen = {_normalise_spaces(item).lower() for item in updated}
+        for item in list(runtime_evidence or []):
+            row = dict(item or {})
+            metadata = dict(row.get("metadata") or {})
+            anchor = _normalise_spaces(
+                str(
+                    row.get("source_anchor")
+                    or metadata.get("source_anchor")
+                    or metadata.get("section_path")
+                    or metadata.get("section")
+                    or ""
+                )
+            )
+            if not anchor:
+                continue
+            company = str(metadata.get("company") or "").strip()
+            year = str(metadata.get("year") or "").strip()
+            citation = anchor
+            if company or year:
+                citation = "[{}]".format(" | ".join(part for part in (company, year, anchor) if part))
+            key = _normalise_spaces(citation).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            updated.append(citation)
+        return updated
+
     def _runtime_evidence_from_retrieved_docs(self, final: Dict[str, Any]) -> list[Dict[str, Any]]:
         """Preserve numeric provenance when a non-calculation path produced the final answer."""
         existing = [dict(item) for item in (final.get("evidence_items") or []) if isinstance(item, dict)]
         final_answer = _normalise_spaces(str(final.get("answer") or final.get("compressed_answer") or ""))
         answer_candidates = self._answer_evidence_numeric_candidates(final_answer) if final_answer else []
-        if existing and answer_candidates:
+        if answer_candidates:
             projection = self._project_runtime_calculation_trace(final)
             operands = list((projection or {}).get("calculation_operands") or [])
             evidence_items = self._append_operand_evidence_for_final_answer(
@@ -62,13 +134,15 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 operands=operands,
                 final_answer=final_answer,
             )
-            return self._filter_aggregate_evidence_for_final_answer(
+            filtered = self._filter_aggregate_evidence_for_final_answer(
                 evidence_items,
                 final_answer=final_answer,
                 selected_claim_ids=list(final.get("selected_claim_ids") or []),
             )[:8]
+            if filtered:
+                return self._enrich_runtime_evidence_metadata(final, filtered)
         if existing:
-            return existing
+            return self._enrich_runtime_evidence_metadata(final, existing)
         if not final_answer or not answer_candidates:
             return []
 
@@ -110,11 +184,12 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
         if not evidence_items:
             return []
-        return self._filter_aggregate_evidence_for_final_answer(
+        filtered = self._filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=final_answer,
             selected_claim_ids=[],
         )[:8]
+        return self._enrich_runtime_evidence_metadata(final, filtered)
 
     def __init__(
         self,
@@ -430,6 +505,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 "calculation_result": final.get("calculation_result", {}),
             }
         )
+        citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
         return {
             "query": final["query"],
             "report_scope": final.get("report_scope", {}),
@@ -448,7 +524,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "companies": final["companies"],
             "years": final["years"],
             "answer": final["answer"],
-            "citations": final["citations"],
+            "citations": citations,
             "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
             "retrieved_docs": final["retrieved_docs"],
             "retrieval_debug_trace": final.get("retrieval_debug_trace", {}),

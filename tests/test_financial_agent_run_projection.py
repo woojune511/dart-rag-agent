@@ -260,6 +260,63 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual([item["evidence_id"] for item in result["evidence_items"]], ["operand::ratio_operand"])
         self.assertIn("25.4%", result["evidence_items"][0]["quote_span"])
 
+    def test_run_projects_operand_runtime_evidence_with_report_scope_metadata(self) -> None:
+        final_state = self._base_final_state()
+        final_state["report_scope"] = {"company": "NAVER", "year": 2023}
+        final_state["companies"] = ["NAVER"]
+        final_state["years"] = [2023]
+        final_state["answer"] = (
+            "네이버의 2023년 연결기준 잉여현금흐름은 1조 3,616억원입니다. "
+            "이는 영업활동현금흐름 2조 22억원에서 유형자산 취득액 6,406억원을 "
+            "차감하여 계산된 결과입니다."
+        )
+        final_state["citations"] = []
+        final_state["evidence_items"] = []
+        final_state["retrieved_docs"] = []
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {
+                    "operand_id": "operating_cash_flow",
+                    "label": "2023 영업활동현금흐름",
+                    "raw_value": "2,002,233,273,518",
+                    "raw_unit": "원",
+                    "rendered_value": "2조 22억원",
+                    "normalized_unit": "KRW",
+                    "matched_operand_role": "minuend",
+                    "source_anchor": "III. 재무에 관한 사항 > 연결현금흐름표",
+                    "source_quote": "영업활동현금흐름 2,002,233,273,518원",
+                },
+                {
+                    "operand_id": "ppe_acquisition",
+                    "label": "2023 유형자산 취득액",
+                    "raw_value": "(640,623,697,250)",
+                    "raw_unit": "원",
+                    "rendered_value": "6,406억원",
+                    "normalized_unit": "KRW",
+                    "matched_operand_role": "subtrahend",
+                    "source_anchor": "III. 재무에 관한 사항 > 연결현금흐름표",
+                    "source_quote": "유형자산의 취득 (640,623,697,250)원",
+                },
+            ],
+            "calculation_plan": {"operation": "subtract"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "1조 3,616억원",
+                "answer_slots": {"operation_family": "difference"},
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        evidence_ids = [item["evidence_id"] for item in result["evidence_items"]]
+        self.assertEqual(evidence_ids, ["operand::operating_cash_flow", "operand::ppe_acquisition"])
+        self.assertTrue(all(item["metadata"]["company"] == "NAVER" for item in result["evidence_items"]))
+        self.assertTrue(all(item["metadata"]["year"] == 2023 for item in result["evidence_items"]))
+        self.assertTrue(any("NAVER | 2023 | III. 재무에 관한 사항" in item for item in result["citations"]))
+
     def test_run_projects_task_artifact_trace_for_callers(self) -> None:
         final_state = self._base_final_state()
         final_state["tasks"] = [
