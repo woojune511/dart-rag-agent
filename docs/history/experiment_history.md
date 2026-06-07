@@ -51,6 +51,7 @@
 
 - `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/`
 - `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`
+- `benchmarks/results/mas_e2e_smoke_failure_diagnostics_2026-06-07/`
 
 ### 무엇을 검증했나
 
@@ -73,6 +74,17 @@ incomplete numeric results, Researcher tasks failed with empty narrative
 results, and final synthesis emitted a blocked/refusal answer because there were
 no completed worker artifacts to carry forward.
 
+Follow-up diagnostic surface:
+
+| Run | Key diagnostic |
+| --- | --- |
+| `mas_e2e_smoke_failure_diagnostics_2026-06-07` | `worker_failure_count = 4`, `worker_failure_missing_artifact_count = 4`, `worker_failure_assignee_counts = {"Analyst": 2, "Researcher": 2}`, `worker_failure_reason_counts = {"incomplete numeric result": 2, "empty narrative result": 2, "missing_worker_artifact": 4}` |
+
+The follow-up changed only smoke observability and CLI robustness: failed worker
+diagnostics are now surfaced per case and in the summary, and `--output` creates
+its parent directory before writing. The raw JSON remains a local-only
+experiment artifact.
+
 ### 해석
 
 - The new smoke outcome contract is doing useful work: it distinguishes
@@ -80,8 +92,9 @@ no completed worker artifacts to carry forward.
   reading.
 - This is not a critic acceptance bug. Critic rejection issue counts stayed
   `0`; the final close was blocked by lack of source material.
-- The next diagnostic step should separate store/retrieval/planner/default-query
-  causes before changing self-reflection or critic policy.
+- The next diagnostic step should run direct Analyst and Researcher probes
+  against the same default store/scope to separate store, retrieval, planner,
+  and default-query causes before changing self-reflection or critic policy.
 
 
 ## 큰 흐름

@@ -37,6 +37,13 @@ def _payload() -> dict:
             "final_source_artifact_count": 1,
             "final_evidence_ref_count": 2,
             "final_subtask_result_count": 1,
+            "worker_failure_count": 1,
+            "worker_failure_missing_artifact_count": 1,
+            "worker_failure_assignee_counts": {"Analyst": 1},
+            "worker_failure_reason_counts": {
+                "incomplete numeric result": 1,
+                "missing_worker_artifact": 1,
+            },
         },
         "cases": [
             {
@@ -59,6 +66,12 @@ def _payload() -> dict:
                 },
                 "final_report": "final has value 2.54%",
                 "task_artifact_integrity_status": "ok",
+                "worker_failure_diagnostics": {
+                    "count": 0,
+                    "missing_artifact_count": 0,
+                    "assignee_counts": {},
+                    "reason_counts": {},
+                },
             },
             {
                 "query": "question two",
@@ -78,6 +91,15 @@ def _payload() -> dict:
                     "subtask_result_count": 0,
                 },
                 "task_artifact_integrity_status": "ok",
+                "worker_failure_diagnostics": {
+                    "count": 1,
+                    "missing_artifact_count": 1,
+                    "assignee_counts": {"Analyst": 1},
+                    "reason_counts": {
+                        "incomplete numeric result": 1,
+                        "missing_worker_artifact": 1,
+                    },
+                },
             },
         ],
     }
@@ -99,6 +121,13 @@ class MasE2ESmokeContractTests(unittest.TestCase):
         self.assertEqual(contract["final_source_artifact_count"], 1)
         self.assertEqual(contract["final_evidence_ref_count"], 2)
         self.assertEqual(contract["final_subtask_result_count"], 1)
+        self.assertEqual(contract["worker_failure_count"], 1)
+        self.assertEqual(contract["worker_failure_missing_artifact_count"], 1)
+        self.assertEqual(contract["worker_failure_assignee_counts"], {"Analyst": 1})
+        self.assertEqual(
+            contract["worker_failure_reason_counts"],
+            {"incomplete numeric result": 1, "missing_worker_artifact": 1},
+        )
         self.assertEqual(contract["cases"][0]["final_report_status"], "ok")
         self.assertEqual(
             contract["cases"][0]["final_acceptance_outcome"],
@@ -109,12 +138,16 @@ class MasE2ESmokeContractTests(unittest.TestCase):
         self.assertEqual(contract["cases"][0]["final_source_artifact_count"], 1)
         self.assertEqual(contract["cases"][0]["final_evidence_ref_count"], 2)
         self.assertEqual(contract["cases"][0]["final_subtask_result_count"], 1)
+        self.assertEqual(contract["cases"][0]["worker_failure_count"], 0)
         self.assertEqual(contract["cases"][1]["task_status_counts"], {"completed": 1, "failed": 1})
         self.assertEqual(
             contract["cases"][1]["final_acceptance_outcome"],
             "replan_succeeded",
         )
         self.assertTrue(contract["cases"][1]["replan_routed"])
+        self.assertEqual(contract["cases"][1]["worker_failure_count"], 1)
+        self.assertEqual(contract["cases"][1]["worker_failure_missing_artifact_count"], 1)
+        self.assertEqual(contract["cases"][1]["worker_failure_assignee_counts"], {"Analyst": 1})
 
     def test_check_contract_reports_task_status_distribution_delta(self) -> None:
         baseline = _payload()

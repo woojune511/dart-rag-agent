@@ -504,6 +504,91 @@ def _summarize_final_acceptance_outcome(
     }
 
 
+def _trace_failure_reasons(execution_trace: List[str], task_id: str) -> List[str]:
+    marker = f"failed {task_id}:"
+    reasons: List[str] = []
+    for item in execution_trace:
+        text = str(item or "").strip()
+        if marker not in text:
+            continue
+        reason = text.split(marker, 1)[1].strip()
+        if reason and reason not in reasons:
+            reasons.append(reason)
+    return reasons
+
+
+def _summarize_worker_failure_diagnostics(
+    *,
+    tasks: Dict[str, Any],
+    task_artifact_trace: Dict[str, Any],
+    execution_trace: List[str],
+) -> Dict[str, Any]:
+    trace_tasks = {
+        str(item.get("task_id") or "").strip(): dict(item)
+        for item in list(task_artifact_trace.get("tasks") or [])
+        if isinstance(item, dict) and str(item.get("task_id") or "").strip()
+    }
+    items: List[Dict[str, Any]] = []
+    assignee_counts: Counter[str] = Counter()
+    reason_counts: Counter[str] = Counter()
+    missing_artifact_count = 0
+
+    for task_id, task in dict(tasks or {}).items():
+        task_record = dict(task or {})
+        assignee = str(task_record.get("assignee") or "").strip()
+        if assignee not in {"Analyst", "Researcher"}:
+            continue
+        status = str(task_record.get("status") or "").strip()
+        if status not in {"TaskStatus.FAILED", "failed"}:
+            continue
+
+        normalized_task_id = str(task_record.get("task_id") or task_id).strip()
+        trace_record = trace_tasks.get(normalized_task_id, {})
+        artifact_ids = [
+            str(value).strip()
+            for value in (
+                task_record.get("artifact_ids")
+                or trace_record.get("artifact_ids")
+                or []
+            )
+            if str(value).strip()
+        ]
+        reasons = _trace_failure_reasons(execution_trace, normalized_task_id)
+        blocked_reason = str(task_record.get("blocked_reason") or "").strip()
+        if blocked_reason and blocked_reason not in reasons:
+            reasons.append(blocked_reason)
+        if not reasons:
+            reasons.append("worker_failed")
+        if not artifact_ids:
+            missing_artifact_count += 1
+            if "missing_worker_artifact" not in reasons:
+                reasons.append("missing_worker_artifact")
+
+        assignee_counts[assignee] += 1
+        reason_counts.update(reasons)
+        items.append(
+            {
+                "task_id": normalized_task_id,
+                "assignee": assignee,
+                "kind": str(task_record.get("kind") or trace_record.get("kind") or "").strip(),
+                "status": status,
+                "label": str(task_record.get("label") or trace_record.get("label") or "").strip(),
+                "artifact_ids": artifact_ids,
+                "latest_artifact_id": str(trace_record.get("latest_artifact_id") or "").strip(),
+                "latest_artifact_status": str(trace_record.get("latest_artifact_status") or "").strip(),
+                "reasons": reasons,
+            }
+        )
+
+    return {
+        "count": len(items),
+        "missing_artifact_count": missing_artifact_count,
+        "assignee_counts": dict(sorted(assignee_counts.items())),
+        "reason_counts": dict(sorted(reason_counts.items())),
+        "items": items,
+    }
+
+
 def run_smoke(
     *,
     store_dir: Path,
@@ -561,6 +646,11 @@ def run_smoke(
         report_cache_candidates = _summarize_report_cache_candidates(artifacts)
         report_cache_index_diagnostics = _summarize_report_cache_index_diagnostics(artifacts)
         critic_acceptance_issues = _summarize_critic_acceptance_issues(task_artifact_trace)
+        worker_failure_diagnostics = _summarize_worker_failure_diagnostics(
+            tasks=tasks,
+            task_artifact_trace=task_artifact_trace,
+            execution_trace=execution_trace,
+        )
         final_carry_forward = project_final_report_carry_forward(final_report_record)
         replan_count = int(final.get("replan_count", 0) or 0)
         case_replan_budget = int(final.get("replan_budget", replan_budget) or 0)
@@ -593,6 +683,7 @@ def run_smoke(
                 "task_artifact_integrity_status": task_artifact_trace.get("integrity_status"),
                 "task_artifact_integrity_issue_count": task_artifact_trace.get("integrity_issue_count"),
                 "critic_acceptance_issues": critic_acceptance_issues,
+                "worker_failure_diagnostics": worker_failure_diagnostics,
                 "artifact_answers": {
                     task_id: _artifact_answer(artifact)
                     for task_id, artifact in artifacts.items()
@@ -628,6 +719,10 @@ def run_smoke(
     critic_acceptance_issue_count = 0
     critic_acceptance_status_counts: Counter[str] = Counter()
     critic_acceptance_reason_counts: Counter[str] = Counter()
+    worker_failure_count = 0
+    worker_failure_missing_artifact_count = 0
+    worker_failure_assignee_counts: Counter[str] = Counter()
+    worker_failure_reason_counts: Counter[str] = Counter()
     final_acceptance_outcome_counts: Counter[str] = Counter()
     final_source_task_count = 0
     final_source_artifact_count = 0
@@ -643,6 +738,11 @@ def run_smoke(
         critic_acceptance_issue_count += int(critic_summary.get("count", 0) or 0)
         critic_acceptance_status_counts.update(dict(critic_summary.get("status_counts") or {}))
         critic_acceptance_reason_counts.update(dict(critic_summary.get("reason_counts") or {}))
+        worker_summary = dict(case.get("worker_failure_diagnostics") or {})
+        worker_failure_count += int(worker_summary.get("count", 0) or 0)
+        worker_failure_missing_artifact_count += int(worker_summary.get("missing_artifact_count", 0) or 0)
+        worker_failure_assignee_counts.update(dict(worker_summary.get("assignee_counts") or {}))
+        worker_failure_reason_counts.update(dict(worker_summary.get("reason_counts") or {}))
         outcome = str(dict(case.get("final_acceptance_outcome") or {}).get("outcome") or "").strip()
         if outcome:
             final_acceptance_outcome_counts[outcome] += 1
@@ -689,6 +789,10 @@ def run_smoke(
             "critic_acceptance_issue_count": critic_acceptance_issue_count,
             "critic_acceptance_status_counts": dict(sorted(critic_acceptance_status_counts.items())),
             "critic_acceptance_reason_counts": dict(sorted(critic_acceptance_reason_counts.items())),
+            "worker_failure_count": worker_failure_count,
+            "worker_failure_missing_artifact_count": worker_failure_missing_artifact_count,
+            "worker_failure_assignee_counts": dict(sorted(worker_failure_assignee_counts.items())),
+            "worker_failure_reason_counts": dict(sorted(worker_failure_reason_counts.items())),
             "final_acceptance_outcome_counts": dict(sorted(final_acceptance_outcome_counts.items())),
             "report_cache_candidate_count": report_cache_candidate_count,
             "report_cache_candidate_status_counts": dict(sorted(report_cache_status_counts.items())),
@@ -750,6 +854,7 @@ def main() -> None:
     )
 
     if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))

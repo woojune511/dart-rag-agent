@@ -69,6 +69,18 @@ class MasE2ESmokeTests(unittest.TestCase):
         self.assertEqual(payload["value_contract"]["source"], "mas_e2e_smoke_default_profile")
         self.assertEqual(len(payload["value_contract"]["assertions"]), 2)
 
+    def test_main_creates_output_parent_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "nested" / "smoke.json"
+            with (
+                patch.object(sys, "argv", ["mas_e2e_smoke", "--output", str(output_path)]),
+                patch.object(mas_e2e_smoke, "run_smoke", return_value={"ok": True}),
+            ):
+                mas_e2e_smoke.main()
+
+            self.assertTrue(output_path.exists())
+            self.assertEqual(json.loads(output_path.read_text(encoding="utf-8")), {"ok": True})
+
     def test_run_smoke_surfaces_replan_and_integrity_contract(self) -> None:
         graph_calls = []
         noop_node = lambda _state: {}
@@ -312,6 +324,94 @@ class MasE2ESmokeTests(unittest.TestCase):
             payload["cases"][0]["final_acceptance_outcome"]["outcome"],
             "blocked_without_replan",
         )
+
+    def test_run_smoke_surfaces_failed_worker_diagnostics(self) -> None:
+        noop_node = lambda _state: {}
+
+        def fake_run_mas_graph(_query, **_kwargs):
+            return {
+                "tasks": {
+                    "task_1": {
+                        "task_id": "task_1",
+                        "assignee": "Analyst",
+                        "kind": "calculation",
+                        "label": "numeric task",
+                        "status": "failed",
+                    },
+                    "task_2": {
+                        "task_id": "task_2",
+                        "assignee": "Researcher",
+                        "kind": "retrieval",
+                        "label": "narrative task",
+                        "status": "failed",
+                    },
+                },
+                "artifacts": {},
+                "critic_reports": [],
+                "execution_trace": [
+                    "Analyst failed task_1: incomplete numeric result",
+                    "Researcher failed task_2: empty narrative result",
+                    "Orchestrator blocked final report on integrity errors",
+                ],
+                "final_report_record": {"status": "blocked"},
+                "task_artifact_trace": {
+                    "integrity_status": "ok",
+                    "tasks": [
+                        {
+                            "task_id": "task_1",
+                            "kind": "calculation",
+                            "status": "failed",
+                            "artifact_ids": [],
+                        },
+                        {
+                            "task_id": "task_2",
+                            "kind": "retrieval",
+                            "status": "failed",
+                            "artifact_ids": [],
+                        },
+                    ],
+                },
+            }
+
+        with (
+            patch.object(mas_e2e_smoke, "VectorStoreManager", return_value=object()),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_plan_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_orchestrator_merge_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_analyst_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "build_financial_researcher_node", return_value=noop_node),
+            patch.object(mas_e2e_smoke, "run_mas_graph", side_effect=fake_run_mas_graph),
+        ):
+            payload = mas_e2e_smoke.run_smoke(
+                store_dir=Path("store"),
+                collection_name="collection",
+                queries=["question"],
+                replan_budget=0,
+            )
+
+        self.assertEqual(payload["summary"]["worker_failure_count"], 2)
+        self.assertEqual(payload["summary"]["worker_failure_missing_artifact_count"], 2)
+        self.assertEqual(
+            payload["summary"]["worker_failure_assignee_counts"],
+            {"Analyst": 1, "Researcher": 1},
+        )
+        self.assertEqual(
+            payload["summary"]["worker_failure_reason_counts"],
+            {
+                "empty narrative result": 1,
+                "incomplete numeric result": 1,
+                "missing_worker_artifact": 2,
+            },
+        )
+        diagnostics = payload["cases"][0]["worker_failure_diagnostics"]
+        self.assertEqual(diagnostics["count"], 2)
+        self.assertEqual(diagnostics["missing_artifact_count"], 2)
+        self.assertEqual(diagnostics["items"][0]["task_id"], "task_1")
+        self.assertEqual(diagnostics["items"][0]["assignee"], "Analyst")
+        self.assertIn("incomplete numeric result", diagnostics["items"][0]["reasons"])
+        self.assertIn("missing_worker_artifact", diagnostics["items"][0]["reasons"])
+        self.assertEqual(diagnostics["items"][1]["task_id"], "task_2")
+        self.assertEqual(diagnostics["items"][1]["assignee"], "Researcher")
+        self.assertIn("empty narrative result", diagnostics["items"][1]["reasons"])
 
     def test_run_smoke_surfaces_trace_only_cache_index_diagnostics(self) -> None:
         noop_node = lambda _state: {}

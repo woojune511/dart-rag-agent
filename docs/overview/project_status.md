@@ -370,10 +370,11 @@ Useful supporting points:
 
 ## Next Work
 
-1. MAS default smoke material-empty blocker diagnosis: the latest live/default
-   smoke outcome refresh shows both Analyst and Researcher failing without
-   material, so next work should separate store/retrieval/planner/default-query
-   causes before self-reflection redesign.
+1. MAS default smoke material-empty probe: failed-worker diagnostics now show
+   the latest live/default smoke has `worker_failure_count = 4` and
+   `worker_failure_missing_artifact_count = 4`; next work should run direct
+   Analyst and Researcher probes against the same default store/scope to
+   separate store/retrieval/planner/default-query causes.
 2. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
    acceptance focused on structurally visible worker artifacts, while offline
    evaluator scorecards remain a separate review surface.
@@ -631,6 +632,16 @@ Useful supporting points:
   `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/` and
   `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`; keep
   them out of commits.
+- A follow-up 2026-06-07 smoke observability pass added per-case and summary
+  `worker_failure_diagnostics` plus output-directory creation for `--output`.
+  The live refresh under
+  `benchmarks/results/mas_e2e_smoke_failure_diagnostics_2026-06-07/` reports
+  `worker_failure_count = 4`, `worker_failure_missing_artifact_count = 4`,
+  Analyst failures `2`, Researcher failures `2`, incomplete numeric result
+  reasons `2`, empty narrative result reasons `2`, and missing worker artifact
+  reasons `4`. This confirms the
+  immediate blocker is failed worker material production, not critic acceptance
+  or final synthesis carry-forward.
 - Earlier live real-node smoke was run with a local OpenAI-3072 Samsung 2023
   store and matching report scope. It completed in `68.2s` with
   `final_report_record.status = ok`, `task_artifact_trace.integrity_status =

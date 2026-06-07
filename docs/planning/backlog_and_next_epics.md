@@ -897,11 +897,18 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 - 2026-06-07 live/default smoke refresh는 material-empty blocker를 재현했다:
   default run은 `blocked_without_replan = 2`, `--replan-budget 1` run은
   `blocked_after_replan = 2`, 두 run 모두 final source counts가 `0`이다
+- 2026-06-07 follow-up smoke observability는 failed worker diagnostics를
+  추가했다. Live/default refresh는 `worker_failure_count = 4`,
+  `worker_failure_missing_artifact_count = 4`, Analyst failures `2`,
+  Researcher failures `2`, incomplete numeric result reasons `2`, empty
+  narrative result reasons `2`, and missing worker artifact reasons `4`를
+  보고한다
 
 다음:
 
-- 다음 follow-up은 live/default MAS trace의 material-empty 원인을
-  store/retrieval/planner/default-query 층으로 분리하는 것이다
+- 다음 follow-up은 direct Analyst / Researcher probes로 live/default MAS
+  trace의 material-empty 원인을 store/retrieval/planner/default-query 층으로
+  분리하는 것이다
 - runtime critic은 task acceptance와 final merge 보호용이고, offline
   evaluator는 benchmark/scorecard용이라는 경계는 유지한다
 
