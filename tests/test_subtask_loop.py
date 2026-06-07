@@ -7838,6 +7838,127 @@ class SubtaskLoopTests(unittest.TestCase):
         finally:
             self.agent._narrative_driver_groups = original_driver_groups
 
+    def test_retrieved_docs_can_supply_missing_growth_driver_evidence(self) -> None:
+        original_driver_groups = self.agent._narrative_driver_groups
+        self.agent._narrative_driver_groups = lambda _query: [
+            {"label": "driver_a", "variants": ["DriverA"], "phrase": "DriverA expansion"},
+            {"label": "driver_b", "variants": ["DriverB"], "phrase": "DriverB expansion | noisy table"},
+        ]
+        try:
+            evidence = self.agent._append_retrieved_growth_driver_evidence_for_query(
+                [
+                    {
+                        "evidence_id": "ev_driver_a",
+                        "claim": "DriverA expansion contributed to growth.",
+                        "quote_span": "DriverA expansion contributed to growth.",
+                    }
+                ],
+                query="Calculate 2023 revenue growth and summarize the acquisition impact.",
+                docs=[
+                    (
+                        Document(
+                            page_content=(
+                                "The segment grew because DriverB expansion improved marketplace traffic. | noisy table tail "
+                                "Unrelated operating cost text follows."
+                            ),
+                            metadata={"section_path": "Management discussion"},
+                        ),
+                        0.9,
+                    )
+                ],
+            )
+
+            retrieved = [item for item in evidence if str(item.get("evidence_id") or "").startswith("retrieved_driver::")]
+            self.assertEqual(len(retrieved), 1)
+            self.assertEqual(retrieved[0]["claim"], "DriverB expansion")
+            self.assertNotIn("|", retrieved[0]["quote_span"])
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+
+    def test_aggregate_growth_narrative_uses_retrieved_doc_driver_evidence(self) -> None:
+        self.agent.llm = None
+        original_driver_groups = self.agent._narrative_driver_groups
+        self.agent._narrative_driver_groups = lambda _query: [
+            {"label": "driver_a", "variants": ["DriverA"], "phrase": "DriverA expansion"},
+            {"label": "driver_b", "variants": ["DriverB"], "phrase": "DriverB expansion"},
+        ]
+        try:
+            state = {
+                "query": "Calculate 2023 revenue growth and summarize the acquisition impact.",
+                "calc_subtasks": [{"task_id": "task_1"}, {"task_id": "task_2"}],
+                "active_subtask_index": 1,
+                "active_subtask": {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "operation_family": "narrative_summary",
+                },
+                "subtask_results": [
+                    {
+                        "task_id": "task_1",
+                        "metric_family": "concept_growth_rate",
+                        "metric_label": "revenue growth rate",
+                        "answer": "41.4%",
+                        "status": "ok",
+                        "calculation_result": {
+                            "status": "ok",
+                            "answer_slots": {
+                                "operation_family": "growth_rate",
+                                "primary_value": {
+                                    "status": "ok",
+                                    "label": "revenue growth rate",
+                                    "period": "2023",
+                                    "rendered_value": "41.4%",
+                                    "normalized_value": 41.4,
+                                    "normalized_unit": "PERCENT",
+                                },
+                                "current_value": {
+                                    "status": "ok",
+                                    "label": "revenue",
+                                    "period": "2023",
+                                    "rendered_value": "2,546,649 million",
+                                },
+                                "prior_value": {
+                                    "status": "ok",
+                                    "label": "revenue",
+                                    "period": "2022",
+                                    "rendered_value": "1,801,079 million",
+                                },
+                            },
+                        },
+                    },
+                    {
+                        "task_id": "task_2",
+                        "metric_family": "narrative_summary",
+                        "metric_label": "drivers",
+                        "answer": "DriverA expansion contributed to growth.",
+                        "status": "ok",
+                        "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                    },
+                ],
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="DriverB expansion also improved marketplace traffic and contributed to growth.",
+                            metadata={"section_path": "Management discussion"},
+                        ),
+                        0.9,
+                    )
+                ],
+                "plan_loop_count": 2,
+                "artifacts": [],
+            }
+
+            updated = self.agent._aggregate_calculation_subtasks(state)
+
+            self.assertIn("41.4%", updated["answer"])
+            self.assertIn("DriverA", updated["answer"])
+            self.assertIn("DriverB", updated["answer"])
+            self.assertTrue(
+                any(str(claim_id).startswith("retrieved_driver::") for claim_id in updated["selected_claim_ids"])
+            )
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+
     def test_preserve_source_visible_query_terms_from_retrieved_docs(self) -> None:
         answer = self.agent._preserve_source_visible_query_terms(
             "Adjusted operating income is 100 million.",
