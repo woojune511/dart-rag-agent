@@ -453,8 +453,8 @@ Useful supporting points:
   alias for `_project_runtime_calculation_trace()`.
 - `FinancialAgentState` now marks top-level `calculation_operands`,
   `calculation_plan`, and `calculation_result` as optional compatibility
-  mirrors. `calculation_debug_trace` remains required until debug trace
-  ownership is split.
+  mirrors. `calculation_debug_trace` is also optional; `FinancialAgent.run()`
+  no longer seeds these optional compatibility fields in the initial live state.
 - `_runtime_trace_state_update()` can now omit top-level `calculation_*`
   compatibility mirrors. The first applied branch is calculation verification
   skip for non-ok calculation results, which keeps `resolved_calculation_trace`
