@@ -106,7 +106,7 @@ Primary metrics:
 | `plain_prefix_8000_400` | Fails the representative `SKH_T1_060` runtime-contract row | no contextualization calls | Keep as speed/cost baseline, not default |
 | `contextual_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass as historical quality reference | selected chunks require LLM-written context | Keep as quality reference |
 | `structural_selective_v2_prefix_2500_320` | Runtime contract and multi-entity gates pass | deterministic structural prefix, no per-chunk contextualization calls | Use as current operating default |
-| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; 2026-06-07 store-fixed replays preserved those quality signals; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest; later cost-control replays reduced observed query pressure without a quality drop | Use as the reviewer-facing runtime story |
+| Current contract runtime | Concept gate 7 / 7; latest OpenAI-backed policy gate has faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; 2026-06-07 store-fixed replays preserved those quality signals; PR #33 recovered the `NAV_T2_006` retrieved-driver wording gap in a focused repair; publication gate clean | store-fixed refresh reused existing stores instead of fresh ingest; later cost-control replays reduced observed query pressure without a quality drop | Use as the reviewer-facing runtime story |
 
 ### Runtime Cost-Control Follow-Up
 
@@ -121,6 +121,7 @@ cost signals were brought under tighter control.
 | Retrieval hint and section-enrichment budget | focused `NAV_T2_006` / `LGE_T1_051` canary, then five-row policy-gate replay | focused canary core metrics `1.000`; full replay core metrics `1.000`, task/artifact integrity `ok` for 5 / 5 rows, error rate `0.0%`, `LGE_T1_051` numeric `PASS` | NAV query-embedding chars `7,672 -> 2,662`, tokens `1,935 -> 676`; LGE chars `6,120 -> 4,056`, tokens `1,539 -> 1,019`; full replay snapshot: 97 executed retrieval queries, 100 query-embedding calls, 13,948 query-embedding chars, 3,522 estimated query-embedding tokens, 58 LLM calls, runtime cost `$0.444073` | Shorten executed query enrichment while preserving full policy trace, reranker signals, and supplemental evidence signals |
 | Exact-text query embedding cache | five-row policy-gate replay after PR #23 | all five rows kept faithfulness, completeness, context recall, and retrieval hit@k `1.000`; task/artifact integrity `ok` for 5 / 5 rows; error rate `0.0%`; `LGE_T1_051` numeric `PASS` | observed post-cache snapshot: 88 executed retrieval queries, 89 query-embedding calls, 12,722 query-embedding chars, 3,211 estimated query-embedding tokens, 40 LLM calls, runtime cost `$0.407527` | Safe provider-call cache; treat the measured reduction as a post-cache replay result, not cache-only attribution, because live query fan-out and LLM calls also changed |
 | Same-trace duplicate guard validation | focused `HYU_T2_010` / `NAV_T2_006` replay after duplicate-query audit | both rows kept faithfulness, completeness, context recall, and retrieval hit@k `1.000`; error rate `0.0%` | HYU replay: 16 executed / 16 unique / 0 duplicate signatures versus historical audit baseline 28 / 15 / 13; NAV replay: 28 / 24 / 4, exposing remaining cross-trace repeats | Confirms the narrow guard did not regress the highest duplicate-pressure rows; remaining cost work should target sibling-task reuse, not broader hidden dedupe |
+| Retrieved-driver evidence preservation | focused `NAV_T2_006` repair after cross-trace diagnostic instrumentation | faithfulness, completeness, context recall, and retrieval hit@k recovered to `1.000`; error rate `0.0%` | no new fresh ingest; reused retrieved docs and policy-backed driver groups from the existing store-fixed path | Closed a narrative wording gap by preserving source-visible retrieved evidence, not by adding a benchmark-specific runtime branch |
 
 ### Historical Screening Evidence
 
@@ -148,7 +149,7 @@ removing per-chunk contextualization calls.
 | Calculation success rate | 0.33 | 1.00 | Better operand recovery enabled deterministic formula execution |
 | Row candidate recovery rate | 0.00 | 0.67 | Structured/domain retrieval signals restored candidate rows |
 | Concept runtime gap gate | residual failures | 7 / 7 PASS | Concept lookup/composition issues closed without runtime keyword branches |
-| Policy-driven runtime gate | mixed-query regressions | latest OpenAI-backed refresh: faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; focused `HYU_T2_010` follow-up: faithfulness and completeness `1.000` | Policy-backed retrieval, display preservation, and task/artifact provenance closed the representative mixed-query failures |
+| Policy-driven runtime gate | mixed-query regressions | latest OpenAI-backed refresh: faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; focused `HYU_T2_010` follow-up and PR #33 `NAV_T2_006` repair both keep core metrics at `1.000` | Policy-backed retrieval, display preservation, task/artifact provenance, and retrieved-driver evidence preservation closed the representative mixed-query failures |
 | Retrieval hint budget canary | NAV query-embedding chars `7,672`, LGE chars `6,120` | NAV chars `2,662`, LGE chars `4,056` with both focused rows at core metrics `1.000` | Reduced executed-query inflation without hiding policy/reranker evidence signals |
 | Query embedding cache replay | 97 executed queries, 100 query-embedding calls, 58 LLM calls, runtime cost `$0.444073` | 88 executed queries, 89 query-embedding calls, 40 LLM calls, runtime cost `$0.407527` | Post-cache replay improved observed runtime pressure while preserving the five-row policy gate |
 
@@ -188,6 +189,8 @@ Fix layer:
 - answer-slot and display preservation
 - dependency-slot growth trace alignment to producer lookup values
 - guardrails against untraced numeric displays in mixed answers
+- retrieved-driver evidence preservation when a policy-backed driver group is
+  visible in retrieved docs but absent from aggregate evidence
 
 Result:
 
@@ -198,6 +201,10 @@ Result:
   context rather than merged into the current official quality claim.
 - The final answer preserves the producer lookup values and growth display in
   the canonical trace.
+- A later focused repair after cross-trace diagnostic instrumentation recovered
+  the retrieved driver wording gap to faithfulness, completeness, context
+  recall, and retrieval hit@k `1.000`. This remains local store-fixed repair
+  evidence, not a fresh official benchmark result.
 
 ### `KBF_T2_018` and `SAM_T3_028`: concept lookup and composition residuals
 
@@ -234,6 +241,9 @@ the gates:
   calculation trace, critic acceptance, and task/artifact integrity
 - cost-control work now has two layers: shorter executed-query enrichment and
   exact-text query-embedding reuse
+- mixed numeric+narrative answers need a separate evidence-preservation layer
+  so relevant retrieved driver sentences do not disappear during aggregate
+  composition
 - the remaining runtime-cost bottleneck is unique query fan-out and LLM planning
   variability, not per-chunk contextualization
 
