@@ -899,14 +899,15 @@ Default smoke contract compare:
   --output benchmarks\results\mas_e2e_smoke_default_YYYY-MM-DD.json
 
 .\.venv\Scripts\python.exe -m src.ops.check_mas_e2e_smoke_contract `
-  --current benchmarks\results\mas_e2e_smoke_default_YYYY-MM-DD.json `
-  --baseline benchmarks\results\mas_e2e_smoke_default_contract_baseline.json
+  --current benchmarks\results\mas_e2e_smoke_default_YYYY-MM-DD.json
 ```
 
-To intentionally refresh the compact contract baseline after reviewing the full
-output, rerun the checker with `--write-baseline`. Keep both the full smoke
-output and compact contract under `benchmarks/results/**` as local experiment
-artifacts unless a handoff explicitly asks to publish them.
+The checker defaults to the source-controlled compact baseline at
+`tests/fixtures/mas_e2e_smoke/default_valid_store_contract_baseline.json`. To
+intentionally refresh that baseline after reviewing a full live smoke output,
+rerun the checker with `--write-baseline`. Keep the full smoke output under
+`benchmarks/results/**` as a local experiment artifact; only the reviewed
+compact contract belongs in source control.
 
 For the default smoke scope/query set, `mas_e2e_smoke.py` embeds a
 profile-generated `value_contract` in the full smoke output. The checker also
@@ -916,16 +917,19 @@ not the compact baseline, so numeric value regressions are caught even when task
 topology, integrity status, and status counts are unchanged. Use
 `--value-contract` only as an explicit override for one-off checks.
 
-Current local baseline was refreshed on 2026-06-05:
+Current source-controlled baseline was refreshed on 2026-06-07 after the valid
+default-store restoration:
 
-- Full output: `benchmarks/results/mas_e2e_smoke_default_2026-06-05.json`
-- Compact contract: `benchmarks/results/mas_e2e_smoke_default_contract_baseline.json`
+- Full output: `benchmarks/results/mas_default_valid_store_restored_2026-06-07/mas_e2e_smoke.json`
+- Compact contract:
+  `tests/fixtures/mas_e2e_smoke/default_valid_store_contract_baseline.json`
 - Contract compare: `status = ok`, `difference_count = 0`
 - Contract summary: embedding compatibility `ok`, `case_count = 2`,
   `blocked_count = 0`, `integrity_error_count = 0`, `replan_routed_count = 0`,
-  and both cases have `final_report_status = ok`,
-  `task_artifact_integrity_status = ok`, `task_count = 5`, and
-  `task_status_counts.completed = 5`.
+  `final_acceptance_outcome_counts.accepted_without_replan = 2`,
+  `worker_failure_count = 0`, and both cases have `final_report_status = ok`,
+  `task_artifact_integrity_status = ok`, `task_count = 5`,
+  `task_status_counts.completed = 5`, and no replan routing.
 - After final-provenance dedupe, a default live smoke kept the compact contract
   at `status = ok`, `difference_count = 0`, and final record / synthesis
   evidence refs reported `duplicates = 0` for both cases.

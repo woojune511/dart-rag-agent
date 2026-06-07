@@ -9,6 +9,15 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_BASELINE_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "mas_e2e_smoke"
+    / "default_valid_store_contract_baseline.json"
+)
+
 
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -262,7 +271,15 @@ def check_contract(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compare MAS E2E smoke contract fields.")
     parser.add_argument("--current", type=Path, required=True, help="Current mas_e2e_smoke JSON output.")
-    parser.add_argument("--baseline", type=Path, required=True, help="Baseline full output or compact contract JSON.")
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=DEFAULT_BASELINE_PATH,
+        help=(
+            "Baseline full output or compact contract JSON. Defaults to the "
+            "source-controlled valid-store MAS smoke contract baseline."
+        ),
+    )
     parser.add_argument(
         "--write-baseline",
         action="store_true",

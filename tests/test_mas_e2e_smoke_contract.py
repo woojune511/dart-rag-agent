@@ -20,6 +20,14 @@ from src.ops.check_mas_e2e_smoke_contract import (
     resolve_value_contract,
 )
 
+BASELINE_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "mas_e2e_smoke"
+    / "default_valid_store_contract_baseline.json"
+)
+
 
 def _payload() -> dict:
     return {
@@ -102,6 +110,65 @@ def _payload() -> dict:
                 },
             },
         ],
+    }
+
+
+def _default_valid_store_payload() -> dict:
+    case_values = [
+        "2.54% 6,566,976 258,935,494",
+        "10.95% 28,352,769 258,935,494",
+    ]
+    evidence_ref_counts = [28, 27]
+    cases = []
+    for index, query in enumerate(mas_e2e_smoke.DEFAULT_QUERIES, start=1):
+        values = case_values[index - 1]
+        cases.append(
+            {
+                "query": query,
+                "task_count": 5,
+                "task_statuses": {f"task_{task_index}": "TaskStatus.COMPLETED" for task_index in range(1, 6)},
+                "replan_count": 0,
+                "replan_routed": False,
+                "final_report_record": {
+                    "status": "ok",
+                    "subtask_results": [{"answer": values}],
+                },
+                "final_acceptance_outcome": {"outcome": "accepted_without_replan"},
+                "final_carry_forward": {
+                    "source_task_count": 2,
+                    "source_artifact_count": 4,
+                    "evidence_ref_count": evidence_ref_counts[index - 1],
+                    "subtask_result_count": 2,
+                },
+                "final_report": values,
+                "task_artifact_integrity_status": "ok",
+                "worker_failure_diagnostics": {
+                    "count": 0,
+                    "missing_artifact_count": 0,
+                    "assignee_counts": {},
+                    "reason_counts": {},
+                },
+            }
+        )
+    return {
+        "embedding_compatibility": {"status": "ok"},
+        "report_scope": dict(mas_e2e_smoke.DEFAULT_SCOPE),
+        "case_count": 2,
+        "summary": {
+            "replan_routed_count": 0,
+            "blocked_count": 0,
+            "integrity_error_count": 0,
+            "final_acceptance_outcome_counts": {"accepted_without_replan": 2},
+            "final_source_task_count": 4,
+            "final_source_artifact_count": 8,
+            "final_evidence_ref_count": 55,
+            "final_subtask_result_count": 4,
+            "worker_failure_count": 0,
+            "worker_failure_missing_artifact_count": 0,
+            "worker_failure_assignee_counts": {},
+            "worker_failure_reason_counts": {},
+        },
+        "cases": cases,
     }
 
 
@@ -231,6 +298,18 @@ class MasE2ESmokeContractTests(unittest.TestCase):
         self.assertEqual(result["status"], "mismatch")
         self.assertEqual(result["value_assertion_failure_count"], 4)
 
+    def test_source_controlled_baseline_matches_valid_default_smoke_contract(self) -> None:
+        baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8-sig"))
+
+        result = check_contract(
+            current_payload=_default_valid_store_payload(),
+            baseline_payload=baseline,
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["difference_count"], 0)
+        self.assertEqual(result["value_assertion_failure_count"], 0)
+
     def test_cli_writes_compact_baseline_and_compares(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -275,6 +354,32 @@ class MasE2ESmokeContractTests(unittest.TestCase):
             )
             self.assertEqual(compare_result.returncode, 0, compare_result.stderr)
             self.assertIn('"status": "ok"', compare_result.stdout)
+
+    def test_cli_uses_source_controlled_default_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            current = Path(temp_dir) / "current.json"
+            current.write_text(
+                json.dumps(_default_valid_store_payload(), ensure_ascii=False),
+                encoding="utf-8-sig",
+            )
+
+            compare_result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "src.ops.check_mas_e2e_smoke_contract",
+                    "--current",
+                    str(current),
+                ],
+                cwd=PROJECT_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(compare_result.returncode, 0, compare_result.stderr)
+            self.assertIn('"status": "ok"', compare_result.stdout)
+            self.assertIn('"difference_count": 0', compare_result.stdout)
 
 
 if __name__ == "__main__":
