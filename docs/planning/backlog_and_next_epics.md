@@ -892,14 +892,15 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 - reviewer/demo/smoke 출력은 shared runtime acceptance helper를 사용한다
 - critic rejection issue는 target task/artifact ids를 분리해 replan
   carry-forward가 rejected worker task를 함께 실패 처리할 수 있다
+- MAS smoke output은 final acceptance outcome을 case/summary/compact contract에
+  노출해 replan success, blocked answer, pending replan을 구분한다
 
 다음:
 
 - runtime critic은 task acceptance와 final merge 보호용
 - offline evaluator는 benchmark/scorecard용
-- 다음 follow-up은 live/default MAS trace에서 critic artifact가 replan 이후
-  최종 성공/blocked answer로 어떻게 관측되는지 smoke artifact에 더 선명하게
-  남기는 쪽이다
+- 다음 follow-up은 live/default MAS trace를 새 smoke outcome contract로 한 번
+  refresh할 필요가 있을 때만 진행한다
 
 ### 5. Self-reflection을 retry rule이 아닌 capability로 재정의
 

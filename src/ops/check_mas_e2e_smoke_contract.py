@@ -144,11 +144,15 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
     for index, case in enumerate(list(payload.get("cases") or []), start=1):
         final_report_record = dict(case.get("final_report_record") or {})
         final_carry_forward = dict(case.get("final_carry_forward") or {})
+        final_acceptance_outcome = dict(case.get("final_acceptance_outcome") or {})
         cases.append(
             {
                 "index": index,
                 "query": str(case.get("query") or ""),
                 "final_report_status": _normalise_status(final_report_record.get("status")),
+                "final_acceptance_outcome": _normalise_status(
+                    final_acceptance_outcome.get("outcome")
+                ),
                 "task_artifact_integrity_status": _normalise_status(
                     case.get("task_artifact_integrity_status")
                 ),
@@ -171,6 +175,9 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
         "blocked_count": int(summary.get("blocked_count", 0) or 0),
         "integrity_error_count": int(summary.get("integrity_error_count", 0) or 0),
         "replan_routed_count": int(summary.get("replan_routed_count", 0) or 0),
+        "final_acceptance_outcome_counts": dict(
+            sorted(dict(summary.get("final_acceptance_outcome_counts") or {}).items())
+        ),
         "final_source_task_count": int(summary.get("final_source_task_count", 0) or 0),
         "final_source_artifact_count": int(summary.get("final_source_artifact_count", 0) or 0),
         "final_evidence_ref_count": int(summary.get("final_evidence_ref_count", 0) or 0),
