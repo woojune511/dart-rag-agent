@@ -405,6 +405,68 @@
         ]
       }
     },
+    "net_fee_income": {
+      "display_name": "순수수료이익",
+      "aliases": [
+        "순수수료손익",
+        "순수수수료이익",
+        "순수수수료손익",
+        "수수료이익",
+        "수수료손익",
+        "net fee income",
+        "net commission income"
+      ],
+      "keywords": [
+        "순수수료이익",
+        "순수수료손익",
+        "순수수수료이익",
+        "순수수수료손익",
+        "수수료이익",
+        "수수료손익"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "summary_financials",
+        "income_statement",
+        "mda",
+        "notes"
+      ],
+      "preferred_sections": [
+        "영업의 현황",
+        "주요 영업실적",
+        "재무건전성 등 기타 참고사항",
+        "요약재무정보",
+        "연결 손익계산서",
+        "손익계산서"
+      ],
+      "surface_contract": {
+        "positive": [
+          "순수수료이익",
+          "순수수료손익",
+          "순수수수료이익",
+          "순수수수료손익",
+          "수수료이익",
+          "수수료손익"
+        ],
+        "negative": [
+          "수수료비용",
+          "수수료 비용"
+        ]
+      },
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "direct",
+          "final",
+          "subtotal",
+          "none"
+        ],
+        "prefer_period_focus": "current"
+      }
+    },
     "net_interest_margin": {
       "display_name": "순이자마진",
       "aliases": [

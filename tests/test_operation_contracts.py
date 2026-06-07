@@ -5391,6 +5391,217 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
+    def test_narrative_policy_supplements_realized_metric_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            EvidenceExtraction(
+                coverage="sufficient",
+                evidence=[
+                    {
+                        "source_anchor": "[KB금융 | 2023 | II. 사업의 내용 > 2. 영업의 현황]",
+                        "claim": "WM/연금부문은 자산관리 적립금 40조원을 돌파했습니다.",
+                        "quote_span": "자산관리 적립금 40조원을 돌파",
+                        "support_level": "direct",
+                        "question_relevance": "high",
+                        "allowed_terms": ["WM", "자산관리"],
+                    }
+                ],
+            )
+        )
+        state = {
+            "query": "2023년 순수수료이익 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+            "query_type": "comparison",
+            "topic": "순수수료이익 증가율 및 자산관리 성과",
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="WM/연금부문은 퇴직연금 사업자 중 최초로 자산관리 적립금 40조원을 돌파했습니다.",
+                        metadata={
+                            "company": "KB금융",
+                            "year": 2023,
+                            "section_path": "II. 사업의 내용 > 2. 영업의 현황",
+                            "block_type": "paragraph",
+                        },
+                    ),
+                    0.98,
+                ),
+                (
+                    Document(
+                        page_content=(
+                            "2023년말 그룹의 총관리자산은 1,216.7조원으로 2022년말 대비 "
+                            "70.0조원(6.1%) 증가하였습니다. 이는 은행(+15.6조원), "
+                            "증권(+35.6조), 자산운용(+6.8조원), 부동산신탁(+4.1조원) 등 "
+                            "자산이 성장한 영향입니다."
+                        ),
+                        metadata={
+                            "company": "KB금융",
+                            "year": 2023,
+                            "section_path": "II. 사업의 내용 > 5. 재무건전성 등 기타 참고사항",
+                            "block_type": "paragraph",
+                        },
+                    ),
+                    0.82,
+                ),
+            ],
+            "active_subtask": {
+                "task_id": "task_narrative",
+                "metric_family": "narrative_summary",
+                "metric_label": "자산관리 성과 요약",
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        result = agent._extract_evidence(state)
+        claims = " ".join(str(item.get("claim") or "") for item in result["evidence_items"])
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertIn("총관리자산", claims)
+        self.assertIn("1,216.7조원", claims)
+        self.assertIn("70.0조원", claims)
+
+    def test_narrative_policy_supplement_requires_policy_realized_terms(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_items = [
+            {
+                "source_anchor": "[KB금융 | 2023 | II. 사업의 내용]",
+                "claim": "KB자산운용의 관리자산은 132.3조원으로 전년 대비 증가했습니다.",
+                "quote_span": "KB자산운용의 관리자산은 132.3조원",
+                "support_level": "direct",
+                "question_relevance": "high",
+            }
+        ]
+        docs = [
+            (
+                Document(
+                    page_content="KB자산운용의 관리자산은 132.3조원으로 전년 대비 증가했습니다.",
+                    metadata={
+                        "chunk_id": "weak-manager-assets",
+                        "block_type": "paragraph",
+                        "section_path": "II. 사업의 내용 > 영업의 현황",
+                    },
+                ),
+                0.95,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "계열사별 총관리자산(AUM) 현황\n"
+                        "총관리자산(AUM) 주1) | 1,216,729 | 70,039 | 1,146,691"
+                    ),
+                    metadata={
+                        "chunk_id": "group-aum",
+                        "block_type": "table",
+                        "section_path": "II. 사업의 내용 > 5. 재무건전성 등 기타 참고사항",
+                        "table_context": "* 계열사별 총관리자산(AUM) 현황",
+                        "table_value_labels_text": (
+                            "총관리자산(AUM) 주1) 1,216,729 "
+                            "총관리자산(AUM) 주1) 70,039 "
+                            "총관리자산(AUM) 주1) 1,146,691"
+                        ),
+                        "period_focus": "current",
+                        "unit_hint": "억원",
+                    },
+                ),
+                0.40,
+            ),
+        ]
+
+        supplemented = agent._supplement_policy_realized_evidence(
+            evidence_items,
+            docs,
+            query="2023년 순수수료이익 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+            anchor_lookup={},
+        )
+        claims = " ".join(str(item.get("claim") or "") for item in supplemented)
+
+        self.assertGreater(len(supplemented), len(evidence_items))
+        self.assertIn("총관리자산(AUM)", claims)
+        self.assertIn("1,216,729", claims)
+
+    def test_narrative_selection_preserves_policy_realized_metric_candidate(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._narrative_driver_groups = lambda _query: []
+        reranked = [
+            (
+                Document(
+                    page_content="시장 환경 변화와 비용 관리에 대한 일반 설명입니다.",
+                    metadata={
+                        "chunk_id": "generic-1",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.99,
+            ),
+            (
+                Document(
+                    page_content="추가 일반 경영진단 문단입니다.",
+                    metadata={
+                        "chunk_id": "generic-2",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.98,
+            ),
+            (
+                Document(
+                    page_content="내실성장을 위한 일반 사업 현황 문단이며 전년 대비 개선 흐름을 설명합니다.",
+                    metadata={
+                        "chunk_id": "generic-3",
+                        "block_type": "paragraph",
+                        "section_path": "II. 사업의 내용 > 2. 영업의 현황",
+                    },
+                ),
+                0.97,
+            ),
+            (
+                Document(
+                    page_content="위탁/자산관리 부문 영업이익은 전년 대비 증가했습니다.",
+                    metadata={
+                        "chunk_id": "wm-profit",
+                        "block_type": "table",
+                        "section_path": "II. 사업의 내용 > 2. 영업의 현황",
+                    },
+                ),
+                0.96,
+            ),
+            (
+                Document(
+                    page_content="계열사별 손익은 전년대비 개선되었지만 자산 규모 지표는 포함하지 않습니다.",
+                    metadata={
+                        "chunk_id": "weak-realized",
+                        "block_type": "paragraph",
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                    },
+                ),
+                0.95,
+            ),
+            (
+                Document(
+                    page_content="그룹 총관리자산(AUM)은 1,216.7조원이며 계열사별 자산이 증가했습니다.",
+                    metadata={
+                        "chunk_id": "wm-aum",
+                        "block_type": "table",
+                        "section_path": "II. 사업의 내용 > 5. 재무건전성 등 기타 참고사항",
+                        "period_focus": "current",
+                    },
+                ),
+                0.40,
+            ),
+        ]
+        state = {
+            "query": "2023년 순수수료이익 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+            },
+        }
+
+        docs = agent._select_narrative_summary_docs(reranked, state, 3)
+        chunk_ids = [item[0].metadata.get("chunk_id") for item in docs]
+
+        self.assertIn("wm-aum", chunk_ids)
+
     def test_evidence_extraction_prompt_surfaces_narrative_focus_terms(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm = _CapturingLLM(EvidenceExtraction(coverage="missing", evidence=[]))

@@ -28,6 +28,7 @@ from src.config.retrieval_policy import (
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
     OPERAND_CANDIDATE_SCORING_POLICY,
+    narrative_policy_terms,
 )
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
@@ -2480,6 +2481,7 @@ class FinancialAgentCalculationMixin:
                     cleaned,
                     complete_answer,
                     required_values,
+                    evidence_items,
                 ):
                     continue
                 extra_sentences.append(cleaned)
@@ -2535,6 +2537,7 @@ class FinancialAgentCalculationMixin:
                     cleaned,
                     complete_answer,
                     required_values,
+                    evidence_items,
                 ):
                     continue
                 extra_sentences.append(cleaned)
@@ -2624,11 +2627,20 @@ class FinancialAgentCalculationMixin:
         sentence: str,
         complete_answer: str,
         required_values: List[str],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         cleaned = _normalise_spaces(str(sentence or ""))
         if not cleaned:
             return False
-        allowed_surface = _normalise_spaces(" ".join([str(complete_answer or ""), *required_values]))
+        evidence_surface = _normalise_spaces(
+            " ".join(
+                str(item.get(key) or "")
+                for item in (evidence_items or [])
+                if isinstance(item, dict)
+                for key in ("claim", "quote_span", "raw_row_text")
+            )
+        )
+        allowed_surface = _normalise_spaces(" ".join([str(complete_answer or ""), *required_values, evidence_surface]))
         if not allowed_surface:
             return False
         percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or "")
@@ -2699,6 +2711,7 @@ class FinancialAgentCalculationMixin:
                     sentence,
                     complete_answer,
                     required_values,
+                    evidence_items,
                 ):
                     return True
         return False
@@ -4643,6 +4656,10 @@ class FinancialAgentCalculationMixin:
             current_slot = dict(answer_slots.get("current_value") or {})
             prior_slot = dict(answer_slots.get("prior_value") or {})
             primary_slot = dict(answer_slots.get("primary_value") or {})
+            if operation_family == "growth_rate" and self._growth_row_has_conflicting_periods(row):
+                return str(feedback_policy.get("generic_missing_material_template") or "").format(
+                    metric_label=metric_label
+                )
             missing_labels: List[str] = []
             if not self._answer_slot_has_material(current_slot):
                 period = str(
@@ -4861,6 +4878,8 @@ class FinancialAgentCalculationMixin:
                     continue
                 if self._aggregate_result_operation_family(nested_row) == "aggregate_subtasks":
                     continue
+                if self._material_gap_feedback_for_subtask_result(dict(nested_row)):
+                    continue
                 current_row = replacements.get(nested_task_id) or by_task_id.get(nested_task_id)
                 if not current_row:
                     continue
@@ -5054,6 +5073,268 @@ class FinancialAgentCalculationMixin:
         if context in answer_text:
             return answer_text
         return _normalise_spaces(f"{context} {answer_text}")
+
+    def _policy_required_realized_snippet_from_doc(
+        self,
+        *,
+        doc: Any,
+        policy: Dict[str, Any],
+    ) -> str:
+        metadata = dict(getattr(doc, "metadata", {}) or {})
+        required_terms = narrative_policy_terms([policy], "required_realized_terms")
+        if not required_terms:
+            return ""
+        surface_parts = [
+            str(metadata.get("table_value_labels_text") or ""),
+            str(metadata.get("table_row_labels_text") or ""),
+            str(metadata.get("table_summary_text") or ""),
+            str(metadata.get("table_context") or ""),
+            str(getattr(doc, "page_content", "") or ""),
+        ]
+        surface = _normalise_spaces(" ".join(part for part in surface_parts if part))
+        if not surface:
+            return ""
+        lowered = surface.lower()
+        matched_term = next((term for term in required_terms if term.lower() in lowered), "")
+        if not matched_term:
+            return ""
+        term_index = lowered.find(matched_term.lower())
+        window = surface[term_index : min(len(surface), term_index + 520)]
+        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+        numbers = re.findall(r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?", window)
+        numeric_values = [
+            value
+            for value in numbers
+            if not re.fullmatch(r"20\d{2}", value)
+            and not (re.fullmatch(r"\d+\)?", value) and len(value.strip("()")) <= 2)
+        ]
+        label_match = re.search(re.escape(matched_term) + r"(?:\([^)]*\))?", window)
+        label = _normalise_spaces(label_match.group(0) if label_match else matched_term)
+        footnote_suffix_pattern = str(
+            CALCULATION_NARRATIVE_POLICY.get("policy_required_realized_footnote_suffix_pattern") or ""
+        )
+        if footnote_suffix_pattern:
+            label = re.sub(footnote_suffix_pattern, "", label).strip() or matched_term
+        if len(numeric_values) >= 2 and unit_hint:
+            template = str(
+                CALCULATION_NARRATIVE_POLICY.get("policy_required_realized_current_change_template") or ""
+            )
+            return _normalise_spaces(
+                template.format(
+                    label=label,
+                    topic_particle=_topic_particle(label),
+                    current_value=numeric_values[0],
+                    change_value=numeric_values[1],
+                    unit=unit_hint,
+                )
+            )
+        if numeric_values and unit_hint:
+            template = str(CALCULATION_NARRATIVE_POLICY.get("policy_required_realized_current_template") or "")
+            return _normalise_spaces(
+                template.format(
+                    label=label,
+                    topic_particle=_topic_particle(label),
+                    current_value=numeric_values[0],
+                    unit=unit_hint,
+                )
+            )
+        for sentence in _split_narrative_sentences(surface):
+            cleaned = _normalise_spaces(sentence)
+            if matched_term.lower() in cleaned.lower() and re.search(r"\d", cleaned):
+                return cleaned[:220].rstrip()
+        return window[:220].rstrip()
+
+    def _preserve_policy_required_realized_context(
+        self,
+        answer: str,
+        *,
+        query: str,
+        docs: List[Any],
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text or not docs or not _query_requests_narrative_context(query):
+            return answer_text
+        active_policies = self._active_narrative_policies_for_query(query)
+        if not active_policies:
+            return answer_text
+        additions: List[str] = []
+        for policy in active_policies:
+            required_terms = narrative_policy_terms([policy], "required_realized_terms")
+            if not required_terms:
+                continue
+            if any(term.lower() in answer_text.lower() for term in required_terms):
+                continue
+            focus_terms = narrative_policy_terms([policy], "focus_terms")
+            realized_terms = narrative_policy_terms([policy], "realized_terms")
+            scored_docs: List[tuple[int, str]] = []
+            for item in docs or []:
+                doc = item[0] if isinstance(item, (tuple, list)) and item else item
+                metadata = dict(getattr(doc, "metadata", {}) or {})
+                surface = _normalise_spaces(
+                    " ".join(
+                        part
+                        for part in (
+                            str(getattr(doc, "page_content", "") or ""),
+                            str(metadata.get("table_context") or ""),
+                            str(metadata.get("table_row_labels_text") or ""),
+                            str(metadata.get("table_value_labels_text") or ""),
+                            str(metadata.get("table_summary_text") or ""),
+                        )
+                        if part
+                    )
+                )
+                surface_lower = surface.lower()
+                required_hits = sum(1 for term in required_terms if term.lower() in surface_lower)
+                if not required_hits:
+                    continue
+                focus_hits = sum(1 for term in focus_terms if term.lower() in surface_lower)
+                realized_hits = sum(1 for term in realized_terms if term.lower() in surface_lower)
+                snippet = self._policy_required_realized_snippet_from_doc(doc=doc, policy=policy)
+                if not snippet:
+                    continue
+                score = required_hits * 8 + min(focus_hits, 4) * 2 + min(realized_hits, 4) * 3
+                if str(metadata.get("block_type") or "").strip().lower() == "table":
+                    score += 2
+                if str(metadata.get("period_focus") or "").strip().lower() == "current":
+                    score += 2
+                scored_docs.append((score, snippet))
+            if not scored_docs:
+                continue
+            scored_docs.sort(key=lambda item: item[0], reverse=True)
+            addition = _normalise_spaces(scored_docs[0][1])
+            if addition and addition not in answer_text and addition not in additions:
+                additions.append(addition)
+        if not additions:
+            return answer_text
+        return _normalise_spaces(" ".join([answer_text, *additions]))
+
+    def _prune_nonfocus_numeric_narrative_sentences(
+        self,
+        answer: str,
+        *,
+        query: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text or not ordered_results or not _query_requests_narrative_context(query):
+            return answer_text
+        if not any(self._row_is_narrative_summary(row) for row in ordered_results):
+            return answer_text
+        if not any(self._aggregate_result_operation_family(row) == "growth_rate" for row in ordered_results):
+            return answer_text
+
+        active_policies = [
+            policy
+            for policy in self._active_narrative_policies_for_query(query)
+            if narrative_policy_terms([policy], "required_realized_terms")
+        ]
+        if not active_policies:
+            return answer_text
+        focus_terms = list(
+            dict.fromkeys(
+                [
+                    *narrative_policy_terms(active_policies, "focus_terms"),
+                    *narrative_policy_terms(active_policies, "required_realized_terms"),
+                ]
+            )
+        )
+        if not focus_terms:
+            return answer_text
+
+        def _is_growth_supported_sentence(sentence: str) -> bool:
+            cleaned = _normalise_spaces(sentence)
+            if not cleaned:
+                return False
+            for row in ordered_results:
+                if self._aggregate_result_operation_family(row) != "growth_rate":
+                    continue
+                if self._growth_row_has_conflicting_periods(row):
+                    continue
+                complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
+                required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
+                if complete_answer and (cleaned in complete_answer or complete_answer in cleaned):
+                    return True
+                required_hits = [value for value in required_values if value and value in cleaned]
+                if required_hits and not self._growth_sentence_has_untraced_material_numeric(
+                    cleaned,
+                    complete_answer,
+                    required_values,
+                    evidence_items,
+                ):
+                    return True
+            return False
+
+        kept: List[str] = []
+        changed = False
+        for sentence in _split_narrative_sentences(answer_text):
+            cleaned = _normalise_spaces(sentence)
+            if not cleaned:
+                continue
+            if not re.search(r"\d", cleaned):
+                kept.append(cleaned)
+                continue
+            lowered = cleaned.lower()
+            if any(term and term.lower() in lowered for term in focus_terms):
+                kept.append(cleaned)
+                continue
+            if _is_growth_supported_sentence(cleaned):
+                kept.append(cleaned)
+                continue
+            changed = True
+        if not changed or not kept:
+            return answer_text
+        return _normalise_spaces(" ".join(kept))
+
+    def _preserve_policy_required_context_in_narrative_results(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        *,
+        query: str,
+        docs: List[Any],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        if not ordered_results or not docs or not _query_requests_narrative_context(query):
+            return ordered_results
+        changed = False
+        updated_results: List[Dict[str, Any]] = []
+        for row in ordered_results:
+            row_copy = dict(row)
+            if not self._row_is_narrative_summary(row_copy):
+                updated_results.append(row_copy)
+                continue
+            row_answer = _normalise_spaces(
+                str(
+                    row_copy.get("answer")
+                    or (row_copy.get("calculation_result") or {}).get("formatted_result")
+                    or (row_copy.get("calculation_result") or {}).get("rendered_value")
+                    or ""
+                )
+            )
+            if not row_answer:
+                updated_results.append(row_copy)
+                continue
+            preserved = self._preserve_policy_required_realized_context(
+                row_answer,
+                query=query,
+                docs=docs,
+            )
+            pruned = self._prune_nonfocus_numeric_narrative_sentences(
+                preserved,
+                query=query,
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+            if pruned != row_answer:
+                row_copy["answer"] = pruned
+                calculation_result = dict(row_copy.get("calculation_result") or {})
+                if calculation_result:
+                    calculation_result["formatted_result"] = pruned
+                    calculation_result["rendered_value"] = pruned
+                    row_copy["calculation_result"] = calculation_result
+                changed = True
+            updated_results.append(row_copy)
+        return updated_results if changed else ordered_results
 
     def _preserve_source_visible_query_terms(
         self,
@@ -5909,6 +6190,7 @@ class FinancialAgentCalculationMixin:
                 cleaned,
                 allowed_narrative_numeric_surface,
                 required_values,
+                evidence_items,
             ):
                 return False
             if any(value and value in cleaned for value in required_values):
@@ -10908,6 +11190,15 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
             docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
         )
+        policy_preserved_results = self._preserve_policy_required_context_in_narrative_results(
+            ordered_results,
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
+            evidence_items=aggregate_evidence_items,
+        )
+        if policy_preserved_results is not ordered_results:
+            ordered_results = policy_preserved_results
+            preliminary_projection = self._build_aggregate_calculation_projection(ordered_results, fallback_answer)
         # Prefer the deterministic structured-material check over a stale
         # deterministic hint, but preserve independent synthesizer feedback for
         # replan/budget-exhausted cases.
@@ -11215,6 +11506,11 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             evidence_items=aggregate_evidence_items,
         )
+        final_answer = self._preserve_policy_required_realized_context(
+            final_answer,
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
+        )
         if final_answer:
             aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
             if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
@@ -11308,6 +11604,38 @@ class FinancialAgentCalculationMixin:
             aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
             if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
                 aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
+            final_answer,
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
+        if pruned_focus_answer != final_answer:
+            final_answer = pruned_focus_answer
+            aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+            if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        if (
+            final_answer
+            and has_narrative_summary
+            and has_growth_rate_result
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+        ):
+            numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
+                final_answer,
+                ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+            if numeric_preserved_answer != final_answer:
+                final_answer = numeric_preserved_answer
+                aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                    aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+                    aggregate_evidence_items,
+                    operands=list(aggregate_projection.get("calculation_operands") or []),
+                    final_answer=final_answer,
+                )
         if final_answer and has_narrative_summary and has_growth_rate_result:
             missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
             final_answer_is_missing = any(marker and marker in final_answer for marker in missing_markers)
@@ -11347,7 +11675,14 @@ class FinancialAgentCalculationMixin:
                     continue
                 if any(marker and marker in row_answer for marker in missing_markers):
                     continue
-                if self._answer_evidence_numeric_candidates(row_answer):
+                if (
+                    self._answer_evidence_numeric_candidates(row_answer)
+                    and self._growth_answer_has_untraced_numeric_material(
+                        row_answer,
+                        ordered_results,
+                        aggregate_evidence_items,
+                    )
+                ):
                     continue
                 row_answer_terms = {
                     term.lower()
@@ -11388,6 +11723,17 @@ class FinancialAgentCalculationMixin:
                     )
                 )
                 break
+        pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
+            final_answer,
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
+        if pruned_focus_answer != final_answer:
+            final_answer = pruned_focus_answer
+            aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+            if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                aggregate_projection["calculation_result"]["rendered_value"] = final_answer
         aggregate_evidence_items = self._filter_aggregate_evidence_for_final_answer(
             aggregate_evidence_items,
             final_answer=final_answer,

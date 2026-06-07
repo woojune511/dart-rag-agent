@@ -2598,6 +2598,109 @@ class SubtaskLoopTests(unittest.TestCase):
             "(3,146,409)",
         )
 
+    def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
+        current_growth = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "segment revenue growth",
+            "operation_family": "growth_rate",
+            "answer": "Segment revenue increased by 41.4%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "41.4%",
+                "source_row_ids": ["row_current", "row_prior"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue growth",
+                        "normalized_value": 41.4,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "41.4%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "11,621.3",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 1_162_130_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "11,621 hundred million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2022",
+                        "raw_value": "8,220.1",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 822_010_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "8,220 hundred million",
+                    },
+                },
+            },
+        }
+        gap_growth = {
+            **current_growth,
+            "answer": "Segment revenue increased by 17.65%.",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "17.65%",
+                "source_row_ids": ["row_current", "row_prior"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue growth",
+                        "normalized_value": 17.65,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "17.65%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "9,670.6",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 967_060_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "9,671 hundred million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "8,220.1",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 822_010_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "8,220 hundred million",
+                    },
+                },
+            },
+        }
+        aggregate_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "metric_label": "summary",
+            "operation_family": "aggregate_subtasks",
+            "answer": "Segment revenue increased by 17.65%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "Segment revenue increased by 17.65%.",
+                "subtask_results": [gap_growth],
+            },
+        }
+
+        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+
+        self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
+        self.assertIn("41.4%", promoted[0]["answer"])
+        self.assertNotIn("17.65%", promoted[0]["answer"])
+
     def test_quantitative_impact_retrieval_adds_relation_query(self) -> None:
         self.agent.k = 8
         self.agent.vsm = _RecordingVectorStore()
@@ -7344,6 +7447,67 @@ class SubtaskLoopTests(unittest.TestCase):
             for key, value in original_policy.items():
                 CALCULATION_NARRATIVE_POLICY[key] = value
 
+    def test_growth_numeric_guard_allows_source_supported_narrative_numbers(self) -> None:
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "segment revenue growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "41.4%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "segment revenue growth",
+                            "period": "2023",
+                            "rendered_value": "41.4%",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "segment revenue",
+                            "period": "2023",
+                            "rendered_value": "2,546,649 million",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "segment revenue",
+                            "period": "2022",
+                            "rendered_value": "1,801,079 million",
+                        },
+                    },
+                },
+            }
+        ]
+        answer = (
+            "2023 segment revenue was 2,546,649 million, up 41.4% from 1,801,079 million in 2022. "
+            "The acquisition effect increased operating expense by 24.3%."
+        )
+
+        self.assertTrue(
+            self.agent._growth_answer_has_untraced_numeric_material(
+                answer,
+                ordered_results,
+                evidence_items=[],
+            )
+        )
+        self.assertFalse(
+            self.agent._growth_answer_has_untraced_numeric_material(
+                answer,
+                ordered_results,
+                evidence_items=[
+                    {
+                        "evidence_id": "ev_driver",
+                        "claim": "The acquisition effect increased operating expense by 24.3%.",
+                        "quote_span": "operating expense by 24.3%",
+                    }
+                ],
+            )
+        )
+
     def test_retrieved_doc_narrative_evidence_is_selected_for_final_answer(self) -> None:
         evidence_items = [
             {
@@ -8853,6 +9017,108 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("41.4%", answer)
         self.assertNotIn("17.65%", answer)
 
+    def test_material_gap_flags_same_period_growth_row(self) -> None:
+        row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "segment revenue growth",
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "17.65%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue growth",
+                        "normalized_value": 17.65,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "17.65%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "9,670.6",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 967060000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "9,671 hundred million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "raw_value": "8,220.1",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 822010000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "8,220 hundred million",
+                    },
+                },
+            },
+        }
+
+        gap = self.agent._material_gap_feedback_for_subtask_result(row)
+
+        self.assertTrue(gap)
+        self.assertIn("segment revenue growth", gap)
+
+    def test_aggregate_projection_does_not_promote_gap_operands(self) -> None:
+        row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "segment revenue growth",
+            "operation_family": "growth_rate",
+            "answer": "Segment revenue decreased by 17.65%.",
+            "status": "ok",
+            "calculation_operands": [
+                {
+                    "operand_id": "current",
+                    "matched_operand_role": "current_period",
+                    "raw_value": "9,670.6",
+                    "raw_unit": "hundred million",
+                    "source_row_id": "row_current",
+                },
+                {
+                    "operand_id": "prior",
+                    "matched_operand_role": "prior_period",
+                    "raw_value": "8,220.1",
+                    "raw_unit": "hundred million",
+                    "source_row_id": "row_prior",
+                },
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "17.65%",
+                "source_row_ids": ["row_current", "row_prior"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {"status": "ok", "rendered_value": "17.65%"},
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "rendered_value": "9,671 hundred million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "period": "2023",
+                        "rendered_value": "8,220 hundred million",
+                    },
+                },
+            },
+        }
+
+        projection = self.agent._build_aggregate_calculation_projection([row], "partial answer")
+
+        self.assertEqual(projection["calculation_operands"], [])
+        self.assertEqual(projection["calculation_result"]["source_row_ids"], [])
+        projected_child = projection["calculation_result"]["subtask_results"][0]
+        self.assertTrue(projected_child["calculation_result"]["material_gap_feedback"])
+
     def test_late_numeric_refresh_preserves_narrative_summary_child(self) -> None:
         self.agent.llm = None
         self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
@@ -8933,6 +9199,272 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("1,801,079 million", updated["answer"])
         self.assertIn("acquisition integration improved", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
+
+    def test_late_source_surface_preservation_keeps_growth_numeric_contract(self) -> None:
+        self.agent.llm = None
+        self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
+        self.agent._align_lookup_results_with_dependency_projection = (
+            lambda ordered_results, _state, _projection: list(ordered_results)
+        )
+        self.agent._preserve_retrieved_narrative_source_surface = (
+            lambda _answer, _evidence_items: "The acquisition improved commerce revenue growth by 41.4%."
+        )
+        state = {
+            "query": "Calculate the 2023 commerce revenue growth rate and summarize the acquisition impact.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "operation_family": "narrative_summary",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "commerce revenue growth rate",
+                    "answer": "2023 commerce revenue was up 41.4%.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "commerce revenue growth rate",
+                                "period": "2023",
+                                "rendered_value": "41.4%",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "commerce revenue",
+                                "period": "2023",
+                                "rendered_value": "2,546,649 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "commerce revenue",
+                                "period": "2022",
+                                "rendered_value": "1,801,079 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "acquisition impact summary",
+                    "answer": "The acquisition improved commerce revenue growth by 41.4%.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ],
+            "answer": "The acquisition improved commerce revenue growth by 41.4%.",
+            "compressed_answer": "The acquisition improved commerce revenue growth by 41.4%.",
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": ["ev_driver"],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("2,546,649 million", updated["answer"])
+        self.assertIn("1,801,079 million", updated["answer"])
+        self.assertIn("acquisition improved commerce revenue growth", updated["answer"])
+
+    def test_policy_required_realized_context_preserves_retrieved_aum_table(self) -> None:
+        answer = (
+            "2023년 순수수료이익은 3,673,524백만원이며, "
+            "2022년 3,514,902백만원 대비 4.51% 증가했습니다. "
+            "위탁/자산관리 부문의 영업이익은 전년 대비 1,162억원 증가한 2,654억원을 기록했습니다."
+        )
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "구 분 | 구 분 | 2023년 | 2023년 | 2022년 | 2021년 "
+                        "총관리자산(AUM) 주1) | 총관리자산(AUM) 주1) | 1,216,729 | 70,039 | 1,146,691 | 1,117,859"
+                    ),
+                    metadata={
+                        "block_type": "table",
+                        "period_focus": "current",
+                        "unit_hint": "억원",
+                        "table_context": "* 계열사별 총관리자산(AUM) 현황",
+                        "table_value_labels_text": (
+                            "총관리자산(AUM) 주1) 1,216,729 "
+                            "총관리자산(AUM) 주1) 70,039 "
+                            "총관리자산(AUM) 주1) 1,146,691"
+                        ),
+                    },
+                ),
+                0.7,
+            )
+        ]
+
+        preserved = self.agent._preserve_policy_required_realized_context(
+            answer,
+            query="2023년 순수수료이익 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+            docs=docs,
+        )
+
+        self.assertIn("총관리자산(AUM)", preserved)
+        self.assertIn("1,216,729억원", preserved)
+        self.assertIn("70,039억원", preserved)
+
+    def test_nonfocus_numeric_narrative_pruning_keeps_growth_and_policy_required_context(self) -> None:
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "net fee income growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "4.51%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "net fee income growth",
+                            "period": "2023",
+                            "rendered_value": "4.51%",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "net fee income",
+                            "period": "2023",
+                            "rendered_value": "3,673,524 million",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "net fee income",
+                            "period": "2022",
+                            "rendered_value": "3,514,902 million",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "WM performance summary",
+                "operation_family": "narrative_summary",
+                "status": "ok",
+                "answer": "WM operating profit was 2,654.",
+            },
+        ]
+        answer = (
+            "Non-interest income increased by 18,230 to 40,880. "
+            "Net fee income was 3,673,524 million, up 4.51% from 3,514,902 million. "
+            "Total managed assets (AUM) were 1,216,729."
+        )
+
+        pruned = self.agent._prune_nonfocus_numeric_narrative_sentences(
+            answer,
+            query="2023년 순수수료이익 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+
+        self.assertNotIn("Non-interest income", pruned)
+        self.assertIn("3,673,524 million", pruned)
+        self.assertIn("4.51%", pruned)
+        self.assertIn("AUM", pruned)
+        self.assertIn("1,216,729", pruned)
+
+    def test_policy_required_context_updates_narrative_result_trace(self) -> None:
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "net fee income growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "4.51%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "net fee income growth",
+                            "period": "2023",
+                            "rendered_value": "4.51%",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "net fee income",
+                            "period": "2023",
+                            "rendered_value": "3,673,524 million",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "net fee income",
+                            "period": "2022",
+                            "rendered_value": "3,514,902 million",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "WM performance summary",
+                "operation_family": "narrative_summary",
+                "status": "ok",
+                "answer": "Non-interest income increased by 18,230 to 40,880. WM operating profit was 2,654.",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "Non-interest income increased by 18,230 to 40,880. WM operating profit was 2,654.",
+                    "rendered_value": "Non-interest income increased by 18,230 to 40,880. WM operating profit was 2,654.",
+                },
+            },
+        ]
+        docs = [
+            (
+                Document(
+                    page_content="Total managed assets (AUM) | 1,216,729 | 70,039 | 1,146,691",
+                    metadata={
+                        "block_type": "table",
+                        "period_focus": "current",
+                        "unit_hint": "억원",
+                        "table_context": "* 계열사별 총관리자산(AUM) 현황",
+                        "table_value_labels_text": (
+                            "총관리자산(AUM) 주1) 1,216,729 "
+                            "총관리자산(AUM) 주1) 70,039 "
+                            "총관리자산(AUM) 주1) 1,146,691"
+                        ),
+                    },
+                ),
+                0.7,
+            )
+        ]
+
+        updated = self.agent._preserve_policy_required_context_in_narrative_results(
+            ordered_results,
+            query="2023년 순수수료이익 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+            docs=docs,
+            evidence_items=[],
+        )
+
+        narrative_answer = updated[1]["answer"]
+        self.assertNotIn("Non-interest income", narrative_answer)
+        self.assertIn("WM operating profit", narrative_answer)
+        self.assertIn("총관리자산(AUM)", narrative_answer)
+        self.assertIn("1,216,729억원", narrative_answer)
+        self.assertEqual(updated[1]["calculation_result"]["formatted_result"], narrative_answer)
 
     def test_aggregate_subtasks_keeps_slot_based_difference_answer_when_numeric_locked(self) -> None:
         self.agent.llm = None
