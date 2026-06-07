@@ -903,12 +903,18 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   Researcher failures `2`, incomplete numeric result reasons `2`, empty
   narrative result reasons `2`, and missing worker artifact reasons `4`를
   보고한다
+- 2026-06-07 direct worker probe는 같은 default store/scope에서 planner가
+  Analyst `2`개와 Researcher `2`개 task를 정상 생성함을 확인했다. 하지만
+  direct Analyst는 `no_retrieved_docs = 2`, direct Researcher는
+  `no_raw_retrieval = 2`였고, store inventory는 `chroma_count = 0`,
+  `bm25_doc_count = 0`, `parent_count = 0`, `structure_graph_node_count = 0`
+  이었다
 
 다음:
 
-- 다음 follow-up은 direct Analyst / Researcher probes로 live/default MAS
-  trace의 material-empty 원인을 store/retrieval/planner/default-query 층으로
-  분리하는 것이다
+- 다음 follow-up은 default MAS smoke가 empty store에서 LLM work를 시작하지
+  않도록 store preflight를 강화하거나, default smoke가 참조하는 valid local
+  store를 재설정하는 것이다
 - runtime critic은 task acceptance와 final merge 보호용이고, offline
   evaluator는 benchmark/scorecard용이라는 경계는 유지한다
 

@@ -370,11 +370,11 @@ Useful supporting points:
 
 ## Next Work
 
-1. MAS default smoke material-empty probe: failed-worker diagnostics now show
-   the latest live/default smoke has `worker_failure_count = 4` and
-   `worker_failure_missing_artifact_count = 4`; next work should run direct
-   Analyst and Researcher probes against the same default store/scope to
-   separate store/retrieval/planner/default-query causes.
+1. MAS default smoke store preflight: direct worker probe shows planner creates
+   the expected Analyst/Researcher tasks, but the current default store has
+   `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, and
+   `structure_graph_node_count = 0`; next work should restore a valid default
+   smoke store or fail the smoke before LLM work when the store is empty.
 2. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
    acceptance focused on structurally visible worker artifacts, while offline
    evaluator scorecards remain a separate review surface.
@@ -642,6 +642,15 @@ Useful supporting points:
   reasons `4`. This confirms the
   immediate blocker is failed worker material production, not critic acceptance
   or final synthesis carry-forward.
+- A direct worker probe now checks the same default store/scope without running
+  Critic or final merge. It confirms the planner created `2` Analyst and `2`
+  Researcher tasks, but direct Analyst returned `no_retrieved_docs = 2` and
+  direct Researcher returned `no_raw_retrieval = 2`. Store inventory for that
+  default path reported `chroma_count = 0`, `bm25_doc_count = 0`,
+  `parent_count = 0`, and `structure_graph_node_count = 0`. The immediate
+  blocker is therefore an empty or missing default smoke store, not planner
+  task generation or worker-wrapper logic. Raw output is local-only under
+  `benchmarks/results/mas_direct_worker_probe_2026-06-07/`.
 - Earlier live real-node smoke was run with a local OpenAI-3072 Samsung 2023
   store and matching report scope. It completed in `68.2s` with
   `final_report_record.status = ok`, `task_artifact_trace.integrity_status =
