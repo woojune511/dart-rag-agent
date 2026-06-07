@@ -89,6 +89,19 @@ class FinalReport(TypedDict, total=False):
     subtask_results: List[Dict[str, Any]]
 
 
+class FinalCarryForwardProjection(TypedDict):
+    status: str
+    source_task_count: int
+    source_artifact_count: int
+    evidence_ref_count: int
+    subtask_result_count: int
+    source_task_ids: List[str]
+    source_artifact_ids: List[str]
+    evidence_refs: List[str]
+    subtask_task_ids: List[str]
+    subtask_artifact_ids: List[str]
+
+
 class ReportScope(TypedDict):
     company: str
     report_type: str
@@ -367,6 +380,44 @@ def build_final_report_record(
         "source_artifact_ids": _dedupe_strings(source_artifact_ids),
         "evidence_refs": _dedupe_strings(evidence_refs),
         "subtask_results": [dict(item) for item in (subtask_results or []) if isinstance(item, dict)],
+    }
+
+
+def project_final_report_carry_forward(final_report_record: Dict[str, Any]) -> FinalCarryForwardProjection:
+    record = dict(final_report_record or {})
+    subtask_results = [
+        dict(item)
+        for item in list(record.get("subtask_results") or [])
+        if isinstance(item, dict)
+    ]
+    subtask_task_ids = _dedupe_strings(
+        [
+            str(item.get("task_id") or "").strip()
+            for item in subtask_results
+            if str(item.get("task_id") or "").strip()
+        ]
+    )
+    subtask_artifact_ids = _dedupe_strings(
+        [
+            str(item.get("artifact_id") or item.get("source_artifact_id") or "").strip()
+            for item in subtask_results
+            if str(item.get("artifact_id") or item.get("source_artifact_id") or "").strip()
+        ]
+    )
+    source_task_ids = _dedupe_strings(_list_strings(record.get("source_task_ids")))
+    source_artifact_ids = _dedupe_strings(_list_strings(record.get("source_artifact_ids")))
+    evidence_refs = _dedupe_strings(_list_strings(record.get("evidence_refs")))
+    return {
+        "status": str(record.get("status") or "").strip(),
+        "source_task_count": len(source_task_ids),
+        "source_artifact_count": len(source_artifact_ids),
+        "evidence_ref_count": len(evidence_refs),
+        "subtask_result_count": len(subtask_results),
+        "source_task_ids": source_task_ids,
+        "source_artifact_ids": source_artifact_ids,
+        "evidence_refs": evidence_refs,
+        "subtask_task_ids": subtask_task_ids,
+        "subtask_artifact_ids": subtask_artifact_ids,
     }
 
 

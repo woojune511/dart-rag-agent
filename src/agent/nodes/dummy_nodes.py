@@ -187,8 +187,18 @@ def run_orchestrator_merge(state: MultiAgentState) -> Dict[str, Any]:
         source_artifact_ids=source_artifact_ids,
         evidence_refs=source_artifact_ids,
         subtask_results=[
-            {"task_id": "task_1", "answer": task_1},
-            {"task_id": "task_2", "answer": task_2},
+            {
+                "task_id": "task_1",
+                "artifact_id": "task_1",
+                "source_artifact_id": "task_1",
+                "answer": task_1,
+            },
+            {
+                "task_id": "task_2",
+                "artifact_id": "task_2",
+                "source_artifact_id": "task_2",
+                "answer": task_2,
+            },
         ],
     )
     synthesis_task = build_agent_task(

@@ -94,6 +94,13 @@ orchestration join points. Worker nodes should write artifacts with stable
 `artifact_id`, `kind`, payload, and evidence refs. The Critic should write
 `critic_report` artifacts, and the final Orchestrator merge should write an
 `aggregated_answer` artifact for the final report.
+The final report record must also preserve carry-forward provenance as typed
+fields: `source_task_ids`, `source_artifact_ids`, `evidence_refs`, and
+`subtask_results`. Each subtask result row should include the worker `task_id`,
+the selected worker `artifact_id` / `source_artifact_id`, and the answer surface
+used by final synthesis. Runtime and smoke surfaces should derive compact
+carry-forward counts and id lists from the shared MAS schema helper rather than
+reimplementing the projection in one-off scripts.
 Analyst worker tasks are `calculation` tasks and must write separate
 `operand_set`, `calculation_plan`, and primary `calculation_result` artifacts.
 Researcher worker tasks are `retrieval` tasks and must write a `retrieval_bundle`

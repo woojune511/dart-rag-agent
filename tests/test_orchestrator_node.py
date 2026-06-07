@@ -10,7 +10,14 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.mas_graph import build_initial_state, run_mas_graph
-from src.agent.mas_types import Artifact, MultiAgentState, TaskStatus, build_agent_task, build_artifact
+from src.agent.mas_types import (
+    Artifact,
+    MultiAgentState,
+    TaskStatus,
+    build_agent_task,
+    build_artifact,
+    project_final_report_carry_forward,
+)
 from src.agent.nodes.orchestrator_node import (
     MERGE_ANSWER_COMPRESSION_GUIDANCE,
     make_run_orchestrator_merge,
@@ -279,6 +286,27 @@ class OrchestratorNodeTests(unittest.TestCase):
             ["task_1", "task_2"],
         )
         self.assertEqual(
+            updates["final_report_record"]["subtask_results"],
+            [
+                {
+                    "task_id": "task_1",
+                    "artifact_id": "task_1",
+                    "source_artifact_id": "task_1",
+                    "answer": "영업이익률은 10.9%입니다.",
+                },
+                {
+                    "task_id": "task_2",
+                    "artifact_id": "task_2",
+                    "source_artifact_id": "task_2",
+                    "answer": "반도체 수요 회복이 배경입니다.",
+                },
+            ],
+        )
+        carry_forward = project_final_report_carry_forward(updates["final_report_record"])
+        self.assertEqual(carry_forward["source_task_ids"], ["task_1", "task_2"])
+        self.assertEqual(carry_forward["source_artifact_ids"], ["task_1", "task_2"])
+        self.assertEqual(carry_forward["subtask_artifact_ids"], ["task_1", "task_2"])
+        self.assertEqual(
             updates["artifacts"]["synthesis::final"]["payload"],
             updates["final_report_record"],
         )
@@ -349,8 +377,18 @@ class OrchestratorNodeTests(unittest.TestCase):
         self.assertEqual(
             updates["final_report_record"]["subtask_results"],
             [
-                {"task_id": "task_1", "answer": "payload analyst answer"},
-                {"task_id": "task_2", "answer": "payload researcher answer"},
+                {
+                    "task_id": "task_1",
+                    "artifact_id": "artifact_1",
+                    "source_artifact_id": "artifact_1",
+                    "answer": "payload analyst answer",
+                },
+                {
+                    "task_id": "task_2",
+                    "artifact_id": "artifact_2",
+                    "source_artifact_id": "artifact_2",
+                    "answer": "payload researcher answer",
+                },
             ],
         )
         self.assertEqual(

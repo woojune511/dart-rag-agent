@@ -32,6 +32,7 @@ from src.agent.nodes import (
     build_financial_orchestrator_plan_node,
     build_financial_researcher_node,
 )
+from src.agent.mas_types import project_final_report_carry_forward
 from src.storage.vector_store import VectorStoreManager, get_embedding_runtime_spec
 
 DEFAULT_STORE_DIR = (
@@ -451,38 +452,6 @@ def _summarize_critic_acceptance_issues(task_artifact_trace: Dict[str, Any]) -> 
     }
 
 
-def _list_strings(values: Any) -> List[str]:
-    return [str(value).strip() for value in list(values or []) if str(value).strip()]
-
-
-def _summarize_final_carry_forward(final_report_record: Dict[str, Any]) -> Dict[str, Any]:
-    subtask_results = [
-        dict(item)
-        for item in list(final_report_record.get("subtask_results") or [])
-        if isinstance(item, dict)
-    ]
-    subtask_task_ids = _list_strings(item.get("task_id") for item in subtask_results)
-    subtask_artifact_ids = _list_strings(
-        item.get("artifact_id") or item.get("source_artifact_id")
-        for item in subtask_results
-    )
-    source_task_ids = _list_strings(final_report_record.get("source_task_ids"))
-    source_artifact_ids = _list_strings(final_report_record.get("source_artifact_ids"))
-    evidence_refs = _list_strings(final_report_record.get("evidence_refs"))
-    return {
-        "status": str(final_report_record.get("status") or "").strip(),
-        "source_task_count": len(source_task_ids),
-        "source_artifact_count": len(source_artifact_ids),
-        "evidence_ref_count": len(evidence_refs),
-        "subtask_result_count": len(subtask_results),
-        "source_task_ids": source_task_ids,
-        "source_artifact_ids": source_artifact_ids,
-        "evidence_refs": evidence_refs,
-        "subtask_task_ids": subtask_task_ids,
-        "subtask_artifact_ids": subtask_artifact_ids,
-    }
-
-
 def run_smoke(
     *,
     store_dir: Path,
@@ -540,7 +509,7 @@ def run_smoke(
         report_cache_candidates = _summarize_report_cache_candidates(artifacts)
         report_cache_index_diagnostics = _summarize_report_cache_index_diagnostics(artifacts)
         critic_acceptance_issues = _summarize_critic_acceptance_issues(task_artifact_trace)
-        final_carry_forward = _summarize_final_carry_forward(final_report_record)
+        final_carry_forward = project_final_report_carry_forward(final_report_record)
         cases.append(
             {
                 "query": query,

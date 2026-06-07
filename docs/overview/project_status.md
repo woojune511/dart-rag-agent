@@ -370,9 +370,9 @@ Useful supporting points:
 
 ## Next Work
 
-1. Productize the MAS skeleton and typed artifact schema beyond smoke-level
-   contract checks, starting from the existing carry-forward provenance
-   surface rather than adding a new broad agent workflow.
+1. Separate Analyst / Critic / Researcher runtime boundaries further now that
+   final carry-forward provenance and critic acceptance have schema-backed
+   surfaces.
 2. Maintain non-gate material-gap and mixed numeric/narrative canaries with
    store-fixed focused replays rather than new runtime patches by default.
    `NAV_T2_006` is closed by the retrieved-driver evidence preservation
@@ -685,6 +685,11 @@ Useful supporting points:
   compares final source task/artifact/evidence/subtask-result counts, so a
   real-node replan run can reveal whether the final answer carried forward the
   repaired worker artifacts rather than only reporting that replan routed.
+- MAS carry-forward projection has now moved from smoke-only summarization into
+  the shared MAS schema layer. `project_final_report_carry_forward()` derives
+  the stable counts and id lists from `FinalReport`, and Orchestrator final
+  `subtask_results` preserve the selected worker `artifact_id` /
+  `source_artifact_id` alongside task id and answer surface.
 - MAS Analyst numeric operand extraction now rejects explicit
   consolidation-scope conflicts for direct rows and dependency task-output rows,
   and resolved dependency rows are checked against producer statement/section

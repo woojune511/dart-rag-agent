@@ -192,6 +192,13 @@ class MultiAgentSkeletonTests(unittest.TestCase):
             ["task_1::operand_set", "task_1::calculation_plan", "task_1", "task_2"],
         )
         self.assertEqual(
+            [
+                row.get("artifact_id")
+                for row in final["final_report_record"]["subtask_results"]
+            ],
+            ["task_1", "task_2"],
+        )
+        self.assertEqual(
             final["final_report_record"]["evidence_refs"],
             final["final_report_record"]["source_artifact_ids"],
         )

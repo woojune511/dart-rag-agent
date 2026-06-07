@@ -456,6 +456,12 @@ compact smoke contract compares those counts. This keeps the real-node replan
 smoke from only saying "replan routed" and makes it clear whether repaired
 worker artifacts actually reached the final report.
 
+Schema productization follow-up completed: final carry-forward projection now
+lives in the shared MAS schema layer via `project_final_report_carry_forward()`,
+and Orchestrator final `subtask_results` preserve selected worker artifact ids
+alongside task ids and answer surfaces. The smoke contract still compares the
+same compact counts, but no longer owns the projection definition.
+
 Mixed growth+narrative fan-out review completed: the offline fan-out audit now
 separates cross-trace reuse candidates by current cache hit vs current cache
 miss counts. This keeps sibling lookup repeats, especially in mixed
@@ -1029,15 +1035,15 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. MAS skeleton과 artifact schema productization
-2. Analyst / Critic / Researcher separation; first critic boundary is now
+1. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
     target refs, acceptance reason, and blocking issues instead of
     `deterministic_score` thresholds. The final integrity projection consumes
     this state so rejected critic reports block final close and exposes the
     acceptance status, reasons, and target refs through planner feedback plus
     MAS smoke summaries.
-3. internal calculation mirror cleanup
+2. internal calculation mirror cleanup
+3. report-scoped cache capability design
 4. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
 5. agentic self-reflection 재설계

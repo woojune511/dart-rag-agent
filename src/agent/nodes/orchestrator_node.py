@@ -330,8 +330,16 @@ def _subtask_results(artifacts: Dict[str, Artifact]) -> List[Dict[str, str]]:
         task_id = str(artifact.get("task_id") or key).strip()
         if not task_id or task_id in seen_task_ids:
             continue
+        artifact_id = str(artifact.get("artifact_id") or key).strip()
         seen_task_ids.add(task_id)
-        results.append({"task_id": task_id, "answer": answer})
+        results.append(
+            {
+                "task_id": task_id,
+                "artifact_id": artifact_id,
+                "source_artifact_id": artifact_id,
+                "answer": answer,
+            }
+        )
     return results
 
 
