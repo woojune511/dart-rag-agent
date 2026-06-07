@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 from src.ops.portfolio_demo import build_demo
 from src.ops.reflection_promotion_gate import run_gate_suite
+from src.ops.report_cache_promotion_evidence_gate import run_gate as run_cache_promotion_gate
 from src.ops.review_report_cache_index_contract import run_review
 
 
@@ -19,6 +20,7 @@ def _is_ready(value: Any) -> bool:
 def run_review_gates() -> Dict[str, Any]:
     portfolio_demo = build_demo()
     cache_review = run_review()
+    cache_promotion = run_cache_promotion_gate()
     reflection_gate = run_gate_suite()
     checks = {
         "portfolio_demo_ready": _is_ready(
@@ -28,6 +30,7 @@ def run_review_gates() -> Dict[str, Any]:
         "cache_handoff_ready": _is_ready(
             dict(cache_review.get("reviewer_handoff") or {}).get("status")
         ),
+        "cache_promotion_evidence_ready": _is_ready(cache_promotion.get("status")),
         "reflection_promotion_ready": _is_ready(reflection_gate.get("status")),
     }
     status = "ready" if all(checks.values()) else "needs_review"
@@ -66,6 +69,13 @@ def run_review_gates() -> Dict[str, Any]:
                 )
             ),
         },
+        "cache_promotion_evidence": {
+            "status": cache_promotion.get("status"),
+            "scenario_count": cache_promotion.get("scenario_count"),
+            "ready_count": cache_promotion.get("ready_count"),
+            "fallback_count": cache_promotion.get("fallback_count"),
+            "disabled_flags_ok": bool(cache_promotion.get("disabled_flags_ok")),
+        },
         "reflection_promotion": {
             "status": reflection_gate.get("status"),
             "fixture_count": reflection_gate.get("fixture_count"),
@@ -78,6 +88,7 @@ def run_review_gates() -> Dict[str, Any]:
 def render_text(result: Dict[str, Any]) -> str:
     portfolio = dict(result.get("portfolio_demo") or {})
     cache = dict(result.get("cache_reviewer") or {})
+    cache_promotion = dict(result.get("cache_promotion_evidence") or {})
     reflection = dict(result.get("reflection_promotion") or {})
     signals = dict(reflection.get("promotion_signals") or {})
     lines = [
@@ -96,6 +107,13 @@ def render_text(result: Dict[str, Any]) -> str:
         f"  - mode: {cache.get('mode')}",
         f"  - producer_policy_ready_count: {cache.get('producer_policy_ready_count')}",
         f"  - producer_policy_fallback_count: {cache.get('producer_policy_fallback_count')}",
+        "",
+        "Cache Promotion Evidence:",
+        f"  - status: {cache_promotion.get('status')}",
+        f"  - scenario_count: {cache_promotion.get('scenario_count')}",
+        f"  - ready_count: {cache_promotion.get('ready_count')}",
+        f"  - fallback_count: {cache_promotion.get('fallback_count')}",
+        f"  - disabled_flags_ok: {str(bool(cache_promotion.get('disabled_flags_ok'))).lower()}",
         "",
         "Reflection Promotion:",
         f"  - status: {reflection.get('status')}",

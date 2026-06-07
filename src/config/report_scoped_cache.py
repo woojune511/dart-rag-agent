@@ -46,6 +46,8 @@ CACHE_REHYDRATION_READY = "ready"
 CACHE_REHYDRATION_BLOCKED = "blocked"
 CACHE_PRODUCER_POLICY_READY = "ready"
 CACHE_PRODUCER_POLICY_BLOCKED = "blocked"
+CACHE_PROMOTION_EVIDENCE_READY = "ready"
+CACHE_PROMOTION_EVIDENCE_FALLBACK = "normal_retrieval_fallback"
 
 CACHE_ENTRY_SOURCE_LOCAL_INDEX = "local_cache_index"
 CACHE_ENTRY_SOURCE_RUNTIME_TRACE = "runtime_trace_projection"
@@ -905,6 +907,66 @@ def build_report_cache_producer_policy_projection(
             **disabled_flags,
         },
         "projection": projection,
+    }
+
+
+def build_report_cache_promotion_evidence_case(
+    entry: Mapping[str, Any],
+    *,
+    expected_key: Mapping[str, Any] | None = None,
+    selected_match_count: int = 1,
+    task_id: str = "",
+) -> Dict[str, Any]:
+    """Return a promotion-evidence case without enabling cache serving.
+
+    A case is ready only when guarded consumption and producer-policy projection
+    both pass. Even then, this helper keeps final acceptance with the existing
+    task/artifact integrity and critic/orchestrator contracts.
+    """
+    guarded = classify_report_cache_guarded_consumer_candidate(
+        entry,
+        expected_key=expected_key,
+        selected_match_count=selected_match_count,
+    )
+    producer = build_report_cache_producer_policy_projection(entry, task_id=task_id)
+    disabled_flags = {
+        "enabled": False,
+        "serving_enabled": False,
+        "ledger_insertion_enabled": False,
+        "retrieval_bypass_enabled": False,
+        "final_acceptance_enabled": False,
+    }
+    reasons = [
+        str(reason)
+        for reason in list(guarded.get("reasons") or []) + list(producer.get("reasons") or [])
+        if str(reason).strip()
+    ]
+    ready = (
+        bool(guarded.get("admissible"))
+        and bool(producer.get("ready"))
+        and not bool(guarded.get("fallback_required"))
+        and not bool(producer.get("fallback_required"))
+    )
+    return {
+        "status": CACHE_PROMOTION_EVIDENCE_READY if ready else CACHE_PROMOTION_EVIDENCE_FALLBACK,
+        "ready": ready,
+        "fallback_required": not ready,
+        **disabled_flags,
+        "selected_match_count": int(selected_match_count or 0),
+        "reasons": list(dict.fromkeys(reasons)),
+        "consumer_admissibility_status": str(guarded.get("status") or ""),
+        "consumer_admissible": bool(guarded.get("admissible")),
+        "rehydration_status": str(guarded.get("rehydration_status") or ""),
+        "producer_policy_status": str(producer.get("status") or ""),
+        "producer_policy_ready": bool(producer.get("ready")),
+        "producer_policy_name": str(producer.get("policy") or ""),
+        "producer_policy_artifact_kinds": [
+            str(kind)
+            for kind in list(producer.get("artifact_kinds") or [])
+            if str(kind).strip()
+        ],
+        "report_cache_key_id": str(producer.get("report_cache_key_id") or guarded.get("key_id") or ""),
+        "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator",
     }
 
 
