@@ -572,6 +572,11 @@ Useful supporting points:
   that acceptance state to block structurally complete rejected critic reports.
   Planner feedback and MAS smoke summaries surface critic acceptance status,
   reasons, and target refs for reviewer handoff.
+- Rejected critic integrity issues now also project `target_task_ids` and
+  `target_artifact_ids`, and Orchestrator replan carry-forward marks the
+  rejected target worker task failed alongside the critic report task. This
+  keeps final merge acceptance from carrying forward a worker artifact that the
+  runtime critic explicitly blocked.
 - Portfolio demo and Researcher smoke review outputs now use the same
   `critic_report_runtime_acceptance_state()` helper instead of reading
   `passed` or `deterministic_score` as direct acceptance signals. Their JSON
