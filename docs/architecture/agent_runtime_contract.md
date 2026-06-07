@@ -215,7 +215,10 @@ score is high. Final close/replan integrity checks should consume
 critic report still blocks final close. Planner feedback and smoke/review
 handoff summaries should surface the normalized runtime acceptance status,
 reasons, and target refs so the retry path can explain why the critic blocked
-the close.
+the close. Rejected critic integrity issues should also project target task and
+artifact ids separately from raw target refs, so replan carry-forward can fail
+the rejected worker task rather than only failing the critic task that reported
+the rejection.
 
 Final synthesis must treat `integrity_status = "error"` as a blocking
 acceptance condition. If the replan budget remains, the aggregate step should

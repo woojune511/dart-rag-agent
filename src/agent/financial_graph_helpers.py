@@ -785,6 +785,7 @@ def _project_task_artifact_trace(
                     acceptance_state = critic_report_runtime_acceptance_state(dict(report))
                     acceptance_reasons = list(acceptance_state.get("reasons") or [])
                     if "critic_rejected" in acceptance_reasons:
+                        target_refs = list(acceptance_state.get("target_refs") or [])
                         integrity_issues.append(
                             {
                                 "type": "critic_report_rejected",
@@ -797,7 +798,13 @@ def _project_task_artifact_trace(
                                     "runtime_acceptance_status"
                                 ),
                                 "reasons": acceptance_reasons,
-                                "target_refs": list(acceptance_state.get("target_refs") or []),
+                                "target_refs": target_refs,
+                                "target_task_ids": [
+                                    ref for ref in target_refs if ref in task_ids
+                                ],
+                                "target_artifact_ids": [
+                                    ref for ref in target_refs if ref in artifact_ids
+                                ],
                             }
                         )
             has_evidence_ref = any(

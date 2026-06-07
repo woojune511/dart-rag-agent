@@ -236,6 +236,11 @@ def _task_ids_from_integrity_issues(issues: List[Dict[str, Any]]) -> List[str]:
             if task_id and task_id not in seen:
                 seen.add(task_id)
                 task_ids.append(task_id)
+        for key in ("source_task_ids", "target_task_ids", "target_refs"):
+            for task_id in _issue_list_field(issue, key):
+                if task_id and task_id not in seen:
+                    seen.add(task_id)
+                    task_ids.append(task_id)
     return task_ids
 
 

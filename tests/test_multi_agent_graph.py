@@ -13,6 +13,7 @@ from src.agent.mas_graph import run_mas_graph
 from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus, build_artifact
 from src.agent.nodes.orchestrator_node import (
     _planner_feedback_from_integrity_issues,
+    _task_updates_for_replan_carry_forward,
     make_run_orchestrator_merge,
     make_run_orchestrator_plan,
 )
@@ -58,6 +59,45 @@ class OrchestratorIntegrityFeedbackTests(unittest.TestCase):
         self.assertIn("status=blocked", feedback)
         self.assertIn("reasons=critic_rejected", feedback)
         self.assertIn("targets=task_synthesis,artifact_synthesis", feedback)
+
+    def test_replan_carry_forward_marks_rejected_target_task_failed(self) -> None:
+        updates = _task_updates_for_replan_carry_forward(
+            {
+                "tasks": {
+                    "task_1": {
+                        "task_id": "task_1",
+                        "assignee": "Analyst",
+                        "status": TaskStatus.COMPLETED,
+                        "artifact_ids": ["artifact_1"],
+                    },
+                    "critic::task_1": {
+                        "task_id": "critic::task_1",
+                        "assignee": "Critic",
+                        "status": TaskStatus.COMPLETED,
+                        "artifact_ids": ["critic::task_1"],
+                    },
+                },
+                "task_artifact_trace": {
+                    "integrity_status": "error",
+                    "integrity_issues": [
+                        {
+                            "type": "critic_report_rejected",
+                            "severity": "error",
+                            "task_id": "critic::task_1",
+                            "target_task_ids": ["task_1"],
+                            "target_artifact_ids": ["artifact_1"],
+                            "target_refs": ["task_1", "artifact_1"],
+                            "runtime_acceptance_status": "blocked",
+                            "reasons": ["critic_rejected"],
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertEqual(updates["task_1"]["status"], TaskStatus.FAILED)
+        self.assertEqual(updates["task_1"]["artifact_ids"], [])
+        self.assertEqual(updates["critic::task_1"]["status"], TaskStatus.FAILED)
 
 
 def make_replan_test_analyst_node():

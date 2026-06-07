@@ -986,6 +986,13 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         final_state = self._base_final_state()
         final_state["tasks"] = [
             {
+                "task_id": "task_1",
+                "kind": "retrieval",
+                "label": "retrieve evidence",
+                "status": "completed",
+                "artifact_ids": ["artifact_1"],
+            },
+            {
                 "task_id": "task_critic",
                 "kind": "critic",
                 "label": "review outputs",
@@ -995,6 +1002,14 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         ]
         final_state["artifacts"] = [
             {
+                "artifact_id": "artifact_1",
+                "task_id": "task_1",
+                "kind": "retrieval_bundle",
+                "status": "ok",
+                "payload": {"retrieval_bundle": {"retrieved_docs": [{"id": "doc_1"}]}},
+                "evidence_refs": ["doc_1"],
+            },
+            {
                 "artifact_id": "artifact_critic",
                 "task_id": "task_critic",
                 "kind": "critic_report",
@@ -1003,12 +1018,13 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                     "critic_report": {
                         "passed": False,
                         "verdict": "rejected",
-                        "target_task_id": "task_synthesis",
-                        "target_artifact_ids": ["artifact_synthesis"],
+                        "target_task_id": "task_1",
+                        "target_artifact_ids": ["artifact_1"],
                         "blocking_issues": ["missing evidence"],
                         "deterministic_score": 1.0,
                     }
                 },
+                "evidence_refs": ["artifact_1"],
             }
         ]
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -1025,6 +1041,11 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "blocked",
         )
         self.assertIn("critic_rejected", trace["integrity_issues"][0]["reasons"])
+        self.assertEqual(trace["integrity_issues"][0]["target_task_ids"], ["task_1"])
+        self.assertEqual(
+            trace["integrity_issues"][0]["target_artifact_ids"],
+            ["artifact_1"],
+        )
 
     def test_run_keeps_orphan_artifact_warning_non_blocking_when_not_final_source(self) -> None:
         final_state = self._base_final_state()
