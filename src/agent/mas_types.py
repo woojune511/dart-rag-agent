@@ -48,6 +48,17 @@ class Artifact(TypedDict):
     metadata: NotRequired[Dict[str, Any]]
 
 
+class WorkerArtifactBoundary(TypedDict):
+    artifact_id: str
+    task_id: str
+    creator: str
+    kind: str
+    status: str
+    answer: str
+    payload: Dict[str, Any]
+    evidence_refs: List[str]
+
+
 class EvidenceRecord(TypedDict, total=False):
     task_id: str
     creator: str
@@ -253,6 +264,40 @@ def build_artifact(
     if metadata:
         artifact["metadata"] = dict(metadata)
     return artifact
+
+
+def project_worker_artifact_boundary(
+    artifact: Dict[str, Any] | None,
+    *,
+    fallback_artifact_id: str = "",
+) -> WorkerArtifactBoundary:
+    item = dict(artifact or {})
+    artifact_id = str(item.get("artifact_id") or fallback_artifact_id).strip()
+    task_id = str(item.get("task_id") or item.get("producer_task_id") or fallback_artifact_id).strip()
+    payload_raw = item.get("payload")
+    payload = dict(payload_raw) if isinstance(payload_raw, dict) else {}
+    content = item.get("content")
+    content_payload = dict(content) if isinstance(content, dict) else {}
+    if not payload and content_payload:
+        payload = content_payload
+    answer = str(payload.get("answer") or payload.get("final_answer") or "").strip()
+    if not answer:
+        answer = str(content_payload.get("answer") or "").strip()
+    if not answer and content is not None and not isinstance(content, dict):
+        answer = str(content or "").strip()
+    refs = item.get("evidence_refs")
+    if not isinstance(refs, list):
+        refs = item.get("evidence_links") or []
+    return {
+        "artifact_id": artifact_id,
+        "task_id": task_id,
+        "creator": str(item.get("creator") or "").strip(),
+        "kind": str(item.get("kind") or "").strip(),
+        "status": str(item.get("status") or "").strip(),
+        "answer": answer,
+        "payload": payload,
+        "evidence_refs": _dedupe_strings([str(ref).strip() for ref in refs if str(ref).strip()]),
+    }
 
 
 def build_critic_report(

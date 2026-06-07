@@ -462,6 +462,12 @@ and Orchestrator final `subtask_results` preserve selected worker artifact ids
 alongside task ids and answer surfaces. The smoke contract still compares the
 same compact counts, but no longer owns the projection definition.
 
+Role-boundary follow-up completed: worker artifact reads now share
+`project_worker_artifact_boundary()` in the MAS schema layer. Critic review and
+Orchestrator final synthesis consume the same payload-first answer, selected
+artifact id, task id, role/kind/status, and deduped evidence refs, instead of
+duplicating artifact fallback rules inside each role node.
+
 Mixed growth+narrative fan-out review completed: the offline fan-out audit now
 separates cross-trace reuse candidates by current cache hit vs current cache
 miss counts. This keeps sibling lookup repeats, especially in mixed
@@ -1035,15 +1041,9 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. Analyst / Critic / Researcher separation; first critic boundary is now
-    explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
-    target refs, acceptance reason, and blocking issues instead of
-    `deterministic_score` thresholds. The final integrity projection consumes
-    this state so rejected critic reports block final close and exposes the
-    acceptance status, reasons, and target refs through planner feedback plus
-    MAS smoke summaries.
-2. internal calculation mirror cleanup
-3. report-scoped cache capability design
+1. internal calculation mirror cleanup
+2. report-scoped cache capability design
+3. material-gap / mixed narrative canary maintenance
 4. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
 5. agentic self-reflection 재설계

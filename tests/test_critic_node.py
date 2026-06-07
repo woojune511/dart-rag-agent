@@ -14,11 +14,36 @@ from src.agent.mas_types import (
     TaskStatus,
     build_critic_report,
     critic_report_runtime_acceptance_state,
+    project_worker_artifact_boundary,
 )
 from src.agent.nodes.critic_node import MAX_CRITIC_RETRIES, run_critic
 
 
 class DeterministicCriticTests(unittest.TestCase):
+    def test_worker_artifact_boundary_is_payload_first_and_dedupes_refs(self) -> None:
+        boundary = project_worker_artifact_boundary(
+            {
+                "task_id": "task_1",
+                "creator": "Analyst",
+                "artifact_id": "artifact_1",
+                "kind": "calculation_result",
+                "status": "ok",
+                "content": {"answer": "stale content answer"},
+                "payload": {"answer": "payload answer"},
+                "evidence_links": ["chunk-a"],
+                "evidence_refs": ["chunk-b", "chunk-b", "chunk-a"],
+            }
+        )
+
+        self.assertEqual(boundary["artifact_id"], "artifact_1")
+        self.assertEqual(boundary["task_id"], "task_1")
+        self.assertEqual(boundary["creator"], "Analyst")
+        self.assertEqual(boundary["kind"], "calculation_result")
+        self.assertEqual(boundary["status"], "ok")
+        self.assertEqual(boundary["answer"], "payload answer")
+        self.assertEqual(boundary["payload"], {"answer": "payload answer"})
+        self.assertEqual(boundary["evidence_refs"], ["chunk-b", "chunk-a"])
+
     def test_critic_prefers_structured_result_when_present(self) -> None:
         state = build_initial_state("삼성전자 2024년 영업이익률 알려줘")
         state["tasks"] = {

@@ -370,9 +370,10 @@ Useful supporting points:
 
 ## Next Work
 
-1. Separate Analyst / Critic / Researcher runtime boundaries further now that
-   final carry-forward provenance and critic acceptance have schema-backed
-   surfaces.
+1. Continue projection cleanup by reducing internal writes to top-level
+   `calculation_*` mirrors now that `RuntimeCalculationTrace`,
+   `TaskResultRecord`, and MAS worker/final artifact projections have
+   schema-backed readers.
 2. Maintain non-gate material-gap and mixed numeric/narrative canaries with
    store-fixed focused replays rather than new runtime patches by default.
    `NAV_T2_006` is closed by the retrieved-driver evidence preservation
@@ -621,6 +622,10 @@ Useful supporting points:
 - MAS critic and final synthesis consumers now read typed artifact projections
   first: answer/calculation status from `payload`, evidence from
   `evidence_refs`, then compatibility `content`/`evidence_links` fallback.
+  The worker artifact read boundary is now shared through
+  `project_worker_artifact_boundary()`, so Critic review and Orchestrator final
+  synthesis use the same payload-first answer, selected artifact id, task id,
+  role/kind/status, and deduped evidence refs.
 - MAS final merge now treats `task_artifact_trace.integrity_status = "error"`
   as a blocking close condition: it preserves partial material but marks the
   typed final report and synthesis artifact as blocked instead of closing `ok`.

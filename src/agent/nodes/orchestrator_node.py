@@ -28,6 +28,7 @@ from src.agent.mas_types import (
     build_agent_task,
     build_artifact,
     build_final_report_record,
+    project_worker_artifact_boundary,
 )
 from src.schema import ArtifactKind, TaskKind
 
@@ -150,26 +151,15 @@ def _normalize_plan_tasks(payload: Dict[str, Any]) -> List[AgentTask]:
 
 
 def _artifact_payload(artifact: Artifact) -> Dict[str, Any]:
-    payload = artifact.get("payload")
-    return dict(payload) if isinstance(payload, dict) else {}
+    return dict(project_worker_artifact_boundary(artifact).get("payload") or {})
 
 
 def _artifact_answer(artifact: Artifact) -> str:
-    payload = _artifact_payload(artifact)
-    answer = str(payload.get("answer") or payload.get("final_answer") or "").strip()
-    if answer:
-        return answer
-    content = artifact.get("content")
-    if isinstance(content, dict):
-        return str(content.get("answer") or "").strip()
-    return str(content or "").strip()
+    return str(project_worker_artifact_boundary(artifact).get("answer") or "").strip()
 
 
 def _artifact_refs(artifact: Artifact) -> List[str]:
-    refs = artifact.get("evidence_refs")
-    if not isinstance(refs, list):
-        refs = artifact.get("evidence_links") or []
-    return [str(item).strip() for item in refs if str(item).strip()]
+    return list(project_worker_artifact_boundary(artifact).get("evidence_refs") or [])
 
 
 def _blocking_integrity_issues(trace: Dict[str, Any]) -> List[Dict[str, Any]]:

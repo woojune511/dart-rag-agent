@@ -18,6 +18,7 @@ from src.agent.mas_types import (
     build_agent_task,
     build_artifact,
     build_critic_report,
+    project_worker_artifact_boundary,
 )
 from src.schema import ArtifactKind, TaskKind
 
@@ -31,19 +32,11 @@ def _trace(message: str) -> List[str]:
 
 
 def _artifact_payload(artifact: Artifact) -> Dict[str, Any]:
-    payload = artifact.get("payload")
-    return dict(payload) if isinstance(payload, dict) else {}
+    return dict(project_worker_artifact_boundary(artifact).get("payload") or {})
 
 
 def _artifact_answer(artifact: Artifact) -> str:
-    payload = _artifact_payload(artifact)
-    answer = str(payload.get("answer") or "").strip()
-    if answer:
-        return answer
-    content = artifact.get("content")
-    if isinstance(content, dict):
-        return str(content.get("answer") or "").strip()
-    return str(content or "").strip()
+    return str(project_worker_artifact_boundary(artifact).get("answer") or "").strip()
 
 
 def _artifact_calc_result(artifact: Artifact) -> Dict[str, Any]:
@@ -59,12 +52,7 @@ def _artifact_calc_result(artifact: Artifact) -> Dict[str, Any]:
 
 
 def _artifact_refs(artifact: Artifact | None) -> List[str]:
-    if artifact is None:
-        return []
-    refs = artifact.get("evidence_refs")
-    if not isinstance(refs, list):
-        refs = artifact.get("evidence_links") or []
-    return [str(item).strip() for item in refs if str(item).strip()]
+    return list(project_worker_artifact_boundary(artifact).get("evidence_refs") or [])
 
 
 def _is_reviewable_worker_task(task: AgentTask) -> bool:
@@ -205,7 +193,8 @@ def run_critic(state: MultiAgentState) -> Dict[str, Any]:
                 feedback = f"{feedback} | 최대 재시도 횟수를 초과하여 최종 실패 처리됨."
             feedback_lines.append(f"{task_id}: {feedback}")
 
-        target_artifact_id = str((artifact or {}).get("artifact_id") or task_id).strip()
+        artifact_boundary = project_worker_artifact_boundary(artifact, fallback_artifact_id=task_id)
+        target_artifact_id = str(artifact_boundary.get("artifact_id") or task_id).strip()
         report = build_critic_report(
             target_task_id=task_id,
             passed=passed,

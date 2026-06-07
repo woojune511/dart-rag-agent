@@ -94,6 +94,11 @@ orchestration join points. Worker nodes should write artifacts with stable
 `artifact_id`, `kind`, payload, and evidence refs. The Critic should write
 `critic_report` artifacts, and the final Orchestrator merge should write an
 `aggregated_answer` artifact for the final report.
+Worker artifact consumers should read answer text, payload, selected artifact
+id, and evidence refs through the shared MAS worker-artifact boundary
+projection. This keeps Critic review and Orchestrator final synthesis aligned
+on payload-first answer selection and evidence-ref dedupe instead of duplicating
+role-specific artifact parsing rules.
 The final report record must also preserve carry-forward provenance as typed
 fields: `source_task_ids`, `source_artifact_ids`, `evidence_refs`, and
 `subtask_results`. Each subtask result row should include the worker `task_id`,
