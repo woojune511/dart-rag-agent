@@ -96,6 +96,11 @@ is internal representation cleanup, not a new answer-quality fix.
   calculation mirrors and `calculation_debug_trace`. Calculation nodes may still
   write the debug scratch field when they have diagnostic material, but a fresh
   run no longer starts with empty compatibility fields.
+- 2026-06-07: separated calculation-node scratch writes from the public
+  compatibility bridge in code. Calculation diagnostics now flow through
+  `_calculation_debug_state_update()` / `_clear_calculation_debug_state()` and
+  the public `FinancialAgent.run()` bridge uses the runtime-contract field
+  constant.
 
 ## Next Implementation Candidate
 
@@ -104,9 +109,8 @@ behavior:
 
 - audit whether public compatibility bridges still need to accept the optional
   legacy calculation mirror keys and top-level debug bridge;
-- audit calculation-node scratch writes separately from public compatibility
-  projection, so debug diagnostics can remain available without reintroducing a
-  required state field;
+- keep calculation-node diagnostics on the explicit scratch helpers; new
+  callsites should not write the top-level debug key directly;
 - update tests that seed stale top-level fields so they remain explicit
   compatibility or regression fixtures;
 - avoid deleting historical-tool fallback until old result-bundle replay is no
