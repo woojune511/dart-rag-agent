@@ -456,6 +456,12 @@ compact smoke contract compares those counts. This keeps the real-node replan
 smoke from only saying "replan routed" and makes it clear whether repaired
 worker artifacts actually reached the final report.
 
+Mixed growth+narrative fan-out review completed: the offline fan-out audit now
+separates cross-trace reuse candidates by current cache hit vs current cache
+miss counts. This keeps sibling lookup repeats, especially in mixed
+numeric+narrative rows, visible without treating already cached repeats as the
+next runtime-cost target.
+
 Seventeenth step completed: Analyst numeric operand extraction now rejects
 explicit consolidation-scope conflicts in both direct structured rows and
 dependency task-output rows. Resolved dependency rows are also checked against
@@ -1023,7 +1029,7 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. mixed growth+narrative retrieval fan-out control and answer-language polish
+1. mixed growth+narrative answer-language polish
 2. MAS skeleton과 artifact schema productization
 3. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,

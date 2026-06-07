@@ -224,6 +224,7 @@ def _cross_trace_reuse_details(
                 "prior_match_count": _as_int(candidate.get("prior_match_count")),
                 "current_trace_index": _as_int(candidate.get("current_trace_index")),
                 "current_cache_hit": bool(candidate.get("current_cache_hit")),
+                "current_cache_miss": not bool(candidate.get("current_cache_hit")),
                 "prior_trace_indexes": sorted(trace_indexes),
                 "prior_task_contexts": dict(sorted(task_contexts.items())),
             }
@@ -442,6 +443,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     cross_trace_reuse_details: List[Dict[str, Any]] = []
     cross_trace_reuse_candidate_count = 0
     cross_trace_reuse_prior_match_count = 0
+    cross_trace_reuse_cache_hit_count = 0
+    cross_trace_reuse_cache_miss_count = 0
 
     for trace_index, trace in enumerate(traces, start=1):
         summary = _summarize_trace(trace, trace_index=trace_index)
@@ -450,11 +453,14 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         operand_focus_skipped_count += int(summary.get("operand_focus_skipped_count") or 0)
         cross_trace_reuse_candidate_count += int(summary.get("cross_trace_reuse_candidate_count") or 0)
         cross_trace_reuse_prior_match_count += int(summary.get("cross_trace_reuse_prior_match_count") or 0)
-        cross_trace_reuse_details.extend(
+        trace_reuse_details = [
             dict(item)
             for item in _safe_list(summary.get("cross_trace_reuse_details"))
             if isinstance(item, Mapping)
-        )
+        ]
+        cross_trace_reuse_cache_hit_count += sum(1 for item in trace_reuse_details if bool(item.get("current_cache_hit")))
+        cross_trace_reuse_cache_miss_count += sum(1 for item in trace_reuse_details if bool(item.get("current_cache_miss")))
+        cross_trace_reuse_details.extend(trace_reuse_details)
         search_summary = _safe_dict(summary.get("search_summary"))
         for key in ("executed_query_count", "cache_hit_count", "vector_attempted_count", *EMBEDDING_USAGE_KEYS):
             number = _as_float(search_summary.get(key))
@@ -508,6 +514,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         "duplicate_query_details": duplicate_query_details,
         "cross_trace_reuse_candidate_count": cross_trace_reuse_candidate_count,
         "cross_trace_reuse_prior_match_count": cross_trace_reuse_prior_match_count,
+        "cross_trace_reuse_cache_hit_count": cross_trace_reuse_cache_hit_count,
+        "cross_trace_reuse_cache_miss_count": cross_trace_reuse_cache_miss_count,
         "cross_trace_reuse_details": cross_trace_reuse_details,
         **{key: _as_float(row.get(key)) for key in QUALITY_KEYS},
         **dict(selected),
@@ -546,6 +554,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             "duplicate_executed_query_count",
             "cross_trace_reuse_candidate_count",
             "cross_trace_reuse_prior_match_count",
+            "cross_trace_reuse_cache_hit_count",
+            "cross_trace_reuse_cache_miss_count",
             "cache_hit_count",
             "vector_attempted_count",
             *EMBEDDING_USAGE_KEYS,
@@ -638,6 +648,8 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         f"- Duplicate executed queries: `{_format_number(summary.get('duplicate_executed_query_count'), 0)}`",
         f"- Cross-trace reuse candidates: `{_format_number(summary.get('cross_trace_reuse_candidate_count'), 0)}`",
         f"- Cross-trace prior matches: `{_format_number(summary.get('cross_trace_reuse_prior_match_count'), 0)}`",
+        f"- Cross-trace reuse current cache hits: `{_format_number(summary.get('cross_trace_reuse_cache_hit_count'), 0)}`",
+        f"- Cross-trace reuse current cache misses: `{_format_number(summary.get('cross_trace_reuse_cache_miss_count'), 0)}`",
         f"- Query embedding API calls: `{_format_number(summary.get('query_embedding_api_calls'), 0)}`",
         f"- LLM API calls: `{_format_number(_safe_dict(summary.get('llm_usage')).get('api_calls'), 0)}`",
         f"- Estimated runtime cost USD: `{_format_number(summary.get('estimated_runtime_cost_usd'), 6)}`",
@@ -702,20 +714,22 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
             "",
             "## Top Rows By Cross-Trace Reuse Candidates",
             "",
-            "| Question | Company | Experiment | Candidates | Prior matches | Candidate details | Executed | Query embed | Faithfulness | Completeness | Error |",
-            "| --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- |",
+            "| Question | Company | Experiment | Candidates | Prior matches | Current cache hits | Current cache misses | Candidate details | Executed | Query embed | Faithfulness | Completeness | Error |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- |",
         ]
     )
     for row in reuse_rows:
         if not isinstance(row, Mapping):
             continue
         lines.append(
-            "| {qid} | {company} | {experiment} | {candidates} | {prior} | {details} | {executed} | {embed} | {faith} | {complete} | {error} |".format(
+            "| {qid} | {company} | {experiment} | {candidates} | {prior} | {cache_hits} | {cache_misses} | {details} | {executed} | {embed} | {faith} | {complete} | {error} |".format(
                 qid=row.get("question_id") or "",
                 company=row.get("company_id") or row.get("company_label") or "",
                 experiment=row.get("experiment_id") or "",
                 candidates=_format_number(row.get("cross_trace_reuse_candidate_count"), 0),
                 prior=_format_number(row.get("cross_trace_reuse_prior_match_count"), 0),
+                cache_hits=_format_number(row.get("cross_trace_reuse_cache_hit_count"), 0),
+                cache_misses=_format_number(row.get("cross_trace_reuse_cache_miss_count"), 0),
                 details=_format_cross_trace_reuse_details(
                     _safe_list(row.get("cross_trace_reuse_details"))
                 ).replace("|", "/"),
@@ -727,7 +741,7 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
             )
         )
     if not reuse_rows:
-        lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |")
+        lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |  |  |")
 
     lines.extend(
         [

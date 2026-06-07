@@ -846,6 +846,11 @@ Useful supporting points:
   embedding calls, top duplicate query signatures by row/source/trace/task,
   LLM usage, estimated runtime cost, and quality metrics before any new budget
   probe is run.
+- The fan-out audit now also separates cross-trace reuse candidates by current
+  cache hit vs current cache miss counts. This keeps mixed
+  numeric+narrative rows such as `NAV_T2_006` from looking like obvious runtime
+  cost targets when the repeated sibling lookup query was already served from
+  the exact-query cache.
 - Initial policy-gate audit baselines:
   - `policy_gate_regression_2026-05-31_2212`: 5 questions, 11 retrieval
     traces, 93 executed queries, 89 query embedding calls, estimated runtime
