@@ -322,13 +322,13 @@ Results:
   `citation_coverage = 0.667`, `entity_coverage = 0.5`). That made FCF
   numerically closed but not yet promotion-ready as an official runtime gate.
 
-Updated promotion verdict:
+Checkpoint promotion verdict:
 
 - `NAV_T1_071` and `MIX_T1_021` support limited promotion for those operation
   families.
-- `NAV_T1_030` blocks broad default promotion until retrieval/evidence
-  visibility is fixed. The next work should improve evidence projection and
-  evaluator-visible citation/section support, not add a question-specific
+- At this checkpoint, `NAV_T1_030` blocked broad default promotion until
+  retrieval/evidence visibility was fixed. The next work was evidence projection
+  and evaluator-visible citation/section support, not a question-specific
   calculation rule.
 
 2026-06-07 projection follow-up:
@@ -440,6 +440,13 @@ Updated promotion verdict:
   - The result supports promoting the generic runtime projection path with a
     smaller residual caveat around display/entity normalization. It should not
     be treated as a fresh full benchmark or a new official cross-profile score.
+- Current broader-gate maintenance interpretation:
+  - `NAV_T1_030` is no longer an arithmetic, retrieval, section, citation, or
+    evidence-provenance blocker in the focused runtime-contract replay.
+  - The remaining `entity_coverage = 0.750` caveat is evaluator-visible
+    display/entity normalization debt, so broader maintenance should track it as
+    calibration/presentation debt rather than a concept-planner promotion
+    blocker.
 - Artifact policy:
   - `benchmarks/results/nav_t1_030_surface_replay_2026-06-07/` is a local
     experiment artifact and should not be committed.

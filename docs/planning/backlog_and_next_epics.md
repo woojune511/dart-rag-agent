@@ -92,11 +92,10 @@ contract로 승격할 준비를 끝내는 것**이다.
 현재 backlog는 portfolio long-term goal과 아래 순서로 연결한다.
 
 1. **Gate / contract prerequisites**
-   - broader curated gate maintenance
    - concept-only planner runtime promotion check
-   - contextual arbitration / benchmark maintenance
-   - internal compatibility mirror cleanup
    - table payload sidecar / store-size cleanup
+   - broader curated gate maintenance residual review when fresh artifacts show
+     a new blocker
 2. **MAS migration**
    - MAS skeleton과 typed artifact schema
    - Analyst / Researcher / Critic 역할 분리
@@ -1015,16 +1014,14 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. FCF cash-flow evidence projection and evaluator-visible retrieval support
-2. concept-only planner store-fixed runtime promotion gate residuals
-3. mixed growth+narrative retrieval fan-out control and answer-language polish
-4. contextual arbitration / benchmark maintenance
-5. broader curated gate maintenance residual review
-6. internal compatibility mirror cleanup
-7. table payload sidecar / store-size cleanup
-8. MAS real-node replan smoke and artifact carry-forward review
-9. MAS skeleton과 artifact schema productization
-10. Analyst / Critic / Researcher separation; first critic boundary is now
+1. concept-only planner store-fixed runtime promotion gate residuals
+2. table payload sidecar / store-size cleanup
+3. broader curated gate maintenance residual review when a new broader artifact
+   reproduces a blocker rather than calibration debt
+4. mixed growth+narrative retrieval fan-out control and answer-language polish
+5. MAS real-node replan smoke and artifact carry-forward review
+6. MAS skeleton과 artifact schema productization
+7. Analyst / Critic / Researcher separation; first critic boundary is now
     explicit via `critic_report_runtime_acceptance_state()`, which uses verdict,
     target refs, acceptance reason, and blocking issues instead of
     `deterministic_score` thresholds. The final integrity projection consumes
