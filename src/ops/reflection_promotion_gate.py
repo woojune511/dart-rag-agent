@@ -21,6 +21,8 @@ REQUIRED_ACTIONS = {
     "synthesize_from_task_outputs",
     "stop_insufficient",
 }
+MAX_REFLECTION_RETRY_BUDGET = 1
+FINAL_ACCEPTANCE_AUTHORITY = "critic_orchestrator_handoff"
 
 
 def _read_json_object(path: Path) -> Dict[str, Any]:
@@ -75,6 +77,52 @@ def _is_false_recovery(case: Dict[str, Any]) -> bool:
     )
 
 
+def _reflection_report_contract_issues(case: Dict[str, Any]) -> List[str]:
+    if not bool(case.get("reflection_triggered")):
+        return []
+    case_id = str(case.get("case_id") or "unknown")
+    report = case.get("reflection_report") if isinstance(case.get("reflection_report"), dict) else {}
+    issues: List[str] = []
+    action = str(report.get("action_taken") or "").strip()
+    outcome = str(report.get("outcome") or "").strip()
+    if not report:
+        issues.append("missing_reflection_report")
+    if not outcome:
+        issues.append("missing_report_outcome")
+    if action not in REQUIRED_ACTIONS:
+        issues.append("invalid_report_action")
+    if "budget_consumed" not in report:
+        issues.append("missing_budget_consumed")
+    else:
+        try:
+            budget_consumed = int(report.get("budget_consumed") or 0)
+        except (TypeError, ValueError):
+            budget_consumed = MAX_REFLECTION_RETRY_BUDGET + 1
+        if budget_consumed < 0 or budget_consumed > MAX_REFLECTION_RETRY_BUDGET:
+            issues.append("budget_out_of_bounds")
+
+    if _is_final_accepted(case):
+        target_task_ids = report.get("target_task_ids")
+        target_artifact_ids = report.get("target_artifact_ids")
+        has_target_refs = bool(
+            isinstance(target_task_ids, list)
+            and target_task_ids
+            and isinstance(target_artifact_ids, list)
+            and target_artifact_ids
+        )
+        if not has_target_refs:
+            issues.append("missing_acceptance_target_refs")
+        if str(report.get("final_acceptance_authority") or "").strip() != FINAL_ACCEPTANCE_AUTHORITY:
+            issues.append("reflection_marked_or_missing_acceptance_authority")
+
+    if action == "stop_insufficient":
+        blocking_issues = report.get("blocking_issues")
+        if not isinstance(blocking_issues, list) or not blocking_issues:
+            issues.append("missing_stop_blocking_issues")
+
+    return [f"{case_id}:{issue}" for issue in issues]
+
+
 def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
     cases = [dict(case) for case in list(payload.get("cases") or []) if isinstance(case, dict)]
     eligible_cases = [case for case in cases if bool(case.get("eligible"))]
@@ -97,6 +145,7 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
     ]
     action_counts: Dict[str, int] = {}
     action_mismatches: List[str] = []
+    report_contract_issues: List[str] = []
     for case in cases:
         action = _case_action(case)
         if action:
@@ -104,6 +153,7 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
         expected = str(case.get("expected_action") or "").strip()
         if expected and expected != "none" and action != expected:
             action_mismatches.append(str(case.get("case_id") or "unknown"))
+        report_contract_issues.extend(_reflection_report_contract_issues(case))
 
     clean_pass_cases = [
         case
@@ -131,6 +181,7 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
         bool(cases)
         and required_actions_present
         and not action_mismatches
+        and not report_contract_issues
         and not false_recovery_cases
         and signals["integrity_preservation_rate"] == 1.0
         and bool(clean_pass_cases)
@@ -155,6 +206,8 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
         ],
         "action_counts": action_counts,
         "action_mismatch_case_ids": action_mismatches,
+        "report_contract_ok": not report_contract_issues,
+        "report_contract_issue_case_ids": report_contract_issues,
         "required_actions_present": required_actions_present,
         "clean_pass_no_trigger": bool(clean_pass_cases) and not clean_pass_triggered,
         "stop_insufficient_no_acceptance": bool(stop_cases) and not stop_cases_accepted,
@@ -200,6 +253,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"Status: {result.get('status')}",
         f"Cases: {result.get('case_count')}",
         f"Required actions present: {str(result.get('required_actions_present')).lower()}",
+        f"Report contract ok: {str(result.get('report_contract_ok')).lower()}",
         f"Clean pass no trigger: {str(result.get('clean_pass_no_trigger')).lower()}",
         (
             "Stop insufficient no acceptance: "

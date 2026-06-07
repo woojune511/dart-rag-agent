@@ -392,6 +392,10 @@ Recently closed:
   cache promotion evidence gate: one ready local-index candidate, one
   incomplete-entry fallback, and one ambiguous-match fallback, all with serving,
   retrieval bypass, ledger insertion, and final acceptance disabled.
+- `src.ops.reflection_promotion_gate` now also validates the reflection report
+  handoff contract: bounded budget consumption, accepted-case target refs,
+  stop-insufficient blocking issues, and critic/orchestrator final acceptance
+  authority.
 
 Current next decisions:
 
@@ -399,9 +403,9 @@ Current next decisions:
    `docs/architecture/self_reflection_capability_contract.md`, and
    `src.ops.reflection_promotion_gate` provides the first fixture-backed gate
    for `reflection_trigger_rate`, `recovery_rate`, `false_recovery_rate`,
-   `latency_delta`, and integrity preservation. Its default run now covers both
-   the base fixture set and a store-fixed candidate surface fixture before any
-   active retry behavior is promoted.
+   `latency_delta`, integrity preservation, and reflection-report contract
+   shape. Its default run now covers both the base fixture set and a store-fixed
+   candidate surface fixture before any active retry behavior is promoted.
 2. Report-cache promotion evidence: producer policy is documented in
    `docs/architecture/report_cache_capability_contract.md` and code-backed by
    `build_report_cache_producer_policy_projection()`. Future cache-derived

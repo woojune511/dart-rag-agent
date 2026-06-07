@@ -157,6 +157,8 @@ Implemented and validated:
 - task/artifact integrity projection and final close blocking
 - critic runtime acceptance boundary and rejection feedback surface
 - bounded self-reflection request/action/report handoff through the ledger
+- reflection promotion gate with report-contract checks for budget, target refs,
+  stop blocking issues, and final acceptance authority
 - candidate-only report-cache reviewer handoff with bypass, writes, serving,
   and ledger insertion disabled
 - code-backed report-cache producer policy that maps future cache-derived

@@ -29,6 +29,8 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         self.assertEqual(result["fixture_count"], 2)
         self.assertEqual(result["case_count"], 8)
         self.assertTrue(result["required_actions_present"])
+        self.assertTrue(result["report_contract_ok"])
+        self.assertEqual(result["report_contract_issue_case_ids"], [])
         self.assertTrue(result["clean_pass_no_trigger"])
         self.assertTrue(result["stop_insufficient_no_acceptance"])
         self.assertEqual(signals["reflection_trigger_rate"], 1.0)
@@ -70,10 +72,74 @@ class ReflectionPromotionGateTests(unittest.TestCase):
             ["retry_retrieval_recovers_missing_evidence"],
         )
 
+    def test_missing_report_target_refs_block_promotion_for_accepted_reflection(self) -> None:
+        fixture_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "reflection_promotion_gate"
+            / "cases.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload["cases"][0]["reflection_report"].pop("target_artifact_ids")
+
+        result = evaluate_cases(payload)
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["report_contract_ok"])
+        self.assertEqual(
+            result["report_contract_issue_case_ids"],
+            ["retry_retrieval_recovers_missing_evidence:missing_acceptance_target_refs"],
+        )
+
+    def test_budget_overrun_blocks_promotion(self) -> None:
+        fixture_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "reflection_promotion_gate"
+            / "cases.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload["cases"][0]["reflection_report"]["budget_consumed"] = 2
+
+        result = evaluate_cases(payload)
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["report_contract_ok"])
+        self.assertEqual(
+            result["report_contract_issue_case_ids"],
+            ["retry_retrieval_recovers_missing_evidence:budget_out_of_bounds"],
+        )
+
+    def test_reflection_cannot_claim_final_acceptance_authority(self) -> None:
+        fixture_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "reflection_promotion_gate"
+            / "cases.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload["cases"][0]["reflection_report"]["final_acceptance_authority"] = "reflection"
+
+        result = evaluate_cases(payload)
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["report_contract_ok"])
+        self.assertEqual(
+            result["report_contract_issue_case_ids"],
+            [
+                "retry_retrieval_recovers_missing_evidence:"
+                "reflection_marked_or_missing_acceptance_authority"
+            ],
+        )
+
     def test_render_text_includes_signal_names(self) -> None:
         text = render_text(run_gate_suite())
 
         self.assertIn("# Reflection Promotion Gate", text)
+        self.assertIn("Report contract ok: true", text)
         self.assertIn("reflection_trigger_rate", text)
         self.assertIn("recovery_rate", text)
         self.assertIn("false_recovery_rate", text)
