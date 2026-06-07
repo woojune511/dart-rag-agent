@@ -21,6 +21,20 @@ The command reads
 repo-default report-cache reviewer handoff check. That means the output shows
 the answer contract and the candidate-only cache gate together.
 
+## Review Order
+
+Use this demo as the first scan, then inspect the one-pager or experiment
+report only if the reviewer wants the broader story. The current runtime
+contract to look for is:
+
+- canonical numeric state is exposed through `resolved_calculation_trace` and
+  `structured_result`
+- MAS handoff state is exposed through `task_artifact_trace`
+- critic acceptance is exposed as target refs, verdict/status, and reasons
+- report-cache material remains candidate-only and non-serving
+- legacy top-level calculation/debug fields are compatibility bridges, not the
+  source of truth for new live runs
+
 ## Expected Output
 
 ```text

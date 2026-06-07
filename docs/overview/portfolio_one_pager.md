@@ -96,6 +96,7 @@ retrieval bypass remain disabled.
 | Critic boundary | `critic_report_runtime_acceptance_state()` separates runtime acceptance from diagnostic scores |
 | Final close gate | rejected critic reports produce blocking integrity errors |
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
+| Runtime cleanup | canonical calculation state lives in `resolved_calculation_trace` / artifacts; legacy top-level calculation/debug fields are optional compatibility bridges |
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while serving remains disabled |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
@@ -129,6 +130,7 @@ and hard to overfit.
 ## Reviewer Path
 
 For a quick review, start with
-[portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md). For an
-interview or project presentation, use
-[portfolio_presentation_outline.md](portfolio_presentation_outline.md).
+[portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md), then scan the
+runtime cleanup row above to understand why stale top-level calculation mirrors
+are no longer treated as the source of truth. For an interview or project
+presentation, use [portfolio_presentation_outline.md](portfolio_presentation_outline.md).

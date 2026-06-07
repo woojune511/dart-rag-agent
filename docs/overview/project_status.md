@@ -370,12 +370,12 @@ Useful supporting points:
 
 ## Next Work
 
-1. Internal compatibility bridge follow-up: audit whether callers still need
-   optional legacy calculation mirror keys and the top-level
-   `calculation_debug_trace` bridge after `debug_traces.calculation` adoption.
-2. Reviewer path: start with the portfolio demo walkthrough for a compact
-   contract scan, then use the one-pager or presentation outline depending on
-   the setting.
+1. Internal compatibility bridge follow-up: audit calculation-node scratch
+   debug writes separately from the public compatibility projection. Do not
+   reintroduce required top-level calculation/debug state for new live runs.
+2. Reviewer proof maintenance: rerun `portfolio_demo` and
+   `review_report_cache_index_contract` when runtime surfaces change, then keep
+   README, one-pager, demo walkthrough, and experiment report aligned.
 
 ### Task Ledger / Artifact Contract Focus
 

@@ -152,5 +152,15 @@ Intentionally disabled:
 
 ## Reviewer Path
 
-For a quick review, start with the portfolio demo walkthrough, then use the
-one-pager or presentation outline depending on the setting.
+For a quick review:
+
+1. Run `python -m src.ops.portfolio_demo` to scan the answer, citation,
+   calculation, integrity, critic, and cache-handoff surfaces.
+2. Read [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md)
+   for the concise engineering story.
+3. Use [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
+   for the problem, method, quantitative comparison, and failure analysis.
+
+The current reviewer claim is narrow: canonical runtime state is carried by
+typed traces and artifacts, while legacy calculation/debug mirrors are optional
+compatibility bridges and are not seeded into new live runs.
