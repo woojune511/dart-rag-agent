@@ -145,6 +145,7 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
         final_report_record = dict(case.get("final_report_record") or {})
         final_carry_forward = dict(case.get("final_carry_forward") or {})
         final_acceptance_outcome = dict(case.get("final_acceptance_outcome") or {})
+        worker_failure_diagnostics = dict(case.get("worker_failure_diagnostics") or {})
         cases.append(
             {
                 "index": index,
@@ -164,6 +165,16 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "final_source_artifact_count": int(final_carry_forward.get("source_artifact_count", 0) or 0),
                 "final_evidence_ref_count": int(final_carry_forward.get("evidence_ref_count", 0) or 0),
                 "final_subtask_result_count": int(final_carry_forward.get("subtask_result_count", 0) or 0),
+                "worker_failure_count": int(worker_failure_diagnostics.get("count", 0) or 0),
+                "worker_failure_missing_artifact_count": int(
+                    worker_failure_diagnostics.get("missing_artifact_count", 0) or 0
+                ),
+                "worker_failure_assignee_counts": dict(
+                    sorted(dict(worker_failure_diagnostics.get("assignee_counts") or {}).items())
+                ),
+                "worker_failure_reason_counts": dict(
+                    sorted(dict(worker_failure_diagnostics.get("reason_counts") or {}).items())
+                ),
             }
         )
 
@@ -182,6 +193,16 @@ def extract_contract(payload: Dict[str, Any]) -> Dict[str, Any]:
         "final_source_artifact_count": int(summary.get("final_source_artifact_count", 0) or 0),
         "final_evidence_ref_count": int(summary.get("final_evidence_ref_count", 0) or 0),
         "final_subtask_result_count": int(summary.get("final_subtask_result_count", 0) or 0),
+        "worker_failure_count": int(summary.get("worker_failure_count", 0) or 0),
+        "worker_failure_missing_artifact_count": int(
+            summary.get("worker_failure_missing_artifact_count", 0) or 0
+        ),
+        "worker_failure_assignee_counts": dict(
+            sorted(dict(summary.get("worker_failure_assignee_counts") or {}).items())
+        ),
+        "worker_failure_reason_counts": dict(
+            sorted(dict(summary.get("worker_failure_reason_counts") or {}).items())
+        ),
         "cases": cases,
     }
 
