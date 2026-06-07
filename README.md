@@ -99,6 +99,7 @@ retrieval bypass remain disabled.
 | [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | Example question trace |
 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | Deeper technical notes |
 | [docs/architecture/agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md) | Runtime and MAS contract |
+| [docs/architecture/report_cache_capability_contract.md](docs/architecture/report_cache_capability_contract.md) | Disabled report-cache capability boundary |
 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | Benchmark and review gate notes |
 
 ## Repository Guide
