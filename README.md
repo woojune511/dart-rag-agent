@@ -123,6 +123,7 @@ benchmarks/    profiles and local result bundles
 .\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
 .\.venv\Scripts\python.exe -m src.ops.portfolio_demo
 .\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
+.\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
 ```
 
 The report-cache reviewer command should report:

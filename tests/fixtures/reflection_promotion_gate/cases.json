@@ -1,0 +1,87 @@
+{
+  "gate_id": "reflection_promotion_gate_fixture_v1",
+  "cases": [
+    {
+      "case_id": "retry_retrieval_recovers_missing_evidence",
+      "eligible": true,
+      "reflection_triggered": true,
+      "expected_action": "retry_retrieval",
+      "reflection_report": {
+        "outcome": "retry_prepared",
+        "action_taken": "retry_retrieval",
+        "budget_consumed": 1
+      },
+      "initial_status": "missing_evidence",
+      "final_status": "accepted",
+      "task_artifact_trace": {
+        "integrity_status": "ok"
+      },
+      "calculation_trace_status": "ok",
+      "evidence_supported": true,
+      "baseline_step_count": 6,
+      "reflected_step_count": 8
+    },
+    {
+      "case_id": "synthesize_from_task_outputs_recovers_complete_material",
+      "eligible": true,
+      "reflection_triggered": true,
+      "expected_action": "synthesize_from_task_outputs",
+      "reflection_report": {
+        "outcome": "retry_prepared",
+        "action_taken": "synthesize_from_task_outputs",
+        "budget_consumed": 1
+      },
+      "initial_status": "incomplete_synthesis",
+      "final_status": "accepted",
+      "task_artifact_trace": {
+        "integrity_status": "ok"
+      },
+      "calculation_trace_status": "ok",
+      "evidence_supported": true,
+      "baseline_step_count": 5,
+      "reflected_step_count": 6
+    },
+    {
+      "case_id": "stop_insufficient_remains_blocked",
+      "eligible": true,
+      "reflection_triggered": true,
+      "expected_action": "stop_insufficient",
+      "reflection_report": {
+        "outcome": "stop_requested",
+        "action_taken": "stop_insufficient",
+        "budget_consumed": 0,
+        "blocking_issues": [
+          {
+            "type": "stop_insufficient",
+            "reason": "no grounded evidence"
+          }
+        ]
+      },
+      "initial_status": "missing_evidence",
+      "final_status": "blocked",
+      "task_artifact_trace": {
+        "integrity_status": "blocked"
+      },
+      "calculation_trace_status": "",
+      "evidence_supported": false,
+      "baseline_step_count": 4,
+      "reflected_step_count": 4
+    },
+    {
+      "case_id": "clean_pass_does_not_trigger_reflection",
+      "eligible": false,
+      "reflection_triggered": false,
+      "expected_action": "none",
+      "reflection_report": {},
+      "initial_status": "accepted",
+      "final_status": "accepted",
+      "task_artifact_trace": {
+        "integrity_status": "ok"
+      },
+      "calculation_trace_status": "ok",
+      "evidence_supported": true,
+      "baseline_step_count": 3,
+      "reflected_step_count": 3
+    }
+  ]
+}

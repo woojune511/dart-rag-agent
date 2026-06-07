@@ -138,8 +138,10 @@ Promotion is blocked if any reflected accepted answer:
 
 ## Promotion Test Plan
 
-A future active-reflection PR should add a small fixture-backed or store-fixed
-gate before any broader benchmark refresh:
+The repo-local `src.ops.reflection_promotion_gate` command is the first
+fixture-backed version of this gate. A future active-reflection PR should keep
+that gate green or extend it with store-fixed cases before any broader
+benchmark refresh:
 
 1. Unit tests for trigger eligibility, request construction, allowed strategies,
    budget consumption, and `ReflectionReport` ledger shape.
