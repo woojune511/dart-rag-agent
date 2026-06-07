@@ -12,6 +12,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CASES_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "reflection_promotion_gate" / "cases.json"
 )
+DEFAULT_STORE_FIXED_CASES_PATH = (
+    PROJECT_ROOT / "tests" / "fixtures" / "reflection_promotion_gate" / "store_fixed_cases.json"
+)
+DEFAULT_CASES_PATHS = (DEFAULT_CASES_PATH, DEFAULT_STORE_FIXED_CASES_PATH)
 REQUIRED_ACTIONS = {
     "retry_retrieval",
     "synthesize_from_task_outputs",
@@ -24,6 +28,21 @@ def _read_json_object(path: Path) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"reflection promotion fixture must be a JSON object: {path}")
     return dict(payload)
+
+
+def _combine_payloads(payloads: List[Dict[str, Any]]) -> Dict[str, Any]:
+    gate_ids = [str(payload.get("gate_id") or "") for payload in payloads if payload.get("gate_id")]
+    cases: List[Dict[str, Any]] = []
+    for payload in payloads:
+        for case in list(payload.get("cases") or []):
+            if isinstance(case, dict):
+                cases.append(dict(case))
+    return {
+        "gate_id": "+".join(gate_ids),
+        "fixture_count": len(payloads),
+        "source_gate_ids": gate_ids,
+        "cases": cases,
+    }
 
 
 def _ratio(numerator: int, denominator: int) -> float:
@@ -123,6 +142,10 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "status": "ready" if promotion_ready else "needs_review",
         "gate_id": str(payload.get("gate_id") or ""),
+        "fixture_count": int(payload.get("fixture_count") or 1),
+        "source_gate_ids": list(
+            payload.get("source_gate_ids") or [str(payload.get("gate_id") or "")]
+        ),
         "case_count": len(cases),
         "eligible_case_count": len(eligible_cases),
         "triggered_case_count": len(triggered_cases),
@@ -154,6 +177,18 @@ def run_gate(*, cases_path: str | Path = DEFAULT_CASES_PATH) -> Dict[str, Any]:
     path = Path(cases_path)
     result = evaluate_cases(_read_json_object(path))
     result["cases_path"] = str(path)
+    result["cases_paths"] = [str(path)]
+    return result
+
+
+def run_gate_suite(
+    *,
+    cases_paths: List[str | Path] | None = None,
+) -> Dict[str, Any]:
+    paths = [Path(path) for path in (cases_paths or list(DEFAULT_CASES_PATHS))]
+    result = evaluate_cases(_combine_payloads([_read_json_object(path) for path in paths]))
+    result["cases_path"] = str(paths[0]) if len(paths) == 1 else ""
+    result["cases_paths"] = [str(path) for path in paths]
     return result
 
 
@@ -188,8 +223,12 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--cases",
         type=Path,
-        default=DEFAULT_CASES_PATH,
-        help="Path to reflection promotion gate cases JSON.",
+        action="append",
+        default=None,
+        help=(
+            "Path to reflection promotion gate cases JSON. May be repeated. "
+            "Defaults to fixture and store-fixed candidate case sets."
+        ),
     )
     parser.add_argument(
         "--format",
@@ -208,7 +247,7 @@ def _write_output(path: Path, text: str) -> None:
 
 def main(argv: List[str] | None = None) -> int:
     args = parse_args(argv)
-    result = run_gate(cases_path=args.cases)
+    result = run_gate_suite(cases_paths=args.cases)
     if args.format == "json":
         rendered = f"{json.dumps(result, ensure_ascii=False, indent=2)}\n"
     else:
