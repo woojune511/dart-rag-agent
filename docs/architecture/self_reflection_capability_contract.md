@@ -101,6 +101,59 @@ orchestrator handoff readers can inspect it through `task_artifact_trace`.
 This is a handoff record only; final acceptance behavior and graph routes are
 unchanged.
 
+## Promotion Criteria
+
+Reflection should not become an active retry capability just because the
+handoff shape exists. Promotion requires a focused gate that shows reflection
+recovers real missing-material failures without creating unsupported answers or
+hiding task/artifact integrity issues.
+
+Required focused-gate signals:
+
+| Signal | Definition | Promotion expectation |
+| --- | --- | --- |
+| `reflection_trigger_rate` | Share of eligible failed or incomplete tasks that invoke reflection | Non-zero on known reflection-eligible failures, bounded on clean passes |
+| `recovery_rate` | Share of reflection-triggered cases that become accepted after one bounded retry | Positive on the focused recovery set |
+| `false_recovery_rate` | Share of reflected cases accepted despite unsupported evidence, bad calculation trace, or integrity errors | Must be `0.0` on the focused promotion set |
+| `latency_delta` | Added runtime or step count versus the same case without reflection | Reported and bounded before promotion |
+| `integrity_preservation_rate` | Share of reflected accepted cases with `task_artifact_trace.integrity_status = ok` | Must be `1.0` for accepted reflected cases |
+
+Minimum focused promotion set:
+
+- at least one case where normal execution lacks retrieved evidence and
+  reflection can issue a bounded `retry_retrieval` action
+- at least one case where normal execution has enough task outputs and
+  reflection can choose `synthesize_from_task_outputs`
+- at least one case where reflection must choose `stop_insufficient`
+- at least one clean-pass case where reflection is not triggered
+
+Promotion is blocked if any reflected accepted answer:
+
+- uses evidence that is not visible in retrieved docs, task outputs, or the
+  artifact ledger
+- changes final acceptance without a critic/orchestrator acceptance record
+- bypasses `task_artifact_trace` integrity checks
+- consumes more retry budget than the request allows
+- adds company, benchmark id, metric, or question-specific runtime branches
+
+## Promotion Test Plan
+
+A future active-reflection PR should add a small fixture-backed or store-fixed
+gate before any broader benchmark refresh:
+
+1. Unit tests for trigger eligibility, request construction, allowed strategies,
+   budget consumption, and `ReflectionReport` ledger shape.
+2. A focused reflection promotion command or profile that reports the five
+   promotion signals above.
+3. A negative case proving `stop_insufficient` remains a safe terminal action
+   and does not produce a final accepted answer.
+4. A clean-pass case proving reflection does not run when the initial
+   task/artifact and critic contracts are already healthy.
+
+Full benchmark refresh is not required for the first promotion PR unless the
+implementation changes retrieval, calculation, answer composition, or final
+acceptance behavior outside the reflection path.
+
 ## Non-Goals
 
 - Do not add new benchmark-specific retry branches.
