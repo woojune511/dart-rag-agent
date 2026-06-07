@@ -370,11 +370,10 @@ Useful supporting points:
 
 ## Next Work
 
-1. MAS default smoke store preflight: direct worker probe shows planner creates
-   the expected Analyst/Researcher tasks, but the current default store has
-   `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, and
-   `structure_graph_node_count = 0`; next work should restore a valid default
-   smoke store or fail the smoke before LLM work when the store is empty.
+1. MAS default smoke store restoration: the empty-store preflight now stops
+   `mas_e2e_smoke` before VectorStoreManager / LLM work when the current
+   default store has zero Chroma embeddings and zero sidecar material. Next
+   work should restore a valid default smoke store or document the rebuild path.
 2. Runtime critic / offline evaluator boundary follow-up: keep runtime critic
    acceptance focused on structurally visible worker artifacts, while offline
    evaluator scorecards remain a separate review surface.
@@ -651,6 +650,14 @@ Useful supporting points:
   blocker is therefore an empty or missing default smoke store, not planner
   task generation or worker-wrapper logic. Raw output is local-only under
   `benchmarks/results/mas_direct_worker_probe_2026-06-07/`.
+- `mas_e2e_smoke.py` now includes an empty-store material preflight before
+  `VectorStoreManager` construction. It reads Chroma collection embedding
+  counts and local sidecar counts (`parents.json`,
+  `document_structure_graph.json`, `table_payloads.json`) from disk. When the
+  collection exists but embeddings and sidecar material are all zero, the smoke
+  fails before LLM work with `Store appears empty for MAS smoke`. A live default
+  run now stops in about `5s` at this preflight instead of spending worker/API
+  time and ending as material-empty.
 - Earlier live real-node smoke was run with a local OpenAI-3072 Samsung 2023
   store and matching report scope. It completed in `68.2s` with
   `final_report_record.status = ok`, `task_artifact_trace.integrity_status =

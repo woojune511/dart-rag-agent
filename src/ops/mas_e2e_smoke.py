@@ -361,6 +361,119 @@ def _load_chroma_collection_dimension(store_dir: Path, collection_name: str) -> 
         return None
 
 
+def _load_json_count(path: Path, key: str = "") -> int:
+    if not path.exists():
+        return 0
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return 0
+    if key and isinstance(payload, dict):
+        value = payload.get(key)
+    else:
+        value = payload
+    if isinstance(value, dict):
+        return len(value)
+    if isinstance(value, list):
+        return len(value)
+    return 0
+
+
+def _load_chroma_collection_inventory(store_dir: Path, collection_name: str) -> Dict[str, Any]:
+    sqlite_path = store_dir / "chroma.sqlite3"
+    if not sqlite_path.exists():
+        return {
+            "chroma_sqlite_present": False,
+            "chroma_collection_present": False,
+            "chroma_embedding_count": None,
+        }
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(sqlite_path)
+        row = conn.execute(
+            "SELECT id FROM collections WHERE name = ? LIMIT 1",
+            (collection_name,),
+        ).fetchone()
+        if not row:
+            return {
+                "chroma_sqlite_present": True,
+                "chroma_collection_present": False,
+                "chroma_embedding_count": 0,
+            }
+        collection_id = str(row[0])
+        count_row = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM embeddings
+            JOIN segments ON embeddings.segment_id = segments.id
+            WHERE segments.collection = ?
+            """,
+            (collection_id,),
+        ).fetchone()
+        return {
+            "chroma_sqlite_present": True,
+            "chroma_collection_present": True,
+            "chroma_embedding_count": int(count_row[0] if count_row else 0),
+        }
+    except sqlite3.Error as exc:
+        return {
+            "chroma_sqlite_present": True,
+            "chroma_collection_present": False,
+            "chroma_embedding_count": None,
+            "chroma_inventory_error": str(exc),
+        }
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _load_store_inventory(store_dir: Path, collection_name: str) -> Dict[str, Any]:
+    chroma = _load_chroma_collection_inventory(store_dir, collection_name)
+    parent_count = _load_json_count(store_dir / "parents.json")
+    structure_graph_node_count = _load_json_count(store_dir / "document_structure_graph.json", "nodes")
+    table_payload_count = _load_json_count(store_dir / "table_payloads.json")
+    known_artifact_present = any(
+        [
+            bool(chroma.get("chroma_sqlite_present")),
+            (store_dir / "benchmark_cache_meta.json").exists(),
+            (store_dir / "vector_store_meta.json").exists(),
+            (store_dir / "parents.json").exists(),
+            (store_dir / "document_structure_graph.json").exists(),
+            (store_dir / "table_payloads.json").exists(),
+        ]
+    )
+    empty_material = (
+        bool(chroma.get("chroma_collection_present"))
+        and int(chroma.get("chroma_embedding_count") or 0) == 0
+        and parent_count == 0
+        and structure_graph_node_count == 0
+        and table_payload_count == 0
+    )
+    return {
+        **chroma,
+        "parent_count": parent_count,
+        "structure_graph_node_count": structure_graph_node_count,
+        "table_payload_count": table_payload_count,
+        "known_artifact_present": known_artifact_present,
+        "empty_material": empty_material,
+    }
+
+
+def _assert_store_has_material(store_dir: Path, collection_name: str) -> Dict[str, Any]:
+    inventory = _load_store_inventory(store_dir, collection_name)
+    if inventory.get("empty_material"):
+        raise ValueError(
+            "Store appears empty for MAS smoke "
+            f"(collection={collection_name}, store_dir={store_dir}, "
+            f"chroma_embedding_count={inventory.get('chroma_embedding_count')}, "
+            f"parent_count={inventory.get('parent_count')}, "
+            f"structure_graph_node_count={inventory.get('structure_graph_node_count')}, "
+            f"table_payload_count={inventory.get('table_payload_count')}). "
+            "Pass a populated --store-dir/--collection-name or rebuild the smoke store."
+        )
+    return inventory
+
+
 def _assert_store_embedding_compatible(
     store_dir: Path,
     collection_name: str,
@@ -603,6 +716,15 @@ def run_smoke(
     log("check_store_embedding_signature")
     embedding_compatibility = _assert_store_embedding_compatible(store_dir, collection_name)
     log(f"store_embedding_signature status={embedding_compatibility['status']}")
+    log("check_store_material")
+    store_inventory = _assert_store_has_material(store_dir, collection_name)
+    log(
+        "store_material "
+        f"empty={store_inventory['empty_material']} "
+        f"chroma_embeddings={store_inventory['chroma_embedding_count']} "
+        f"parents={store_inventory['parent_count']} "
+        f"graph_nodes={store_inventory['structure_graph_node_count']}"
+    )
     log("init_vector_store")
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),
@@ -774,6 +896,7 @@ def run_smoke(
             "collection_name": collection_name,
         },
         "embedding_compatibility": embedding_compatibility,
+        "store_inventory": store_inventory,
         "report_scope": scope,
         "replan_budget": int(replan_budget or 0),
         "report_cache_index_path": str(report_cache_index_path or ""),

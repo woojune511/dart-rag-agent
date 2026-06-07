@@ -81,6 +81,7 @@ Follow-up diagnostic surface:
 | --- | --- |
 | `mas_e2e_smoke_failure_diagnostics_2026-06-07` | `worker_failure_count = 4`, `worker_failure_missing_artifact_count = 4`, `worker_failure_assignee_counts = {"Analyst": 2, "Researcher": 2}`, `worker_failure_reason_counts = {"incomplete numeric result": 2, "empty narrative result": 2, "missing_worker_artifact": 4}` |
 | `mas_direct_worker_probe_2026-06-07` | Planner created `2` Analyst and `2` Researcher tasks, but direct Analyst status was `no_retrieved_docs = 2` and direct Researcher status was `no_raw_retrieval = 2`; store inventory reported `chroma_count = 0`, `bm25_doc_count = 0`, `parent_count = 0`, and `structure_graph_node_count = 0` |
+| empty-store preflight | `mas_e2e_smoke` now stops before `VectorStoreManager` / LLM work when the Chroma collection exists but embeddings and sidecar material are all zero; the live default run fails in about `5s` with `Store appears empty for MAS smoke` |
 
 The follow-up changed only smoke observability and CLI robustness: failed worker
 diagnostics are now surfaced per case and in the summary, and `--output` creates
@@ -96,9 +97,10 @@ experiment artifact.
   `0`; the final close was blocked by lack of source material.
 - The direct worker probe separates the immediate blocker from planner,
   self-reflection, critic, and final merge behavior. The current default store
-  path is effectively empty in this workspace, so the next step should restore
-  a valid default smoke store or make the MAS smoke preflight fail before LLM
-  work when collection and sidecar counts are all zero.
+  path is effectively empty in this workspace, and `mas_e2e_smoke` now fails
+  before LLM work when collection and sidecar counts are all zero. The next
+  step is to restore a valid default smoke store or document a rebuild/refresh
+  path for that store.
 
 
 ## 큰 흐름
