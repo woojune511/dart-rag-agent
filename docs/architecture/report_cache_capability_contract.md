@@ -21,6 +21,8 @@ Current repo surfaces:
 - Retrieval may include cache-index diagnostics in `retrieval_debug_trace` when
   `report_cache_index_path` is explicitly configured.
 - `src.ops.review_report_cache_index_contract` is the reviewer handoff gate.
+- `src.ops.report_cache_promotion_evidence_gate` is the first focused
+  promotion-evidence gate for ready, incomplete, and ambiguous cache matches.
 
 The latest reviewer gate expectation is:
 
@@ -35,6 +37,8 @@ The latest reviewer gate expectation is:
 - one projection-ready candidate and one fallback candidate in the fixture
 - one producer-policy-ready candidate and one producer-policy fallback in the
   fixture
+- promotion evidence reports one ready case, two fallback cases, and no enabled
+  serving, retrieval-bypass, ledger-insertion, or final-acceptance flags
 
 ## Capability Pipeline
 
@@ -61,6 +65,7 @@ authorizes retrieval bypass, cache writes, or live ledger insertion.
 | `GuardedConsumerAssessment` | selected match count, key match, rehydration readiness, fallback reasons | guarded consumer classifier | trace-only |
 | `CalculationContractProjection` | candidate calculation task, `operand_set`, `calculation_plan`, `calculation_result`, evidence refs, disabled flags | projection helper | candidate-only, not inserted |
 | `ProducerPolicyProjection` | calculation task policy name, required artifact kinds, cache-origin metadata, disabled flags, fallback reasons | producer-policy helper | candidate-only, not inserted |
+| `PromotionEvidenceCase` | guarded-consumer status, producer-policy status, fallback requirement, disabled flags, acceptance authority | promotion-evidence helper | focused gate, not serving |
 | `ReviewerHandoff` | status, mode, disabled flags, projection-ready/fallback counts, producer-policy ready/fallback counts | review command | reviewer gate |
 
 ## Required Invariants
@@ -149,9 +154,17 @@ must add a new promotion increment that:
 5. Documents whether `REFERENCE_NOTE` remains graph-expansion context or becomes
    part of this capability boundary.
 
+The first focused promotion-evidence increment is now present but non-enabling:
+`build_report_cache_promotion_evidence_case()` and
+`src.ops.report_cache_promotion_evidence_gate` show that a complete local-index
+entry can satisfy the guarded consumer plus producer-policy contracts, while
+incomplete and ambiguous entries still require normal retrieval fallback. The
+gate also keeps retrieval bypass, serving, ledger insertion, and final
+acceptance disabled.
+
 ## Current Interpretation
 
 The current system is ready for reviewer handoff as a candidate-only cache
-capability. It is not ready for serving or live ledger insertion. The correct
-next code increment, if needed, is a schema/policy wrapper around the existing
-disabled projection helpers, not an enable flag.
+capability. It is not ready for serving or live ledger insertion. The next
+increment should expand promotion evidence with store-fixed or live/default MAS
+traces before any enable flag is considered.

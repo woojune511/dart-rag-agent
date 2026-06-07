@@ -20,6 +20,8 @@ from src.config.report_scoped_cache import (
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     CACHE_ENTRY_SOURCE_RUNTIME_TRACE,
     CACHE_NOT_CACHEABLE,
+    CACHE_PROMOTION_EVIDENCE_FALLBACK,
+    CACHE_PROMOTION_EVIDENCE_READY,
     CACHE_REHYDRATION_BLOCKED,
     CACHE_REHYDRATION_READY,
     CACHE_PROJECTION_VALID_FOR_CONTRACT,
@@ -34,6 +36,7 @@ from src.config.report_scoped_cache import (
     classify_report_cache_guarded_consumer_candidate,
     classify_report_cache_rehydration_candidate,
     build_report_cache_calculation_contract_projection,
+    build_report_cache_promotion_evidence_case,
     build_report_cache_producer_policy_projection,
     build_report_cache_rehydrated_candidate_artifact,
     missing_key_fields,
@@ -1047,6 +1050,153 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertIsNone(result["projection"])
         self.assertIn("projection_not_available", result["reasons"])
         self.assertIn("missing_answer_slots", result["reasons"])
+
+    def test_promotion_evidence_case_accepts_ready_candidate_only_without_enabling_cache(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                "calculation_trace": {
+                    "calculation_plan": {"operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {
+                "source_row_ids": ["row-1"],
+                "evidence_refs": ["ev-1"],
+                "source_anchor": "section",
+            },
+        }
+
+        result = build_report_cache_promotion_evidence_case(entry, task_id="task_1")
+
+        self.assertEqual(result["status"], CACHE_PROMOTION_EVIDENCE_READY)
+        self.assertTrue(result["ready"])
+        self.assertFalse(result["fallback_required"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertFalse(result["ledger_insertion_enabled"])
+        self.assertFalse(result["retrieval_bypass_enabled"])
+        self.assertFalse(result["final_acceptance_enabled"])
+        self.assertEqual(
+            result["acceptance_authority"],
+            "task_artifact_integrity_and_critic_orchestrator",
+        )
+        self.assertEqual(result["producer_policy_status"], CACHE_PRODUCER_POLICY_READY)
+        self.assertEqual(
+            result["producer_policy_artifact_kinds"],
+            ["operand_set", "calculation_plan", "calculation_result"],
+        )
+
+    def test_promotion_evidence_case_requires_fallback_for_incomplete_entry(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+
+        result = build_report_cache_promotion_evidence_case(
+            {
+                "entry_version": REPORT_CACHE_ENTRY_VERSION,
+                "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+                "key": key,
+                "key_id": report_cache_key_id(key),
+                "value": {"kind": "calculation_result", "rendered_value": "123"},
+                "provenance": {"source_row_ids": ["row-1"]},
+            },
+            task_id="task_1",
+        )
+
+        self.assertEqual(result["status"], CACHE_PROMOTION_EVIDENCE_FALLBACK)
+        self.assertFalse(result["ready"])
+        self.assertTrue(result["fallback_required"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertFalse(result["ledger_insertion_enabled"])
+        self.assertIn("missing_answer_slots", result["reasons"])
+        self.assertEqual(result["producer_policy_status"], CACHE_PRODUCER_POLICY_BLOCKED)
+
+    def test_promotion_evidence_case_requires_fallback_for_ambiguous_match(self) -> None:
+        key = normalise_report_cache_key(
+            {
+                "company": "ACME",
+                "report_type": "annual",
+                "rcept_no": "r1",
+                "year": "2023",
+                "metric_label": "metric",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "statement_type": "income_statement",
+                "source_section": "section",
+                "source_table_id": "section::table:1",
+            }
+        )
+        entry = {
+            "entry_version": REPORT_CACHE_ENTRY_VERSION,
+            "source": CACHE_ENTRY_SOURCE_LOCAL_INDEX,
+            "key": key,
+            "key_id": report_cache_key_id(key),
+            "value": {
+                "kind": "calculation_result",
+                "rendered_value": "123",
+                "answer_slots": {"primary_value": {"display": "123", "raw_value": "123"}},
+                "calculation_trace": {
+                    "calculation_plan": {"operation": "lookup"},
+                    "calculation_result": {"status": "ok", "rendered_value": "123"},
+                    "calculation_operands": [{"label": "metric", "raw_value": "123"}],
+                },
+                "citations": ["[ACME | 2023 | section]"],
+                "evidence_items": [{"source_anchor": "section", "claim": "metric was 123"}],
+            },
+            "provenance": {
+                "source_row_ids": ["row-1"],
+                "evidence_refs": ["ev-1"],
+                "source_anchor": "section",
+            },
+        }
+
+        result = build_report_cache_promotion_evidence_case(
+            entry,
+            selected_match_count=2,
+            task_id="task_1",
+        )
+
+        self.assertEqual(result["status"], CACHE_PROMOTION_EVIDENCE_FALLBACK)
+        self.assertFalse(result["ready"])
+        self.assertTrue(result["fallback_required"])
+        self.assertFalse(result["serving_enabled"])
+        self.assertFalse(result["retrieval_bypass_enabled"])
+        self.assertEqual(result["producer_policy_status"], CACHE_PRODUCER_POLICY_READY)
+        self.assertIn("ambiguous_rehydration_match", result["reasons"])
 
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
         update = _runtime_trace_state_update(

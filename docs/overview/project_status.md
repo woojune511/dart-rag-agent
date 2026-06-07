@@ -388,6 +388,10 @@ Recently closed:
   `build_report_cache_producer_policy_projection()` requires future cache
   ledger candidates to reuse the calculation task/artifact contract while
   keeping serving and ledger insertion disabled.
+- `src.ops.report_cache_promotion_evidence_gate` now provides the first focused
+  cache promotion evidence gate: one ready local-index candidate, one
+  incomplete-entry fallback, and one ambiguous-match fallback, all with serving,
+  retrieval bypass, ledger insertion, and final acceptance disabled.
 
 Current next decisions:
 
@@ -398,12 +402,13 @@ Current next decisions:
    `latency_delta`, and integrity preservation. Its default run now covers both
    the base fixture set and a store-fixed candidate surface fixture before any
    active retry behavior is promoted.
-2. Report-cache producer policy: now documented in
+2. Report-cache promotion evidence: producer policy is documented in
    `docs/architecture/report_cache_capability_contract.md` and code-backed by
    `build_report_cache_producer_policy_projection()`. Future cache-derived
    ledger candidates map to the existing calculation task contract with
-   explicit cache-origin metadata; serving, writes, retrieval bypass, and live
-   ledger insertion remain disabled until live/default MAS or store-fixed
+   explicit cache-origin metadata. The first focused promotion-evidence gate is
+   fixture-backed only; serving, writes, retrieval bypass, final acceptance, and
+   live ledger insertion remain disabled until live/default MAS or store-fixed
    eval-only traces justify a promotion.
 3. Gate maintenance: rerun `portfolio_review_gates` whenever reviewer-facing
    runtime surfaces change; run broader benchmark refreshes only when a source
