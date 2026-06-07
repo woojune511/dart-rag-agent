@@ -3582,6 +3582,170 @@ class FinancialAgentCalculationMixin:
             )
         return updated, selected_ids
 
+    def _append_retrieved_growth_driver_evidence_for_query(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        *,
+        query: str,
+        docs: List[Any],
+    ) -> List[Dict[str, Any]]:
+        query_text = _normalise_spaces(str(query or ""))
+        if not query_text or not docs or not _query_requests_narrative_context(query_text):
+            return [dict(item or {}) for item in (evidence_items or [])]
+
+        driver_groups = self._narrative_driver_groups(query_text)
+        if not driver_groups:
+            return [dict(item or {}) for item in (evidence_items or [])]
+
+        updated = [dict(item or {}) for item in (evidence_items or [])]
+        existing_ids = {
+            str(item.get("evidence_id") or "").strip()
+            for item in updated
+            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+        }
+        existing_blob = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for item in updated
+                if isinstance(item, dict)
+                for value in (
+                    item.get("claim"),
+                    item.get("quote_span"),
+                    item.get("raw_row_text"),
+                    " ".join(str(term or "") for term in (item.get("allowed_terms") or [])),
+                )
+            )
+        ).lower()
+        seen_surfaces = {
+            _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        item.get("source_anchor"),
+                        item.get("claim"),
+                        item.get("quote_span"),
+                    )
+                )
+            )
+            for item in updated
+            if isinstance(item, dict)
+        }
+
+        doc_rows: List[Dict[str, Any]] = []
+        for item in docs or []:
+            doc = item[0] if isinstance(item, (tuple, list)) and item else item
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            text = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        getattr(doc, "page_content", None),
+                        getattr(doc, "content", None),
+                        metadata.get("table_context"),
+                        metadata.get("table_summary_text"),
+                    )
+                )
+            )
+            if not text:
+                continue
+            source_anchor = _normalise_spaces(
+                str(
+                    metadata.get("source_anchor")
+                    or metadata.get("section_path")
+                    or metadata.get("section_title")
+                    or metadata.get("section")
+                    or ""
+                )
+            )
+            doc_rows.append(
+                {
+                    "text": text,
+                    "metadata": metadata,
+                    "source_anchor": source_anchor,
+                }
+            )
+
+        def _driver_surface_without_table_tail(surface: str, variants: List[str]) -> str:
+            text = _normalise_spaces(str(surface or ""))
+            if not text or "|" not in text:
+                return text
+            first_fragment = ""
+            for fragment in text.split("|"):
+                cleaned = _normalise_spaces(fragment)
+                if cleaned and not first_fragment:
+                    first_fragment = cleaned
+                if cleaned and any(variant.lower() in cleaned.lower() for variant in variants):
+                    return cleaned
+            return first_fragment or text
+
+        narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
+        for group in driver_groups:
+            variants = [
+                _normalise_spaces(str(variant or ""))
+                for variant in (group.get("variants") or [])
+                if _normalise_spaces(str(variant or ""))
+            ]
+            phrase = _driver_surface_without_table_tail(str(group.get("phrase") or ""), variants)
+            if not variants:
+                continue
+            if any(variant.lower() in existing_blob for variant in variants):
+                continue
+
+            best: Optional[tuple[int, str, Dict[str, Any]]] = None
+            for row in doc_rows:
+                text = str(row.get("text") or "")
+                text_lower = text.lower()
+                if not any(variant.lower() in text_lower for variant in variants):
+                    continue
+                snippet = self._extract_driver_snippet(text, variants)
+                candidate_sentences = [
+                    _normalise_spaces(sentence)
+                    for sentence in (_split_narrative_sentences(snippet) or [snippet])
+                    if _normalise_spaces(sentence)
+                ]
+                if not candidate_sentences:
+                    continue
+                for sentence in candidate_sentences:
+                    sentence = _driver_surface_without_table_tail(sentence, variants)
+                    sentence_lower = sentence.lower()
+                    if not any(variant.lower() in sentence_lower for variant in variants):
+                        continue
+                    if _narrative_sentence_looks_table_noisy(sentence):
+                        continue
+                    if _narrative_sentence_looks_abbreviated_fragment(sentence, narrative_markers):
+                        continue
+                    score = sum(5 for variant in variants if variant.lower() in sentence_lower)
+                    score += sum(1 for variant in variants if variant.lower() in text_lower)
+                    if best is None or score > best[0]:
+                        best = (score, sentence[:700], row)
+
+            if best is None:
+                continue
+
+            _score, sentence, row = best
+            dedupe_key = _normalise_spaces(f"{row.get('source_anchor') or ''} {sentence}")
+            if dedupe_key and dedupe_key in seen_surfaces:
+                continue
+            if dedupe_key:
+                seen_surfaces.add(dedupe_key)
+            evidence_id = f"retrieved_driver::{len(updated) + 1:03d}"
+            while evidence_id in existing_ids:
+                evidence_id = f"retrieved_driver::{len(updated) + len(existing_ids) + 1:03d}"
+            existing_ids.add(evidence_id)
+            updated.append(
+                {
+                    "evidence_id": evidence_id,
+                    "source_anchor": str(row.get("source_anchor") or ""),
+                    "claim": phrase or sentence,
+                    "quote_span": sentence,
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "metadata": dict(row.get("metadata") or {}),
+                }
+            )
+
+        return updated
+
     def _filter_aggregate_projection_provenance(
         self,
         projection: Dict[str, Any],
@@ -10519,6 +10683,12 @@ class FinancialAgentCalculationMixin:
         for row in ordered_results:
             _append_aggregate_evidence(list(row.get("runtime_evidence") or []))
         _append_aggregate_evidence(list(state.get("evidence_items") or []))
+        narrative_docs = list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or [])
+        aggregate_evidence_items = self._append_retrieved_growth_driver_evidence_for_query(
+            aggregate_evidence_items,
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
+        )
         preliminary_projection = self._build_aggregate_calculation_projection(ordered_results, fallback_answer)
         narrative_context = self._narrative_context_sentence_from_evidence(
             str(state.get("query") or ""),
@@ -11056,7 +11226,6 @@ class FinancialAgentCalculationMixin:
             operands=list(aggregate_projection.get("calculation_operands") or []),
             final_answer=final_answer,
         )
-        narrative_docs = list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or [])
         aggregate_evidence_items, retrieved_narrative_claim_ids = self._append_retrieved_narrative_evidence_for_final_answer(
             aggregate_evidence_items,
             final_answer=final_answer,
