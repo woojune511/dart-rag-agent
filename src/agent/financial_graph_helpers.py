@@ -416,6 +416,9 @@ def _project_task_artifact_trace(
         TaskKind.RECONCILIATION.value: {
             ArtifactKind.RECONCILIATION_RESULT.value,
         },
+        TaskKind.REFLECTION.value: {
+            ArtifactKind.REFLECTION_REPORT.value,
+        },
         TaskKind.RETRIEVAL.value: {
             ArtifactKind.RETRIEVAL_BUNDLE.value,
         },
@@ -487,6 +490,16 @@ def _project_task_artifact_trace(
                 return "reconciliation_result"
             if not str(result.get("status") or "").strip():
                 return "reconciliation_result.status"
+        elif artifact_kind == ArtifactKind.REFLECTION_REPORT.value:
+            report = payload.get("reflection_report")
+            if not isinstance(report, Mapping):
+                return "reflection_report"
+            if not str(report.get("outcome") or "").strip():
+                return "reflection_report.outcome"
+            if not str(report.get("action_taken") or "").strip():
+                return "reflection_report.action_taken"
+            if "budget_consumed" not in report:
+                return "reflection_report.budget_consumed"
         elif artifact_kind == ArtifactKind.RETRIEVAL_BUNDLE.value:
             bundle = payload.get("retrieval_bundle") if isinstance(payload.get("retrieval_bundle"), Mapping) else {}
             candidate_lists = [
@@ -819,6 +832,8 @@ def _project_task_artifact_trace(
             requires_evidence_ref = task_kind == TaskKind.CALCULATION.value
             if task_kind == TaskKind.RECONCILIATION.value:
                 requires_evidence_ref = _reconciliation_result_status(attached_artifacts) in {"ok", "ready"}
+            elif task_kind == TaskKind.REFLECTION.value:
+                requires_evidence_ref = False
             elif task_kind == TaskKind.RETRIEVAL.value:
                 requires_evidence_ref = True
             elif task_kind == TaskKind.SYNTHESIS.value:

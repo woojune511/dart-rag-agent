@@ -5503,6 +5503,16 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(update["reflection_report"]["outcome"], "retry_prepared")
         self.assertEqual(update["reflection_report"]["action_taken"], "retry_retrieval")
         self.assertEqual(update["reflection_report"]["budget_consumed"], 1)
+        trace = _project_task_artifact_trace(update["tasks"], update["artifacts"])
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["tasks"][0]["kind"], "reflection")
+        self.assertEqual(trace["tasks"][0]["artifact_kinds"], ["reflection_report"])
+        self.assertEqual(trace["artifacts"][0]["payload_keys"], [
+            "reflection_action",
+            "reflection_plan",
+            "reflection_report",
+            "reflection_request",
+        ])
         self.assertEqual(
             _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
             {},

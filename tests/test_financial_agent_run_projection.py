@@ -861,6 +861,107 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(trace["integrity_status"], "ok")
         self.assertEqual(trace["integrity_issues"], [])
 
+    def test_run_marks_completed_reflection_without_report_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reflection",
+                "kind": "reflection",
+                "label": "reflect retry",
+                "status": "completed",
+                "artifact_ids": [],
+            }
+        ]
+        final_state["artifacts"] = []
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(
+            [issue["type"] for issue in trace["integrity_issues"]],
+            ["task_without_artifacts", "missing_required_artifact_kind"],
+        )
+        self.assertEqual(trace["integrity_issues"][1]["artifact_kind"], "reflection_report")
+
+    def test_run_accepts_reflection_report_handoff_without_evidence_refs(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reflection",
+                "kind": "reflection",
+                "label": "reflect retry",
+                "status": "completed",
+                "artifact_ids": ["artifact_reflection"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_reflection",
+                "task_id": "task_reflection",
+                "kind": "reflection_report",
+                "status": "retry_prepared",
+                "payload": {
+                    "reflection_report": {
+                        "outcome": "retry_prepared",
+                        "action_taken": "retry_retrieval",
+                        "budget_consumed": 1,
+                        "target_task_ids": ["task_1"],
+                        "target_artifact_ids": [],
+                        "blocking_issues": [],
+                    }
+                },
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
+
+    def test_run_marks_reflection_report_without_action_as_integrity_error(self) -> None:
+        final_state = self._base_final_state()
+        final_state["tasks"] = [
+            {
+                "task_id": "task_reflection",
+                "kind": "reflection",
+                "label": "reflect retry",
+                "status": "completed",
+                "artifact_ids": ["artifact_reflection"],
+            }
+        ]
+        final_state["artifacts"] = [
+            {
+                "artifact_id": "artifact_reflection",
+                "task_id": "task_reflection",
+                "kind": "reflection_report",
+                "status": "retry_prepared",
+                "payload": {
+                    "reflection_report": {
+                        "outcome": "retry_prepared",
+                        "budget_consumed": 1,
+                    }
+                },
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["task_artifact_trace"]
+        self.assertEqual(trace["integrity_status"], "error")
+        self.assertEqual(trace["integrity_issues"][0]["type"], "missing_required_artifact_payload")
+        self.assertEqual(trace["integrity_issues"][0]["payload_key"], "reflection_report.action_taken")
+
     def test_run_marks_completed_critic_without_report_as_integrity_error(self) -> None:
         final_state = self._base_final_state()
         final_state["tasks"] = [

@@ -22,6 +22,7 @@ class TaskKind(str, Enum):
     CALCULATION = "calculation"
     RETRIEVAL = "retrieval"
     RECONCILIATION = "reconciliation"
+    REFLECTION = "reflection"
     VERIFICATION = "verification"
     CRITIC = "critic"
     SYNTHESIS = "synthesis"
@@ -34,6 +35,7 @@ class ArtifactKind(str, Enum):
     OPERAND_SET = "operand_set"
     CALCULATION_PLAN = "calculation_plan"
     CALCULATION_RESULT = "calculation_result"
+    REFLECTION_REPORT = "reflection_report"
     AGGREGATED_ANSWER = "aggregated_answer"
     CRITIC_REPORT = "critic_report"
 

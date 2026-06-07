@@ -60,6 +60,11 @@ No other strategy should be accepted without updating this contract and tests.
 - Reflection may not mark a final answer accepted. It only proposes the next
   bounded action or a stop reason.
 - Reflection retry queries must be visible in state and reviewer output.
+- Reflection report handoff is recorded as a `reflection` task with a
+  `reflection_report` artifact. The artifact must contain
+  `reflection_report.outcome`, `reflection_report.action_taken`, and
+  `reflection_report.budget_consumed`; target refs and blocking issues remain
+  reviewer/orchestrator handoff metadata, not acceptance authority.
 
 ## Current-Code Mapping
 
@@ -81,15 +86,20 @@ boundary visible:
 2. Make `_plan_reflection_retry()` normalize planner output through one helper.
 3. Make `_prepare_reflection_retry()` expose a normalized action shape.
 4. Make `_prepare_reflection_retry()` emit a bounded `ReflectionReport` handoff.
-5. Add tests for allowed strategies, legacy trace rejection, and report shape.
-6. Keep current graph routes intact.
+5. Add `reflection` / `reflection_report` to the task/artifact ledger contract.
+6. Add tests for allowed strategies, legacy trace rejection, report shape, and
+   ledger integrity.
+7. Keep current graph routes intact.
 
 Current status: TypedDicts, request builder, plan normalization, and action
 projection are in place. `_prepare_reflection_retry()` now also records a
 `ReflectionReport` with the selected action, retry budget consumption,
 target task/artifact ids when visible, and blocking issues for
-`stop_insufficient`. This is a handoff record only; final acceptance behavior
-and graph routes are unchanged.
+`stop_insufficient`. The same report is also persisted as a
+`reflection_report` artifact attached to a `reflection` task so critic and
+orchestrator handoff readers can inspect it through `task_artifact_trace`.
+This is a handoff record only; final acceptance behavior and graph routes are
+unchanged.
 
 ## Non-Goals
 
