@@ -2,7 +2,7 @@
 Shared state and structured-output models for the financial graph agent.
 """
 
-from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Annotated, Any, Dict, List, Literal, NotRequired, Optional, TypedDict, Union
 
 from pydantic import BaseModel, Field, TypeAdapter
 
@@ -72,12 +72,13 @@ class FinancialAgentState(TypedDict):
     numeric_debug_trace: Dict[str, Any]
     resolved_calculation_trace: RuntimeCalculationTrace
     structured_result: Dict[str, Any]
-    # Legacy flat calculation fields are still mirrored inside runtime state
-    # while internal nodes migrate to `resolved_calculation_trace` /
-    # `structured_result`. They should not be treated as source of truth.
-    calculation_operands: List[Dict[str, Any]]
-    calculation_plan: Dict[str, Any]
-    calculation_result: Dict[str, Any]
+    # Legacy flat calculation fields are optional compatibility mirrors.
+    # Current graph readers should use `resolved_calculation_trace` /
+    # `structured_result`; only explicit compatibility surfaces may depend on
+    # these keys being present.
+    calculation_operands: NotRequired[List[Dict[str, Any]]]
+    calculation_plan: NotRequired[Dict[str, Any]]
+    calculation_result: NotRequired[Dict[str, Any]]
     calculation_debug_trace: Dict[str, Any]
     planner_debug_trace: Dict[str, Any]
     missing_info: List[str]

@@ -1050,10 +1050,10 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. internal calculation mirror cleanup follow-up
+1. runtime critic / offline evaluator boundary follow-up
 2. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
-3. runtime critic / offline evaluator boundary follow-up
+3. internal calculation debug ownership follow-up
 4. agentic self-reflection 재설계
 5. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
 6. cross-company 확장

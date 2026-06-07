@@ -416,15 +416,15 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | internal calculation mirror cleanup follow-up | state typing/debug ownership 정리 전 남은 compatibility surface를 audit |
+| 1 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
 | 2 | broader curated gate maintenance refresh | 새 broader artifact가 실제 blocker를 재현할 때만 refresh |
-| 3 | runtime critic / evaluator boundary follow-up | runtime critic acceptance와 offline evaluator scorecard 역할 분리 |
+| 3 | internal calculation debug ownership follow-up | `calculation_debug_trace` required state surface를 더 좁은 debug contract로 분리 |
 
 ## 현재 우선순위 요약
 
-1. internal calculation mirror cleanup follow-up
+1. runtime critic / evaluator boundary follow-up
 2. broader curated gate maintenance refresh when a new artifact reproduces a blocker
-3. runtime critic / evaluator boundary follow-up
+3. internal calculation debug ownership follow-up
 
 ## 현재 해석
 
@@ -432,6 +432,7 @@
 - report-scoped cache capability design은 2026-06-07 기준 candidate-only handoff gate까지 닫았다. `src.ops.review_report_cache_index_contract` 기본 fixture-backed review는 `status = ok`, `difference_count = 0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, projection-ready candidate `1`, fallback candidate `1`을 보고한다. Cache serving, read/write, ledger insertion, retrieval bypass는 모두 disabled로 남는다.
 - material-gap / mixed narrative canary maintenance는 2026-06-07에 `docs/evaluation/material_gap_mixed_canary_maintenance.md`로 정리했다. `KBF_T2_043`은 closed runtime blocker이자 broader replay/completeness-render calibration watch item이고, `NAV_T2_006`은 closed mixed numeric+narrative quality target으로 policy-gate regression coverage에 남긴다. 새 artifact가 material evidence / dependency / trace / final synthesis failure를 재현하기 전에는 full benchmark나 runtime patch를 기본값으로 쓰지 않는다.
 - internal calculation mirror cleanup 1차 작업은 2026-06-07에 닫았다. Aggregate reconciliation artifact enrichment가 더 이상 stale top-level `calculation_result`의 `source_row_ids` / answer-slot source refs를 evidence refs로 보강하지 않고, canonical projection / ordered subtask refs / selected claims만 사용한다. 회귀 테스트는 canonical `resolved_calculation_trace` source refs는 보존하고 stale top-level refs는 replan-triggering integrity gap으로 남기는 두 경로를 고정한다. `tests.test_subtask_loop` `143`개와 runtime domain-term audit이 통과했다.
+- internal calculation mirror cleanup state-typing follow-up도 2026-06-07에 닫았다. `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 optional compatibility mirror로 내려갔고, `calculation_debug_trace`만 debug ownership 분리 전 required surface로 남긴다. Focused projection test와 runtime domain-term audit이 통과했다.
 - MAS skeleton과 artifact schema productization 1차 작업은 2026-06-07에 닫았다. `FinalCarryForwardProjection`과 `project_final_report_carry_forward()`를 MAS schema layer로 올렸고, smoke output은 이제 이 shared helper에서 final source task/artifact/evidence/subtask-result counts와 ids를 만든다. Orchestrator와 dummy MAS merge도 `subtask_results` row에 selected worker `artifact_id` / `source_artifact_id`를 보존한다. 관련 MAS API-free tests `29`개와 runtime domain-term audit이 통과했다.
 - mixed growth+narrative answer-language polish 1차 작업은 2026-06-07에 닫았다. 최종 aggregate answer surface에서 받침 있는 한글 음절 뒤의 잘못된 conjunctive particle을 generic하게 정리하고, `RuntimeCalculationTrace.calculation_result.formatted_result`도 같은 surface를 보존한다. 이 변경은 회사명/benchmark ID/driver keyword branch 없이 answer surface 후처리만 수행하며, focused aggregate regression과 runtime domain-term audit이 통과했다.
 - mixed growth+narrative retrieval fan-out control 1차 작업은 2026-06-07에 audit surface 보강으로 닫았다. `audit_benchmark_fanout_cost.py`는 이제 cross-trace reuse candidates 중 current cache hit / miss counts를 row와 summary, Markdown table에 노출한다. 따라서 `NAV_T2_006` 같은 sibling lookup repeats가 이미 cache-hit로 막힌 관측 항목인지, 실제 추가 비용 후보인지 구분할 수 있다. 새 benchmark는 돌리지 않았다.
@@ -453,7 +454,8 @@
 - internal compatibility mirror cleanup scope는 2026-06-07에 `docs/architecture/internal_calculation_mirror_cleanup.md`로 정리했다.
   - live graph readers는 strict `resolved_calculation_trace`를 써야 한다.
   - `FinancialAgent.run()` public bridge와 retrospective/replay tools만 명시적 compatibility fallback을 유지한다.
-  - 다음 code cleanup은 `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result` typing 축소 여부를 테스트와 함께 검토하는 순서다.
+  - `FinancialAgentState`의 top-level `calculation_operands` / `calculation_plan` / `calculation_result`는 이제 optional compatibility mirror다.
+  - 다음 cleanup은 `calculation_debug_trace` debug ownership을 분리한 뒤 required state shape를 줄일 수 있는지 검토하는 순서다.
 - 현재 더 중요한 운영 질문은 planner보다 ingest candidate selection이다.
   - `plain`은 여전히 하나의 대표 gate를 놓친다
   - `contextual_selective_v2`는 품질 baseline이지만 ingest 비용이 크다

@@ -1,6 +1,7 @@
 import unittest
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_models import FinancialAgentState
 
 
 class _FakeGraph:
@@ -18,6 +19,13 @@ class _FakeDoc:
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
+    def test_state_typing_keeps_legacy_calculation_mirrors_optional(self) -> None:
+        self.assertIn("calculation_operands", FinancialAgentState.__optional_keys__)
+        self.assertIn("calculation_plan", FinancialAgentState.__optional_keys__)
+        self.assertIn("calculation_result", FinancialAgentState.__optional_keys__)
+        self.assertNotIn("calculation_debug_trace", FinancialAgentState.__optional_keys__)
+        self.assertIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
+
     def _base_final_state(self):
         return {
             "query": "test question",
