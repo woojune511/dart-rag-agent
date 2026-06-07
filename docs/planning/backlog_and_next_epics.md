@@ -894,13 +894,16 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
   carry-forward가 rejected worker task를 함께 실패 처리할 수 있다
 - MAS smoke output은 final acceptance outcome을 case/summary/compact contract에
   노출해 replan success, blocked answer, pending replan을 구분한다
+- 2026-06-07 live/default smoke refresh는 material-empty blocker를 재현했다:
+  default run은 `blocked_without_replan = 2`, `--replan-budget 1` run은
+  `blocked_after_replan = 2`, 두 run 모두 final source counts가 `0`이다
 
 다음:
 
-- runtime critic은 task acceptance와 final merge 보호용
-- offline evaluator는 benchmark/scorecard용
-- 다음 follow-up은 live/default MAS trace를 새 smoke outcome contract로 한 번
-  refresh할 필요가 있을 때만 진행한다
+- 다음 follow-up은 live/default MAS trace의 material-empty 원인을
+  store/retrieval/planner/default-query 층으로 분리하는 것이다
+- runtime critic은 task acceptance와 final merge 보호용이고, offline
+  evaluator는 benchmark/scorecard용이라는 경계는 유지한다
 
 ### 5. Self-reflection을 retry rule이 아닌 capability로 재정의
 
@@ -1057,13 +1060,14 @@ read/write behavior, ledger insertion, and retrieval bypass remain disabled.
 
 ## 현재 추천 우선순위
 
-1. runtime critic / offline evaluator boundary follow-up
-2. broader curated gate maintenance refresh when a new broader artifact
+1. MAS default smoke material-empty blocker diagnosis
+2. runtime critic / offline evaluator boundary follow-up
+3. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
-3. internal calculation debug ownership follow-up
-4. agentic self-reflection 재설계
-5. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
-6. cross-company 확장
+4. internal calculation debug ownership follow-up
+5. agentic self-reflection 재설계
+6. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+7. cross-company 확장
 
 ## 지금 당장 하지 않을 것
 

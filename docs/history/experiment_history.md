@@ -33,6 +33,7 @@
 | [Evaluator + Routing Cascade v1 (2026-04-23)](#evaluator--routing-cascade-v1-2026-04-23) | evaluator + routing 구조 개편 | query routing을 cascade로 재구성 |
 | [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
+| [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, 현재 blocker는 material-empty failure |
 
 ## 보는 법
 
@@ -43,6 +44,44 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## MAS Smoke Outcome Refresh (2026-06-07)
+
+참조:
+
+- `benchmarks/results/mas_e2e_smoke_outcome_refresh_2026-06-07/`
+- `benchmarks/results/mas_e2e_smoke_outcome_refresh_replan1_2026-06-07/`
+
+### 무엇을 검증했나
+
+- PR #39 이후 `mas_e2e_smoke`의 새 `final_acceptance_outcome` surface가
+  실제 live/default MAS smoke에서 어떤 상태를 보여주는지 확인했다.
+- raw output은 local experiment artifact로만 유지하고 commit 대상에는
+  포함하지 않는다.
+
+### 결과
+
+| Run | Key outcome |
+| --- | --- |
+| default `replan_budget = 0` | `final_acceptance_outcome_counts = {"blocked_without_replan": 2}`, `blocked_count = 2`, final source counts all `0` |
+| `--replan-budget 1` | `final_acceptance_outcome_counts = {"blocked_after_replan": 2}`, `replan_routed_count = 2`, `blocked_count = 2`, final source counts all `0` |
+
+Both runs reported `embedding_compatibility.status = unknown`, no critic
+acceptance issues, and no task/artifact integrity error in the final trace. The
+blocking condition was material-empty execution: Analyst tasks failed with
+incomplete numeric results, Researcher tasks failed with empty narrative
+results, and final synthesis emitted a blocked/refusal answer because there were
+no completed worker artifacts to carry forward.
+
+### 해석
+
+- The new smoke outcome contract is doing useful work: it distinguishes
+  `blocked_without_replan` from `blocked_after_replan` without manual trace
+  reading.
+- This is not a critic acceptance bug. Critic rejection issue counts stayed
+  `0`; the final close was blocked by lack of source material.
+- The next diagnostic step should separate store/retrieval/planner/default-query
+  causes before changing self-reflection or critic policy.
 
 
 ## 큰 흐름
