@@ -113,6 +113,16 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Concept Runtime Gap Gate
 
 - Profile: `benchmarks/profiles/curated_concept_runtime_gap_gate.json`
+- Profile cost controls:
+  - full-eval retrieval budgets are now recorded as `8 / 4 / 1`:
+    `retrieval_query_budget`, `focused_retrieval_query_budget`, and
+    `retry_retrieval_query_budget`
+  - a 2026-06-08 store-fixed `CEL_T1_013` budget canary preserved numeric
+    `PASS`, faithfulness/completeness `1.000 / 1.000`, and artifact integrity
+    `ok`
+  - the canary query-budget traces reduced primary query surfaces from
+    `18 -> 8` and `15 -> 8`; the fan-out audit reported `15` executed queries,
+    `0` duplicates, and `1` state query-result cache reuse
 - Latest representative local output:
   `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
 - Result:
@@ -1024,6 +1034,12 @@ Current next decisions:
   previous result bundle without another `vsm.search()` call, while the debug
   trace records `reused_queries` and `query_result_cache.reuse_count` for
   offline audit.
+- The concept runtime gap gate profile now carries the same explicit `8 / 4 / 1`
+  retrieval budgets used by the official runtime/policy gates. A store-fixed
+  `CEL_T1_013` canary preserved numeric `PASS`, faithfulness/completeness
+  `1.000 / 1.000`, and artifact integrity `ok` while reducing primary query
+  surfaces from `18 -> 8` and `15 -> 8`; the fan-out audit reported `15`
+  executed queries, `0` duplicates, and `1` state query-result cache reuse.
 - A local store-fixed Celltrion canary after the query-result cache change was
   mixed rather than release-clean. `CEL_T3_040` dropped from 265 executed
   queries to 124 with 141 state result-cache reuses while preserving numeric

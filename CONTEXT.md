@@ -97,6 +97,21 @@
       (`215` reviewed literals).
     - `python -m unittest discover -s tests`: `604` tests OK.
 
+- 2026-06-08 concept runtime gap gate profile에도 retrieval query budget을
+  명시했다.
+  - `curated_concept_runtime_gap_gate.json`의 full-evaluation profile도 이제
+    `retrieval_query_budget=8`, `focused_retrieval_query_budget=4`,
+    `retry_retrieval_query_budget=1`을 기록한다.
+  - `CEL_T1_013` store-fixed eval-only canary는 numeric `PASS`,
+    faithfulness/completeness `1.000 / 1.000`, artifact integrity `ok`를
+    유지했다.
+  - query budget trace는 primary query를 `18 -> 8`, `15 -> 8`로 줄였고,
+    fan-out audit은 executed queries `15`, duplicate `0`, state cache reuse
+    `1`을 기록했다.
+  - 검증:
+    - `python -m unittest tests.test_benchmark_runner_runtime_projection tests.test_retrieval_scope tests.test_benchmark_fanout_cost_audit`: `44` tests OK.
+    - `python -m unittest discover -s tests`: `985` tests OK.
+
 - 2026-06-02 official gate profile에 retrieval query budget을 명시했다.
   - `curated_runtime_contract_gate.json`과
     `curated_policy_driven_runtime_gate.json`의 full-evaluation profile은

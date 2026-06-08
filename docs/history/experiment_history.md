@@ -842,6 +842,17 @@ experiment artifact.
   - related answer-composition / lookup-recovery regression suite: `45` tests OK
   - `POS_T1_057` focused eval-only: faithfulness, completeness, context recall,
     retrieval hit, numeric pass rate all `1.000`
+- Runtime/API cost follow-up:
+  - `curated_concept_runtime_gap_gate.json` now records the same full-eval
+    retrieval budgets used by the official runtime/policy gates:
+    `retrieval_query_budget=8`, `focused_retrieval_query_budget=4`,
+    `retry_retrieval_query_budget=1`
+  - 2026-06-08 store-fixed `CEL_T1_013` budget canary preserved numeric
+    `PASS`, faithfulness/completeness `1.000 / 1.000`, and artifact integrity
+    `ok`
+  - query-budget traces reduced primary query surfaces from `18 -> 8` and
+    `15 -> 8`; fan-out audit reported `15` executed queries, `0` duplicates,
+    and `1` state query-result cache reuse
 
 ### Broader Operation Contract Follow-up
 
