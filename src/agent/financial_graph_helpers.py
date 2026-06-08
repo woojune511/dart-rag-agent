@@ -494,12 +494,34 @@ def _project_task_artifact_trace(
             report = payload.get("reflection_report")
             if not isinstance(report, Mapping):
                 return "reflection_report"
+            action_taken = str(report.get("action_taken") or "").strip()
             if not str(report.get("outcome") or "").strip():
                 return "reflection_report.outcome"
-            if not str(report.get("action_taken") or "").strip():
+            if not action_taken:
                 return "reflection_report.action_taken"
             if "budget_consumed" not in report:
                 return "reflection_report.budget_consumed"
+            action = payload.get("reflection_action")
+            if action_taken in {"retry_retrieval", "synthesize_from_task_outputs"}:
+                if not isinstance(action, Mapping):
+                    return "reflection_action"
+                action_type = str(action.get("action_type") or "").strip()
+                if action_type != action_taken:
+                    return "reflection_action.action_type"
+            if action_taken == "retry_retrieval":
+                retry_queries = action.get("retry_queries") if isinstance(action, Mapping) else []
+                if not isinstance(retry_queries, list) or not any(
+                    str(item).strip() for item in retry_queries
+                ):
+                    return "reflection_action.retry_queries"
+            elif action_taken == "synthesize_from_task_outputs":
+                synthesis_source_ids = (
+                    action.get("synthesis_source_ids") if isinstance(action, Mapping) else []
+                )
+                if not isinstance(synthesis_source_ids, list) or not any(
+                    str(item).strip() for item in synthesis_source_ids
+                ):
+                    return "reflection_action.synthesis_source_ids"
         elif artifact_kind == ArtifactKind.RETRIEVAL_BUNDLE.value:
             bundle = payload.get("retrieval_bundle") if isinstance(payload.get("retrieval_bundle"), Mapping) else {}
             candidate_lists = [

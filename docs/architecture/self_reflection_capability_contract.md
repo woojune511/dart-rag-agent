@@ -98,7 +98,9 @@ target task/artifact ids when visible, and blocking issues for
 `stop_insufficient`. The same report is also persisted as a
 `reflection_report` artifact attached to a `reflection` task so critic and
 orchestrator handoff readers can inspect it through `task_artifact_trace`.
-This is a handoff record only; final acceptance behavior and graph routes are
+The ledger projection now also rejects retry reflections without visible retry
+queries and task-output synthesis reflections without visible source ids. This
+is a handoff record only; final acceptance behavior and graph routes are
 unchanged.
 
 ## Promotion Criteria
