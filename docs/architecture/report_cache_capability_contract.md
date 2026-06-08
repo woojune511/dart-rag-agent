@@ -25,6 +25,9 @@ Current repo surfaces:
   promotion-evidence gate for ready, incomplete, and ambiguous cache matches
   across the local-index fixture, a reviewed store-fixed trace summary, and a
   reviewed live/default MAS handoff trace summary.
+- `src.ops.reference_note_capability_gate` proves that `REFERENCE_NOTE`
+  traversal remains Researcher graph-expansion context, not a cache-serving
+  source.
 
 The latest reviewer gate expectation is:
 
@@ -154,8 +157,9 @@ must add a new promotion increment that:
    ambiguous, or incomplete entries.
 4. Shows that final acceptance still depends on task/artifact integrity and
    critic/orchestrator contracts, not cache availability.
-5. Documents whether `REFERENCE_NOTE` remains graph-expansion context or becomes
-   part of this capability boundary.
+5. Keeps `REFERENCE_NOTE` as graph-expansion context unless a separate
+   Researcher capability promotion explicitly changes that boundary. It is not
+   a report-cache read source.
 
 The focused promotion-evidence increment is now present but non-enabling:
 `build_report_cache_promotion_evidence_case()` and
@@ -179,3 +183,10 @@ capability. It is not ready for serving or live ledger insertion. The next
 increment should add another trace summary only when a new live/default MAS or
 store-fixed eval-only surface exposes materially different cache evidence.
 Serving, retrieval bypass, and live ledger insertion remain out of scope.
+
+`REFERENCE_NOTE` is explicitly outside the report-cache serving boundary. Its
+current code-level status is `graph_expansion_context_only`: it may appear as a
+retrieved document with `graph_relation = reference_note` and may be carried
+through a Researcher `retrieval_bundle`, but it is not a `local_cache_index`
+entry, cache-origin value, ledger producer, retrieval-bypass authority, or
+final-acceptance authority.

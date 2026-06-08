@@ -25,6 +25,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertTrue(result["checks"]["cache_handoff_ready"])
         self.assertTrue(result["checks"]["cache_promotion_evidence_ready"])
         self.assertTrue(result["checks"]["reflection_promotion_ready"])
+        self.assertTrue(result["checks"]["reference_note_capability_ready"])
         self.assertEqual(result["portfolio_demo"]["readiness"], "ready")
         self.assertEqual(result["cache_reviewer"]["status"], "ok")
         self.assertEqual(result["cache_reviewer"]["reviewer_handoff_status"], "ready")
@@ -52,6 +53,16 @@ class PortfolioReviewGateTests(unittest.TestCase):
             result["reflection_promotion"]["promotion_signals"]["integrity_preservation_rate"],
             1.0,
         )
+        self.assertEqual(result["reference_note_capability"]["status"], "ready")
+        self.assertEqual(
+            result["reference_note_capability"]["owner"],
+            "researcher_graph_expansion",
+        )
+        self.assertEqual(
+            result["reference_note_capability"]["graph_relation"],
+            "reference_note",
+        )
+        self.assertTrue(result["reference_note_capability"]["disabled_flags_ok"])
 
     def test_render_text_includes_subgate_sections(self) -> None:
         text = render_text(run_review_gates())
@@ -61,6 +72,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertIn("Cache Reviewer:", text)
         self.assertIn("Cache Promotion Evidence:", text)
         self.assertIn("Reflection Promotion:", text)
+        self.assertIn("REFERENCE_NOTE Capability:", text)
         self.assertIn("trace_summary_count:", text)
         self.assertIn("source_coverage_ok:", text)
         self.assertIn("report_contract_ok:", text)
@@ -68,6 +80,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertIn("fallback_safety_ok:", text)
         self.assertIn("producer_policy_ready_count:", text)
         self.assertIn("false_recovery_rate:", text)
+        self.assertIn("graph_relation:", text)
 
     def test_cli_writes_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -95,6 +108,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
             self.assertEqual(payload["status"], "ready")
             self.assertEqual(payload["cache_reviewer"]["status"], "ok")
             self.assertEqual(payload["reflection_promotion"]["status"], "ready")
+            self.assertEqual(payload["reference_note_capability"]["status"], "ready")
 
 
 if __name__ == "__main__":

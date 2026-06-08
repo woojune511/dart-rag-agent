@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from src.ops.portfolio_demo import build_demo
+from src.ops.reference_note_capability_gate import run_gate as run_reference_note_gate
 from src.ops.reflection_promotion_gate import run_gate_suite
 from src.ops.report_cache_promotion_evidence_gate import run_gate as run_cache_promotion_gate
 from src.ops.review_report_cache_index_contract import run_review
@@ -22,6 +23,7 @@ def run_review_gates() -> Dict[str, Any]:
     cache_review = run_review()
     cache_promotion = run_cache_promotion_gate()
     reflection_gate = run_gate_suite()
+    reference_note = run_reference_note_gate()
     checks = {
         "portfolio_demo_ready": _is_ready(
             dict(portfolio_demo.get("readiness") or {}).get("status")
@@ -32,6 +34,7 @@ def run_review_gates() -> Dict[str, Any]:
         ),
         "cache_promotion_evidence_ready": _is_ready(cache_promotion.get("status")),
         "reflection_promotion_ready": _is_ready(reflection_gate.get("status")),
+        "reference_note_capability_ready": _is_ready(reference_note.get("status")),
     }
     status = "ready" if all(checks.values()) else "needs_review"
     return {
@@ -88,6 +91,13 @@ def run_review_gates() -> Dict[str, Any]:
             "report_contract_ok": bool(reflection_gate.get("report_contract_ok")),
             "promotion_signals": dict(reflection_gate.get("promotion_signals") or {}),
         },
+        "reference_note_capability": {
+            "status": reference_note.get("status"),
+            "owner": dict(reference_note.get("capability") or {}).get("owner"),
+            "graph_relation": dict(reference_note.get("capability") or {}).get("graph_relation"),
+            "artifact_kind": dict(reference_note.get("capability") or {}).get("artifact_kind"),
+            "disabled_flags_ok": bool(reference_note.get("disabled_flags_ok")),
+        },
     }
 
 
@@ -96,6 +106,7 @@ def render_text(result: Dict[str, Any]) -> str:
     cache = dict(result.get("cache_reviewer") or {})
     cache_promotion = dict(result.get("cache_promotion_evidence") or {})
     reflection = dict(result.get("reflection_promotion") or {})
+    reference_note = dict(result.get("reference_note_capability") or {})
     signals = dict(reflection.get("promotion_signals") or {})
     lines = [
         "# Portfolio Review Gates",
@@ -133,6 +144,13 @@ def render_text(result: Dict[str, Any]) -> str:
         f"  - report_contract_ok: {str(bool(reflection.get('report_contract_ok'))).lower()}",
         f"  - false_recovery_rate: {signals.get('false_recovery_rate'):.3f}",
         f"  - integrity_preservation_rate: {signals.get('integrity_preservation_rate'):.3f}",
+        "",
+        "REFERENCE_NOTE Capability:",
+        f"  - status: {reference_note.get('status')}",
+        f"  - owner: {reference_note.get('owner')}",
+        f"  - graph_relation: {reference_note.get('graph_relation')}",
+        f"  - artifact_kind: {reference_note.get('artifact_kind')}",
+        f"  - disabled_flags_ok: {str(bool(reference_note.get('disabled_flags_ok'))).lower()}",
     ]
     return "\n".join(lines) + "\n"
 

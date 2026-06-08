@@ -125,6 +125,7 @@ benchmarks/    profiles and local result bundles
 .\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
 .\.venv\Scripts\python.exe -m src.ops.report_cache_promotion_evidence_gate
 .\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
+.\.venv\Scripts\python.exe -m src.ops.reference_note_capability_gate
 .\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
 ```
 
@@ -194,5 +195,6 @@ For a quick review:
 
 The current reviewer claim is narrow: canonical runtime state is carried by
 typed traces and artifacts, reflection retry decisions are recorded as bounded
-handoff reports, and legacy calculation/debug mirrors are optional compatibility
-bridges that are not seeded into new live runs.
+handoff reports, `REFERENCE_NOTE` traversal remains Researcher graph-expansion
+context rather than cache serving, and legacy calculation/debug mirrors are
+optional compatibility bridges that are not seeded into new live runs.

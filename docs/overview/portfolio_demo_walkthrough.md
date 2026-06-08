@@ -35,6 +35,9 @@ contract to look for is:
 - critic acceptance is exposed as target refs, verdict/status, and reasons
 - report-cache material remains candidate-only with retrieval bypass, writes,
   serving, and ledger insertion disabled
+- `REFERENCE_NOTE` traversal remains Researcher graph-expansion context and is
+  not cache serving, retrieval bypass, ledger insertion, or final acceptance
+  authority
 - legacy top-level calculation/debug fields are compatibility bridges, not the
   source of truth for new live runs
 

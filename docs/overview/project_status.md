@@ -38,6 +38,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
 | Reflection promotion gate | base fixture, store-fixed candidate surface, two reviewed trace summaries | READY |
 | Report-cache promotion evidence | candidate-only cache producer/fallback contract | READY, disabled |
+| REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
 ### Structural Capability Gates
@@ -67,8 +68,15 @@ role-separated multi-agent system using a task ledger and artifact store.
     insertion, and final acceptance disabled.
 - Portfolio review:
   - `src.ops.portfolio_review_gates` is ready and reports portfolio demo,
-    cache reviewer, cache promotion evidence, and reflection promotion status
-    in one reviewer-facing bundle.
+    cache reviewer, cache promotion evidence, reflection promotion, and
+    `REFERENCE_NOTE` capability status in one reviewer-facing bundle.
+- `REFERENCE_NOTE` capability:
+  - `src.ops.reference_note_capability_gate` is ready.
+  - The current boundary is `graph_expansion_context_only` with owner
+    `researcher_graph_expansion`.
+  - `REFERENCE_NOTE` may appear as `graph_relation = reference_note` and may be
+    carried through a Researcher `retrieval_bundle`, but cache serving,
+    retrieval bypass, ledger insertion, and final acceptance remain disabled.
 - Current interpretation:
   - These gates prove capability boundaries and reviewer evidence, not active
     serving. The next increment should add another trace summary only when a
@@ -435,6 +443,9 @@ Recently closed:
   handoff contract: bounded budget consumption, accepted-case target refs,
   stop-insufficient blocking issues, and critic/orchestrator final acceptance
   authority.
+- `src.ops.reference_note_capability_gate` now validates that `REFERENCE_NOTE`
+  remains Researcher graph-expansion context and does not become a hidden
+  report-cache serving or final-acceptance path.
 
 Current next decisions:
 

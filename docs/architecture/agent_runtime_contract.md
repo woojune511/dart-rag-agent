@@ -492,6 +492,15 @@ extraction, as long as the same generic matcher/provenance/unit checks pass.
 Do not recover these chunks by company name, benchmark id, or topic-specific
 keywords in runtime code.
 
+`REFERENCE_NOTE` is one of these structural expansion relations. Its current
+capability boundary is Researcher graph-expansion context only: retrieved
+documents may carry `graph_relation = reference_note`, and Researcher outputs
+may carry them inside a `retrieval_bundle`, but this does not make the note a
+cache read source, retrieval-bypass authority, task/artifact ledger producer,
+or final-answer acceptance authority. The repo-local
+`src.ops.reference_note_capability_gate` command is the reviewer gate for this
+boundary.
+
 When structured table metadata provides both `table_row_labels_text` and row
 records, operand precision refinement must prefer the structured cell from the
 same matched row label before considering nearby previous rows. Previous-row

@@ -1061,6 +1061,11 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 - phase 1a wiring은 살아 있음
 - 하지만 현재 질문셋에선 base retrieval이 이미 강해 marginal gain이 작았다
+- `src.ops.reference_note_capability_gate`는 현재 boundary를
+  `graph_expansion_context_only`로 고정한다. `REFERENCE_NOTE`는 Researcher
+  retrieval context와 `retrieval_bundle` 안에 남고, report-cache serving,
+  retrieval bypass, live ledger insertion, final answer acceptance authority가
+  아니다.
 
 따라서:
 
@@ -1116,10 +1121,10 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 ## 현재 추천 우선순위
 
-1. materially different live/default MAS 또는 store-fixed eval-only trace
+1. `REFERENCE_NOTE` capability gate를 green으로 유지해 cache serving path가
+   아니라 Researcher / graph-expansion boundary로 계속 분리
+2. materially different live/default MAS 또는 store-fixed eval-only trace
    summary가 생길 때 reflection / report-cache promotion evidence를 확장
-2. `REFERENCE_NOTE`는 cache serving path가 아니라 Researcher / graph-expansion
-   capability boundary로 계속 분리
 3. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
 4. MAS default smoke maintenance only when the default store/preflight contract
@@ -1127,25 +1132,28 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 Current practical priority, 2026-06-08:
 
-1. Promotion evidence expansion: add additional live/default MAS or
+1. REFERENCE_NOTE capability maintenance: keep `src.ops.reference_note_capability_gate`
+   green so note traversal remains Researcher graph-expansion context rather
+   than cache serving or final acceptance authority.
+2. Promotion evidence expansion: add additional live/default MAS or
    store-fixed eval-only trace summaries only when they expose materially
    different reflection or report-cache surfaces, without enabling active retry
    behavior, cache serving, retrieval bypass, ledger insertion, or final
    acceptance shortcuts.
-2. Reflection promotion gate maintenance: keep
+3. Reflection promotion gate maintenance: keep
    `src.ops.reflection_promotion_gate` green across the base fixture,
    store-fixed candidate surface, reviewed store-fixed trace summary, and
    reviewed live/default MAS handoff trace summary; any new active reflection
    increment must preserve `false_recovery_rate = 0.0` and
    `integrity_preservation_rate = 1.0`.
-3. Report-cache promotion evidence maintenance: keep the cache path disabled
+4. Report-cache promotion evidence maintenance: keep the cache path disabled
    and keep the documented calculation-task producer policy plus fallback
    safety gate green until real runtime traces justify a separate promotion.
-4. Broader curated gate maintenance refresh when a new broader artifact
+5. Broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt.
-5. MAS default smoke maintenance only when the default store/preflight contract
+6. MAS default smoke maintenance only when the default store/preflight contract
    changes.
-6. Cross-document / cross-company expansion.
+7. Cross-document / cross-company expansion.
 
 완료되어 기본 우선순위에서 내려간 항목:
 
@@ -1157,6 +1165,7 @@ Current practical priority, 2026-06-08:
 - reflection retry-query / synthesis-source ledger visibility
 - reflection promotion source coverage gate
 - live/default MAS handoff promotion trace summary
+- REFERENCE_NOTE graph-expansion capability gate
 - report-cache capability boundary documentation
 - report-cache capability status helper and reviewer proof surface
 - report-cache producer policy decision
