@@ -27,6 +27,8 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
         self.assertTrue(result["disabled_flags_ok"])
         self.assertTrue(result["producer_contract_ok"])
         self.assertEqual(result["producer_contract_issue_ids"], [])
+        self.assertTrue(result["fallback_safety_ok"])
+        self.assertEqual(result["fallback_safety_issue_ids"], [])
         scenarios = {item["name"]: item for item in result["scenarios"]}
         self.assertTrue(scenarios["ready_entry_candidate_only"]["ready"])
         self.assertFalse(scenarios["ready_entry_candidate_only"]["serving_enabled"])
@@ -57,6 +59,7 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
         self.assertIn("Ready cases: 2", text)
         self.assertIn("Fallback cases: 4", text)
         self.assertIn("Trace summaries: 1", text)
+        self.assertIn("Fallback safety ok: true", text)
 
     def test_ready_trace_summary_without_calculation_contract_blocks_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -100,6 +103,43 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
             result["producer_contract_issue_ids"],
         )
 
+    def test_fallback_trace_summary_without_reason_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            trace_summary = Path(temp_dir) / "trace_summary.json"
+            trace_summary.write_text(
+                json.dumps(
+                    {
+                        "report_cache_promotion_cases": [
+                            {
+                                "name": "trace_fallback_missing_reason",
+                                "status": "normal_retrieval_fallback",
+                                "ready": False,
+                                "fallback_required": True,
+                                "reasons": [],
+                                "serving_enabled": False,
+                                "ledger_insertion_enabled": False,
+                                "retrieval_bypass_enabled": False,
+                                "final_acceptance_enabled": False,
+                                "acceptance_authority": (
+                                    "task_artifact_integrity_and_critic_orchestrator"
+                                ),
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_gate(trace_summary_paths=[trace_summary])
+
+        self.assertEqual(result["status"], "needs_evidence")
+        self.assertFalse(result["fallback_safety_ok"])
+        self.assertEqual(
+            result["fallback_safety_issue_ids"],
+            ["trace_fallback_missing_reason:fallback_reasons"],
+        )
+
     def test_cli_writes_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output = Path(temp_dir) / "report_cache_promotion_evidence.json"
@@ -128,6 +168,7 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
             self.assertEqual(payload["fallback_count"], 4)
             self.assertEqual(payload["trace_summary_count"], 1)
             self.assertTrue(payload["producer_contract_ok"])
+            self.assertTrue(payload["fallback_safety_ok"])
 
 
 if __name__ == "__main__":

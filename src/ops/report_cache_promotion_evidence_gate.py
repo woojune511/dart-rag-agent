@@ -16,6 +16,7 @@ EXPECTED_PRODUCER_SOURCE = "report_cache_rehydration"
 EXPECTED_CACHE_ORIGIN = "local_cache_index"
 EXPECTED_ARTIFACT_KINDS = ["operand_set", "calculation_plan", "calculation_result"]
 EXPECTED_ACCEPTANCE_AUTHORITY = "task_artifact_integrity_and_critic_orchestrator"
+FALLBACK_STATUSES = {"normal_retrieval_fallback", "fallback_required"}
 DEFAULT_REPORT_CACHE_INDEX_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
 )
@@ -164,6 +165,32 @@ def _producer_contract_issues(scenarios: List[Dict[str, Any]]) -> List[str]:
     return issues
 
 
+def _fallback_safety_issues(scenarios: List[Dict[str, Any]]) -> List[str]:
+    issues: List[str] = []
+    for scenario in scenarios:
+        status = str(scenario.get("status") or "")
+        fallback_required = bool(scenario.get("fallback_required"))
+        if not fallback_required and status not in FALLBACK_STATUSES:
+            continue
+        name = str(scenario.get("name") or "unknown")
+        if bool(scenario.get("ready")):
+            issues.append(f"{name}:fallback_marked_ready")
+        if not fallback_required:
+            issues.append(f"{name}:fallback_required_false")
+        if status not in FALLBACK_STATUSES:
+            issues.append(f"{name}:fallback_status")
+        if not list(scenario.get("reasons") or []):
+            issues.append(f"{name}:fallback_reasons")
+        if (
+            bool(scenario.get("serving_enabled"))
+            or bool(scenario.get("ledger_insertion_enabled"))
+            or bool(scenario.get("retrieval_bypass_enabled"))
+            or bool(scenario.get("final_acceptance_enabled"))
+        ):
+            issues.append(f"{name}:fallback_disabled_flags")
+    return issues
+
+
 def run_gate(
     *,
     report_cache_index_path: str | Path = DEFAULT_REPORT_CACHE_INDEX_PATH,
@@ -203,6 +230,7 @@ def run_gate(
     ready_count = sum(1 for item in scenarios if bool(item.get("ready")))
     fallback_count = sum(1 for item in scenarios if bool(item.get("fallback_required")))
     producer_contract_issues = _producer_contract_issues(scenarios)
+    fallback_safety_issues = _fallback_safety_issues(scenarios)
     status = (
         "ready"
         if (
@@ -210,6 +238,7 @@ def run_gate(
             and fallback_count >= 2
             and not any(disabled_flag_values)
             and not producer_contract_issues
+            and not fallback_safety_issues
         )
         else "needs_evidence"
     )
@@ -222,6 +251,8 @@ def run_gate(
         "disabled_flags_ok": not any(disabled_flag_values),
         "producer_contract_ok": not producer_contract_issues,
         "producer_contract_issue_ids": producer_contract_issues,
+        "fallback_safety_ok": not fallback_safety_issues,
+        "fallback_safety_issue_ids": fallback_safety_issues,
         "trace_summary_count": len(trace_paths),
         "trace_summary_paths": [str(path) for path in trace_paths],
         "scenarios": scenarios,
@@ -237,6 +268,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"Fallback cases: {result.get('fallback_count', 0)}",
         f"Disabled flags ok: {str(bool(result.get('disabled_flags_ok'))).lower()}",
         f"Producer contract ok: {str(bool(result.get('producer_contract_ok'))).lower()}",
+        f"Fallback safety ok: {str(bool(result.get('fallback_safety_ok'))).lower()}",
         f"Trace summaries: {result.get('trace_summary_count', 0)}",
         "",
         "Scenarios:",

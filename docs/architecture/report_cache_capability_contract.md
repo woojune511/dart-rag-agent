@@ -165,8 +165,10 @@ gate also consumes a reviewed store-fixed trace summary so the same ready and
 fallback expectations are checked outside the raw fixture path. Ready promotion
 evidence must expose the calculation-task producer policy, the required
 `operand_set`, `calculation_plan`, and `calculation_result` artifact kinds,
-cache-origin metadata, and a valid calculation-contract projection. It keeps
-retrieval bypass, serving, ledger insertion, and final acceptance disabled.
+cache-origin metadata, and a valid calculation-contract projection. Fallback
+promotion evidence must remain non-ready, require normal retrieval fallback,
+and carry explicit fallback reasons. It keeps retrieval bypass, serving,
+ledger insertion, and final acceptance disabled.
 
 ## Current Interpretation
 
