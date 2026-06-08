@@ -447,13 +447,13 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | Promotion trace materiality 유지 | 새 trace summary를 넣기 전에 기존 source/action/fallback surface와 중복인지 gate로 확인 |
+| 1 | Portfolio capability gates 유지 | `REFERENCE_NOTE` boundary와 promotion trace materiality를 `portfolio_review_gates`에서 함께 확인 |
 
 ## 현재 우선순위 요약
 
-1. Promotion trace materiality gate 유지
-2. `REFERENCE_NOTE` capability gate 유지
-3. materially different trace summary가 생길 때 reflection / report-cache promotion evidence 확장
+1. Portfolio capability gate bundle 유지
+2. `REFERENCE_NOTE` capability gate와 promotion trace materiality gate를 개별 green 상태로 유지
+3. materially different trace summary가 생길 때만 reflection / report-cache promotion evidence 확장
 4. broader curated gate maintenance는 새 artifact가 실제 blocker를 재현할 때만 수행
 5. MAS default smoke maintenance는 default store/preflight contract가 바뀔 때만 수행
 

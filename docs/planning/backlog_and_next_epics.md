@@ -1121,11 +1121,10 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 ## 현재 추천 우선순위
 
-1. `REFERENCE_NOTE` capability gate를 green으로 유지해 cache serving path가
-   아니라 Researcher / graph-expansion boundary로 계속 분리
-2. `src.ops.promotion_trace_materiality_gate`를 green으로 유지해 reviewed
-   trace summaries가 서로 다른 source/action/fallback surface를 제공하는지
-   확인
+1. `src.ops.portfolio_review_gates`를 green으로 유지해 reviewer-facing
+   capability bundle이 계속 한 번에 확인되도록 한다.
+2. `REFERENCE_NOTE` capability gate와
+   `src.ops.promotion_trace_materiality_gate`를 개별 green 상태로 유지한다.
 3. materially different live/default MAS 또는 store-fixed eval-only trace
    summary가 생길 때 reflection / report-cache promotion evidence를 확장
 4. broader curated gate maintenance refresh when a new broader artifact
@@ -1135,10 +1134,11 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 Current practical priority, 2026-06-08:
 
-1. REFERENCE_NOTE capability maintenance: keep `src.ops.reference_note_capability_gate`
-   green so note traversal remains Researcher graph-expansion context rather
-   than cache serving or final acceptance authority.
-2. Promotion trace materiality maintenance: keep
+1. Portfolio capability bundle maintenance: keep `src.ops.portfolio_review_gates`
+   green so demo, cache, reflection, `REFERENCE_NOTE`, and promotion trace
+   materiality surfaces stay reviewer-visible in one command.
+2. Boundary gate maintenance: keep `src.ops.reference_note_capability_gate`
+   green so note traversal remains Researcher graph-expansion context, and keep
    `src.ops.promotion_trace_materiality_gate` green so reviewed trace summaries
    remain distinct across source type, reflection action, and cache fallback
    reason.

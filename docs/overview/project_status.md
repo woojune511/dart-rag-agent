@@ -479,8 +479,10 @@ Current next decisions:
    until additional materially different live/default MAS traces justify a
    promotion.
 3. Gate maintenance: rerun `portfolio_review_gates` whenever reviewer-facing
-   runtime surfaces change; run broader benchmark refreshes only when a source
-   change can plausibly affect gate quality or cost.
+   runtime surfaces change; use the individual `REFERENCE_NOTE` and promotion
+   trace materiality gates only to localize bundle failures. Run broader
+   benchmark refreshes only when a source change can plausibly affect gate
+   quality or cost.
 
 ### Task Ledger / Artifact Contract Focus
 

@@ -197,5 +197,7 @@ For a quick review:
 The current reviewer claim is narrow: canonical runtime state is carried by
 typed traces and artifacts, reflection retry decisions are recorded as bounded
 handoff reports, `REFERENCE_NOTE` traversal remains Researcher graph-expansion
-context rather than cache serving, and legacy calculation/debug mirrors are
-optional compatibility bridges that are not seeded into new live runs.
+context rather than cache serving, promotion trace summaries are checked for
+material source/action/fallback diversity before expansion, and legacy
+calculation/debug mirrors are optional compatibility bridges that are not
+seeded into new live runs.
