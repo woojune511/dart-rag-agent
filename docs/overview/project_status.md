@@ -1024,6 +1024,16 @@ Current next decisions:
   previous result bundle without another `vsm.search()` call, while the debug
   trace records `reused_queries` and `query_result_cache.reuse_count` for
   offline audit.
+- A local store-fixed Celltrion canary after the query-result cache change was
+  mixed rather than release-clean. `CEL_T3_040` dropped from 265 executed
+  queries to 124 with 141 state result-cache reuses while preserving numeric
+  PASS, faithfulness `1.000`, and completeness `0.700`. `CEL_T1_013` reran with
+  a different plan shape, 51 result-cache reuses, numeric PASS, and faithfulness
+  `1.000`, but completeness fell from `1.000` to `0.700`. The aggregate
+  query-embedding calls were 188 in the benchmark output aggregate and 182 in
+  the offline fan-out audit, higher than the previous Celltrion audit's 156.
+  Treat this as a useful runtime-search reduction signal, not an API-cost win
+  or a release-grade quality proof.
 - Initial policy-gate audit baselines:
   - `policy_gate_regression_2026-05-31_2212`: 5 questions, 11 retrieval
     traces, 93 executed queries, 89 query embedding calls, estimated runtime
