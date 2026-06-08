@@ -3996,6 +3996,418 @@ class SubtaskLoopTests(unittest.TestCase):
             {"current_period", "prior_period"},
         )
 
+    def test_growth_rate_partial_direct_rows_use_reconciliation_fallback(self) -> None:
+        state = {
+            "query": "2023년 target metric의 전년 대비 증가율을 계산해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target metric growth",
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "target metric growth",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {"label": "target metric", "concept": "target_metric", "role": "current_period", "period": "2023"},
+                    {"label": "target metric", "concept": "target_metric", "role": "prior_period", "period": "2022"},
+                ],
+                "depends_on": ["task_current", "task_prior"],
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "target_metric",
+                        "period": "2023",
+                        "label": "target metric",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "target_metric",
+                        "period": "2022",
+                        "label": "target metric",
+                        "preferred_task_id": "task_prior",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2023",
+                                "raw_value": "200",
+                                "normalized_value": 200.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "200",
+                            },
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_current",
+                "evidence_id": "recon_current",
+                "label": "2023 target metric",
+                "raw_value": "200",
+                "normalized_value": 200.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2023",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "current_period",
+            }
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: [
+            {
+                "evidence_id": "recon_prior",
+                "source_anchor": "[Example | 2023 | table]",
+                "claim": "target metric | 2023 200 | 2022 100",
+                "raw_row_text": "target metric | 2023 200 | 2022 100",
+                "metadata": {"block_type": "table"},
+            }
+        ]
+        self.agent.llm = _StubLLM(
+            OperandExtraction(
+                coverage="sufficient",
+                operands=[
+                    CalculationOperand(
+                        operand_id="op_current",
+                        evidence_id="recon_current",
+                        source_anchor="[Example | 2023 | table]",
+                        label="target metric",
+                        raw_value="200",
+                        raw_unit="",
+                        normalized_value=200.0,
+                        normalized_unit="UNKNOWN",
+                        period="2023",
+                    ),
+                    CalculationOperand(
+                        operand_id="op_prior",
+                        evidence_id="recon_prior",
+                        source_anchor="[Example | 2023 | table]",
+                        label="target metric",
+                        raw_value="100",
+                        raw_unit="",
+                        normalized_value=100.0,
+                        normalized_unit="UNKNOWN",
+                        period="2022",
+                    ),
+                ],
+            )
+        )
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(len(trace["calculation_operands"]), 2)
+        self.assertEqual(
+            {row["period"] for row in trace["calculation_operands"]},
+            {"2023", "2022"},
+        )
+
+    def test_growth_rate_prefers_complete_reconciliation_rows_over_dependency_outputs(self) -> None:
+        state = {
+            "query": "2023년 target metric의 전년 대비 증가율을 계산해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target metric growth",
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "target metric growth",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {"label": "target metric", "concept": "target_metric", "role": "current_period", "period": "2023"},
+                    {"label": "target metric", "concept": "target_metric", "role": "prior_period", "period": "2022"},
+                ],
+                "depends_on": ["task_current", "task_prior"],
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "target_metric",
+                        "period": "2023",
+                        "label": "target metric",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "target_metric",
+                        "period": "2022",
+                        "label": "target metric",
+                        "preferred_task_id": "task_prior",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2023",
+                                "raw_value": "200",
+                                "raw_unit": "",
+                                "normalized_value": 200.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "200",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_prior",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2022",
+                                "raw_value": "3",
+                                "raw_unit": "",
+                                "normalized_value": 3.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "3",
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_current",
+                "evidence_id": "recon_current",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "target metric",
+                "raw_value": "200",
+                "raw_unit": "",
+                "normalized_value": 200.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2023",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "current_period",
+            },
+            {
+                "operand_id": "op_prior",
+                "evidence_id": "recon_prior",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "target metric",
+                "raw_value": "100",
+                "raw_unit": "",
+                "normalized_value": 100.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2022",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "prior_period",
+            },
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: [
+            {
+                "evidence_id": "recon_current",
+                "source_anchor": "[Example | 2023 | table]",
+                "claim": "target metric | 2023 200 | 2022 100",
+                "quote_span": "2023 200",
+                "raw_row_text": "target metric | 2023 200 | 2022 100",
+                "metadata": {"block_type": "table"},
+            },
+            {
+                "evidence_id": "recon_prior",
+                "source_anchor": "[Example | 2023 | table]",
+                "claim": "target metric | 2023 200 | 2022 100",
+                "quote_span": "2022 100",
+                "raw_row_text": "target metric | 2023 200 | 2022 100",
+                "metadata": {"block_type": "table"},
+            },
+        ]
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+        operands_by_role = {
+            row["matched_operand_role"]: row
+            for row in trace["calculation_operands"]
+        }
+
+        self.assertEqual(extracted["calculation_debug_trace"].get("source"), "structured_row_direct")
+        self.assertEqual(operands_by_role["current_period"]["raw_value"], "200")
+        self.assertEqual(operands_by_role["prior_period"]["raw_value"], "100")
+        self.assertNotEqual(operands_by_role["prior_period"]["raw_value"], "3")
+
+    def test_growth_prior_recovery_skips_parenthesized_current_value(self) -> None:
+        recovered = self.agent._recover_growth_prior_material_from_evidence(
+            current_slot={
+                "label": "target metric",
+                "period": "2023",
+                "raw_value": "(3,146,409)",
+                "raw_unit": "백만원",
+                "normalized_value": -3_146_409_000_000.0,
+            },
+            prior_slot={
+                "label": "target metric",
+                "period": "2022",
+                "raw_value": "3,146,409",
+                "raw_unit": "백만원",
+                "normalized_value": 3_146_409_000_000.0,
+            },
+            evidence_items=[
+                {
+                    "claim": (
+                        "2023년 target metric은 3,146,409백만원으로, "
+                        "전년(2022년 1,847,775백만원) 대비 70.28% 증가했습니다."
+                    ),
+                    "quote_span": "",
+                    "raw_row_text": "",
+                }
+            ],
+        )
+
+        self.assertEqual(recovered["raw_value"], "1,847,775")
+        self.assertEqual(recovered["display"], "1,847,775백만원")
+
+    def test_aggregate_subtasks_blocks_narrative_numeric_when_growth_gap_unresolved(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 target metric은 전년 대비 70.23% 증가했습니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 target metric 증가율을 계산하고 원인을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_current", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_growth", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_summary", "metric_family": "narrative_summary", "operation_family": "narrative_summary"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 target metric",
+                    "operation_family": "lookup",
+                    "answer": "2023 target metric은 200입니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "200",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "target metric",
+                                "period": "2023",
+                                "raw_value": "200",
+                                "normalized_value": 200.0,
+                                "rendered_value": "200",
+                                "source_row_id": "ev_current",
+                                "source_row_ids": ["ev_current"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "target metric growth",
+                    "operation_family": "growth_rate",
+                    "answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                    "status": "insufficient_operands",
+                    "calculation_result": {
+                        "status": "insufficient_operands",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {"status": "missing", "label": "target metric growth"},
+                            "current_value": {"status": "missing", "label": "target metric", "period": "2023"},
+                            "prior_value": {"status": "missing", "label": "target metric", "period": "2022"},
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_summary",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "summary",
+                    "operation_family": "narrative_summary",
+                    "answer": "2023년 target metric은 전년 대비 70.23% 증가했습니다.",
+                    "status": "ok",
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ],
+            "evidence_items": [],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("200", updated["answer"])
+        self.assertNotIn("70.23%", updated["answer"])
+
     def test_sum_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
             "query": "삼성전자 2024 사업보고서에서 SDC와 Harman 부문의 매출 합계는 얼마인가요?",

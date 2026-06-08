@@ -123,6 +123,27 @@ role-separated multi-agent system using a task ledger and artifact store.
   - the canary query-budget traces reduced primary query surfaces from
     `18 -> 8` and `15 -> 8`; the fan-out audit reported `15` executed queries,
     `0` duplicates, and `1` state query-result cache reuse
+- Latest hardening follow-up:
+  - a 2026-06-08 budgeted full eval-only replay completed all seven concept
+    questions but produced `5 / 7` numeric PASS, so it is not treated as a new
+    release baseline
+  - the replay exposed two runtime/path residuals: `KBF_T2_018` could reuse a
+    parenthesized current-period display as the prior-period value during
+    growth recovery, and `POS_T1_057` showed unit/source binding instability in
+    the full replay path even though standalone eval-only still passed
+  - the growth-rate hardening is generic: complete reconciliation rows can
+    override stale dependency outputs, same-label current/prior operands are
+    keyed by label, role, and period during supplemental merge, and evidence
+    prior recovery skips compact-numeric matches to the current display
+  - focused canaries after the fix passed for `KBF_T2_018` and `POS_T1_057`
+    with faithfulness/completeness `1.000 / 1.000`; `POS_T1_057` calculated
+    `3.5269배`
+  - `KAB_T1_066` remains a product-quality residual: the numeric evaluator
+    marked the row PASS, but the answer still refused the CIR calculation in
+    the observed full replay
+  - validation: focused growth/aggregate regression `4` tests OK, broader
+    structured operand / semantic plan / operation contract / subtask-loop
+    suite `417` tests OK, and runtime domain-language audit passed
 - Latest representative local output:
   `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
 - Result:

@@ -2391,6 +2391,7 @@ class FinancialAgentCalculationMixin:
             return {}
         current_year = int(current_year_match.group(0))
         current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
+        current_raw_compact = re.sub(r"[^\d.]", "", current_raw)
         raw_unit = _normalise_spaces(str(prior_slot.get("raw_unit") or current_slot.get("raw_unit") or ""))
         if raw_unit:
             unit_pattern = r"\s*".join(re.escape(part) for part in re.split(r"\s+", raw_unit) if part)
@@ -2419,7 +2420,8 @@ class FinancialAgentCalculationMixin:
                 prior_year = max(year for year in years if year < current_year)
                 for match in number_with_unit_pattern.finditer(sentence):
                     value_text = _normalise_spaces(match.group("value"))
-                    if current_raw and value_text == current_raw:
+                    value_compact = re.sub(r"[^\d.]", "", value_text)
+                    if current_raw_compact and value_compact == current_raw_compact:
                         continue
                     display = _normalise_spaces(match.group(0))
                     if display:
@@ -8272,7 +8274,7 @@ class FinancialAgentCalculationMixin:
             and not _missing_required_operands(required_operands, direct_structured_rows)
         )
         prefer_direct_rows_over_dependency = bool(
-            operation_family == "ratio"
+            operation_family in {"ratio", "difference", "growth_rate"}
             and direct_rows_cover_required_operands
             and reconciliation_evidence
         )
@@ -8349,7 +8351,7 @@ class FinancialAgentCalculationMixin:
         has_retrieved_docs_for_dependency_fallback = bool(retrieved_docs or seed_retrieved_docs)
         has_active_reconciliation_fallback = bool(reconciliation_evidence)
         allow_dependency_retry_fallback = (
-            operation_family in {"ratio", "difference"}
+            operation_family in {"ratio", "difference", "growth_rate"}
             and bool(missing_dependency_bindings)
             and (
                 has_active_reconciliation_fallback
@@ -11572,6 +11574,18 @@ class FinancialAgentCalculationMixin:
             aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
             if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
                 aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        unresolved_numeric_gap = self._unresolved_structured_numeric_gap(ordered_results)
+        blocked_narrative_numeric_gap = bool(
+            unresolved_numeric_gap
+            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
+        )
+        if blocked_narrative_numeric_gap:
+            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            if safe_partial_answer and safe_partial_answer != final_answer:
+                final_answer = safe_partial_answer
+                aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                    aggregate_projection["calculation_result"]["rendered_value"] = final_answer
         pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
             final_answer,
             query=str(state.get("query") or ""),
@@ -11629,7 +11643,7 @@ class FinancialAgentCalculationMixin:
                 row
                 for row in ordered_results
                 if self._row_is_narrative_summary(row)
-            ] if not (final_answer_is_missing or final_has_nonnumeric_narrative) else []
+            ] if not (blocked_narrative_numeric_gap or final_answer_is_missing or final_has_nonnumeric_narrative) else []
             for row in narrative_rows:
                 row_answer = _normalise_spaces(
                     str(

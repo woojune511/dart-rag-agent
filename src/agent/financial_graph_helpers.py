@@ -6057,6 +6057,7 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     operand_period_text = " ".join(
         str(value or "")
         for value in (
+            operand.get("period"),
             operand.get("period_hint"),
             operand.get("label"),
             operand.get("name"),
@@ -6344,7 +6345,14 @@ def _merge_operand_rows(
         )
         for row in merged
     }
-    covered_required: set[str] = set()
+    def _required_key(operand: Dict[str, Any]) -> tuple[str, str, str]:
+        return (
+            _normalise_spaces(str(operand.get("label") or "")),
+            _normalise_spaces(str(operand.get("role") or "")),
+            _normalise_spaces(str(operand.get("period") or operand.get("period_hint") or "")),
+        )
+
+    covered_required: set[tuple[str, str, str]] = set()
 
     for row in supplemental_rows:
         candidate = dict(row)
@@ -6358,12 +6366,12 @@ def _merge_operand_rows(
 
         matched_operand: Optional[Dict[str, Any]] = None
         for operand in remaining_required:
-            label_key = _normalise_spaces(str(operand.get("label") or ""))
-            if label_key in covered_required:
+            required_key = _required_key(operand)
+            if required_key in covered_required:
                 continue
             if _operand_row_matches_requirement(candidate, operand):
                 matched_operand = operand
-                covered_required.add(label_key)
+                covered_required.add(required_key)
                 break
 
         if matched_operand is None and required_operands:

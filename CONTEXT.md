@@ -11,6 +11,40 @@
 
 ## 최신 상태
 
+- 2026-06-08 concept runtime gap gate의 budgeted eval-only follow-up에서
+  growth-rate operand recovery를 보강했다.
+  - 2026-06-04 `7 / 7 PASS` baseline은 promotion 기준선으로 그대로 유지한다.
+    이번 follow-up은 기준선 교체가 아니라, `8 / 4 / 1` retrieval budget
+    replay에서 드러난 runtime 흔들림을 좁힌 하드닝이다.
+  - budgeted full replay
+    `benchmarks/results/tmp_concept_gate_budgeted_evalonly_direct_priority_full_2026-06-08/`
+    는 7문항을 완료했고 `5 / 7` numeric PASS를 기록했다. 이 replay에서
+    `KBF_T2_018`는 parenthesized current display를 prior candidate로
+    재사용하는 duplicate recovery 문제가 보였고, `POS_T1_057`는 standalone
+    eval-only에서는 PASS지만 full replay path에서 unit/source binding noise가
+    보였다. `KAB_T1_066`은 numeric PASS였지만 CIR 계산을 거절하는 product
+    quality residual로 남았다.
+  - runtime 보강은 특정 회사/문항 branch가 아니라 일반 operand contract다:
+    complete reconciliation rows는 `growth_rate`에서도 stale dependency
+    output보다 우선하고, same-label current/prior operand merge는
+    label+role+period로 구분하며, evidence sentence에서 prior 값을 회복할 때
+    괄호/단위 차이 때문에 current 값을 prior로 다시 선택하지 않는다.
+  - aggregate growth+narrative synthesis는 structured numeric gap이 unresolved
+    인데 narrative summary가 숫자 claim을 재사용하면 safe partial answer로
+    낮춘다.
+  - focused canary:
+    - `KBF_T2_018` after compact-current recovery: numeric PASS,
+      faithfulness/completeness `1.000 / 1.000`.
+    - `POS_T1_057` standalone eval-only: numeric PASS,
+      faithfulness/completeness `1.000 / 1.000`, calculator result `3.5269배`.
+  - 검증:
+    - focused growth/aggregate regression: `4` tests OK.
+    - `python -m unittest tests.test_structured_operand_extraction tests.test_semantic_numeric_plan tests.test_operation_contracts tests.test_subtask_loop`: `417` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms`: passed
+      (`215` reviewed literals).
+  - 아직 이 follow-up 자체로 full `7 / 7` stable proof를 다시 주장하지 않는다.
+    새 freeze 근거가 필요하면 monitored full 7 eval-only를 한 번 더 실행한다.
+
 - 2026-06-08 task-ledger/artifact-store capability gates를 정리했다.
   - Reflection promotion gate는 base fixture, store-fixed candidate surface,
     reviewed store-fixed trace summary, reviewed live/default MAS handoff

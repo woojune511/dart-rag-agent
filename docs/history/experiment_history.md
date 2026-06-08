@@ -973,6 +973,73 @@ Reference:
 - Remaining work for this case is broader replay and completeness/render
   calibration, not a known material-gap runtime blocker.
 
+## Concept Gate Growth Operand Hardening (2026-06-08)
+
+References:
+
+- `benchmarks/results/tmp_concept_gate_budgeted_evalonly_direct_priority_full_2026-06-08/`
+  (local budgeted full eval-only artifact, not committed)
+- `benchmarks/results/tmp_kbf_t2_018_recovery_skip_current_2026-06-08/`
+  (local focused KBF canary artifact, not committed)
+- `benchmarks/results/tmp_pos_t1_057_unit_check_2026-06-08/`
+  (local focused POS canary artifact, not committed)
+
+### Background
+
+- The frozen concept gate baseline remains
+  `concept_runtime_gap_gate_7of7_2026-06-04`.
+- A later budgeted full eval-only replay with the `8 / 4 / 1` retrieval budget
+  completed all seven questions but reported `5 / 7` numeric PASS. This replay
+  was useful as a stress signal, not as a replacement baseline.
+- The observed failures were not patched with company, benchmark ID, or
+  account-name branches:
+  - `KBF_T2_018` exposed duplicate growth recovery where a current-period value
+    with parentheses could be selected again as the prior-period display.
+  - `POS_T1_057` passed standalone eval-only but showed full-replay
+    unit/source path instability.
+  - `KAB_T1_066` was numeric PASS but still a product-quality residual because
+    the answer refused to calculate CIR in the observed full replay.
+
+### Code / Test Changes
+
+- Growth-rate extraction now lets complete reconciliation rows override stale
+  dependency outputs, matching the existing direct-row preference used for
+  other calculation families.
+- Supplemental operand merge keys required operands by label, role, and period,
+  so same-label current/prior rows do not mask each other.
+- Evidence-based prior-period recovery compares compact numeric displays, so
+  `(3,146,409)` and `3,146,409백만원` are recognized as the same current value
+  and skipped when searching for the prior value.
+- Aggregate growth+narrative synthesis now blocks narrative numeric claims when
+  required structured numeric slots are still unresolved and a safe partial
+  answer is available.
+
+### Results
+
+- Focused `KBF_T2_018` canary after compact-current recovery:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+- Focused `POS_T1_057` standalone eval-only:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - calculator result `3.5269배`
+- Validation:
+  - focused growth/aggregate regression: `4` tests OK
+  - `python -m unittest tests.test_structured_operand_extraction tests.test_semantic_numeric_plan tests.test_operation_contracts tests.test_subtask_loop`:
+    `417` tests OK
+  - `python -m src.ops.audit_runtime_domain_terms`: passed
+
+### Interpretation
+
+- This is a runtime hardening follow-up to the frozen concept gate, not a new
+  full `7 / 7` stable proof.
+- A new freeze should require another monitored full seven-question eval-only
+  replay after this patch, or a conscious decision to treat the existing
+  2026-06-04 baseline plus focused KBF/POS canaries as sufficient for the
+  current checkpoint.
+
 ## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
 
 참조:
