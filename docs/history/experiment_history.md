@@ -1127,6 +1127,37 @@ References:
   2026-06-04 baseline plus focused KBF/POS canaries as sufficient for the
   current checkpoint.
 
+## Aggregate Task-Ledger Superseded Trace Cleanup (2026-06-09)
+
+### Code / Contract Change
+
+- Added `TaskStatus.SUPERSEDED` to the DART task schema.
+- `_project_task_artifact_trace()` now exposes task resolution metadata:
+  `resolution_status`, `superseded_by_task_id`, `superseded_by_artifact_id`,
+  and `notes`.
+- Aggregate finalization now marks pending/partial planned tasks as
+  `superseded` when their target slot is already covered by the final aggregate
+  projection or by final subtask answer slots/operands.
+- Matching is generic and reuses existing slot key/period extraction. No
+  company name, benchmark ID, or metric-specific runtime branch was added.
+
+### Validation
+
+- `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`:
+  `339` tests OK.
+- `python -m src.ops.audit_runtime_domain_terms --summary`: passed with `215`
+  reviewed literals.
+- `git diff --check`: passed.
+
+### Interpretation
+
+- This change improves trace readability only. It does not alter retrieval,
+  operand selection, calculation, or answer composition.
+- KAB focused probes during the cleanup still showed upstream replan and
+  operand-coverage volatility, including long latency and occasional partial
+  final answers. Treat that as the next runtime blocker, not as solved by the
+  ledger cleanup.
+
 ## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
 
 참조:

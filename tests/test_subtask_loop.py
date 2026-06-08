@@ -7141,6 +7141,311 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["integrity_status"], "ok")
         self.assertEqual(trace["integrity_issues"], [])
 
+    def test_aggregate_subtasks_resolves_ledger_tasks_from_final_slots(self) -> None:
+        self.agent.llm = None
+        state = {
+            "query": "calculate the 2023 expense ratio.",
+            "calc_subtasks": [
+                {"task_id": "task_2", "metric_family": "concept_lookup", "metric_label": "2023 expense amount", "operation_family": "lookup"},
+                {"task_id": "task_3", "metric_family": "concept_lookup", "metric_label": "2023 base amount", "operation_family": "lookup"},
+                {"task_id": "task_1", "metric_family": "concept_ratio", "metric_label": "expense ratio", "operation_family": "ratio"},
+            ],
+            "active_subtask_index": 2,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "expense ratio",
+                "operation_family": "ratio",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 expense amount",
+                    "operation_family": "lookup",
+                    "status": "ok",
+                    "answer": "expense amount 40",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "40",
+                        "formatted_result": "expense amount 40",
+                        "source_row_ids": ["ev_expense"],
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "expense amount",
+                                "period": "2023",
+                                "raw_value": "40",
+                                "raw_unit": "KRW",
+                                "normalized_value": 40.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "40",
+                                "source_row_ids": ["ev_expense"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 base amount",
+                    "operation_family": "aggregate_subtasks",
+                    "status": "partial",
+                    "answer": "base amount is missing",
+                    "calculation_result": {
+                        "status": "partial",
+                        "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
+                    },
+                },
+            ],
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_expense",
+                        "label": "2023 expense amount",
+                        "matched_operand_label": "expense amount",
+                        "matched_operand_role": "numerator_1",
+                        "raw_value": "40",
+                        "raw_unit": "KRW",
+                        "normalized_value": 40.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "evidence_id": "task_output:task_2",
+                    },
+                    {
+                        "operand_id": "op_base",
+                        "label": "2023 base amount",
+                        "matched_operand_label": "base amount",
+                        "matched_operand_role": "denominator_1",
+                        "raw_value": "100",
+                        "raw_unit": "KRW",
+                        "normalized_value": 100.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "evidence_id": "ev_base",
+                    },
+                ],
+                "calculation_plan": {"status": "ok", "operation": "ratio"},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "40.00%",
+                    "formatted_result": "expense ratio 40.00%",
+                    "source_row_ids": ["task_output:task_2", "ev_base"],
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "expense ratio",
+                            "raw_value": "40.00",
+                            "raw_unit": "%",
+                            "normalized_value": 40.0,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "40.00%",
+                            "source_row_ids": ["task_output:task_2", "ev_base"],
+                        },
+                        "components_by_role": {
+                            "numerator_1": [
+                                {
+                                    "status": "ok",
+                                    "label": "expense amount",
+                                    "period": "2023",
+                                    "raw_value": "40",
+                                    "raw_unit": "KRW",
+                                    "normalized_value": 40.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "40",
+                                    "source_row_ids": ["task_output:task_2"],
+                                }
+                            ],
+                            "denominator_1": [
+                                {
+                                    "status": "ok",
+                                    "label": "base amount",
+                                    "period": "2023",
+                                    "raw_value": "100",
+                                    "raw_unit": "KRW",
+                                    "normalized_value": 100.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "100",
+                                    "source_row_ids": ["ev_base"],
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+            "answer": "expense ratio 40.00%",
+            "compressed_answer": "expense ratio 40.00%",
+            "tasks": [
+                {
+                    "task_id": "task_2",
+                    "kind": "calculation",
+                    "label": "2023 expense amount",
+                    "status": "pending",
+                    "metric_family": "concept_lookup",
+                    "artifact_ids": ["semantic_plan:001"],
+                },
+                {
+                    "task_id": "task_3",
+                    "kind": "reconciliation",
+                    "label": "reconcile 2023 base amount",
+                    "status": "partial",
+                    "metric_family": "concept_lookup",
+                    "artifact_ids": ["semantic_plan:001", "reconcile:task_3:001"],
+                },
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "expense ratio",
+                    "status": "completed",
+                    "metric_family": "concept_ratio",
+                    "artifact_ids": ["operands:task_1:001", "plan:task_1:002", "result:task_1:003"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "semantic_plan:001",
+                    "task_id": "task_2",
+                    "kind": "semantic_plan",
+                    "status": "concept_fallback",
+                    "payload": {"subtasks": []},
+                },
+                {
+                    "artifact_id": "reconcile:task_3:001",
+                    "task_id": "task_3",
+                    "kind": "reconciliation_result",
+                    "status": "insufficient_operands",
+                    "payload": {"reconciliation_result": {"status": "insufficient_operands"}},
+                },
+                {
+                    "artifact_id": "operands:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "payload": {"calculation_operands": [{"operand_id": "op_expense"}]},
+                    "evidence_refs": ["task_output:task_2", "ev_base"],
+                },
+                {
+                    "artifact_id": "plan:task_1:002",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"operation": "ratio"}},
+                    "evidence_refs": ["task_output:task_2", "ev_base"],
+                },
+                {
+                    "artifact_id": "result:task_1:003",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"rendered_value": "40.00%"}},
+                    "evidence_refs": ["task_output:task_2", "ev_base"],
+                },
+            ],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _project_task_artifact_trace(updated["tasks"], updated["artifacts"])
+        tasks_by_id = {task["task_id"]: task for task in trace["tasks"]}
+
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(tasks_by_id["task_2"]["status"], "superseded")
+        self.assertEqual(
+            tasks_by_id["task_2"]["resolution_status"],
+            "superseded_by_aggregate_result",
+        )
+        self.assertEqual(tasks_by_id["task_2"]["superseded_by_task_id"], "aggregate")
+        self.assertEqual(tasks_by_id["task_3"]["status"], "superseded")
+        self.assertEqual(
+            tasks_by_id["task_3"]["resolution_status"],
+            "superseded_by_aggregate_result",
+        )
+        self.assertEqual(tasks_by_id["task_3"]["superseded_by_task_id"], "aggregate")
+
+    def test_aggregate_ledger_supersedes_tasks_from_final_subtask_slots(self) -> None:
+        tasks = [
+            {
+                "task_id": "task_2",
+                "kind": "reconciliation",
+                "label": "reconcile 2023 base amount",
+                "status": "partial",
+                "metric_family": "concept_lookup",
+                "artifact_ids": ["reconcile:task_2:001"],
+            }
+        ]
+        artifacts = [
+            {
+                "artifact_id": "reconcile:task_2:001",
+                "task_id": "task_2",
+                "kind": "reconciliation_result",
+                "status": "insufficient_operands",
+                "payload": {"reconciliation_result": {"status": "insufficient_operands"}},
+            }
+        ]
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "expense ratio",
+                "operation_family": "ratio",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "40.00%",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "expense ratio",
+                            "normalized_value": 40.0,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "40.00%",
+                        },
+                        "components_by_role": {
+                            "denominator_1": [
+                                {
+                                    "status": "ok",
+                                    "label": "base amount",
+                                    "period": "2023",
+                                    "raw_value": "100",
+                                    "raw_unit": "KRW",
+                                    "normalized_value": 100.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "100",
+                                    "source_row_ids": ["ev_base"],
+                                }
+                            ]
+                        },
+                    },
+                },
+            }
+        ]
+        aggregate_projection = {
+            "calculation_operands": [],
+            "calculation_plan": {"mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "expense ratio 40.00%",
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [],
+                },
+            },
+        }
+
+        updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
+            tasks,
+            artifacts,
+            ordered_results=ordered_results,
+            aggregate_projection=aggregate_projection,
+            aggregate_artifact_id="aggregate:002",
+        )
+        trace = _project_task_artifact_trace(updated_tasks, updated_artifacts)
+
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["tasks"][0]["status"], "superseded")
+        self.assertEqual(trace["tasks"][0]["superseded_by_artifact_id"], "aggregate:002")
+
     def test_verify_calculation_skip_does_not_rewrite_compatibility_mirrors(self) -> None:
         state = {
             "answer": "insufficient evidence",

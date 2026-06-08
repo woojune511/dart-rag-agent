@@ -658,6 +658,186 @@ class FinancialAgentCalculationMixin:
                     return True
         return False
 
+    def _final_aggregate_resolved_slots(
+        self,
+        aggregate_projection: Dict[str, Any],
+        ordered_results: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        resolved_slots: List[Dict[str, Any]] = []
+        calculation_result = dict(aggregate_projection.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        for slot in self._iter_answer_slots(answer_slots):
+            if self._answer_slot_has_material(slot):
+                resolved_slots.append(dict(slot))
+        for row in list(ordered_results or []):
+            row_result = dict(row.get("calculation_result") or {})
+            row_slots = dict(row_result.get("answer_slots") or row.get("answer_slots") or {})
+            for slot in self._iter_answer_slots(row_slots):
+                if self._answer_slot_has_material(slot):
+                    resolved_slots.append(dict(slot))
+            for operand in list(row.get("calculation_operands") or []):
+                if not isinstance(operand, dict):
+                    continue
+                slot = {
+                    "label": operand.get("matched_operand_label") or operand.get("label"),
+                    "concept": operand.get("matched_operand_concept") or operand.get("concept"),
+                    "period": operand.get("period"),
+                    "raw_value": operand.get("raw_value"),
+                    "raw_unit": operand.get("raw_unit"),
+                    "normalized_value": operand.get("normalized_value"),
+                    "normalized_unit": operand.get("normalized_unit"),
+                    "rendered_value": operand.get("rendered_value"),
+                    "source_row_id": operand.get("evidence_id") or operand.get("source_row_id"),
+                    "source_row_ids": _clean_source_row_ids(
+                        [
+                            operand.get("evidence_id"),
+                            operand.get("source_row_id"),
+                            operand.get("source_row_ids"),
+                        ]
+                    ),
+                    "source_anchor": operand.get("source_anchor"),
+                }
+                if self._answer_slot_has_material(slot):
+                    resolved_slots.append(slot)
+        for operand in list(aggregate_projection.get("calculation_operands") or []):
+            if not isinstance(operand, dict):
+                continue
+            slot = {
+                "label": operand.get("matched_operand_label") or operand.get("label"),
+                "concept": operand.get("matched_operand_concept") or operand.get("concept"),
+                "period": operand.get("period"),
+                "raw_value": operand.get("raw_value"),
+                "raw_unit": operand.get("raw_unit"),
+                "normalized_value": operand.get("normalized_value"),
+                "normalized_unit": operand.get("normalized_unit"),
+                "rendered_value": operand.get("rendered_value"),
+                "source_row_id": operand.get("evidence_id") or operand.get("source_row_id"),
+                "source_row_ids": _clean_source_row_ids(
+                    [
+                        operand.get("evidence_id"),
+                        operand.get("source_row_id"),
+                        operand.get("source_row_ids"),
+                    ]
+                ),
+                "source_anchor": operand.get("source_anchor"),
+            }
+            if self._answer_slot_has_material(slot):
+                resolved_slots.append(slot)
+        return resolved_slots
+
+    def _task_target_metric_keys(self, task: Dict[str, Any]) -> set[str]:
+        keys: set[str] = set()
+        candidate_labels = [
+            str(task.get("label") or ""),
+            str(task.get("metric_label") or ""),
+        ]
+        constraints = task.get("constraints") if isinstance(task.get("constraints"), dict) else {}
+        candidate_labels.append(str(constraints.get("metric_label") or ""))
+        for label in candidate_labels:
+            label = _normalise_spaces(label)
+            if not label:
+                continue
+            keys.update(self._slot_metric_keys({"label": label}))
+            stripped_action = _normalise_spaces(re.sub(r"^[A-Za-z_]+\s+", " ", label, count=1))
+            if stripped_action and stripped_action != label:
+                keys.update(self._slot_metric_keys({"label": stripped_action}))
+        return {key for key in keys if key}
+
+    def _task_target_period_keys(self, task: Dict[str, Any]) -> set[str]:
+        period_keys: set[str] = set()
+        period_pattern = str(CALCULATION_SLOT_POLICY.get("period_pattern") or "")
+        for value in (
+            task.get("label"),
+            task.get("metric_label"),
+            (task.get("constraints") or {}).get("metric_label")
+            if isinstance(task.get("constraints"), dict)
+            else "",
+        ):
+            text = _normalise_spaces(str(value or ""))
+            if not text or not period_pattern:
+                continue
+            for match in re.finditer(period_pattern, text):
+                period_key = self._period_match_key(match.group(0))
+                if period_key:
+                    period_keys.add(period_key)
+        return period_keys
+
+    def _task_target_matches_resolved_slot(
+        self,
+        task: Dict[str, Any],
+        resolved_slots: List[Dict[str, Any]],
+    ) -> bool:
+        target_keys = self._task_target_metric_keys(task)
+        if not target_keys:
+            return False
+        target_periods = self._task_target_period_keys(task)
+        for slot in resolved_slots:
+            slot_keys = self._slot_metric_keys(slot)
+            if not slot_keys:
+                continue
+            slot_period = self._period_match_key(self._slot_period_hint(slot))
+            if target_periods and slot_period and slot_period not in target_periods:
+                continue
+            if target_periods and not slot_period:
+                continue
+            if target_keys & slot_keys:
+                return True
+            if any(
+                target_key and slot_key and (target_key in slot_key or slot_key in target_key)
+                for target_key in target_keys
+                for slot_key in slot_keys
+            ):
+                return True
+        return False
+
+    def _finalize_aggregate_task_ledger(
+        self,
+        tasks: List[Dict[str, Any]],
+        artifacts: List[Dict[str, Any]],
+        *,
+        ordered_results: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+        aggregate_artifact_id: str,
+    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        resolved_slots = self._final_aggregate_resolved_slots(aggregate_projection, ordered_results)
+        updated_tasks = [dict(item) for item in tasks]
+        updated_artifacts = [dict(item) for item in artifacts]
+
+        for task in list(updated_tasks):
+            task_id = str(task.get("task_id") or "").strip()
+            if not task_id or task_id == "aggregate":
+                continue
+            status = _normalise_spaces(str(task.get("status") or "")).lower()
+            if status not in {TaskStatus.PENDING.value, TaskStatus.PARTIAL.value}:
+                continue
+            if not self._task_target_matches_resolved_slot(task, resolved_slots):
+                continue
+            try:
+                task_kind = TaskKind(str(task.get("kind") or TaskKind.CALCULATION.value))
+            except ValueError:
+                task_kind = TaskKind.CALCULATION
+            constraints = dict(task.get("constraints") or {})
+            constraints.update(
+                {
+                    "resolution_status": "superseded_by_aggregate_result",
+                    "superseded_by_task_id": "aggregate",
+                    "superseded_by_artifact_id": aggregate_artifact_id,
+                }
+            )
+            notes = list(dict.fromkeys([*(task.get("notes") or []), "superseded_by_aggregate_result"]))
+            updated_tasks = _upsert_task(
+                updated_tasks,
+                task_id=task_id,
+                kind=task_kind,
+                label=str(task.get("label") or task_id),
+                status=TaskStatus.SUPERSEDED,
+                query=str(task.get("query") or ""),
+                metric_family=str(task.get("metric_family") or ""),
+                constraints=constraints,
+                notes=notes,
+            )
+        return updated_tasks, updated_artifacts
+
     def _row_is_narrative_summary(self, row: Dict[str, Any]) -> bool:
         metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
         operation_family = self._aggregate_result_operation_family(row)
@@ -12749,6 +12929,13 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             metric_family="aggregate",
             artifact_id=artifact_id,
+        )
+        tasks, artifacts = self._finalize_aggregate_task_ledger(
+            tasks,
+            artifacts,
+            ordered_results=ordered_results,
+            aggregate_projection=aggregate_projection,
+            aggregate_artifact_id=artifact_id,
         )
         return {
             "subtask_results": ordered_results,

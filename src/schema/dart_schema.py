@@ -16,6 +16,7 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     PARTIAL = "partial"
+    SUPERSEDED = "superseded"
 
 
 class TaskKind(str, Enum):

@@ -124,6 +124,21 @@ role-separated multi-agent system using a task ledger and artifact store.
     `18 -> 8` and `15 -> 8`; the fan-out audit reported `15` executed queries,
     `0` duplicates, and `1` state query-result cache reuse
 - Latest hardening follow-up:
+  - a 2026-06-09 task-ledger trace cleanup adds a `superseded` lifecycle
+    status for pending/partial planned tasks that are already covered by final
+    aggregate answer slots or operands; task trace projection now exposes
+    `resolution_status`, `superseded_by_task_id`,
+    `superseded_by_artifact_id`, and `notes`
+  - this is a generic ledger-visibility contract, not an answer-path or
+    benchmark-specific rule; matching uses existing slot key and period
+    extraction over final aggregate/subtask slots
+  - validation for this cleanup: `python -m unittest tests.test_subtask_loop
+    tests.test_operation_contracts` ran `339` tests OK,
+    `python -m src.ops.audit_runtime_domain_terms --summary` passed with
+    `215` reviewed literals, and `git diff --check` passed
+  - focused KAB probes during this cleanup showed remaining upstream
+    replan/operand-coverage volatility, so latency/partial-answer stability is
+    the next blocker rather than part of this ledger patch
   - a 2026-06-09 monitored store-fixed full eval-only replay refreshed the
     concept runtime gate proof after the focused hardening work:
     `benchmarks/results/concept_gate_fresh_after_ratio_growth_hardening_2026-06-08/`

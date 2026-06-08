@@ -655,6 +655,12 @@ def _project_task_artifact_trace(
             for value in (task.get("artifact_ids") or [])
             if str(value).strip()
         ]
+        constraints = task.get("constraints") if isinstance(task.get("constraints"), dict) else {}
+        notes = [
+            str(value).strip()
+            for value in (task.get("notes") or [])
+            if str(value).strip()
+        ]
         referenced_artifact_ids.update(artifact_ids)
         attached = [
             artifact_by_id[artifact_id]
@@ -669,6 +675,10 @@ def _project_task_artifact_trace(
                 "label": str(task.get("label") or "").strip(),
                 "status": str(task.get("status") or "").strip(),
                 "metric_family": str(task.get("metric_family") or "").strip(),
+                "resolution_status": str(constraints.get("resolution_status") or "").strip(),
+                "superseded_by_task_id": str(constraints.get("superseded_by_task_id") or "").strip(),
+                "superseded_by_artifact_id": str(constraints.get("superseded_by_artifact_id") or "").strip(),
+                "notes": notes,
                 "artifact_ids": artifact_ids,
                 "artifact_kinds": [
                     str(artifact.get("kind") or "").strip()
@@ -8892,5 +8902,4 @@ def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
         return " ".join(dict.fromkeys(hints))
     hints.extend(get_financial_ontology().query_hints(query, topic, intent))
     return " ".join(dict.fromkeys(hints))
-
 

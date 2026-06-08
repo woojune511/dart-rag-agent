@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-09 aggregate task-ledger trace 정리를 추가했다.
+  - 새 lifecycle status `superseded`를 도입해, 최종 aggregate answer slot /
+    operand가 이미 해결한 pending/partial planned task를 실패나 미완료처럼
+    보이지 않게 표시한다.
+  - 적용 조건은 generic하다: task label/period에서 추출한 slot key가 final
+    aggregate projection 또는 final subtask result의 resolved slot과 맞을 때만
+    `superseded_by_aggregate_result`로 표시한다. 회사명, benchmark ID, 금융
+    metric phrase branch는 추가하지 않았다.
+  - trace projection은 `resolution_status`, `superseded_by_task_id`,
+    `superseded_by_artifact_id`, `notes`를 노출한다.
+  - KAB focused probe 중 upstream replan/operand coverage 변동이 여전히 보여
+    latency와 partial-answer volatility는 다음 별도 이슈로 남긴다. 이 변경은
+    answer path가 아니라 ledger visibility 후처리다.
+  - 검증:
+    - `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`:
+      `339` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `git diff --check`: passed.
+
 - 2026-06-09 `KAB_T1_066` focused follow-up에서 ratio direct
   reconciliation 우선순위를 정리했다.
   - ratio task가 active reconciliation에서 required operands를 모두 직접
