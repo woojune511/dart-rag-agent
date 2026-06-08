@@ -9056,14 +9056,14 @@ class FinancialAgentCalculationMixin:
                 if not operand_conflicts_requested_scope(row)
             ]
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
-        if dependency_bindings and direct_structured_rows:
+        if dependency_bindings and direct_structured_rows and not prefer_direct_rows_over_dependency:
             direct_structured_rows, rejected_resolved_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
                 state,
                 bindings=dependency_bindings,
                 operand_rows=direct_structured_rows,
             )
             rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
-        if missing_dependency_bindings and direct_structured_rows:
+        if missing_dependency_bindings and direct_structured_rows and not prefer_direct_rows_over_dependency:
             direct_structured_rows, rejected_missing_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
                 state,
                 bindings=missing_dependency_bindings,

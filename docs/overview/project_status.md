@@ -155,6 +155,11 @@ role-separated multi-agent system using a task ledger and artifact store.
   - `KAB_T1_066` focused eval-only after the ratio hardening remains numeric
     `PASS` with faithfulness/completeness `1.000 / 1.000` and CIR answer
     `37.47%`
+  - a later `KAB_T1_066` trace-quality pass keeps complete active ratio
+    reconciliation rows ahead of partial lookup dependency scope filters; the
+    focused store-fixed eval-only still reports numeric `PASS` and
+    faithfulness/completeness `1.000 / 1.000`, while latency improves
+    `309s -> 108s`, retrieval history `8 -> 3`, and task artifacts `21 -> 8`
   - latest local validation: `python -m unittest tests.test_subtask_loop tests.test_part_whole_ratio_contract`
     ran `169` tests OK, `python -m src.ops.audit_runtime_domain_terms` passed
     with `215` reviewed literals, and `python -m unittest discover -s tests`

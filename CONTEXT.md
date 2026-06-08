@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-09 `KAB_T1_066` focused follow-up에서 ratio direct
+  reconciliation 우선순위를 정리했다.
+  - ratio task가 active reconciliation에서 required operands를 모두 직접
+    확보한 경우, 부분/실패한 lookup dependency의 producer-scope 필터로
+    완전한 direct ratio rows를 다시 제거하지 않는다.
+  - 이는 특정 회사/질문 보정이 아니라 "완전한 active ratio evidence가
+    partial dependency output보다 우선한다"는 generic dependency binding
+    contract다.
+  - focused `KAB_T1_066` store-fixed eval-only는 numeric `PASS`,
+    faithfulness/completeness `1.000 / 1.000`, CIR answer `37.47%`를
+    유지했다.
+  - trace 품질은 개선됐다: latency `309s -> 108s`, retrieval debug history
+    `8 -> 3`, task artifacts `21 -> 8`.
+  - 검증:
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest tests.test_structured_operand_extraction tests.test_subtask_loop tests.test_operation_contracts`:
+      `358` tests OK.
+
 - 2026-06-09 concept runtime gap gate follow-up은 monitored full 7
   store-fixed eval-only로 다시 닫혔다.
   - 변경은 작게 제한했다. `narrative_summary` row는

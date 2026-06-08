@@ -120,6 +120,17 @@
   tests.test_operation_contracts` ran `336` tests OK; monitored full 7
   eval-only replay reported `7 / 7` numeric PASS. Raw benchmark output remains
   a local artifact and is not committed.
+- A focused `KAB_T1_066` trace-quality follow-up then reduced the long retry
+  path without changing the numeric answer. When an active ratio
+  reconciliation already supplies every required operand, partial or failed
+  lookup dependency producer-scope filters no longer remove those complete
+  direct ratio rows. Focused store-fixed eval-only preserved numeric `PASS`,
+  faithfulness/completeness `1.000 / 1.000`, and CIR answer `37.47%`, while
+  reducing latency `309s -> 108s`, retrieval debug history `8 -> 3`, and task
+  artifacts `21 -> 8`. Validation: runtime domain-term audit passed with
+  `215` reviewed literals, and `python -m unittest
+  tests.test_structured_operand_extraction tests.test_subtask_loop
+  tests.test_operation_contracts` ran `358` tests OK.
 
 ## MAS Smoke Outcome Refresh (2026-06-07)
 
