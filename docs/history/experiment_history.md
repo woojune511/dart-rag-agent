@@ -68,7 +68,7 @@
 | --- | --- |
 | `POS_T1_057` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, answer `3.5269배` |
 | `KAB_T1_066` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, CIR answer `37.47%` |
-| `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, final answer preserves `70.28%`, `(3,146,409)백만원`, `(1,847,775)백만원`, and risk-management cause narrative |
+| `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, final answer preserves `70.28%`, `3,146,409백만원`, `1,847,775백만원`, and risk-management cause narrative |
 
 ### 해석
 
@@ -84,11 +84,19 @@
   final projection, rejects same-period current/prior growth operands, and
   preserves digit-free explanatory narrative after late source-surface
   rewrites without reattaching table fragments.
+- A monitored fresh/full replay exposed two additional generic issues before
+  replacing the baseline: duplicate growth rows could prefer a source-rich but
+  sign-mixed candidate over a sign-consistent nested candidate, and `십억원`
+  was present in render policy but missing from numeric unit normalization.
+  The fix adds sign-consistency to growth row ranking, normalizes `십억원`
+  through policy, repairs stale KRW raw-unit scale mismatches before formula
+  execution, and declares credit-loss provision magnitude semantics in
+  ontology data rather than runtime branches.
 - 검증은 focused eval-only와 local regression suite로 닫았다:
   final focused `KBF_T2_018` eval-only `numeric_final_judgement = PASS`,
   `faithfulness = 1.000`, `completeness = 1.000`;
   `src.ops.audit_runtime_domain_terms --summary` passed; `git diff --check`
-  passed; and full `python -m unittest discover -s tests` ran `1001` tests OK.
+  passed; and full `python -m unittest discover -s tests` ran `1003` tests OK.
 - 이 항목은 새 full-gate baseline이 아니다. promotion proof를 갱신하려면
   store-fixed full 7 eval-only replay를 별도로 실행해야 한다.
 

@@ -1132,7 +1132,16 @@
         "손실충당금",
         "신용위험",
         "금융상품"
-      ]
+      ],
+      "lookup_hints": {
+        "coerce_parenthesized_negative_to_positive_magnitude": true,
+        "magnitude_surface_tokens": [
+          "신용손실충당금전입액",
+          "신용손실충당금 전입액",
+          "손실충당금 전입액",
+          "대손상각비"
+        ]
+      }
     },
     "foreign_currency_translation_gain": {
       "display_name": "외화환산이익",

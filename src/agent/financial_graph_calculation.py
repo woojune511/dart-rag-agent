@@ -5409,7 +5409,35 @@ class FinancialAgentCalculationMixin:
             return f"{operation_family}:{metric_label}"
         return metric_label
 
-    def _aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int]:
+    def _growth_operand_sign_consistency_rank(self, row: Dict[str, Any]) -> int:
+        if self._aggregate_result_operation_family(row) != "growth_rate":
+            return 1
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+
+        def _sign(slot: Dict[str, Any]) -> int:
+            value = slot.get("normalized_value")
+            if value is None:
+                return 0
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                return 0
+            if numeric_value > 0:
+                return 1
+            if numeric_value < 0:
+                return -1
+            return 0
+
+        current_sign = _sign(current_slot)
+        prior_sign = _sign(prior_slot)
+        if current_sign and prior_sign:
+            return 2 if current_sign == prior_sign else 0
+        return 1
+
+    def _aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int]:
         calculation_result = dict(row.get("calculation_result") or {})
         status = _normalise_spaces(
             str(
@@ -5428,10 +5456,11 @@ class FinancialAgentCalculationMixin:
         }.get(status, 0)
         material_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
         answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
+        growth_sign_rank = self._growth_operand_sign_consistency_rank(row)
         operand_rank = len(list(calculation_result.get("source_row_ids") or []))
-        return status_rank, material_rank, answer_rank, operand_rank
+        return status_rank, material_rank, answer_rank, growth_sign_rank, operand_rank
 
-    def _nested_aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int, int, int]:
+    def _nested_aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int]:
         calculation_result = dict(row.get("calculation_result") or {})
         status = _normalise_spaces(
             str(row.get("status") or calculation_result.get("status") or "")
@@ -5448,6 +5477,7 @@ class FinancialAgentCalculationMixin:
         gap_free_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
         operation_family = self._aggregate_result_operation_family(row)
         non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
+        growth_sign_rank = self._growth_operand_sign_consistency_rank(row)
         source_count = len(_clean_source_row_ids([
             row.get("source_row_ids"),
             calculation_result.get("source_row_ids"),
@@ -5468,6 +5498,7 @@ class FinancialAgentCalculationMixin:
             material_rank,
             gap_free_rank,
             non_aggregate_rank,
+            growth_sign_rank,
             source_count,
             digit_count,
             len(answer_text),
@@ -5520,7 +5551,7 @@ class FinancialAgentCalculationMixin:
         self,
         ordered_results: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        winners: Dict[str, tuple[int, tuple[int, int, int, int], Dict[str, Any]]] = {}
+        winners: Dict[str, tuple[int, tuple[int, int, int, int, int], Dict[str, Any]]] = {}
         passthrough: List[tuple[int, Dict[str, Any]]] = []
         for index, row in enumerate(ordered_results):
             signature = self._aggregate_result_signature(row)
@@ -5532,7 +5563,7 @@ class FinancialAgentCalculationMixin:
             if incumbent is None or rank > incumbent[1] or (rank == incumbent[1] and index > incumbent[0]):
                 winners[signature] = (index, rank, row)
         deduped = sorted(
-            [item for item in winners.values()] + [(index, (0, 0, 0, 0), row) for index, row in passthrough],
+            [item for item in winners.values()] + [(index, (0, 0, 0, 0, 0), row) for index, row in passthrough],
             key=lambda item: item[0],
         )
         return [dict(item[2]) for item in deduped]
@@ -10783,6 +10814,54 @@ class FinancialAgentCalculationMixin:
             updated.append(next_row)
         return updated if changed else operands
 
+    def _repair_krw_normalized_values_from_raw_units(
+        self,
+        operands: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        updated: List[Dict[str, Any]] = []
+        changed = False
+        for row in operands:
+            next_row = dict(row)
+            if _normalise_spaces(str(next_row.get("normalized_unit") or "")).upper() != "KRW":
+                updated.append(next_row)
+                continue
+            raw_unit = _normalise_spaces(str(next_row.get("raw_unit") or next_row.get("result_unit") or ""))
+            raw_value = _normalise_spaces(str(next_row.get("raw_value") or ""))
+            if not raw_unit or not raw_value:
+                updated.append(next_row)
+                continue
+            expected_value, expected_unit = _normalise_operand_value(raw_value, raw_unit)
+            if expected_value is None or expected_unit != "KRW":
+                updated.append(next_row)
+                continue
+            current_value = next_row.get("normalized_value")
+            try:
+                current_numeric = float(current_value)
+                expected_numeric = float(expected_value)
+            except (TypeError, ValueError):
+                updated.append(next_row)
+                continue
+            if current_numeric == expected_numeric:
+                updated.append(next_row)
+                continue
+            if not current_numeric or not expected_numeric:
+                updated.append(next_row)
+                continue
+            distortion = max(abs(current_numeric), abs(expected_numeric)) / min(
+                abs(current_numeric),
+                abs(expected_numeric),
+            )
+            if distortion < 100.0:
+                updated.append(next_row)
+                continue
+            next_row["source_normalized_value"] = current_numeric
+            next_row["normalized_value"] = expected_numeric
+            next_row["normalized_unit"] = expected_unit
+            next_row["unit_normalization_repair_source"] = "raw_unit_scale"
+            changed = True
+            updated.append(next_row)
+        return updated if changed else operands
+
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
         runtime_trace = _resolve_runtime_calculation_trace(
@@ -10790,6 +10869,7 @@ class FinancialAgentCalculationMixin:
             allow_legacy_top_level=False,
         )
         runtime_operands = [dict(row) for row in (runtime_trace.get("calculation_operands") or [])]
+        runtime_operands = self._repair_krw_normalized_values_from_raw_units(runtime_operands)
         operands = {row.get("operand_id"): row for row in runtime_operands}
         plan = dict(runtime_trace.get("calculation_plan") or {})
         active_subtask = dict(state.get("active_subtask") or {})

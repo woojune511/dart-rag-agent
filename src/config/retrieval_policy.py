@@ -134,14 +134,15 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
 NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "inline_value_unit_pattern": (
         r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
-        rf"(?P<unit>조\s*원?|억\s*원?|백만\s*원|천\s*원|원|%|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
+        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|천\s*원|원|%|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
     ),
-    "inline_unit_aliases": {"억": "억원", "조": "조원"},
+    "inline_unit_aliases": {"억": "억원", "조": "조원", "십억": "십억원"},
     "krw_scales": {
         "원": 1.0,
         "천원": 1_000.0,
         "백만원": 1_000_000.0,
         "억원": 100_000_000.0,
+        "십억원": 1_000_000_000.0,
         "조원": 1_0000_0000_0000.0,
     },
     "usd_scales": {"usd": 1.0, "$": 1.0, "달러": 1.0, "백만달러": 1_000_000.0},

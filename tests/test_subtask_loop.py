@@ -1106,6 +1106,79 @@ class SubtaskLoopTests(unittest.TestCase):
             places=2,
         )
 
+    def test_execute_growth_repairs_raw_unit_scale_before_magnitude_policy(self) -> None:
+        state = {
+            "query": "신용손실충당금전입액 전년 대비 증가율을 계산해 줘.",
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "신용손실충당금전입액 증가율",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": "신용손실충당금전입액",
+                        "concept": "credit_loss_provision_expense",
+                        "role": "current_period",
+                    },
+                    {
+                        "label": "신용손실충당금전입액",
+                        "concept": "credit_loss_provision_expense",
+                        "role": "prior_period",
+                    },
+                ],
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "current",
+                        "matched_operand_role": "current_period",
+                        "matched_operand_concept": "credit_loss_provision_expense",
+                        "label": "신용손실충당금전입액",
+                        "raw_value": "3,146",
+                        "raw_unit": "십억원",
+                        "normalized_value": 3146.0,
+                        "normalized_unit": "KRW",
+                        "statement_type": "summary_financials",
+                    },
+                    {
+                        "operand_id": "prior",
+                        "matched_operand_role": "prior_period",
+                        "matched_operand_concept": "credit_loss_provision_expense",
+                        "label": "신용손실충당금전입액",
+                        "raw_value": "(1,847,775)",
+                        "raw_unit": "백만원",
+                        "normalized_value": -1847775000000.0,
+                        "normalized_unit": "KRW",
+                        "statement_type": "income_statement",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "operation_family": "growth_rate",
+                    "formula": "((A - B) / B) * 100",
+                    "result_unit": "%",
+                    "ordered_operand_ids": ["current", "prior"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "current"},
+                        {"variable": "B", "operand_id": "prior"},
+                    ],
+                },
+                "calculation_result": {},
+            },
+        }
+
+        result = self.agent._execute_calculation(state)
+        trace = result["resolved_calculation_trace"]
+        operands = {row["operand_id"]: row for row in trace["calculation_operands"]}
+
+        self.assertEqual(operands["current"]["normalized_value"], 3_146_000_000_000.0)
+        self.assertEqual(operands["current"]["unit_normalization_repair_source"], "raw_unit_scale")
+        self.assertEqual(operands["prior"]["normalized_value"], 1_847_775_000_000.0)
+        self.assertEqual(operands["prior"]["value_coercion"], "lookup_magnitude_from_source_surface")
+        self.assertAlmostEqual(trace["calculation_result"]["result_value"], 70.26, places=2)
+
     def test_reconcile_short_circuits_when_dependency_outputs_are_fully_resolved(self) -> None:
         state = {
             "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산해 줘.",
@@ -8615,6 +8688,118 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("미래경기 불확실성", updated["answer"])
         self.assertIn("보수적인 충당금적립", updated["answer"])
         self.assertIn("ev_risk_driver", updated["selected_claim_ids"])
+
+    def test_nested_growth_promotion_prefers_sign_consistent_operand_pair(self) -> None:
+        sign_mixed_growth = {
+            "task_id": "task_1",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "비용 증가율",
+            "answer": "-270.28%",
+            "status": "ok",
+            "source_row_ids": ["row_current", "task_output:lookup", "row_prior_prose"],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-270.28%",
+                "formatted_result": "-270.28%",
+                "source_row_ids": ["row_current", "task_output:lookup", "row_prior_prose"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "비용 증가율",
+                        "period": "2023",
+                        "normalized_value": -270.28,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "-270.28%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "비용",
+                        "period": "2023",
+                        "normalized_value": -3146409000000,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "(3,146,409)백만원",
+                        "source_row_ids": ["row_current"],
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "비용",
+                        "period": "2022",
+                        "normalized_value": 1847775000000,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "1,847,775백만원",
+                        "source_row_ids": ["task_output:lookup", "row_prior_prose"],
+                    },
+                },
+            },
+        }
+        signed_pair_growth = {
+            "task_id": "task_1",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "비용 증가율",
+            "answer": "70.28%",
+            "status": "ok",
+            "source_row_ids": ["row_statement"],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "70.28%",
+                "formatted_result": "70.28%",
+                "source_row_ids": ["row_statement"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "비용 증가율",
+                        "period": "2023",
+                        "normalized_value": 70.28,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "70.28%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "비용",
+                        "period": "2023",
+                        "normalized_value": -3146409000000,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "(3,146,409)백만원",
+                        "source_row_ids": ["row_statement"],
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "비용",
+                        "period": "2022",
+                        "normalized_value": -1847775000000,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "(1,847,775)백만원",
+                        "source_row_ids": ["row_statement"],
+                    },
+                },
+            },
+        }
+        aggregate_summary = {
+            "task_id": "task_2",
+            "metric_family": "narrative_summary",
+            "metric_label": "질문 관련 배경/영향 설명",
+            "operation_family": "aggregate_subtasks",
+            "answer": "비용은 전년 대비 70.28% 증가했습니다.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "비용은 전년 대비 70.28% 증가했습니다.",
+                "subtask_results": [signed_pair_growth],
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [signed_pair_growth],
+                },
+            },
+        }
+
+        promoted = self.agent._promote_stronger_nested_aggregate_results(
+            [sign_mixed_growth, aggregate_summary]
+        )
+
+        self.assertEqual(promoted[0]["answer"], "70.28%")
+        self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
 
     def test_aggregate_growth_narrative_filters_table_fragment_noise(self) -> None:
         state = {
