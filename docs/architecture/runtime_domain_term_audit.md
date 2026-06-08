@@ -126,7 +126,7 @@ policies.
 | Metric | Count |
 | --- | ---: |
 | Reviewed records | 215 |
-| Literal occurrences | 246 |
+| Literal occurrences | 241 |
 | `runtime_literal` records | 53 |
 | `schema_description` records | 117 |
 | `regex_or_pattern` records | 36 |
@@ -202,6 +202,11 @@ For each P0 record, classify it as one of:
   `_score_structured_cell`, `_candidate_satisfies_direct_acceptance_contract`,
   `_infer_generic_unit_family`, `_build_concept_metric_label`, and
   `_extract_value_near_match`.
+- Calculation answer rendering moved from `financial_graph_calculation.py` to
+  `financial_graph_calculation_rendering.py` without adding new runtime domain
+  vocabulary. Period suffix and percent/unit handling continue to come from
+  `CALCULATION_RENDER_POLICY`, and the baseline update reflects reduced literal
+  occurrence counts in the calculation module.
 - `_infer_statement_and_section_hints()` no longer carries concept-specific
   section branches for pretax income, foreign-currency translation, borrowings,
   CAPEX, or operating expense. Runtime now merges generic document-structure
