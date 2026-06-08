@@ -132,6 +132,16 @@ def _reflection_report_contract_issues(case: Dict[str, Any]) -> List[str]:
             issues.append("missing_reflection_action")
         elif not has_retry_queries:
             issues.append("missing_retry_query_surface")
+    if action == "synthesize_from_task_outputs":
+        synthesis_source_ids = reflection_action.get("synthesis_source_ids")
+        has_synthesis_source_ids = (
+            isinstance(synthesis_source_ids, list)
+            and any(str(item).strip() for item in synthesis_source_ids)
+        )
+        if not reflection_action:
+            issues.append("missing_reflection_action")
+        elif not has_synthesis_source_ids:
+            issues.append("missing_synthesis_source_surface")
     if "budget_consumed" not in report:
         issues.append("missing_budget_consumed")
     else:

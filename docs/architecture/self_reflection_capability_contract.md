@@ -145,10 +145,11 @@ store-fixed trace summary distilled from local eval-only artifacts. The gate
 also checks that triggered reflection reports include bounded budget
 consumption, target task/artifact refs for accepted reflected cases, blocking
 issues for `stop_insufficient`, retry-query visibility for `retry_retrieval`,
-and `final_acceptance_authority = critic_orchestrator_handoff` rather than
-reflection. A future active-reflection PR should keep that gate green or extend
-it with additional store-fixed or live/default trace summaries before any
-broader benchmark refresh:
+source-id visibility for `synthesize_from_task_outputs`, and
+`final_acceptance_authority = critic_orchestrator_handoff` rather than
+reflection. A future active-reflection PR should keep that gate green or
+extend it with additional store-fixed or live/default trace summaries before
+any broader benchmark refresh:
 
 1. Unit tests for trigger eligibility, request construction, allowed strategies,
    budget consumption, and `ReflectionReport` ledger shape.

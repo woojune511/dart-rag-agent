@@ -186,6 +186,29 @@ class ReflectionPromotionGateTests(unittest.TestCase):
             ],
         )
 
+    def test_synthesize_from_outputs_requires_visible_source_ids(self) -> None:
+        fixture_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "reflection_promotion_gate"
+            / "cases.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload["cases"][1]["reflection_action"]["synthesis_source_ids"] = []
+
+        result = evaluate_cases(payload)
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["report_contract_ok"])
+        self.assertEqual(
+            result["report_contract_issue_case_ids"],
+            [
+                "synthesize_from_task_outputs_recovers_complete_material:"
+                "missing_synthesis_source_surface"
+            ],
+        )
+
     def test_render_text_includes_signal_names(self) -> None:
         text = render_text(run_gate_suite())
 
