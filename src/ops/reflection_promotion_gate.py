@@ -80,6 +80,11 @@ def _case_action(case: Dict[str, Any]) -> str:
     return str(report.get("action_taken") or case.get("expected_action") or "").strip()
 
 
+def _case_reflection_action(case: Dict[str, Any]) -> Dict[str, Any]:
+    action = case.get("reflection_action")
+    return dict(action) if isinstance(action, dict) else {}
+
+
 def _case_integrity_status(case: Dict[str, Any]) -> str:
     trace = case.get("task_artifact_trace") if isinstance(case.get("task_artifact_trace"), dict) else {}
     return str(trace.get("integrity_status") or "").strip()
@@ -113,6 +118,20 @@ def _reflection_report_contract_issues(case: Dict[str, Any]) -> List[str]:
         issues.append("missing_report_outcome")
     if action not in REQUIRED_ACTIONS:
         issues.append("invalid_report_action")
+    reflection_action = _case_reflection_action(case)
+    action_type = str(reflection_action.get("action_type") or "").strip()
+    if reflection_action and action_type != action:
+        issues.append("reflection_action_mismatch")
+    if action == "retry_retrieval":
+        retry_queries = reflection_action.get("retry_queries")
+        has_retry_queries = (
+            isinstance(retry_queries, list)
+            and any(str(item).strip() for item in retry_queries)
+        )
+        if not reflection_action:
+            issues.append("missing_reflection_action")
+        elif not has_retry_queries:
+            issues.append("missing_retry_query_surface")
     if "budget_consumed" not in report:
         issues.append("missing_budget_consumed")
     else:

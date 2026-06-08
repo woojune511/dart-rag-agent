@@ -16,6 +16,13 @@
         "target_artifact_ids": ["trace_summary_artifact_retry_result"],
         "final_acceptance_authority": "critic_orchestrator_handoff"
       },
+      "reflection_action": {
+        "action_type": "retry_retrieval",
+        "retry_queries": ["trace summary missing evidence"],
+        "retrieval_scope_hints": ["reviewed store-fixed trace"],
+        "synthesis_source_ids": [],
+        "stop_reason": ""
+      },
       "initial_status": "missing_retrieval_material",
       "final_status": "accepted",
       "task_artifact_trace": {

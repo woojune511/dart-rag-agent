@@ -140,6 +140,52 @@ class ReflectionPromotionGateTests(unittest.TestCase):
             ],
         )
 
+    def test_retry_retrieval_requires_visible_retry_queries(self) -> None:
+        fixture_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "reflection_promotion_gate"
+            / "cases.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload["cases"][0]["reflection_action"]["retry_queries"] = []
+
+        result = evaluate_cases(payload)
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["report_contract_ok"])
+        self.assertEqual(
+            result["report_contract_issue_case_ids"],
+            [
+                "retry_retrieval_recovers_missing_evidence:"
+                "missing_retry_query_surface"
+            ],
+        )
+
+    def test_reflection_action_must_match_report_action(self) -> None:
+        fixture_path = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "reflection_promotion_gate"
+            / "cases.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        payload["cases"][0]["reflection_action"]["action_type"] = "stop_insufficient"
+
+        result = evaluate_cases(payload)
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["report_contract_ok"])
+        self.assertEqual(
+            result["report_contract_issue_case_ids"],
+            [
+                "retry_retrieval_recovers_missing_evidence:"
+                "reflection_action_mismatch"
+            ],
+        )
+
     def test_render_text_includes_signal_names(self) -> None:
         text = render_text(run_gate_suite())
 

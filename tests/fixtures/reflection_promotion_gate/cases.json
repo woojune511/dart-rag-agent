@@ -14,6 +14,13 @@
         "target_artifact_ids": ["artifact_retry_retrieval_result"],
         "final_acceptance_authority": "critic_orchestrator_handoff"
       },
+      "reflection_action": {
+        "action_type": "retry_retrieval",
+        "retry_queries": ["missing numeric value"],
+        "retrieval_scope_hints": ["financial statement notes"],
+        "synthesis_source_ids": [],
+        "stop_reason": ""
+      },
       "initial_status": "missing_evidence",
       "final_status": "accepted",
       "task_artifact_trace": {
@@ -36,6 +43,13 @@
         "target_task_ids": ["task_synthesize_outputs"],
         "target_artifact_ids": ["artifact_synthesis_result"],
         "final_acceptance_authority": "critic_orchestrator_handoff"
+      },
+      "reflection_action": {
+        "action_type": "synthesize_from_task_outputs",
+        "retry_queries": [],
+        "retrieval_scope_hints": [],
+        "synthesis_source_ids": ["artifact_lookup_current", "artifact_lookup_prior"],
+        "stop_reason": ""
       },
       "initial_status": "incomplete_synthesis",
       "final_status": "accepted",
@@ -64,6 +78,13 @@
             "reason": "no grounded evidence"
           }
         ]
+      },
+      "reflection_action": {
+        "action_type": "stop_insufficient",
+        "retry_queries": [],
+        "retrieval_scope_hints": [],
+        "synthesis_source_ids": [],
+        "stop_reason": "no grounded evidence"
       },
       "initial_status": "missing_evidence",
       "final_status": "blocked",
