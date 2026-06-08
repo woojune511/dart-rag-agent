@@ -42,6 +42,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertEqual(result["reflection_promotion"]["status"], "ready")
         self.assertEqual(result["reflection_promotion"]["case_count"], 10)
         self.assertEqual(result["reflection_promotion"]["trace_summary_count"], 1)
+        self.assertTrue(result["reflection_promotion"]["source_coverage_ok"])
         self.assertTrue(result["reflection_promotion"]["report_contract_ok"])
         self.assertEqual(
             result["reflection_promotion"]["promotion_signals"]["false_recovery_rate"],
@@ -61,6 +62,7 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertIn("Cache Promotion Evidence:", text)
         self.assertIn("Reflection Promotion:", text)
         self.assertIn("trace_summary_count:", text)
+        self.assertIn("source_coverage_ok:", text)
         self.assertIn("report_contract_ok:", text)
         self.assertIn("producer_contract_ok:", text)
         self.assertIn("fallback_safety_ok:", text)

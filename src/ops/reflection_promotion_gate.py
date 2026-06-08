@@ -29,6 +29,11 @@ REQUIRED_ACTIONS = {
     "synthesize_from_task_outputs",
     "stop_insufficient",
 }
+REQUIRED_SUITE_CASE_SOURCES = {
+    "base_fixture",
+    "store_fixed_eval_only_candidate_surface",
+    "store_fixed_eval_only_trace_summary",
+}
 MAX_REFLECTION_RETRY_BUDGET = 1
 FINAL_ACCEPTANCE_AUTHORITY = "critic_orchestrator_handoff"
 
@@ -44,27 +49,39 @@ def _combine_payloads(payloads: List[Dict[str, Any]]) -> Dict[str, Any]:
     gate_ids = [str(payload.get("gate_id") or "") for payload in payloads if payload.get("gate_id")]
     cases: List[Dict[str, Any]] = []
     for payload in payloads:
+        source = str(
+            payload.get("case_source")
+            or payload.get("source_type")
+            or "base_fixture"
+        )
         for case in list(payload.get("cases") or []):
             if isinstance(case, dict):
-                cases.append(dict(case))
+                projected = dict(case)
+                projected["_promotion_case_source"] = source
+                cases.append(projected)
     return {
         "gate_id": "+".join(gate_ids),
         "fixture_count": len(payloads),
         "source_gate_ids": gate_ids,
         "cases": cases,
+        "required_case_sources": sorted(REQUIRED_SUITE_CASE_SOURCES),
     }
 
 
 def _payload_from_trace_summary(path: Path) -> Dict[str, Any]:
     payload = _read_json_object(path)
+    source = str(payload.get("source_type") or "trace_summary")
     cases = [
-        dict(case)
+        {
+            **dict(case),
+            "_promotion_case_source": source,
+        }
         for case in list(payload.get("reflection_promotion_cases") or [])
         if isinstance(case, dict)
     ]
     return {
         "gate_id": str(payload.get("summary_id") or path.stem),
-        "case_source": str(payload.get("source_type") or "trace_summary"),
+        "case_source": source,
         "cases": cases,
     }
 
@@ -176,6 +193,26 @@ def _reflection_report_contract_issues(case: Dict[str, Any]) -> List[str]:
 
 def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
     cases = [dict(case) for case in list(payload.get("cases") or []) if isinstance(case, dict)]
+    default_case_source = str(
+        payload.get("case_source")
+        or payload.get("source_type")
+        or "base_fixture"
+    )
+    case_source_counts: Dict[str, int] = {}
+    for case in cases:
+        source = str(case.get("_promotion_case_source") or default_case_source)
+        if source:
+            case_source_counts[source] = case_source_counts.get(source, 0) + 1
+    required_case_sources = [
+        str(source)
+        for source in list(payload.get("required_case_sources") or [])
+        if str(source).strip()
+    ]
+    source_coverage_issues = [
+        f"missing_case_source:{source}"
+        for source in required_case_sources
+        if case_source_counts.get(source, 0) <= 0
+    ]
     eligible_cases = [case for case in cases if bool(case.get("eligible"))]
     triggered_cases = [case for case in cases if bool(case.get("reflection_triggered"))]
     triggered_eligible_cases = [
@@ -231,6 +268,7 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
     promotion_ready = (
         bool(cases)
         and required_actions_present
+        and not source_coverage_issues
         and not action_mismatches
         and not report_contract_issues
         and not false_recovery_cases
@@ -260,6 +298,10 @@ def evaluate_cases(payload: Dict[str, Any]) -> Dict[str, Any]:
         "report_contract_ok": not report_contract_issues,
         "report_contract_issue_case_ids": report_contract_issues,
         "required_actions_present": required_actions_present,
+        "source_coverage_ok": not source_coverage_issues,
+        "source_coverage_issue_ids": source_coverage_issues,
+        "case_source_counts": case_source_counts,
+        "required_case_sources": required_case_sources,
         "clean_pass_no_trigger": bool(clean_pass_cases) and not clean_pass_triggered,
         "stop_insufficient_no_acceptance": bool(stop_cases) and not stop_cases_accepted,
         "promotion_signals": signals,
@@ -318,6 +360,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"Status: {result.get('status')}",
         f"Cases: {result.get('case_count')}",
         f"Required actions present: {str(result.get('required_actions_present')).lower()}",
+        f"Source coverage ok: {str(result.get('source_coverage_ok')).lower()}",
         f"Report contract ok: {str(result.get('report_contract_ok')).lower()}",
         f"Clean pass no trigger: {str(result.get('clean_pass_no_trigger')).lower()}",
         (
