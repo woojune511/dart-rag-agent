@@ -25,10 +25,22 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
         self.assertEqual(result["fallback_count"], 4)
         self.assertEqual(result["trace_summary_count"], 1)
         self.assertTrue(result["disabled_flags_ok"])
+        self.assertTrue(result["producer_contract_ok"])
+        self.assertEqual(result["producer_contract_issue_ids"], [])
         scenarios = {item["name"]: item for item in result["scenarios"]}
         self.assertTrue(scenarios["ready_entry_candidate_only"]["ready"])
         self.assertFalse(scenarios["ready_entry_candidate_only"]["serving_enabled"])
         self.assertFalse(scenarios["ready_entry_candidate_only"]["final_acceptance_enabled"])
+        self.assertEqual(
+            scenarios["ready_entry_candidate_only"]["producer_policy_name"],
+            "calculation_task_contract",
+        )
+        self.assertEqual(
+            scenarios["ready_entry_candidate_only"]["producer_policy_artifact_kinds"],
+            ["operand_set", "calculation_plan", "calculation_result"],
+        )
+        self.assertEqual(scenarios["ready_entry_candidate_only"]["producer_policy_artifact_count"], 3)
+        self.assertTrue(scenarios["ready_entry_candidate_only"]["calculation_contract_valid"])
         self.assertTrue(scenarios["incomplete_entry_fallback"]["fallback_required"])
         self.assertIn("missing_answer_slots", scenarios["incomplete_entry_fallback"]["reasons"])
         self.assertTrue(scenarios["ambiguous_match_fallback"]["fallback_required"])
@@ -45,6 +57,48 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
         self.assertIn("Ready cases: 2", text)
         self.assertIn("Fallback cases: 4", text)
         self.assertIn("Trace summaries: 1", text)
+
+    def test_ready_trace_summary_without_calculation_contract_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            trace_summary = Path(temp_dir) / "trace_summary.json"
+            trace_summary.write_text(
+                json.dumps(
+                    {
+                        "report_cache_promotion_cases": [
+                            {
+                                "name": "trace_ready_missing_policy",
+                                "status": "ready",
+                                "ready": True,
+                                "fallback_required": False,
+                                "producer_policy_status": "ready",
+                                "producer_policy_ready": True,
+                                "serving_enabled": False,
+                                "ledger_insertion_enabled": False,
+                                "retrieval_bypass_enabled": False,
+                                "final_acceptance_enabled": False,
+                                "acceptance_authority": (
+                                    "task_artifact_integrity_and_critic_orchestrator"
+                                ),
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_gate(trace_summary_paths=[trace_summary])
+
+        self.assertEqual(result["status"], "needs_evidence")
+        self.assertFalse(result["producer_contract_ok"])
+        self.assertIn(
+            "trace_ready_missing_policy:producer_policy_name",
+            result["producer_contract_issue_ids"],
+        )
+        self.assertIn(
+            "trace_ready_missing_policy:producer_policy_artifact_kinds",
+            result["producer_contract_issue_ids"],
+        )
 
     def test_cli_writes_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -73,6 +127,7 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
             self.assertEqual(payload["ready_count"], 2)
             self.assertEqual(payload["fallback_count"], 4)
             self.assertEqual(payload["trace_summary_count"], 1)
+            self.assertTrue(payload["producer_contract_ok"])
 
 
 if __name__ == "__main__":

@@ -162,7 +162,10 @@ The first focused promotion-evidence increment is now present but non-enabling:
 entry can satisfy the guarded consumer plus producer-policy contracts, while
 incomplete and ambiguous entries still require normal retrieval fallback. The
 gate also consumes a reviewed store-fixed trace summary so the same ready and
-fallback expectations are checked outside the raw fixture path. It keeps
+fallback expectations are checked outside the raw fixture path. Ready promotion
+evidence must expose the calculation-task producer policy, the required
+`operand_set`, `calculation_plan`, and `calculation_result` artifact kinds,
+cache-origin metadata, and a valid calculation-contract projection. It keeps
 retrieval bypass, serving, ledger insertion, and final acceptance disabled.
 
 ## Current Interpretation

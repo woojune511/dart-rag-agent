@@ -960,11 +960,27 @@ def build_report_cache_promotion_evidence_case(
         "producer_policy_status": str(producer.get("status") or ""),
         "producer_policy_ready": bool(producer.get("ready")),
         "producer_policy_name": str(producer.get("policy") or ""),
+        "producer_policy_source": str(producer.get("source") or ""),
+        "producer_policy_cache_origin": str(producer.get("cache_origin") or ""),
+        "producer_policy_required_artifact_kinds": [
+            str(kind)
+            for kind in list(producer.get("required_artifact_kinds") or [])
+            if str(kind).strip()
+        ],
         "producer_policy_artifact_kinds": [
             str(kind)
             for kind in list(producer.get("artifact_kinds") or [])
             if str(kind).strip()
         ],
+        "producer_policy_missing_artifact_kinds": [
+            str(kind)
+            for kind in list(producer.get("missing_artifact_kinds") or [])
+            if str(kind).strip()
+        ],
+        "producer_policy_artifact_count": int(producer.get("artifact_count") or 0),
+        "calculation_contract_valid": bool(
+            (producer.get("calculation_contract_validation") or {}).get("valid_for_contract")
+        ),
         "report_cache_key_id": str(producer.get("report_cache_key_id") or guarded.get("key_id") or ""),
         "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator",
     }

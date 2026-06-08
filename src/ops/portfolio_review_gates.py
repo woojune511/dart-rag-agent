@@ -75,6 +75,7 @@ def run_review_gates() -> Dict[str, Any]:
             "ready_count": cache_promotion.get("ready_count"),
             "fallback_count": cache_promotion.get("fallback_count"),
             "disabled_flags_ok": bool(cache_promotion.get("disabled_flags_ok")),
+            "producer_contract_ok": bool(cache_promotion.get("producer_contract_ok")),
             "trace_summary_count": cache_promotion.get("trace_summary_count"),
         },
         "reflection_promotion": {
@@ -117,6 +118,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"  - ready_count: {cache_promotion.get('ready_count')}",
         f"  - fallback_count: {cache_promotion.get('fallback_count')}",
         f"  - disabled_flags_ok: {str(bool(cache_promotion.get('disabled_flags_ok'))).lower()}",
+        f"  - producer_contract_ok: {str(bool(cache_promotion.get('producer_contract_ok'))).lower()}",
         f"  - trace_summary_count: {cache_promotion.get('trace_summary_count')}",
         "",
         "Reflection Promotion:",

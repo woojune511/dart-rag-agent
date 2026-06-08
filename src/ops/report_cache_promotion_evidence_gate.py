@@ -11,6 +11,11 @@ from src.config.report_scoped_cache import build_report_cache_promotion_evidence
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+EXPECTED_PRODUCER_POLICY = "calculation_task_contract"
+EXPECTED_PRODUCER_SOURCE = "report_cache_rehydration"
+EXPECTED_CACHE_ORIGIN = "local_cache_index"
+EXPECTED_ARTIFACT_KINDS = ["operand_set", "calculation_plan", "calculation_result"]
+EXPECTED_ACCEPTANCE_AUTHORITY = "task_artifact_integrity_and_critic_orchestrator"
 DEFAULT_REPORT_CACHE_INDEX_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
 )
@@ -59,10 +64,22 @@ def _scenario(name: str, entry: Mapping[str, Any], *, selected_match_count: int)
         "consumer_admissibility_status": case.get("consumer_admissibility_status"),
         "producer_policy_status": case.get("producer_policy_status"),
         "producer_policy_ready": bool(case.get("producer_policy_ready")),
+        "producer_policy_name": case.get("producer_policy_name"),
+        "producer_policy_source": case.get("producer_policy_source"),
+        "producer_policy_cache_origin": case.get("producer_policy_cache_origin"),
+        "producer_policy_required_artifact_kinds": list(
+            case.get("producer_policy_required_artifact_kinds") or []
+        ),
         "serving_enabled": bool(case.get("serving_enabled")),
         "ledger_insertion_enabled": bool(case.get("ledger_insertion_enabled")),
         "retrieval_bypass_enabled": bool(case.get("retrieval_bypass_enabled")),
         "final_acceptance_enabled": bool(case.get("final_acceptance_enabled")),
+        "producer_policy_artifact_kinds": list(case.get("producer_policy_artifact_kinds") or []),
+        "producer_policy_missing_artifact_kinds": list(
+            case.get("producer_policy_missing_artifact_kinds") or []
+        ),
+        "producer_policy_artifact_count": int(case.get("producer_policy_artifact_count") or 0),
+        "calculation_contract_valid": bool(case.get("calculation_contract_valid")),
         "acceptance_authority": case.get("acceptance_authority"),
     }
 
@@ -89,8 +106,62 @@ def _trace_summary_scenarios(path: Path) -> List[Dict[str, Any]]:
             for reason in list(scenario.get("reasons") or [])
             if str(reason).strip()
         ]
+        scenario["producer_policy_name"] = str(scenario.get("producer_policy_name") or "")
+        scenario["producer_policy_source"] = str(scenario.get("producer_policy_source") or "")
+        scenario["producer_policy_cache_origin"] = str(
+            scenario.get("producer_policy_cache_origin") or ""
+        )
+        scenario["producer_policy_required_artifact_kinds"] = [
+            str(kind)
+            for kind in list(scenario.get("producer_policy_required_artifact_kinds") or [])
+            if str(kind).strip()
+        ]
+        scenario["producer_policy_artifact_kinds"] = [
+            str(kind)
+            for kind in list(scenario.get("producer_policy_artifact_kinds") or [])
+            if str(kind).strip()
+        ]
+        scenario["producer_policy_missing_artifact_kinds"] = [
+            str(kind)
+            for kind in list(scenario.get("producer_policy_missing_artifact_kinds") or [])
+            if str(kind).strip()
+        ]
+        scenario["producer_policy_artifact_count"] = int(
+            scenario.get("producer_policy_artifact_count") or 0
+        )
+        scenario["calculation_contract_valid"] = bool(
+            scenario.get("calculation_contract_valid")
+        )
+        scenario["acceptance_authority"] = str(scenario.get("acceptance_authority") or "")
         scenarios.append(scenario)
     return scenarios
+
+
+def _producer_contract_issues(scenarios: List[Dict[str, Any]]) -> List[str]:
+    issues: List[str] = []
+    for scenario in scenarios:
+        if not bool(scenario.get("ready")):
+            continue
+        name = str(scenario.get("name") or "unknown")
+        if str(scenario.get("producer_policy_name") or "") != EXPECTED_PRODUCER_POLICY:
+            issues.append(f"{name}:producer_policy_name")
+        if str(scenario.get("producer_policy_source") or "") != EXPECTED_PRODUCER_SOURCE:
+            issues.append(f"{name}:producer_policy_source")
+        if str(scenario.get("producer_policy_cache_origin") or "") != EXPECTED_CACHE_ORIGIN:
+            issues.append(f"{name}:producer_policy_cache_origin")
+        if list(scenario.get("producer_policy_required_artifact_kinds") or []) != EXPECTED_ARTIFACT_KINDS:
+            issues.append(f"{name}:producer_policy_required_artifact_kinds")
+        if list(scenario.get("producer_policy_artifact_kinds") or []) != EXPECTED_ARTIFACT_KINDS:
+            issues.append(f"{name}:producer_policy_artifact_kinds")
+        if list(scenario.get("producer_policy_missing_artifact_kinds") or []):
+            issues.append(f"{name}:producer_policy_missing_artifact_kinds")
+        if int(scenario.get("producer_policy_artifact_count") or 0) != len(EXPECTED_ARTIFACT_KINDS):
+            issues.append(f"{name}:producer_policy_artifact_count")
+        if not bool(scenario.get("calculation_contract_valid")):
+            issues.append(f"{name}:calculation_contract_valid")
+        if str(scenario.get("acceptance_authority") or "") != EXPECTED_ACCEPTANCE_AUTHORITY:
+            issues.append(f"{name}:acceptance_authority")
+    return issues
 
 
 def run_gate(
@@ -131,9 +202,15 @@ def run_gate(
     ]
     ready_count = sum(1 for item in scenarios if bool(item.get("ready")))
     fallback_count = sum(1 for item in scenarios if bool(item.get("fallback_required")))
+    producer_contract_issues = _producer_contract_issues(scenarios)
     status = (
         "ready"
-        if ready_count >= 1 and fallback_count >= 2 and not any(disabled_flag_values)
+        if (
+            ready_count >= 1
+            and fallback_count >= 2
+            and not any(disabled_flag_values)
+            and not producer_contract_issues
+        )
         else "needs_evidence"
     )
     return {
@@ -143,6 +220,8 @@ def run_gate(
         "ready_count": ready_count,
         "fallback_count": fallback_count,
         "disabled_flags_ok": not any(disabled_flag_values),
+        "producer_contract_ok": not producer_contract_issues,
+        "producer_contract_issue_ids": producer_contract_issues,
         "trace_summary_count": len(trace_paths),
         "trace_summary_paths": [str(path) for path in trace_paths],
         "scenarios": scenarios,
@@ -157,6 +236,7 @@ def render_text(result: Dict[str, Any]) -> str:
         f"Ready cases: {result.get('ready_count', 0)}",
         f"Fallback cases: {result.get('fallback_count', 0)}",
         f"Disabled flags ok: {str(bool(result.get('disabled_flags_ok'))).lower()}",
+        f"Producer contract ok: {str(bool(result.get('producer_contract_ok'))).lower()}",
         f"Trace summaries: {result.get('trace_summary_count', 0)}",
         "",
         "Scenarios:",
