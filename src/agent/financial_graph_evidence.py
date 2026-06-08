@@ -33,7 +33,9 @@ from src.agent.financial_graph_retrieval_budget import (
     _drop_duplicate_executed_query,
     _drop_queries_already_selected,
     _limit_query_context_terms,
+    _lookup_query_result_cache,
     _query_budget_int,
+    _store_query_result_cache,
     _summarize_executed_query_telemetry,
 )
 from src.config import get_financial_ontology
@@ -2009,6 +2011,12 @@ class FinancialAgentEvidenceMixin:
         }
         seen_executed_query_signatures_by_source: Dict[str, set[str]] = {}
         executed_queries: List[Dict[str, Any]] = []
+        reused_queries: List[Dict[str, Any]] = []
+        retrieval_query_result_cache: Dict[str, Dict[str, Any]] = {
+            str(key): dict(value)
+            for key, value in dict(state.get("retrieval_query_result_cache") or {}).items()
+            if isinstance(value, dict)
+        }
         docs: List[tuple[Document, float]] = []
         for base_query in query_bundle:
             enriched_query = f"{' '.join(companies)} {base_query}" if companies else base_query
@@ -2040,11 +2048,39 @@ class FinancialAgentEvidenceMixin:
                     "preferred_sections": list(selected_preferred_sections),
                 },
             }
+            cached_result = _lookup_query_result_cache(
+                retrieval_query_result_cache,
+                source="primary",
+                executed_query=enriched_query,
+                where_filter=where_filter,
+                k=search_k,
+            )
+            if cached_result:
+                reused_queries.append(
+                    {
+                        **query_trace,
+                        "result_cache_hit": True,
+                        "result_cache_key": cached_result.get("cache_key"),
+                        "cached_k": cached_result.get("k"),
+                        "doc_count": len(list(cached_result.get("docs") or [])),
+                    }
+                )
+                batch_docs = list(cached_result.get("docs") or [])
+                docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
+                continue
             executed_queries.append(query_trace)
             batch_docs = self.vsm.search(enriched_query, k=search_k, where_filter=where_filter)
             search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
             if isinstance(search_telemetry, dict) and search_telemetry:
                 query_trace["search_telemetry"] = dict(search_telemetry)
+            _store_query_result_cache(
+                retrieval_query_result_cache,
+                source="primary",
+                executed_query=enriched_query,
+                where_filter=where_filter,
+                k=search_k,
+                docs=batch_docs,
+            )
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
         configured_focused_budget = _query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
@@ -2104,11 +2140,39 @@ class FinancialAgentEvidenceMixin:
                     "k": search_k,
                     "where_filter": where_filter,
                 }
+                cached_result = _lookup_query_result_cache(
+                    retrieval_query_result_cache,
+                    source="operand_focus",
+                    executed_query=focused_query,
+                    where_filter=where_filter,
+                    k=search_k,
+                )
+                if cached_result:
+                    reused_queries.append(
+                        {
+                            **query_trace,
+                            "result_cache_hit": True,
+                            "result_cache_key": cached_result.get("cache_key"),
+                            "cached_k": cached_result.get("k"),
+                            "doc_count": len(list(cached_result.get("docs") or [])),
+                        }
+                    )
+                    focused_docs.extend(list(cached_result.get("docs") or []))
+                    continue
                 executed_queries.append(query_trace)
-                focused_docs.extend(self.vsm.search(focused_query, k=search_k, where_filter=where_filter))
+                batch_docs = self.vsm.search(focused_query, k=search_k, where_filter=where_filter)
                 search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
                 if isinstance(search_telemetry, dict) and search_telemetry:
                     query_trace["search_telemetry"] = dict(search_telemetry)
+                _store_query_result_cache(
+                    retrieval_query_result_cache,
+                    source="operand_focus",
+                    executed_query=focused_query,
+                    where_filter=where_filter,
+                    k=search_k,
+                    docs=batch_docs,
+                )
+                focused_docs.extend(batch_docs)
             if focused_docs:
                 docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
         configured_retry_budget = _query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
@@ -2150,11 +2214,39 @@ class FinancialAgentEvidenceMixin:
                     "k": search_k,
                     "where_filter": where_filter,
                 }
+                cached_result = _lookup_query_result_cache(
+                    retrieval_query_result_cache,
+                    source="retry",
+                    executed_query=retry_query,
+                    where_filter=where_filter,
+                    k=search_k,
+                )
+                if cached_result:
+                    reused_queries.append(
+                        {
+                            **query_trace,
+                            "result_cache_hit": True,
+                            "result_cache_key": cached_result.get("cache_key"),
+                            "cached_k": cached_result.get("k"),
+                            "doc_count": len(list(cached_result.get("docs") or [])),
+                        }
+                    )
+                    retry_docs.extend(list(cached_result.get("docs") or []))
+                    continue
                 executed_queries.append(query_trace)
-                retry_docs.extend(self.vsm.search(retry_query, k=search_k, where_filter=where_filter))
+                batch_docs = self.vsm.search(retry_query, k=search_k, where_filter=where_filter)
                 search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
                 if isinstance(search_telemetry, dict) and search_telemetry:
                     query_trace["search_telemetry"] = dict(search_telemetry)
+                _store_query_result_cache(
+                    retrieval_query_result_cache,
+                    source="retry",
+                    executed_query=retry_query,
+                    where_filter=where_filter,
+                    k=search_k,
+                    docs=batch_docs,
+                )
+                retry_docs.extend(batch_docs)
             if retry_docs:
                 docs = self._merge_retry_candidates(docs, retry_docs)
         supplemental_docs = self._supplement_section_seed_docs(state)
@@ -2274,6 +2366,7 @@ class FinancialAgentEvidenceMixin:
         retrieval_debug_trace = {
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
+            "reused_queries": reused_queries,
             "search_summary": _summarize_executed_query_telemetry(executed_queries),
             "where_filter": where_filter,
             "effective_k": effective_k,
@@ -2281,6 +2374,12 @@ class FinancialAgentEvidenceMixin:
             "retry_queries": retry_queries,
             "query_budget": query_budget_trace,
             "executed_duplicate_guard": executed_duplicate_trace,
+            "query_result_cache": {
+                "enabled": True,
+                "scope": "state_same_source_same_filter_exact_signature",
+                "entry_count": len(retrieval_query_result_cache),
+                "reuse_count": len(reused_queries),
+            },
             "cross_trace_reuse_candidates": cross_trace_reuse_candidates,
             "report_cache_consumer_assessment": {
                 **report_cache_consumer_assessment,
@@ -2323,6 +2422,7 @@ class FinancialAgentEvidenceMixin:
             "retrieved_docs": docs,
             "retrieval_debug_trace": retrieval_debug_trace,
             "retrieval_debug_trace_history": retrieval_debug_trace_history,
+            "retrieval_query_result_cache": retrieval_query_result_cache,
         }
 
     def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:

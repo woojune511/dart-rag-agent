@@ -435,6 +435,79 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(reuse["candidates"][0]["prior_matches"][0]["task_id"], "task_1")
         self.assertEqual(len(result["retrieval_debug_trace_history"]), 2)
 
+    def test_retrieve_reuses_state_query_result_cache_for_sibling_primary_query(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 0
+        agent.preferred_section_query_budget = 0
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="cached result",
+                        metadata={
+                            "chunk_uid": "cached-primary",
+                            "block_type": "table",
+                            "year": 2023,
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        base_state = {
+            "query": "shared question",
+            "report_scope": {"year": 2023},
+            "companies": [],
+            "years": [2023],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "",
+            "format_preference": "table",
+        }
+        first = agent._retrieve(
+            {
+                **base_state,
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "query": "shared primary",
+                    "retrieval_queries": ["shared primary"],
+                },
+            }
+        )
+        self.assertEqual(len(agent.vsm.queries), 1)
+
+        second = agent._retrieve(
+            {
+                **base_state,
+                "active_subtask": {
+                    "task_id": "task_2",
+                    "operation_family": "lookup",
+                    "query": "shared primary",
+                    "retrieval_queries": ["shared primary"],
+                },
+                "retrieval_debug_trace_history": first["retrieval_debug_trace_history"],
+                "retrieval_query_result_cache": first["retrieval_query_result_cache"],
+            }
+        )
+
+        self.assertEqual(len(agent.vsm.queries), 1)
+        self.assertEqual(second["retrieval_debug_trace"]["executed_queries"], [])
+        self.assertEqual(len(second["retrieval_debug_trace"]["reused_queries"]), 1)
+        self.assertEqual(second["retrieval_debug_trace"]["query_result_cache"]["reuse_count"], 1)
+        self.assertEqual(len(second["retrieved_docs"]), 1)
+
     def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 4

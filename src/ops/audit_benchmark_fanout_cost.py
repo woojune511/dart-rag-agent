@@ -363,6 +363,8 @@ def _summarize_trace(trace: Mapping[str, Any], *, trace_index: int) -> Dict[str,
     query_budget = _safe_dict(trace.get("query_budget"))
     search_summary = _safe_dict(trace.get("search_summary"))
     cross_trace_reuse = _safe_dict(trace.get("cross_trace_reuse_candidates"))
+    query_result_cache = _safe_dict(trace.get("query_result_cache"))
+    reused_queries = [dict(item) for item in _safe_list(trace.get("reused_queries")) if isinstance(item, Mapping)]
     executed_query_signatures_by_source: Dict[str, List[str]] = defaultdict(list)
     executed_query_occurrences: List[Dict[str, Any]] = []
     source_trace = _safe_dict(query_budget.get("source"))
@@ -421,6 +423,11 @@ def _summarize_trace(trace: Mapping[str, Any], *, trace_index: int) -> Dict[str,
         "operand_focus_skipped_count": 1 if skipped_focus else 0,
         "cross_trace_reuse_candidate_count": _as_int(cross_trace_reuse.get("candidate_count")),
         "cross_trace_reuse_prior_match_count": _as_int(cross_trace_reuse.get("prior_match_count")),
+        "query_result_cache_reuse_count": max(
+            len(reused_queries),
+            _as_int(query_result_cache.get("reuse_count")),
+        ),
+        "query_result_cache_entry_count": _as_int(query_result_cache.get("entry_count")),
         "cross_trace_reuse_details": _cross_trace_reuse_details(
             _safe_list(cross_trace_reuse.get("candidates"))
         ),
@@ -445,6 +452,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     cross_trace_reuse_prior_match_count = 0
     cross_trace_reuse_cache_hit_count = 0
     cross_trace_reuse_cache_miss_count = 0
+    query_result_cache_reuse_count = 0
+    query_result_cache_entry_count = 0
 
     for trace_index, trace in enumerate(traces, start=1):
         summary = _summarize_trace(trace, trace_index=trace_index)
@@ -453,6 +462,11 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         operand_focus_skipped_count += int(summary.get("operand_focus_skipped_count") or 0)
         cross_trace_reuse_candidate_count += int(summary.get("cross_trace_reuse_candidate_count") or 0)
         cross_trace_reuse_prior_match_count += int(summary.get("cross_trace_reuse_prior_match_count") or 0)
+        query_result_cache_reuse_count += int(summary.get("query_result_cache_reuse_count") or 0)
+        query_result_cache_entry_count = max(
+            query_result_cache_entry_count,
+            int(summary.get("query_result_cache_entry_count") or 0),
+        )
         trace_reuse_details = [
             dict(item)
             for item in _safe_list(summary.get("cross_trace_reuse_details"))
@@ -517,6 +531,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         "cross_trace_reuse_cache_hit_count": cross_trace_reuse_cache_hit_count,
         "cross_trace_reuse_cache_miss_count": cross_trace_reuse_cache_miss_count,
         "cross_trace_reuse_details": cross_trace_reuse_details,
+        "query_result_cache_reuse_count": query_result_cache_reuse_count,
+        "query_result_cache_entry_count": query_result_cache_entry_count,
         **{key: _as_float(row.get(key)) for key in QUALITY_KEYS},
         **dict(selected),
         **dict(search_totals),
@@ -556,6 +572,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             "cross_trace_reuse_prior_match_count",
             "cross_trace_reuse_cache_hit_count",
             "cross_trace_reuse_cache_miss_count",
+            "query_result_cache_reuse_count",
+            "query_result_cache_entry_count",
             "cache_hit_count",
             "vector_attempted_count",
             *EMBEDDING_USAGE_KEYS,
@@ -650,6 +668,7 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         f"- Cross-trace prior matches: `{_format_number(summary.get('cross_trace_reuse_prior_match_count'), 0)}`",
         f"- Cross-trace reuse current cache hits: `{_format_number(summary.get('cross_trace_reuse_cache_hit_count'), 0)}`",
         f"- Cross-trace reuse current cache misses: `{_format_number(summary.get('cross_trace_reuse_cache_miss_count'), 0)}`",
+        f"- State query-result cache reuses: `{_format_number(summary.get('query_result_cache_reuse_count'), 0)}`",
         f"- Query embedding API calls: `{_format_number(summary.get('query_embedding_api_calls'), 0)}`",
         f"- LLM API calls: `{_format_number(_safe_dict(summary.get('llm_usage')).get('api_calls'), 0)}`",
         f"- Estimated runtime cost USD: `{_format_number(summary.get('estimated_runtime_cost_usd'), 6)}`",

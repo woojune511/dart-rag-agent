@@ -105,6 +105,7 @@ class FinancialAgentState(TypedDict):
     retrieved_docs: List
     retrieval_debug_trace: Dict[str, Any]
     retrieval_debug_trace_history: List[Dict[str, Any]]
+    retrieval_query_result_cache: NotRequired[Dict[str, Dict[str, Any]]]
     evidence_bullets: List[str]
     evidence_items: List[Dict[str, Any]]
     evidence_status: str

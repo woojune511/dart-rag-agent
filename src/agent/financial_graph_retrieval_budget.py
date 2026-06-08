@@ -238,6 +238,76 @@ def _filter_signature(value: Any) -> str:
         return str(value)
 
 
+def _query_result_cache_key(
+    *,
+    source: str,
+    executed_query: Any,
+    where_filter: Any,
+) -> str:
+    source_key = _normalise_spaces(str(source or "unknown")) or "unknown"
+    query_signature = _retrieval_query_signature(executed_query)
+    if not query_signature:
+        return ""
+    return "\0".join((source_key, query_signature, _filter_signature(where_filter)))
+
+
+def _lookup_query_result_cache(
+    cache: Dict[str, Dict[str, Any]],
+    *,
+    source: str,
+    executed_query: Any,
+    where_filter: Any,
+    k: int,
+) -> Dict[str, Any]:
+    key = _query_result_cache_key(
+        source=source,
+        executed_query=executed_query,
+        where_filter=where_filter,
+    )
+    if not key:
+        return {}
+    entry = dict(cache.get(key) or {})
+    if not entry:
+        return {}
+    cached_k = int(entry.get("k") or 0)
+    if cached_k < int(k or 0):
+        return {}
+    return {
+        **entry,
+        "cache_key": key,
+        "docs": list(entry.get("docs") or [])[: int(k or 0)],
+    }
+
+
+def _store_query_result_cache(
+    cache: Dict[str, Dict[str, Any]],
+    *,
+    source: str,
+    executed_query: Any,
+    where_filter: Any,
+    k: int,
+    docs: List[Any],
+) -> Dict[str, Any]:
+    key = _query_result_cache_key(
+        source=source,
+        executed_query=executed_query,
+        where_filter=where_filter,
+    )
+    if not key:
+        return {}
+    entry = {
+        "source": _normalise_spaces(str(source or "unknown")) or "unknown",
+        "executed_query": str(executed_query or ""),
+        "where_filter": where_filter,
+        "where_filter_signature": _filter_signature(where_filter),
+        "k": int(k or 0),
+        "docs": list(docs or []),
+        "doc_count": len(list(docs or [])),
+    }
+    cache[key] = entry
+    return {"cache_key": key, **entry}
+
+
 def _trace_task_context(trace: Dict[str, Any]) -> Dict[str, str]:
     source = dict((trace.get("query_budget") or {}).get("source") or {})
     return {
@@ -323,4 +393,3 @@ def _cross_trace_reuse_candidate_diagnostics(
         "candidates": candidates,
         "truncated": candidate_count > len(candidates),
     }
-

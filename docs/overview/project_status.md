@@ -1018,6 +1018,12 @@ Current next decisions:
   `CEL_T3_040` and `KBF_T2_018`; many repeats are already search-cache hits, so
   the next cost reduction should target repeated primary query generation across
   sibling lookup tasks rather than changing answer composition.
+- Same-question retrieval now carries a state-local query-result cache keyed by
+  retrieval source, exact executed-query signature, and metadata filter. A later
+  sibling task that asks for the same primary/focus/retry query can reuse the
+  previous result bundle without another `vsm.search()` call, while the debug
+  trace records `reused_queries` and `query_result_cache.reuse_count` for
+  offline audit.
 - Initial policy-gate audit baselines:
   - `policy_gate_regression_2026-05-31_2212`: 5 questions, 11 retrieval
     traces, 93 executed queries, 89 query embedding calls, estimated runtime

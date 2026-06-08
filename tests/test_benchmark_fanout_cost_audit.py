@@ -116,6 +116,17 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                                     }
                                                                 ],
                                                             },
+                                                            "query_result_cache": {
+                                                                "entry_count": 2,
+                                                                "reuse_count": 1,
+                                                            },
+                                                            "reused_queries": [
+                                                                {
+                                                                    "source": "primary",
+                                                                    "executed_query": "Revenue 2023",
+                                                                    "result_cache_hit": True,
+                                                                }
+                                                            ],
                                                         }
                                                     ],
                                                 },
@@ -173,6 +184,8 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["cross_trace_reuse_prior_match_count"], 1)
         self.assertEqual(summary["cross_trace_reuse_cache_hit_count"], 1)
         self.assertEqual(summary["cross_trace_reuse_cache_miss_count"], 0)
+        self.assertEqual(summary["query_result_cache_reuse_count"], 1)
+        self.assertEqual(summary["query_result_cache_entry_count"], 2)
         self.assertEqual(summary["query_embedding_api_calls"], 4)
         self.assertEqual(summary["primary_selected_count"], 3)
         self.assertEqual(summary["operand_focus_selected_count"], 1)
@@ -233,6 +246,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                     "cross_trace_reuse_prior_match_count": 1,
                     "cross_trace_reuse_cache_hit_count": 1,
                     "cross_trace_reuse_cache_miss_count": 0,
+                    "query_result_cache_reuse_count": 1,
                     "query_embedding_api_calls": 2,
                     "llm_usage": {"api_calls": 1},
                     "by_source": {"primary": {"executed_query_count": 2}},
@@ -314,6 +328,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertIn("Cross-trace reuse candidates", markdown)
         self.assertIn("Cross-trace reuse current cache hits", markdown)
         self.assertIn("Current cache misses", markdown)
+        self.assertIn("State query-result cache reuses", markdown)
         self.assertIn("Top Rows By Cross-Trace Reuse Candidates", markdown)
         self.assertIn(
             "revenue 2023 (source:primary; prior:1; prior-traces:1; prior-tasks:task_0/lookup:1; current-cache-hit)",
