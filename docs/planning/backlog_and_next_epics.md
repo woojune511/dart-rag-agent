@@ -875,6 +875,14 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
   the default fixture-backed review reports `status = ok`, `difference_count =
   0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, one valid
   projection-ready candidate, and one normal-retrieval fallback candidate
+- `src.ops.report_cache_promotion_evidence_gate` is ready across the
+  local-index fixture and reviewed store-fixed trace summary. Ready cases must
+  expose the calculation-task producer policy, cache-origin metadata,
+  `operand_set` / `calculation_plan` / `calculation_result` artifact kinds,
+  and a valid calculation-contract projection. Fallback cases must remain
+  non-ready, require normal retrieval fallback, carry explicit fallback
+  reasons, and keep serving/retrieval-bypass/ledger-insertion/final-acceptance
+  flags disabled.
 - `report_cache_capability_status()` exposes the current candidate-only mode,
   disabled flags, and handoff pipeline used by reviewer-facing commands
 - runtime cache serving, cache read/write, ledger insertion, and retrieval
@@ -944,20 +952,28 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 현재:
 
-- self-reflection branch는 experimental checkpoint이며 rule drift 위험이 있음
+- `ReflectionRequest` / `ReflectionPlan` / `ReflectionAction` /
+  `ReflectionReport` contract는
+  `docs/architecture/self_reflection_capability_contract.md`에 정의되어 있다.
+- request builder, plan normalization, action projection, bounded
+  `ReflectionReport` handoff, and `reflection_report` artifact projection are
+  implemented without changing final acceptance authority.
+- `task_artifact_trace` rejects retry reflections without visible
+  `reflection_action.retry_queries` and task-output synthesis reflections
+  without visible `reflection_action.synthesis_source_ids`.
+- `src.ops.reflection_promotion_gate` is ready across the base fixture,
+  store-fixed candidate surface, and reviewed store-fixed trace summary. The
+  gate requires all three source classes before reporting `ready`, reports
+  `false_recovery_rate = 0.0`, and keeps final acceptance with
+  `critic_orchestrator_handoff`.
 
 다음:
 
-- `ReflectionRequest`
-- `ReflectionPlan`
-- `ReflectionAction`
-- `ReflectionReport`
-
-구조로 재설계
-
-첫 단계는 `docs/architecture/self_reflection_capability_contract.md`로 닫았다.
-다음 구현 PR은 answer behavior를 바꾸지 않고 request/plan/action/report
-helper 또는 TypedDict 경계를 추가하는 것부터 시작한다.
+- do not add more rule-based retry branches
+- do not promote active reflection behavior yet
+- future work should extend the promotion evidence with additional
+  live/default MAS or store-fixed eval-only trace summaries before changing
+  retry behavior or final acceptance paths
 
 ## Major Future Epics
 
@@ -1101,26 +1117,34 @@ helper 또는 TypedDict 경계를 추가하는 것부터 시작한다.
 
 ## 현재 추천 우선순위
 
-1. agentic self-reflection 재설계
-2. `REFERENCE_NOTE`와 report-scoped cache를 capability로 편입
+1. reflection / report-cache promotion evidence를 live/default MAS 또는
+   store-fixed eval-only trace summary로 확장
+2. `REFERENCE_NOTE`는 cache serving path가 아니라 Researcher / graph-expansion
+   capability boundary로 계속 분리
 3. broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt
 4. MAS default smoke maintenance only when the default store/preflight contract
    changes
 
-Current practical priority, 2026-06-07:
+Current practical priority, 2026-06-08:
 
-1. Reflection promotion gate: keep `src.ops.reflection_promotion_gate` green
-   across the base fixture and store-fixed candidate surfaces before any active
-   retry behavior is promoted.
-2. Report-cache promotion evidence: keep the cache path disabled and use the
-   documented calculation-task producer policy only after live/default MAS or
-   store-fixed eval-only traces justify a promotion.
-3. Broader curated gate maintenance refresh when a new broader artifact
+1. Promotion evidence expansion: add additional live/default MAS or
+   store-fixed eval-only trace summaries for reflection and report-cache
+   capability gates without enabling active retry behavior, cache serving,
+   retrieval bypass, ledger insertion, or final acceptance shortcuts.
+2. Reflection promotion gate maintenance: keep
+   `src.ops.reflection_promotion_gate` green across the base fixture,
+   store-fixed candidate surface, and reviewed trace summary; any new active
+   reflection increment must preserve `false_recovery_rate = 0.0` and
+   `integrity_preservation_rate = 1.0`.
+3. Report-cache promotion evidence maintenance: keep the cache path disabled
+   and keep the documented calculation-task producer policy plus fallback
+   safety gate green until real runtime traces justify a separate promotion.
+4. Broader curated gate maintenance refresh when a new broader artifact
    reproduces a blocker rather than calibration debt.
-4. MAS default smoke maintenance only when the default store/preflight contract
+5. MAS default smoke maintenance only when the default store/preflight contract
    changes.
-5. Cross-document / cross-company expansion.
+6. Cross-document / cross-company expansion.
 
 완료되어 기본 우선순위에서 내려간 항목:
 
@@ -1129,9 +1153,13 @@ Current practical priority, 2026-06-07:
 - MAS default smoke material-empty blocker diagnosis
 - reflection request/plan/action/report handoff
 - reflection_report ledger projection
+- reflection retry-query / synthesis-source ledger visibility
+- reflection promotion source coverage gate
 - report-cache capability boundary documentation
 - report-cache capability status helper and reviewer proof surface
 - report-cache producer policy decision
+- report-cache producer contract evidence gate
+- report-cache fallback safety evidence gate
 
 ## 지금 당장 하지 않을 것
 

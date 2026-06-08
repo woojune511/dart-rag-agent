@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-07
+Last updated: 2026-06-08
 
 ## Positioning
 
@@ -36,6 +36,42 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Runtime contract gate | 5 core numeric/runtime questions | PASS |
 | Concept runtime gap gate | 7 ontology-driven concept questions | PASS, 7 / 7 |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
+| Reflection promotion gate | base fixture, store-fixed candidate surface, reviewed trace summary | READY |
+| Report-cache promotion evidence | candidate-only cache producer/fallback contract | READY, disabled |
+| Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Structural Capability Gates
+
+- Reflection promotion:
+  - `src.ops.reflection_promotion_gate` is ready across the base fixture,
+    store-fixed candidate surface, and reviewed store-fixed trace summary.
+  - The gate now requires all three source classes before reporting `ready`, so
+    the promotion proof cannot silently shrink to a single synthetic fixture.
+  - Reflected accepted cases still require visible target refs,
+    `final_acceptance_authority = critic_orchestrator_handoff`,
+    `false_recovery_rate = 0.0`, and
+    `integrity_preservation_rate = 1.0`.
+  - `retry_retrieval` actions require visible `reflection_action.retry_queries`;
+    `synthesize_from_task_outputs` actions require visible
+    `reflection_action.synthesis_source_ids`.
+- Report-scoped cache promotion evidence:
+  - `src.ops.report_cache_promotion_evidence_gate` is ready for the
+    candidate-only local-index fixture plus reviewed store-fixed trace summary.
+  - Ready evidence must expose the calculation-task producer policy,
+    `operand_set`, `calculation_plan`, and `calculation_result` artifact kinds,
+    local-cache-origin metadata, and a valid calculation-contract projection.
+  - Fallback evidence must remain non-ready, require normal retrieval fallback,
+    carry explicit fallback reasons, and keep retrieval bypass, serving, ledger
+    insertion, and final acceptance disabled.
+- Portfolio review:
+  - `src.ops.portfolio_review_gates` is ready and reports portfolio demo,
+    cache reviewer, cache promotion evidence, and reflection promotion status
+    in one reviewer-facing bundle.
+- Current interpretation:
+  - These gates prove capability boundaries and reviewer evidence, not active
+    serving. The next increment should add live/default MAS or store-fixed
+    eval-only trace summaries before any reflection retry promotion or
+    report-cache enable flag is considered.
 
 ### Runtime Contract Gate
 

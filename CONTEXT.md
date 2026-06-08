@@ -1,7 +1,7 @@
 # 프로젝트 컨텍스트
 
 > 이 문서는 **현재 상태만 빠르게 파악하기 위한 snapshot 문서**다.  
-> 과거 판단과 이유는 [DECISIONS.md](C:/Users/geonj/Desktop/research%20agent/DECISIONS.md), 장기 backlog는 [docs/planning/backlog_and_next_epics.md](C:/Users/geonj/Desktop/research%20agent/docs/planning/backlog_and_next_epics.md)를 본다.
+> 과거 판단과 이유는 [DECISIONS.md](DECISIONS.md), 장기 backlog는 [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md)를 본다.
 
 ## 현재 범위
 
@@ -10,6 +10,27 @@
 - 목표는 DART single-document / multi-document 분석을 빠르게 안정화하고 닫는 것이다.
 
 ## 최신 상태
+
+- 2026-06-08 task-ledger/artifact-store capability gates를 정리했다.
+  - Reflection promotion gate는 base fixture, store-fixed candidate surface,
+    reviewed store-fixed trace summary 세 source class를 모두 포함해야
+    `ready`가 된다.
+  - Reflection action ledger surface는 `retry_retrieval`의 visible
+    `retry_queries`와 `synthesize_from_task_outputs`의 visible
+    `synthesis_source_ids`를 요구한다.
+  - Report-cache promotion evidence는 calculation-task producer policy,
+    `operand_set` / `calculation_plan` / `calculation_result` artifact kinds,
+    cache-origin metadata, fallback safety를 모두 gate로 확인한다.
+  - Cache serving, retrieval bypass, live ledger insertion, final acceptance는
+    여전히 disabled다. 다음 작업은 enable flag가 아니라 live/default MAS 또는
+    store-fixed eval-only trace summary를 추가해 promotion evidence를 넓히는
+    것이다.
+  - 최신 검증:
+    - `python -m src.ops.reflection_promotion_gate --format text`: ready.
+    - `python -m src.ops.report_cache_promotion_evidence_gate --format text`:
+      ready.
+    - `python -m src.ops.portfolio_review_gates --format text`: ready.
+    - `python -m unittest discover -s tests`: `970` tests OK.
 
 - 2026-06-04 concept runtime gap gate answer-composition blockers까지 닫았다.
   - 최신 local store-fixed eval-only refresh:
@@ -416,14 +437,17 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | agentic self-reflection redesign | rule-based retry 분기를 더 늘리지 않고 reflection을 capability/contract 경계로 재정의 |
+| 1 | promotion evidence expansion | active retry/cache serving을 켜지 않고 live/default MAS 또는 store-fixed eval-only trace summary로 reflection/report-cache capability gate 증거를 넓힘 |
 
 ## 현재 우선순위 요약
 
-1. agentic self-reflection redesign
+1. reflection / report-cache promotion evidence expansion
+2. broader curated gate maintenance는 새 artifact가 실제 blocker를 재현할 때만 수행
+3. MAS default smoke maintenance는 default store/preflight contract가 바뀔 때만 수행
 
 ## 현재 해석
 
+- 2026-06-08 기준 reflection promotion gate와 report-cache promotion evidence gate는 reviewer-facing proof surface로 닫혔다. Reflection gate는 base fixture / store-fixed candidate surface / reviewed trace summary source coverage를 요구하고, report-cache gate는 calculation-task producer contract와 fallback safety를 요구한다. Portfolio review gates도 ready다. 다음 작업은 active retry나 cache enable flag가 아니라 live/default MAS 또는 store-fixed eval-only trace summary를 추가해 promotion evidence를 넓히는 것이다.
 - Analyst / Critic / Researcher separation 1차 작업은 2026-06-07에 닫았다. `WorkerArtifactBoundary`와 `project_worker_artifact_boundary()`를 MAS schema layer에 추가해 worker artifact의 payload-first answer, selected artifact id, task id, role, kind/status, evidence refs dedupe를 공유 projection으로 고정했다. Critic review와 Orchestrator final synthesis는 이제 같은 worker-artifact boundary helper를 통해 artifact를 읽는다. 관련 Critic/Orchestrator/MAS graph tests `24`개가 통과했다.
 - report-scoped cache capability design은 2026-06-07 기준 candidate-only handoff gate까지 닫았다. `src.ops.review_report_cache_index_contract` 기본 fixture-backed review는 `status = ok`, `difference_count = 0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, projection-ready candidate `1`, fallback candidate `1`을 보고한다. Cache serving, read/write, ledger insertion, retrieval bypass는 모두 disabled로 남는다.
 - material-gap / mixed narrative canary maintenance는 2026-06-07에 `docs/evaluation/material_gap_mixed_canary_maintenance.md`로 정리했다. `KBF_T2_043`은 closed runtime blocker이자 broader replay/completeness-render calibration watch item이고, `NAV_T2_006`은 closed mixed numeric+narrative quality target으로 policy-gate regression coverage에 남긴다. 새 artifact가 material evidence / dependency / trace / final synthesis failure를 재현하기 전에는 full benchmark나 runtime patch를 기본값으로 쓰지 않는다.
@@ -433,7 +457,7 @@
 - internal compatibility bridge initial-state follow-up도 2026-06-07에 닫았다. `FinancialAgent.run()`은 더 이상 optional top-level `calculation_operands` / `calculation_plan` / `calculation_result` / `calculation_debug_trace`를 빈 값으로 seed하지 않는다.
 - portfolio reviewer path refresh는 2026-06-07에 닫았다. README, one-pager, demo walkthrough, presentation outline, project status는 reviewer가 `resolved_calculation_trace` / `structured_result` / `task_artifact_trace`를 primary contract로 보고 top-level calculation/debug mirror를 compatibility bridge로 해석하도록 맞춘다.
 - internal compatibility bridge scratch-write audit도 2026-06-07에 닫았다. 계산 노드 diagnostic write는 `_calculation_debug_state_update()` / `_clear_calculation_debug_state()` helper를 통하고, public `FinancialAgent.run()` bridge는 runtime-contract field constant를 사용한다.
-- backlog/status refresh도 2026-06-07에 닫았다. 완료된 compatibility bridge / reviewer polish / MAS empty-store diagnosis 항목은 기본 우선순위에서 내렸고, 다음 구조 작업은 agentic self-reflection 재설계로 정렬했다.
+- backlog/status refresh도 2026-06-08에 다시 닫았다. 완료된 compatibility bridge / reviewer polish / MAS empty-store diagnosis / reflection handoff / report-cache producer-policy 항목은 기본 우선순위에서 내렸고, 다음 구조 작업은 promotion evidence expansion으로 정렬했다.
 - self-reflection capability contract 초안도 2026-06-07에 추가했다. 다음 구현은 answer behavior를 바꾸지 않고 `ReflectionRequest` / `ReflectionPlan` / `ReflectionAction` / `ReflectionReport` helper 또는 TypedDict 경계를 먼저 만드는 순서다.
 - self-reflection capability helper 1차 구현도 2026-06-07에 시작했다. TypedDict surfaces, allowed retry strategy guard, plan normalization helper, `reflection_action` projection을 추가하되 graph route와 answer behavior는 유지한다.
 - self-reflection request builder follow-up도 2026-06-07에 시작했다. `ReflectionRequest`는 strict runtime trace summary, evidence/retrieval summary, remaining retry budget을 노출하며 legacy top-level calculation mirror를 읽지 않는다.
