@@ -142,10 +142,10 @@ role-separated multi-agent system using a task ledger and artifact store.
     marked the row PASS, but the answer still refused the CIR calculation in
     the observed full replay. A later single-question eval after ratio operand
     hardening recovered the refusal path with faithfulness/completeness
-    `1.000 / 1.000`, but the component explanation can still mix equivalent
-    source displays from different tables (`435,542백만원` numerator with
-    `11,623억원` denominator), so this is not yet a replacement full-gate
-    baseline
+    `1.000 / 1.000`; a follow-up ratio renderer pass now normalizes mixed KRW
+    component displays into a shared unit (`판매비와관리비 4,355.42억원 /
+    경비차감전영업이익 11,623억원`) instead of mixing `백만원 / 억원`. This
+    is not yet a replacement full-gate baseline
   - validation: focused growth/aggregate regression `4` tests OK, broader
     structured operand / semantic plan / operation contract / subtask-loop
     suite `417` tests OK, and runtime domain-language audit passed

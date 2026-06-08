@@ -7590,12 +7590,48 @@ class FinancialAgentCalculationMixin:
             (dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)),
             {},
         )
-        numerator_value = _normalise_spaces(
-            str(numerator_slot.get("rendered_value") or numerator_slot.get("raw_value") or "")
-        )
-        denominator_value = _normalise_spaces(
-            str(denominator_slot.get("rendered_value") or denominator_slot.get("raw_value") or "")
-        )
+        component_slots = [slot for slot in (numerator_slot, denominator_slot) if slot]
+
+        def _shared_krw_component_unit(slots: List[Dict[str, Any]]) -> str:
+            if len(slots) < 2:
+                return ""
+            scale_by_unit = {
+                _normalise_spaces(str(unit)): float(scale)
+                for unit, scale in dict(render_policy.get("krw_display_unit_scales") or {}).items()
+                if _normalise_spaces(str(unit))
+            }
+            krw_unit = _normalise_spaces(str(render_policy.get("krw_normalized_unit") or "")).upper()
+            units: List[str] = []
+            for slot in slots:
+                if _normalise_spaces(str(slot.get("normalized_unit") or "")).upper() != krw_unit:
+                    return ""
+                if slot.get("normalized_value") is None:
+                    return ""
+                unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+                if unit not in scale_by_unit:
+                    return ""
+                units.append(unit)
+            if len(set(units)) <= 1:
+                return ""
+            return max(units, key=lambda unit: scale_by_unit.get(unit, 0.0))
+
+        shared_component_unit = _shared_krw_component_unit(component_slots)
+
+        def _component_value(slot: Dict[str, Any]) -> str:
+            if shared_component_unit:
+                try:
+                    converted = self._format_calculation_value_in_display_unit(
+                        float(slot.get("normalized_value")),
+                        shared_component_unit,
+                    )
+                except (TypeError, ValueError):
+                    converted = ""
+                if converted:
+                    return converted
+            return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+
+        numerator_value = _component_value(numerator_slot)
+        denominator_value = _component_value(denominator_slot)
         numerator_label = _display_operand_label(str(numerator_slot.get("label") or ""))
         denominator_label = _display_operand_label(str(denominator_slot.get("label") or ""))
         component_template = str(render_policy.get("ratio_component_answer_template") or "")

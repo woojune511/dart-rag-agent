@@ -39,12 +39,13 @@
       faithfulness/completeness `1.000 / 1.000`, calculator result `3.5269배`.
     - `KAB_T1_066` single-question eval after ratio operand hardening:
       numeric PASS, faithfulness/completeness `1.000 / 1.000`, refusal
-      accuracy `1.000`. This closes the observed partial/refusal path, but the
-      rendered component explanation can still mix equivalent displays from
-      different tables (`435,542백만원` numerator with `11,623억원`
-      denominator), so it is not yet a fresh full-gate baseline.
+      accuracy `1.000`. A follow-up ratio renderer pass now normalizes mixed
+      KRW component displays into a shared unit, so the answer renders
+      `판매비와관리비 4,355.42억원 / 경비차감전영업이익 11,623억원`
+      instead of mixing `백만원 / 억원`. This is still a focused canary, not a
+      fresh full-gate baseline.
   - 검증:
-    - `python -m unittest tests.test_subtask_loop`: `155` tests OK.
+    - `python -m unittest tests.test_subtask_loop`: `156` tests OK.
     - focused growth/aggregate regression: `4` tests OK.
     - `python -m unittest tests.test_structured_operand_extraction tests.test_semantic_numeric_plan tests.test_operation_contracts tests.test_subtask_loop`: `417` tests OK.
     - `python -m src.ops.audit_runtime_domain_terms`: passed

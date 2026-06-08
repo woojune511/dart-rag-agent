@@ -4359,6 +4359,66 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("expense input 4,355억원", answer)
         self.assertIn("profit base 11,623억원", answer)
 
+    def test_compact_ratio_answer_uses_shared_krw_component_unit(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "37.47%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target ratio",
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": "target ratio",
+                    "rendered_value": "37.47%",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "expense input",
+                            "period": "2023",
+                            "raw_value": "435,542",
+                            "raw_unit": "백만원",
+                            "normalized_value": 435542000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "435,542백만원",
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "profit base",
+                            "period": "2023",
+                            "raw_value": "11,623",
+                            "raw_unit": "억원",
+                            "normalized_value": 1162300000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "11,623억원",
+                        }
+                    ],
+                },
+            },
+        }
+
+        answer = self.agent._compact_ratio_answer(
+            {
+                "active_subtask": {"metric_label": "target ratio"},
+                "resolved_calculation_trace": {
+                    "calculation_result": calculation_result,
+                    "calculation_operands": [],
+                    "calculation_plan": {"operation": "ratio"},
+                },
+            },
+            calculation_result,
+        )
+
+        self.assertIn("expense input 4,355.42억원", answer)
+        self.assertIn("profit base 11,623억원", answer)
+        self.assertNotIn("435,542백만원 /", answer)
+
     def test_ratio_render_prefers_complete_component_slots_over_llm_text(self) -> None:
         self.agent.llm = _StubLLM(
             CalculationRenderOutput(
