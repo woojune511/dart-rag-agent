@@ -23,7 +23,17 @@ DEFAULT_TRACE_SUMMARY_PATH = (
     / "promotion_trace_summary"
     / "store_fixed_candidate_summary.json"
 )
-DEFAULT_TRACE_SUMMARY_PATHS = (DEFAULT_TRACE_SUMMARY_PATH,)
+DEFAULT_LIVE_DEFAULT_MAS_TRACE_SUMMARY_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "promotion_trace_summary"
+    / "live_default_mas_handoff_summary.json"
+)
+DEFAULT_TRACE_SUMMARY_PATHS = (
+    DEFAULT_TRACE_SUMMARY_PATH,
+    DEFAULT_LIVE_DEFAULT_MAS_TRACE_SUMMARY_PATH,
+)
 REQUIRED_ACTIONS = {
     "retry_retrieval",
     "synthesize_from_task_outputs",
@@ -31,6 +41,7 @@ REQUIRED_ACTIONS = {
 }
 REQUIRED_SUITE_CASE_SOURCES = {
     "base_fixture",
+    "live_default_mas_trace_summary",
     "store_fixed_eval_only_candidate_surface",
     "store_fixed_eval_only_trace_summary",
 }

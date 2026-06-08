@@ -20,10 +20,10 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
         result = run_gate()
 
         self.assertEqual(result["status"], "ready")
-        self.assertEqual(result["scenario_count"], 6)
-        self.assertEqual(result["ready_count"], 2)
-        self.assertEqual(result["fallback_count"], 4)
-        self.assertEqual(result["trace_summary_count"], 1)
+        self.assertEqual(result["scenario_count"], 8)
+        self.assertEqual(result["ready_count"], 3)
+        self.assertEqual(result["fallback_count"], 5)
+        self.assertEqual(result["trace_summary_count"], 2)
         self.assertTrue(result["disabled_flags_ok"])
         self.assertTrue(result["producer_contract_ok"])
         self.assertEqual(result["producer_contract_issue_ids"], [])
@@ -50,15 +50,19 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
         self.assertTrue(scenarios["trace_summary_ready_candidate_only"]["ready"])
         self.assertTrue(scenarios["trace_summary_ambiguous_candidate_fallback"]["fallback_required"])
         self.assertTrue(scenarios["trace_summary_incomplete_candidate_fallback"]["fallback_required"])
+        self.assertTrue(scenarios["live_default_mas_ready_candidate_only"]["ready"])
+        self.assertTrue(
+            scenarios["live_default_mas_incomplete_candidate_fallback"]["fallback_required"]
+        )
 
     def test_render_text_includes_gate_counts(self) -> None:
         text = render_text(run_gate())
 
         self.assertIn("# Report Cache Promotion Evidence Gate", text)
         self.assertIn("Status: ready", text)
-        self.assertIn("Ready cases: 2", text)
-        self.assertIn("Fallback cases: 4", text)
-        self.assertIn("Trace summaries: 1", text)
+        self.assertIn("Ready cases: 3", text)
+        self.assertIn("Fallback cases: 5", text)
+        self.assertIn("Trace summaries: 2", text)
         self.assertIn("Fallback safety ok: true", text)
 
     def test_ready_trace_summary_without_calculation_contract_blocks_gate(self) -> None:
@@ -164,9 +168,9 @@ class ReportCachePromotionEvidenceGateTests(unittest.TestCase):
             self.assertIn('"status": "ready"', gate_result.stdout)
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "ready")
-            self.assertEqual(payload["ready_count"], 2)
-            self.assertEqual(payload["fallback_count"], 4)
-            self.assertEqual(payload["trace_summary_count"], 1)
+            self.assertEqual(payload["ready_count"], 3)
+            self.assertEqual(payload["fallback_count"], 5)
+            self.assertEqual(payload["trace_summary_count"], 2)
             self.assertTrue(payload["producer_contract_ok"])
             self.assertTrue(payload["fallback_safety_ok"])
 

@@ -876,13 +876,13 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
   0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, one valid
   projection-ready candidate, and one normal-retrieval fallback candidate
 - `src.ops.report_cache_promotion_evidence_gate` is ready across the
-  local-index fixture and reviewed store-fixed trace summary. Ready cases must
-  expose the calculation-task producer policy, cache-origin metadata,
-  `operand_set` / `calculation_plan` / `calculation_result` artifact kinds,
-  and a valid calculation-contract projection. Fallback cases must remain
-  non-ready, require normal retrieval fallback, carry explicit fallback
-  reasons, and keep serving/retrieval-bypass/ledger-insertion/final-acceptance
-  flags disabled.
+  local-index fixture plus reviewed store-fixed and live/default MAS handoff
+  trace summaries. Ready cases must expose the calculation-task producer
+  policy, cache-origin metadata, `operand_set` / `calculation_plan` /
+  `calculation_result` artifact kinds, and a valid calculation-contract
+  projection. Fallback cases must remain non-ready, require normal retrieval
+  fallback, carry explicit fallback reasons, and keep
+  serving/retrieval-bypass/ledger-insertion/final-acceptance flags disabled.
 - `report_cache_capability_status()` exposes the current candidate-only mode,
   disabled flags, and handoff pipeline used by reviewer-facing commands
 - runtime cache serving, cache read/write, ledger insertion, and retrieval
@@ -891,9 +891,8 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 다음:
 
 - do not add a serving flag yet
-- future work should start from live/default MAS or store-fixed eval-only traces
-  only when deciding whether real runtime values produce enough candidate-only
-  cache evidence to justify a separate producer policy
+- future work should add another trace summary only when a materially different
+  live/default MAS or store-fixed eval-only surface appears
 - until then, treat the cache path as a documented capability boundary rather
   than an answer path
 
@@ -962,18 +961,18 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
   `reflection_action.retry_queries` and task-output synthesis reflections
   without visible `reflection_action.synthesis_source_ids`.
 - `src.ops.reflection_promotion_gate` is ready across the base fixture,
-  store-fixed candidate surface, and reviewed store-fixed trace summary. The
-  gate requires all three source classes before reporting `ready`, reports
-  `false_recovery_rate = 0.0`, and keeps final acceptance with
-  `critic_orchestrator_handoff`.
+  store-fixed candidate surface, reviewed store-fixed trace summary, and
+  reviewed live/default MAS handoff trace summary. The gate requires all four
+  source classes before reporting `ready`, reports `false_recovery_rate =
+  0.0`, and keeps final acceptance with `critic_orchestrator_handoff`.
 
 다음:
 
 - do not add more rule-based retry branches
 - do not promote active reflection behavior yet
-- future work should extend the promotion evidence with additional
-  live/default MAS or store-fixed eval-only trace summaries before changing
-  retry behavior or final acceptance paths
+- future work should extend the promotion evidence only when additional
+  live/default MAS or store-fixed eval-only traces expose materially different
+  recovery, stop, or clean-pass surfaces
 
 ## Major Future Epics
 
@@ -1117,8 +1116,8 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 
 ## 현재 추천 우선순위
 
-1. reflection / report-cache promotion evidence를 live/default MAS 또는
-   store-fixed eval-only trace summary로 확장
+1. materially different live/default MAS 또는 store-fixed eval-only trace
+   summary가 생길 때 reflection / report-cache promotion evidence를 확장
 2. `REFERENCE_NOTE`는 cache serving path가 아니라 Researcher / graph-expansion
    capability boundary로 계속 분리
 3. broader curated gate maintenance refresh when a new broader artifact
@@ -1129,13 +1128,15 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 Current practical priority, 2026-06-08:
 
 1. Promotion evidence expansion: add additional live/default MAS or
-   store-fixed eval-only trace summaries for reflection and report-cache
-   capability gates without enabling active retry behavior, cache serving,
-   retrieval bypass, ledger insertion, or final acceptance shortcuts.
+   store-fixed eval-only trace summaries only when they expose materially
+   different reflection or report-cache surfaces, without enabling active retry
+   behavior, cache serving, retrieval bypass, ledger insertion, or final
+   acceptance shortcuts.
 2. Reflection promotion gate maintenance: keep
    `src.ops.reflection_promotion_gate` green across the base fixture,
-   store-fixed candidate surface, and reviewed trace summary; any new active
-   reflection increment must preserve `false_recovery_rate = 0.0` and
+   store-fixed candidate surface, reviewed store-fixed trace summary, and
+   reviewed live/default MAS handoff trace summary; any new active reflection
+   increment must preserve `false_recovery_rate = 0.0` and
    `integrity_preservation_rate = 1.0`.
 3. Report-cache promotion evidence maintenance: keep the cache path disabled
    and keep the documented calculation-task producer policy plus fallback
@@ -1155,6 +1156,7 @@ Current practical priority, 2026-06-08:
 - reflection_report ledger projection
 - reflection retry-query / synthesis-source ledger visibility
 - reflection promotion source coverage gate
+- live/default MAS handoff promotion trace summary
 - report-cache capability boundary documentation
 - report-cache capability status helper and reviewer proof surface
 - report-cache producer policy decision

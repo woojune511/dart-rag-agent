@@ -142,11 +142,12 @@ Promotion is blocked if any reflected accepted answer:
 
 The repo-local `src.ops.reflection_promotion_gate` command is the first
 fixture plus trace-summary version of this gate. Its default run evaluates the
-base fixture set, a store-fixed candidate surface fixture, and a reviewed
-store-fixed trace summary distilled from local eval-only artifacts. The gate
-requires all three source classes to be present before the suite can report
-`ready`, so the promotion proof cannot silently shrink back to a single
-synthetic fixture. It also checks that triggered reflection reports include
+base fixture set, a store-fixed candidate surface fixture, a reviewed
+store-fixed trace summary distilled from local eval-only artifacts, and a
+reviewed live/default MAS handoff trace summary. The gate requires all four
+source classes to be present before the suite can report `ready`, so the
+promotion proof cannot silently shrink back to a single synthetic fixture. It
+also checks that triggered reflection reports include
 bounded budget consumption, target task/artifact refs for accepted reflected
 cases, blocking issues for `stop_insufficient`, retry-query visibility for
 `retry_retrieval`, source-id visibility for `synthesize_from_task_outputs`, and

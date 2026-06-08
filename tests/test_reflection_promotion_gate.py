@@ -27,12 +27,13 @@ class ReflectionPromotionGateTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "ready")
         self.assertEqual(result["fixture_count"], 2)
-        self.assertEqual(result["trace_summary_count"], 1)
-        self.assertEqual(result["case_count"], 10)
+        self.assertEqual(result["trace_summary_count"], 2)
+        self.assertEqual(result["case_count"], 12)
         self.assertTrue(result["required_actions_present"])
         self.assertTrue(result["source_coverage_ok"])
         self.assertEqual(result["source_coverage_issue_ids"], [])
         self.assertEqual(result["case_source_counts"]["base_fixture"], 4)
+        self.assertEqual(result["case_source_counts"]["live_default_mas_trace_summary"], 2)
         self.assertEqual(
             result["case_source_counts"]["store_fixed_eval_only_candidate_surface"],
             4,
@@ -57,6 +58,10 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         )
         self.assertIn(
             "store_fixed_candidate_promotion_trace_summary_v1",
+            result["source_gate_ids"],
+        )
+        self.assertIn(
+            "live_default_mas_handoff_promotion_trace_summary_v1",
             result["source_gate_ids"],
         )
 
@@ -89,10 +94,13 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         self.assertFalse(result["source_coverage_ok"])
         self.assertEqual(
             result["source_coverage_issue_ids"],
-            ["missing_case_source:store_fixed_eval_only_candidate_surface"],
+            [
+                "missing_case_source:live_default_mas_trace_summary",
+                "missing_case_source:store_fixed_eval_only_candidate_surface",
+            ],
         )
 
-    def test_suite_requires_store_fixed_trace_summary_surface(self) -> None:
+    def test_suite_requires_trace_summary_surfaces(self) -> None:
         fixture_dir = PROJECT_ROOT / "tests" / "fixtures" / "reflection_promotion_gate"
 
         result = run_gate_suite(
@@ -107,7 +115,35 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         self.assertFalse(result["source_coverage_ok"])
         self.assertEqual(
             result["source_coverage_issue_ids"],
-            ["missing_case_source:store_fixed_eval_only_trace_summary"],
+            [
+                "missing_case_source:live_default_mas_trace_summary",
+                "missing_case_source:store_fixed_eval_only_trace_summary",
+            ],
+        )
+
+    def test_suite_requires_live_default_mas_trace_summary_surface(self) -> None:
+        fixture_dir = PROJECT_ROOT / "tests" / "fixtures" / "reflection_promotion_gate"
+        trace_summary = (
+            PROJECT_ROOT
+            / "tests"
+            / "fixtures"
+            / "promotion_trace_summary"
+            / "store_fixed_candidate_summary.json"
+        )
+
+        result = run_gate_suite(
+            cases_paths=[
+                fixture_dir / "cases.json",
+                fixture_dir / "store_fixed_cases.json",
+            ],
+            trace_summary_paths=[trace_summary],
+        )
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["source_coverage_ok"])
+        self.assertEqual(
+            result["source_coverage_issue_ids"],
+            ["missing_case_source:live_default_mas_trace_summary"],
         )
 
     def test_false_recovery_blocks_promotion(self) -> None:
@@ -299,8 +335,8 @@ class ReflectionPromotionGateTests(unittest.TestCase):
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["status"], "ready")
             self.assertEqual(payload["fixture_count"], 2)
-            self.assertEqual(payload["trace_summary_count"], 1)
-            self.assertEqual(payload["case_count"], 10)
+            self.assertEqual(payload["trace_summary_count"], 2)
+            self.assertEqual(payload["case_count"], 12)
             self.assertTrue(payload["source_coverage_ok"])
             self.assertEqual(payload["promotion_signals"]["false_recovery_rate"], 0.0)
 
@@ -329,8 +365,8 @@ class ReflectionPromotionGateTests(unittest.TestCase):
         payload = json.loads(gate_result.stdout)
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["fixture_count"], 2)
-        self.assertEqual(payload["trace_summary_count"], 1)
-        self.assertEqual(payload["case_count"], 10)
+        self.assertEqual(payload["trace_summary_count"], 2)
+        self.assertEqual(payload["case_count"], 12)
         self.assertTrue(payload["source_coverage_ok"])
 
 

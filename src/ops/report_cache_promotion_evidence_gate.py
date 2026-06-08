@@ -27,7 +27,17 @@ DEFAULT_TRACE_SUMMARY_PATH = (
     / "promotion_trace_summary"
     / "store_fixed_candidate_summary.json"
 )
-DEFAULT_TRACE_SUMMARY_PATHS = (DEFAULT_TRACE_SUMMARY_PATH,)
+DEFAULT_LIVE_DEFAULT_MAS_TRACE_SUMMARY_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "promotion_trace_summary"
+    / "live_default_mas_handoff_summary.json"
+)
+DEFAULT_TRACE_SUMMARY_PATHS = (
+    DEFAULT_TRACE_SUMMARY_PATH,
+    DEFAULT_LIVE_DEFAULT_MAS_TRACE_SUMMARY_PATH,
+)
 
 
 def _read_json(path: Path) -> Any:

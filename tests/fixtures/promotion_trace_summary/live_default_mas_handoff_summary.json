@@ -1,0 +1,108 @@
+{
+  "summary_id": "live_default_mas_handoff_promotion_trace_summary_v1",
+  "source_type": "live_default_mas_trace_summary",
+  "source_note": "Reviewed handoff summary distilled from live/default MAS smoke and reviewer-gate surfaces; raw local smoke bundles remain uncommitted.",
+  "reflection_promotion_cases": [
+    {
+      "case_id": "live_default_mas_clean_pass_skips_reflection",
+      "eligible": false,
+      "reflection_triggered": false,
+      "expected_action": "none",
+      "reflection_report": {},
+      "initial_status": "accepted",
+      "final_status": "accepted",
+      "task_artifact_trace": {
+        "integrity_status": "ok"
+      },
+      "calculation_trace_status": "ok",
+      "evidence_supported": true,
+      "baseline_step_count": 6,
+      "reflected_step_count": 6
+    },
+    {
+      "case_id": "live_default_mas_empty_material_stop_insufficient",
+      "eligible": true,
+      "reflection_triggered": true,
+      "expected_action": "stop_insufficient",
+      "reflection_report": {
+        "outcome": "stop_requested",
+        "action_taken": "stop_insufficient",
+        "budget_consumed": 0,
+        "target_task_ids": ["live_default_mas_worker_material_task"],
+        "target_artifact_ids": [],
+        "blocking_issues": [
+          {
+            "type": "stop_insufficient",
+            "reason": "live default MAS handoff has no worker material artifact"
+          }
+        ]
+      },
+      "reflection_action": {
+        "action_type": "stop_insufficient",
+        "retry_queries": [],
+        "retrieval_scope_hints": [],
+        "synthesis_source_ids": [],
+        "stop_reason": "live default MAS handoff has no worker material artifact"
+      },
+      "initial_status": "missing_worker_material",
+      "final_status": "blocked",
+      "task_artifact_trace": {
+        "integrity_status": "blocked"
+      },
+      "calculation_trace_status": "",
+      "evidence_supported": false,
+      "baseline_step_count": 5,
+      "reflected_step_count": 5
+    }
+  ],
+  "report_cache_promotion_cases": [
+    {
+      "name": "live_default_mas_ready_candidate_only",
+      "status": "ready",
+      "ready": true,
+      "fallback_required": false,
+      "selected_match_count": 1,
+      "reasons": [],
+      "consumer_admissibility_status": "admissible_for_design",
+      "producer_policy_status": "ready",
+      "producer_policy_ready": true,
+      "producer_policy_name": "calculation_task_contract",
+      "producer_policy_source": "report_cache_rehydration",
+      "producer_policy_cache_origin": "local_cache_index",
+      "producer_policy_required_artifact_kinds": ["operand_set", "calculation_plan", "calculation_result"],
+      "producer_policy_artifact_kinds": ["operand_set", "calculation_plan", "calculation_result"],
+      "producer_policy_missing_artifact_kinds": [],
+      "producer_policy_artifact_count": 3,
+      "calculation_contract_valid": true,
+      "serving_enabled": false,
+      "ledger_insertion_enabled": false,
+      "retrieval_bypass_enabled": false,
+      "final_acceptance_enabled": false,
+      "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator"
+    },
+    {
+      "name": "live_default_mas_incomplete_candidate_fallback",
+      "status": "normal_retrieval_fallback",
+      "ready": false,
+      "fallback_required": true,
+      "selected_match_count": 1,
+      "reasons": ["missing_worker_material_artifact"],
+      "consumer_admissibility_status": "normal_retrieval_fallback",
+      "producer_policy_status": "blocked",
+      "producer_policy_ready": false,
+      "producer_policy_name": "calculation_task_contract",
+      "producer_policy_source": "report_cache_rehydration",
+      "producer_policy_cache_origin": "local_cache_index",
+      "producer_policy_required_artifact_kinds": ["operand_set", "calculation_plan", "calculation_result"],
+      "producer_policy_artifact_kinds": [],
+      "producer_policy_missing_artifact_kinds": ["operand_set", "calculation_plan", "calculation_result"],
+      "producer_policy_artifact_count": 0,
+      "calculation_contract_valid": false,
+      "serving_enabled": false,
+      "ledger_insertion_enabled": false,
+      "retrieval_bypass_enabled": false,
+      "final_acceptance_enabled": false,
+      "acceptance_authority": "task_artifact_integrity_and_critic_orchestrator"
+    }
+  ]
+}

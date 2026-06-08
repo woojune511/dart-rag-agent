@@ -23,7 +23,8 @@ Current repo surfaces:
 - `src.ops.review_report_cache_index_contract` is the reviewer handoff gate.
 - `src.ops.report_cache_promotion_evidence_gate` is the first focused
   promotion-evidence gate for ready, incomplete, and ambiguous cache matches
-  across the local-index fixture and a reviewed store-fixed trace summary.
+  across the local-index fixture, a reviewed store-fixed trace summary, and a
+  reviewed live/default MAS handoff trace summary.
 
 The latest reviewer gate expectation is:
 
@@ -156,23 +157,25 @@ must add a new promotion increment that:
 5. Documents whether `REFERENCE_NOTE` remains graph-expansion context or becomes
    part of this capability boundary.
 
-The first focused promotion-evidence increment is now present but non-enabling:
+The focused promotion-evidence increment is now present but non-enabling:
 `build_report_cache_promotion_evidence_case()` and
 `src.ops.report_cache_promotion_evidence_gate` show that a complete local-index
 entry can satisfy the guarded consumer plus producer-policy contracts, while
 incomplete and ambiguous entries still require normal retrieval fallback. The
-gate also consumes a reviewed store-fixed trace summary so the same ready and
-fallback expectations are checked outside the raw fixture path. Ready promotion
-evidence must expose the calculation-task producer policy, the required
-`operand_set`, `calculation_plan`, and `calculation_result` artifact kinds,
-cache-origin metadata, and a valid calculation-contract projection. Fallback
-promotion evidence must remain non-ready, require normal retrieval fallback,
-and carry explicit fallback reasons. It keeps retrieval bypass, serving,
-ledger insertion, and final acceptance disabled.
+gate also consumes reviewed store-fixed and live/default MAS trace summaries,
+so the same ready and fallback expectations are checked outside the raw fixture
+path. Ready promotion evidence must expose the calculation-task producer
+policy, the required `operand_set`, `calculation_plan`, and
+`calculation_result` artifact kinds, cache-origin metadata, and a valid
+calculation-contract projection. Fallback promotion evidence must remain
+non-ready, require normal retrieval fallback, and carry explicit fallback
+reasons. It keeps retrieval bypass, serving, ledger insertion, and final
+acceptance disabled.
 
 ## Current Interpretation
 
 The current system is ready for reviewer handoff as a candidate-only cache
 capability. It is not ready for serving or live ledger insertion. The next
-increment should expand promotion evidence with additional live/default MAS
-trace summaries before any enable flag is considered.
+increment should add another trace summary only when a new live/default MAS or
+store-fixed eval-only surface exposes materially different cache evidence.
+Serving, retrieval bypass, and live ledger insertion remain out of scope.
