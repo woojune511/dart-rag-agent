@@ -31,5 +31,6 @@ benchmarks/results/targeted_*_structural_*/
 benchmarks/results/policy_gate_refresh_*/
 benchmarks/results/policy_gate_regression_*/
 benchmarks/results/hyundai_policy_gate_refresh_*/
+benchmarks/results/concept_gate_refresh_*/
 benchmarks/results/curated_concept_planner_shadow_*.json
 mlflow.db
