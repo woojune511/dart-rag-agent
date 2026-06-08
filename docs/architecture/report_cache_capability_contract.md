@@ -176,12 +176,19 @@ non-ready, require normal retrieval fallback, and carry explicit fallback
 reasons. It keeps retrieval bypass, serving, ledger insertion, and final
 acceptance disabled.
 
+`src.ops.promotion_trace_materiality_gate` is the companion check for adding
+or retaining reviewed trace summaries. It proves that the current store-fixed
+and live/default MAS summaries are distinct in source type, reflection action,
+and cache fallback reason. A future trace summary should clear the same
+materiality standard before it is added to the promotion evidence set.
+
 ## Current Interpretation
 
 The current system is ready for reviewer handoff as a candidate-only cache
 capability. It is not ready for serving or live ledger insertion. The next
 increment should add another trace summary only when a new live/default MAS or
-store-fixed eval-only surface exposes materially different cache evidence.
+store-fixed eval-only surface exposes materially different cache evidence under
+the materiality gate.
 Serving, retrieval bypass, and live ledger insertion remain out of scope.
 
 `REFERENCE_NOTE` is explicitly outside the report-cache serving boundary. Its

@@ -126,6 +126,7 @@ benchmarks/    profiles and local result bundles
 .\.venv\Scripts\python.exe -m src.ops.report_cache_promotion_evidence_gate
 .\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
 .\.venv\Scripts\python.exe -m src.ops.reference_note_capability_gate
+.\.venv\Scripts\python.exe -m src.ops.promotion_trace_materiality_gate
 .\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
 ```
 

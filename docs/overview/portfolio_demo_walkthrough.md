@@ -35,6 +35,9 @@ contract to look for is:
 - critic acceptance is exposed as target refs, verdict/status, and reasons
 - report-cache material remains candidate-only with retrieval bypass, writes,
   serving, and ledger insertion disabled
+- promotion trace summaries are checked for materially distinct source,
+  reflection-action, and cache-fallback surfaces before more summary evidence
+  is added
 - `REFERENCE_NOTE` traversal remains Researcher graph-expansion context and is
   not cache serving, retrieval bypass, ledger insertion, or final acceptance
   authority

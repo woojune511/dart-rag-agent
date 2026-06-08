@@ -105,10 +105,11 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while bypass, writes, serving, and ledger insertion remain disabled |
 | Cache promotion evidence | `report_cache_promotion_evidence_gate` covers fixture plus trace-summary ready, incomplete, and ambiguous cache-index entries without enabling cache behavior |
 | REFERENCE_NOTE boundary | `reference_note_capability_gate` keeps note traversal as Researcher graph-expansion context, not cache serving or final acceptance authority |
+| Promotion trace materiality | `promotion_trace_materiality_gate` proves reviewed trace summaries cover distinct source/action/fallback surfaces before adding more summary evidence |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
-| Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
-| Test coverage | latest full `python -m unittest discover -s tests` passed 975 tests after REFERENCE_NOTE boundary gate evidence |
+| Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
+| Test coverage | latest full `python -m unittest discover -s tests` passed 980 tests after promotion trace materiality gate evidence |
 
 ## Representative Commands
 
@@ -120,6 +121,7 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 .\.venv\Scripts\python.exe -m src.ops.report_cache_promotion_evidence_gate
 .\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
 .\.venv\Scripts\python.exe -m src.ops.reference_note_capability_gate
+.\.venv\Scripts\python.exe -m src.ops.promotion_trace_materiality_gate
 .\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
 ```
 

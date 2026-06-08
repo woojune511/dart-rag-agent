@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from src.ops.portfolio_demo import build_demo
+from src.ops.promotion_trace_materiality_gate import run_gate as run_trace_materiality_gate
 from src.ops.reference_note_capability_gate import run_gate as run_reference_note_gate
 from src.ops.reflection_promotion_gate import run_gate_suite
 from src.ops.report_cache_promotion_evidence_gate import run_gate as run_cache_promotion_gate
@@ -24,6 +25,7 @@ def run_review_gates() -> Dict[str, Any]:
     cache_promotion = run_cache_promotion_gate()
     reflection_gate = run_gate_suite()
     reference_note = run_reference_note_gate()
+    trace_materiality = run_trace_materiality_gate()
     checks = {
         "portfolio_demo_ready": _is_ready(
             dict(portfolio_demo.get("readiness") or {}).get("status")
@@ -35,6 +37,7 @@ def run_review_gates() -> Dict[str, Any]:
         "cache_promotion_evidence_ready": _is_ready(cache_promotion.get("status")),
         "reflection_promotion_ready": _is_ready(reflection_gate.get("status")),
         "reference_note_capability_ready": _is_ready(reference_note.get("status")),
+        "promotion_trace_materiality_ready": _is_ready(trace_materiality.get("status")),
     }
     status = "ready" if all(checks.values()) else "needs_review"
     return {
@@ -98,6 +101,14 @@ def run_review_gates() -> Dict[str, Any]:
             "artifact_kind": dict(reference_note.get("capability") or {}).get("artifact_kind"),
             "disabled_flags_ok": bool(reference_note.get("disabled_flags_ok")),
         },
+        "promotion_trace_materiality": {
+            "status": trace_materiality.get("status"),
+            "summary_count": trace_materiality.get("summary_count"),
+            "source_types": list(trace_materiality.get("source_types") or []),
+            "reflection_actions": list(trace_materiality.get("reflection_actions") or []),
+            "cache_fallback_reasons": list(trace_materiality.get("cache_fallback_reasons") or []),
+            "materiality_ok": bool(trace_materiality.get("materiality_ok")),
+        },
     }
 
 
@@ -107,6 +118,7 @@ def render_text(result: Dict[str, Any]) -> str:
     cache_promotion = dict(result.get("cache_promotion_evidence") or {})
     reflection = dict(result.get("reflection_promotion") or {})
     reference_note = dict(result.get("reference_note_capability") or {})
+    trace_materiality = dict(result.get("promotion_trace_materiality") or {})
     signals = dict(reflection.get("promotion_signals") or {})
     lines = [
         "# Portfolio Review Gates",
@@ -151,6 +163,13 @@ def render_text(result: Dict[str, Any]) -> str:
         f"  - graph_relation: {reference_note.get('graph_relation')}",
         f"  - artifact_kind: {reference_note.get('artifact_kind')}",
         f"  - disabled_flags_ok: {str(bool(reference_note.get('disabled_flags_ok'))).lower()}",
+        "",
+        "Promotion Trace Materiality:",
+        f"  - status: {trace_materiality.get('status')}",
+        f"  - summary_count: {trace_materiality.get('summary_count')}",
+        f"  - source_types: {', '.join(list(trace_materiality.get('source_types') or []))}",
+        f"  - reflection_actions: {', '.join(list(trace_materiality.get('reflection_actions') or []))}",
+        f"  - materiality_ok: {str(bool(trace_materiality.get('materiality_ok'))).lower()}",
     ]
     return "\n".join(lines) + "\n"
 

@@ -38,6 +38,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
 | Reflection promotion gate | base fixture, store-fixed candidate surface, two reviewed trace summaries | READY |
 | Report-cache promotion evidence | candidate-only cache producer/fallback contract | READY, disabled |
+| Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
@@ -66,10 +67,20 @@ role-separated multi-agent system using a task ledger and artifact store.
   - Fallback evidence must remain non-ready, require normal retrieval fallback,
     carry explicit fallback reasons, and keep retrieval bypass, serving, ledger
     insertion, and final acceptance disabled.
+- Promotion trace materiality:
+  - `src.ops.promotion_trace_materiality_gate` is ready.
+  - The gate checks that the reviewed store-fixed and live/default MAS trace
+    summaries carry materially distinct source types, reflection actions
+    (`none`, `retry_retrieval`, `stop_insufficient`), and cache fallback
+    reasons before the portfolio bundle treats them as promotion evidence.
+  - Future trace summaries should be added only when this same materiality
+    standard can explain a new source/action/fallback surface rather than a
+    duplicate benchmark replay.
 - Portfolio review:
   - `src.ops.portfolio_review_gates` is ready and reports portfolio demo,
-    cache reviewer, cache promotion evidence, reflection promotion, and
-    `REFERENCE_NOTE` capability status in one reviewer-facing bundle.
+    cache reviewer, cache promotion evidence, reflection promotion,
+    promotion-trace materiality, and `REFERENCE_NOTE` capability status in one
+    reviewer-facing bundle.
 - `REFERENCE_NOTE` capability:
   - `src.ops.reference_note_capability_gate` is ready.
   - The current boundary is `graph_expansion_context_only` with owner

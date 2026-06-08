@@ -156,6 +156,11 @@ reflection. A future active-reflection PR should keep that gate green or
 extend it with additional store-fixed or live/default trace summaries before
 any broader benchmark refresh:
 
+`src.ops.promotion_trace_materiality_gate` is the companion reviewer check for
+trace-summary expansion. It verifies that the reviewed trace summaries are
+materially distinct across source type, reflection action, and cache fallback
+reason before additional summary evidence is treated as promotion evidence.
+
 1. Unit tests for trigger eligibility, request construction, allowed strategies,
    budget consumption, and `ReflectionReport` ledger shape.
 2. A focused reflection promotion command or profile that reports the five

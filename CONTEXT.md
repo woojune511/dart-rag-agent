@@ -25,6 +25,10 @@
     여전히 disabled다. 다음 expansion은 materially different live/default MAS
     또는 store-fixed eval-only surface가 생길 때 trace summary를 추가하는
     것이다.
+  - Promotion trace materiality gate는 현재 reviewed store-fixed summary와
+    reviewed live/default MAS summary가 서로 다른 reflection action과
+    cache fallback reason을 제공하는지 확인한다. 새 summary는 이 gate가
+    중복이 아닌 material surface라고 설명할 수 있을 때만 추가한다.
   - `REFERENCE_NOTE`는 `graph_expansion_context_only` capability로 고정했다.
     Researcher retrieval context와 `retrieval_bundle` 안에서만 쓰며,
     report-cache serving, retrieval bypass, live ledger insertion, final
@@ -33,8 +37,10 @@
     - `python -m src.ops.reflection_promotion_gate --format text`: ready.
     - `python -m src.ops.report_cache_promotion_evidence_gate --format text`:
       ready.
+    - `python -m src.ops.promotion_trace_materiality_gate --format text`:
+      ready.
     - `python -m src.ops.portfolio_review_gates --format text`: ready.
-    - `python -m unittest discover -s tests`: `975` tests OK.
+    - `python -m unittest discover -s tests`: `980` tests OK.
 
 - 2026-06-04 concept runtime gap gate answer-composition blockers까지 닫았다.
   - 최신 local store-fixed eval-only refresh:
@@ -441,18 +447,19 @@
 
 | 순서 | 할 일 | 목적 |
 | --- | --- | --- |
-| 1 | `REFERENCE_NOTE` boundary 유지 | note traversal을 cache serving path가 아니라 Researcher graph-expansion context로 유지 |
+| 1 | Promotion trace materiality 유지 | 새 trace summary를 넣기 전에 기존 source/action/fallback surface와 중복인지 gate로 확인 |
 
 ## 현재 우선순위 요약
 
-1. `REFERENCE_NOTE` capability gate 유지
-2. materially different trace summary가 생길 때 reflection / report-cache promotion evidence 확장
-3. broader curated gate maintenance는 새 artifact가 실제 blocker를 재현할 때만 수행
-4. MAS default smoke maintenance는 default store/preflight contract가 바뀔 때만 수행
+1. Promotion trace materiality gate 유지
+2. `REFERENCE_NOTE` capability gate 유지
+3. materially different trace summary가 생길 때 reflection / report-cache promotion evidence 확장
+4. broader curated gate maintenance는 새 artifact가 실제 blocker를 재현할 때만 수행
+5. MAS default smoke maintenance는 default store/preflight contract가 바뀔 때만 수행
 
 ## 현재 해석
 
-- 2026-06-08 기준 reflection promotion gate와 report-cache promotion evidence gate는 reviewer-facing proof surface로 닫혔다. Reflection gate는 base fixture / store-fixed candidate surface / reviewed store-fixed trace summary / reviewed live-default MAS handoff trace summary source coverage를 요구하고, report-cache gate는 calculation-task producer contract와 fallback safety를 요구한다. `REFERENCE_NOTE` capability gate도 ready이며 note traversal을 Researcher graph-expansion context로 고정한다. Portfolio review gates도 ready다. 다음 작업은 active retry나 cache enable flag가 아니라 이 capability gates를 유지하고, materially different live/default MAS 또는 store-fixed eval-only surface가 생길 때 trace summary를 추가하는 것이다.
+- 2026-06-08 기준 reflection promotion gate와 report-cache promotion evidence gate는 reviewer-facing proof surface로 닫혔다. Reflection gate는 base fixture / store-fixed candidate surface / reviewed store-fixed trace summary / reviewed live-default MAS handoff trace summary source coverage를 요구하고, report-cache gate는 calculation-task producer contract와 fallback safety를 요구한다. `REFERENCE_NOTE` capability gate도 ready이며 note traversal을 Researcher graph-expansion context로 고정한다. `promotion_trace_materiality_gate`는 현재 두 trace summary가 서로 다른 reflection action과 cache fallback reason을 제공하는지 검증한다. Portfolio review gates도 ready다. 다음 작업은 active retry나 cache enable flag가 아니라 이 capability gates를 유지하고, materially different live/default MAS 또는 store-fixed eval-only surface가 gate 기준으로 확인될 때 trace summary를 추가하는 것이다.
 - Analyst / Critic / Researcher separation 1차 작업은 2026-06-07에 닫았다. `WorkerArtifactBoundary`와 `project_worker_artifact_boundary()`를 MAS schema layer에 추가해 worker artifact의 payload-first answer, selected artifact id, task id, role, kind/status, evidence refs dedupe를 공유 projection으로 고정했다. Critic review와 Orchestrator final synthesis는 이제 같은 worker-artifact boundary helper를 통해 artifact를 읽는다. 관련 Critic/Orchestrator/MAS graph tests `24`개가 통과했다.
 - report-scoped cache capability design은 2026-06-07 기준 candidate-only handoff gate까지 닫았다. `src.ops.review_report_cache_index_contract` 기본 fixture-backed review는 `status = ok`, `difference_count = 0`, `reviewer_handoff.status = ready`, `mode = candidate_only`, projection-ready candidate `1`, fallback candidate `1`을 보고한다. Cache serving, read/write, ledger insertion, retrieval bypass는 모두 disabled로 남는다.
 - material-gap / mixed narrative canary maintenance는 2026-06-07에 `docs/evaluation/material_gap_mixed_canary_maintenance.md`로 정리했다. `KBF_T2_043`은 closed runtime blocker이자 broader replay/completeness-render calibration watch item이고, `NAV_T2_006`은 closed mixed numeric+narrative quality target으로 policy-gate regression coverage에 남긴다. 새 artifact가 material evidence / dependency / trace / final synthesis failure를 재현하기 전에는 full benchmark나 runtime patch를 기본값으로 쓰지 않는다.
