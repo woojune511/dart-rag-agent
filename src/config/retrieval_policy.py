@@ -593,12 +593,17 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "operand_unit_ambiguous_krw_units": ("원", "krw"),
     "ratio_default_metric_label": "비율",
     "ratio_year_period_pattern": r"20\d{2}",
+    "ratio_period_suffix_pattern": r"년$",
     "ratio_period_prefix_template": "{period}년 ",
     "consolidation_scope_answer_prefixes": {
         "consolidated": "연결기준 ",
         "separate": "개별기준 ",
     },
     "ratio_answer_template": "{period_prefix}{metric_label}은 {rendered_value}입니다.",
+    "ratio_component_answer_template": (
+        "{period_prefix}{metric_label}은 {rendered_value}입니다. "
+        "계산: {numerator_label} {numerator_value} / {denominator_label} {denominator_value}."
+    ),
     "lookup_list_item_template": "{label} {value}",
     "lookup_list_separator": ", ",
     "lookup_list_answer_template": "{items}입니다.",

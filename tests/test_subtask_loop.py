@@ -16,7 +16,13 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_calculation_trace
-from src.agent.financial_graph_models import AggregateSynthesisOutput, CalculationOperand, EvidenceItem, OperandExtraction
+from src.agent.financial_graph_models import (
+    AggregateSynthesisOutput,
+    CalculationOperand,
+    CalculationRenderOutput,
+    EvidenceItem,
+    OperandExtraction,
+)
 from src.config.report_scoped_cache import (
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     REPORT_CACHE_ENTRY_VERSION,
@@ -4296,6 +4302,580 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(operands_by_role["current_period"]["raw_value"], "200")
         self.assertEqual(operands_by_role["prior_period"]["raw_value"], "100")
         self.assertNotEqual(operands_by_role["prior_period"]["raw_value"], "3")
+
+    def test_compact_ratio_answer_includes_component_slots(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "37.47%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target ratio",
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": "target ratio",
+                    "rendered_value": "37.47%",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "expense input",
+                            "period": "2023년",
+                            "raw_value": "4,355",
+                            "raw_unit": "억원",
+                            "rendered_value": "4,355억원",
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "profit base",
+                            "period": "2023",
+                            "raw_value": "11,623",
+                            "raw_unit": "억원",
+                            "rendered_value": "11,623억원",
+                        }
+                    ],
+                },
+            },
+        }
+
+        answer = self.agent._compact_ratio_answer(
+            {
+                "active_subtask": {"metric_label": "target ratio"},
+                "resolved_calculation_trace": {
+                    "calculation_result": calculation_result,
+                    "calculation_operands": [],
+                    "calculation_plan": {"operation": "ratio"},
+                },
+            },
+            calculation_result,
+        )
+
+        self.assertIn("2023년 target ratio은 37.47%입니다.", answer)
+        self.assertIn("expense input 4,355억원", answer)
+        self.assertIn("profit base 11,623억원", answer)
+
+    def test_ratio_render_prefers_complete_component_slots_over_llm_text(self) -> None:
+        self.agent.llm = _StubLLM(
+            CalculationRenderOutput(
+                final_answer=(
+                    "2023년 target ratio은 37.47%입니다. "
+                    "계산: expense input 435,542백만원 / profit base 11,623억원."
+                )
+            )
+        )
+        calculation_result = {
+            "status": "ok",
+            "result_value": 37.4688,
+            "result_unit": "%",
+            "rendered_value": "37.47%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target ratio",
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": "target ratio",
+                    "rendered_value": "37.47%",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "expense input",
+                            "period": "2023",
+                            "raw_value": "4,355",
+                            "raw_unit": "억원",
+                            "rendered_value": "4,355억원",
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "profit base",
+                            "period": "2023",
+                            "raw_value": "11,623",
+                            "raw_unit": "억원",
+                            "rendered_value": "11,623억원",
+                        }
+                    ],
+                },
+            },
+        }
+
+        rendered = self.agent._render_calculation_answer(
+            {
+                "query": "2023년 target ratio를 계산해 줘.",
+                "active_subtask": {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "target ratio",
+                    "operation_family": "ratio",
+                },
+                "resolved_calculation_trace": {
+                    "calculation_result": calculation_result,
+                    "calculation_plan": {"operation": "ratio"},
+                    "calculation_operands": [],
+                },
+            }
+        )
+
+        self.assertIn("expense input 4,355억원", rendered["answer"])
+        self.assertNotIn("435,542백만원", rendered["answer"])
+
+    def test_ratio_full_required_candidate_rows_override_stale_dependency_numerator(self) -> None:
+        state = {
+            "query": "2023년 target ratio를 계산해 줘.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "target ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "expense input",
+                        "concept": "expense_input",
+                        "role": "numerator_1",
+                        "period": "2023",
+                    },
+                    {
+                        "label": "profit base",
+                        "concept": "profit_base",
+                        "role": "denominator_1",
+                        "period": "2023",
+                    },
+                ],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense_input",
+                        "period": "2023",
+                        "label": "expense input",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "profit_base",
+                        "period": "2023",
+                        "label": "profit base",
+                        "preferred_task_id": "task_profit",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_expense",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "expense input",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "expense input",
+                                "concept": "expense_input",
+                                "period": "2023",
+                                "raw_value": "435,542",
+                                "raw_unit": "백만원",
+                                "normalized_value": 435542000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "435,542백만원",
+                                "source_row_id": "task_output:task_expense",
+                            },
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "table_ratio",
+                    "source_anchor": "[Example | 2023 | table]",
+                    "claim": "expense input | 2023 4,355 억원 | profit base | 2023 11,623 억원",
+                    "raw_row_text": "expense input | 2023 4,355 억원 | profit base | 2023 11,623 억원",
+                    "metadata": {"block_type": "table"},
+                }
+            ],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+        }
+        fallback_rows = [
+            {
+                "operand_id": "fallback_numerator",
+                "evidence_id": "table_ratio",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "expense input",
+                "concept": "expense_input",
+                "raw_value": "4,355",
+                "raw_unit": "억원",
+                "normalized_value": 435500000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "expense input",
+                "matched_operand_concept": "expense_input",
+                "matched_operand_role": "numerator_1",
+            },
+            {
+                "operand_id": "fallback_denominator",
+                "evidence_id": "table_ratio",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "profit base",
+                "concept": "profit_base",
+                "raw_value": "11,623",
+                "raw_unit": "억원",
+                "normalized_value": 1162300000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "profit base",
+                "matched_operand_concept": "profit_base",
+                "matched_operand_role": "denominator_1",
+            },
+        ]
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: list(state["evidence_items"])
+        self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+
+        extracted = self.agent._extract_calculation_operands(state)
+        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+
+    def test_ratio_complete_retrieved_context_replaces_partial_dependency_operand(self) -> None:
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "target ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "expense input",
+                        "concept": "expense_input",
+                        "role": "numerator_1",
+                        "period": "2023",
+                    },
+                    {
+                        "label": "profit base",
+                        "concept": "profit_base",
+                        "role": "denominator_1",
+                        "period": "2023",
+                    },
+                ],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense_input",
+                        "period": "2023",
+                        "label": "expense input",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "profit_base",
+                        "period": "2023",
+                        "label": "profit base",
+                        "preferred_task_id": "task_profit",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_expense",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "expense input",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "expense input",
+                                "concept": "expense_input",
+                                "period": "2023",
+                                "raw_value": "435,542",
+                                "raw_unit": "백만원",
+                                "normalized_value": 435542000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "435,542백만원",
+                                "source_row_id": "task_output:task_expense",
+                            },
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=(
+                            "expense input | 2023 4,355 억원\n"
+                            "profit base | 2023 11,623 억원"
+                        ),
+                        metadata={
+                            "block_type": "table",
+                            "table_source_id": "ratio-table",
+                            "unit_hint": "억원",
+                            "year": 2023,
+                        },
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+        }
+        fallback_rows = [
+            {
+                "operand_id": "fallback_numerator",
+                "evidence_id": "ev_doc_001",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "expense input",
+                "concept": "expense_input",
+                "raw_value": "4,355",
+                "raw_unit": "억원",
+                "normalized_value": 435500000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "expense input",
+                "matched_operand_concept": "expense_input",
+                "matched_operand_role": "numerator_1",
+                "table_source_id": "ratio-table",
+            },
+            {
+                "operand_id": "fallback_denominator",
+                "evidence_id": "ev_doc_001",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "profit base",
+                "concept": "profit_base",
+                "raw_value": "11,623",
+                "raw_unit": "억원",
+                "normalized_value": 1162300000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "profit base",
+                "matched_operand_concept": "profit_base",
+                "matched_operand_role": "denominator_1",
+                "table_source_id": "ratio-table",
+            },
+        ]
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+
+        extracted = self.agent._extract_calculation_operands(state)
+        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+
+    def test_ratio_coherent_table_context_overrides_mixed_table_operands(self) -> None:
+        required_operands = [
+            {
+                "label": "expense input",
+                "concept": "expense_input",
+                "role": "numerator_1",
+                "period": "2023",
+            },
+            {
+                "label": "profit base",
+                "concept": "profit_base",
+                "role": "denominator_1",
+                "period": "2023",
+            },
+        ]
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "target ratio",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense_input",
+                        "period": "2023",
+                        "label": "expense input",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    }
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_expense",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "expense input",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "expense input",
+                                "concept": "expense_input",
+                                "period": "2023",
+                                "raw_value": "435,542",
+                                "raw_unit": "백만원",
+                                "normalized_value": 435542000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "435,542백만원",
+                                "source_row_id": "task_output:task_expense",
+                            },
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+        }
+        stale_numerator = {
+            "operand_id": "stale_numerator",
+            "evidence_id": "financial_table",
+            "source_anchor": "[Example | 2023 | financial table]",
+            "label": "expense input",
+            "concept": "expense_input",
+            "raw_value": "435,542",
+            "raw_unit": "백만원",
+            "normalized_value": 435542000000.0,
+            "normalized_unit": "KRW",
+            "period": "2023",
+            "matched_operand_label": "expense input",
+            "matched_operand_concept": "expense_input",
+            "matched_operand_role": "numerator_1",
+            "table_source_id": "financial-table",
+        }
+        ratio_numerator = {
+            "operand_id": "ratio_numerator",
+            "evidence_id": "ratio_table_num",
+            "source_anchor": "[Example | 2023 | ratio table]",
+            "label": "expense input",
+            "concept": "expense_input",
+            "raw_value": "4,355",
+            "raw_unit": "억원",
+            "normalized_value": 435500000000.0,
+            "normalized_unit": "KRW",
+            "period": "2023",
+            "matched_operand_label": "expense input",
+            "matched_operand_concept": "expense_input",
+            "matched_operand_role": "numerator_1",
+            "table_source_id": "ratio-table",
+        }
+        ratio_denominator = {
+            "operand_id": "ratio_denominator",
+            "evidence_id": "ratio_table_den",
+            "source_anchor": "[Example | 2023 | ratio table]",
+            "label": "profit base",
+            "concept": "profit_base",
+            "raw_value": "11,623",
+            "raw_unit": "억원",
+            "normalized_value": 1162300000000.0,
+            "normalized_unit": "KRW",
+            "period": "2023",
+            "matched_operand_label": "profit base",
+            "matched_operand_concept": "profit_base",
+            "matched_operand_role": "denominator_1",
+            "table_source_id": "ratio-table",
+        }
+        evidence_items = [
+            {
+                "evidence_id": "financial_table",
+                "source_anchor": "[Example | 2023 | financial table]",
+                "claim": "expense input | 2023 435,542 백만원",
+                "raw_row_text": "expense input | 2023 435,542 백만원",
+                "metadata": {"table_source_id": "financial-table"},
+            },
+            {
+                "evidence_id": "ratio_table_num",
+                "source_anchor": "[Example | 2023 | ratio table]",
+                "claim": "expense input | 2023 4,355 억원",
+                "raw_row_text": "expense input | 2023 4,355 억원",
+                "metadata": {"table_source_id": "ratio-table"},
+            },
+            {
+                "evidence_id": "ratio_table_den",
+                "source_anchor": "[Example | 2023 | ratio table]",
+                "claim": "profit base | 2023 11,623 억원",
+                "raw_row_text": "profit base | 2023 11,623 억원",
+                "metadata": {"table_source_id": "ratio-table"},
+            },
+        ]
+
+        def build_required(candidate_items, **_kwargs):
+            table_ids = {
+                ((item.get("metadata") or {}).get("table_source_id") or "")
+                for item in candidate_items
+            }
+            if table_ids == {"ratio-table"}:
+                return [dict(ratio_numerator), dict(ratio_denominator)]
+            return [dict(stale_numerator), dict(ratio_denominator)]
+
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: list(evidence_items)
+        self.agent._build_required_operands_from_candidates = build_required
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+
+        extracted = self.agent._extract_calculation_operands(state)
+        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
 
     def test_growth_prior_recovery_skips_parenthesized_current_value(self) -> None:
         recovered = self.agent._recover_growth_prior_material_from_evidence(

@@ -7214,6 +7214,129 @@ class FinancialAgentCalculationMixin:
             changed = True
         return aligned if changed else dependency_rows
 
+    def _prefer_complete_ratio_direct_context_rows(
+        self,
+        *,
+        operand_rows: List[Dict[str, Any]],
+        direct_rows: List[Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        if not operand_rows or not direct_rows or not required_operands:
+            return operand_rows
+        if _missing_required_operands(required_operands, direct_rows):
+            return operand_rows
+
+        def _row_key(row: Dict[str, Any]) -> tuple[str, str]:
+            return (
+                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+                _normalise_spaces(str(row.get("matched_operand_role") or "")),
+            )
+
+        direct_by_key = {
+            _row_key(row): dict(row)
+            for row in direct_rows
+            if all(_row_key(row))
+        }
+        if not direct_by_key:
+            return operand_rows
+
+        def _context_key(row: Dict[str, Any]) -> tuple[str, str]:
+            table_id = _normalise_spaces(str(row.get("table_source_id") or row.get("source_table_id") or ""))
+            if table_id:
+                return ("table", table_id)
+            anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
+            if anchor:
+                return ("anchor", anchor)
+            return ("", "")
+
+        direct_contexts = {
+            _context_key(row)
+            for row in direct_rows
+            if any(_context_key(row))
+        }
+        direct_has_coherent_context = len(direct_contexts) == 1
+
+        changed = False
+        preferred: List[Dict[str, Any]] = []
+        seen_keys: set[tuple[str, str]] = set()
+        for row in operand_rows:
+            row_key = _row_key(row)
+            replacement = direct_by_key.get(row_key)
+            if replacement and (direct_has_coherent_context or bool(row.get("dependency_resolved"))):
+                preferred.append(replacement)
+                changed = True
+            else:
+                preferred.append(row)
+            if all(row_key):
+                seen_keys.add(row_key)
+
+        for row_key, replacement in direct_by_key.items():
+            if row_key in seen_keys:
+                continue
+            preferred.append(replacement)
+            changed = True
+
+        if not changed:
+            return operand_rows
+        return _merge_operand_rows(
+            preferred,
+            [],
+            required_operands=required_operands,
+        )
+
+    def _build_complete_ratio_operands_from_coherent_context(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        *,
+        required_operands: List[Dict[str, Any]],
+        query: str,
+        topic: str,
+        report_scope: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        if not evidence_items or not required_operands:
+            return []
+
+        grouped_items: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
+        for item in evidence_items:
+            evidence = dict(item or {})
+            metadata = dict(evidence.get("metadata") or {})
+            table_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
+            anchor = _normalise_spaces(str(evidence.get("source_anchor") or ""))
+            if table_id:
+                key = ("table", table_id)
+            elif anchor:
+                key = ("anchor", anchor)
+            else:
+                continue
+            grouped_items.setdefault(key, []).append(evidence)
+
+        best_rows: List[Dict[str, Any]] = []
+        best_score = -1
+        for group_key, group_items in grouped_items.items():
+            if len(group_items) < 2 and group_key[0] != "table":
+                continue
+            rows = self._build_required_operands_from_candidates(
+                group_items,
+                required_operands=required_operands,
+                query=query,
+                topic=topic,
+                report_scope=report_scope,
+            )
+            if _missing_required_operands(required_operands, rows):
+                continue
+            unit_count = len(
+                {
+                    _normalise_spaces(str(row.get("raw_unit") or ""))
+                    for row in rows
+                    if _normalise_spaces(str(row.get("raw_unit") or ""))
+                }
+            )
+            score = len(rows) * 10 - unit_count
+            if score > best_score:
+                best_rows = rows
+                best_score = score
+        return best_rows
+
     def _align_growth_operand_units_when_raw_scale_matches(
         self,
         ordered_operands: List[Dict[str, Any]],
@@ -7437,14 +7560,16 @@ class FinancialAgentCalculationMixin:
         rendered_value = _normalise_spaces(
             str(primary_value.get("rendered_value") or calculation_result.get("rendered_value") or "")
         )
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        period_suffix_pattern = str(render_policy.get("ratio_period_suffix_pattern") or "")
         periods: List[str] = []
         for entries in dict(answer_slots.get("components_by_group") or {}).values():
             for entry in entries or []:
                 period = _normalise_spaces(str((entry or {}).get("period") or ""))
-                if period and period not in periods:
-                    periods.append(period)
+                period_key = re.sub(period_suffix_pattern, "", period) if period_suffix_pattern else period
+                if period_key and period_key not in periods:
+                    periods.append(period_key)
         period_prefix = ""
-        render_policy = dict(CALCULATION_RENDER_POLICY)
         period_pattern = str(render_policy.get("ratio_year_period_pattern") or "")
         if len(periods) == 1 and period_pattern and re.fullmatch(period_pattern, periods[0]):
             period_prefix = str(render_policy.get("ratio_period_prefix_template") or "").format(period=periods[0])
@@ -7456,6 +7581,42 @@ class FinancialAgentCalculationMixin:
         scope_prefixes = dict(render_policy.get("consolidation_scope_answer_prefixes") or {})
         if scope and str(scope_prefixes.get(scope) or ""):
             period_prefix = f"{period_prefix}{scope_prefixes[scope]}"
+        components_by_group = dict(answer_slots.get("components_by_group") or {})
+        numerator_slot = next(
+            (dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)),
+            {},
+        )
+        denominator_slot = next(
+            (dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)),
+            {},
+        )
+        numerator_value = _normalise_spaces(
+            str(numerator_slot.get("rendered_value") or numerator_slot.get("raw_value") or "")
+        )
+        denominator_value = _normalise_spaces(
+            str(denominator_slot.get("rendered_value") or denominator_slot.get("raw_value") or "")
+        )
+        numerator_label = _display_operand_label(str(numerator_slot.get("label") or ""))
+        denominator_label = _display_operand_label(str(denominator_slot.get("label") or ""))
+        component_template = str(render_policy.get("ratio_component_answer_template") or "")
+        if (
+            component_template
+            and metric_label
+            and rendered_value
+            and numerator_value
+            and denominator_value
+            and numerator_label
+            and denominator_label
+        ):
+            return component_template.format(
+                period_prefix=period_prefix,
+                metric_label=metric_label,
+                rendered_value=rendered_value,
+                numerator_label=numerator_label,
+                numerator_value=numerator_value,
+                denominator_label=denominator_label,
+                denominator_value=denominator_value,
+            )
         if metric_label and rendered_value:
             return str(render_policy.get("ratio_answer_template") or "").format(
                 period_prefix=period_prefix,
@@ -7481,6 +7642,25 @@ class FinancialAgentCalculationMixin:
             if scope in {"consolidated", "separate"} and scope not in scopes:
                 scopes.append(scope)
         return scopes[0] if len(scopes) == 1 else ""
+
+    def _ratio_components_are_complete(self, calculation_result: Dict[str, Any]) -> bool:
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        components_by_group = dict(answer_slots.get("components_by_group") or {})
+        numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
+        denominator_slots = [
+            dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
+        ]
+
+        def _slot_has_value(slot: Dict[str, Any]) -> bool:
+            return bool(
+                _normalise_spaces(
+                    str(slot.get("rendered_value") or slot.get("raw_value") or slot.get("normalized_value") or "")
+                )
+            )
+
+        return any(_slot_has_value(slot) for slot in numerator_slots) and any(
+            _slot_has_value(slot) for slot in denominator_slots
+        )
 
     def _build_deterministic_lookup_plan(
         self,
@@ -8755,11 +8935,36 @@ class FinancialAgentCalculationMixin:
                 )
                 rejected_dependency_scope_rows.extend(rejected_rows)
             if deterministic_required_rows:
-                direct_structured_rows = _merge_operand_rows(
-                    direct_structured_rows,
+                if operation_family == "ratio":
+                    coherent_required_rows = self._build_complete_ratio_operands_from_coherent_context(
+                        evidence_items,
+                        required_operands=required_operands,
+                        query=query,
+                        topic=topic,
+                        report_scope=report_scope,
+                    )
+                    if coherent_required_rows:
+                        deterministic_required_rows = _merge_operand_rows(
+                            coherent_required_rows,
+                            deterministic_required_rows,
+                            required_operands=required_operands,
+                        )
+                deterministic_rows_cover_required = not _missing_required_operands(
+                    required_operands,
                     deterministic_required_rows,
-                    required_operands=required_operands,
                 )
+                if operation_family == "ratio" and deterministic_rows_cover_required:
+                    direct_structured_rows = _merge_operand_rows(
+                        deterministic_required_rows,
+                        direct_structured_rows,
+                        required_operands=required_operands,
+                    )
+                else:
+                    direct_structured_rows = _merge_operand_rows(
+                        direct_structured_rows,
+                        deterministic_required_rows,
+                        required_operands=required_operands,
+                    )
                 logger.info(
                     "[calc_operands] deterministic required-operand rows=%s",
                     len(deterministic_required_rows),
@@ -8866,10 +9071,28 @@ class FinancialAgentCalculationMixin:
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
                 )
+                coherent_context_rows = self._build_complete_ratio_operands_from_coherent_context(
+                    evidence_items,
+                    required_operands=required_operands,
+                    query=query,
+                    topic=state.get("topic") or "",
+                    report_scope=dict(state.get("report_scope") or {}),
+                )
+                if coherent_context_rows:
+                    sibling_context_rows = _merge_operand_rows(
+                        coherent_context_rows,
+                        sibling_context_rows,
+                        required_operands=required_operands,
+                    )
                 if sibling_context_rows:
                     operand_rows = self._align_dependency_rows_with_sibling_direct_context(
                         operand_rows,
                         sibling_context_rows,
+                    )
+                    operand_rows = self._prefer_complete_ratio_direct_context_rows(
+                        operand_rows=operand_rows,
+                        direct_rows=sibling_context_rows,
+                        required_operands=required_operands,
                     )
             if _is_percent_point_difference_query(query):
                 operand_rows = [
@@ -10648,9 +10871,11 @@ class FinancialAgentCalculationMixin:
             answer,
             calculation_result=calculation_result,
         )
-        if operation_family == "ratio" and self._ratio_component_consolidation_scope(calculation_result, operands):
-            answer = self._compact_ratio_answer(state, calculation_result)
-        elif operation_family == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+        if operation_family == "ratio" and (
+            self._ratio_components_are_complete(calculation_result)
+            or self._ratio_component_consolidation_scope(calculation_result, operands)
+            or self._ratio_components_have_suspicious_scale(calculation_result)
+        ):
             answer = self._compact_ratio_answer(state, calculation_result)
 
         calculation_result["formatted_result"] = answer
@@ -10755,9 +10980,11 @@ class FinancialAgentCalculationMixin:
                 final_answer,
                 calculation_result=calculation_result,
             )
-            if operation_family == "ratio" and self._ratio_component_consolidation_scope(calculation_result, operands):
-                final_answer = self._compact_ratio_answer(state, calculation_result)
-            elif operation_family == "ratio" and self._ratio_components_have_suspicious_scale(calculation_result):
+            if operation_family == "ratio" and (
+                self._ratio_components_are_complete(calculation_result)
+                or self._ratio_component_consolidation_scope(calculation_result, operands)
+                or self._ratio_components_have_suspicious_scale(calculation_result)
+            ):
                 final_answer = self._compact_ratio_answer(state, calculation_result)
             calculation_result["formatted_result"] = final_answer
             return {

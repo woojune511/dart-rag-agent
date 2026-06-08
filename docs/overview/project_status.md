@@ -140,7 +140,12 @@ role-separated multi-agent system using a task ledger and artifact store.
     `3.5269배`
   - `KAB_T1_066` remains a product-quality residual: the numeric evaluator
     marked the row PASS, but the answer still refused the CIR calculation in
-    the observed full replay
+    the observed full replay. A later single-question eval after ratio operand
+    hardening recovered the refusal path with faithfulness/completeness
+    `1.000 / 1.000`, but the component explanation can still mix equivalent
+    source displays from different tables (`435,542백만원` numerator with
+    `11,623억원` denominator), so this is not yet a replacement full-gate
+    baseline
   - validation: focused growth/aggregate regression `4` tests OK, broader
     structured operand / semantic plan / operation contract / subtask-loop
     suite `417` tests OK, and runtime domain-language audit passed
