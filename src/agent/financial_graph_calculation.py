@@ -2809,6 +2809,8 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
     ) -> str:
         for row in ordered_results:
+            if self._row_is_narrative_summary(row):
+                continue
             if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
                 continue
             status = _normalise_spaces(

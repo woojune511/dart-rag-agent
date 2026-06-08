@@ -5851,6 +5851,27 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["calculation_result"]["formatted_result"], "90.7%")
         self.assertNotIn("277.94%", updated["answer"])
 
+    def test_supported_aggregate_answer_ignores_narrative_summary_projection(self) -> None:
+        answer = self.agent._supported_aggregate_subtask_answer(
+            [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "answer": "서술형 보존 문장이 5,037,579 백만원을 말합니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "서술형 보존 문장이 5,037,579 백만원을 말합니다.",
+                        "formatted_result": "서술형 보존 문장이 5,037,579 백만원을 말합니다.",
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                }
+            ]
+        )
+
+        self.assertEqual(answer, "")
+
     def test_aggregate_subtasks_prefers_lookup_list_over_raw_narrative_table(self) -> None:
         self.agent.llm = None
         state = {

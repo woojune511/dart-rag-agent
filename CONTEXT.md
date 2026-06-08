@@ -11,6 +11,30 @@
 
 ## 최신 상태
 
+- 2026-06-09 concept runtime gap gate follow-up은 monitored full 7
+  store-fixed eval-only로 다시 닫혔다.
+  - 변경은 작게 제한했다. `narrative_summary` row는
+    `_supported_aggregate_subtask_answer()`에서 supported aggregate numeric
+    answer 후보로 보지 않는다. 서술형 projection이 우연히
+    `answer_slots.operation_family = aggregate_subtasks`를 들고 있어도
+    최종 aggregate numeric answer로 승격하지 않는 generic runtime contract다.
+  - full eval-only artifact:
+    `benchmarks/results/concept_gate_fresh_after_ratio_growth_hardening_2026-06-08/`
+    는 local artifact이며 commit 대상이 아니다.
+  - 문항별 결과는 7 / 7 `numeric_final_judgement = PASS`:
+    `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`,
+    `POS_T1_057`, `KAB_T1_066`, `SAM_T3_028`.
+  - 모든 문항의 faithfulness/completeness는 `1.000 / 1.000`.
+    대표 계산 surface는 `POS_T1_057 = 3.5269배`,
+    `KAB_T1_066 = 37.47%`, `SAM_T3_028` trace formula
+    `62,964백만원 / 180,388,580백만원 = 0.03%`.
+  - 검증:
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest tests.test_subtask_loop tests.test_operation_contracts`:
+      `336` tests OK.
+    - monitored full 7 eval-only: 7 / 7 PASS.
+
 - 2026-06-08 concept runtime gap follow-up에서 ratio unit binding과
   growth+narrative answer repair를 추가로 닫았다.
   - `POS_T1_057` full/replay path의 unit-source instability는 ratio operand
@@ -36,8 +60,8 @@
     - `python -m src.ops.audit_runtime_domain_terms`: passed
       (`215` reviewed literals).
     - `python -m unittest discover -s tests`: `997` tests OK.
-  - 아직 full 7 eval-only를 새로 다시 완료한 것은 아니다. 다음 promotion
-    proof는 store-fixed full 7 monitored eval-only로 갱신한다.
+  - 이 focused hardening의 promotion proof는 이후 2026-06-09 monitored full
+    7 store-fixed eval-only로 갱신됐다.
 
 - 2026-06-08 concept runtime gap gate의 budgeted eval-only follow-up에서
   growth-rate operand recovery를 보강했다.
@@ -78,8 +102,9 @@
     - `python -m unittest tests.test_structured_operand_extraction tests.test_semantic_numeric_plan tests.test_operation_contracts tests.test_subtask_loop`: `417` tests OK.
     - `python -m src.ops.audit_runtime_domain_terms`: passed
       (`215` reviewed literals).
-  - 아직 이 follow-up 자체로 full `7 / 7` stable proof를 다시 주장하지 않는다.
-    새 freeze 근거가 필요하면 monitored full 7 eval-only를 한 번 더 실행한다.
+  - 이 follow-up 자체는 처음에는 full stable proof가 아니었고, 이후
+    2026-06-09 monitored full 7 store-fixed eval-only replay로 검증을
+    갱신했다.
 
 - 2026-06-08 task-ledger/artifact-store capability gates를 정리했다.
   - Reflection promotion gate는 base fixture, store-fixed candidate surface,

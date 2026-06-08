@@ -33,7 +33,7 @@
 | [Evaluator + Routing Cascade v1 (2026-04-23)](#evaluator--routing-cascade-v1-2026-04-23) | evaluator + routing 구조 개편 | query routing을 cascade로 재구성 |
 | [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
-| [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual 확인 | ratio peer-unit binding과 growth+narrative repair는 닫혔지만 full baseline은 아직 교체하지 않음 |
+| [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual과 후속 full replay 확인 | ratio peer-unit binding, growth+narrative repair, narrative-summary aggregate guard 이후 monitored full 7 eval-only가 7 / 7 PASS |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
 ## 보는 법
@@ -70,6 +70,18 @@
 | `KAB_T1_066` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, CIR answer `37.47%` |
 | `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, final answer preserves `70.28%`, `3,146,409백만원`, `1,847,775백만원`, and risk-management cause narrative |
 
+후속 monitored full 7 store-fixed eval-only replay:
+
+| Question | Full replay outcome |
+| --- | --- |
+| `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000` |
+| `SKH_T3_080` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000` |
+| `CEL_T1_013` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000` |
+| `CEL_T3_040` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000` |
+| `POS_T1_057` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, answer `3.5269배` |
+| `KAB_T1_066` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, CIR answer `37.47%` |
+| `SAM_T3_028` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`; deterministic trace keeps `62,964백만원 / 180,388,580백만원 = 0.03%` |
+
 ### 해석
 
 - POS residual은 특정 회사 보정이 아니라 ratio operand peer-unit contract로
@@ -97,8 +109,17 @@
   `faithfulness = 1.000`, `completeness = 1.000`;
   `src.ops.audit_runtime_domain_terms --summary` passed; `git diff --check`
   passed; and full `python -m unittest discover -s tests` ran `1003` tests OK.
-- 이 항목은 새 full-gate baseline이 아니다. promotion proof를 갱신하려면
-  store-fixed full 7 eval-only replay를 별도로 실행해야 한다.
+- Final contract follow-up narrowed the supported aggregate answer selector:
+  `narrative_summary` rows are ignored even when their answer slots carry
+  `operation_family = aggregate_subtasks`. This prevents explanatory
+  projections from being promoted as aggregate numeric answers without adding
+  company-, question-, or metric-specific runtime branches.
+- Follow-up validation for that final contract guard:
+  `src.ops.audit_runtime_domain_terms --summary` passed with `215` reviewed
+  literals; `python -m unittest tests.test_subtask_loop
+  tests.test_operation_contracts` ran `336` tests OK; monitored full 7
+  eval-only replay reported `7 / 7` numeric PASS. Raw benchmark output remains
+  a local artifact and is not committed.
 
 ## MAS Smoke Outcome Refresh (2026-06-07)
 

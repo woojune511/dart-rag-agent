@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-08
+Last updated: 2026-06-09
 
 ## Positioning
 
@@ -124,6 +124,22 @@ role-separated multi-agent system using a task ledger and artifact store.
     `18 -> 8` and `15 -> 8`; the fan-out audit reported `15` executed queries,
     `0` duplicates, and `1` state query-result cache reuse
 - Latest hardening follow-up:
+  - a 2026-06-09 monitored store-fixed full eval-only replay refreshed the
+    concept runtime gate proof after the focused hardening work:
+    `benchmarks/results/concept_gate_fresh_after_ratio_growth_hardening_2026-06-08/`
+    remains a local experiment artifact and is not committed
+  - the replay reports `7 / 7` numeric `PASS` across `KBF_T2_018`,
+    `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`, `POS_T1_057`,
+    `KAB_T1_066`, and `SAM_T3_028`; all seven questions have
+    faithfulness/completeness `1.000 / 1.000`
+  - the final runtime change after ratio/growth hardening is intentionally
+    narrow: `narrative_summary` rows are skipped when selecting a supported
+    aggregate numeric answer, so narrative projections cannot be promoted just
+    because their answer slots carry `operation_family = aggregate_subtasks`
+  - latest validation for that final contract fix: `python -m
+    src.ops.audit_runtime_domain_terms --summary` passed with `215` reviewed
+    literals, and `python -m unittest tests.test_subtask_loop
+    tests.test_operation_contracts` ran `336` tests OK
   - a later 2026-06-08 focused hardening pass closed two single-question
     residuals without replacing the frozen 2026-06-04 full-gate baseline
   - `POS_T1_057` ratio operands now prefer direct structured evidence whose
@@ -143,8 +159,8 @@ role-separated multi-agent system using a task ledger and artifact store.
     ran `169` tests OK, `python -m src.ops.audit_runtime_domain_terms` passed
     with `215` reviewed literals, and `python -m unittest discover -s tests`
     ran `997` tests OK
-  - this is still focused canary hardening; a fresh full 7 eval-only replay is
-    required before claiming a new full concept-gate release baseline
+  - the focused canary hardening was subsequently replayed through the
+    monitored full 7 eval-only proof above
   - a 2026-06-08 budgeted full eval-only replay completed all seven concept
     questions but produced `5 / 7` numeric PASS, so it is not treated as a new
     release baseline
@@ -159,14 +175,10 @@ role-separated multi-agent system using a task ledger and artifact store.
   - focused canaries after the fix passed for `KBF_T2_018` and `POS_T1_057`
     with faithfulness/completeness `1.000 / 1.000`; `POS_T1_057` calculated
     `3.5269배`
-  - `KAB_T1_066` remains a product-quality residual: the numeric evaluator
-    marked the row PASS, but the answer still refused the CIR calculation in
-    the observed full replay. A later single-question eval after ratio operand
-    hardening recovered the refusal path with faithfulness/completeness
-    `1.000 / 1.000`; a follow-up ratio renderer pass now normalizes mixed KRW
-    component displays into a shared unit (`판매비와관리비 4,355.42억원 /
-    경비차감전영업이익 11,623억원`) instead of mixing `백만원 / 억원`. This
-    is not yet a replacement full-gate baseline
+  - `KAB_T1_066` is no longer tracked as an open product-quality residual in
+    this gate: the later single-question recovery and monitored full replay
+    both report numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, and
+    CIR answer `37.47%`
   - validation: focused growth/aggregate regression `4` tests OK, broader
     structured operand / semantic plan / operation contract / subtask-loop
     suite `417` tests OK, and runtime domain-language audit passed
