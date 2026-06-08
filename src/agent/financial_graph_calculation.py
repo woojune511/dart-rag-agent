@@ -2923,6 +2923,115 @@ class FinancialAgentCalculationMixin:
                     return True
         return False
 
+    def _strip_untraced_numeric_material_from_growth_narrative_sentence(
+        self,
+        sentence: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        cleaned = _normalise_spaces(str(sentence or ""))
+        if not cleaned:
+            return ""
+
+        complete_answers: List[str] = []
+        required_values: List[str] = []
+        for row in ordered_results or []:
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            if self._growth_row_has_conflicting_periods(row):
+                continue
+            complete_answer = self._compose_complete_growth_numeric_answer(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+            if complete_answer:
+                complete_answers.append(complete_answer)
+            required_values.extend(
+                self._growth_required_display_values(
+                    row,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+            )
+        if not complete_answers and not required_values:
+            return ""
+
+        has_untraced_numeric = any(
+            self._growth_sentence_has_untraced_material_numeric(
+                cleaned,
+                complete_answer,
+                required_values,
+                evidence_items,
+            )
+            for complete_answer in complete_answers
+        )
+        if not has_untraced_numeric:
+            return cleaned
+
+        allowed_surface = _normalise_spaces(" ".join([*complete_answers, *required_values]))
+        sanitized = cleaned
+
+        def _remove_unallowed_token(match: re.Match[str]) -> str:
+            token = _normalise_spaces(match.group(0))
+            return token if token and token in allowed_surface else " "
+
+        percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or "")
+        if percent_pattern:
+            sanitized = re.sub(percent_pattern, _remove_unallowed_token, sanitized)
+
+        unit_terms = sorted(
+            {
+                _normalise_spaces(str(unit))
+                for unit in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
+                if _normalise_spaces(str(unit))
+            },
+            key=len,
+            reverse=True,
+        )
+        if unit_terms:
+            joined_units = "|".join(re.escape(unit) for unit in unit_terms)
+            sanitized = re.sub(
+                rf"\d[\d,]*(?:\.\d+)?\s*(?:{joined_units})",
+                _remove_unallowed_token,
+                sanitized,
+            )
+
+        sanitized = re.sub(r"\s+([,.;:!?。])", r"\1", sanitized)
+        sanitized = re.sub(r"([,;:])\s*([,;:])+", r"\1", sanitized)
+        sanitized = re.sub(r"[(（]\s*[)）]", " ", sanitized)
+        sanitized = _normalise_spaces(sanitized)
+        if not sanitized or sanitized == cleaned:
+            return ""
+        if any(
+            self._growth_sentence_has_untraced_material_numeric(
+                sanitized,
+                complete_answer,
+                required_values,
+                evidence_items,
+            )
+            for complete_answer in complete_answers
+        ):
+            return ""
+        narrative_markers = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+        )
+        if not any(marker and marker in sanitized for marker in narrative_markers):
+            return ""
+        narrative_terms = [
+            term
+            for term in self._narrative_context_terms(sanitized)
+            if len(term) >= 3
+        ]
+        if len(narrative_terms) < 2:
+            return ""
+        if _narrative_sentence_looks_table_noisy(sanitized):
+            return ""
+        if _narrative_sentence_looks_abbreviated_fragment(sanitized, narrative_markers):
+            return ""
+        return sanitized
+
     def _growth_answer_has_untraced_numeric_sentence(
         self,
         answer: str,
@@ -3066,6 +3175,51 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
+    def _growth_narrative_numeric_incompatible_with_trace(
+        self,
+        *,
+        narrative_answer: str,
+        numeric_answer: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> bool:
+        narrative_text = _normalise_spaces(str(narrative_answer or ""))
+        if not narrative_text:
+            return False
+        trace_surfaces = [_normalise_spaces(str(numeric_answer or ""))]
+        for row in ordered_results or []:
+            if self._aggregate_result_operation_family(row) != "growth_rate":
+                continue
+            if self._growth_row_has_conflicting_periods(row):
+                continue
+            trace_surfaces.append(
+                self._compose_complete_growth_numeric_answer(
+                    row,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+            )
+            trace_surfaces.extend(
+                self._growth_required_display_values(
+                    row,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+            )
+        trace_numeric_candidates = self._answer_evidence_numeric_candidates(
+            _normalise_spaces(" ".join(surface for surface in trace_surfaces if surface))
+        )
+        narrative_numeric_candidates = self._answer_evidence_numeric_candidates(narrative_text)
+        if not trace_numeric_candidates or not narrative_numeric_candidates:
+            return False
+        return not all(
+            any(
+                self._numeric_candidates_equivalent_for_evidence(narrative_candidate, trace_candidate)
+                for trace_candidate in trace_numeric_candidates
+            )
+            for narrative_candidate in narrative_numeric_candidates
+        )
+
     def _query_requests_explanatory_context(
         self,
         query: str,
@@ -3075,6 +3229,29 @@ class FinancialAgentCalculationMixin:
             return False
         explanatory_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ()))
         return any(marker in text for marker in explanatory_markers)
+
+    def _sentence_has_growth_explanatory_signal(self, sentence: str) -> bool:
+        text = _normalise_spaces(str(sentence or ""))
+        if not text:
+            return False
+        direction_words = {
+            _normalise_spaces(str(value))
+            for value in (CALCULATION_NARRATIVE_POLICY.get("direction_words") or {}).values()
+            if _normalise_spaces(str(value))
+        }
+        markers = tuple(
+            marker
+            for marker in (
+                str(item)
+                for item in (
+                    tuple(CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+                    + tuple(CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ())
+                    + tuple(CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ())
+                )
+            )
+            if marker and marker not in direction_words
+        )
+        return any(marker in text for marker in markers)
 
     def _answer_reuses_narrative_summary_text(
         self,
@@ -3108,13 +3285,74 @@ class FinancialAgentCalculationMixin:
             return {"answer": numeric_text, "selected_claim_ids": []}
 
         query_text = _normalise_spaces(str(query or ""))
+        explanatory_markers = tuple(
+            str(item)
+            for item in (
+                tuple(CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+                + tuple(CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ())
+                + tuple(CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ())
+            )
+            if str(item)
+        )
+
+        def _has_explanatory_signal(sentence: str) -> bool:
+            sentence_text = _normalise_spaces(str(sentence or ""))
+            return bool(sentence_text) and any(marker in sentence_text for marker in explanatory_markers)
+
         conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
             query=query_text,
             ordered_results=ordered_results,
             evidence_items=evidence_items,
         )
         if conflicting_narrative:
-            return conflicting_narrative
+            conflicting_answer = _normalise_spaces(str(conflicting_narrative.get("answer") or ""))
+            if self._growth_narrative_numeric_incompatible_with_trace(
+                narrative_answer=conflicting_answer,
+                numeric_answer=numeric_text,
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            ):
+                return conflicting_narrative
+            conflicting_parts = [
+                sanitized_sentence
+                for sentence in (_split_narrative_sentences(conflicting_answer) or [conflicting_answer])
+                for sanitized_sentence in [
+                    self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                        sentence,
+                        ordered_results,
+                        evidence_items=evidence_items,
+                    )
+                ]
+                if (
+                    sanitized_sentence
+                    and sanitized_sentence not in numeric_text
+                    and _has_explanatory_signal(sanitized_sentence)
+                )
+            ]
+            if conflicting_parts:
+                combined_answer = self._ensure_complete_growth_numeric_answer(
+                    _normalise_spaces(" ".join([numeric_text, *conflicting_parts])),
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+                if not self._growth_answer_has_untraced_numeric_material(
+                    combined_answer,
+                    ordered_results,
+                    evidence_items,
+                ) and self._answer_satisfies_growth_narrative_intent(
+                    query=query_text,
+                    answer=combined_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=evidence_items,
+                ):
+                    return {
+                        "answer": combined_answer,
+                        "selected_claim_ids": [
+                            str(claim_id).strip()
+                            for claim_id in (conflicting_narrative.get("selected_claim_ids") or [])
+                            if str(claim_id).strip()
+                        ],
+                    }
 
         candidate_answer = self._ensure_complete_growth_numeric_answer(
             current_answer,
@@ -3131,6 +3369,64 @@ class FinancialAgentCalculationMixin:
             )
         ):
             return {"answer": candidate_answer, "selected_claim_ids": []}
+
+        row_narrative_parts: List[str] = []
+        row_selected_claim_ids: List[str] = []
+        max_driver_sentences = int(CALCULATION_NARRATIVE_POLICY.get("max_growth_driver_sentences") or 4)
+        for row in ordered_results:
+            if not self._row_is_narrative_summary(row):
+                continue
+            row_answer = _normalise_spaces(
+                str(
+                    row.get("answer")
+                    or (row.get("calculation_result") or {}).get("formatted_result")
+                    or (row.get("calculation_result") or {}).get("rendered_value")
+                    or ""
+                )
+            )
+            if not row_answer:
+                continue
+            row_claim_ids = [
+                str(claim_id).strip()
+                for claim_id in (row.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            ]
+            for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
+                candidate_sentence = _normalise_spaces(row_sentence)
+                if not candidate_sentence or candidate_sentence in numeric_text:
+                    continue
+                if self._answer_evidence_numeric_candidates(candidate_sentence) and not _has_explanatory_signal(
+                    candidate_sentence
+                ):
+                    continue
+                sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                    candidate_sentence,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+                if not sanitized_sentence or not _has_explanatory_signal(sanitized_sentence):
+                    continue
+                if sanitized_sentence in row_narrative_parts:
+                    continue
+                row_narrative_parts.append(sanitized_sentence)
+                row_selected_claim_ids.extend(row_claim_ids)
+                if len(row_narrative_parts) >= max_driver_sentences:
+                    break
+            if row_narrative_parts:
+                row_combined_answer = self._ensure_complete_growth_numeric_answer(
+                    _normalise_spaces(" ".join([numeric_text, *row_narrative_parts])),
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+                if not self._growth_answer_has_untraced_numeric_material(
+                    row_combined_answer,
+                    ordered_results,
+                    evidence_items,
+                ):
+                    return {
+                        "answer": row_combined_answer,
+                        "selected_claim_ids": list(dict.fromkeys(row_selected_claim_ids)),
+                    }
 
         composed = self._compose_growth_narrative_answer(
             query=query_text,
@@ -3171,6 +3467,7 @@ class FinancialAgentCalculationMixin:
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         narrative_parts: List[str] = []
         selected_claim_ids: List[str] = []
+        sanitized_narrative_parts: List[tuple[str, List[str]]] = []
         for _score, sentence, claim_ids in self._growth_narrative_sentence_candidates(
             query=query_text,
             ordered_results=ordered_results,
@@ -3179,10 +3476,39 @@ class FinancialAgentCalculationMixin:
             candidate_sentence = _normalise_spaces(sentence)
             if not candidate_sentence or candidate_sentence in numeric_text:
                 continue
+            if self._answer_evidence_numeric_candidates(candidate_sentence) and not _has_explanatory_signal(
+                candidate_sentence
+            ):
+                continue
+            sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                candidate_sentence,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+            if not sanitized_sentence:
+                continue
+            if sanitized_sentence != candidate_sentence:
+                sanitized_narrative_parts.append(
+                    (
+                        sanitized_sentence,
+                        [
+                            str(claim_id).strip()
+                            for claim_id in (claim_ids or [])
+                            if str(claim_id).strip()
+                        ],
+                    )
+                )
+                continue
+            candidate_sentence = sanitized_sentence
             narrative_parts.append(candidate_sentence)
             selected_claim_ids.extend(str(claim_id).strip() for claim_id in (claim_ids or []) if str(claim_id).strip())
             break
+        if not narrative_parts and sanitized_narrative_parts:
+            candidate_sentence, claim_ids = sanitized_narrative_parts[0]
+            narrative_parts.append(candidate_sentence)
+            selected_claim_ids.extend(claim_ids)
         if not narrative_parts:
+            sanitized_row_parts: List[tuple[str, List[str]]] = []
             for row in ordered_results:
                 if not self._row_is_narrative_summary(row):
                     continue
@@ -3198,12 +3524,38 @@ class FinancialAgentCalculationMixin:
                     continue
                 if row_answer in numeric_text:
                     continue
-                narrative_parts.append(row_answer)
-                selected_claim_ids.extend(
+                row_claim_ids = [
                     str(claim_id).strip()
                     for claim_id in (row.get("selected_claim_ids") or [])
                     if str(claim_id).strip()
-                )
+                ]
+                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
+                    candidate_sentence = _normalise_spaces(row_sentence)
+                    if not candidate_sentence or candidate_sentence in numeric_text:
+                        continue
+                    if self._answer_evidence_numeric_candidates(candidate_sentence) and not _has_explanatory_signal(
+                        candidate_sentence
+                    ):
+                        continue
+                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                        candidate_sentence,
+                        ordered_results,
+                        evidence_items=evidence_items,
+                    )
+                    if not sanitized_sentence:
+                        continue
+                    if sanitized_sentence != candidate_sentence:
+                        sanitized_row_parts.append((sanitized_sentence, row_claim_ids))
+                        continue
+                    narrative_parts.append(sanitized_sentence)
+                    selected_claim_ids.extend(row_claim_ids)
+                    break
+                if narrative_parts:
+                    break
+            if not narrative_parts and sanitized_row_parts:
+                candidate_sentence, row_claim_ids = sanitized_row_parts[0]
+                narrative_parts.append(candidate_sentence)
+                selected_claim_ids.extend(row_claim_ids)
 
         if narrative_parts:
             raw_combined_answer = _normalise_spaces(" ".join([numeric_text, *narrative_parts]))
@@ -3230,7 +3582,10 @@ class FinancialAgentCalculationMixin:
                     answer=candidate_combined_answer,
                     ordered_results=ordered_results,
                     evidence_items=evidence_items,
-                ) or contains_narrative_part:
+                ) or (
+                    contains_narrative_part
+                    and any(_has_explanatory_signal(part) for part in narrative_parts)
+                ):
                     return {
                         "answer": candidate_combined_answer,
                         "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
@@ -7584,6 +7939,31 @@ class FinancialAgentCalculationMixin:
                 updated_rows.append(row)
         return updated_rows
 
+    def _growth_operand_periods_conflict(self, ordered_operands: List[Dict[str, Any]]) -> bool:
+        if len(ordered_operands) != 2:
+            return False
+        current_row = next(
+            (
+                dict(row)
+                for row in ordered_operands
+                if str(row.get("matched_operand_role") or "").strip() == "current_period"
+            ),
+            None,
+        )
+        prior_row = next(
+            (
+                dict(row)
+                for row in ordered_operands
+                if str(row.get("matched_operand_role") or "").strip() == "prior_period"
+            ),
+            None,
+        )
+        if current_row is None or prior_row is None:
+            return False
+        current_period = self._period_match_key(str(current_row.get("period") or current_row.get("label") or ""))
+        prior_period = self._period_match_key(str(prior_row.get("period") or prior_row.get("label") or ""))
+        return bool(current_period and prior_period and current_period == prior_period)
+
     def _late_runtime_numeric_answer(
         self,
         state: FinancialAgentState,
@@ -10589,6 +10969,9 @@ class FinancialAgentCalculationMixin:
                 ]
                 ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
+            if self._growth_operand_periods_conflict(ordered_operands):
+                return _fail("insufficient_operands", "growth operands share the same period")
+
         sign_normalized_operands = self._apply_operation_sign_policy(
             ordered_operands,
             operation=operation,
@@ -11778,21 +12161,34 @@ class FinancialAgentCalculationMixin:
                 ordered_results=ordered_results,
                 evidence_items=aggregate_evidence_items,
             )
+        final_conflicting_narrative_locked = False
         if final_conflicting_narrative:
-            final_answer = _normalise_spaces(str(final_conflicting_narrative.get("answer") or final_answer))
-            selected_claim_ids = list(
-                dict.fromkeys(
-                    [
-                        *selected_claim_ids,
-                        *[
-                            str(claim_id).strip()
-                            for claim_id in (final_conflicting_narrative.get("selected_claim_ids") or [])
-                            if str(claim_id).strip()
-                        ],
-                    ]
+            conflicting_answer = _normalise_spaces(str(final_conflicting_narrative.get("answer") or ""))
+            if self._growth_narrative_numeric_incompatible_with_trace(
+                narrative_answer=conflicting_answer,
+                numeric_answer=final_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            ):
+                final_answer = conflicting_answer or final_answer
+                final_conflicting_narrative_locked = True
+                selected_claim_ids = list(
+                    dict.fromkeys(
+                        [
+                            *selected_claim_ids,
+                            *[
+                                str(claim_id).strip()
+                                for claim_id in (final_conflicting_narrative.get("selected_claim_ids") or [])
+                                if str(claim_id).strip()
+                            ],
+                        ]
+                    )
                 )
-            )
-        if has_narrative_summary and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
+        if (
+            has_narrative_summary
+            and not final_conflicting_narrative_locked
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+        ):
             final_answer = self._ensure_complete_growth_numeric_answer(
                 final_answer,
                 ordered_results,
@@ -12019,7 +12415,7 @@ class FinancialAgentCalculationMixin:
                     for term in self._narrative_context_terms(cleaned_sentence)
                     if len(term) >= 3
                 ]
-                if len(sentence_terms) >= 2:
+                if len(sentence_terms) >= 2 and self._sentence_has_growth_explanatory_signal(cleaned_sentence):
                     final_has_nonnumeric_narrative = True
                     break
             final_answer_terms = {
@@ -12045,6 +12441,17 @@ class FinancialAgentCalculationMixin:
                     continue
                 if any(marker and marker in row_answer for marker in missing_markers):
                     continue
+                sanitized_row_parts: List[str] = []
+                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
+                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                        row_sentence,
+                        ordered_results,
+                        evidence_items=aggregate_evidence_items,
+                    )
+                    if sanitized_sentence and self._sentence_has_growth_explanatory_signal(sanitized_sentence):
+                        sanitized_row_parts.append(sanitized_sentence)
+                if sanitized_row_parts:
+                    row_answer = _normalise_spaces(" ".join(sanitized_row_parts))
                 if (
                     self._answer_evidence_numeric_candidates(row_answer)
                     and self._growth_answer_has_untraced_numeric_material(
@@ -12110,6 +12517,97 @@ class FinancialAgentCalculationMixin:
             aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
             if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
                 aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+        if has_narrative_summary and has_growth_rate_result:
+            final_promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
+            final_projection = self._build_aggregate_calculation_projection(final_promoted_results, final_answer)
+            final_aligned_results = self._align_lookup_results_with_dependency_projection(
+                final_promoted_results,
+                state,
+                final_projection,
+            )
+            if final_promoted_results != ordered_results or final_aligned_results != final_promoted_results:
+                ordered_results = final_aligned_results
+                aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
+                final_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+                if final_numeric_answer:
+                    refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
+                        query=str(state.get("query") or ""),
+                        current_answer=final_answer,
+                        numeric_answer=final_numeric_answer,
+                        ordered_results=ordered_results,
+                        evidence_items=aggregate_evidence_items,
+                    )
+                    final_answer = _normalise_spaces(str(refreshed_answer.get("answer") or final_numeric_answer))
+                    selected_claim_ids = list(
+                        dict.fromkeys(
+                            [
+                                *selected_claim_ids,
+                                *[
+                                    str(claim_id).strip()
+                                    for claim_id in (refreshed_answer.get("selected_claim_ids") or [])
+                                    if str(claim_id).strip()
+                                ],
+                            ]
+                        )
+                    )
+                    aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                    if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                        aggregate_projection["calculation_result"]["rendered_value"] = final_answer
+            final_explanatory_parts: List[str] = []
+            seen_explanatory_parts: set[str] = set()
+            for row in ordered_results:
+                operation_family = self._aggregate_result_operation_family(row)
+                if not (self._row_is_narrative_summary(row) or operation_family == "aggregate_subtasks"):
+                    continue
+                row_answer = _normalise_spaces(
+                    str(
+                        row.get("answer")
+                        or (row.get("calculation_result") or {}).get("formatted_result")
+                        or (row.get("calculation_result") or {}).get("rendered_value")
+                        or ""
+                    )
+                )
+                if not row_answer or row_answer in final_answer:
+                    continue
+                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
+                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                        row_sentence,
+                        ordered_results,
+                        evidence_items=aggregate_evidence_items,
+                    )
+                    if not sanitized_sentence or sanitized_sentence in final_answer:
+                        continue
+                    if sanitized_sentence in seen_explanatory_parts:
+                        continue
+                    if not self._sentence_has_growth_explanatory_signal(sanitized_sentence):
+                        continue
+                    narrative_markers = tuple(
+                        str(item)
+                        for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+                    )
+                    if _narrative_sentence_looks_table_noisy(sanitized_sentence):
+                        continue
+                    if _narrative_sentence_looks_abbreviated_fragment(sanitized_sentence, narrative_markers):
+                        continue
+                    if re.search(r"\d", sanitized_sentence):
+                        continue
+                    if self._growth_answer_has_untraced_numeric_material(
+                        sanitized_sentence,
+                        ordered_results,
+                        aggregate_evidence_items,
+                    ):
+                        continue
+                    seen_explanatory_parts.add(sanitized_sentence)
+                    final_explanatory_parts.append(sanitized_sentence)
+                    if len(final_explanatory_parts) >= 2:
+                        break
+                if len(final_explanatory_parts) >= 2:
+                    break
+            if final_explanatory_parts:
+                final_answer = _normalise_spaces(" ".join([final_answer, *final_explanatory_parts]))
+                aggregate_projection.setdefault("calculation_result", {})["formatted_result"] = final_answer
+                if str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks":
+                    aggregate_projection["calculation_result"]["rendered_value"] = final_answer
         aggregate_evidence_items = self._filter_aggregate_evidence_for_final_answer(
             aggregate_evidence_items,
             final_answer=final_answer,
@@ -12481,4 +12979,3 @@ class FinancialAgentCalculationMixin:
                 f"/ {metadata.get('block_type', '?')} (score: {score:.3f})"
             )
         return {"citations": citations}
-

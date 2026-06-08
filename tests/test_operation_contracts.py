@@ -4779,6 +4779,68 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_value"], 781000.0)
         self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
 
+    def test_growth_rate_rejects_same_period_current_and_prior_operands(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = _execute_calculation_with_runtime_trace(agent,
+            {
+                "query": "2023년 target metric의 전년 대비 성장률을 계산해 줘",
+                "active_subtask": {
+                    "task_id": "task_growth",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "target metric",
+                    "operation_family": "growth_rate",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_current",
+                        "evidence_id": "ev_current",
+                        "label": "target metric",
+                        "concept": "target_metric",
+                        "raw_value": "3,146",
+                        "raw_unit": "million",
+                        "normalized_value": 3146000000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_concept": "target_metric",
+                        "matched_operand_role": "current_period",
+                    },
+                    {
+                        "operand_id": "op_prior",
+                        "evidence_id": "ev_prior_wrong_period",
+                        "label": "target metric",
+                        "concept": "target_metric",
+                        "raw_value": "28",
+                        "raw_unit": "million",
+                        "normalized_value": 28000000.0,
+                        "normalized_unit": "KRW",
+                        "period": "2023",
+                        "matched_operand_concept": "target_metric",
+                        "matched_operand_role": "prior_period",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["op_current", "op_prior"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_current"},
+                        {"variable": "B", "operand_id": "op_prior"},
+                    ],
+                    "formula": "((A - B) / B) * 100",
+                    "result_unit": "%",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
+        self.assertEqual(calc["status"], "insufficient_operands")
+        self.assertEqual(calc["rendered_value"], "")
+        self.assertNotIn("11135", str(calc.get("result_value") or ""))
+
     def test_growth_answer_replaces_untraced_numeric_sentence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         growth_row = {

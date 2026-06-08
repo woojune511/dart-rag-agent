@@ -71,6 +71,18 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
         self.agent._llm_for_phase = lambda _phase: self.agent.llm
 
+    def test_growth_explanatory_signal_ignores_numeric_direction_only_sentence(self) -> None:
+        self.assertFalse(
+            self.agent._sentence_has_growth_explanatory_signal(
+                "2023 revenue increased 70.28% compared with 2022."
+            )
+        )
+        self.assertTrue(
+            self.agent._sentence_has_growth_explanatory_signal(
+                "The reason was weaker demand and stricter risk management."
+            )
+        )
+
     def test_aggregate_subtasks_preserves_supported_quantitative_impact_answer(self) -> None:
         self.agent.llm = None
         state = {
@@ -10263,6 +10275,211 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(growth_slots["prior_value"]["raw_value"], "1,801,079")
         self.assertEqual(growth_slots["prior_value"]["period"], "2022")
 
+    def test_late_nested_lookup_promotion_recalculates_growth_before_final_projection(self) -> None:
+        self.agent.llm = None
+        self.agent._append_retrieved_narrative_evidence_for_final_answer = (
+            lambda evidence_items, **_kwargs: (list(evidence_items or []), ["ev_driver"])
+        )
+        self.agent._preserve_retrieved_narrative_source_surface = (
+            lambda _answer, _evidence_items: (
+                "2023 segment revenue was 2,546,649 million, "
+                "up 41.4% from 1,801,079 million."
+            )
+        )
+        correct_prior_row = {
+            "task_id": "task_4",
+            "metric_family": "concept_lookup",
+            "metric_label": "2022 segment revenue",
+            "operation_family": "lookup",
+            "answer": "1,801,079 million",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "1,801,079 million",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "concept": "revenue",
+                        "period": "2022",
+                        "raw_value": "1,801,079",
+                        "raw_unit": "million",
+                        "normalized_value": 1801079000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "1,801,079 million",
+                        "source_row_id": "ev_prior",
+                    },
+                },
+            },
+        }
+        state = {
+            "query": "Calculate the 2023 segment revenue growth rate and summarize the acquisition impact.",
+            "calc_subtasks": [
+                {"task_id": "task_3", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_4", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_1", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "operation_family": "aggregate_subtasks"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 segment revenue",
+                    "operation_family": "lookup",
+                    "answer": "2,546,649 million",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "2,546,649 million",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "2,546,649",
+                                "raw_unit": "million",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,546,649 million",
+                                "source_row_id": "ev_current",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_4",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022 segment revenue",
+                    "operation_family": "lookup",
+                    "answer": "303 million",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "303 million",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2022",
+                                "raw_value": "303",
+                                "raw_unit": "million",
+                                "normalized_value": 303000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "303 million",
+                                "source_row_id": "ev_weak_prior",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment revenue growth rate",
+                    "operation_family": "growth_rate",
+                    "answer": "segment revenue increased 840478.88%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "840478.88%",
+                        "formatted_result": "840478.88%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment revenue growth rate",
+                                "period": "2023",
+                                "normalized_value": 840478.88,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "840478.88%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2023",
+                                "raw_value": "2,546,649",
+                                "raw_unit": "million",
+                                "normalized_value": 2546649000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,546,649 million",
+                                "source_row_id": "task_output:task_3",
+                                "source_row_ids": ["task_output:task_3", "ev_current"],
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "segment revenue",
+                                "concept": "revenue",
+                                "period": "2022",
+                                "raw_value": "303",
+                                "raw_unit": "million",
+                                "normalized_value": 303000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "303 million",
+                                "source_row_id": "task_output:task_4",
+                                "source_row_ids": ["task_output:task_4", "ev_weak_prior"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "growth narrative",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": (
+                        "2023 segment revenue was 2,546,649 million, "
+                        "up 41.4% from 1,801,079 million. "
+                        "인수 통합 영향으로 segment revenue growth가 개선되었습니다."
+                    ),
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": (
+                            "2023 segment revenue was 2,546,649 million, "
+                            "up 41.4% from 1,801,079 million. "
+                            "인수 통합 영향으로 segment revenue growth가 개선되었습니다."
+                        ),
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                        "subtask_results": [correct_prior_row],
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "인수 통합 영향으로 segment revenue growth가 개선되었습니다.",
+                    "quote_span": "인수 통합 영향으로 segment revenue growth가 개선되었습니다",
+                    "support_level": "direct",
+                }
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("1,801,079 million", updated["answer"])
+        self.assertIn("인수 통합 영향", updated["answer"])
+        self.assertNotIn("303 million", updated["answer"])
+        self.assertNotIn("840478.88%", updated["answer"])
+        prior_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_4")
+        self.assertTrue(prior_row.get("promoted_from_nested_aggregate"))
+        growth_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_1")
+        self.assertTrue(growth_row.get("aligned_from_source_task_slots"))
+        self.assertEqual(growth_row["calculation_result"]["rendered_value"], "41.4%")
+        self.assertEqual(
+            growth_row["calculation_result"]["answer_slots"]["prior_value"]["raw_value"],
+            "1,801,079",
+        )
+
     def test_dependency_slot_alignment_dedupes_stale_operand_ids(self) -> None:
         state = {
             "query": "Calculate segment revenue growth.",
@@ -10742,6 +10959,110 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("2,546,649 million", updated["answer"])
         self.assertIn("1,801,079 million", updated["answer"])
         self.assertIn("acquisition integration improved", updated["answer"])
+        self.assertIn("ev_driver", updated["selected_claim_ids"])
+
+    def test_late_numeric_refresh_recovers_clean_narrative_from_conflicting_summary_child(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": (
+                        "2023년 서비스 매출액은 2,546,649 million이며, "
+                        "2022년 1,801,079 million 대비 41.4% 증가했습니다."
+                    ),
+                    "planner_feedback": "",
+                }
+            )
+        )
+        self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
+
+        def _aligned_results(ordered_results, _state, _projection):
+            aligned = []
+            for row in ordered_results:
+                if row.get("task_id") == "task_1":
+                    aligned.append({**dict(row), "aligned_from_source_task_slots": True})
+                else:
+                    aligned.append(dict(row))
+            return aligned
+
+        self.agent._align_lookup_results_with_dependency_projection = _aligned_results
+        state = {
+            "query": "2023년 서비스 매출액 증가율을 계산하고, 그 원인을 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_2", "metric_family": "narrative_summary", "operation_family": "narrative_summary"},
+            ],
+            "active_subtask_index": 1,
+            "active_subtask": {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "operation_family": "narrative_summary",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "서비스 매출액 증가율",
+                    "answer": "41.4%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "41.4%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "서비스 매출액 증가율",
+                                "period": "2023",
+                                "normalized_value": 41.4,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "41.4%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "서비스 매출액",
+                                "period": "2023",
+                                "rendered_value": "2,546,649 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "서비스 매출액",
+                                "period": "2022",
+                                "rendered_value": "1,801,079 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "증가 원인",
+                    "answer": (
+                        "2023년 서비스 매출액은 2,540,000 million이며, "
+                        "2022년 1,800,000 million 대비 40.9% 증가했습니다. "
+                        "신규 채널 확장이 증가 원인입니다."
+                    ),
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ],
+            "answer": "",
+            "compressed_answer": "",
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("41.4%", updated["answer"])
+        self.assertIn("2,546,649 million", updated["answer"])
+        self.assertIn("1,801,079 million", updated["answer"])
+        self.assertIn("신규 채널 확장", updated["answer"])
+        self.assertNotIn("40.9%", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
     def test_late_source_surface_preservation_keeps_growth_numeric_contract(self) -> None:

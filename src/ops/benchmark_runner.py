@@ -334,18 +334,19 @@ def _slugify(value: str) -> str:
     return "-".join(part for part in lowered.split("-") if part)
 
 
+def _looks_like_windows_absolute_path(path_text: str) -> bool:
+    return len(path_text) >= 3 and path_text[1] == ":" and path_text[2] in {"\\", "/"}
+
+
 def _normalise_path(path_value: str | Path) -> Path:
-    path = Path(path_value)
-    if not path.is_absolute():
+    path_text = str(path_value)
+    path = Path(path_text)
+    if not path.is_absolute() and not _looks_like_windows_absolute_path(path_text):
         path = (PROJECT_ROOT / path).resolve()
-    if not path.exists():
-        parts_lower = [part.lower() for part in path.parts]
-        for index in range(len(parts_lower) - 1):
-            if parts_lower[index] == "data" and parts_lower[index + 1] == "reports":
-                remapped = PROJECT_ROOT / "data" / "reports" / Path(*path.parts[index + 2 :])
-                if remapped.exists():
-                    return remapped.resolve()
-                break
+    parts_lower = [part.lower() for part in path.parts]
+    for index in range(len(parts_lower) - 1):
+        if parts_lower[index] == "data" and parts_lower[index + 1] == "reports":
+            return (PROJECT_ROOT / "data" / "reports" / Path(*path.parts[index + 2 :])).resolve()
     return path
 
 

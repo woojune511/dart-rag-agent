@@ -53,6 +53,7 @@
 - `benchmarks/results/tmp_kbf_t2_018_recovery_skip_current_2026-06-08/`
 - `benchmarks/results/tmp_pos_t1_057_unit_check_2026-06-08/`
 - `benchmarks/results/tmp_kab_t1_066_ratio_component_merge_fix_2026-06-08/`
+- `benchmarks/results/concept_gate_fresh_after_ratio_growth_hardening_2026-06-08/`
 
 ### 무엇을 검증했나
 
@@ -67,7 +68,7 @@
 | --- | --- |
 | `POS_T1_057` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, answer `3.5269배` |
 | `KAB_T1_066` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, CIR answer `37.47%` |
-| `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, final answer preserves `70.28%` and conservative provisioning / future economic uncertainty cause |
+| `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, final answer preserves `70.28%`, `(3,146,409)백만원`, `(1,847,775)백만원`, and risk-management cause narrative |
 
 ### 해석
 
@@ -78,10 +79,16 @@
   만족했다고 보는 aggregate repair gap이었다. `narrative_summary` row의
   서술 문장을 deterministic repair 후보로 유지하고, final answer가 실제
   서술 후보를 포함할 때만 supported aggregate answer를 보호한다.
+- Follow-up hardening keeps nested aggregate lookup rows available for final
+  promotion, realigns growth operands from the promoted lookup slots before
+  final projection, rejects same-period current/prior growth operands, and
+  preserves digit-free explanatory narrative after late source-surface
+  rewrites without reattaching table fragments.
 - 검증은 focused eval-only와 local regression suite로 닫았다:
-  `tests.test_subtask_loop tests.test_part_whole_ratio_contract` `169` tests OK,
-  `src.ops.audit_runtime_domain_terms` passed, and full `unittest discover`
-  `997` tests OK.
+  final focused `KBF_T2_018` eval-only `numeric_final_judgement = PASS`,
+  `faithfulness = 1.000`, `completeness = 1.000`;
+  `src.ops.audit_runtime_domain_terms --summary` passed; `git diff --check`
+  passed; and full `python -m unittest discover -s tests` ran `1001` tests OK.
 - 이 항목은 새 full-gate baseline이 아니다. promotion proof를 갱신하려면
   store-fixed full 7 eval-only replay를 별도로 실행해야 한다.
 
@@ -1116,4 +1123,3 @@ References:
   원천 subtask provenance가 보존되어 있으면 grounded operand로 인정하는 것이
   맞다.
 - 특정 문항/회사/계정명을 직접 처리하는 rule은 추가하지 않았다.
-

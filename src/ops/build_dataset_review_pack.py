@@ -12,7 +12,14 @@ from typing import Any, Dict, Iterable, List, Tuple
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _looks_like_windows_absolute_path(path_text: str) -> bool:
+    return len(path_text) >= 3 and path_text[1] == ":" and path_text[2] in {"\\", "/"}
+
+
 def _normalise_path(path_value: str | Path) -> Path:
+    path_text = str(path_value)
+    if _looks_like_windows_absolute_path(path_text):
+        return Path(path_text)
     path = Path(path_value)
     if not path.is_absolute():
         path = (PROJECT_ROOT / path).resolve()
