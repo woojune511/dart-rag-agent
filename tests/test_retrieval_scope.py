@@ -3,7 +3,7 @@ import unittest
 from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_evidence import (
+from src.agent.financial_graph_retrieval_budget import (
     _apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
     _summarize_executed_query_telemetry,

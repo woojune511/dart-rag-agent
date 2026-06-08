@@ -1000,11 +1000,24 @@ Current next decisions:
   embedding calls, top duplicate query signatures by row/source/trace/task,
   LLM usage, estimated runtime cost, and quality metrics before any new budget
   probe is run.
+- Retrieval budget, dedupe, executed-query telemetry, and cross-trace reuse
+  diagnostics now live in `src.agent.financial_graph_retrieval_budget`, with
+  the evidence mixin preserving the existing helper import surface. This keeps
+  cost-control mechanics separate from evidence shaping and narrative answer
+  composition before deeper API-cost changes.
 - The fan-out audit now also separates cross-trace reuse candidates by current
   cache hit vs current cache miss counts. This keeps mixed
   numeric+narrative rows such as `NAV_T2_006` from looking like obvious runtime
   cost targets when the repeated sibling lookup query was already served from
   the exact-query cache.
+- A store-fixed concept gate audit over
+  `concept_gate_refresh_after_answer_composition_2026-06-04` found 7 questions,
+  25 retrieval traces, 594 executed queries, 370 unique executed queries, 224
+  duplicate executed queries, 370 query-embedding API calls, 131 LLM API calls,
+  and estimated runtime cost `$1.430221`. Duplicate pressure is concentrated in
+  `CEL_T3_040` and `KBF_T2_018`; many repeats are already search-cache hits, so
+  the next cost reduction should target repeated primary query generation across
+  sibling lookup tasks rather than changing answer composition.
 - Initial policy-gate audit baselines:
   - `policy_gate_regression_2026-05-31_2212`: 5 questions, 11 retrieval
     traces, 93 executed queries, 89 query embedding calls, estimated runtime
