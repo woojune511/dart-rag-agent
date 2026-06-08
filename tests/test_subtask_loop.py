@@ -3016,6 +3016,120 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "numerator_1")
         self.assertTrue(trace["calculation_operands"][0]["dependency_resolved"])
 
+    def test_synthesis_retry_strategy_uses_resolved_task_output_operands(self) -> None:
+        state = {
+            "query": "calculate the ratio from completed lookup tasks",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "retry_strategy": "synthesize_from_task_outputs",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "numerator", "role": "numerator_1"},
+                    {"label": "denominator", "role": "denominator_1"},
+                ],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "period": "2023",
+                        "label": "numerator",
+                        "preferred_task_id": "task_2",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "period": "2023",
+                        "label": "denominator",
+                        "preferred_task_id": "task_3",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "numerator",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "numerator",
+                                "period": "2023",
+                                "raw_value": "10",
+                                "raw_unit": "원",
+                                "normalized_value": 10.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "10원",
+                                "source_row_id": "ev_numerator",
+                                "source_row_ids": ["ev_numerator"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_3",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "denominator",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "denominator",
+                                "period": "2023",
+                                "raw_value": "20",
+                                "raw_unit": "원",
+                                "normalized_value": 20.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "20원",
+                                "source_row_id": "ev_denominator",
+                                "source_row_ids": ["ev_denominator"],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "retry_retrieval", "retry_strategy": "synthesize_from_task_outputs"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertIn(
+            extracted["calculation_debug_trace"]["source"],
+            {"structured_row_direct", "dependency_synthesis_only"},
+        )
+        self.assertEqual(len(trace["calculation_operands"]), 2)
+        self.assertEqual(
+            [row["matched_operand_role"] for row in trace["calculation_operands"]],
+            ["numerator_1", "denominator_1"],
+        )
+        self.assertEqual(extracted["artifacts"][0]["kind"], "operand_set")
+
     def test_route_after_reconcile_plan_uses_operand_extractor_for_synthesis_strategy(self) -> None:
         route = self.agent._route_after_reconcile_plan(
             {
@@ -5517,6 +5631,197 @@ class SubtaskLoopTests(unittest.TestCase):
             _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
             {},
         )
+
+    def test_prepare_synthesis_reflection_retry_records_task_output_source_ids(self) -> None:
+        state = {
+            "query": "calculate ratio from completed lookup tasks",
+            "topic": "ratio",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "years": [],
+            "companies": [],
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "ratio",
+                "operation_family": "ratio",
+                "depends_on": ["task_2", "task_3"],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "label": "numerator",
+                        "preferred_task_id": "task_2",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "label": "denominator",
+                        "preferred_task_id": "task_3",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "artifact_ids": ["operands:task_2:001", "plan:task_2:002", "result:task_2:003"],
+                    "calculation_result": {"status": "ok", "rendered_value": "10"},
+                },
+                {
+                    "task_id": "task_3",
+                    "artifact_ids": ["operands:task_3:004", "plan:task_3:005", "result:task_3:006"],
+                    "calculation_result": {"status": "ok", "rendered_value": "20"},
+                },
+            ],
+            "tasks": [
+                {
+                    "task_id": "task_2",
+                    "kind": "calculation",
+                    "label": "numerator",
+                    "status": "completed",
+                    "artifact_ids": ["operands:task_2:001", "plan:task_2:002", "result:task_2:003"],
+                },
+                {
+                    "task_id": "task_3",
+                    "kind": "calculation",
+                    "label": "denominator",
+                    "status": "completed",
+                    "artifact_ids": ["operands:task_3:004", "plan:task_3:005", "result:task_3:006"],
+                },
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_2:001",
+                    "task_id": "task_2",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"operand_id": "n"}]},
+                    "evidence_refs": ["ev_task_2"],
+                },
+                {
+                    "artifact_id": "plan:task_2:002",
+                    "task_id": "task_2",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                    "evidence_refs": ["ev_task_2"],
+                },
+                {
+                    "artifact_id": "result:task_2:003",
+                    "task_id": "task_2",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "10"}},
+                    "evidence_refs": ["ev_task_2"],
+                },
+                {
+                    "artifact_id": "operands:task_3:004",
+                    "task_id": "task_3",
+                    "kind": "operand_set",
+                    "status": "ok",
+                    "payload": {"calculation_operands": [{"operand_id": "d"}]},
+                    "evidence_refs": ["ev_task_3"],
+                },
+                {
+                    "artifact_id": "plan:task_3:005",
+                    "task_id": "task_3",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                    "evidence_refs": ["ev_task_3"],
+                },
+                {
+                    "artifact_id": "result:task_3:006",
+                    "task_id": "task_3",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "20"}},
+                    "evidence_refs": ["ev_task_3"],
+                },
+            ],
+            "missing_info": [],
+            "reflection_count": 0,
+            "reflection_plan": {
+                "retry_strategy": "synthesize_from_task_outputs",
+                "missing_info": ["ratio operands"],
+                "subqueries": [],
+                "preferred_sections": [],
+                "explanation": "use completed task outputs",
+            },
+            "reflection_request": {"failure_status": "incomplete"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [],
+                "calculation_plan": {"status": "incomplete", "missing_info": ["ratio operands"]},
+                "calculation_result": {},
+            },
+            "structured_result": {},
+        }
+
+        update = self.agent._prepare_reflection_retry(state)
+
+        self.assertEqual(update["reflection_action"]["action_type"], "synthesize_from_task_outputs")
+        self.assertEqual(
+            update["reflection_action"]["synthesis_source_ids"],
+            ["result:task_2:003", "result:task_3:006"],
+        )
+        self.assertEqual(
+            update["reflection_plan"]["synthesis_source_ids"],
+            ["result:task_2:003", "result:task_3:006"],
+        )
+        trace = _project_task_artifact_trace(update["tasks"], update["artifacts"])
+        self.assertEqual(trace["integrity_status"], "ok")
+
+    def test_task_artifact_trace_ignores_superseded_empty_required_payload(self) -> None:
+        trace = _project_task_artifact_trace(
+            [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "ratio",
+                    "status": "completed",
+                    "artifact_ids": [
+                        "operands:task_1:001",
+                        "operands:task_1:002",
+                        "plan:task_1:003",
+                        "result:task_1:004",
+                    ],
+                }
+            ],
+            [
+                {
+                    "artifact_id": "operands:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "missing",
+                    "payload": {"calculation_operands": []},
+                },
+                {
+                    "artifact_id": "operands:task_1:002",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "payload": {"calculation_operands": [{"operand_id": "n"}]},
+                    "evidence_refs": ["ev_n"],
+                },
+                {
+                    "artifact_id": "plan:task_1:003",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "payload": {"calculation_plan": {"operation": "ratio"}},
+                },
+                {
+                    "artifact_id": "result:task_1:004",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "payload": {"calculation_result": {"rendered_value": "50%"}},
+                },
+            ],
+        )
+
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
 
     def test_verify_calculation_skip_does_not_rewrite_compatibility_mirrors(self) -> None:
         state = {

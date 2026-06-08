@@ -89,6 +89,65 @@ def _reflection_action_from_plan(
     }
 
 
+def _synthesis_source_ids_from_task_outputs(state: FinancialAgentState) -> List[str]:
+    active_subtask = dict(state.get("active_subtask") or {})
+    preferred_task_ids: List[str] = []
+    for binding in active_subtask.get("inputs") or []:
+        if not isinstance(binding, dict):
+            continue
+        source_preference = [
+            _normalise_spaces(str(item or "")).lower()
+            for item in (binding.get("source_preference") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+        if "task_output" in source_preference and preferred_task_id:
+            preferred_task_ids.append(preferred_task_id)
+    if not preferred_task_ids:
+        preferred_task_ids = [
+            _normalise_spaces(str(item or ""))
+            for item in (active_subtask.get("depends_on") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+
+    preferred_task_ids = list(dict.fromkeys(preferred_task_ids))
+    if not preferred_task_ids:
+        return []
+
+    artifacts_by_id = {
+        str(artifact.get("artifact_id") or "").strip(): dict(artifact)
+        for artifact in (state.get("artifacts") or [])
+        if isinstance(artifact, dict) and str(artifact.get("artifact_id") or "").strip()
+    }
+    result_by_task_id = {
+        str(row.get("task_id") or "").strip(): dict(row)
+        for row in (state.get("subtask_results") or [])
+        if isinstance(row, dict) and str(row.get("task_id") or "").strip()
+    }
+
+    source_ids: List[str] = []
+    for task_id in preferred_task_ids:
+        result_row = result_by_task_id.get(task_id)
+        if not result_row:
+            continue
+        artifact_ids = [
+            str(item).strip()
+            for item in (result_row.get("artifact_ids") or [])
+            if str(item).strip()
+        ]
+        result_artifact_ids = [
+            artifact_id
+            for artifact_id in artifact_ids
+            if str(artifacts_by_id.get(artifact_id, {}).get("kind") or "").strip()
+            == ArtifactKind.CALCULATION_RESULT.value
+        ]
+        source_ids.extend(result_artifact_ids or artifact_ids)
+        if not artifact_ids and result_row.get("calculation_result"):
+            source_ids.append(f"task_output:{task_id}")
+
+    return list(dict.fromkeys(item for item in source_ids if item))
+
+
 def _reflection_report_from_action(
     state: FinancialAgentState,
     *,
@@ -8396,18 +8455,60 @@ class FinancialAgentCalculationMixin:
                 ),
             }
         if synthesis_only_retry:
+            synthesis_operands = list(direct_structured_rows)
+            if not synthesis_operands and dependency_rows and dependency_state.get("all_resolved"):
+                synthesis_operands = list(dependency_rows)
             coverage = "missing"
-            if direct_structured_rows:
+            if synthesis_operands:
                 coverage = (
                     "sufficient"
-                    if not _missing_required_operands(required_operands, direct_structured_rows)
+                    if not _missing_required_operands(required_operands, synthesis_operands)
                     else "partial"
                 )
             logger.info(
                 "[calc_operands] synthesis-only retry blocks broad fallback coverage=%s operands=%s",
                 coverage,
-                len(direct_structured_rows),
+                len(synthesis_operands),
             )
+            updates: Dict[str, Any] = {}
+            if synthesis_operands:
+                artifacts = list(state.get("artifacts") or [])
+                tasks = list(state.get("tasks") or [])
+                task_id = str(active_subtask.get("task_id") or "calc")
+                artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
+                artifacts = _append_artifact(
+                    artifacts,
+                    artifact_id=artifact_id,
+                    task_id=task_id,
+                    kind=ArtifactKind.OPERAND_SET,
+                    status=coverage,
+                    summary=f"{len(synthesis_operands)} synthesized task-output operand(s)",
+                    payload={
+                        "calculation_operands": synthesis_operands,
+                        "source": "dependency_synthesis_only",
+                    },
+                    evidence_refs=_clean_source_row_ids(
+                        [
+                            [
+                                row.get("evidence_id"),
+                                row.get("source_row_id"),
+                                row.get("source_row_ids"),
+                            ]
+                            for row in synthesis_operands
+                        ]
+                    ),
+                )
+                tasks = _upsert_task(
+                    tasks,
+                    task_id=task_id,
+                    kind=TaskKind.CALCULATION,
+                    label=str(active_subtask.get("metric_label") or task_id),
+                    status=TaskStatus.IN_PROGRESS,
+                    query=self._calc_query(state),
+                    metric_family=self._calc_metric_family(state),
+                    artifact_id=artifact_id,
+                )
+                updates = {"tasks": tasks, "artifacts": artifacts}
             return {
                 **_calculation_debug_state_update(
                     state,
@@ -8415,14 +8516,15 @@ class FinancialAgentCalculationMixin:
                     source="dependency_synthesis_only",
                     retry_strategy=retry_strategy,
                     dependency_operands=dependency_rows,
-                    operands=direct_structured_rows,
+                    operands=synthesis_operands,
                 ),
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": coverage,
+                **updates,
                 **_runtime_trace_state_update(
                     state,
-                    calculation_operands=direct_structured_rows,
+                    calculation_operands=synthesis_operands,
                     calculation_plan={},
                     calculation_result={},
                     include_compatibility_mirrors=False,
@@ -11718,6 +11820,12 @@ class FinancialAgentCalculationMixin:
         retry_strategy = _normalise_spaces(
             str(reflection_plan.get("retry_strategy") or state.get("retry_strategy") or "retry_retrieval")
         ).lower()
+        if retry_strategy == "synthesize_from_task_outputs" and not any(
+            str(item).strip() for item in (reflection_plan.get("synthesis_source_ids") or [])
+        ):
+            synthesis_source_ids = _synthesis_source_ids_from_task_outputs(state)
+            if synthesis_source_ids:
+                reflection_plan["synthesis_source_ids"] = synthesis_source_ids
         reflection_action = _reflection_action_from_plan(
             reflection_plan,
             retry_queries=retry_queries,

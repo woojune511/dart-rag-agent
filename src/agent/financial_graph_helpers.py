@@ -778,6 +778,11 @@ def _project_task_artifact_trace(
                 for artifact_id in (task.get("artifact_ids") or [])
                 if artifact_id in artifact_by_id
             ]
+            latest_required_artifact_by_kind: Dict[str, Dict[str, Any]] = {}
+            for artifact in attached_artifacts:
+                artifact_kind = str(artifact.get("kind") or "").strip()
+                if artifact_kind in required_kinds:
+                    latest_required_artifact_by_kind[artifact_kind] = artifact
             present_kinds = {
                 str(kind).strip()
                 for kind in (task.get("artifact_kinds") or [])
@@ -793,10 +798,8 @@ def _project_task_artifact_trace(
                         "artifact_kind": missing_kind,
                     }
                 )
-            for artifact in attached_artifacts:
+            for artifact in latest_required_artifact_by_kind.values():
                 artifact_kind = str(artifact.get("kind") or "").strip()
-                if artifact_kind not in required_kinds:
-                    continue
                 payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
                 missing_payload_key = _payload_missing_contract(artifact_kind, payload)
                 if missing_payload_key:
