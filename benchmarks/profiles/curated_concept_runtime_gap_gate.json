@@ -42,6 +42,9 @@
   "full_evaluation": {
     "enabled": true,
     "eval_mode": "question_ids",
+    "retrieval_query_budget": 8,
+    "focused_retrieval_query_budget": 4,
+    "retry_retrieval_query_budget": 1,
     "question_ids": [
       "KBF_T2_018",
       "SKH_T3_080",

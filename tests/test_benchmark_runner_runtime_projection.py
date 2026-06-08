@@ -84,6 +84,19 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             "openai/gpt-4.1-mini",
         )
 
+    def test_concept_runtime_gap_profile_declares_query_budgets(self) -> None:
+        profile_path = PROJECT_ROOT / "benchmarks" / "profiles" / "curated_concept_runtime_gap_gate.json"
+        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        full_eval = profile["full_evaluation"]
+
+        self.assertEqual(full_eval["retrieval_query_budget"], 8)
+        self.assertEqual(full_eval["focused_retrieval_query_budget"], 4)
+        self.assertEqual(full_eval["retry_retrieval_query_budget"], 1)
+        routing_config = _build_agent_routing_config(full_eval)
+        self.assertEqual(routing_config["retrieval_query_budget"], 8)
+        self.assertEqual(routing_config["focused_retrieval_query_budget"], 4)
+        self.assertEqual(routing_config["retry_retrieval_query_budget"], 1)
+
     def test_llm_route_overrides_merge_with_profile_routes(self) -> None:
         full_eval_config = _apply_llm_route_overrides(
             {
