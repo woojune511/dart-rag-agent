@@ -124,6 +124,27 @@ role-separated multi-agent system using a task ledger and artifact store.
     `18 -> 8` and `15 -> 8`; the fan-out audit reported `15` executed queries,
     `0` duplicates, and `1` state query-result cache reuse
 - Latest hardening follow-up:
+  - a later 2026-06-08 focused hardening pass closed two single-question
+    residuals without replacing the frozen 2026-06-04 full-gate baseline
+  - `POS_T1_057` ratio operands now prefer direct structured evidence whose
+    raw unit aligns with peer operands in the same ratio; focused eval-only
+    reports numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, and
+    answer `3.5269배`
+  - `KBF_T2_018` aggregate growth+narrative repair now treats a numeric-only
+    growth answer as incomplete when supported narrative-summary evidence is
+    available but absent from the final answer; focused eval-only reports
+    numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, preserving both
+    `70.28%` and the conservative provisioning / future economic uncertainty
+    cause
+  - `KAB_T1_066` focused eval-only after the ratio hardening remains numeric
+    `PASS` with faithfulness/completeness `1.000 / 1.000` and CIR answer
+    `37.47%`
+  - latest local validation: `python -m unittest tests.test_subtask_loop tests.test_part_whole_ratio_contract`
+    ran `169` tests OK, `python -m src.ops.audit_runtime_domain_terms` passed
+    with `215` reviewed literals, and `python -m unittest discover -s tests`
+    ran `997` tests OK
+  - this is still focused canary hardening; a fresh full 7 eval-only replay is
+    required before claiming a new full concept-gate release baseline
   - a 2026-06-08 budgeted full eval-only replay completed all seven concept
     questions but produced `5 / 7` numeric PASS, so it is not treated as a new
     release baseline

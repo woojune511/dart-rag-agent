@@ -8525,6 +8525,85 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertFalse(updated["answer"].endswith("커머스 실"))
         self.assertIn("ev_poshmark", updated["selected_claim_ids"])
 
+    def test_aggregate_subtasks_repairs_numeric_only_growth_narrative_answer(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": (
+                        "2023년 신용손실충당금전입액은 3,146,409백만원이며, "
+                        "2022년 1,847,775백만원 대비 70.28% 증가했습니다."
+                    ),
+                    "planner_feedback": "",
+                }
+            )
+        )
+        state = {
+            "query": "2023년 연결 포괄손익계산서 상의 신용손실충당금전입액 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1"},
+                {"task_id": "task_2"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "신용손실충당금전입액 증가율",
+                    "answer": "70.28%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "70.28%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "신용손실충당금전입액 증가율",
+                                "period": "2023",
+                                "normalized_value": 70.28,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "70.28%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "신용손실충당금전입액",
+                                "period": "2023",
+                                "rendered_value": "3,146,409백만원",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "신용손실충당금전입액",
+                                "period": "2022",
+                                "rendered_value": "1,847,775백만원",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_2",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "리스크 관리 측면 원인",
+                    "answer": "미래경기 불확실성에 대비한 보수적인 충당금적립이 증가 원인입니다.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_risk_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("70.28%", updated["answer"])
+        self.assertIn("3,146,409백만원", updated["answer"])
+        self.assertIn("미래경기 불확실성", updated["answer"])
+        self.assertIn("보수적인 충당금적립", updated["answer"])
+        self.assertIn("ev_risk_driver", updated["selected_claim_ids"])
+
     def test_aggregate_growth_narrative_filters_table_fragment_noise(self) -> None:
         state = {
             "query": "2023년 커머스 부문 매출 성장률을 계산하고, Poshmark 인수가 커머스 실적에 미친 영향을 요약해 줘.",

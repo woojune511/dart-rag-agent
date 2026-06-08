@@ -424,6 +424,120 @@ class PartWholeRatioContractTests(unittest.TestCase):
         self.assertEqual(slot["raw_unit"], "\ubc31\ub9cc\uc6d0")
         self.assertEqual(slot["normalized_value"], 3531423000000.0)
 
+    def test_ratio_direct_rows_prefer_peer_unit_aligned_structured_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "\uc601\uc5c5\uc774\uc775",
+                "concept": "operating_income",
+                "role": "numerator_1",
+                "unit_family": "KRW",
+                "period": "2023",
+            },
+            {
+                "label": "\uc774\uc790\ube44\uc6a9",
+                "concept": "interest_expense",
+                "role": "denominator_1",
+                "unit_family": "KRW",
+                "period": "2023",
+            },
+        ]
+        direct_rows = [
+            {
+                "operand_id": "op_001",
+                "label": "\uc601\uc5c5\uc774\uc775",
+                "matched_operand_concept": "operating_income",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "3,531,423",
+                "raw_unit": "\ucc9c\uc6d0",
+                "normalized_value": 3531423000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "ev_weak",
+                "source_row_ids": ["ev_weak"],
+            },
+            {
+                "operand_id": "op_002",
+                "label": "\uc774\uc790\ube44\uc6a9",
+                "matched_operand_concept": "interest_expense",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "1,001,290",
+                "raw_unit": "\ubc31\ub9cc\uc6d0",
+                "normalized_value": 1001290000000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "ev_denominator",
+                "source_row_ids": ["ev_denominator"],
+            },
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "ev_weak",
+                "claim": "\uc601\uc5c5\uc774\uc775 | 2023 3,531,423 \ucc9c\uc6d0",
+                "quote_span": "\uc601\uc5c5\uc774\uc775 | 2023 3,531,423 \ucc9c\uc6d0",
+                "metadata": {
+                    "row_label": "\uc601\uc5c5\uc774\uc775",
+                    "semantic_label": "\uc601\uc5c5\uc774\uc775",
+                    "unit_hint": "\ucc9c\uc6d0",
+                    "year": 2023,
+                    "structured_cells": [
+                        {
+                            "column_headers": ["2023"],
+                            "value_text": "3,531,423",
+                            "unit_hint": "\ucc9c\uc6d0",
+                        }
+                    ],
+                },
+            },
+            {
+                "evidence_id": "ev_strong",
+                "claim": "\uc601\uc5c5\uc774\uc775 | 2023 3,531,423 \ubc31\ub9cc\uc6d0",
+                "quote_span": "\uc601\uc5c5\uc774\uc775 | 2023 3,531,423 \ubc31\ub9cc\uc6d0",
+                "metadata": {
+                    "row_label": "\uc601\uc5c5\uc774\uc775",
+                    "semantic_label": "\uc601\uc5c5\uc774\uc775",
+                    "unit_hint": "\ubc31\ub9cc\uc6d0",
+                    "year": 2023,
+                    "structured_cells": [
+                        {
+                            "column_headers": ["2023"],
+                            "value_text": "3,531,423",
+                            "unit_hint": "\ubc31\ub9cc\uc6d0",
+                        }
+                    ],
+                },
+            },
+            {
+                "evidence_id": "ev_denominator",
+                "claim": "\uc774\uc790\ube44\uc6a9 | 2023 1,001,290 \ubc31\ub9cc\uc6d0",
+                "quote_span": "\uc774\uc790\ube44\uc6a9 | 2023 1,001,290 \ubc31\ub9cc\uc6d0",
+                "metadata": {
+                    "row_label": "\uc774\uc790\ube44\uc6a9",
+                    "semantic_label": "\uc774\uc790\ube44\uc6a9",
+                    "unit_hint": "\ubc31\ub9cc\uc6d0",
+                    "year": 2023,
+                    "structured_cells": [
+                        {
+                            "column_headers": ["2023"],
+                            "value_text": "1,001,290",
+                            "unit_hint": "\ubc31\ub9cc\uc6d0",
+                        }
+                    ],
+                },
+            },
+        ]
+
+        refined_rows = agent._prefer_direct_structured_evidence_rows(
+            direct_rows,
+            evidence_items=evidence_items,
+            required_operands=required_operands,
+            operation_family="ratio",
+            state={"active_subtask": {"operation_family": "ratio"}},
+        )
+
+        numerator = refined_rows[0]
+        self.assertEqual(numerator["source_row_id"], "ev_strong")
+        self.assertEqual(numerator["raw_unit"], "\ubc31\ub9cc\uc6d0")
+        self.assertEqual(numerator["normalized_value"], 3531423000000.0)
+
     def test_surface_contract_required_lookup_rejects_broad_column_only_match(self) -> None:
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",

@@ -33,6 +33,7 @@
 | [Evaluator + Routing Cascade v1 (2026-04-23)](#evaluator--routing-cascade-v1-2026-04-23) | evaluator + routing 구조 개편 | query routing을 cascade로 재구성 |
 | [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
+| [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual 확인 | ratio peer-unit binding과 growth+narrative repair는 닫혔지만 full baseline은 아직 교체하지 않음 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
 ## 보는 법
@@ -44,6 +45,45 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Concept Gate Focused Hardening (2026-06-08)
+
+참조:
+
+- `benchmarks/results/tmp_kbf_t2_018_recovery_skip_current_2026-06-08/`
+- `benchmarks/results/tmp_pos_t1_057_unit_check_2026-06-08/`
+- `benchmarks/results/tmp_kab_t1_066_ratio_component_merge_fix_2026-06-08/`
+
+### 무엇을 검증했나
+
+- 2026-06-04 concept gate `7 / 7 PASS` baseline 이후, budgeted replay와
+  focused eval-only에서 드러난 POS/KBF/KAB residual을 store-fixed
+  single-question eval-only로 좁혔다.
+- 실험 산출물은 local artifact로만 두고 commit 대상에는 포함하지 않는다.
+
+### 결과
+
+| Question | Focused outcome |
+| --- | --- |
+| `POS_T1_057` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, answer `3.5269배` |
+| `KAB_T1_066` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, CIR answer `37.47%` |
+| `KBF_T2_018` | numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, final answer preserves `70.28%` and conservative provisioning / future economic uncertainty cause |
+
+### 해석
+
+- POS residual은 특정 회사 보정이 아니라 ratio operand peer-unit contract로
+  닫았다. 같은 raw value가 서로 다른 KRW display unit 후보로 존재하면,
+  같은 ratio 안의 peer operands와 unit이 맞는 structured evidence를 우선한다.
+- KBF residual은 숫자 성장률 문장만으로 mixed growth+narrative intent를
+  만족했다고 보는 aggregate repair gap이었다. `narrative_summary` row의
+  서술 문장을 deterministic repair 후보로 유지하고, final answer가 실제
+  서술 후보를 포함할 때만 supported aggregate answer를 보호한다.
+- 검증은 focused eval-only와 local regression suite로 닫았다:
+  `tests.test_subtask_loop tests.test_part_whole_ratio_contract` `169` tests OK,
+  `src.ops.audit_runtime_domain_terms` passed, and full `unittest discover`
+  `997` tests OK.
+- 이 항목은 새 full-gate baseline이 아니다. promotion proof를 갱신하려면
+  store-fixed full 7 eval-only replay를 별도로 실행해야 한다.
 
 ## MAS Smoke Outcome Refresh (2026-06-07)
 

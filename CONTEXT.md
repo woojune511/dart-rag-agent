@@ -11,6 +11,34 @@
 
 ## 최신 상태
 
+- 2026-06-08 concept runtime gap follow-up에서 ratio unit binding과
+  growth+narrative answer repair를 추가로 닫았다.
+  - `POS_T1_057` full/replay path의 unit-source instability는 ratio operand
+    peer-unit alignment로 보강했다. 같은 raw value가 서로 다른 KRW display
+    unit으로 후보화될 때, ratio의 다른 operand와 unit family/raw unit이
+    맞는 structured evidence를 우선한다. POSCO/company/benchmark branch가
+    아니라 operand peer-unit contract다.
+  - `KBF_T2_018`는 숫자 성장률 문장만으로 narrative intent를 만족했다고
+    판단하는 aggregate repair gap을 좁혔다. `narrative_summary` row의
+    서술 문장은 deterministic repair 후보로 남기고, final answer가 실제
+    서술 후보를 포함할 때만 supported aggregate answer 보호를 적용한다.
+  - focused eval-only:
+    - `POS_T1_057`: numeric PASS, faithfulness/completeness `1.000 / 1.000`,
+      answer `3.5269배`.
+    - `KAB_T1_066`: numeric PASS, faithfulness/completeness `1.000 / 1.000`,
+      CIR answer `37.47%`.
+    - `KBF_T2_018`: numeric PASS, faithfulness/completeness `1.000 / 1.000`,
+      final answer preserves `70.28%` and the conservative provisioning /
+      future economic uncertainty cause.
+  - 검증:
+    - `python -m unittest tests.test_subtask_loop tests.test_part_whole_ratio_contract`:
+      `169` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `997` tests OK.
+  - 아직 full 7 eval-only를 새로 다시 완료한 것은 아니다. 다음 promotion
+    proof는 store-fixed full 7 monitored eval-only로 갱신한다.
+
 - 2026-06-08 concept runtime gap gate의 budgeted eval-only follow-up에서
   growth-rate operand recovery를 보강했다.
   - 2026-06-04 `7 / 7 PASS` baseline은 promotion 기준선으로 그대로 유지한다.

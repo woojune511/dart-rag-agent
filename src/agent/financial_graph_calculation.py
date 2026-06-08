@@ -1131,13 +1131,35 @@ class FinancialAgentCalculationMixin:
         evidence_pool: List[Dict[str, Any]],
         *,
         state: Optional[FinancialAgentState] = None,
+        preferred_raw_units: Optional[set[str]] = None,
     ) -> tuple[Dict[str, Any], float]:
         best_slot: Dict[str, Any] = {}
         best_score = 0.0
+        preferred_units = {
+            _normalise_spaces(str(unit or ""))
+            for unit in (preferred_raw_units or set())
+            if _normalise_spaces(str(unit or ""))
+        }
+
+        def _candidate_preferred_on_tie(candidate: Dict[str, Any], current: Dict[str, Any]) -> bool:
+            if not preferred_units:
+                return False
+            candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
+            current_unit = _normalise_spaces(str(current.get("raw_unit") or ""))
+            return bool(candidate_unit in preferred_units and current_unit not in preferred_units)
+
         for evidence_item in evidence_pool:
             evidence = dict(evidence_item or {})
             score = self._direct_structured_lookup_evidence_score(operand, evidence)
-            if score > best_score:
+            should_consider_structured = score > best_score
+            if score == best_score and best_slot:
+                row = self._lookup_row_from_direct_structured_evidence(
+                    operand,
+                    evidence,
+                    index=1,
+                )
+                should_consider_structured = _candidate_preferred_on_tie(row, best_slot)
+            if should_consider_structured:
                 row = self._lookup_row_from_direct_structured_evidence(
                     operand,
                     evidence,
@@ -1171,7 +1193,14 @@ class FinancialAgentCalculationMixin:
                 required_operands=[operand],
             ):
                 table_label_slot = {}
-            if table_label_slot and table_label_score > best_score:
+            if table_label_slot and (
+                table_label_score > best_score
+                or (
+                    table_label_score == best_score
+                    and best_slot
+                    and _candidate_preferred_on_tie(table_label_slot, best_slot)
+                )
+            ):
                 best_slot = table_label_slot
                 best_score = table_label_score
 
@@ -1185,17 +1214,105 @@ class FinancialAgentCalculationMixin:
         evidence_pool: List[Dict[str, Any]],
         *,
         state: Optional[FinancialAgentState] = None,
+        preferred_raw_units: Optional[set[str]] = None,
     ) -> tuple[Dict[str, Any], float]:
         try:
             return self._best_direct_lookup_slot_from_evidence_pool(
                 operand,
                 evidence_pool,
                 state=state,
+                preferred_raw_units=preferred_raw_units,
             )
         except TypeError as exc:
             if "unexpected keyword argument 'state'" not in str(exc):
                 raise
             return self._best_direct_lookup_slot_from_evidence_pool(operand, evidence_pool)
+
+    def _prefer_direct_structured_evidence_rows(
+        self,
+        direct_structured_rows: List[Dict[str, Any]],
+        *,
+        evidence_items: List[Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+        operation_family: str,
+        state: Optional[FinancialAgentState] = None,
+    ) -> List[Dict[str, Any]]:
+        if operation_family not in {"lookup", "single_value", "ratio"} or not required_operands:
+            return direct_structured_rows
+
+        evidence_by_id = {
+            str(item.get("evidence_id") or "").strip(): dict(item)
+            for item in evidence_items
+            if str(item.get("evidence_id") or "").strip()
+        }
+        refined_rows = [dict(row) for row in direct_structured_rows]
+
+        for operand in [dict(item) for item in required_operands]:
+            row_index = next(
+                (
+                    index
+                    for index, row in enumerate(refined_rows)
+                    if _operand_row_matches_requirement(row, operand)
+                ),
+                None,
+            )
+            if row_index is None:
+                continue
+            current = dict(refined_rows[row_index])
+            peer_units = {
+                _normalise_spaces(str(row.get("raw_unit") or ""))
+                for index, row in enumerate(refined_rows)
+                if index != row_index
+                and _normalise_spaces(str(row.get("raw_unit") or ""))
+                and _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+                == _normalise_spaces(str(current.get("normalized_unit") or "")).upper()
+            }
+            preferred_slot, best_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
+                operand,
+                evidence_items,
+                state=state,
+                preferred_raw_units=peer_units if operation_family == "ratio" else None,
+            )
+            if not preferred_slot:
+                continue
+            current_score = 0.0
+            current_evidence = self._evidence_item_for_operand_row(current, evidence_by_id)
+            if current_evidence:
+                current_score = self._direct_structured_lookup_evidence_score(operand, current_evidence)
+            preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+            current_unit = _normalise_spaces(str(current.get("raw_unit") or ""))
+            preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
+            current_raw = _normalise_spaces(str(current.get("raw_value") or ""))
+            unit_alignment_improves = bool(
+                operation_family == "ratio"
+                and peer_units
+                and preferred_raw == current_raw
+                and preferred_unit in peer_units
+                and current_unit not in peer_units
+            )
+            if current_score > best_score and not unit_alignment_improves:
+                continue
+            if current_score == best_score and not unit_alignment_improves:
+                continue
+            preferred_row = {
+                **current,
+                "operand_id": current.get("operand_id") or f"direct_lookup_{row_index + 1:03d}",
+                "evidence_id": preferred_slot.get("source_row_id"),
+                "source_row_id": preferred_slot.get("source_row_id"),
+                "source_row_ids": preferred_slot.get("source_row_ids") or [],
+                "source_anchor": preferred_slot.get("source_anchor"),
+                "label": preferred_slot.get("label"),
+                "raw_value": preferred_slot.get("raw_value"),
+                "raw_unit": preferred_slot.get("raw_unit"),
+                "normalized_value": preferred_slot.get("normalized_value"),
+                "normalized_unit": preferred_slot.get("normalized_unit"),
+                "period": preferred_slot.get("period"),
+                "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
+                "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
+                "matched_operand_role": _normalise_spaces(str(operand.get("role") or "")),
+            }
+            refined_rows[row_index] = preferred_row
+        return refined_rows
 
     def _prefer_direct_structured_lookup_evidence_rows(
         self,
@@ -1207,41 +1324,12 @@ class FinancialAgentCalculationMixin:
     ) -> List[Dict[str, Any]]:
         if operation_family not in {"lookup", "single_value"} or len(required_operands) != 1:
             return direct_structured_rows
-        operand = dict(required_operands[0])
-        preferred_slot, best_score = self._best_direct_lookup_slot_from_evidence_pool(operand, evidence_items)
-        if not preferred_slot:
-            return direct_structured_rows
-
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_items
-            if str(item.get("evidence_id") or "").strip()
-        }
-        current_score = 0.0
-        if direct_structured_rows:
-            current = dict(direct_structured_rows[0])
-            current_evidence = self._evidence_item_for_operand_row(current, evidence_by_id)
-            if current_evidence:
-                current_score = self._direct_structured_lookup_evidence_score(operand, current_evidence)
-        if direct_structured_rows and current_score >= best_score:
-            return direct_structured_rows
-        preferred_row = {
-            "operand_id": "direct_lookup_001",
-            "evidence_id": preferred_slot.get("source_row_id"),
-            "source_row_id": preferred_slot.get("source_row_id"),
-            "source_row_ids": preferred_slot.get("source_row_ids") or [],
-            "source_anchor": preferred_slot.get("source_anchor"),
-            "label": preferred_slot.get("label"),
-            "raw_value": preferred_slot.get("raw_value"),
-            "raw_unit": preferred_slot.get("raw_unit"),
-            "normalized_value": preferred_slot.get("normalized_value"),
-            "normalized_unit": preferred_slot.get("normalized_unit"),
-            "period": preferred_slot.get("period"),
-            "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
-            "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
-            "matched_operand_role": _normalise_spaces(str(operand.get("role") or "")),
-        }
-        return [preferred_row]
+        return self._prefer_direct_structured_evidence_rows(
+            direct_structured_rows,
+            evidence_items=evidence_items,
+            required_operands=required_operands,
+            operation_family=operation_family,
+        )
 
     def _recover_lookup_results_from_sibling_table_evidence(
         self,
@@ -5747,7 +5835,7 @@ class FinancialAgentCalculationMixin:
                     if any(variant.lower() in haystack for variant in variants):
                         score += 4
                 score += sum(2 for marker in narrative_markers if marker in cleaned)
-                if score <= base_score:
+                if score <= base_score and base_score < 8:
                     continue
                 candidates.append((score, cleaned, claim_ids))
 
@@ -5967,6 +6055,15 @@ class FinancialAgentCalculationMixin:
             evidence_items=evidence_items,
         )
         if not narrative_candidates:
+            return None
+        if (
+            existing_answer_text
+            and self._answer_matches_supported_aggregate_subtask(existing_answer_text, ordered_results)
+            and any(
+                self._answer_covers_narrative_context(existing_answer_text, candidate_text)
+                for _score, candidate_text, _claim_ids in narrative_candidates[:3]
+            )
+        ):
             return None
         supported_driver_groups = self._supported_growth_driver_groups(
             query=query,
@@ -6234,6 +6331,11 @@ class FinancialAgentCalculationMixin:
             ordered_results=ordered_results,
             evidence_items=list(evidence_items or []),
         )
+        if narrative_candidates and not any(
+            self._answer_covers_narrative_context(answer_text, candidate_text)
+            for _score, candidate_text, _claim_ids in narrative_candidates[:3]
+        ):
+            return False
         for group in self._supported_growth_driver_groups(
             query=query_text,
             narrative_candidates=narrative_candidates,
@@ -8472,6 +8574,29 @@ class FinancialAgentCalculationMixin:
                 evidence_items=lookup_preference_evidence,
                 required_operands=required_operands,
                 operation_family=operation_family,
+            )
+        if direct_structured_rows and required_operands and operation_family == "ratio":
+            ratio_preference_evidence = list(evidence_items)
+            existing_preference_ids = {
+                str(item.get("evidence_id") or "").strip()
+                for item in ratio_preference_evidence
+                if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+            }
+            for item in state.get("runtime_evidence") or []:
+                if not isinstance(item, dict):
+                    continue
+                evidence_id = str(item.get("evidence_id") or "").strip()
+                if evidence_id and evidence_id in existing_preference_ids:
+                    continue
+                if evidence_id:
+                    existing_preference_ids.add(evidence_id)
+                ratio_preference_evidence.append(dict(item))
+            direct_structured_rows = self._prefer_direct_structured_evidence_rows(
+                direct_structured_rows,
+                evidence_items=ratio_preference_evidence,
+                required_operands=required_operands,
+                operation_family=operation_family,
+                state=state,
             )
         dependency_state = self._dependency_binding_resolution_state(state)
         dependency_rows = list(dependency_state.get("rows") or [])
