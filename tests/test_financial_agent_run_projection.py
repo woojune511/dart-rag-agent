@@ -59,6 +59,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertIn("reflection_request", FinancialAgentState.__optional_keys__)
         self.assertIn("reflection_action", FinancialAgentState.__optional_keys__)
         self.assertIn("reflection_report", FinancialAgentState.__optional_keys__)
+        self.assertIn("replan_blocked_reason", FinancialAgentState.__optional_keys__)
         self.assertNotIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
 
     def _base_final_state(self):

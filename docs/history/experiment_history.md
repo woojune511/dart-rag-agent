@@ -122,11 +122,24 @@ direct-support rejection re-entered semantic replan/retry; the same run used
   Reflection retry handoff now allocates `reflection:{target}:NNN` from the
   existing task/artifact ledger, so stale `reflection_count` or re-entry cannot
   append a second `reflection:{target}:NNN:report` artifact.
-- Remaining runtime-cost work should target reflection/replan loop control. The
-  latest lookup canary preserved numeric `PASS` but re-entered semantic replan
-  after direct-support rejection.
+- The follow-up runtime change then added a bounded replan guard for repeated
+  direct-support lookup rejection. After the first semantic replan attempt, if
+  numeric extraction history already contains
+  `duplicate_missing_direct_lookup_operand_support`, aggregate synthesis keeps
+  the partial/refusal closure and routes to `cite` instead of invoking another
+  semantic replan. This uses the generic extraction fingerprint/rejection
+  history, not company names, benchmark IDs, or metric-specific keywords.
+- Remaining runtime-cost work is to quantify the new guard with a store-fixed
+  canary when a reusable KAB store is available.
 - This is a runtime-cost contract, not a benchmark answer rule. No company,
   question ID, or metric-specific branch should be introduced for the follow-up.
+
+Validation for the replan loop guard:
+
+- focused aggregate/replan tests: `4` OK
+- related subtask/run-projection/reflection suites: `217` OK
+- runtime domain-term audit: passed with `215` reviewed literals
+- full unittest discovery: `1028` OK
 
 Validation for the reflection id allocation change:
 

@@ -8684,6 +8684,97 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("2023년 법인세비용차감전순이익은 1조 4,813억원입니다.", updated["answer"])
         self.assertIn("원하신 답을 완전히 확정할 수는 없습니다.", updated["answer"])
 
+    def test_aggregate_subtasks_blocks_replan_after_duplicate_direct_lookup_rejection(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "확인된 일부 값만으로는 최종 계산을 확정할 수 없습니다.",
+                    "planner_feedback": "누락된 lookup 값을 다시 찾아야 합니다.",
+                }
+            )
+        )
+        state = {
+            "query": "ratio calculation",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "known numerator",
+                    "query": "known numerator",
+                }
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_lookup",
+                "metric_label": "known numerator",
+                "query": "known numerator",
+            },
+            "subtask_results": [],
+            "answer": "known numerator is 100",
+            "compressed_answer": "known numerator is 100",
+            "selected_claim_ids": ["ev_100"],
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "known numerator",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:101", "artifact:102", "artifact:103"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:101",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "payload": {
+                        "calculation_operands": [
+                            {"row_id": "row_1", "label": "known numerator", "normalized_value": 100, "raw_value": "100"}
+                        ]
+                    },
+                },
+                {
+                    "artifact_id": "artifact:102",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "lookup"}},
+                },
+                {
+                    "artifact_id": "artifact:103",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "100", "series": []}},
+                },
+            ],
+            "calculation_result": {"status": "ok", "rendered_value": "100"},
+            "reconciliation_result": {"status": "ready"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 1,
+            "numeric_debug_trace_history": [
+                {
+                    "rejected_reason": "missing_direct_lookup_operand_support",
+                    "numeric_extraction_fingerprint": "same-window",
+                },
+                {
+                    "rejected_reason": "missing_direct_lookup_operand_support",
+                    "skipped_reason": "duplicate_missing_direct_lookup_operand_support",
+                    "numeric_extraction_fingerprint": "same-window",
+                },
+            ],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "initial")
+        self.assertEqual(
+            updated["replan_blocked_reason"],
+            "duplicate_missing_direct_lookup_operand_support",
+        )
+        self.assertIn("원하신 답을 완전히 확정할 수는 없습니다.", updated["answer"])
+        self.assertEqual(self.agent._route_after_aggregate_subtasks(updated), "cite")
+
     def test_aggregate_subtasks_ignores_spurious_llm_feedback_when_material_is_complete(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(

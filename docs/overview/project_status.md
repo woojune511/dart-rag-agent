@@ -46,9 +46,19 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 - Current status: numeric-extraction LLM fanout has been reduced; equivalent
   lookup rewordings now reuse state-local retrieval results; duplicate
-  reflection report artifact ids are fixed; reflection/replan loop control is
-  still the next visible cost target.
+  reflection report artifact ids are fixed; repeated direct-support lookup
+  rejections now stop extra semantic replan after the first replan attempt.
 - Latest source change, 2026-06-09:
+  - Aggregate replan now checks the numeric extraction debug history before
+    routing back to semantic planning.
+  - If `plan_loop_count >= 1` and the history shows
+    `duplicate_missing_direct_lookup_operand_support`, the runtime records
+    `replan_blocked_reason = duplicate_missing_direct_lookup_operand_support`,
+    keeps the partial/refusal answer path, and routes to `cite` instead of
+    invoking another semantic replan.
+  - The guard only applies after a duplicate direct-support rejection, so first
+    replan attempts and new evidence surfaces remain available.
+- Previous source change, 2026-06-09:
   - Reflection retry handoff ids are now allocated from the existing
     task/artifact ledger, not only from `reflection_count + 1`.
   - `_prepare_reflection_retry()` scans existing `reflection:{target}:NNN`
@@ -57,7 +67,7 @@ role-separated multi-agent system using a task ledger and artifact store.
     `duplicate_artifact_id:reflection:...:report`.
   - The fix is a generic ledger allocation contract; retry/replan decisions and
     evidence validation are unchanged.
-- Previous source change, 2026-06-09:
+- Earlier source change, 2026-06-09:
   - lookup and single-value retrieval subtasks now compute a normalized
     `objective_signature` from the operation family, metric label, and
     required operands.
@@ -112,8 +122,14 @@ role-separated multi-agent system using a task ledger and artifact store.
   - agent LLM tokens `190,990` across `25` calls
   - `numeric_extraction` `106,483` tokens across `6` calls
 - Next cost-control target:
-  - contain retry/replan loops after repeated direct-support lookup rejection
-    without weakening validation
+  - run a focused store-fixed/eval-only canary when a reusable KAB store is
+    available, to quantify whether the guard reduces `reflection_planning` /
+    `semantic_plan_replan` calls without changing numeric quality
+- Validation for the replan loop guard:
+  - focused aggregate/replan tests: `4` OK
+  - related subtask/run-projection/reflection suites: `217` OK
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - full unittest discovery: `1028` OK
 - Validation for the reflection id allocation change:
   - focused reflection/ledger tests: `5` OK
   - related subtask/run-projection/reflection suites: `216` OK

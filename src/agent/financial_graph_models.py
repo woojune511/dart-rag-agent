@@ -150,6 +150,7 @@ class FinancialAgentState(TypedDict):
     subtask_results: List[TaskResultRecord]
     subtask_debug_trace: Dict[str, Any]
     subtask_loop_complete: bool
+    replan_blocked_reason: NotRequired[str]
     reconciliation_result: Dict[str, Any]
     tasks: List[Dict[str, Any]]
     artifacts: List[Dict[str, Any]]

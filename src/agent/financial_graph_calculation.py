@@ -240,6 +240,21 @@ def _task_artifact_integrity_feedback(trace: Dict[str, Any]) -> str:
     )
 
 
+def _has_duplicate_direct_lookup_rejection(state: FinancialAgentState) -> bool:
+    traces = [
+        *[
+            dict(item)
+            for item in (state.get("numeric_debug_trace_history") or [])
+            if isinstance(item, dict)
+        ],
+        dict(state.get("numeric_debug_trace") or {}),
+    ]
+    return any(
+        str(trace.get("skipped_reason") or "") == "duplicate_missing_direct_lookup_operand_support"
+        for trace in traces
+    )
+
+
 def _topic_particle(value: str) -> str:
     particles = dict(CALCULATION_NARRATIVE_POLICY.get("topic_particles") or {})
     with_final = str(particles.get("with_final_consonant") or "")
@@ -12649,7 +12664,10 @@ class FinancialAgentCalculationMixin:
             planner_feedback = ""
         elif not planner_feedback:
             planner_feedback = deterministic_feedback
-        should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops
+        replan_blocked_reason = ""
+        if planner_feedback and plan_loop_count >= 1 and _has_duplicate_direct_lookup_rejection(state):
+            replan_blocked_reason = "duplicate_missing_direct_lookup_operand_support"
+        should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops and not replan_blocked_reason
         if planner_feedback and not should_replan:
             refusal_suffix = "다만 질문에 필요한 수치를 끝내 모두 확보하지 못해 원하신 답을 완전히 확정할 수는 없습니다."
             visible_partial_answer = _normalise_spaces(final_answer or fallback_answer)
@@ -13310,6 +13328,7 @@ class FinancialAgentCalculationMixin:
             "compressed_answer": final_answer,
             "planner_mode": "replan" if should_replan else "initial",
             "planner_feedback": planner_feedback,
+            "replan_blocked_reason": replan_blocked_reason,
             "draft_points": [final_answer] if final_answer else [],
             "selected_claim_ids": selected_claim_ids,
             "kept_claim_ids": selected_claim_ids,
@@ -13537,7 +13556,11 @@ class FinancialAgentCalculationMixin:
 
     def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
         planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
-        if planner_feedback and int(state.get("plan_loop_count") or 0) < 2:
+        if (
+            planner_feedback
+            and int(state.get("plan_loop_count") or 0) < 2
+            and not _normalise_spaces(str(state.get("replan_blocked_reason") or ""))
+        ):
             return "pre_calc_planner"
         return "cite"
 

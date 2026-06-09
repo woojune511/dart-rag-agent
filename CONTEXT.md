@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-09 duplicate direct-support lookup rejection 이후 replan loop guard를
+  추가했다.
+  - aggregate 단계에서 `planner_feedback`이 있어도 `plan_loop_count >= 1`이고
+    `numeric_debug_trace_history` / `numeric_debug_trace`에
+    `duplicate_missing_direct_lookup_operand_support`가 보이면 semantic replan을
+    다시 호출하지 않는다.
+  - 이 경우 `replan_blocked_reason =
+    duplicate_missing_direct_lookup_operand_support`를 남기고, 기존 partial
+    answer에 budget-exhausted refusal suffix를 붙여 `cite`로 닫는다.
+  - 첫 replan은 계속 허용된다. 같은 candidate window에서 direct-support
+    rejection이 이미 duplicate로 재사용된 경우에만 추가 replan을 차단하므로,
+    새 evidence 탐색이나 validation contract를 약화하지 않는다.
+  - 검증:
+    - focused aggregate/replan tests: `4` tests OK.
+    - `.venv/bin/python -m unittest tests.test_subtask_loop tests.test_financial_agent_run_projection tests.test_reflection_capability_contract`:
+      `217` tests OK.
+    - `.venv/bin/python -m src.ops.audit_runtime_domain_terms --summary`:
+      passed (`215` reviewed literals).
+    - `.venv/bin/python -m unittest discover -s tests`: `1028` tests OK.
+
 - 2026-06-09 reflection retry artifact id allocation을 ledger-aware하게 수정했다.
   - `_prepare_reflection_retry()`가 더 이상 `reflection_count + 1`만으로
     `reflection:{target}:NNN` id를 고르지 않는다. 기존 task/artifact ledger에
