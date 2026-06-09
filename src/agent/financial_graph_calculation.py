@@ -8141,6 +8141,12 @@ class FinancialAgentCalculationMixin:
                 topic=topic,
                 report_scope=report_scope,
             )
+            rows = self._filter_operand_rows_by_required_surface_contract(
+                rows,
+                group_items,
+                required_operands,
+                require_direct_support=True,
+            )
             if _missing_required_operands(required_operands, rows):
                 continue
             unit_count = len(
@@ -8155,6 +8161,56 @@ class FinancialAgentCalculationMixin:
                 best_rows = rows
                 best_score = score
         return best_rows
+
+    def _ratio_operand_context_evidence_from_docs(
+        self,
+        docs: List[Any],
+        *,
+        max_docs: int = 16,
+    ) -> List[Dict[str, Any]]:
+        context_items: List[Dict[str, Any]] = []
+        seen_doc_ids: set[str] = set()
+        for index, doc_score in enumerate(list(docs or [])[:max_docs], start=1):
+            doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            doc_id = _normalise_spaces(
+                str(metadata.get("chunk_uid") or metadata.get("chunk_id") or getattr(doc, "id", "") or index)
+            )
+            if doc_id in seen_doc_ids:
+                continue
+            seen_doc_ids.add(doc_id)
+            page_content = str(getattr(doc, "page_content", "") or "").strip()
+            metadata_context = "\n".join(
+                str(metadata.get(key) or "").strip()
+                for key in (
+                    "table_header_context",
+                    "table_summary_text",
+                    "table_value_labels_text",
+                    "table_row_labels_text",
+                    "row_text",
+                    "raw_row_text",
+                )
+                if str(metadata.get(key) or "").strip()
+            )
+            combined_context = "\n".join(part for part in (page_content, metadata_context) if part).strip()
+            normalized_context = _normalise_spaces(combined_context)
+            if not normalized_context or not re.search(r"\d", normalized_context):
+                continue
+            evidence_id = f"ratio_doc_context_{index:03d}"
+            context_items.append(
+                {
+                    "evidence_id": evidence_id,
+                    "source_anchor": self._build_source_anchor(metadata),
+                    "claim": normalized_context[:1200],
+                    "quote_span": normalized_context[:240],
+                    "raw_row_text": combined_context,
+                    "source_context": combined_context,
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "metadata": metadata,
+                }
+            )
+        return context_items
 
     def _align_growth_operand_units_when_raw_scale_matches(
         self,
@@ -8361,6 +8417,21 @@ class FinancialAgentCalculationMixin:
         if not rendered_value:
             return ""
         answer_text = _normalise_spaces(str(final_answer or ""))
+        if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
+            compact_answer = self._compact_ratio_answer(
+                {
+                    **dict(state),
+                    "active_subtask": {
+                        **dict(state.get("active_subtask") or {}),
+                        "metric_label": answer_slots.get("metric_label")
+                        or (state.get("active_subtask") or {}).get("metric_label")
+                        or "",
+                    },
+                },
+                calculation_result,
+            )
+            if compact_answer and compact_answer != answer_text:
+                return compact_answer
         if rendered_value in answer_text:
             return ""
         if answer_text and not re.search(r"\d", answer_text):
@@ -8695,14 +8766,114 @@ class FinancialAgentCalculationMixin:
 
         source_context = _normalise_spaces(str(evidence_item.get("source_context") or ""))
         if source_context:
-            return _text_supports_operand(source_context)
-        return False
+            if _text_supports_operand(source_context):
+                return True
+        return self._operand_row_has_direct_evidence_surface(row, evidence_item, matching_operand)
+
+    def _operand_row_has_direct_evidence_surface(
+        self,
+        row: Dict[str, Any],
+        evidence_item: Optional[Dict[str, Any]],
+        operand: Dict[str, Any],
+    ) -> bool:
+        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+        if not raw_value or not evidence_item:
+            return False
+        raw_compact = re.sub(r"[\s,()]", "", raw_value)
+        if not raw_compact:
+            return False
+
+        metadata = dict(evidence_item.get("metadata") or {})
+        surfaces: List[str] = []
+        surfaces.extend(
+            str(evidence_item.get(key) or "")
+            for key in ("claim", "quote_span", "raw_row_text", "source_context")
+        )
+        surfaces.extend(
+            str(metadata.get(key) or "")
+            for key in (
+                "row_text",
+                "table_value_labels_text",
+                "table_row_labels_text",
+                "semantic_label",
+                "row_label",
+            )
+        )
+
+        def _append_record_surfaces(records: Any) -> None:
+            for record in records if isinstance(records, list) else []:
+                if not isinstance(record, dict):
+                    continue
+                label_parts = [
+                    str(record.get("semantic_label") or ""),
+                    str(record.get("row_label") or ""),
+                    " ".join(str(item) for item in (record.get("row_headers") or [])),
+                    " ".join(str(item) for item in (record.get("semantic_aliases") or [])),
+                ]
+                for cell in list(record.get("cells") or []):
+                    if not isinstance(cell, dict):
+                        continue
+                    surfaces.append(
+                        _normalise_spaces(
+                            " ".join(
+                                [
+                                    *label_parts,
+                                    " ".join(str(item) for item in (cell.get("column_headers") or [])),
+                                    str(cell.get("value_text") or ""),
+                                    str(cell.get("unit_hint") or ""),
+                                ]
+                            )
+                        )
+                    )
+                value_text = str(record.get("value_text") or "")
+                if value_text:
+                    surfaces.append(_normalise_spaces(" ".join([*label_parts, value_text, str(record.get("unit_hint") or "")])))
+
+        for key in ("table_row_records_json", "table_value_records_json"):
+            payload = str(metadata.get(key) or "").strip()
+            if not payload:
+                continue
+            try:
+                records = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+            _append_record_surfaces(records)
+
+        table_object_payload = str(metadata.get("table_object_json") or "").strip()
+        if table_object_payload:
+            try:
+                table_object = json.loads(table_object_payload)
+            except json.JSONDecodeError:
+                table_object = {}
+            if isinstance(table_object, dict):
+                _append_record_surfaces(table_object.get("rows") or [])
+                _append_record_surfaces(table_object.get("values") or [])
+
+        def _surface_supports_operand_value(surface: str) -> bool:
+            normalized = _normalise_spaces(surface)
+            if not normalized:
+                return False
+            lines = [normalized, *[_normalise_spaces(line) for line in normalized.splitlines()]]
+            for line in lines:
+                if not line:
+                    continue
+                if raw_compact not in re.sub(r"[\s,()]", "", line):
+                    continue
+                if _text_has_negative_surface(line, operand):
+                    continue
+                if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+                    return True
+            return False
+
+        return any(_surface_supports_operand_value(surface) for surface in surfaces if surface)
 
     def _operand_row_satisfies_required_surface_contract(
         self,
         row: Dict[str, Any],
         evidence_by_id: Dict[str, Dict[str, Any]],
         required_operands: List[Dict[str, Any]],
+        *,
+        require_direct_support: bool = False,
     ) -> bool:
         matching_operand = next(
             (
@@ -8719,10 +8890,41 @@ class FinancialAgentCalculationMixin:
             binding_policy.get("require_surface_contract_for_direct_match")
             or binding_policy.get("require_surface_contract_for_direct_lookup")
         )
-        if not requires_surface_contract:
+        if not requires_surface_contract and not require_direct_support:
             return True
         evidence_item = self._evidence_item_for_operand_row(row, evidence_by_id)
-        return self._llm_lookup_operand_has_direct_support(row, evidence_item, [matching_operand])
+        if requires_surface_contract:
+            return self._llm_lookup_operand_has_direct_support(row, evidence_item, [matching_operand])
+        if not evidence_item:
+            return True
+        return self._operand_row_has_direct_evidence_surface(row, evidence_item, matching_operand)
+
+    def _filter_operand_rows_by_required_surface_contract(
+        self,
+        rows: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+        required_operands: List[Dict[str, Any]],
+        *,
+        require_direct_support: bool = False,
+    ) -> List[Dict[str, Any]]:
+        if not rows or not required_operands:
+            return rows
+        evidence_by_id = {
+            str(item.get("evidence_id") or "").strip(): dict(item)
+            for item in evidence_items
+            if str(item.get("evidence_id") or "").strip()
+        }
+        return [
+            row
+            for row in rows
+            if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+            and self._operand_row_satisfies_required_surface_contract(
+                row,
+                evidence_by_id,
+                required_operands,
+                require_direct_support=require_direct_support,
+            )
+        ]
 
     def _lookup_task_requests_context_dependent_scope(
         self,
@@ -9252,7 +9454,12 @@ class FinancialAgentCalculationMixin:
                 row
                 for row in direct_structured_rows
                 if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                and self._operand_row_satisfies_required_surface_contract(row, evidence_by_id, required_operands)
+                and self._operand_row_satisfies_required_surface_contract(
+                    row,
+                    evidence_by_id,
+                    required_operands,
+                    require_direct_support=operation_family == "ratio",
+                )
             ]
             direct_structured_rows = [
                 row
@@ -9356,6 +9563,62 @@ class FinancialAgentCalculationMixin:
             and direct_structured_rows
             and not _missing_required_operands(required_operands, direct_structured_rows)
         )
+        dependency_rows_cover_required_operands = bool(
+            required_operands
+            and dependency_rows
+            and not _missing_required_operands(required_operands, dependency_rows)
+        )
+        if operation_family == "ratio" and required_operands and (
+            direct_rows_cover_required_operands or dependency_rows_cover_required_operands
+        ):
+            ratio_context_docs = list(retrieved_docs or [])
+            seen_ratio_doc_ids = {
+                str((getattr(doc, "metadata", {}) or {}).get("chunk_uid") or (getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                for doc, _score in ratio_context_docs
+            }
+            for doc, score in list(seed_retrieved_docs or [])[:32]:
+                metadata = dict(getattr(doc, "metadata", {}) or {})
+                doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
+                if doc_id and doc_id in seen_ratio_doc_ids:
+                    continue
+                if doc_id:
+                    seen_ratio_doc_ids.add(doc_id)
+                ratio_context_docs.append((doc, score))
+            ratio_context_evidence = self._ratio_operand_context_evidence_from_docs(ratio_context_docs)
+            coherent_ratio_rows = self._build_complete_ratio_operands_from_coherent_context(
+                ratio_context_evidence,
+                required_operands=required_operands,
+                query=query,
+                topic=topic,
+                report_scope=report_scope,
+            )
+            if coherent_ratio_rows:
+                direct_structured_rows = _merge_operand_rows(
+                    coherent_ratio_rows,
+                    direct_structured_rows,
+                    required_operands=required_operands,
+                )
+                used_context_evidence_ids = {
+                    str(row.get("evidence_id") or "")
+                    for row in coherent_ratio_rows
+                    if str(row.get("evidence_id") or "").strip()
+                }
+                existing_evidence_ids = {
+                    str(item.get("evidence_id") or "")
+                    for item in evidence_items
+                    if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+                }
+                evidence_items = evidence_items + [
+                    item
+                    for item in ratio_context_evidence
+                    if str(item.get("evidence_id") or "") in used_context_evidence_ids
+                    and str(item.get("evidence_id") or "") not in existing_evidence_ids
+                ]
+                logger.info("[calc_operands] coherent ratio context rows=%s", len(coherent_ratio_rows))
+                direct_rows_cover_required_operands = not _missing_required_operands(
+                    required_operands,
+                    direct_structured_rows,
+                )
         prefer_direct_rows_over_dependency = bool(
             operation_family in {"ratio", "difference", "growth_rate"}
             and direct_rows_cover_required_operands
@@ -9830,6 +10093,12 @@ class FinancialAgentCalculationMixin:
                 topic=topic,
                 report_scope=report_scope,
             )
+            deterministic_required_rows = self._filter_operand_rows_by_required_surface_contract(
+                deterministic_required_rows,
+                evidence_items,
+                required_operands,
+                require_direct_support=operation_family == "ratio",
+            )
             if missing_dependency_bindings and deterministic_required_rows:
                 deterministic_required_rows, rejected_rows = self._filter_direct_rows_by_dependency_producer_scope(
                     state,
@@ -9904,7 +10173,12 @@ class FinancialAgentCalculationMixin:
                     row
                     for row in operand_rows
                     if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                    and self._operand_row_satisfies_required_surface_contract(row, evidence_by_id, required_operands)
+                    and self._operand_row_satisfies_required_surface_contract(
+                        row,
+                        evidence_by_id,
+                        required_operands,
+                        require_direct_support=operation_family == "ratio",
+                    )
                 ]
             if operation_family in {"lookup", "single_value"} and required_operands:
                 operand_rows = [
@@ -9928,6 +10202,12 @@ class FinancialAgentCalculationMixin:
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
                 )
+                surface_fallback_rows = self._filter_operand_rows_by_required_surface_contract(
+                    surface_fallback_rows,
+                    surface_contract_evidence,
+                    missing_required,
+                    require_direct_support=operation_family == "ratio",
+                )
                 if surface_fallback_rows:
                     logger.info("[calc_operands] surface-contract operand fallback rows=%s", len(surface_fallback_rows))
                     operand_rows = _merge_operand_rows(
@@ -9943,6 +10223,12 @@ class FinancialAgentCalculationMixin:
                     query=query,
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
+                )
+                generic_fallback_rows = self._filter_operand_rows_by_required_surface_contract(
+                    generic_fallback_rows,
+                    evidence_items,
+                    missing_required,
+                    require_direct_support=operation_family == "ratio",
                 )
                 if generic_fallback_rows:
                     logger.info("[calc_operands] generic operand fallback rows=%s", len(generic_fallback_rows))
@@ -9973,6 +10259,12 @@ class FinancialAgentCalculationMixin:
                     query=query,
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
+                )
+                sibling_context_rows = self._filter_operand_rows_by_required_surface_contract(
+                    sibling_context_rows,
+                    evidence_items,
+                    required_operands,
+                    require_direct_support=True,
                 )
                 coherent_context_rows = self._build_complete_ratio_operands_from_coherent_context(
                     evidence_items,

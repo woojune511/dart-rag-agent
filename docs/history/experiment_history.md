@@ -34,6 +34,7 @@
 | [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
 | [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual과 후속 full replay 확인 | ratio peer-unit binding, growth+narrative repair, narrative-summary aggregate guard 이후 monitored full 7 eval-only가 7 / 7 PASS |
+| [KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)](#kab_t1_066-cir-direct-support-and-coherent-ratio-close-2026-06-09) | KAB CIR denominator support, coherent ratio operands, source display rendering | 최종 답변이 `4,355억원 / 11,623억원 = 37.47%`로 source-visible하게 닫힘 |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -46,6 +47,77 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)
+
+참조:
+
+- `benchmarks/results/kab_t1_066_final_verified_evalonly_2026-06-09/`
+- source store input:
+  `benchmarks/results/kab_t1_066_replan_guard_fresh_canary_2026-06-09/`
+
+### Context
+
+- Fresh canary에서 `KAB_T1_066`은 denominator를 별도 재무제표 row로 잘못
+  묶어 `91.03%`를 냈다.
+- direct-support guard를 추가한 뒤에는 wrong denominator는 막았지만,
+  `경비차감전영업이익` 안의 `차감` substring이 aggregate operation token으로
+  오인되어 correct denominator `11,623억원`도 reject됐다.
+- denominator가 복구된 뒤에도 final rendering은 이전 lookup subtask display
+  `435,542백만원`을 우선해 `4,355.42억원`을 답변에 남겼다.
+
+### Code / Contract Change
+
+- Numeric lookup direct-support validation includes the formatted prompt
+  context actually shown to the LLM.
+- Aggregate-operation detection checks the token's left boundary so an
+  operation token embedded inside a longer metric label is not treated as an
+  aggregate result.
+- Ratio operand assembly probes retrieved/seed docs for a coherent table/source
+  context when dependency outputs already cover required operands.
+- Late aggregate rendering refreshes ratio answers from resolved calculation
+  trace components when result value is present but component display differs.
+- No company name, benchmark id, or question-specific runtime branch was added.
+
+### Result
+
+- Final answer:
+  `2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.`
+- Resolved operands:
+  - `판매비와관리비 = 4,355억원`
+  - `경비차감전영업이익 = 11,623억원`
+  - both from `IV. 이사의 경영진단 및 분석의견::table:3`
+- Metrics:
+  - numeric `PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - context recall `1.000`
+  - retrieval hit@k `1.000`
+  - grounded rendering correctness `1.000`
+- Fanout/cost:
+  - latency `68.5s`
+  - executed queries `2`
+  - duplicate executed queries `0`
+  - state query-result avoided searches `14`
+  - agent LLM tokens `55,104`
+  - agent LLM calls `8`
+  - estimated runtime cost `$0.056292`
+
+### Validation
+
+- `.venv/bin/python -m unittest tests.test_operation_contracts tests.test_subtask_loop`:
+  `362` tests OK.
+- `.venv/bin/python -m src.ops.audit_runtime_domain_terms --summary`: passed
+  with `217` reviewed literals.
+- `src.ops.audit_benchmark_fanout_cost` run on the final eval-only bundle.
+
+### Interpretation
+
+- The focused KAB CIR issue is closed with source-visible operands and grounded
+  rendering, not only numeric tolerance.
+- Intermediate diagnostic result bundles are local artifacts. Keep the final
+  verified bundle and the source fresh store only if reproducible handoff is
+  needed.
 
 ## Runtime Cost-Control Diagnostics (2026-06-09)
 

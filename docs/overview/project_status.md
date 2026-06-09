@@ -44,11 +44,37 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Runtime/API Cost Control
 
-- Current status: numeric-extraction LLM fanout has been reduced; equivalent
-  lookup rewordings now reuse state-local retrieval results; duplicate
-  reflection report artifact ids are fixed; repeated direct-support lookup
-  rejections now stop extra semantic replan after the first replan attempt.
+- Current status: the focused `KAB_T1_066` CIR path is closed with source-visible
+  operands and controlled fanout. Numeric-extraction LLM fanout has been
+  reduced; equivalent lookup rewordings reuse state-local retrieval results;
+  duplicate reflection report artifact ids are fixed; repeated direct-support
+  lookup rejections stop extra semantic replan after the first replan attempt.
 - Latest source change, 2026-06-09:
+  - Lookup direct-support validation now checks the exact prompt context shown
+    to numeric extraction, not only raw `Document.page_content` and selected
+    evidence items.
+  - Aggregate-result guards distinguish embedded operation tokens inside a
+    metric label from explicit aggregate operation phrases by checking the
+    token's left boundary.
+  - Ratio operand assembly probes retrieved/seed docs for a coherent source
+    context when dependency task outputs already cover the required operands.
+    If one table/context directly provides all operands, those source-visible
+    rows realign the ratio operands.
+  - Late aggregate rendering refreshes ratio answers from the resolved
+    calculation trace when the result value is present but component display
+    differs.
+  - This is a provenance/display contract change, not a company/question branch.
+- Latest focused eval-only, `KAB_T1_066` on 2026-06-09:
+  - answer: `2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 /
+    경비차감전영업이익 11,623억원.`
+  - operands: `4,355억원` and `11,623억원`, both from
+    `IV. 이사의 경영진단 및 분석의견::table:3`
+  - numeric `PASS`, faithfulness/completeness/context recall/retrieval hit@k
+    `1.000 / 1.000 / 1.000 / 1.000`, grounded rendering `1.000`
+  - latency `68.5s`, agent LLM tokens `55,104`, agent calls `8`
+  - fanout audit: executed queries `2`, duplicate executed queries `0`,
+    state query-result avoided searches `14`, estimated runtime cost `$0.056292`
+- Previous source change, 2026-06-09:
   - Aggregate replan now checks the numeric extraction debug history before
     routing back to semantic planning.
   - If `plan_loop_count >= 1` and the history shows
@@ -58,7 +84,7 @@ role-separated multi-agent system using a task ledger and artifact store.
     invoking another semantic replan.
   - The guard only applies after a duplicate direct-support rejection, so first
     replan attempts and new evidence surfaces remain available.
-- Previous source change, 2026-06-09:
+- Earlier source change, 2026-06-09:
   - Reflection retry handoff ids are now allocated from the existing
     task/artifact ledger, not only from `reflection_count + 1`.
   - `_prepare_reflection_retry()` scans existing `reflection:{target}:NNN`

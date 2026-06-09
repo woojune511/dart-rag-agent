@@ -11,6 +11,42 @@
 
 ## 최신 상태
 
+- 2026-06-09 `KAB_T1_066` CIR ratio evidence/display path를 닫았다.
+  - root cause는 두 층이었다.
+    1. lookup direct-support guard가 `경비차감전영업이익` 안의 `차감`을
+       aggregate operation token으로 오인해 `11,623억원` denominator를
+       reject했다.
+    2. ratio final answer가 resolved calculation trace의 coherent MDA table
+       operands보다 이전 lookup subtask projection을 우선해
+       `4,355.42억원` display를 남겼다.
+  - 변경:
+    - lookup support 검사는 LLM에 실제로 보여준 prompt context도 검증
+      후보로 사용한다.
+    - aggregate token guard는 token 앞 경계를 확인해 metric label 내부의
+      embedded operation token과 실제 aggregate phrase를 구분한다.
+    - ratio calculation은 dependency rows가 이미 required operands를
+      채웠더라도 retrieved/seed docs에서 같은 table/context가 모든 required
+      operands를 직접 제공하면 coherent context rows를 우선한다.
+    - late aggregate answer refresh는 ratio 결과값이 이미 답변에 있어도
+      resolved trace의 component display가 다르면 compact ratio answer를
+      다시 만든다.
+  - 최종 store-fixed eval-only:
+    `benchmarks/results/kab_t1_066_final_verified_evalonly_2026-06-09/`
+    - answer: `2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 /
+      경비차감전영업이익 11,623억원.`
+    - operands: both from `IV. 이사의 경영진단 및 분석의견::table:3`
+    - numeric `PASS`, faithfulness/completeness/context recall/retrieval hit
+      `1.000 / 1.000 / 1.000 / 1.000`, grounded rendering `1.000`
+    - latency `68.5s`, agent calls `8`, agent tokens `55,104`,
+      estimated runtime cost `$0.056292`
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_operation_contracts tests.test_subtask_loop`:
+      `362` tests OK.
+    - `.venv/bin/python -m src.ops.audit_runtime_domain_terms --summary`:
+      passed (`217` reviewed literals).
+    - fanout audit: executed queries `2`, duplicate executed queries `0`,
+      state query-result avoided searches `14`.
+
 - 2026-06-09 duplicate direct-support lookup rejection 이후 replan loop guard를
   추가했다.
   - aggregate 단계에서 `planner_feedback`이 있어도 `plan_loop_count >= 1`이고

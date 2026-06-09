@@ -291,6 +291,264 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(by_role["addend_a"]["raw_value"], "111")
         self.assertEqual(by_role["addend_b"]["raw_value"], "222")
 
+    def test_ratio_operand_rejects_bound_label_without_source_surface_support(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "target denominator",
+                "role": "denominator_1",
+                "concept": "target_denominator",
+                "required": True,
+            }
+        ]
+        evidence_by_id = {
+            "ev_statement": {
+                "evidence_id": "ev_statement",
+                "claim": "source numerator 435,542",
+                "quote_span": "source numerator 435,542",
+                "metadata": {
+                    "table_value_labels_text": "source numerator 435,542\nother metric 478,485",
+                    "table_source_id": "table:statement",
+                },
+            }
+        }
+        mislabeled_row = {
+            "operand_id": "op_002",
+            "evidence_id": "ev_statement",
+            "source_row_id": "ev_statement",
+            "label": "target denominator",
+            "matched_operand_label": "target denominator",
+            "matched_operand_concept": "target_denominator",
+            "matched_operand_role": "denominator_1",
+            "raw_value": "478,485",
+            "raw_unit": "백만원",
+            "normalized_value": 478485000000.0,
+            "normalized_unit": "KRW",
+        }
+        supported_row = {
+            **mislabeled_row,
+            "raw_value": "11,623",
+            "normalized_value": 1162300000000.0,
+        }
+        evidence_by_id["ev_supported"] = {
+            "evidence_id": "ev_supported",
+            "claim": "target denominator 11,623",
+            "quote_span": "target denominator 11,623",
+            "metadata": {"table_source_id": "table:metric"},
+        }
+        supported_row["evidence_id"] = "ev_supported"
+        supported_row["source_row_id"] = "ev_supported"
+
+        self.assertFalse(
+            agent._operand_row_satisfies_required_surface_contract(
+                mislabeled_row,
+                evidence_by_id,
+                required_operands,
+                require_direct_support=True,
+            )
+        )
+        self.assertTrue(
+            agent._operand_row_satisfies_required_surface_contract(
+                supported_row,
+                evidence_by_id,
+                required_operands,
+                require_direct_support=True,
+            )
+        )
+
+    def test_ratio_surface_filter_checks_structured_table_value_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "target numerator",
+                "role": "numerator_1",
+                "concept": "target_numerator",
+                "required": True,
+            },
+            {
+                "label": "target denominator",
+                "role": "denominator_1",
+                "concept": "target_denominator",
+                "required": True,
+            },
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "ev_table",
+                "claim": "target numerator 4,355; target denominator 11,623; other metric 478,485",
+                "metadata": {
+                    "table_source_id": "table:metrics",
+                    "table_object_json": json.dumps(
+                        {
+                            "rows": [
+                                {
+                                    "row_label": "target numerator",
+                                    "row_headers": ["target numerator"],
+                                    "cells": [{"value_text": "4,355", "unit_hint": "억원"}],
+                                },
+                                {
+                                    "row_label": "target denominator",
+                                    "row_headers": ["target denominator"],
+                                    "cells": [{"value_text": "11,623", "unit_hint": "억원"}],
+                                },
+                                {
+                                    "row_label": "other metric",
+                                    "row_headers": ["other metric"],
+                                    "cells": [{"value_text": "478,485", "unit_hint": "백만원"}],
+                                },
+                            ]
+                        }
+                    ),
+                },
+            }
+        ]
+        candidate_rows = [
+            {
+                "evidence_id": "ev_table",
+                "label": "target numerator",
+                "matched_operand_label": "target numerator",
+                "matched_operand_role": "numerator_1",
+                "matched_operand_concept": "target_numerator",
+                "raw_value": "4,355",
+                "raw_unit": "억원",
+            },
+            {
+                "evidence_id": "ev_table",
+                "label": "target denominator",
+                "matched_operand_label": "target denominator",
+                "matched_operand_role": "denominator_1",
+                "matched_operand_concept": "target_denominator",
+                "raw_value": "478,485",
+                "raw_unit": "백만원",
+            },
+            {
+                "evidence_id": "ev_table",
+                "label": "target denominator",
+                "matched_operand_label": "target denominator",
+                "matched_operand_role": "denominator_1",
+                "matched_operand_concept": "target_denominator",
+                "raw_value": "11,623",
+                "raw_unit": "억원",
+            },
+        ]
+
+        filtered = agent._filter_operand_rows_by_required_surface_contract(
+            candidate_rows,
+            evidence_items,
+            required_operands,
+            require_direct_support=True,
+        )
+
+        values_by_role = {row["matched_operand_role"]: row["raw_value"] for row in filtered}
+        self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
+
+    def test_ratio_coherent_context_rows_can_be_recovered_from_retrieved_docs(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "판매비와관리비",
+                "role": "numerator_1",
+                "concept": "selling_general_administrative_expense",
+                "required": True,
+            },
+            {
+                "label": "경비차감전영업이익",
+                "role": "denominator_1",
+                "concept": "pre_expense_operating_profit",
+                "required": True,
+            },
+        ]
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "구분 | 2023년 | 2022년\n"
+                        "경비차감전영업이익 | 11,623 | 9,199\n"
+                        "판매비와관리비 | 4,355 | 3,935"
+                    ),
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "Management discussion",
+                        "table_source_id": "table:coherent",
+                        "unit_hint": "억원",
+                        "table_header_context": "구분 | 2023년 | 2022년",
+                        "table_value_labels_text": (
+                            "경비차감전영업이익 11,623\n"
+                            "경비차감전영업이익 9,199\n"
+                            "판매비와관리비 4,355\n"
+                            "판매비와관리비 3,935"
+                        ),
+                    },
+                ),
+                1.0,
+            )
+        ]
+
+        evidence_items = agent._ratio_operand_context_evidence_from_docs(docs)
+        rows = agent._build_complete_ratio_operands_from_coherent_context(
+            evidence_items,
+            required_operands=required_operands,
+            query="Calculate 2023 selling expenses divided by pre-expense operating profit.",
+            topic="ratio",
+            report_scope={"years": [2023]},
+        )
+
+        values_by_role = {row["matched_operand_role"]: row["raw_value"] for row in rows}
+        self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
+
+    def test_late_runtime_ratio_answer_refreshes_component_display(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "active_subtask": {"metric_label": "CIR"},
+            "resolved_calculation_trace": {
+                "calculation_plan": {"operation": "ratio"},
+                "calculation_operands": [],
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 37.4688,
+                    "rendered_value": "37.47%",
+                    "answer_slots": {
+                        "metric_label": "CIR",
+                        "operation_family": "ratio",
+                        "primary_value": {"rendered_value": "37.47%"},
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "label": "판매비와관리비",
+                                    "raw_value": "4,355",
+                                    "raw_unit": "억원",
+                                    "normalized_value": 435500000000,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "4,355억원",
+                                    "period": "2023년",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "label": "경비차감전영업이익",
+                                    "raw_value": "11,623",
+                                    "raw_unit": "억원",
+                                    "normalized_value": 1162300000000,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "11,623억원",
+                                    "period": "2023년",
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        }
+
+        refreshed = agent._late_runtime_numeric_answer(
+            state,
+            "2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355.42억원 / 경비차감전영업이익 11,623억원.",
+        )
+
+        self.assertIn("4,355억원", refreshed)
+        self.assertNotIn("4,355.42억원", refreshed)
+
     def test_operand_coercion_trusts_evidence_surface_unit_and_period(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         row = {
@@ -1038,6 +1296,301 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(result["selected_claim_ids"], ["ev_001"])
+
+    def test_lookup_numeric_extractor_accepts_direct_table_object_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="company",
+                unit="units",
+                raw_value="100",
+                final_value="The 2023 total base is 100 units.",
+            )
+        )
+        metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "table_object_json": json.dumps(
+                {
+                    "rows": [
+                        {
+                            "row_label": "total base",
+                            "row_headers": ["total base"],
+                            "cells": [
+                                {
+                                    "column_headers": ["2023"],
+                                    "value_text": "100",
+                                    "unit_hint": "units",
+                                }
+                            ],
+                        },
+                        {
+                            "row_label": "other metric",
+                            "row_headers": ["other metric"],
+                            "cells": [
+                                {
+                                    "column_headers": ["2023"],
+                                    "value_text": "200",
+                                    "unit_hint": "units",
+                                }
+                            ],
+                        },
+                    ]
+                }
+            ),
+        }
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find total base for 2023.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="Structured table chunk",
+                            metadata=metadata,
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023 total base",
+                    "required_operands": [
+                        {
+                            "label": "2023 total base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(result["selected_claim_ids"], ["ev_001"])
+
+    def test_lookup_numeric_extractor_accepts_existing_evidence_support(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="company",
+                unit="units",
+                raw_value="100",
+                final_value="The 2023 total base is 100 units.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find total base for 2023.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="Visible prompt context does not include the needed value.",
+                            metadata={"company": "ExampleCo", "year": 2023},
+                        ),
+                        1.0,
+                    )
+                ],
+                "evidence_items": [
+                    {
+                        "evidence_id": "ev_existing",
+                        "claim": "total base | 100 units",
+                        "quote_span": "total base | 100 units",
+                        "metadata": {"company": "ExampleCo", "year": 2023},
+                    }
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023 total base",
+                    "required_operands": [
+                        {
+                            "label": "2023 total base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertNotEqual(result["numeric_debug_trace"].get("rejected_reason"), "missing_direct_lookup_operand_support")
+
+    def test_lookup_numeric_extractor_checks_prompt_parent_context_support(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="company",
+                unit="units",
+                raw_value="100",
+                final_value="The 2023 total base is 100 units.",
+            )
+        )
+        agent.vsm = SimpleNamespace(get_parent=lambda _parent_id: "total base | 100 units\nother metric | 200 units")
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find total base for 2023.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="Child chunk without the value.",
+                            metadata={
+                                "company": "ExampleCo",
+                                "year": 2023,
+                                "parent_id": "parent_1",
+                            },
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023 total base",
+                    "required_operands": [
+                        {
+                            "label": "2023 total base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertNotEqual(result["numeric_debug_trace"].get("rejected_reason"), "missing_direct_lookup_operand_support")
+
+    def test_lookup_numeric_extractor_uses_metric_label_as_support_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="company",
+                unit="units",
+                raw_value="100",
+                final_value="The 2023 total base is 100 units.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find total base for 2023.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="total base | 100 units",
+                            metadata={"company": "ExampleCo", "year": 2023},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "total base",
+                    "required_operands": [
+                        {
+                            "label": "reported consolidated total base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertNotEqual(result["numeric_debug_trace"].get("rejected_reason"), "missing_direct_lookup_operand_support")
+
+    def test_lookup_numeric_extractor_does_not_reject_embedded_operation_token_label(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023 경비차감전대상값",
+                consolidation_check="company",
+                unit="units",
+                raw_value="100",
+                final_value="The 2023 경비차감전대상값 is 100 units.",
+            )
+        )
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find the target value for 2023.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="경비차감전대상값 | 100 units\nother metric | 200 units",
+                            metadata={"company": "ExampleCo", "year": 2023},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "경비차감전대상값",
+                    "required_operands": [
+                        {
+                            "label": "경비차감전대상값",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertNotEqual(result["numeric_debug_trace"].get("rejected_reason"), "missing_direct_lookup_operand_support")
+
+    def test_lookup_numeric_extractor_accepts_result_surface_grounded_in_source_line(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="company",
+                unit="units",
+                raw_value="100",
+                final_value="The source targetdenominator is 100 units.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find the denominator for 2023.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="targetdenominator (A=B+C) | 100 | 80\nothermetric | 200 | 150",
+                            metadata={"company": "ExampleCo", "year": 2023},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "ratio base",
+                    "required_operands": [
+                        {
+                            "label": "reported consolidated base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertNotEqual(result["numeric_debug_trace"].get("rejected_reason"), "missing_direct_lookup_operand_support")
 
     def test_lookup_numeric_extractor_accepts_formula_labeled_source_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

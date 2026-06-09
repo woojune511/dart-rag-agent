@@ -208,6 +208,16 @@ _LOOKUP_AGGREGATE_RESULT_RE = re.compile(
 )
 
 
+def _lookup_text_has_explicit_aggregate_result(text: str) -> bool:
+    normalized = _normalise_spaces(text)
+    for match in _LOOKUP_AGGREGATE_RESULT_RE.finditer(normalized):
+        previous = normalized[match.start() - 1] if match.start() > 0 else ""
+        if previous and re.fullmatch(r"[A-Za-z0-9가-힣_]", previous):
+            continue
+        return True
+    return False
+
+
 def _safe_json_loads(value: Any) -> Any:
     if not value:
         return None
@@ -335,6 +345,8 @@ def _lookup_numeric_extraction_has_direct_support(
     state: FinancialAgentState,
     debug_trace: Dict[str, Any],
     docs: List[Any],
+    *,
+    context: str = "",
 ) -> bool:
     required_operands = _active_lookup_required_operands(state)
     if not required_operands:
@@ -349,10 +361,29 @@ def _lookup_numeric_extraction_has_direct_support(
             for key in ("final_value", "period_check", "consolidation_check")
         )
     )
-    if _LOOKUP_AGGREGATE_RESULT_RE.search(result_text):
-        return False
+    result_mentions_aggregate = _lookup_text_has_explicit_aggregate_result(result_text)
+    result_compact = re.sub(r"\s+", "", result_text)
+    assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
+    blocked_tokens = {
+        str(token)
+        for token in (assembly_policy.get("lookup_surface_blocked_tokens") or ())
+        if str(token)
+    }
 
     operand = dict(required_operands[0])
+    support_operands = [operand]
+    active_subtask = dict(state.get("active_subtask") or {})
+    metric_label = _normalise_spaces(str(active_subtask.get("metric_label") or ""))
+    if metric_label:
+        support_operands.append(
+            {
+                "label": metric_label,
+                "aliases": [metric_label],
+                "concept": str(operand.get("concept") or ""),
+                "role": str(operand.get("role") or ""),
+                "required": True,
+            }
+        )
     if not re.sub(r"[\s,]", "", raw_value):
         return False
 
@@ -380,6 +411,64 @@ def _lookup_numeric_extraction_has_direct_support(
         support_doc_scores.append(doc_score)
 
     support_lines: List[str] = []
+    support_lines.extend(line for line in re.split(r"[\r\n]+", str(context or "")) if line.strip())
+
+    def _append_table_object_support_lines(metadata: Dict[str, Any]) -> None:
+        table_object = _safe_json_loads(metadata.get("table_object_json")) or {}
+        if not isinstance(table_object, dict):
+            return
+        for record in table_object.get("rows") or []:
+            if not isinstance(record, dict):
+                continue
+            row_bits = [
+                str(record.get("row_label") or ""),
+                str(record.get("semantic_label") or ""),
+                " ".join(str(item) for item in (record.get("row_headers") or [])),
+                " ".join(str(item) for item in (record.get("semantic_aliases") or [])),
+            ]
+            for cell in record.get("cells") or []:
+                if isinstance(cell, dict):
+                    row_bits.append(" ".join(str(item) for item in (cell.get("column_headers") or [])))
+                    row_bits.append(str(cell.get("value_text") or ""))
+                    row_bits.append(str(cell.get("unit_hint") or ""))
+            support_lines.append(_normalise_spaces(" ".join(bit for bit in row_bits if bit)))
+        for record in table_object.get("values") or []:
+            if not isinstance(record, dict):
+                continue
+            value_bits = [
+                str(record.get("semantic_label") or ""),
+                str(record.get("row_label") or ""),
+                str(record.get("aggregate_label") or ""),
+                " ".join(str(item) for item in (record.get("semantic_aliases") or [])),
+                " ".join(str(item) for item in (record.get("row_headers") or [])),
+                " ".join(str(item) for item in (record.get("column_headers") or [])),
+                str(record.get("period_text") or ""),
+                str(record.get("value_text") or ""),
+                str(record.get("unit_hint") or ""),
+            ]
+            support_lines.append(_normalise_spaces(" ".join(bit for bit in value_bits if bit)))
+
+    for item in list(state.get("evidence_items") or []) + list(state.get("runtime_evidence") or []):
+        if not isinstance(item, dict):
+            continue
+        metadata = dict(item.get("metadata") or {})
+        for key in ("claim", "quote_span", "raw_row_text", "source_context"):
+            value = _normalise_spaces(str(item.get(key) or ""))
+            if value:
+                support_lines.append(value)
+        for key in (
+            "row_text",
+            "raw_row_text",
+            "table_header_context",
+            "table_value_labels_text",
+            "semantic_label",
+            "row_label",
+        ):
+            value = _normalise_spaces(str(metadata.get(key) or ""))
+            if value:
+                support_lines.append(value)
+        _append_table_object_support_lines(metadata)
+
     for doc_score in support_doc_scores:
         doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
         metadata = dict(getattr(doc, "metadata", {}) or {})
@@ -424,17 +513,82 @@ def _lookup_numeric_extraction_has_direct_support(
                 str(record.get("unit_hint") or ""),
             ]
             support_lines.append(_normalise_spaces(" ".join(bit for bit in value_bits if bit)))
+        _append_table_object_support_lines(metadata)
 
+    raw_value_support_lines: List[Dict[str, Any]] = []
     for line in support_lines:
         normalized = _normalise_spaces(line)
         if not _line_contains_exact_raw_value(normalized, raw_value):
             continue
-        if _text_has_negative_surface(normalized, operand):
+        if result_mentions_aggregate and _lookup_text_has_explicit_aggregate_result(normalized):
             continue
-        if _lookup_line_matches_operand_surface(normalized, operand):
-            return True
-        if _LOOKUP_AGGREGATE_RESULT_RE.search(normalized):
+        operand_checks: List[Dict[str, Any]] = []
+        for support_operand in support_operands:
+            negative_surface = _text_has_negative_surface(normalized, support_operand)
+            surface_match = False if negative_surface else _lookup_line_matches_operand_surface(normalized, support_operand)
+            operand_checks.append(
+                {
+                    "label": _normalise_spaces(str(support_operand.get("label") or ""))[:120],
+                    "role": str(support_operand.get("role") or "")[:80],
+                    "negative_surface": negative_surface,
+                    "surface_match": surface_match,
+                }
+            )
+            if negative_surface:
+                continue
+            if surface_match:
+                return True
+        if _lookup_text_has_explicit_aggregate_result(normalized):
             continue
+        line_before_value = normalized.split(raw_value, 1)[0]
+        result_surface_tokens: List[str] = []
+        for token in re.findall(r"[A-Za-z가-힣][A-Za-z가-힣0-9_]{5,}", line_before_value):
+            if any(blocked in token for blocked in blocked_tokens):
+                continue
+            if token:
+                result_surface_tokens.append(token[:80])
+            if token and token in result_compact:
+                return True
+        if len(raw_value_support_lines) < 8:
+            raw_value_support_lines.append(
+                {
+                    "line": normalized[:240],
+                    "operand_checks": operand_checks,
+                    "result_surface_tokens": result_surface_tokens[:8],
+                }
+            )
+    raw_compact = re.sub(r"[\s,]", "", raw_value)
+    compact_value_lines = [
+        _normalise_spaces(line)[:240]
+        for line in support_lines
+        if raw_compact and raw_compact in re.sub(r"[\s,]", "", _normalise_spaces(line))
+    ]
+    diagnostics = {
+        "raw_value": raw_value,
+        "support_line_count": len(support_lines),
+        "raw_value_line_count": sum(
+            1 for line in support_lines if _line_contains_exact_raw_value(_normalise_spaces(line), raw_value)
+        ),
+        "compact_value_line_count": len(compact_value_lines),
+        "required_operand_labels": [_normalise_spaces(str(item.get("label") or ""))[:120] for item in support_operands],
+        "result_text_preview": result_text[:240],
+        "result_mentions_aggregate": result_mentions_aggregate,
+        "context_chars": len(str(context or "")),
+        "context_contains_compact_raw": bool(
+            raw_compact and raw_compact in re.sub(r"[\s,]", "", str(context or ""))
+        ),
+        "raw_value_support_lines": raw_value_support_lines,
+        "compact_value_lines": compact_value_lines[:8],
+    }
+    debug_trace["direct_support_diagnostics"] = diagnostics
+    logger.info(
+        "[numeric_extractor] lookup support diagnostics raw=%s exact_lines=%s compact_lines=%s context_contains_raw=%s first_compact_line=%s",
+        raw_value,
+        diagnostics["raw_value_line_count"],
+        diagnostics["compact_value_line_count"],
+        diagnostics["context_contains_compact_raw"],
+        compact_value_lines[0] if compact_value_lines else "",
+    )
     return False
 
 
@@ -6437,7 +6591,12 @@ class FinancialAgentEvidenceMixin:
                 }
                 answer = empty_result["answer"]
 
-        if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(state, debug_trace, docs):
+        if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(
+            state,
+            debug_trace,
+            docs,
+            context=context,
+        ):
             logger.info(
                 "[numeric_extractor] rejected lookup raw=%s without direct operand support",
                 debug_trace.get("raw_value"),
