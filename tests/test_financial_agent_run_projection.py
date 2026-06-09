@@ -1,7 +1,9 @@
 import unittest
+from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import FinancialAgentState
+from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
 
 class _FakeGraph:
@@ -18,6 +20,33 @@ class _FakeDoc:
     def __init__(self, page_content, metadata=None):
         self.page_content = page_content
         self.metadata = dict(metadata or {})
+
+
+class _PhaseUsageGraph:
+    def __init__(self, final_state, agent):
+        self._final_state = final_state
+        self._agent = agent
+
+    def invoke(self, _initial):
+        self._agent._llm_for_phase("numeric_extraction")
+        self._agent.llm_usage_callback.on_llm_end(
+            SimpleNamespace(
+                llm_output=None,
+                generations=[
+                    [
+                        SimpleNamespace(
+                            message=SimpleNamespace(
+                                usage_metadata={
+                                    "input_tokens": 100,
+                                    "output_tokens": 20,
+                                }
+                            )
+                        )
+                    ]
+                ],
+            )
+        )
+        return dict(self._final_state)
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
@@ -129,6 +158,23 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
+
+    def test_run_projects_llm_usage_by_phase_from_callback(self) -> None:
+        final_state = self._base_final_state()
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm_usage_callback = GeminiUsageCallbackHandler()
+        agent.llm_routes = {"default": object()}
+        agent.graph = _PhaseUsageGraph(final_state, agent)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["llm_usage"]["api_calls"], 1)
+        self.assertEqual(result["llm_usage"]["total_tokens"], 120)
+        self.assertEqual(result["llm_usage_by_phase"]["numeric_extraction"]["api_calls"], 1)
+        self.assertEqual(result["llm_usage_by_phase"]["numeric_extraction"]["prompt_tokens"], 100)
+        self.assertEqual(result["llm_usage_by_phase"]["numeric_extraction"]["output_tokens"], 20)
+        self.assertEqual(result["llm_usage_by_phase"]["numeric_extraction"]["total_tokens"], 120)
 
     def test_run_initial_state_does_not_seed_optional_calculation_mirrors(self) -> None:
         final_state = self._base_final_state()
