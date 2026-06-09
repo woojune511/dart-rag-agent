@@ -11,6 +11,33 @@
 
 ## 최신 상태
 
+- 2026-06-09 runtime/API cost-control 관측 계약을 보강했다.
+  - state-local query-result cache 재사용을 `avoided_search_count`로 노출해,
+    sibling task가 같은 source/filter/query 결과를 재사용할 때 실제
+    `vsm.search()`를 몇 번 피했는지 audit에서 볼 수 있다.
+  - cross-trace reuse diagnostics는 이전 trace의 `reused_queries`도 후보
+    history로 읽고, 현재 후보가 vector-store cache hit인지 result-cache
+    hit인지 구분한다. retrieval behavior나 answer path는 바꾸지 않았다.
+  - 검증:
+    - `python -m unittest tests.test_retrieval_scope.RetrievalScopeTests.test_retrieve_reuses_state_query_result_cache_for_sibling_primary_query tests.test_retrieval_scope.RetrievalScopeTests.test_cross_trace_reuse_candidate_diagnostics_matches_prior_same_source_filter_query tests.test_benchmark_fanout_cost_audit`:
+      `5` tests OK.
+    - `python -m unittest tests.test_retrieval_scope`: `27` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `1019` tests OK.
+  - follow-up canary:
+    `benchmarks/results/cel_t3_040_result_cache_avoided_search_canary_2026-06-09/`
+    는 existing concept-gate result bundle이 없는 checkout에서 실행되어
+    fresh store 구축을 포함한 local artifact였고, 수치 요약 후 삭제했다.
+    `CEL_T3_040` focused run은 numeric `PASS`, faithfulness/completeness
+    `1.000 / 1.000`, context recall `0.333`, retrieval hit@k `1.000`,
+    latency `249.2s`, estimated runtime cost `$0.126694`를 기록했다.
+    fan-out audit는 retrieval traces `6`, executed queries `26`,
+    duplicate queries `0`, state query-result cache reuses `18`,
+    avoided searches `18`, cross-trace reuse candidates `18`, current cache
+    misses `0`을 보고했다. 이 결과는 cost-observability canary이며 full gate
+    baseline 교체가 아니다.
+
 - 2026-06-09 aggregate task-ledger trace 정리를 추가했다.
   - 새 lifecycle status `superseded`를 도입해, 최종 aggregate answer slot /
     operand가 이미 해결한 pending/partial planned task를 실패나 미완료처럼

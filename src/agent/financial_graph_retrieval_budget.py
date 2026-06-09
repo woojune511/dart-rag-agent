@@ -317,7 +317,7 @@ def _trace_task_context(trace: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _cross_trace_reuse_candidate_diagnostics(
-    executed_queries: List[Dict[str, Any]],
+    current_queries: List[Dict[str, Any]],
     previous_traces: List[Dict[str, Any]],
     *,
     current_trace_index: int,
@@ -328,7 +328,7 @@ def _cross_trace_reuse_candidate_diagnostics(
         if not isinstance(trace, dict):
             continue
         task_context = _trace_task_context(trace)
-        for query_trace in trace.get("executed_queries") or []:
+        for query_trace in list(trace.get("executed_queries") or []) + list(trace.get("reused_queries") or []):
             if not isinstance(query_trace, dict):
                 continue
             source = _normalise_spaces(str(query_trace.get("source") or "unknown")) or "unknown"
@@ -346,12 +346,13 @@ def _cross_trace_reuse_candidate_diagnostics(
                     "base_query": query_trace.get("base_query"),
                     "executed_query": query_trace.get("executed_query"),
                     "cache_hit": bool((query_trace.get("search_telemetry") or {}).get("cache_hit")),
+                    "result_cache_hit": bool(query_trace.get("result_cache_hit")),
                 }
             )
 
     candidates: List[Dict[str, Any]] = []
     by_source: Dict[str, Dict[str, int]] = {}
-    for query_trace in executed_queries:
+    for query_trace in current_queries:
         source = _normalise_spaces(str(query_trace.get("source") or "unknown")) or "unknown"
         signature = _retrieval_query_signature(query_trace.get("executed_query"))
         if not signature:
@@ -373,7 +374,9 @@ def _cross_trace_reuse_candidate_diagnostics(
                 "executed_query": query_trace.get("executed_query"),
                 "where_filter_signature": filter_signature,
                 "current_trace_index": current_trace_index,
-                "current_cache_hit": bool((query_trace.get("search_telemetry") or {}).get("cache_hit")),
+                "current_cache_hit": bool((query_trace.get("search_telemetry") or {}).get("cache_hit"))
+                or bool(query_trace.get("result_cache_hit")),
+                "current_result_cache_hit": bool(query_trace.get("result_cache_hit")),
                 "prior_match_count": len(prior_matches),
                 "prior_matches": prior_matches[:5],
             }

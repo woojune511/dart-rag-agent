@@ -506,6 +506,15 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(second["retrieval_debug_trace"]["executed_queries"], [])
         self.assertEqual(len(second["retrieval_debug_trace"]["reused_queries"]), 1)
         self.assertEqual(second["retrieval_debug_trace"]["query_result_cache"]["reuse_count"], 1)
+        self.assertEqual(second["retrieval_debug_trace"]["query_result_cache"]["avoided_search_count"], 1)
+        self.assertEqual(
+            second["retrieval_debug_trace"]["query_result_cache"]["by_source"]["primary"]["avoided_search_count"],
+            1,
+        )
+        reuse = second["retrieval_debug_trace"]["cross_trace_reuse_candidates"]
+        self.assertEqual(reuse["candidate_count"], 1)
+        self.assertTrue(reuse["candidates"][0]["current_cache_hit"])
+        self.assertTrue(reuse["candidates"][0]["current_result_cache_hit"])
         self.assertEqual(len(second["retrieved_docs"]), 1)
 
     def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:

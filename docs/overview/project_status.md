@@ -1121,6 +1121,26 @@ Current next decisions:
   previous result bundle without another `vsm.search()` call, while the debug
   trace records `reused_queries` and `query_result_cache.reuse_count` for
   offline audit.
+- The 2026-06-09 follow-up keeps that behavior unchanged but makes the cost
+  surface clearer: debug traces now expose
+  `query_result_cache.avoided_search_count` plus source-level reuse summaries,
+  cross-trace diagnostics include `reused_queries` in prior history, and the
+  fan-out audit reports state query-result avoided searches separately from
+  cache reuses. This is observability for runtime/API cost control, not a new
+  retrieval policy.
+- A focused `CEL_T3_040` cost-observability canary on 2026-06-09 created the
+  local artifact
+  `benchmarks/results/cel_t3_040_result_cache_avoided_search_canary_2026-06-09/`.
+  Because this checkout did not have an existing concept-gate result bundle,
+  the run included fresh store construction before full eval; treat it as a
+  local canary, not a store-fixed release baseline. The artifact was deleted
+  after this summary was recorded. The full-eval row preserved numeric `PASS`,
+  faithfulness/completeness `1.000 / 1.000`, retrieval hit@k `1.000`, and
+  artifact integrity `ok`; context recall was `0.333`. The fan-out audit
+  reported `26` executed queries, `0` duplicate queries, `18` state
+  query-result cache reuses, `18` avoided searches, `18` cross-trace reuse
+  candidates, and `0` current cache misses. Estimated runtime cost was
+  `$0.126694`.
 - The concept runtime gap gate profile now carries the same explicit `8 / 4 / 1`
   retrieval budgets used by the official runtime/policy gates. A store-fixed
   `CEL_T1_013` canary preserved numeric `PASS`, faithfulness/completeness

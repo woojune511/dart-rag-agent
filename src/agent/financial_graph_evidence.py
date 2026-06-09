@@ -2415,10 +2415,22 @@ class FinancialAgentEvidenceMixin:
             if isinstance(item, dict)
         ]
         cross_trace_reuse_candidates = _cross_trace_reuse_candidate_diagnostics(
-            executed_queries,
+            [*executed_queries, *reused_queries],
             retrieval_debug_trace_history,
             current_trace_index=len(retrieval_debug_trace_history) + 1,
         )
+        query_result_cache_by_source: Dict[str, Dict[str, int]] = {}
+        for reused_query in reused_queries:
+            source_key = _normalise_spaces(str(reused_query.get("source") or "unknown")) or "unknown"
+            source_summary = query_result_cache_by_source.setdefault(
+                source_key,
+                {
+                    "reuse_count": 0,
+                    "avoided_search_count": 0,
+                },
+            )
+            source_summary["reuse_count"] += 1
+            source_summary["avoided_search_count"] += 1
         retrieval_debug_trace = {
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
@@ -2435,6 +2447,8 @@ class FinancialAgentEvidenceMixin:
                 "scope": "state_same_source_same_filter_exact_signature",
                 "entry_count": len(retrieval_query_result_cache),
                 "reuse_count": len(reused_queries),
+                "avoided_search_count": len(reused_queries),
+                "by_source": query_result_cache_by_source,
             },
             "cross_trace_reuse_candidates": cross_trace_reuse_candidates,
             "report_cache_consumer_assessment": {

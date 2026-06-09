@@ -119,6 +119,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                             "query_result_cache": {
                                                                 "entry_count": 2,
                                                                 "reuse_count": 1,
+                                                                "avoided_search_count": 1,
                                                             },
                                                             "reused_queries": [
                                                                 {
@@ -185,6 +186,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["cross_trace_reuse_cache_hit_count"], 1)
         self.assertEqual(summary["cross_trace_reuse_cache_miss_count"], 0)
         self.assertEqual(summary["query_result_cache_reuse_count"], 1)
+        self.assertEqual(summary["query_result_cache_avoided_search_count"], 1)
         self.assertEqual(summary["query_result_cache_entry_count"], 2)
         self.assertEqual(summary["query_embedding_api_calls"], 4)
         self.assertEqual(summary["primary_selected_count"], 3)
@@ -208,6 +210,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(reuse_details[0]["signature"], "revenue 2023")
         self.assertEqual(reuse_details[0]["prior_match_count"], 1)
         self.assertTrue(reuse_details[0]["current_cache_hit"])
+        self.assertFalse(reuse_details[0]["current_result_cache_hit"])
         self.assertFalse(reuse_details[0]["current_cache_miss"])
         self.assertEqual(reuse_details[0]["prior_trace_indexes"], [1])
         self.assertEqual(reuse_details[0]["prior_task_contexts"], {"task_0/lookup": 1})
@@ -247,6 +250,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                     "cross_trace_reuse_cache_hit_count": 1,
                     "cross_trace_reuse_cache_miss_count": 0,
                     "query_result_cache_reuse_count": 1,
+                    "query_result_cache_avoided_search_count": 1,
                     "query_embedding_api_calls": 2,
                     "llm_usage": {"api_calls": 1},
                     "by_source": {"primary": {"executed_query_count": 2}},
@@ -329,6 +333,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertIn("Cross-trace reuse current cache hits", markdown)
         self.assertIn("Current cache misses", markdown)
         self.assertIn("State query-result cache reuses", markdown)
+        self.assertIn("State query-result avoided searches", markdown)
         self.assertIn("Top Rows By Cross-Trace Reuse Candidates", markdown)
         self.assertIn(
             "revenue 2023 (source:primary; prior:1; prior-traces:1; prior-tasks:task_0/lookup:1; current-cache-hit)",
