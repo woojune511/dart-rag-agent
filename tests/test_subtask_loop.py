@@ -7114,6 +7114,77 @@ class SubtaskLoopTests(unittest.TestCase):
             {},
         )
 
+    def test_prepare_reflection_retry_allocates_next_id_from_existing_ledger(self) -> None:
+        state = {
+            "query": "find the missing numeric value",
+            "topic": "missing numeric value",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "years": [],
+            "companies": [],
+            "active_subtask": {"task_id": "task_1", "metric_family": "numeric_lookup"},
+            "missing_info": ["missing numeric value"],
+            "reflection_count": 0,
+            "reflection_plan": {
+                "retry_strategy": "retry_retrieval",
+                "missing_info": ["missing numeric value"],
+                "retry_queries": ["find missing numeric value"],
+            },
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "tasks": [
+                {
+                    "task_id": "reflection:task_1:001",
+                    "kind": "reflection",
+                    "label": "reflect task_1",
+                    "status": "completed",
+                    "artifact_ids": ["reflection:task_1:001:report"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "reflection:task_1:001:report",
+                    "task_id": "reflection:task_1:001",
+                    "kind": "reflection_report",
+                    "status": "retry_prepared",
+                    "payload": {
+                        "reflection_report": {
+                            "outcome": "retry_prepared",
+                            "action_taken": "retry_retrieval",
+                            "budget_consumed": 1,
+                            "target_task_ids": ["task_1"],
+                            "target_artifact_ids": [],
+                            "blocking_issues": [],
+                        },
+                        "reflection_action": {
+                            "action_type": "retry_retrieval",
+                            "retry_queries": ["find missing numeric value"],
+                            "retrieval_scope_hints": [],
+                            "synthesis_source_ids": [],
+                            "stop_reason": "",
+                        },
+                    },
+                    "evidence_refs": [],
+                }
+            ],
+        }
+
+        update = self.agent._prepare_reflection_retry(state)
+
+        artifact_ids = [
+            str(item.get("artifact_id") or "")
+            for item in update["artifacts"]
+            if str(item.get("artifact_id") or "")
+        ]
+        self.assertEqual(artifact_ids[-1], "reflection:task_1:002:report")
+        self.assertEqual(len(artifact_ids), len(set(artifact_ids)))
+        task_ids = [str(item.get("task_id") or "") for item in update["tasks"]]
+        self.assertIn("reflection:task_1:001", task_ids)
+        self.assertIn("reflection:task_1:002", task_ids)
+        trace = _project_task_artifact_trace(update["tasks"], update["artifacts"])
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["integrity_issues"], [])
+
     def test_prepare_synthesis_reflection_retry_records_task_output_source_ids(self) -> None:
         state = {
             "query": "calculate ratio from completed lookup tasks",

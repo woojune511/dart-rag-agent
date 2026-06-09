@@ -45,9 +45,19 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Runtime/API Cost Control
 
 - Current status: numeric-extraction LLM fanout has been reduced; equivalent
-  lookup rewordings now reuse state-local retrieval results, but
-  reflection/replan loops are still the next visible cost target.
+  lookup rewordings now reuse state-local retrieval results; duplicate
+  reflection report artifact ids are fixed; reflection/replan loop control is
+  still the next visible cost target.
 - Latest source change, 2026-06-09:
+  - Reflection retry handoff ids are now allocated from the existing
+    task/artifact ledger, not only from `reflection_count + 1`.
+  - `_prepare_reflection_retry()` scans existing `reflection:{target}:NNN`
+    task ids and `reflection:{target}:NNN:report` artifact ids, then writes the
+    next unused id. This prevents stale-count or re-entry paths from producing
+    `duplicate_artifact_id:reflection:...:report`.
+  - The fix is a generic ledger allocation contract; retry/replan decisions and
+    evidence validation are unchanged.
+- Previous source change, 2026-06-09:
   - lookup and single-value retrieval subtasks now compute a normalized
     `objective_signature` from the operation family, metric label, and
     required operands.
@@ -104,8 +114,11 @@ role-separated multi-agent system using a task ledger and artifact store.
 - Next cost-control target:
   - contain retry/replan loops after repeated direct-support lookup rejection
     without weakening validation
-  - repair duplicate reflection artifact id generation in the task/artifact
-    ledger
+- Validation for the reflection id allocation change:
+  - focused reflection/ledger tests: `5` OK
+  - related subtask/run-projection/reflection suites: `216` OK
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - full unittest discovery: `1027` OK
 - Validation for the lookup objective reuse change:
   - focused retrieval/cache tests: `5` OK
   - related retrieval/fanout/operation suites: `212` OK

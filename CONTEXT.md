@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-09 reflection retry artifact id allocation을 ledger-aware하게 수정했다.
+  - `_prepare_reflection_retry()`가 더 이상 `reflection_count + 1`만으로
+    `reflection:{target}:NNN` id를 고르지 않는다. 기존 task/artifact ledger에
+    이미 쓰인 `reflection:{target}:NNN` 및 `reflection:{target}:NNN:report`
+    id를 스캔하고 다음 빈 번호를 사용한다.
+  - 이 변경은 stale `reflection_count`나 re-entry가 있어도
+    `duplicate_artifact_id:reflection:...:report` integrity error를 만들지
+    않는 generic ledger contract다. retry/replan 판단이나 evidence validation
+    behavior는 바꾸지 않는다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection tests.test_subtask_loop.SubtaskLoopTests.test_prepare_reflection_retry_allocates_next_id_from_existing_ledger tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_task_artifact_integrity_error`:
+      `3` tests OK.
+    - `.venv/bin/python -m unittest tests.test_financial_agent_run_projection.FinancialAgentRunProjectionTests.test_run_accepts_reflection_report_handoff_without_evidence_refs tests.test_financial_agent_run_projection.FinancialAgentRunProjectionTests.test_run_marks_completed_reflection_without_report_as_integrity_error`:
+      `2` tests OK.
+    - `.venv/bin/python -m unittest tests.test_subtask_loop tests.test_financial_agent_run_projection tests.test_reflection_capability_contract`:
+      `216` tests OK.
+    - `.venv/bin/python -m src.ops.audit_runtime_domain_terms --summary`:
+      passed (`215` reviewed literals).
+    - `.venv/bin/python -m unittest discover -s tests`: `1027` tests OK.
+
 - 2026-06-09 lookup objective query-result cache reuse를 추가했다.
   - lookup/single_value retrieval task에서 `operation_family`,
     `metric_label`, `required_operands`를 정규화한

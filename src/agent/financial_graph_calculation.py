@@ -184,6 +184,35 @@ def _reflection_report_from_action(
     }
 
 
+def _next_reflection_task_id(
+    state: FinancialAgentState,
+    *,
+    target_task_id: str,
+    current_count: int,
+) -> str:
+    target = _normalise_spaces(str(target_task_id or "")) or "global"
+    prefix = f"reflection:{target}:"
+    used_indexes: set[int] = set()
+    pattern = re.compile(rf"^{re.escape(prefix)}(\d+)(?::report)?$")
+    for task in state.get("tasks") or []:
+        if not isinstance(task, dict):
+            continue
+        match = pattern.match(str(task.get("task_id") or "").strip())
+        if match:
+            used_indexes.add(int(match.group(1)))
+    for artifact in state.get("artifacts") or []:
+        if not isinstance(artifact, dict):
+            continue
+        for value in (artifact.get("task_id"), artifact.get("artifact_id")):
+            match = pattern.match(str(value or "").strip())
+            if match:
+                used_indexes.add(int(match.group(1)))
+    next_index = max(int(current_count or 0) + 1, 1)
+    while next_index in used_indexes:
+        next_index += 1
+    return f"{prefix}{next_index:03d}"
+
+
 def _task_artifact_integrity_feedback(trace: Dict[str, Any]) -> str:
     status = _normalise_spaces(str(trace.get("integrity_status") or "")).lower()
     if status != "error":
@@ -13348,7 +13377,11 @@ class FinancialAgentCalculationMixin:
         )
         active_subtask = dict(state.get("active_subtask") or {})
         target_task_id = str(active_subtask.get("task_id") or "").strip()
-        reflection_task_id = f"reflection:{target_task_id or 'global'}:{current_count + 1:03d}"
+        reflection_task_id = _next_reflection_task_id(
+            state,
+            target_task_id=target_task_id,
+            current_count=current_count,
+        )
         artifacts = list(state.get("artifacts") or [])
         artifact_id = f"{reflection_task_id}:report"
         artifacts = _append_artifact(

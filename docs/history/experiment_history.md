@@ -118,11 +118,22 @@ direct-support rejection re-entered semantic replan/retry; the same run used
 - Lookup objective cache reuse is also generic: it consumes the planner's
   operand contract rather than matching company names, benchmark IDs, or
   metric-specific keywords.
-- The next runtime change should target reflection/replan loop control and
-  duplicate reflection artifact ids. The latest lookup canary preserved numeric
-  `PASS` but re-entered semantic replan after direct-support rejection.
+- The next runtime change started by fixing duplicate reflection artifact ids.
+  Reflection retry handoff now allocates `reflection:{target}:NNN` from the
+  existing task/artifact ledger, so stale `reflection_count` or re-entry cannot
+  append a second `reflection:{target}:NNN:report` artifact.
+- Remaining runtime-cost work should target reflection/replan loop control. The
+  latest lookup canary preserved numeric `PASS` but re-entered semantic replan
+  after direct-support rejection.
 - This is a runtime-cost contract, not a benchmark answer rule. No company,
   question ID, or metric-specific branch should be introduced for the follow-up.
+
+Validation for the reflection id allocation change:
+
+- focused reflection/ledger tests: `5` OK
+- related subtask/run-projection/reflection suites: `216` OK
+- runtime domain-term audit: passed with `215` reviewed literals
+- full unittest discovery: `1027` OK
 
 Validation for the lookup objective cache change:
 
