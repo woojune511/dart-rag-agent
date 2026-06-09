@@ -55,6 +55,11 @@ class _FakeAgent:
         return dict(self.result)
 
 
+class _FailingAgent:
+    def run(self, question: str, report_scope=None) -> dict:
+        raise RuntimeError("model unavailable")
+
+
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
     def test_contains_section_accepts_parent_section_path(self) -> None:
         metadata = {
@@ -1398,6 +1403,27 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(result.structured_result, {})
         self.assertEqual(result.runtime_projection_source, "")
         self.assertFalse(result.runtime_projection_legacy_fallback)
+
+    def test_evaluate_one_preserves_agent_failure_without_runtime_projection(self) -> None:
+        evaluator = RAGEvaluator(
+            _FailingAgent(),
+            skip_llm_judges=True,
+        )
+        example = EvalExample(
+            id="Q1",
+            question="question",
+            ground_truth="answer",
+            company="TEST",
+            year=2023,
+            section="section",
+        )
+
+        result = evaluator.evaluate_one(example)
+
+        self.assertEqual(result.error, "model unavailable")
+        self.assertEqual(result.runtime_projection_source, "")
+        self.assertFalse(result.runtime_projection_legacy_fallback)
+        self.assertEqual(result.resolved_calculation_trace, {})
 
     def test_evaluate_one_uses_canonical_runtime_projection_metadata(self) -> None:
         evaluator = RAGEvaluator(

@@ -3349,6 +3349,7 @@ class RAGEvaluator:
         calculation_plan: Dict[str, Any] = {}
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
+        runtime_projection: Dict[str, Any] = {}
         structured_result: Dict[str, Any] = {}
         task_artifact_trace: Dict[str, Any] = {}
         agent_llm_usage: Dict[str, Any] = {}

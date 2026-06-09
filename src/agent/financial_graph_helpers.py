@@ -171,6 +171,7 @@ __all__ = [
     '_candidate_is_descriptor_row',
     '_candidate_is_direct_grounding_candidate',
     '_candidate_satisfies_direct_acceptance_contract',
+    '_candidate_satisfies_ratio_component_acceptance_contract',
     '_is_balance_sheet_aggregate_operand',
     '_candidate_matches_operand',
     '_score_operand_candidate',
@@ -7804,6 +7805,66 @@ def _candidate_satisfies_direct_acceptance_contract(
     return True
 
 
+def _candidate_satisfies_ratio_component_acceptance_contract(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    constraints: Dict[str, Any],
+    query_years: List[int],
+    selected_cell: Optional[Dict[str, Any]] = None,
+    report_scope: Optional[Dict[str, Any]] = None,
+) -> bool:
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
+    if candidate_kind not in {"structured_value", "structured_row", "structured_column_value", "table_row", "evidence_row"}:
+        return False
+    if _candidate_is_descriptor_row(candidate):
+        return False
+    if not _candidate_has_numeric_value_signal(candidate):
+        return False
+    if not _candidate_matches_segment_binding(candidate, operand, strict=True):
+        return False
+    if not _candidate_matches_target_report_scope(
+        candidate,
+        operand=operand,
+        query_years=query_years,
+        report_scope=dict(report_scope or {}),
+    ):
+        return False
+
+    value_role = _candidate_value_role(candidate)
+    aggregation_stage = _candidate_aggregation_stage(candidate)
+    aggregate_like = value_role == "aggregate" or aggregation_stage in {"final", "subtotal", "direct"}
+    if not aggregate_like:
+        return False
+    if not _binding_policy_allows_candidate_shape(
+        value_role=value_role,
+        aggregation_stage=aggregation_stage,
+        operand_binding_policy=dict(operand.get("binding_policy") or {}),
+    ):
+        return False
+
+    surface_contract = _operand_surface_contract(operand)
+    positive_terms = [str(item).strip() for item in (surface_contract.get("positive") or []) if str(item).strip()]
+    if positive_terms:
+        if not _candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell):
+            return False
+    elif _candidate_direct_match_strength(candidate, operand) < 1.0:
+        return False
+
+    desired_period_focus = _operand_period_focus(
+        operand,
+        str((constraints or {}).get("period_focus") or "unknown").strip(),
+    )
+    candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+    target_year_match = _candidate_matches_operand_target_year(candidate, operand, query_years)
+    if desired_period_focus == "current" and candidate_period_focus == "prior" and not target_year_match:
+        return False
+    if desired_period_focus == "prior" and candidate_period_focus == "current" and not target_year_match:
+        return False
+    return True
+
+
 def _candidate_selected_unit_family(
     candidate: Dict[str, Any],
     *,
@@ -8902,4 +8963,3 @@ def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
         return " ".join(dict.fromkeys(hints))
     hints.extend(get_financial_ontology().query_hints(query, topic, intent))
     return " ".join(dict.fromkeys(hints))
-

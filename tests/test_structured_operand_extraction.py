@@ -2021,6 +2021,331 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[0]["matched_operand_label"], "단기차입금")
         self.assertEqual(rows[0]["period"], "2023")
 
+    def test_ratio_component_accepts_structured_surface_contract_without_counterpart_row(self) -> None:
+        state = {
+            "query": "Calculate selected expense over total base for 2023.",
+            "years": [2023],
+            "report_scope": {"company": "ExampleCo", "year": "2023"},
+            "intent": "comparison",
+            "topic": "selected expense over total base",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "selected expense over total base",
+                "query": "Calculate selected expense over total base for 2023.",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "selected expense",
+                        "role": "numerator",
+                        "required": True,
+                        "surface_contract": {"positive": ["selected expense"], "negative": []},
+                    },
+                    {
+                        "label": "total base",
+                        "role": "denominator",
+                        "required": True,
+                        "binding_policy": {
+                            "prefer_value_roles": ["aggregate"],
+                            "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                        },
+                        "surface_contract": {"positive": ["total base"], "negative": []},
+                    },
+                ],
+                "constraints": {
+                    "consolidation_scope": "unknown",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_ratio",
+                "matched_operands": [
+                    {
+                        "label": "total base",
+                        "role": "denominator",
+                        "matched": True,
+                        "candidate_ids": ["chunk_ratio::value:0"],
+                        "reason": "matched_candidates",
+                    }
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+        }
+        candidate = {
+            "candidate_id": "chunk_ratio::value:0",
+            "candidate_kind": "structured_value",
+            "text": "summary row 100",
+            "metadata": {
+                "chunk_uid": "chunk_ratio",
+                "company": "ExampleCo",
+                "year": 2023,
+                "block_type": "table",
+                "statement_type": "mda",
+                "period_labels": ["2023", "2022"],
+                "period_focus": "multi_period",
+                "table_source_id": "table_ratio",
+                "row_label": "summary row",
+                "semantic_label": "summary row",
+                "table_value_labels_text": "total base 100\nselected expense 40",
+                "value_text": "100",
+                "unit_hint": "units",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "100", "unit_hint": "units"},
+                    {"column_headers": ["2022"], "value_text": "80", "unit_hint": "units"},
+                ],
+            },
+            "source_anchor": "[ExampleCo | 2023 | table_ratio]",
+        }
+        self.agent._build_reconciliation_candidates = lambda _state: [candidate]
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["matched_operand_label"], "total base")
+        self.assertEqual(rows[0]["matched_operand_role"], "denominator")
+        self.assertEqual(rows[0]["raw_value"], "100")
+        self.assertEqual(rows[0]["period"], "2023")
+
+    def test_ratio_component_rejects_aggregate_without_required_surface(self) -> None:
+        state = {
+            "query": "Calculate selected expense over total base for 2023.",
+            "years": [2023],
+            "report_scope": {"company": "ExampleCo", "year": "2023"},
+            "intent": "comparison",
+            "topic": "selected expense over total base",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "selected expense over total base",
+                "query": "Calculate selected expense over total base for 2023.",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "total base",
+                        "role": "denominator",
+                        "required": True,
+                        "surface_contract": {"positive": ["total base"], "negative": []},
+                    }
+                ],
+                "constraints": {
+                    "consolidation_scope": "unknown",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_ratio",
+                "matched_operands": [
+                    {
+                        "label": "total base",
+                        "role": "denominator",
+                        "matched": True,
+                        "candidate_ids": ["chunk_ratio_other::value:0"],
+                        "reason": "matched_candidates",
+                    }
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+            "artifacts": [
+                {
+                    "artifact_id": "reconcile:other:001",
+                    "task_id": "other_task",
+                    "kind": "reconciliation_result",
+                    "status": "ready",
+                    "evidence_refs": ["chunk_ratio_other::value:0"],
+                    "payload": {"reconciliation_result": {"status": "ready"}},
+                }
+            ],
+        }
+        candidate = {
+            "candidate_id": "chunk_ratio_other::value:0",
+            "candidate_kind": "structured_value",
+            "text": "summary row 100",
+            "metadata": {
+                "chunk_uid": "chunk_ratio_other",
+                "company": "ExampleCo",
+                "year": 2023,
+                "block_type": "table",
+                "statement_type": "mda",
+                "period_labels": ["2023"],
+                "period_focus": "current",
+                "table_source_id": "table_ratio_other",
+                "row_label": "summary row",
+                "semantic_label": "summary row",
+                "table_value_labels_text": "other base 100",
+                "value_text": "100",
+                "unit_hint": "units",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "100", "unit_hint": "units"},
+                ],
+            },
+            "source_anchor": "[ExampleCo | 2023 | table_ratio_other]",
+        }
+        self.agent._build_reconciliation_candidates = lambda _state: [candidate]
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(rows, [])
+
+    def test_ratio_component_uses_prior_reconciliation_artifact_candidate_refs(self) -> None:
+        state = {
+            "query": "Calculate selected expense over total base for 2023.",
+            "years": [2023],
+            "report_scope": {"company": "ExampleCo", "year": "2023"},
+            "intent": "comparison",
+            "topic": "selected expense over total base",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "tasks": [
+                {
+                    "task_id": "task_denominator_lookup",
+                    "metric_label": "2023 total base",
+                    "query": "Find 2023 total base.",
+                }
+            ],
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "selected expense over total base",
+                "query": "Calculate selected expense over total base for 2023.",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "selected expense",
+                        "role": "numerator",
+                        "required": True,
+                        "surface_contract": {"positive": ["selected expense"], "negative": []},
+                    },
+                    {
+                        "label": "total base",
+                        "role": "denominator",
+                        "required": True,
+                        "surface_contract": {"positive": ["total base"], "negative": []},
+                    },
+                ],
+                "constraints": {
+                    "consolidation_scope": "unknown",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_ratio",
+                "matched_operands": [
+                    {
+                        "label": "selected expense",
+                        "role": "numerator",
+                        "matched": True,
+                        "candidate_ids": ["chunk_ratio_refs::value:0"],
+                        "reason": "matched_candidates",
+                    }
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+            "artifacts": [
+                {
+                    "artifact_id": "reconcile:task_denominator_lookup:001",
+                    "task_id": "task_denominator_lookup",
+                    "kind": "reconciliation_result",
+                    "status": "insufficient_operands",
+                    "evidence_refs": ["chunk_ratio_refs::value:1"],
+                    "payload": {"reconciliation_result": {"status": "insufficient_operands"}},
+                }
+            ],
+        }
+        numerator_candidate = {
+            "candidate_id": "chunk_ratio_refs::value:0",
+            "candidate_kind": "structured_value",
+            "text": "selected expense 40",
+            "metadata": {
+                "chunk_uid": "chunk_ratio_refs",
+                "company": "ExampleCo",
+                "year": 2023,
+                "block_type": "table",
+                "statement_type": "mda",
+                "period_labels": ["2023"],
+                "period_focus": "current",
+                "table_source_id": "table_ratio_refs",
+                "row_label": "selected expense",
+                "semantic_label": "selected expense",
+                "value_text": "40",
+                "unit_hint": "units",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "40", "unit_hint": "units"},
+                ],
+            },
+            "source_anchor": "[ExampleCo | 2023 | table_ratio_refs]",
+        }
+        denominator_candidate = {
+            "candidate_id": "chunk_ratio_refs::value:1",
+            "candidate_kind": "structured_value",
+            "text": "total base 100",
+            "metadata": {
+                "chunk_uid": "chunk_ratio_refs",
+                "company": "ExampleCo",
+                "year": 2023,
+                "block_type": "table",
+                "statement_type": "mda",
+                "period_labels": ["2023"],
+                "period_focus": "current",
+                "table_source_id": "table_ratio_refs",
+                "row_label": "total base",
+                "semantic_label": "total base",
+                "value_text": "100",
+                "unit_hint": "units",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "structured_cells": [
+                    {"column_headers": ["2023"], "value_text": "100", "unit_hint": "units"},
+                ],
+            },
+            "source_anchor": "[ExampleCo | 2023 | table_ratio_refs]",
+        }
+        self.agent._build_reconciliation_candidates = lambda _state: [
+            numerator_candidate,
+            denominator_candidate,
+        ]
+
+        rows = self.agent._extract_structured_operands_from_reconciliation(state)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["matched_operand_label"], "selected expense")
+        self.assertEqual(rows[0]["raw_value"], "40")
+        self.assertEqual(rows[1]["matched_operand_label"], "total base")
+        self.assertEqual(rows[1]["raw_value"], "100")
+
 
 if __name__ == "__main__":
     unittest.main()

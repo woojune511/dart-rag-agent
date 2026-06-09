@@ -267,9 +267,14 @@ def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> 
     }
     compact_line = re.sub(r"\s+", "", _normalise_spaces(line))
     for needle in _operand_needles(operand):
+        needle = re.sub(
+            str(REQUIRED_OPERAND_ASSEMBLY_POLICY.get("lookup_surface_period_prefix_pattern") or r"^(?:20\d{2}\s*년?)\s+"),
+            "",
+            _normalise_spaces(needle),
+        )
         tokens = [
             token
-            for token in re.split(token_split_pattern, _normalise_spaces(needle))
+            for token in re.split(token_split_pattern, needle)
             if token and token not in blocked_tokens
         ]
         if len(tokens) >= 2 and all(re.sub(r"\s+", "", token) in compact_line for token in tokens):
@@ -319,7 +324,14 @@ def _lookup_numeric_extraction_has_direct_support(
         metadata = dict(getattr(doc, "metadata", {}) or {})
         page_content = str(getattr(doc, "page_content", "") or "")
         support_lines.extend(line for line in re.split(r"[\r\n]+", page_content) if line.strip())
-        for key in ("row_text", "raw_row_text", "table_header_context", "semantic_label", "row_label"):
+        for key in (
+            "row_text",
+            "raw_row_text",
+            "table_header_context",
+            "table_value_labels_text",
+            "semantic_label",
+            "row_label",
+        ):
             value = _normalise_spaces(str(metadata.get(key) or ""))
             if value:
                 support_lines.append(value)
@@ -336,17 +348,32 @@ def _lookup_numeric_extraction_has_direct_support(
                     row_bits.append(str(cell.get("value_text") or ""))
                     row_bits.append(str(cell.get("unit_hint") or ""))
             support_lines.append(_normalise_spaces(" ".join(bit for bit in row_bits if bit)))
+        for record in _safe_json_loads(metadata.get("table_value_records_json")) or []:
+            if not isinstance(record, dict):
+                continue
+            value_bits = [
+                str(record.get("semantic_label") or ""),
+                str(record.get("row_label") or ""),
+                str(record.get("aggregate_label") or ""),
+                " ".join(str(item) for item in (record.get("semantic_aliases") or [])),
+                " ".join(str(item) for item in (record.get("row_headers") or [])),
+                " ".join(str(item) for item in (record.get("column_headers") or [])),
+                str(record.get("period_text") or ""),
+                str(record.get("value_text") or ""),
+                str(record.get("unit_hint") or ""),
+            ]
+            support_lines.append(_normalise_spaces(" ".join(bit for bit in value_bits if bit)))
 
     for line in support_lines:
         normalized = _normalise_spaces(line)
         if not _line_contains_exact_raw_value(normalized, raw_value):
             continue
-        if _LOOKUP_AGGREGATE_RESULT_RE.search(normalized):
-            continue
         if _text_has_negative_surface(normalized, operand):
             continue
         if _lookup_line_matches_operand_surface(normalized, operand):
             return True
+        if _LOOKUP_AGGREGATE_RESULT_RE.search(normalized):
+            continue
     return False
 
 
@@ -6226,4 +6253,3 @@ class FinancialAgentEvidenceMixin:
             "evidence_status": evidence_status,
             "numeric_debug_trace": debug_trace,
         }
-

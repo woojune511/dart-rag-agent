@@ -102,6 +102,74 @@ def _reflection_evidence_summary(state: FinancialAgentState) -> Dict[str, Any]:
 
 
 class FinancialAgentReconciliationMixin:
+    def _artifact_text_matches_operand_surface(self, text: str, operand: Dict[str, Any]) -> bool:
+        normalized_text = _normalise_spaces(str(text or ""))
+        if not normalized_text:
+            return False
+        if _operand_text_match(normalized_text, operand):
+            return True
+        compact_text = re.sub(r"\s+", "", normalized_text)
+        for needle in _operand_needles(operand):
+            normalized_needle = _normalise_spaces(str(needle or ""))
+            if not normalized_needle:
+                continue
+            compact_needle = re.sub(r"\s+", "", normalized_needle)
+            if compact_needle and (compact_needle in compact_text or compact_text in compact_needle):
+                return True
+        return False
+
+    def _reconciliation_artifact_candidate_ids_for_operand(
+        self,
+        state: FinancialAgentState,
+        *,
+        operand: Dict[str, Any],
+    ) -> List[str]:
+        candidate_ids: List[str] = []
+        seen: set[str] = set()
+
+        def append_candidate_id(raw_value: Any) -> None:
+            candidate_id = str(raw_value or "").strip()
+            if candidate_id and candidate_id not in seen:
+                seen.add(candidate_id)
+                candidate_ids.append(candidate_id)
+
+        for artifact in list(state.get("artifacts") or []):
+            artifact_data = dict(artifact or {})
+            kind = str(artifact_data.get("kind") or "").strip()
+            if "reconciliation_result" not in kind:
+                continue
+
+            payload = dict(artifact_data.get("payload") or {})
+            reconciliation_result = dict(payload.get("reconciliation_result") or {})
+            matched_operands = [
+                dict(item)
+                for item in (reconciliation_result.get("matched_operands") or [])
+                if isinstance(item, dict)
+            ]
+            matched_operand_seen = False
+            for match_entry in matched_operands:
+                match_surfaces = [
+                    str(match_entry.get("label") or ""),
+                    str(match_entry.get("concept") or ""),
+                    str(match_entry.get("role") or ""),
+                ]
+                if not any(
+                    self._artifact_text_matches_operand_surface(surface, operand)
+                    for surface in match_surfaces
+                    if str(surface).strip()
+                ):
+                    continue
+                matched_operand_seen = True
+                for candidate_id in list(match_entry.get("candidate_ids") or []):
+                    append_candidate_id(candidate_id)
+
+            if matched_operand_seen:
+                continue
+            for evidence_ref in list(artifact_data.get("evidence_refs") or []):
+                append_candidate_id(evidence_ref)
+
+        return candidate_ids
+
     def _build_reflection_request(
         self,
         state: FinancialAgentState,
@@ -1212,6 +1280,13 @@ class FinancialAgentReconciliationMixin:
                 for value in (match_entry.get("candidate_ids") or [])
                 if str(value).strip()
             ]
+            if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
+                candidate_ids.extend(
+                    self._reconciliation_artifact_candidate_ids_for_operand(
+                        state,
+                        operand=operand,
+                    )
+                )
             candidate_ids = self._expand_structured_candidate_ids(candidate_ids, candidate_map)
             structured_candidates: List[Dict[str, Any]] = []
             for candidate_id in candidate_ids:
@@ -1264,6 +1339,16 @@ class FinancialAgentReconciliationMixin:
                         operation_family=operation_family,
                         selected_cell=current_cell,
                         report_scope=report_scope,
+                    ) and not (
+                        operation_family == "ratio"
+                        and _candidate_satisfies_ratio_component_acceptance_contract(
+                            current_candidate,
+                            operand=operand,
+                            constraints=constraints,
+                            query_years=query_years,
+                            selected_cell=current_cell,
+                            report_scope=report_scope,
+                        )
                     ):
                         continue
                     candidate = current_candidate
@@ -1357,17 +1442,16 @@ class FinancialAgentReconciliationMixin:
                             report_scope=report_scope,
                         )
                         if not direct_accept:
-                            current_metadata = dict(current_candidate.get("metadata") or {})
-                            candidate_value_role = str(current_metadata.get("value_role") or "").strip().lower()
-                            candidate_aggregation_stage = str(current_metadata.get("aggregation_stage") or "").strip().lower()
-                            relaxed_same_table_ratio_accept = (
-                                operand_role.startswith("denominator")
-                                and _candidate_has_numeric_value_signal(current_candidate)
-                                and candidate_value_role == "aggregate"
-                                and candidate_aggregation_stage in {"final", "subtotal", "direct"}
+                            direct_accept = _candidate_satisfies_ratio_component_acceptance_contract(
+                                current_candidate,
+                                operand=operand,
+                                constraints=constraints,
+                                query_years=query_years,
+                                selected_cell=current_cell,
+                                report_scope=report_scope,
                             )
-                            if not relaxed_same_table_ratio_accept:
-                                continue
+                        if not direct_accept:
+                            continue
                         candidate = current_candidate
                         selected_cell = current_cell
                         break
@@ -2066,4 +2150,3 @@ class FinancialAgentReconciliationMixin:
                     "reflection_error": str(exc),
                 },
             }
-
