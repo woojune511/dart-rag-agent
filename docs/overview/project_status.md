@@ -1315,3 +1315,34 @@ Current next decisions:
 - Residual follow-up: no active concept-gate blocker remains. Future work is
   promotion-risk management, cost/runtime control, and task-ledger/artifact
   contract cleanup.
+
+## 2026-06-09 Concept Gate Residual Hardening Follow-up
+
+- Follow-up target:
+  - `POS_T1_057` full-replay unit/source path instability.
+  - `KAB_T1_066` product-quality residual where the numeric evaluator could
+    pass while the visible answer partially refused CIR calculation.
+- Runtime changes stayed generic:
+  - calculation execution repairs KRW operand units from table-backed
+    `unit_hint` only when the operand evidence is table backed, the raw value
+    is visible in the table surface, and the raw/hint unit scale differs by at
+    least `100x`;
+  - reconciliation operand extraction expands active reconciliation
+    `evidence_refs` / `source_evidence_ids`, including `recon::`-prefixed
+    structured candidate refs, but still relies on the existing operand
+    acceptance contracts to select rows.
+- Focused store-fixed eval-only checks:
+  - `POS_T1_057`: PASS; calculator result `3.5269배`.
+  - `KAB_T1_066`: PASS; final answer `37.47%` with
+    `판매비와관리비 4,355.42억원 / 경비차감전영업이익 11,623억원`.
+- Validation:
+  - `tests.test_operation_contracts tests.test_structured_operand_extraction`:
+    `201` tests OK.
+  - `tests.test_subtask_loop`: `166` tests OK.
+  - focused regression trio for the new contracts: `3` tests OK.
+  - `python -m src.ops.audit_runtime_domain_terms --summary`: passed.
+  - `git diff --check`: passed.
+- A monitored full seven-question eval-only replay was attempted with heartbeat
+  logging, but was stopped after `KBF_T2_018` remained in the first question for
+  more than `10` minutes with heartbeat only. Treat this as external
+  LLM/evaluator latency, not a completed gate result.

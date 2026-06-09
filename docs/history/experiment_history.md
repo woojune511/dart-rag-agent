@@ -1158,6 +1158,60 @@ References:
   final answers. Treat that as the next runtime blocker, not as solved by the
   ledger cleanup.
 
+## Concept Gate Residual Unit/Artifact Hardening (2026-06-09)
+
+### Context
+
+- The latest seven-question concept runtime gap replay before this change had
+  recovered five clean PASS rows, but still exposed:
+  - `POS_T1_057`: a ratio answer of `0.0035배` caused by a generated operand
+    carrying `천원` while the table metadata and source row were `백만원`;
+  - `KAB_T1_066`: a numeric PASS masking a partial refusal, because the
+    denominator evidence was preserved as reconciliation artifact refs but not
+    promoted into the final ratio operand set.
+
+### Code / Contract Change
+
+- Added a calculation-time KRW unit repair that trusts table-backed
+  `unit_hint` only under narrow provenance conditions:
+  table evidence, raw value visible in the table surface, KRW display units on
+  both sides, and at least `100x` scale disagreement.
+- Expanded reconciliation artifact candidate IDs from active
+  `evidence_refs` / `source_evidence_ids` and normalized `recon::` prefixes so
+  preserved structured evidence refs can be tested by the existing operand
+  acceptance contracts.
+- The change does not add company names, question IDs, or metric-specific
+  runtime branches.
+
+### Results
+
+- Focused `POS_T1_057` eval-only:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - refusal accuracy `1.000`
+  - calculator result `3.5269배`
+- Focused `KAB_T1_066` eval-only:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - refusal accuracy `1.000`
+  - calculator result `37.47%`
+- Validation:
+  - `python -m unittest tests.test_operation_contracts tests.test_structured_operand_extraction`:
+    `201` tests OK.
+  - `python -m unittest tests.test_subtask_loop`: `166` tests OK.
+  - `python -m src.ops.audit_runtime_domain_terms --summary`: passed.
+
+### Interpretation
+
+- The focused failures are closed under store-fixed eval-only.
+- A full seven-question replay was attempted with heartbeat logging at
+  `benchmarks/results/concept_gate_fresh_after_ratio_growth_hardening_2026-06-08/full7_after_artifact_unit_repair_2026-06-09.log`
+  but was stopped after `KBF_T2_018` remained in the first question for more
+  than `10` minutes with heartbeat only. This is a run-latency artifact, not a
+  completed full-gate proof.
+
 ## MIX_T1_046 Resolved Dependency Grounding Close (2026-05-28)
 
 참조:

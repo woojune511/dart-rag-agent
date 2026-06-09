@@ -981,3 +981,31 @@
   - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts`
   - focused single-question evals for `HYU_T2_010` and `HYU_T3_072` against
     `benchmarks/results/three_remaining_focus_2026-05-28/현대자동차-2023/results.json`
+
+## 2026-06-09 Current Handoff
+
+- Current change closes two concept-gate residuals without benchmark-specific
+  runtime branches:
+  - POSCO ratio unit path: execution now repairs KRW operand units from
+    table-backed `unit_hint` only when provenance and scale-conflict checks are
+    satisfied.
+  - KakaoBank CIR path: reconciliation artifact `evidence_refs` /
+    `source_evidence_ids`, including `recon::` structured refs, can feed the
+    existing operand acceptance contract.
+- Focused store-fixed eval-only checks passed:
+  - `POS_T1_057`: `3.5269배`, numeric PASS, faithfulness/completeness/refusal
+    all `1.0`.
+  - `KAB_T1_066`: `37.47%`, numeric PASS, faithfulness/completeness/refusal all
+    `1.0`.
+- Local validation passed:
+  - `tests.test_operation_contracts tests.test_structured_operand_extraction`
+    (`201` tests)
+  - `tests.test_subtask_loop` (`166` tests)
+  - focused regression trio (`3` tests)
+  - `python -m src.ops.audit_runtime_domain_terms --summary`
+  - `git diff --check`
+- Full seven-question eval-only replay was attempted with heartbeat logging but
+  stopped after `KBF_T2_018` stayed on the first question for more than `10`
+  minutes with heartbeat only. Treat full-gate proof as still pending.
+- Do not commit `benchmarks/results/**`; the local result directory is an
+  experiment artifact.

@@ -11044,6 +11044,117 @@ class FinancialAgentCalculationMixin:
             updated.append(next_row)
         return updated if changed else operands
 
+    def _repair_krw_operand_units_from_table_metadata(
+        self,
+        operands: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        evidence_by_id = {
+            str(item.get("evidence_id") or "").strip(): dict(item)
+            for item in evidence_items
+            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+        }
+        if not evidence_by_id:
+            return operands
+
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        krw_units = {
+            _normalise_spaces(str(item))
+            for item in (render_policy.get("krw_display_units") or ())
+            if str(item).strip()
+        }
+        scales = {
+            _normalise_spaces(str(key)): float(value)
+            for key, value in dict(render_policy.get("krw_display_unit_scales") or {}).items()
+            if str(key).strip()
+        }
+
+        def table_surface_contains_value(evidence_item: Dict[str, Any], raw_value: str) -> bool:
+            compact_value = re.sub(r"[,\s()]", "", raw_value)
+            if not compact_value:
+                return False
+            metadata = dict(evidence_item.get("metadata") or {})
+            surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in [
+                        evidence_item.get("raw_row_text"),
+                        evidence_item.get("quote_span"),
+                        evidence_item.get("claim"),
+                        metadata.get("row_text"),
+                        metadata.get("table_summary_text"),
+                        metadata.get("table_value_labels_text"),
+                        metadata.get("table_row_labels_text"),
+                    ]
+                )
+            )
+            return compact_value in re.sub(r"[,\s()]", "", surface)
+
+        def is_table_backed(evidence_item: Dict[str, Any]) -> bool:
+            metadata = dict(evidence_item.get("metadata") or {})
+            return any(
+                [
+                    _normalise_spaces(str(metadata.get("block_type") or "")).lower() == "table",
+                    bool(_normalise_spaces(str(metadata.get("table_source_id") or ""))),
+                    bool(metadata.get("structured_cells")),
+                    bool(_normalise_spaces(str(metadata.get("table_summary_text") or ""))),
+                    bool(_normalise_spaces(str(metadata.get("table_value_labels_text") or ""))),
+                ]
+            )
+
+        updated: List[Dict[str, Any]] = []
+        changed = False
+        for row in operands:
+            next_row = dict(row)
+            if _normalise_spaces(str(next_row.get("normalized_unit") or "")).upper() != "KRW":
+                updated.append(next_row)
+                continue
+            raw_value = _normalise_spaces(str(next_row.get("raw_value") or ""))
+            raw_unit = _normalise_spaces(str(next_row.get("raw_unit") or next_row.get("result_unit") or ""))
+            if not raw_value or raw_unit not in krw_units:
+                updated.append(next_row)
+                continue
+            evidence_item = self._evidence_item_for_operand_row(next_row, evidence_by_id)
+            if not evidence_item or not is_table_backed(evidence_item):
+                updated.append(next_row)
+                continue
+            metadata = dict(evidence_item.get("metadata") or {})
+            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+            if not unit_hint or unit_hint == raw_unit or unit_hint not in krw_units:
+                updated.append(next_row)
+                continue
+            current_scale = scales.get(raw_unit)
+            hint_scale = scales.get(unit_hint)
+            if not current_scale or not hint_scale:
+                updated.append(next_row)
+                continue
+            scale_distortion = max(current_scale, hint_scale) / min(current_scale, hint_scale)
+            if scale_distortion < 100.0:
+                updated.append(next_row)
+                continue
+            if not table_surface_contains_value(evidence_item, raw_value):
+                updated.append(next_row)
+                continue
+            hinted_value, hinted_unit = _normalise_operand_value(raw_value, unit_hint)
+            if hinted_value is None or hinted_unit != "KRW":
+                updated.append(next_row)
+                continue
+            try:
+                current_value = float(next_row.get("normalized_value"))
+            except (TypeError, ValueError):
+                current_value = None
+            next_row["source_raw_unit"] = raw_unit
+            if current_value is not None:
+                next_row["source_normalized_value"] = current_value
+            next_row["raw_unit"] = unit_hint
+            next_row["normalized_value"] = hinted_value
+            next_row["normalized_unit"] = hinted_unit
+            next_row["rendered_value"] = f"{raw_value}{unit_hint}"
+            next_row["unit_normalization_repair_source"] = "table_metadata_unit_hint"
+            changed = True
+            updated.append(next_row)
+        return updated if changed else operands
+
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""
         runtime_trace = _resolve_runtime_calculation_trace(
@@ -11051,6 +11162,10 @@ class FinancialAgentCalculationMixin:
             allow_legacy_top_level=False,
         )
         runtime_operands = [dict(row) for row in (runtime_trace.get("calculation_operands") or [])]
+        runtime_operands = self._repair_krw_operand_units_from_table_metadata(
+            runtime_operands,
+            list(state.get("evidence_items") or []) + list(state.get("runtime_evidence") or []),
+        )
         runtime_operands = self._repair_krw_normalized_values_from_raw_units(runtime_operands)
         operands = {row.get("operand_id"): row for row in runtime_operands}
         plan = dict(runtime_trace.get("calculation_plan") or {})

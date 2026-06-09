@@ -2268,6 +2268,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
                         "reason": "matched_candidates",
                     }
                 ],
+                "source_evidence_ids": ["recon::chunk_ratio_refs::value:1"],
                 "missing_operands": [],
                 "retry_queries": [],
                 "notes": [],
@@ -2278,7 +2279,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
                     "task_id": "task_denominator_lookup",
                     "kind": "reconciliation_result",
                     "status": "insufficient_operands",
-                    "evidence_refs": ["chunk_ratio_refs::value:1"],
+                    "evidence_refs": ["recon::chunk_ratio_refs::value:1"],
                     "payload": {"reconciliation_result": {"status": "insufficient_operands"}},
                 }
             ],

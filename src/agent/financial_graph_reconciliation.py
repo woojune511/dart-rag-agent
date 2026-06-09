@@ -170,6 +170,36 @@ class FinancialAgentReconciliationMixin:
 
         return candidate_ids
 
+    def _reconciliation_artifact_candidate_ids(self, state: FinancialAgentState) -> List[str]:
+        candidate_ids: List[str] = []
+        seen: set[str] = set()
+
+        def append_candidate_id(raw_value: Any) -> None:
+            candidate_id = str(raw_value or "").strip()
+            if candidate_id and candidate_id not in seen:
+                seen.add(candidate_id)
+                candidate_ids.append(candidate_id)
+
+        reconciliation_result = dict(state.get("reconciliation_result") or {})
+        for key in ("evidence_refs", "source_evidence_ids"):
+            for evidence_ref in list(reconciliation_result.get(key) or []):
+                append_candidate_id(evidence_ref)
+
+        for artifact in list(state.get("artifacts") or []):
+            artifact_data = dict(artifact or {})
+            kind = str(artifact_data.get("kind") or "").strip()
+            if "reconciliation_result" not in kind:
+                continue
+            for evidence_ref in list(artifact_data.get("evidence_refs") or []):
+                append_candidate_id(evidence_ref)
+            payload = dict(artifact_data.get("payload") or {})
+            artifact_result = dict(payload.get("reconciliation_result") or {})
+            for key in ("evidence_refs", "source_evidence_ids"):
+                for evidence_ref in list(artifact_result.get(key) or []):
+                    append_candidate_id(evidence_ref)
+
+        return candidate_ids
+
     def _build_reflection_request(
         self,
         state: FinancialAgentState,
@@ -593,7 +623,16 @@ class FinancialAgentReconciliationMixin:
             cleaned = str(raw_candidate_id).strip()
             if not cleaned:
                 continue
-            for current_id in (cleaned, f"{cleaned}::raw_row"):
+            candidate_variants = [cleaned]
+            if cleaned.startswith("recon::"):
+                candidate_variants.append(cleaned.removeprefix("recon::"))
+            else:
+                candidate_variants.append(f"recon::{cleaned}")
+            expanded_variants: List[str] = []
+            for candidate_variant in list(dict.fromkeys(candidate_variants)):
+                expanded_variants.append(candidate_variant)
+                expanded_variants.append(f"{candidate_variant}::raw_row")
+            for current_id in expanded_variants:
                 if current_id in seen or current_id not in candidate_map:
                     continue
                 seen.add(current_id)
@@ -1342,6 +1381,7 @@ class FinancialAgentReconciliationMixin:
                         operand=operand,
                     )
                 )
+                candidate_ids.extend(self._reconciliation_artifact_candidate_ids(state))
             candidate_ids = self._expand_structured_candidate_ids(candidate_ids, candidate_map)
             structured_candidates: List[Dict[str, Any]] = []
             for candidate_id in candidate_ids:

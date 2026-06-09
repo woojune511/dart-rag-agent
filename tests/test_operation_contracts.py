@@ -2335,6 +2335,93 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(coerced["normalized_value"], 676900000000.0)
         self.assertEqual(coerced["normalized_unit"], "KRW")
 
+    def test_execution_repairs_generated_krw_unit_from_table_metadata(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "Calculate result over cost.",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {"label": "result", "role": "numerator", "required": True},
+                    {"label": "cost", "role": "denominator", "required": True},
+                ],
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_result",
+                    "claim": "result 3,500천원",
+                    "quote_span": "result 3,500천원",
+                    "metadata": {
+                        "block_type": "table",
+                        "unit_hint": "백만원",
+                        "table_source_id": "table_result",
+                        "table_value_labels_text": "result 3,500",
+                    },
+                },
+                {
+                    "evidence_id": "ev_cost",
+                    "claim": "cost 1,000백만원",
+                    "quote_span": "cost 1,000백만원",
+                    "metadata": {
+                        "block_type": "table",
+                        "unit_hint": "백만원",
+                        "table_source_id": "table_cost",
+                        "table_value_labels_text": "cost 1,000",
+                    },
+                },
+            ],
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "numerator",
+                        "matched_operand_label": "result",
+                        "matched_operand_role": "numerator",
+                        "raw_value": "3,500",
+                        "raw_unit": "천원",
+                        "normalized_value": 3_500_000.0,
+                        "normalized_unit": "KRW",
+                        "evidence_id": "ev_result",
+                        "source_row_ids": ["ev_result"],
+                    },
+                    {
+                        "operand_id": "denominator",
+                        "matched_operand_label": "cost",
+                        "matched_operand_role": "denominator",
+                        "raw_value": "1,000",
+                        "raw_unit": "백만원",
+                        "normalized_value": 1_000_000_000.0,
+                        "normalized_unit": "KRW",
+                        "evidence_id": "ev_cost",
+                        "source_row_ids": ["ev_cost"],
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "operation_family": "ratio",
+                    "formula": "A / B",
+                    "result_unit": "배",
+                    "ordered_operand_ids": ["numerator", "denominator"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "numerator"},
+                        {"variable": "B", "operand_id": "denominator"},
+                    ],
+                },
+                "calculation_result": {},
+            },
+        }
+
+        result = agent._execute_calculation(state)
+        trace = result["resolved_calculation_trace"]
+        operands = {row["operand_id"]: row for row in trace["calculation_operands"]}
+
+        self.assertEqual(operands["numerator"]["raw_unit"], "백만원")
+        self.assertEqual(operands["numerator"]["source_raw_unit"], "천원")
+        self.assertEqual(operands["numerator"]["unit_normalization_repair_source"], "table_metadata_unit_hint")
+        self.assertAlmostEqual(trace["calculation_result"]["result_value"], 3.5)
+
     def test_lookup_slot_refinement_prefers_value_local_unit_over_table_unit_hint(self) -> None:
         slot = {
             "status": "ok",
