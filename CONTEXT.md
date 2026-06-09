@@ -34,6 +34,21 @@
       `benchmarks/results/dev_fast_focus_canonical_v2_2026-04-24` audit smoke:
       completed without error.
     - `python -m unittest discover -s tests`: `1020` tests OK.
+  - live canary:
+    `benchmarks/results/kab_t1_066_llm_phase_canary_2026-06-09/`는 reusable
+    store가 없는 checkout에서 실행되어 fresh store 구축을 포함한 local
+    artifact였고, 수치 요약 후 삭제했다. `KAB_T1_066` 단일 row는
+    `--skip-llm-judges --skip-embedding-metrics`로 실행했고 numeric `PASS`,
+    faithfulness/completeness `1.000 / 1.000`, retrieval hit@k/context recall
+    `1.000 / 1.000`, latency `145.4s`, estimated runtime cost `$0.110654`를
+    기록했다. answer relevancy `0.000`은 embedding metric skip의 결과라
+    quality baseline으로 해석하지 않는다. phase audit는 agent LLM calls
+    `11`, tokens `258,333`을 분해했고 top phases는
+    `aggregate_synthesis` `186,310` tokens / `$0.058368`,
+    `numeric_extraction` `51,393` tokens / `$0.029749`,
+    `reconciliation_rerank` `5,582` tokens / `$0.010426`이었다. retrieval
+    side는 executed queries `17`, duplicate queries `0`, state query-result
+    avoided searches `8`이었다.
 
 - 2026-06-09 runtime LLM cost audit surface를 보강했다.
   - `src.ops.audit_benchmark_fanout_cost`는 이제 기존 `llm_usage` combined

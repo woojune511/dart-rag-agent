@@ -1110,6 +1110,22 @@ Current next decisions:
   an `Agent LLM Usage By Phase` table with calls, tokens, and estimated cost.
   This is trace/cost observability only; it does not change routing, retrieval,
   evidence selection, calculation, or answer behavior.
+- A focused `KAB_T1_066` phase-level usage canary on 2026-06-09 created the
+  local artifact
+  `benchmarks/results/kab_t1_066_llm_phase_canary_2026-06-09/`. Because this
+  checkout had no reusable store, the run included fresh store construction and
+  is a local canary, not a store-fixed release baseline. The artifact was
+  deleted after this summary was recorded. The row ran with LLM judges and
+  embedding metrics skipped, preserving numeric `PASS`,
+  faithfulness/completeness `1.000 / 1.000`, context recall/retrieval hit@k
+  `1.000 / 1.000`, latency `145.4s`, and estimated runtime cost `$0.110654`;
+  answer relevancy `0.000` is expected from `--skip-embedding-metrics`, not a
+  quality baseline. The phase audit split agent LLM usage into `11` calls and
+  `258,333` tokens, with top phases `aggregate_synthesis` at `186,310` tokens
+  / `$0.058368`, `numeric_extraction` at `51,393` tokens / `$0.029749`, and
+  `reconciliation_rerank` at `5,582` tokens / `$0.010426`. Retrieval-side
+  telemetry reported `17` executed queries, `0` duplicate queries, and `8`
+  state query-result avoided searches.
 - Retrieval budget, dedupe, executed-query telemetry, and cross-trace reuse
   diagnostics now live in `src.agent.financial_graph_retrieval_budget`, with
   the evidence mixin preserving the existing helper import surface. This keeps
