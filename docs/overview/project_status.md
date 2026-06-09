@@ -1097,6 +1097,12 @@ Current next decisions:
   embedding calls, top duplicate query signatures by row/source/trace/task,
   LLM usage, estimated runtime cost, and quality metrics before any new budget
   probe is run.
+- The 2026-06-09 LLM-cost follow-up extends the same offline audit with
+  agent-vs-judge LLM usage split. When a result bundle contains per-question
+  `agent_llm_usage` and `judge_llm_usage`, the audit now reports separate API
+  calls, total tokens, estimated runtime cost by side, and a
+  `Top Rows By LLM Usage` table. Older bundles remain readable; missing split
+  usage is left blank rather than inferred from combined totals.
 - Retrieval budget, dedupe, executed-query telemetry, and cross-trace reuse
   diagnostics now live in `src.agent.financial_graph_retrieval_budget`, with
   the evidence mixin preserving the existing helper import surface. This keeps

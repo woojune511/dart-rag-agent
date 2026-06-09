@@ -11,6 +11,21 @@
 
 ## 최신 상태
 
+- 2026-06-09 runtime LLM cost audit surface를 보강했다.
+  - `src.ops.audit_benchmark_fanout_cost`는 이제 기존 `llm_usage` combined
+    summary와 별도로 `agent_llm_usage`, `judge_llm_usage`, agent/judge
+    estimated runtime cost, `Top Rows By LLM Usage` Markdown table을 노출한다.
+  - 이 변경은 기존 `results.json`만 읽는 offline audit이며 agent 실행,
+    retrieval, evaluator를 새로 돌리지 않는다. 최신 result bundle처럼
+    per-question `agent_llm_usage` / `judge_llm_usage`가 있는 경우 split을
+    보여 주고, 오래된 bundle처럼 combined usage만 있거나 usage가 없는 경우
+    backward-compatible하게 빈 split으로 둔다.
+  - 검증:
+    - `python -m unittest tests.test_benchmark_fanout_cost_audit`: `3` tests OK.
+    - legacy local bundle
+      `benchmarks/results/dev_fast_focus_canonical_v2_2026-04-24` audit smoke:
+      completed without error.
+
 - 2026-06-09 runtime/API cost-control 관측 계약을 보강했다.
   - state-local query-result cache 재사용을 `avoided_search_count`로 노출해,
     sibling task가 같은 source/filter/query 결과를 재사용할 때 실제

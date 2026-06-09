@@ -13,6 +13,14 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
             result_path.write_text(
                 json.dumps(
                     {
+                        "recorded_matrix": {
+                            "defaults": {
+                                "pricing": {
+                                    "input_per_million_tokens_usd": 1.0,
+                                    "output_per_million_tokens_usd": 2.0,
+                                }
+                            }
+                        },
                         "company_runs": [
                             {
                                 "id": "company_a",
@@ -37,6 +45,18 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                         "prompt_tokens": 100,
                                                         "output_tokens": 20,
                                                         "total_tokens": 120,
+                                                    },
+                                                    "agent_llm_usage": {
+                                                        "api_calls": 2,
+                                                        "prompt_tokens": 70,
+                                                        "output_tokens": 10,
+                                                        "total_tokens": 80,
+                                                    },
+                                                    "judge_llm_usage": {
+                                                        "api_calls": 1,
+                                                        "prompt_tokens": 30,
+                                                        "output_tokens": 10,
+                                                        "total_tokens": 40,
                                                     },
                                                     "embedding_usage": {
                                                         "query_embedding_api_calls": 2,
@@ -136,7 +156,18 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                     "faithfulness": 0.5,
                                                     "completeness": 0.7,
                                                     "numeric_final_judgement": None,
-                                                    "llm_usage": {"api_calls": 1, "total_tokens": 40},
+                                                    "llm_usage": {
+                                                        "api_calls": 1,
+                                                        "prompt_tokens": 20,
+                                                        "output_tokens": 20,
+                                                        "total_tokens": 40,
+                                                    },
+                                                    "agent_llm_usage": {
+                                                        "api_calls": 1,
+                                                        "prompt_tokens": 20,
+                                                        "output_tokens": 20,
+                                                        "total_tokens": 40,
+                                                    },
                                                     "retrieval_debug_trace": {
                                                         "query_budget": {
                                                             "primary": {"selected_count": 1},
@@ -195,6 +226,12 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["operand_focus_skipped_count"], 1)
         self.assertEqual(summary["llm_usage"]["api_calls"], 4)
         self.assertEqual(summary["llm_usage"]["total_tokens"], 160)
+        self.assertEqual(summary["agent_llm_usage"]["api_calls"], 3)
+        self.assertEqual(summary["agent_llm_usage"]["total_tokens"], 120)
+        self.assertEqual(summary["judge_llm_usage"]["api_calls"], 1)
+        self.assertEqual(summary["judge_llm_usage"]["total_tokens"], 40)
+        self.assertAlmostEqual(summary["agent_estimated_runtime_cost_usd"], 0.00015)
+        self.assertAlmostEqual(summary["judge_estimated_runtime_cost_usd"], 0.00005)
         self.assertAlmostEqual(summary["estimated_runtime_cost_usd"], 0.0123)
         self.assertAlmostEqual(summary["estimated_runtime_embedding_cost_usd"], 0.0045)
         self.assertAlmostEqual(summary["avg_faithfulness"], 0.75)
@@ -204,6 +241,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["primary"]["duplicate_executed_query_count"], 1)
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
         self.assertEqual(audit["top_rows_by_executed_queries"][0]["question_id"], "Q1")
+        self.assertEqual(audit["top_rows_by_llm_usage"][0]["question_id"], "Q1")
         self.assertEqual(audit["top_rows_by_duplicate_queries"][0]["question_id"], "Q1")
         self.assertEqual(audit["top_rows_by_cross_trace_reuse_candidates"][0]["question_id"], "Q1")
         reuse_details = audit["top_rows_by_cross_trace_reuse_candidates"][0]["cross_trace_reuse_details"]
@@ -253,6 +291,10 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                     "query_result_cache_avoided_search_count": 1,
                     "query_embedding_api_calls": 2,
                     "llm_usage": {"api_calls": 1},
+                    "agent_llm_usage": {"api_calls": 1, "total_tokens": 80},
+                    "judge_llm_usage": {"api_calls": 1, "total_tokens": 40},
+                    "agent_estimated_runtime_cost_usd": 0.00015,
+                    "judge_estimated_runtime_cost_usd": 0.00005,
                     "by_source": {"primary": {"executed_query_count": 2}},
                 },
                 "top_rows_by_executed_queries": [
@@ -323,6 +365,22 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                         "completeness": 1,
                     }
                 ],
+                "top_rows_by_llm_usage": [
+                    {
+                        "question_id": "Q1",
+                        "company_id": "company_a",
+                        "experiment_id": "exp",
+                        "llm_usage": {"api_calls": 2, "total_tokens": 120},
+                        "agent_llm_usage": {"api_calls": 1, "total_tokens": 80},
+                        "judge_llm_usage": {"api_calls": 1, "total_tokens": 40},
+                        "agent_estimated_runtime_cost_usd": 0.00015,
+                        "judge_estimated_runtime_cost_usd": 0.00005,
+                        "latency_sec": 12.3,
+                        "faithfulness": 1,
+                        "completeness": 1,
+                        "numeric_final_judgement": "PASS",
+                    }
+                ],
             }
         )
 
@@ -334,6 +392,9 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertIn("Current cache misses", markdown)
         self.assertIn("State query-result cache reuses", markdown)
         self.assertIn("State query-result avoided searches", markdown)
+        self.assertIn("Agent LLM API calls", markdown)
+        self.assertIn("Judge LLM API calls", markdown)
+        self.assertIn("Top Rows By LLM Usage", markdown)
         self.assertIn("Top Rows By Cross-Trace Reuse Candidates", markdown)
         self.assertIn(
             "revenue 2023 (source:primary; prior:1; prior-traces:1; prior-tasks:task_0/lookup:1; current-cache-hit)",

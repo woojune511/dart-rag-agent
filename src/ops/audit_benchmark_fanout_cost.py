@@ -20,6 +20,8 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from src.utils.gemini_usage import estimate_gemini_cost_usd
+
 
 LLM_USAGE_KEYS = (
     "api_calls",
@@ -81,6 +83,35 @@ def _safe_dict(value: Any) -> Dict[str, Any]:
 
 def _safe_list(value: Any) -> List[Any]:
     return list(value) if isinstance(value, list) else []
+
+
+def _runtime_pricing_from_record(value: Mapping[str, Any]) -> Dict[str, Any]:
+    candidates: List[Mapping[str, Any]] = []
+    recorded_matrix = _safe_dict(value.get("recorded_matrix"))
+    recorded_settings = _safe_dict(value.get("recorded_settings"))
+    for container in (recorded_matrix, recorded_settings, value):
+        defaults = _safe_dict(container.get("defaults"))
+        company_run = _safe_dict(container.get("company_run"))
+        company_defaults = _safe_dict(company_run.get("defaults"))
+        candidates.extend(
+            [
+                _safe_dict(defaults.get("pricing")),
+                _safe_dict(company_defaults.get("pricing")),
+                _safe_dict(container.get("pricing")),
+            ]
+        )
+    for candidate in candidates:
+        if candidate:
+            return dict(candidate)
+    return {}
+
+
+def _estimated_llm_cost(usage: Mapping[str, Any], pricing: Mapping[str, Any]) -> Optional[float]:
+    if not usage or not pricing:
+        return None
+    if not any(_as_float(usage.get(key)) for key in LLM_USAGE_KEYS):
+        return None
+    return estimate_gemini_cost_usd(usage, pricing)
 
 
 def _query_signature(value: Any) -> str:
@@ -291,9 +322,17 @@ def _iter_result_rows(payload: Mapping[str, Any], source_path: Path) -> Tuple[Li
 
     rows: List[Dict[str, Any]] = []
     aggregates: List[Dict[str, Any]] = []
+    payload_pricing = _runtime_pricing_from_record(payload)
 
-    def add_result(result: Mapping[str, Any], *, company_id: str = "", company_label: str = "") -> None:
+    def add_result(
+        result: Mapping[str, Any],
+        *,
+        company_id: str = "",
+        company_label: str = "",
+        runtime_pricing: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         experiment_id = str(result.get("id") or result.get("experiment_id") or "")
+        pricing = dict(runtime_pricing or _runtime_pricing_from_record(result) or payload_pricing)
         full_eval = _safe_dict(result.get("full_eval"))
         aggregate = _safe_dict(full_eval.get("aggregate"))
         if aggregate:
@@ -303,6 +342,7 @@ def _iter_result_rows(payload: Mapping[str, Any], source_path: Path) -> Tuple[Li
                     "company_id": company_id,
                     "company_label": company_label,
                     "experiment_id": experiment_id,
+                    "runtime_pricing": pricing,
                     **aggregate,
                 }
             )
@@ -315,6 +355,7 @@ def _iter_result_rows(payload: Mapping[str, Any], source_path: Path) -> Tuple[Li
                     "company_id": company_id,
                     "company_label": company_label,
                     "experiment_id": experiment_id,
+                    "runtime_pricing": pricing,
                     **dict(row),
                 }
             )
@@ -325,19 +366,30 @@ def _iter_result_rows(payload: Mapping[str, Any], source_path: Path) -> Tuple[Li
                 continue
             company_id = str(bundle.get("id") or bundle.get("company_run_id") or "")
             company_label = str(bundle.get("company_label") or bundle.get("label") or "")
+            bundle_pricing = _runtime_pricing_from_record(bundle) or payload_pricing
             for result in _safe_list(bundle.get("results")):
                 if isinstance(result, Mapping):
-                    add_result(result, company_id=company_id, company_label=company_label)
+                    add_result(
+                        result,
+                        company_id=company_id,
+                        company_label=company_label,
+                        runtime_pricing=bundle_pricing,
+                    )
 
     if isinstance(payload.get("results"), list):
         company_id = str(payload.get("company_id") or payload.get("company_run_id") or "")
         company_label = str(payload.get("company_label") or payload.get("label") or "")
         for result in payload.get("results") or []:
             if isinstance(result, Mapping):
-                add_result(result, company_id=company_id, company_label=company_label)
+                add_result(result, company_id=company_id, company_label=company_label, runtime_pricing=payload_pricing)
 
     if isinstance(payload.get("full_eval"), Mapping):
-        add_result(payload, company_id=str(payload.get("company_id") or ""), company_label=str(payload.get("company_label") or ""))
+        add_result(
+            payload,
+            company_id=str(payload.get("company_id") or ""),
+            company_label=str(payload.get("company_label") or ""),
+            runtime_pricing=payload_pricing,
+        )
 
     return rows, aggregates
 
@@ -518,6 +570,16 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
 
     llm_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(llm_usage, _safe_dict(row.get("llm_usage")), LLM_USAGE_KEYS)
+    agent_llm_usage: Dict[str, float] = defaultdict(float)
+    _sum_mapping_values(agent_llm_usage, _safe_dict(row.get("agent_llm_usage")), LLM_USAGE_KEYS)
+    judge_llm_usage: Dict[str, float] = defaultdict(float)
+    _sum_mapping_values(judge_llm_usage, _safe_dict(row.get("judge_llm_usage")), LLM_USAGE_KEYS)
+    if not llm_usage and (agent_llm_usage or judge_llm_usage):
+        for key in LLM_USAGE_KEYS:
+            llm_usage[key] = agent_llm_usage.get(key, 0.0) + judge_llm_usage.get(key, 0.0)
+    runtime_pricing = _safe_dict(row.get("runtime_pricing"))
+    agent_estimated_cost = _estimated_llm_cost(agent_llm_usage, runtime_pricing)
+    judge_estimated_cost = _estimated_llm_cost(judge_llm_usage, runtime_pricing)
     embedding_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(embedding_usage, _safe_dict(row.get("embedding_usage")), EMBEDDING_USAGE_KEYS)
 
@@ -548,6 +610,10 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         **dict(search_totals),
         "by_source": {key: dict(value) for key, value in sorted(by_source.items())},
         "llm_usage": dict(llm_usage),
+        "agent_llm_usage": dict(agent_llm_usage),
+        "judge_llm_usage": dict(judge_llm_usage),
+        "agent_estimated_runtime_cost_usd": agent_estimated_cost,
+        "judge_estimated_runtime_cost_usd": judge_estimated_cost,
         "embedding_usage": dict(embedding_usage),
     }
     return audited
@@ -566,6 +632,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
     totals: Dict[str, float] = defaultdict(float)
     by_source: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
     llm_usage: Dict[str, float] = defaultdict(float)
+    agent_llm_usage: Dict[str, float] = defaultdict(float)
+    judge_llm_usage: Dict[str, float] = defaultdict(float)
     embedding_usage: Dict[str, float] = defaultdict(float)
 
     for row in audited_rows:
@@ -595,6 +663,10 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
                 by_source[str(source)][key] += _as_float(value) or 0.0
         for key, value in _safe_dict(row.get("llm_usage")).items():
             llm_usage[key] += _as_float(value) or 0.0
+        for key, value in _safe_dict(row.get("agent_llm_usage")).items():
+            agent_llm_usage[key] += _as_float(value) or 0.0
+        for key, value in _safe_dict(row.get("judge_llm_usage")).items():
+            judge_llm_usage[key] += _as_float(value) or 0.0
         for key, value in _safe_dict(row.get("embedding_usage")).items():
             embedding_usage[key] += _as_float(value) or 0.0
 
@@ -604,6 +676,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
     aggregate_runtime_embedding_cost = sum(
         _as_float(record.get("estimated_runtime_embedding_cost_usd")) or 0.0 for record in aggregates
     )
+    agent_runtime_cost = sum(_as_float(row.get("agent_estimated_runtime_cost_usd")) or 0.0 for row in audited_rows)
+    judge_runtime_cost = sum(_as_float(row.get("judge_estimated_runtime_cost_usd")) or 0.0 for row in audited_rows)
 
     sorted_rows = sorted(
         audited_rows,
@@ -622,6 +696,10 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             "estimated_runtime_embedding_cost_usd": aggregate_runtime_embedding_cost or None,
             **{key: totals.get(key, 0.0) for key in sorted(totals)},
             "llm_usage": dict(sorted(llm_usage.items())),
+            "agent_llm_usage": dict(sorted(agent_llm_usage.items())),
+            "judge_llm_usage": dict(sorted(judge_llm_usage.items())),
+            "agent_estimated_runtime_cost_usd": agent_runtime_cost or None,
+            "judge_estimated_runtime_cost_usd": judge_runtime_cost or None,
             "embedding_usage": dict(sorted(embedding_usage.items())),
             "by_source": {key: dict(sorted(value.items())) for key, value in sorted(by_source.items())},
             **{f"avg_{key}": _average(audited_rows, key) for key in QUALITY_KEYS},
@@ -647,6 +725,14 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
                 str(row.get("question_id") or ""),
             ),
         )[: max(top_n, 0)],
+        "top_rows_by_llm_usage": sorted(
+            audited_rows,
+            key=lambda row: (
+                -(_as_float(_safe_dict(row.get("llm_usage")).get("total_tokens")) or 0.0),
+                -(_as_float(_safe_dict(row.get("llm_usage")).get("api_calls")) or 0.0),
+                str(row.get("question_id") or ""),
+            ),
+        )[: max(top_n, 0)],
     }
 
 
@@ -664,6 +750,9 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
     rows = _safe_list(audit.get("top_rows_by_executed_queries"))
     duplicate_rows = _safe_list(audit.get("top_rows_by_duplicate_queries"))
     reuse_rows = _safe_list(audit.get("top_rows_by_cross_trace_reuse_candidates"))
+    llm_rows = _safe_list(audit.get("top_rows_by_llm_usage"))
+    agent_llm_usage = _safe_dict(summary.get("agent_llm_usage"))
+    judge_llm_usage = _safe_dict(summary.get("judge_llm_usage"))
     lines = [
         "# Benchmark Fan-out Cost Audit",
         "",
@@ -683,7 +772,13 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         f"- State query-result avoided searches: `{_format_number(summary.get('query_result_cache_avoided_search_count'), 0)}`",
         f"- Query embedding API calls: `{_format_number(summary.get('query_embedding_api_calls'), 0)}`",
         f"- LLM API calls: `{_format_number(_safe_dict(summary.get('llm_usage')).get('api_calls'), 0)}`",
+        f"- Agent LLM API calls: `{_format_number(agent_llm_usage.get('api_calls'), 0)}`",
+        f"- Judge LLM API calls: `{_format_number(judge_llm_usage.get('api_calls'), 0)}`",
+        f"- Agent LLM tokens: `{_format_number(agent_llm_usage.get('total_tokens'), 0)}`",
+        f"- Judge LLM tokens: `{_format_number(judge_llm_usage.get('total_tokens'), 0)}`",
         f"- Estimated runtime cost USD: `{_format_number(summary.get('estimated_runtime_cost_usd'), 6)}`",
+        f"- Agent estimated runtime cost USD: `{_format_number(summary.get('agent_estimated_runtime_cost_usd'), 6)}`",
+        f"- Judge estimated runtime cost USD: `{_format_number(summary.get('judge_estimated_runtime_cost_usd'), 6)}`",
         f"- Estimated runtime embedding cost USD: `{_format_number(summary.get('estimated_runtime_embedding_cost_usd'), 6)}`",
         "",
         "## Retrieval By Source",
@@ -773,6 +868,44 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         )
     if not reuse_rows:
         lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |  |  |")
+
+    lines.extend(
+        [
+            "",
+            "## Top Rows By LLM Usage",
+            "",
+            "| Question | Company | Experiment | LLM calls | Agent calls | Judge calls | LLM tokens | Agent tokens | Judge tokens | Agent cost | Judge cost | Latency | Faithfulness | Completeness | Numeric | Error |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |",
+        ]
+    )
+    for row in llm_rows:
+        if not isinstance(row, Mapping):
+            continue
+        row_llm = _safe_dict(row.get("llm_usage"))
+        row_agent = _safe_dict(row.get("agent_llm_usage"))
+        row_judge = _safe_dict(row.get("judge_llm_usage"))
+        lines.append(
+            "| {qid} | {company} | {experiment} | {llm_calls} | {agent_calls} | {judge_calls} | {llm_tokens} | {agent_tokens} | {judge_tokens} | {agent_cost} | {judge_cost} | {latency} | {faith} | {complete} | {numeric} | {error} |".format(
+                qid=row.get("question_id") or "",
+                company=row.get("company_id") or row.get("company_label") or "",
+                experiment=row.get("experiment_id") or "",
+                llm_calls=_format_number(row_llm.get("api_calls"), 0),
+                agent_calls=_format_number(row_agent.get("api_calls"), 0),
+                judge_calls=_format_number(row_judge.get("api_calls"), 0),
+                llm_tokens=_format_number(row_llm.get("total_tokens"), 0),
+                agent_tokens=_format_number(row_agent.get("total_tokens"), 0),
+                judge_tokens=_format_number(row_judge.get("total_tokens"), 0),
+                agent_cost=_format_number(row.get("agent_estimated_runtime_cost_usd"), 6),
+                judge_cost=_format_number(row.get("judge_estimated_runtime_cost_usd"), 6),
+                latency=_format_number(row.get("latency_sec"), 1),
+                faith=_format_number(row.get("faithfulness"), 3),
+                complete=_format_number(row.get("completeness"), 3),
+                numeric=str(row.get("numeric_final_judgement") or ""),
+                error=str(row.get("error") or "").replace("|", "/"),
+            )
+        )
+    if not llm_rows:
+        lines.append("| n/a |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |")
 
     lines.extend(
         [
