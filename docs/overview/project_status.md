@@ -1126,6 +1126,30 @@ Current next decisions:
   `reconciliation_rerank` at `5,582` tokens / `$0.010426`. Retrieval-side
   telemetry reported `17` executed queries, `0` duplicate queries, and `8`
   state query-result avoided searches.
+- The next runtime-cost change compacted the `aggregate_synthesis` prompt
+  payload. Final synthesis now receives projection-backed compact subtask rows
+  instead of raw `ordered_results`, preserving task ids, metric/operation
+  labels, answers, `calculation_result.answer_slots`, source ids, and material
+  numeric operands while excluding retrieval/debug/runtime-evidence payloads.
+  The node records `subtask_debug_trace.aggregate_synthesis_prompt` with row
+  count and input JSON character count. This is a generic prompt-contract
+  reduction, not a routing, retrieval, evidence-selection, calculation, or
+  answer-rule change.
+- A focused `KAB_T1_066` aggregate-compact canary on 2026-06-09 created the
+  local artifact
+  `benchmarks/results/kab_t1_066_aggregate_compact_canary_2026-06-09/`. Because
+  this checkout still had no reusable store, the run included fresh store
+  construction and is a local canary, not a store-fixed release baseline. The
+  artifact was deleted after this summary was recorded. The row ran with LLM
+  judges and embedding metrics skipped, preserving numeric `PASS`,
+  faithfulness/completeness `1.000 / 1.000`, context recall/retrieval hit@k
+  `1.000 / 1.000`, latency `150.1s`, and estimated runtime cost `$0.064986`.
+  Compared with the previous phase canary, total agent LLM tokens fell
+  `258,333 -> 76,252`, `aggregate_synthesis` fell `186,310 -> 4,064`, and
+  estimated runtime cost fell `$0.110654 -> $0.064986`. The largest remaining
+  phase is now `numeric_extraction` at `51,556` tokens / `$0.038694`. Retrieval
+  telemetry stayed at `17` executed queries, `0` duplicate queries, and `8`
+  state query-result avoided searches.
 - Retrieval budget, dedupe, executed-query telemetry, and cross-trace reuse
   diagnostics now live in `src.agent.financial_graph_retrieval_budget`, with
   the evidence mixin preserving the existing helper import surface. This keeps

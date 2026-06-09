@@ -50,6 +50,19 @@ class _StubLLM:
         return RunnableLambda(lambda _prompt_value: self._response)
 
 
+class _CapturingLLM:
+    def __init__(self, response):
+        self._response = response
+        self.prompt_text = ""
+
+    def with_structured_output(self, _schema):
+        def _invoke(prompt_value):
+            self.prompt_text = prompt_value.to_string()
+            return self._response
+
+        return RunnableLambda(_invoke)
+
+
 class _FailingStructuredLLM:
     def with_structured_output(self, _schema):
         return RunnableLambda(lambda _prompt_value: (_ for _ in ()).throw(RuntimeError("structured output disabled")))
@@ -5763,6 +5776,103 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("calculation_operands", updated)
         self.assertNotIn("calculation_plan", updated)
         self.assertNotIn("calculation_result", updated)
+
+    def test_aggregate_synthesis_prompt_uses_compact_projection_rows(self) -> None:
+        capturing_llm = _CapturingLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "2023년 대상 지표는 100억원입니다.",
+                    "planner_feedback": "",
+                }
+            )
+        )
+        self.agent.llm = capturing_llm
+        large_claim = "supporting evidence " * 200
+        state = {
+            "query": "2023년 대상 지표를 알려줘.",
+            "calc_subtasks": [
+                {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"}
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {"task_id": "task_1", "metric_family": "concept_lookup", "metric_label": "대상 지표"},
+            "subtask_results": [],
+            "answer": "2023년 대상 지표는 100억원입니다.",
+            "compressed_answer": "2023년 대상 지표는 100억원입니다.",
+            "selected_claim_ids": ["ev_001"],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_001",
+                    "claim": "대상 지표는 100억원입니다.",
+                    "source_anchor": "source",
+                }
+            ],
+            "calculation_operands": [
+                {
+                    "operand_id": "primary_value",
+                    "label": "대상 지표",
+                    "raw_value": "100",
+                    "raw_unit": "억원",
+                    "source_row_id": "ev_001",
+                }
+            ],
+            "calculation_plan": {"status": "ok", "operation": "lookup"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "100억원",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "rendered_value": "100억원",
+                    },
+                },
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "primary_value",
+                        "label": "대상 지표",
+                        "raw_value": "100",
+                        "raw_unit": "억원",
+                        "source_row_id": "ev_001",
+                    }
+                ],
+                "calculation_plan": {"status": "ok", "operation": "lookup"},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "100억원",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "rendered_value": "100억원",
+                        },
+                    },
+                },
+            },
+            "retrieval_debug_trace": {"large_debug_payload": large_claim},
+            "runtime_evidence": [{"claim": large_claim}],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        prompt_json = capturing_llm.prompt_text.split("Subtask Results JSON:\n", 1)[1]
+        prompt_rows = json.loads(prompt_json)
+
+        self.assertEqual(len(prompt_rows), 1)
+        self.assertEqual(prompt_rows[0]["task_id"], "task_1")
+        self.assertIn("answer_slots", prompt_rows[0]["calculation_result"])
+        self.assertIn("calculation_operands", prompt_rows[0])
+        self.assertNotIn("runtime_evidence", prompt_rows[0])
+        self.assertNotIn("retrieval_debug_trace", capturing_llm.prompt_text)
+        self.assertNotIn(large_claim, capturing_llm.prompt_text)
+        self.assertLess(
+            updated["subtask_debug_trace"]["aggregate_synthesis_prompt"]["input_json_chars"],
+            len(json.dumps([state], ensure_ascii=False)),
+        )
 
     def test_aggregate_subtasks_dedupes_nested_operand_mirrors(self) -> None:
         projection = self.agent._build_aggregate_calculation_projection(

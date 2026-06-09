@@ -11,6 +11,38 @@
 
 ## 최신 상태
 
+- 2026-06-09 `aggregate_synthesis` runtime payload를 compact projection으로
+  전환했다.
+  - 이전 live phase canary에서 `aggregate_synthesis`가 `186,310` tokens로
+    가장 큰 비용 phase였기 때문에, final synthesis LLM에는 `ordered_results`
+    원본 전체 대신 aggregate projection 기반 compact rows만 전달한다.
+  - compact rows는 `task_id`, metric/operation labels, answer,
+    `calculation_result.answer_slots`, source ids, material numeric operands만
+    보존하고, retrieval/debug/runtime evidence payload는 prompt에서 제외한다.
+    이는 answer rule이 아니라 synthesizer input contract 축소다.
+  - `subtask_debug_trace.aggregate_synthesis_prompt`에 compact row count와
+    input JSON character count를 남긴다.
+  - 검증:
+    - `python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_synthesis_prompt_uses_compact_projection_rows tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_joins_answers_in_task_order tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_dedupes_nested_operand_mirrors`:
+      `3` tests OK.
+    - `python -m unittest tests.test_subtask_loop`: `169` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `1022` tests OK.
+  - live canary:
+    `benchmarks/results/kab_t1_066_aggregate_compact_canary_2026-06-09/`는
+    reusable store가 없는 checkout에서 실행되어 fresh store 구축을 포함한
+    local artifact였고, 수치 요약 후 삭제했다. `KAB_T1_066` 단일 row는
+    `--skip-llm-judges --skip-embedding-metrics`로 실행했고 numeric `PASS`,
+    faithfulness/completeness `1.000 / 1.000`, context recall/retrieval hit@k
+    `1.000 / 1.000`, latency `150.1s`, estimated runtime cost `$0.064986`를
+    기록했다. 이전 phase canary 대비 total agent LLM tokens는
+    `258,333 -> 76,252`, `aggregate_synthesis`는 `186,310 -> 4,064`,
+    estimated runtime cost는 `$0.110654 -> $0.064986`로 줄었다. 이번 run의
+    최대 phase는 `numeric_extraction` `51,556` tokens / `$0.038694`였다.
+    retrieval side는 executed queries `17`, duplicate queries `0`,
+    state query-result avoided searches `8`로 유지됐다.
+
 - 2026-06-09 runtime LLM phase-level usage instrumentation을 추가했다.
   - `GeminiUsageCallbackHandler`가 thread-local current phase와
     phase별 usage/api-call accumulator를 가진다.

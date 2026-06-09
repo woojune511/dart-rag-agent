@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
+from src.agent.financial_graph_helpers import _operand_row_has_material_numeric_payload
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
     CalculationPlan,
@@ -12125,6 +12126,92 @@ class FinancialAgentCalculationMixin:
             },
         }
 
+    def _aggregate_synthesis_prompt_rows(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """Project subtask rows into the compact contract needed by final synthesis."""
+        calculation_result = dict(aggregate_projection.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        projected_rows = list(calculation_result.get("subtask_results") or answer_slots.get("subtask_results") or [])
+        if not projected_rows:
+            projected_rows = list(ordered_results or [])
+
+        operands_by_task_id: Dict[str, List[Dict[str, Any]]] = {}
+        for operand in list(aggregate_projection.get("calculation_operands") or []):
+            operand_row = dict(operand or {})
+            if not _operand_row_has_material_numeric_payload(operand_row):
+                continue
+            task_id = str(operand_row.get("task_id") or "").strip()
+            compact_operand = {
+                key: operand_row.get(key)
+                for key in (
+                    "operand_id",
+                    "matched_operand_role",
+                    "label",
+                    "label_kr",
+                    "raw_value",
+                    "value",
+                    "raw_unit",
+                    "normalized_value",
+                    "normalized_unit",
+                    "period",
+                    "source_row_id",
+                    "source_row_ids",
+                    "source_evidence_ids",
+                )
+                if operand_row.get(key) not in (None, "", [], {})
+            }
+            if compact_operand:
+                operands_by_task_id.setdefault(task_id, []).append(compact_operand)
+
+        compact_rows: List[Dict[str, Any]] = []
+        for row in projected_rows:
+            if not isinstance(row, dict):
+                continue
+            task_id = str(row.get("task_id") or "").strip()
+            compact_row: Dict[str, Any] = {
+                key: row.get(key)
+                for key in (
+                    "task_id",
+                    "metric_family",
+                    "metric_label",
+                    "operation_family",
+                    "answer",
+                    "rendered_value",
+                    "status",
+                    "source_row_ids",
+                    "source_evidence_ids",
+                )
+                if row.get(key) not in (None, "", [], {})
+            }
+            row_answer_slots = dict(row.get("answer_slots") or {})
+            if row_answer_slots:
+                compact_row["answer_slots"] = row_answer_slots
+            row_result = dict(row.get("calculation_result") or {})
+            if row_result:
+                compact_result = {
+                    key: row_result.get(key)
+                    for key in (
+                        "status",
+                        "rendered_value",
+                        "formatted_result",
+                        "answer_slots",
+                        "source_row_ids",
+                        "source_evidence_ids",
+                    )
+                    if row_result.get(key) not in (None, "", [], {})
+                }
+                if compact_result:
+                    compact_row["calculation_result"] = compact_result
+            row_operands = operands_by_task_id.get(task_id) or []
+            if row_operands:
+                compact_row["calculation_operands"] = row_operands
+            if compact_row:
+                compact_rows.append(compact_row)
+        return compact_rows
+
     def _aggregate_calculation_subtasks(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Combine completed subtask outputs into a single caller-facing view."""
         current_result = self._capture_current_subtask_result(state)
@@ -12206,19 +12293,28 @@ class FinancialAgentCalculationMixin:
         )
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         max_plan_loops = 2
+        aggregate_synthesis_input_json = ""
+        aggregate_synthesis_debug: Dict[str, Any] = {}
         if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
             structured_llm = self._llm_for_phase("aggregate_synthesis").with_structured_output(AggregateSynthesisOutput)
             prompt = ChatPromptTemplate.from_template(
                 str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")
             )
             try:
+                prompt_rows = self._aggregate_synthesis_prompt_rows(ordered_results, preliminary_projection)
+                aggregate_synthesis_input_json = json.dumps(prompt_rows, ensure_ascii=False, separators=(",", ":"))
+                aggregate_synthesis_debug = {
+                    "row_count": len(prompt_rows),
+                    "input_json_chars": len(aggregate_synthesis_input_json),
+                    "source": "projection_compact_rows",
+                }
                 prompt_value = prompt.invoke(
                     {
                         "query": state["query"],
                         "fallback_answer": fallback_answer,
                         "deterministic_feedback": deterministic_feedback or "-",
                         "narrative_context": narrative_context or "-",
-                        "subtask_results_json": json.dumps(ordered_results, ensure_ascii=False, indent=2),
+                        "subtask_results_json": aggregate_synthesis_input_json,
                     }
                 )
                 synthesized: AggregateSynthesisOutput = structured_llm.invoke(prompt_value)
@@ -13194,6 +13290,10 @@ class FinancialAgentCalculationMixin:
             "tasks": tasks,
             "artifacts": artifacts,
             "evidence_items": aggregate_evidence_items or aggregate_projection.get("evidence_items", []),
+            "subtask_debug_trace": {
+                **dict(state.get("subtask_debug_trace") or {}),
+                "aggregate_synthesis_prompt": aggregate_synthesis_debug,
+            },
             **_runtime_trace_state_update(
                 state,
                 calculation_operands=aggregate_projection["calculation_operands"],
