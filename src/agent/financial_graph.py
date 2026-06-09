@@ -309,6 +309,11 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         raise ValueError(f"Unsupported LLM provider for route '{phase}': {provider}")
 
     def _llm_for_phase(self, phase: str) -> Any:
+        usage_callback = getattr(self, "llm_usage_callback", None)
+        if usage_callback is not None:
+            set_phase = getattr(usage_callback, "set_current_phase", None)
+            if callable(set_phase):
+                set_phase(phase)
         routes = getattr(self, "llm_routes", None)
         if isinstance(routes, dict) and routes:
             return routes.get(phase) or routes["default"]
@@ -492,6 +497,9 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         final = self.graph.invoke(initial)
         runtime_evidence = self._runtime_evidence_from_retrieved_docs(final)
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
+        llm_usage_by_phase = (
+            usage_callback.snapshot_current_thread_by_phase() if usage_callback is not None else {}
+        )
         embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
         embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
         runtime_calculation_trace = self._project_runtime_calculation_trace(final)
@@ -563,6 +571,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
             "reconciliation_result": final.get("reconciliation_result", {}),
             "llm_usage": llm_usage,
+            "llm_usage_by_phase": llm_usage_by_phase,
             "embedding_usage": embedding_usage,
             "tasks": final.get("tasks", []),
             "artifacts": final.get("artifacts", []),

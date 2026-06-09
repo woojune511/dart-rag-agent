@@ -97,6 +97,40 @@ class GeminiUsageTests(unittest.TestCase):
         self.assertEqual(snapshot["output_tokens"], 20)
         self.assertEqual(snapshot["thoughts_tokens"], 5)
 
+    def test_callback_accumulates_usage_by_phase(self) -> None:
+        callback = GeminiUsageCallbackHandler()
+        callback.reset_current_thread()
+        response = SimpleNamespace(
+            llm_output=None,
+            generations=[
+                [
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            usage_metadata={
+                                "input_tokens": 100,
+                                "output_tokens": 20,
+                            }
+                        )
+                    )
+                ]
+            ],
+        )
+
+        callback.set_current_phase("numeric_extraction")
+        callback.on_llm_end(response)
+        callback.set_current_phase("validation")
+        callback.on_llm_end(response)
+
+        by_phase = callback.snapshot_current_thread_by_phase()
+        self.assertEqual(by_phase["numeric_extraction"]["api_calls"], 1)
+        self.assertEqual(by_phase["numeric_extraction"]["prompt_tokens"], 100)
+        self.assertEqual(by_phase["validation"]["api_calls"], 1)
+        self.assertEqual(by_phase["validation"]["output_tokens"], 20)
+        self.assertEqual(callback.snapshot_current_thread()["api_calls"], 2)
+
+        global_by_phase = callback.snapshot_global_by_phase()
+        self.assertEqual(global_by_phase["numeric_extraction"]["total_tokens"], 120)
+
 
 if __name__ == "__main__":
     unittest.main()

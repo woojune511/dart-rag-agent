@@ -235,6 +235,7 @@ class EvalResult:
     calculation_plan: Dict[str, Any] = field(default_factory=dict)
     calculation_result: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage: Dict[str, Any] = field(default_factory=dict)
+    agent_llm_usage_by_phase: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     judge_llm_usage: Dict[str, Any] = field(default_factory=dict)
     llm_usage: Dict[str, Any] = field(default_factory=dict)
     agent_embedding_usage: Dict[str, Any] = field(default_factory=dict)
@@ -3353,6 +3354,7 @@ class RAGEvaluator:
         structured_result: Dict[str, Any] = {}
         task_artifact_trace: Dict[str, Any] = {}
         agent_llm_usage: Dict[str, Any] = {}
+        agent_llm_usage_by_phase: Dict[str, Dict[str, Any]] = {}
         agent_embedding_usage: Dict[str, Any] = {}
         judge_usage_callback = getattr(self, "_llm_usage_callback", None)
         if judge_usage_callback is not None:
@@ -3368,6 +3370,11 @@ class RAGEvaluator:
                 report_scope=_build_example_report_scope(example),
             )
             agent_llm_usage = dict(result.get("llm_usage", {}) or {})
+            agent_llm_usage_by_phase = {
+                str(phase): dict(usage)
+                for phase, usage in dict(result.get("llm_usage_by_phase", {}) or {}).items()
+                if isinstance(usage, dict)
+            }
             agent_embedding_usage = dict(result.get("embedding_usage", {}) or {})
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
@@ -3784,6 +3791,7 @@ class RAGEvaluator:
             calculation_plan=calculation_plan,
             calculation_result=calculation_result,
             agent_llm_usage=agent_llm_usage,
+            agent_llm_usage_by_phase=agent_llm_usage_by_phase,
             judge_llm_usage=judge_llm_usage,
             llm_usage=llm_usage,
             agent_embedding_usage=agent_embedding_usage,

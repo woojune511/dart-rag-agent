@@ -1135,6 +1135,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "task_artifact_integrity_issues": list(task_artifact_trace.get("integrity_issues") or []),
                 "resolved_operand_count": len(resolved_trace.get("calculation_operands", []) or []),
                 "agent_llm_usage": getattr(result, "agent_llm_usage", {}) or {},
+                "agent_llm_usage_by_phase": getattr(result, "agent_llm_usage_by_phase", {}) or {},
                 "judge_llm_usage": getattr(result, "judge_llm_usage", {}) or {},
                 "llm_usage": getattr(result, "llm_usage", {}) or {},
                 "agent_embedding_usage": getattr(result, "agent_embedding_usage", {}) or {},

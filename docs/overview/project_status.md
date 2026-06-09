@@ -1103,6 +1103,13 @@ Current next decisions:
   calls, total tokens, estimated runtime cost by side, and a
   `Top Rows By LLM Usage` table. Older bundles remain readable; missing split
   usage is left blank rather than inferred from combined totals.
+- A later 2026-06-09 instrumentation pass adds phase-level agent LLM usage.
+  `FinancialAgent._llm_for_phase()` now tags the shared usage callback with the
+  active phase, `FinancialAgent.run()` returns `llm_usage_by_phase`, benchmark
+  rows serialize it as `agent_llm_usage_by_phase`, and the offline audit renders
+  an `Agent LLM Usage By Phase` table with calls, tokens, and estimated cost.
+  This is trace/cost observability only; it does not change routing, retrieval,
+  evidence selection, calculation, or answer behavior.
 - Retrieval budget, dedupe, executed-query telemetry, and cross-trace reuse
   diagnostics now live in `src.agent.financial_graph_retrieval_budget`, with
   the evidence mixin preserving the existing helper import surface. This keeps

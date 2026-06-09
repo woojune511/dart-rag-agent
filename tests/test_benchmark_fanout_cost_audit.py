@@ -52,6 +52,19 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                         "output_tokens": 10,
                                                         "total_tokens": 80,
                                                     },
+                                                    "agent_llm_usage_by_phase": {
+                                                        "numeric_extraction": {
+                                                            "api_calls": 1,
+                                                            "prompt_tokens": 40,
+                                                            "output_tokens": 10,
+                                                            "total_tokens": 50,
+                                                        },
+                                                        "validation": {
+                                                            "api_calls": 1,
+                                                            "prompt_tokens": 30,
+                                                            "total_tokens": 30,
+                                                        },
+                                                    },
                                                     "judge_llm_usage": {
                                                         "api_calls": 1,
                                                         "prompt_tokens": 30,
@@ -168,6 +181,14 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                                                         "output_tokens": 20,
                                                         "total_tokens": 40,
                                                     },
+                                                    "agent_llm_usage_by_phase": {
+                                                        "concept_planning": {
+                                                            "api_calls": 1,
+                                                            "prompt_tokens": 20,
+                                                            "output_tokens": 20,
+                                                            "total_tokens": 40,
+                                                        }
+                                                    },
                                                     "retrieval_debug_trace": {
                                                         "query_budget": {
                                                             "primary": {"selected_count": 1},
@@ -228,9 +249,16 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["llm_usage"]["total_tokens"], 160)
         self.assertEqual(summary["agent_llm_usage"]["api_calls"], 3)
         self.assertEqual(summary["agent_llm_usage"]["total_tokens"], 120)
+        self.assertEqual(summary["agent_llm_usage_by_phase"]["numeric_extraction"]["api_calls"], 1)
+        self.assertEqual(summary["agent_llm_usage_by_phase"]["numeric_extraction"]["total_tokens"], 50)
+        self.assertEqual(summary["agent_llm_usage_by_phase"]["concept_planning"]["total_tokens"], 40)
         self.assertEqual(summary["judge_llm_usage"]["api_calls"], 1)
         self.assertEqual(summary["judge_llm_usage"]["total_tokens"], 40)
         self.assertAlmostEqual(summary["agent_estimated_runtime_cost_usd"], 0.00015)
+        self.assertAlmostEqual(
+            summary["agent_estimated_runtime_cost_by_phase_usd"]["numeric_extraction"],
+            0.00006,
+        )
         self.assertAlmostEqual(summary["judge_estimated_runtime_cost_usd"], 0.00005)
         self.assertAlmostEqual(summary["estimated_runtime_cost_usd"], 0.0123)
         self.assertAlmostEqual(summary["estimated_runtime_embedding_cost_usd"], 0.0045)
@@ -242,6 +270,7 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
         self.assertEqual(audit["top_rows_by_executed_queries"][0]["question_id"], "Q1")
         self.assertEqual(audit["top_rows_by_llm_usage"][0]["question_id"], "Q1")
+        self.assertEqual(audit["top_agent_llm_phases"][0]["phase"], "numeric_extraction")
         self.assertEqual(audit["top_rows_by_duplicate_queries"][0]["question_id"], "Q1")
         self.assertEqual(audit["top_rows_by_cross_trace_reuse_candidates"][0]["question_id"], "Q1")
         reuse_details = audit["top_rows_by_cross_trace_reuse_candidates"][0]["cross_trace_reuse_details"]
@@ -292,6 +321,10 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                     "query_embedding_api_calls": 2,
                     "llm_usage": {"api_calls": 1},
                     "agent_llm_usage": {"api_calls": 1, "total_tokens": 80},
+                    "agent_llm_usage_by_phase": {
+                        "numeric_extraction": {"api_calls": 1, "prompt_tokens": 40, "output_tokens": 10, "total_tokens": 50}
+                    },
+                    "agent_estimated_runtime_cost_by_phase_usd": {"numeric_extraction": 0.00006},
                     "judge_llm_usage": {"api_calls": 1, "total_tokens": 40},
                     "agent_estimated_runtime_cost_usd": 0.00015,
                     "judge_estimated_runtime_cost_usd": 0.00005,
@@ -381,6 +414,16 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
                         "numeric_final_judgement": "PASS",
                     }
                 ],
+                "top_agent_llm_phases": [
+                    {
+                        "phase": "numeric_extraction",
+                        "api_calls": 1,
+                        "prompt_tokens": 40,
+                        "output_tokens": 10,
+                        "total_tokens": 50,
+                        "estimated_runtime_cost_usd": 0.00006,
+                    }
+                ],
             }
         )
 
@@ -394,6 +437,8 @@ class BenchmarkFanoutCostAuditTests(unittest.TestCase):
         self.assertIn("State query-result avoided searches", markdown)
         self.assertIn("Agent LLM API calls", markdown)
         self.assertIn("Judge LLM API calls", markdown)
+        self.assertIn("Agent LLM Usage By Phase", markdown)
+        self.assertIn("| numeric_extraction | 1 | 40 | 10 | 50 | 0.000060 |", markdown)
         self.assertIn("Top Rows By LLM Usage", markdown)
         self.assertIn("Top Rows By Cross-Trace Reuse Candidates", markdown)
         self.assertIn(

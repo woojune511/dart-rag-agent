@@ -11,6 +11,30 @@
 
 ## 최신 상태
 
+- 2026-06-09 runtime LLM phase-level usage instrumentation을 추가했다.
+  - `GeminiUsageCallbackHandler`가 thread-local current phase와
+    phase별 usage/api-call accumulator를 가진다.
+  - `FinancialAgent._llm_for_phase()`가 phase를 callback에 전달하고,
+    `FinancialAgent.run()`은 기존 `llm_usage`와 별도로
+    `llm_usage_by_phase`를 반환한다. 기본 LLM 직접 호출은 `default` phase로
+    남는다.
+  - evaluator/benchmark runner는 이를 `agent_llm_usage_by_phase`로
+    per-question result row에 보존한다.
+  - `audit_benchmark_fanout_cost`는 phase별 agent LLM calls/tokens/estimated
+    cost와 `Agent LLM Usage By Phase` table을 노출한다. 오래된 result
+    bundle은 phase usage가 없어도 계속 읽힌다.
+  - 검증:
+    - `python -m unittest tests.test_gemini_usage tests.test_benchmark_fanout_cost_audit`:
+      `8` tests OK.
+    - `python -m unittest tests.test_evaluator_progress tests.test_benchmark_runner_runtime_projection tests.test_benchmark_fanout_cost_audit tests.test_gemini_usage`:
+      `24` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - legacy local bundle
+      `benchmarks/results/dev_fast_focus_canonical_v2_2026-04-24` audit smoke:
+      completed without error.
+    - `python -m unittest discover -s tests`: `1020` tests OK.
+
 - 2026-06-09 runtime LLM cost audit surface를 보강했다.
   - `src.ops.audit_benchmark_fanout_cost`는 이제 기존 `llm_usage` combined
     summary와 별도로 `agent_llm_usage`, `judge_llm_usage`, agent/judge

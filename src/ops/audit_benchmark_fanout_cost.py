@@ -114,6 +114,29 @@ def _estimated_llm_cost(usage: Mapping[str, Any], pricing: Mapping[str, Any]) ->
     return estimate_gemini_cost_usd(usage, pricing)
 
 
+def _sum_phase_usage(target: Dict[str, Dict[str, float]], source: Mapping[str, Any]) -> None:
+    for phase, usage in source.items():
+        if not isinstance(usage, Mapping):
+            continue
+        phase_key = str(phase or "").strip() or "unknown"
+        phase_target = target.setdefault(phase_key, defaultdict(float))
+        _sum_mapping_values(phase_target, usage, LLM_USAGE_KEYS)
+
+
+def _estimated_phase_costs(
+    usage_by_phase: Mapping[str, Any],
+    pricing: Mapping[str, Any],
+) -> Dict[str, float]:
+    costs: Dict[str, float] = {}
+    for phase, usage in usage_by_phase.items():
+        if not isinstance(usage, Mapping):
+            continue
+        cost = _estimated_llm_cost(usage, pricing)
+        if cost is not None:
+            costs[str(phase or "").strip() or "unknown"] = cost
+    return costs
+
+
 def _query_signature(value: Any) -> str:
     text = " ".join(str(value or "").strip().lower().split())
     return text
@@ -572,6 +595,8 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     _sum_mapping_values(llm_usage, _safe_dict(row.get("llm_usage")), LLM_USAGE_KEYS)
     agent_llm_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(agent_llm_usage, _safe_dict(row.get("agent_llm_usage")), LLM_USAGE_KEYS)
+    agent_llm_usage_by_phase: Dict[str, Dict[str, float]] = {}
+    _sum_phase_usage(agent_llm_usage_by_phase, _safe_dict(row.get("agent_llm_usage_by_phase")))
     judge_llm_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(judge_llm_usage, _safe_dict(row.get("judge_llm_usage")), LLM_USAGE_KEYS)
     if not llm_usage and (agent_llm_usage or judge_llm_usage):
@@ -580,6 +605,7 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
     runtime_pricing = _safe_dict(row.get("runtime_pricing"))
     agent_estimated_cost = _estimated_llm_cost(agent_llm_usage, runtime_pricing)
     judge_estimated_cost = _estimated_llm_cost(judge_llm_usage, runtime_pricing)
+    agent_estimated_cost_by_phase = _estimated_phase_costs(agent_llm_usage_by_phase, runtime_pricing)
     embedding_usage: Dict[str, float] = defaultdict(float)
     _sum_mapping_values(embedding_usage, _safe_dict(row.get("embedding_usage")), EMBEDDING_USAGE_KEYS)
 
@@ -611,8 +637,12 @@ def audit_row(row: Mapping[str, Any]) -> Dict[str, Any]:
         "by_source": {key: dict(value) for key, value in sorted(by_source.items())},
         "llm_usage": dict(llm_usage),
         "agent_llm_usage": dict(agent_llm_usage),
+        "agent_llm_usage_by_phase": {
+            phase: dict(usage) for phase, usage in sorted(agent_llm_usage_by_phase.items())
+        },
         "judge_llm_usage": dict(judge_llm_usage),
         "agent_estimated_runtime_cost_usd": agent_estimated_cost,
+        "agent_estimated_runtime_cost_by_phase_usd": agent_estimated_cost_by_phase,
         "judge_estimated_runtime_cost_usd": judge_estimated_cost,
         "embedding_usage": dict(embedding_usage),
     }
@@ -633,6 +663,8 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
     by_source: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
     llm_usage: Dict[str, float] = defaultdict(float)
     agent_llm_usage: Dict[str, float] = defaultdict(float)
+    agent_llm_usage_by_phase: Dict[str, Dict[str, float]] = {}
+    agent_estimated_cost_by_phase: Dict[str, float] = defaultdict(float)
     judge_llm_usage: Dict[str, float] = defaultdict(float)
     embedding_usage: Dict[str, float] = defaultdict(float)
 
@@ -665,6 +697,9 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             llm_usage[key] += _as_float(value) or 0.0
         for key, value in _safe_dict(row.get("agent_llm_usage")).items():
             agent_llm_usage[key] += _as_float(value) or 0.0
+        _sum_phase_usage(agent_llm_usage_by_phase, _safe_dict(row.get("agent_llm_usage_by_phase")))
+        for phase, value in _safe_dict(row.get("agent_estimated_runtime_cost_by_phase_usd")).items():
+            agent_estimated_cost_by_phase[str(phase)] += _as_float(value) or 0.0
         for key, value in _safe_dict(row.get("judge_llm_usage")).items():
             judge_llm_usage[key] += _as_float(value) or 0.0
         for key, value in _safe_dict(row.get("embedding_usage")).items():
@@ -697,6 +732,10 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
             **{key: totals.get(key, 0.0) for key in sorted(totals)},
             "llm_usage": dict(sorted(llm_usage.items())),
             "agent_llm_usage": dict(sorted(agent_llm_usage.items())),
+            "agent_llm_usage_by_phase": {
+                phase: dict(sorted(usage.items())) for phase, usage in sorted(agent_llm_usage_by_phase.items())
+            },
+            "agent_estimated_runtime_cost_by_phase_usd": dict(sorted(agent_estimated_cost_by_phase.items())),
             "judge_llm_usage": dict(sorted(judge_llm_usage.items())),
             "agent_estimated_runtime_cost_usd": agent_runtime_cost or None,
             "judge_estimated_runtime_cost_usd": judge_runtime_cost or None,
@@ -733,6 +772,21 @@ def build_audit(paths: Sequence[Path], *, top_n: int = 20) -> Dict[str, Any]:
                 str(row.get("question_id") or ""),
             ),
         )[: max(top_n, 0)],
+        "top_agent_llm_phases": sorted(
+            [
+                {
+                    "phase": phase,
+                    **dict(usage),
+                    "estimated_runtime_cost_usd": agent_estimated_cost_by_phase.get(phase),
+                }
+                for phase, usage in agent_llm_usage_by_phase.items()
+            ],
+            key=lambda row: (
+                -(_as_float(row.get("total_tokens")) or 0.0),
+                -(_as_float(row.get("api_calls")) or 0.0),
+                str(row.get("phase") or ""),
+            ),
+        )[: max(top_n, 0)],
     }
 
 
@@ -751,6 +805,7 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
     duplicate_rows = _safe_list(audit.get("top_rows_by_duplicate_queries"))
     reuse_rows = _safe_list(audit.get("top_rows_by_cross_trace_reuse_candidates"))
     llm_rows = _safe_list(audit.get("top_rows_by_llm_usage"))
+    phase_rows = _safe_list(audit.get("top_agent_llm_phases"))
     agent_llm_usage = _safe_dict(summary.get("agent_llm_usage"))
     judge_llm_usage = _safe_dict(summary.get("judge_llm_usage"))
     lines = [
@@ -801,6 +856,31 @@ def render_markdown(audit: Mapping[str, Any]) -> str:
         )
     if not _safe_dict(summary.get("by_source")):
         lines.append("| n/a |  |  |  |  |  |  |")
+
+    lines.extend(
+        [
+            "",
+            "## Agent LLM Usage By Phase",
+            "",
+            "| Phase | Calls | Prompt tokens | Output tokens | Total tokens | Estimated cost |",
+            "| --- | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for row in phase_rows:
+        if not isinstance(row, Mapping):
+            continue
+        lines.append(
+            "| {phase} | {calls} | {prompt} | {output} | {total} | {cost} |".format(
+                phase=row.get("phase") or "",
+                calls=_format_number(row.get("api_calls"), 0),
+                prompt=_format_number(row.get("prompt_tokens"), 0),
+                output=_format_number(row.get("output_tokens"), 0),
+                total=_format_number(row.get("total_tokens"), 0),
+                cost=_format_number(row.get("estimated_runtime_cost_usd"), 6),
+            )
+        )
+    if not phase_rows:
+        lines.append("| n/a |  |  |  |  |  |")
 
     lines.extend(
         [
