@@ -2668,6 +2668,52 @@ class FinancialAgentEvidenceMixin:
 
         return "\n\n---\n\n".join(parts)
 
+    def _numeric_extraction_prompt_diagnostics(
+        self,
+        docs: List[Any],
+        *,
+        numeric_query: str,
+        context: str,
+    ) -> Dict[str, Any]:
+        """Summarize numeric-extraction prompt size without storing prompt text."""
+        selected_docs = list(docs or [])
+        metadata_rows: List[Dict[str, Any]] = []
+        total_page_content_chars = 0
+        parent_context_count = 0
+        table_context_count = 0
+        graph_relation_count = 0
+        for doc_score in selected_docs:
+            doc = doc_score[0] if isinstance(doc_score, (tuple, list)) and doc_score else doc_score
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            page_content = str(getattr(doc, "page_content", "") or "")
+            total_page_content_chars += len(page_content)
+            if metadata.get("parent_id") and not metadata.get("graph_seed_with_parent_context"):
+                parent_context_count += 1
+            if metadata.get("table_context"):
+                table_context_count += 1
+            if metadata.get("graph_relation"):
+                graph_relation_count += 1
+            metadata_rows.append(
+                {
+                    "chunk_uid": str(metadata.get("chunk_uid") or ""),
+                    "parent_id": str(metadata.get("parent_id") or ""),
+                    "section_path": str(metadata.get("section_path") or metadata.get("section") or ""),
+                    "statement_type": str(metadata.get("statement_type") or ""),
+                    "consolidation_scope": str(metadata.get("consolidation_scope") or ""),
+                    "page_content_chars": len(page_content),
+                }
+            )
+        return {
+            "selected_doc_count": len(selected_docs),
+            "context_chars": len(context or ""),
+            "query_chars": len(numeric_query or ""),
+            "source_page_content_chars": total_page_content_chars,
+            "parent_context_candidate_count": parent_context_count,
+            "table_context_doc_count": table_context_count,
+            "graph_relation_doc_count": graph_relation_count,
+            "doc_summaries": metadata_rows,
+        }
+
     def _build_source_anchor(self, metadata: Dict[str, Any]) -> str:
         relation = str(metadata.get("graph_relation") or "").strip()
         relation_suffix = f" | {relation}" if relation else ""
@@ -6203,8 +6249,14 @@ class FinancialAgentEvidenceMixin:
         if not docs:
             return empty_result
 
-        context = self._format_context(docs[: min(8, len(docs))])
+        prompt_docs = docs[: min(8, len(docs))]
+        context = self._format_context(prompt_docs)
         numeric_query = _numeric_extractor_query_for_state(state)
+        prompt_diagnostics = self._numeric_extraction_prompt_diagnostics(
+            prompt_docs,
+            numeric_query=numeric_query,
+            context=context,
+        )
         structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
         prompt = ChatPromptTemplate.from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
@@ -6214,7 +6266,10 @@ class FinancialAgentEvidenceMixin:
             result: NumericExtraction = (prompt | structured_llm).invoke(
                 {"query": numeric_query, "context": context}
             )
-            debug_trace = result.model_dump()
+            debug_trace = {
+                **result.model_dump(),
+                "numeric_extraction_prompt": prompt_diagnostics,
+            }
             logger.info(
                 "[numeric_extractor] period=%s consolidation=%s unit=%s raw=%s",
                 (result.period_check or "")[:60],
@@ -6225,7 +6280,10 @@ class FinancialAgentEvidenceMixin:
             answer = result.final_value if result.final_value else empty_result["answer"]
         except Exception as exc:
             logger.warning("[numeric_extractor] structured output failed: %s", exc)
-            debug_trace = {"error": str(exc)}
+            debug_trace = {
+                "error": str(exc),
+                "numeric_extraction_prompt": prompt_diagnostics,
+            }
             answer = empty_result["answer"]
 
         if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(state, debug_trace, docs):
@@ -6254,7 +6312,10 @@ class FinancialAgentEvidenceMixin:
                     "evidence_items": evidence_items,
                     "evidence_bullets": evidence_bullets,
                     "evidence_status": "sufficient" if evidence_items else "missing",
-                    "numeric_debug_trace": dict(deterministic.get("numeric_debug_trace") or {}),
+                    "numeric_debug_trace": {
+                        **dict(deterministic.get("numeric_debug_trace") or {}),
+                        "numeric_extraction_prompt": prompt_diagnostics,
+                    },
                 }
 
         # grounding judge가 검증할 수 있도록 numeric_extractor 결과를 evidence_item으로 변환

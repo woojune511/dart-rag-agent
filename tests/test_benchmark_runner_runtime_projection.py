@@ -149,6 +149,9 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             numeric_final_judgement=None,
             numeric_confidence=None,
             numeric_debug={},
+            agent_numeric_debug_trace={
+                "numeric_extraction_prompt": {"selected_doc_count": 8, "context_chars": 1200}
+            },
             absolute_error_rate=None,
             operand_selection_correctness=None,
             unit_consistency_pass=None,
@@ -201,6 +204,10 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(
             row["retrieval_debug_trace_history"][1]["query_budget"]["source"]["active_subtask_id"],
             "task_2",
+        )
+        self.assertEqual(
+            row["agent_numeric_debug_trace"]["numeric_extraction_prompt"]["selected_doc_count"],
+            8,
         )
 
     def test_progress_reporter_writes_jsonl_events(self) -> None:

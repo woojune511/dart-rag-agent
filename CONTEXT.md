@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-09 `numeric_extraction` prompt-size diagnostic을 추가했다.
+  - `numeric_debug_trace.numeric_extraction_prompt`에 selected doc count,
+    formatted context chars, query chars, source page-content chars,
+    parent-context candidate count, table-context doc count, graph-relation doc
+    count, doc summaries를 남긴다. prompt 본문 자체는 저장하지 않는다.
+  - LLM 성공, LLM failure 후 deterministic lookup fallback, direct-support
+    rejection 경로 모두 같은 diagnostic을 보존한다.
+  - evaluator/benchmark row에는 evaluator numeric judge debug와 섞지 않도록
+    `agent_numeric_debug_trace`로 별도 serialize한다.
+  - 이 변경은 다음 `numeric_extraction` token 절감을 위한 관측 계약이며,
+    retrieval/evidence selection/answer behavior를 바꾸지 않는다.
+  - 검증:
+    - `python -m unittest tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_records_prompt_size_diagnostics tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_serialise_eval_results_preserves_retrieval_trace_history`:
+      `2` tests OK.
+    - `python -m unittest tests.test_operation_contracts tests.test_benchmark_runner_runtime_projection tests.test_evaluator_progress`:
+      `195` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `1023` tests OK.
+
 - 2026-06-09 `aggregate_synthesis` runtime payload를 compact projection으로
   전환했다.
   - 이전 live phase canary에서 `aggregate_synthesis`가 `186,310` tokens로

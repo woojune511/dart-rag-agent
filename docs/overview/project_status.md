@@ -1150,6 +1150,15 @@ Current next decisions:
   phase is now `numeric_extraction` at `51,556` tokens / `$0.038694`. Retrieval
   telemetry stayed at `17` executed queries, `0` duplicate queries, and `8`
   state query-result avoided searches.
+- The follow-up `numeric_extraction` step adds prompt-size diagnostics rather
+  than changing prompt contents. `numeric_debug_trace.numeric_extraction_prompt`
+  records selected doc count, formatted context chars, query chars, source
+  page-content chars, parent-context candidate count, table-context doc count,
+  graph-relation doc count, and doc summaries without storing prompt text. The
+  evaluator/benchmark row preserves this as `agent_numeric_debug_trace` so it
+  stays separate from evaluator numeric-judge debug. This is the next
+  observability hook for reducing the now-largest LLM phase, not a retrieval,
+  evidence-selection, calculation, or answer-behavior change.
 - Retrieval budget, dedupe, executed-query telemetry, and cross-trace reuse
   diagnostics now live in `src.agent.financial_graph_retrieval_budget`, with
   the evidence mixin preserving the existing helper import surface. This keeps

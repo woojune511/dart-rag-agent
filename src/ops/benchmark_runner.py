@@ -1087,6 +1087,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "raw_numeric_confidence": getattr(result, "raw_numeric_confidence", None),
                 "numeric_confidence": result.numeric_confidence,
                 "numeric_debug": result.numeric_debug,
+                "agent_numeric_debug_trace": getattr(result, "agent_numeric_debug_trace", {}) or {},
                 "absolute_error_rate": result.absolute_error_rate,
                 "raw_operand_selection_correctness": getattr(result, "raw_operand_selection_correctness", None),
                 "operand_selection_correctness": result.operand_selection_correctness,

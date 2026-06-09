@@ -751,6 +751,52 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["selected_claim_ids"], [])
         self.assertEqual(result["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
 
+    def test_numeric_extractor_records_prompt_size_diagnostics(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        capturing_llm = _CapturingLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="units",
+                raw_value="100",
+                final_value="The 2023 target metric is 100 units.",
+            )
+        )
+        agent.llm = capturing_llm
+        docs = [
+            (
+                Document(
+                    page_content=f"target metric row {index} | 100 units",
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": f"section {index}",
+                        "chunk_uid": f"chunk_{index}",
+                        **({"table_context": "header context"} if index == 0 else {}),
+                    },
+                ),
+                1.0,
+            )
+            for index in range(10)
+        ]
+        docs[9][0].page_content = "excluded prompt tail " * 200
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find the 2023 target metric.",
+                "retrieved_docs": docs,
+            }
+        )
+
+        diagnostics = result["numeric_debug_trace"]["numeric_extraction_prompt"]
+        self.assertEqual(diagnostics["selected_doc_count"], 8)
+        self.assertEqual(len(diagnostics["doc_summaries"]), 8)
+        self.assertEqual(diagnostics["table_context_doc_count"], 1)
+        self.assertGreater(diagnostics["context_chars"], 0)
+        self.assertEqual(diagnostics["query_chars"], len("Find the 2023 target metric."))
+        self.assertNotIn("excluded prompt tail", capturing_llm.structured.prompt_text)
+        self.assertEqual(result["evidence_status"], "sufficient")
+
     def test_lookup_numeric_extractor_accepts_direct_component_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm = _StubLLM(

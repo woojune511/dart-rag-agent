@@ -225,6 +225,7 @@ class EvalResult:
     raw_numeric_confidence: Optional[float] = None
     numeric_confidence: Optional[float] = None
     numeric_debug: Dict[str, Any] = field(default_factory=dict)
+    agent_numeric_debug_trace: Dict[str, Any] = field(default_factory=dict)
     resolved_calculation_trace: Dict[str, Any] = field(default_factory=dict)
     runtime_projection_source: str = ""
     runtime_projection_legacy_fallback: bool = False
@@ -3356,6 +3357,7 @@ class RAGEvaluator:
         agent_llm_usage: Dict[str, Any] = {}
         agent_llm_usage_by_phase: Dict[str, Dict[str, Any]] = {}
         agent_embedding_usage: Dict[str, Any] = {}
+        agent_numeric_debug_trace: Dict[str, Any] = {}
         judge_usage_callback = getattr(self, "_llm_usage_callback", None)
         if judge_usage_callback is not None:
             judge_usage_callback.reset_current_thread()
@@ -3398,6 +3400,7 @@ class RAGEvaluator:
             dropped_claim_ids = result.get("dropped_claim_ids", []) or []
             unsupported_sentences = result.get("unsupported_sentences", []) or []
             sentence_checks = result.get("sentence_checks", []) or []
+            agent_numeric_debug_trace = dict(result.get("numeric_debug_trace") or {})
             # Live evaluator rows are current-contract results. Replay and
             # retrospective tools may opt into legacy top-level mirrors, but
             # fresh eval scoring must only consume canonical runtime projection.
@@ -3779,6 +3782,7 @@ class RAGEvaluator:
             raw_numeric_confidence=raw_numeric_confidence,
             numeric_confidence=numeric_eval.get("numeric_confidence"),
             numeric_debug=numeric_eval.get("numeric_debug", {}),
+            agent_numeric_debug_trace=agent_numeric_debug_trace,
             resolved_calculation_trace=resolved_calculation_trace,
             runtime_projection_source=str(runtime_projection.get("source") or ""),
             runtime_projection_legacy_fallback=bool(runtime_projection.get("legacy_fallback")),
