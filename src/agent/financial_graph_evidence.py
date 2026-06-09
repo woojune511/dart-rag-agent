@@ -6249,6 +6249,11 @@ class FinancialAgentEvidenceMixin:
         if not docs:
             return empty_result
 
+        prior_numeric_debug_history = [
+            dict(item)
+            for item in (state.get("numeric_debug_trace_history") or [])
+            if isinstance(item, dict)
+        ]
         prompt_docs = docs[: min(8, len(docs))]
         context = self._format_context(prompt_docs)
         numeric_query = _numeric_extractor_query_for_state(state)
@@ -6300,6 +6305,10 @@ class FinancialAgentEvidenceMixin:
                 answer = str(deterministic.get("answer") or empty_result["answer"])
                 evidence_items = list(deterministic.get("evidence_items") or [])
                 evidence_bullets = list(deterministic.get("evidence_bullets") or [])
+                deterministic_trace = {
+                    **dict(deterministic.get("numeric_debug_trace") or {}),
+                    "numeric_extraction_prompt": prompt_diagnostics,
+                }
                 return {
                     "answer": answer,
                     "compressed_answer": answer,
@@ -6312,10 +6321,8 @@ class FinancialAgentEvidenceMixin:
                     "evidence_items": evidence_items,
                     "evidence_bullets": evidence_bullets,
                     "evidence_status": "sufficient" if evidence_items else "missing",
-                    "numeric_debug_trace": {
-                        **dict(deterministic.get("numeric_debug_trace") or {}),
-                        "numeric_extraction_prompt": prompt_diagnostics,
-                    },
+                    "numeric_debug_trace": deterministic_trace,
+                    "numeric_debug_trace_history": [*prior_numeric_debug_history, deterministic_trace],
                 }
 
         # grounding judge가 검증할 수 있도록 numeric_extractor 결과를 evidence_item으로 변환
@@ -6356,4 +6363,5 @@ class FinancialAgentEvidenceMixin:
             "evidence_bullets": evidence_bullets,
             "evidence_status": evidence_status,
             "numeric_debug_trace": debug_trace,
+            "numeric_debug_trace_history": [*prior_numeric_debug_history, debug_trace],
         }

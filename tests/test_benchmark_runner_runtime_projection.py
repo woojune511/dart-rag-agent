@@ -152,6 +152,10 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             agent_numeric_debug_trace={
                 "numeric_extraction_prompt": {"selected_doc_count": 8, "context_chars": 1200}
             },
+            agent_numeric_debug_trace_history=[
+                {"numeric_extraction_prompt": {"selected_doc_count": 4, "context_chars": 600}},
+                {"numeric_extraction_prompt": {"selected_doc_count": 8, "context_chars": 1200}},
+            ],
             absolute_error_rate=None,
             operand_selection_correctness=None,
             unit_consistency_pass=None,
@@ -208,6 +212,11 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(
             row["agent_numeric_debug_trace"]["numeric_extraction_prompt"]["selected_doc_count"],
             8,
+        )
+        self.assertEqual(len(row["agent_numeric_debug_trace_history"]), 2)
+        self.assertEqual(
+            row["agent_numeric_debug_trace_history"][0]["numeric_extraction_prompt"]["selected_doc_count"],
+            4,
         )
 
     def test_progress_reporter_writes_jsonl_events(self) -> None:

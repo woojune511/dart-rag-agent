@@ -93,6 +93,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "unsupported_sentences": [],
             "sentence_checks": [],
             "numeric_debug_trace": {},
+            "numeric_debug_trace_history": [],
             "calculation_operands": [{"label": "stale", "value": "999"}],
             "calculation_plan": {"status": "stale"},
             "calculation_result": {"status": "stale", "rendered_value": "999"},
@@ -196,6 +197,9 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "source": "structured_row_direct",
             "coverage": "sufficient",
         }
+        final_state["numeric_debug_trace_history"] = [
+            {"numeric_extraction_prompt": {"selected_doc_count": 2}}
+        ]
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.graph = _FakeGraph(final_state)
         agent.vsm = object()
@@ -209,6 +213,10 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(
             result["calculation_debug_trace"],
             result["debug_traces"]["calculation"],
+        )
+        self.assertEqual(
+            result["numeric_debug_trace_history"],
+            [{"numeric_extraction_prompt": {"selected_doc_count": 2}}],
         )
 
     def test_run_debug_trace_projection_tolerates_missing_calculation_debug_trace(self) -> None:

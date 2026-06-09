@@ -472,6 +472,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "answer": "",
             "citations": [],
             "numeric_debug_trace": {},
+            "numeric_debug_trace_history": [],
             "resolved_calculation_trace": {},
             "structured_result": {},
             "planner_debug_trace": {},
@@ -543,6 +544,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "unsupported_sentences": final.get("unsupported_sentences", []),
             "sentence_checks": final.get("sentence_checks", []),
             "numeric_debug_trace": final.get("numeric_debug_trace", {}),
+            "numeric_debug_trace_history": final.get("numeric_debug_trace_history", []),
             # Preferred structured runtime contract for external callers.
             "resolved_calculation_trace": runtime_calculation_trace,
             "structured_result": structured_result,

@@ -794,6 +794,11 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(diagnostics["table_context_doc_count"], 1)
         self.assertGreater(diagnostics["context_chars"], 0)
         self.assertEqual(diagnostics["query_chars"], len("Find the 2023 target metric."))
+        self.assertEqual(len(result["numeric_debug_trace_history"]), 1)
+        self.assertEqual(
+            result["numeric_debug_trace_history"][0]["numeric_extraction_prompt"]["selected_doc_count"],
+            8,
+        )
         self.assertNotIn("excluded prompt tail", capturing_llm.structured.prompt_text)
         self.assertEqual(result["evidence_status"], "sufficient")
 

@@ -119,6 +119,7 @@ class FinancialAgentState(TypedDict):
     answer: str
     citations: List[str]
     numeric_debug_trace: Dict[str, Any]
+    numeric_debug_trace_history: List[Dict[str, Any]]
     resolved_calculation_trace: RuntimeCalculationTrace
     structured_result: Dict[str, Any]
     # Legacy flat calculation fields are optional compatibility mirrors.

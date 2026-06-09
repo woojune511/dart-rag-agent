@@ -34,6 +34,7 @@
 | [Routing Calibration + Ambiguity Guard (2026-04-24)](#routing-calibration--ambiguity-guard-2026-04-24) | ambiguity guard / calibration | routing variance를 줄이는 쪽으로 이동 |
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
 | [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual과 후속 full replay 확인 | ratio peer-unit binding, growth+narrative repair, narrative-summary aggregate guard 이후 monitored full 7 eval-only가 7 / 7 PASS |
+| [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
 ## 보는 법
@@ -45,6 +46,65 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Runtime Cost-Control Diagnostics (2026-06-09)
+
+참조:
+
+- `kab_t1_066_llm_phase_canary_2026-06-09`: summarized then deleted
+- `kab_t1_066_aggregate_compact_canary_2026-06-09`: summarized then deleted
+- `kab_t1_066_numeric_prompt_diag_canary_2026-06-09`: local artifact,
+  summarized then deleted
+
+### 무엇을 검증했나
+
+- `KAB_T1_066` 단일 질문을 cost-control canary로 사용해 agent LLM fanout을
+  phase별로 분해했다.
+- 첫 canary는 aggregate synthesis가 가장 큰 비용 phase임을 확인했고, 후속
+  변경은 final aggregate prompt에 full runtime payload 대신 compact
+  projection rows만 전달하도록 줄였다.
+- 그 다음 병목인 `numeric_extraction`은 prompt-size diagnostic과 call-level
+  `numeric_debug_trace_history`로 관측했다. 마지막 trace 하나만 남기던
+  기존 serialization으로는 retry loop 분석이 불가능했기 때문이다.
+
+### 결과
+
+| Step | Key result |
+| --- | --- |
+| Phase usage canary | `KAB_T1_066` numeric `PASS`; total agent LLM tokens `258,333`; top phase `aggregate_synthesis` `186,310` tokens |
+| Aggregate compact projection | numeric `PASS`; total agent LLM tokens `76,252`; `aggregate_synthesis` `4,064` tokens; largest remaining phase `numeric_extraction` `51,556` tokens |
+| Numeric prompt history eval-only | numeric `PASS`; latency `416.0s`; agent LLM tokens `190,990`; `numeric_extraction` `106,483` tokens / `6` calls |
+
+The final history canary preserved all `6` numeric extraction prompt
+diagnostics. Each call selected `8` docs; formatted context size ranged from
+`19,823` to `25,901` chars. Four calls rejected a value-visible
+`경비차감전영업이익` lookup as `missing_direct_lookup_operand_support`, then
+reflection/retry re-entered the same expensive extraction pattern.
+
+### 해석
+
+- Aggregate prompt compaction was the right first cost-control fix because it
+  removed a large prompt payload without changing answer behavior.
+- After that, the remaining cost problem is not just prompt size. It is
+  repeated numeric extraction over equivalent lookup objectives after a
+  value-visible candidate fails the direct operand support contract.
+- The next runtime change should therefore target duplicate extraction/retry
+  suppression generically:
+  - cache or reuse failed/supported numeric lookup attempts within a task/replan
+    cycle when the objective, source scope, and prompt candidate window are
+    equivalent
+  - apply a bounded retry policy after repeated
+    `missing_direct_lookup_operand_support` rejections
+  - keep value preservation and direct-support validation intact
+- This is a runtime-cost contract, not a benchmark answer rule. No company,
+  question ID, or metric-specific branch should be introduced for the follow-up.
+
+Validation for the final history change:
+
+- focused projection/serialization tests: `3` OK
+- related runtime/evaluator suites: `234` OK
+- runtime domain-term audit: passed with `215` reviewed literals
+- full unittest discovery: `1023` OK
 
 ## Concept Gate Focused Hardening (2026-06-08)
 

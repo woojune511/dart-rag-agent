@@ -11,6 +11,42 @@
 
 ## 최신 상태
 
+- 2026-06-09 `numeric_debug_trace_history` / benchmark
+  `agent_numeric_debug_trace_history`를 추가했다.
+  - 직전 live canary에서 `numeric_extraction`이 여러 번 호출되는데
+    benchmark row에는 마지막 `numeric_debug_trace` 하나만 남아, 실제
+    prompt fanout과 retry loop를 사후 분석하기 어려웠다.
+  - runtime state, `FinancialAgent.run()` projection, evaluator result,
+    benchmark serialization에 call-level history를 그대로 보존한다.
+    기존 `numeric_debug_trace`는 backward-compatible하게 마지막 호출
+    snapshot으로 유지한다.
+  - 이 변경은 관측 계약 확장이다. retrieval, evidence selection, 계산,
+    answer composition behavior는 바꾸지 않는다.
+  - live eval-only canary:
+    `benchmarks/results/kab_t1_066_numeric_prompt_diag_canary_2026-06-09/`는
+    local artifact이며 요약 후 삭제 대상이다. 기존 fresh store artifact를
+    재사용해 `KAB_T1_066`만 `--eval-only --skip-llm-judges
+    --skip-embedding-metrics`로 재실행했다. 결과는 numeric `PASS`,
+    faithfulness/completeness `1.000 / 1.000`, context recall/retrieval hit@k
+    `1.000 / 1.000`, latency `416.0s`, estimated runtime cost `$0.150280`.
+    history는 `6` numeric extraction calls를 보존했고, 각 호출의 prompt
+    diagnostics는 selected docs `8`, context chars `19,823-25,901`,
+    table-context docs `7-8` 범위를 기록했다.
+  - canary 해석:
+    품질은 유지됐지만 `numeric_extraction`이 `106,483` tokens / `6` calls로
+    최대 phase가 됐다. 같은 `경비차감전영업이익` lookup 후보가
+    `missing_direct_lookup_operand_support`로 반복 reject되며 reflection/retry
+    loop가 길어진다. 다음 cost-control 타깃은 prompt 축소보다 먼저
+    duplicate numeric extraction / failed lookup retry budget 억제다.
+  - 검증:
+    - `python -m unittest tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_records_prompt_size_diagnostics tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_serialise_eval_results_preserves_retrieval_trace_history tests.test_financial_agent_run_projection.FinancialAgentRunProjectionTests.test_run_projects_calculation_debug_trace_under_debug_traces`:
+      `3` tests OK.
+    - `python -m unittest tests.test_operation_contracts tests.test_benchmark_runner_runtime_projection tests.test_financial_agent_run_projection tests.test_evaluator_progress`:
+      `234` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `1023` tests OK.
+
 - 2026-06-09 `numeric_extraction` prompt-size diagnostic을 추가했다.
   - `numeric_debug_trace.numeric_extraction_prompt`에 selected doc count,
     formatted context chars, query chars, source page-content chars,

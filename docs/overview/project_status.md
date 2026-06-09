@@ -42,6 +42,44 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Runtime/API Cost Control
+
+- Current status: observation surface is now good enough to target the next
+  runtime-cost fix without guessing.
+- Latest source change, 2026-06-09:
+  - `numeric_debug_trace_history` is preserved in agent state and public
+    `FinancialAgent.run()` output.
+  - Evaluator and benchmark rows serialize the same call-level history as
+    `agent_numeric_debug_trace_history`.
+  - The existing single `agent_numeric_debug_trace` remains as the latest-call
+    compatibility snapshot.
+  - This is observability-only; it does not alter retrieval, evidence
+    selection, calculation, or answer composition.
+- Latest focused canary, `KAB_T1_066` eval-only on a reused local store:
+  - numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, context
+    recall/retrieval hit@k `1.000 / 1.000`
+  - latency `416.0s`, estimated runtime cost `$0.150280`
+  - agent LLM tokens `190,990` across `25` calls
+  - `numeric_extraction` is the largest phase: `106,483` tokens across `6`
+    calls
+  - the new history confirms `6` numeric extraction prompt diagnostics, with
+    selected docs `8` each and context size `19,823-25,901` chars
+  - repeated `경비차감전영업이익` lookup attempts are rejected as
+    `missing_direct_lookup_operand_support`, then reflection/retry repeats the
+    same expensive extraction pattern
+- Next cost-control target:
+  - suppress duplicate numeric extraction for equivalent lookup objectives
+    within the same task/replan cycle
+  - stop or downgrade retries after a value-visible lookup repeatedly fails the
+    direct operand support contract
+  - keep the fix generic: no company, benchmark ID, or metric-specific runtime
+    branch
+- Validation for the history change:
+  - focused projection/serialization tests: `3` OK
+  - related runtime/evaluator suites: `234` OK
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - full unittest discovery: `1023` OK
+
 ### Structural Capability Gates
 
 - Reflection promotion:
