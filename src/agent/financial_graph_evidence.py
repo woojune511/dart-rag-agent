@@ -256,6 +256,39 @@ def _numeric_extractor_query_for_state(state: FinancialAgentState) -> str:
     return _normalise_spaces(str(state.get("query") or ""))
 
 
+def _lookup_retrieval_objective_signature(active_subtask: Dict[str, Any]) -> str:
+    operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+    if operation_family not in {"lookup", "single_value"}:
+        return ""
+    operand_records: List[Dict[str, str]] = []
+    for operand in active_subtask.get("required_operands") or []:
+        if not isinstance(operand, dict):
+            continue
+        operand_records.append(
+            {
+                "label": _normalise_spaces(str(operand.get("label") or operand.get("name") or "")).lower(),
+                "concept": _normalise_spaces(str(operand.get("concept") or "")).lower(),
+                "role": _normalise_spaces(str(operand.get("role") or "")).lower(),
+                "period": _normalise_spaces(str(operand.get("period_hint") or operand.get("period") or "")).lower(),
+                "consolidation_scope": _normalise_spaces(
+                    str(operand.get("consolidation_scope") or "")
+                ).lower(),
+            }
+        )
+    metric_label = _normalise_spaces(str(active_subtask.get("metric_label") or "")).lower()
+    if not operand_records and not metric_label:
+        return ""
+    return json.dumps(
+        {
+            "operation_family": operation_family,
+            "metric_label": metric_label,
+            "required_operands": operand_records,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
 def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> bool:
     if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
         return True
@@ -1960,6 +1993,7 @@ class FinancialAgentEvidenceMixin:
             where_filter = {"$and": conditions}
 
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        lookup_objective_signature = _lookup_retrieval_objective_signature(active_subtask)
         retrieval_intent = intent
         if operation_family in {"lookup", "single_value", "ratio", "sum", "difference", "growth_rate"} and intent not in {
             "comparison",
@@ -2102,6 +2136,7 @@ class FinancialAgentEvidenceMixin:
                     "retrieval_hint_terms": list(selected_retrieval_hint_terms),
                     "preferred_sections": list(selected_preferred_sections),
                 },
+                "objective_signature": lookup_objective_signature,
             }
             cached_result = _lookup_query_result_cache(
                 retrieval_query_result_cache,
@@ -2109,12 +2144,14 @@ class FinancialAgentEvidenceMixin:
                 executed_query=enriched_query,
                 where_filter=where_filter,
                 k=search_k,
+                objective_signature=lookup_objective_signature,
             )
             if cached_result:
                 reused_queries.append(
                     {
                         **query_trace,
                         "result_cache_hit": True,
+                        "result_cache_hit_mode": cached_result.get("cache_hit_mode") or "exact",
                         "result_cache_key": cached_result.get("cache_key"),
                         "cached_k": cached_result.get("k"),
                         "doc_count": len(list(cached_result.get("docs") or [])),
@@ -2135,6 +2172,7 @@ class FinancialAgentEvidenceMixin:
                 where_filter=where_filter,
                 k=search_k,
                 docs=batch_docs,
+                objective_signature=lookup_objective_signature,
             )
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
@@ -2196,6 +2234,7 @@ class FinancialAgentEvidenceMixin:
                     "executed_query": focused_query,
                     "k": search_k,
                     "where_filter": where_filter,
+                    "objective_signature": lookup_objective_signature,
                 }
                 cached_result = _lookup_query_result_cache(
                     retrieval_query_result_cache,
@@ -2203,12 +2242,14 @@ class FinancialAgentEvidenceMixin:
                     executed_query=focused_query,
                     where_filter=where_filter,
                     k=search_k,
+                    objective_signature=lookup_objective_signature,
                 )
                 if cached_result:
                     reused_queries.append(
                         {
                             **query_trace,
                             "result_cache_hit": True,
+                            "result_cache_hit_mode": cached_result.get("cache_hit_mode") or "exact",
                             "result_cache_key": cached_result.get("cache_key"),
                             "cached_k": cached_result.get("k"),
                             "doc_count": len(list(cached_result.get("docs") or [])),
@@ -2228,6 +2269,7 @@ class FinancialAgentEvidenceMixin:
                     where_filter=where_filter,
                     k=search_k,
                     docs=batch_docs,
+                    objective_signature=lookup_objective_signature,
                 )
                 focused_docs.extend(batch_docs)
             if focused_docs:
@@ -2270,6 +2312,7 @@ class FinancialAgentEvidenceMixin:
                     "executed_query": retry_query,
                     "k": search_k,
                     "where_filter": where_filter,
+                    "objective_signature": lookup_objective_signature,
                 }
                 cached_result = _lookup_query_result_cache(
                     retrieval_query_result_cache,
@@ -2277,12 +2320,14 @@ class FinancialAgentEvidenceMixin:
                     executed_query=retry_query,
                     where_filter=where_filter,
                     k=search_k,
+                    objective_signature=lookup_objective_signature,
                 )
                 if cached_result:
                     reused_queries.append(
                         {
                             **query_trace,
                             "result_cache_hit": True,
+                            "result_cache_hit_mode": cached_result.get("cache_hit_mode") or "exact",
                             "result_cache_key": cached_result.get("cache_key"),
                             "cached_k": cached_result.get("k"),
                             "doc_count": len(list(cached_result.get("docs") or [])),
@@ -2302,6 +2347,7 @@ class FinancialAgentEvidenceMixin:
                     where_filter=where_filter,
                     k=search_k,
                     docs=batch_docs,
+                    objective_signature=lookup_objective_signature,
                 )
                 retry_docs.extend(batch_docs)
             if retry_docs:
@@ -2421,6 +2467,7 @@ class FinancialAgentEvidenceMixin:
             current_trace_index=len(retrieval_debug_trace_history) + 1,
         )
         query_result_cache_by_source: Dict[str, Dict[str, int]] = {}
+        objective_cache_hit_count = 0
         for reused_query in reused_queries:
             source_key = _normalise_spaces(str(reused_query.get("source") or "unknown")) or "unknown"
             source_summary = query_result_cache_by_source.setdefault(
@@ -2428,10 +2475,14 @@ class FinancialAgentEvidenceMixin:
                 {
                     "reuse_count": 0,
                     "avoided_search_count": 0,
+                    "objective_hit_count": 0,
                 },
             )
             source_summary["reuse_count"] += 1
             source_summary["avoided_search_count"] += 1
+            if str(reused_query.get("result_cache_hit_mode") or "") == "objective":
+                source_summary["objective_hit_count"] += 1
+                objective_cache_hit_count += 1
         retrieval_debug_trace = {
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
@@ -2445,10 +2496,11 @@ class FinancialAgentEvidenceMixin:
             "executed_duplicate_guard": executed_duplicate_trace,
             "query_result_cache": {
                 "enabled": True,
-                "scope": "state_same_source_same_filter_exact_signature",
+                "scope": "state_same_filter_exact_or_lookup_objective_signature",
                 "entry_count": len(retrieval_query_result_cache),
                 "reuse_count": len(reused_queries),
                 "avoided_search_count": len(reused_queries),
+                "objective_hit_count": objective_cache_hit_count,
                 "by_source": query_result_cache_by_source,
             },
             "cross_trace_reuse_candidates": cross_trace_reuse_candidates,

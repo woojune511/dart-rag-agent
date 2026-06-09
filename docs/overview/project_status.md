@@ -44,9 +44,40 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Runtime/API Cost Control
 
-- Current status: numeric-extraction LLM fanout has been reduced; retry/replan
-  retrieval fanout is the next visible cost target.
+- Current status: numeric-extraction LLM fanout has been reduced; equivalent
+  lookup rewordings now reuse state-local retrieval results, but
+  reflection/replan loops are still the next visible cost target.
 - Latest source change, 2026-06-09:
+  - lookup and single-value retrieval subtasks now compute a normalized
+    `objective_signature` from the operation family, metric label, and
+    required operands.
+  - The state-local query-result cache can reuse a prior retrieval result when
+    the same `where_filter` and lookup objective signature already exist with
+    a large-enough `k`, even if the rewritten query text differs.
+  - Retrieval traces now report
+    `state_same_filter_exact_or_lookup_objective_signature` plus
+    `objective_hit_count`, so exact query reuse and objective-level reuse stay
+    separable in diagnostics.
+  - The contract is generic cache reuse for equivalent retrieval objectives; no
+    company, benchmark ID, or metric-specific runtime branch was added.
+- Latest focused canary, `KAB_T1_066` on 2026-06-09 after the objective cache
+  reuse change:
+  - numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, context
+    recall/retrieval hit@k `0.500 / 1.000`
+  - latency `346.8s`, estimated runtime cost `$0.110721`
+  - executed queries `12`, duplicate executed queries `0`, query embedding API
+    calls `12`
+  - query-result cache avoided searches `64`, including `42` objective hits
+  - agent LLM tokens `148,169` across `25` calls
+  - `numeric_extraction` `61,708` tokens across `4` calls
+- Interpretation:
+  - Retrieval/embedding fanout improved compared with the previous numeric reuse
+    canary: executed queries `34 -> 12`, duplicate executed queries `8 -> 0`,
+    and embedding calls `26 -> 12`.
+  - End-to-end latency/cost did not improve because the run re-entered
+    semantic replan/retry after a direct-support rejection and surfaced
+    `duplicate_artifact_id:reflection:task_1:001:report`.
+- Previous focused canary after duplicate numeric result/rejection reuse:
   - `numeric_extraction_prompt` diagnostics now include stable fingerprints for
     the normalized numeric query and selected candidate window without storing
     prompt text.
@@ -66,20 +97,20 @@ role-separated multi-agent system using a task ledger and artifact store.
   - `numeric_extraction` reduced to `50,224` tokens across `3` calls
   - history preserved `6` entries, with `3` skipped entries:
     `2` failed direct-support reject reuses and `1` supported result reuse
-- Previous diagnostic baseline for the same question:
+- Diagnostic baseline before any numeric reuse:
   - latency `416.0s`, estimated runtime cost `$0.150280`
   - agent LLM tokens `190,990` across `25` calls
   - `numeric_extraction` `106,483` tokens across `6` calls
 - Next cost-control target:
-  - reduce retry/replan query fanout; latest canary still has executed queries
-    `34`, duplicate executed queries `8`, and query embedding API calls `26`
-  - canonicalize equivalent lookup objectives across replan wording changes
-    without weakening direct-support validation
-- Validation for the reuse change:
-  - focused numeric reuse tests: `3` OK
-  - related runtime/evaluator suites: `236` OK
+  - contain retry/replan loops after repeated direct-support lookup rejection
+    without weakening validation
+  - repair duplicate reflection artifact id generation in the task/artifact
+    ledger
+- Validation for the lookup objective reuse change:
+  - focused retrieval/cache tests: `5` OK
+  - related retrieval/fanout/operation suites: `212` OK
   - runtime domain-term audit: passed with `215` reviewed literals
-  - full unittest discovery: `1025` OK
+  - full unittest discovery: `1026` OK
 
 - Earlier observability layer:
   - `numeric_debug_trace_history` is preserved in agent state and public

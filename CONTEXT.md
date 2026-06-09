@@ -11,6 +11,46 @@
 
 ## 최신 상태
 
+- 2026-06-09 lookup objective query-result cache reuse를 추가했다.
+  - lookup/single_value retrieval task에서 `operation_family`,
+    `metric_label`, `required_operands`를 정규화한
+    `objective_signature`를 만든다.
+  - state-local query-result cache는 기존 exact query signature hit 외에도
+    같은 `where_filter`와 같은 lookup objective signature를 공유하고,
+    캐시된 `k`가 현재 요청보다 크거나 같으면 primary/focused/retry query
+    전부에서 재사용한다.
+  - retrieval trace는
+    `state_same_filter_exact_or_lookup_objective_signature` scope와
+    `objective_hit_count`를 남겨 exact hit와 objective-level hit를 구분한다.
+  - 이는 replan wording variation을 줄이기 위한 generic cache contract다.
+    회사명, benchmark ID, metric keyword branch는 추가하지 않았다.
+  - live canary:
+    `benchmarks/results/kab_t1_066_lookup_objective_cache_canary_2026-06-09/`는
+    fresh store local artifact이며 요약 후 삭제 대상이다. `KAB_T1_066`
+    결과는 numeric `PASS`, faithfulness/completeness `1.000 / 1.000`,
+    context recall/retrieval hit@k `0.500 / 1.000`, latency `346.8s`,
+    estimated runtime cost `$0.110721`.
+  - 직전 duplicate numeric reuse canary 대비 retrieval fanout은 줄었다:
+    executed queries `34 -> 12`, duplicate executed queries `8 -> 0`,
+    query embedding API calls `26 -> 12`. query-result cache는 검색 `64`회를
+    피했고, 이 중 objective-level hit가 `42`회였다.
+  - 다만 end-to-end latency/cost는 `232.7s -> 346.8s`로 개선되지 않았다.
+    agent LLM total은 `108,158 -> 148,169` tokens, agent calls는
+    `18 -> 25`, `numeric_extraction`은
+    `50,224 / 3 calls -> 61,708 / 4 calls`로 늘었다.
+  - 이번 변경은 equivalent lookup cache miss를 줄였지만, 남은 병목은
+    direct-support reject 이후의 reflection/replan loop다. 같은 canary에서
+    `duplicate_artifact_id:reflection:task_1:001:report` ledger integrity
+    warning도 노출됐다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_retrieval_scope.RetrievalScopeTests.test_retrieve_reuses_state_query_result_cache_for_sibling_primary_query tests.test_retrieval_scope.RetrievalScopeTests.test_retrieve_reuses_lookup_objective_cache_for_reworded_primary_query tests.test_benchmark_fanout_cost_audit`:
+      `5` tests OK.
+    - `.venv/bin/python -m unittest tests.test_retrieval_scope tests.test_benchmark_fanout_cost_audit tests.test_operation_contracts`:
+      `212` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `1026` tests OK.
+
 - 2026-06-09 duplicate numeric extraction result/rejection reuse를 추가했다.
   - `numeric_extraction_prompt` diagnostic에 prompt text 대신
     `query_fingerprint`, `candidate_window_fingerprint`,
@@ -40,8 +80,8 @@
   - 남은 병목:
     retrieval/replan side는 still noisy하다. 최종 canary도 executed queries
     `34`, duplicate executed queries `8`, query embedding calls `26`을
-    기록했다. 다음 cost-control 타깃은 retry/replan query fanout과
-    equivalent lookup objective canonicalization이다.
+    기록했다. 다음 cost-control 타깃은 retry/replan query fanout과 planner가
+    새로 만드는 unique query budget 억제다.
   - 검증:
     - `python -m unittest tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_reuses_duplicate_direct_support_rejection tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_reuses_duplicate_supported_result tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_records_prompt_size_diagnostics`:
       `3` tests OK.

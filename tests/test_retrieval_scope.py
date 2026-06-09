@@ -517,6 +517,99 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertTrue(reuse["candidates"][0]["current_result_cache_hit"])
         self.assertEqual(len(second["retrieved_docs"]), 1)
 
+    def test_retrieve_reuses_lookup_objective_cache_for_reworded_primary_query(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 0
+        agent.preferred_section_query_budget = 0
+        agent.vsm = _StaticVSM(
+            [
+                (
+                    Document(
+                        page_content="objective cached result",
+                        metadata={
+                            "chunk_uid": "objective-primary",
+                            "block_type": "table",
+                            "year": 2023,
+                        },
+                    ),
+                    1.0,
+                )
+            ]
+        )
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        base_state = {
+            "query": "base question",
+            "report_scope": {"year": 2023},
+            "companies": [],
+            "years": [2023],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "",
+            "format_preference": "table",
+        }
+        required_operands = [
+            {
+                "label": "target metric",
+                "concept": "target_metric",
+                "role": "value",
+                "period_hint": "2023",
+                "required": True,
+            }
+        ]
+        first = agent._retrieve(
+            {
+                **base_state,
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "target metric",
+                    "query": "target metric primary table",
+                    "retrieval_queries": ["target metric primary table"],
+                    "required_operands": required_operands,
+                },
+            }
+        )
+        self.assertEqual(len(agent.vsm.queries), 1)
+
+        second = agent._retrieve(
+            {
+                **base_state,
+                "active_subtask": {
+                    "task_id": "task_2",
+                    "operation_family": "lookup",
+                    "metric_label": "target metric",
+                    "query": "target metric statement row",
+                    "retrieval_queries": ["target metric statement row"],
+                    "required_operands": required_operands,
+                },
+                "retrieval_debug_trace_history": first["retrieval_debug_trace_history"],
+                "retrieval_query_result_cache": first["retrieval_query_result_cache"],
+            }
+        )
+
+        self.assertEqual(len(agent.vsm.queries), 1)
+        self.assertEqual(second["retrieval_debug_trace"]["executed_queries"], [])
+        reused_queries = second["retrieval_debug_trace"]["reused_queries"]
+        self.assertGreaterEqual(len(reused_queries), 1)
+        primary_reuses = [item for item in reused_queries if item.get("source") == "primary"]
+        self.assertEqual(len(primary_reuses), 1)
+        self.assertEqual(primary_reuses[0]["result_cache_hit_mode"], "objective")
+        cache_trace = second["retrieval_debug_trace"]["query_result_cache"]
+        self.assertEqual(cache_trace["reuse_count"], len(reused_queries))
+        self.assertEqual(cache_trace["objective_hit_count"], len(reused_queries))
+        self.assertEqual(cache_trace["by_source"]["primary"]["objective_hit_count"], 1)
+        self.assertGreaterEqual(len(second["retrieved_docs"]), 1)
+
     def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 4

@@ -57,6 +57,8 @@
   summarized then deleted
 - `kab_t1_066_numeric_reject_reuse_canary_2026-06-09`: local artifact,
   summarized then deleted
+- `kab_t1_066_lookup_objective_cache_canary_2026-06-09`: local artifact,
+  summarized then deleted
 
 ### 무엇을 검증했나
 
@@ -77,6 +79,7 @@
 | Aggregate compact projection | numeric `PASS`; total agent LLM tokens `76,252`; `aggregate_synthesis` `4,064` tokens; largest remaining phase `numeric_extraction` `51,556` tokens |
 | Numeric prompt history eval-only | numeric `PASS`; latency `416.0s`; agent LLM tokens `190,990`; `numeric_extraction` `106,483` tokens / `6` calls |
 | Numeric result/rejection reuse eval-only | numeric `PASS`; latency `232.7s`; agent LLM tokens `108,158`; `numeric_extraction` `50,224` tokens / `3` calls |
+| Lookup objective cache reuse canary | numeric `PASS`; latency `346.8s`; executed queries `12`; duplicate queries `0`; query embedding calls `12`; query-result cache avoided searches `64`; objective cache hits `42`; agent LLM tokens `148,169`; `numeric_extraction` `61,708` tokens / `4` calls |
 
 The final history canary preserved all `6` numeric extraction prompt
 diagnostics. Each call selected `8` docs; formatted context size ranged from
@@ -89,6 +92,19 @@ The follow-up reuse canary preserved the same `6` history entries but skipped
 duplicate supported result. This reduced numeric extraction from `6` to `3`
 LLM calls while keeping the final CIR answer at `37.47%`.
 
+The next canary generalized retrieval-side reuse for equivalent lookup
+objectives. Reworded primary/focused/retry queries can now hit the same
+state-local query-result cache entry when the lookup objective and metadata
+filter match, so the runtime no longer pays separate embedding/vector calls for
+those wording variants. On `KAB_T1_066`, that collapsed retrieval fanout from
+the prior canary's `34` executed queries with `8` duplicates and `26` embedding
+calls to `12` executed queries with `0` duplicates and `12` embedding calls,
+while keeping numeric `PASS`. The cache avoided `64` searches, including `42`
+objective-level hits. End-to-end latency still rose to `346.8s` because a
+direct-support rejection re-entered semantic replan/retry; the same run used
+`148,169` agent LLM tokens across `25` calls and surfaced
+`duplicate_artifact_id:reflection:task_1:001:report`.
+
 ### 해석
 
 - Aggregate prompt compaction was the right first cost-control fix because it
@@ -99,13 +115,23 @@ LLM calls while keeping the final CIR answer at `37.47%`.
   `missing_direct_lookup_operand_support` rejections are reused only when the
   normalized numeric query and selected candidate window fingerprint match.
   Value preservation and direct-support validation remain intact.
-- The next runtime change should target retry/replan retrieval fanout. The
-  latest reuse canary still executed `34` retrieval queries with `8` duplicate
-  executed queries and `26` query embedding API calls.
+- Lookup objective cache reuse is also generic: it consumes the planner's
+  operand contract rather than matching company names, benchmark IDs, or
+  metric-specific keywords.
+- The next runtime change should target reflection/replan loop control and
+  duplicate reflection artifact ids. The latest lookup canary preserved numeric
+  `PASS` but re-entered semantic replan after direct-support rejection.
 - This is a runtime-cost contract, not a benchmark answer rule. No company,
   question ID, or metric-specific branch should be introduced for the follow-up.
 
-Validation for the final reuse change:
+Validation for the lookup objective cache change:
+
+- focused retrieval/cache tests: `5` OK
+- related retrieval/fanout/operation suites: `212` OK
+- runtime domain-term audit: passed with `215` reviewed literals
+- full unittest discovery: `1026` OK
+
+Validation for the numeric reuse change:
 
 - focused numeric reuse tests: `3` OK
 - related runtime/evaluator suites: `236` OK

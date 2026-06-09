@@ -258,6 +258,7 @@ def _lookup_query_result_cache(
     executed_query: Any,
     where_filter: Any,
     k: int,
+    objective_signature: str = "",
 ) -> Dict[str, Any]:
     key = _query_result_cache_key(
         source=source,
@@ -267,6 +268,23 @@ def _lookup_query_result_cache(
     if not key:
         return {}
     entry = dict(cache.get(key) or {})
+    hit_mode = "exact"
+    if not entry and objective_signature:
+        filter_signature = _filter_signature(where_filter)
+        for candidate_key, candidate_entry in cache.items():
+            candidate = dict(candidate_entry or {})
+            if not candidate:
+                continue
+            if str(candidate.get("objective_signature") or "") != str(objective_signature or ""):
+                continue
+            if str(candidate.get("where_filter_signature") or "") != filter_signature:
+                continue
+            if int(candidate.get("k") or 0) < int(k or 0):
+                continue
+            entry = candidate
+            key = str(candidate_key)
+            hit_mode = "objective"
+            break
     if not entry:
         return {}
     cached_k = int(entry.get("k") or 0)
@@ -275,6 +293,7 @@ def _lookup_query_result_cache(
     return {
         **entry,
         "cache_key": key,
+        "cache_hit_mode": hit_mode,
         "docs": list(entry.get("docs") or [])[: int(k or 0)],
     }
 
@@ -287,6 +306,7 @@ def _store_query_result_cache(
     where_filter: Any,
     k: int,
     docs: List[Any],
+    objective_signature: str = "",
 ) -> Dict[str, Any]:
     key = _query_result_cache_key(
         source=source,
@@ -300,6 +320,7 @@ def _store_query_result_cache(
         "executed_query": str(executed_query or ""),
         "where_filter": where_filter,
         "where_filter_signature": _filter_signature(where_filter),
+        "objective_signature": str(objective_signature or ""),
         "k": int(k or 0),
         "docs": list(docs or []),
         "doc_count": len(list(docs or [])),
