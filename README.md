@@ -102,6 +102,32 @@ retrieval bypass remain disabled.
 | [docs/architecture/report_cache_capability_contract.md](docs/architecture/report_cache_capability_contract.md) | Disabled report-cache capability boundary |
 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | Benchmark and review gate notes |
 
+## Representative Case
+
+The latest focused close-out is `KAB_T1_066`, a CIR ratio question that
+previously exposed three common financial-RAG failures at once:
+
+- a plausible but wrong denominator row could be selected from a different
+  financial statement surface
+- a guard against calculated aggregate values could falsely reject a metric
+  label containing an operation-like substring
+- final prose could preserve the right percentage while displaying a component
+  from a stale lookup projection instead of the canonical calculation trace
+
+The current runtime answers:
+
+```text
+2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
+```
+
+Both operands are resolved from
+`IV. 이사의 경영진단 및 분석의견::table:3`, and the verified store-fixed
+eval-only run reports numeric `PASS`, faithfulness `1.000`, completeness
+`1.000`, context recall `1.000`, retrieval hit@k `1.000`, and grounded
+rendering correctness `1.000`. The fanout audit for that run recorded `2`
+executed queries, `0` duplicate executed queries, `8` agent LLM calls, and an
+estimated runtime cost of `$0.056292`.
+
 ## Repository Guide
 
 ```text
@@ -155,6 +181,7 @@ retrieval-bypass, ledger-insertion, and final-acceptance flags.
 Implemented and validated:
 
 - section/table-aware retrieval and structured numeric traces
+- source-visible ratio operand recovery from coherent table context
 - MAS skeleton with Orchestrator, Analyst, Researcher, Critic, and final merge
 - task/artifact integrity projection and final close blocking
 - critic runtime acceptance boundary and rejection feedback surface
@@ -172,6 +199,7 @@ Implemented and validated:
 - aggregate portfolio review gate bundle for demo, cache, and reflection
   promotion proof
 - runtime domain-term audit to keep domain vocabulary out of runtime branches
+- focused KAB CIR close with source-visible operands and grounded rendering
 
 Intentionally disabled:
 

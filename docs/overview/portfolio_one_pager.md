@@ -106,10 +106,11 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Cache promotion evidence | `report_cache_promotion_evidence_gate` covers fixture plus trace-summary ready, incomplete, and ambiguous cache-index entries without enabling cache behavior |
 | REFERENCE_NOTE boundary | `reference_note_capability_gate` keeps note traversal as Researcher graph-expansion context, not cache serving or final acceptance authority |
 | Promotion trace materiality | `promotion_trace_materiality_gate` proves reviewed trace summaries cover distinct source/action/fallback surfaces before adding more summary evidence |
+| Source-visible ratio close | `KAB_T1_066` resolves CIR from one MDA table: `4,355억원 / 11,623억원 = 37.47%`, numeric `PASS`, grounded rendering `1.000` |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
-| Test coverage | latest full `python -m unittest discover -s tests` passed 980 tests after promotion trace materiality gate evidence |
+| Test coverage | latest focused runtime validation passed `362` operation/subtask contract tests after the KAB CIR close; runtime domain-term audit passed with `217` reviewed literals |
 
 ## Representative Commands
 
@@ -132,6 +133,12 @@ runtime. The core engineering work is not prompt tuning; it is designing the
 handoff between retrieval, structured evidence, deterministic calculation,
 bounded reflection, critic acceptance, and benchmark review so that
 improvements remain auditable and hard to overfit.
+
+The KAB CIR repair is the compact example: the system had to reject a plausible
+wrong row, avoid overzealous aggregate-result blocking, recover both operands
+from the same source table, and force final prose to follow the canonical
+calculation trace. The fix lives in generic provenance and rendering contracts,
+not in a company or benchmark-id branch.
 
 ## What Is Still Intentionally Disabled
 

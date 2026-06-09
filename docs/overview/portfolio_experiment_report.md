@@ -98,7 +98,8 @@ Primary metrics:
 | Runtime contract gate | 5 core numeric/runtime questions | PASS | `docs/overview/project_status.md` |
 | Concept runtime gap gate | 7 ontology-driven concept questions | 7 / 7 PASS | `docs/overview/project_status.md` |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | 4 / 4 company runs passed in the latest OpenAI-backed refresh; later 2026-06-07 store-fixed replays kept all five rows at faithfulness, completeness, context recall, and retrieval hit@k `1.000`, task/artifact integrity `ok` for 5 / 5 rows, error rate `0.0%`, and `LGE_T1_051` numeric judgement `PASS` | `docs/overview/project_status.md`, `docs/evaluation/benchmarking.md` |
-| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest local validation passed 940 unit tests after reflection ledger handoff | current local publication gate |
+| Focused CIR close | `KAB_T1_066` source-visible ratio repair | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000`; final operands `4,355억원 / 11,623억원` from one MDA table | `docs/history/experiment_history.md`, `docs/overview/project_status.md` |
+| Publication gate | current portfolio-ready main | `portfolio_demo` ready; cache reviewer `status = ok`; domain-term audit passed; latest focused runtime validation passed `362` operation/subtask contract tests after the KAB CIR close | current local publication gate |
 
 ### Method Comparison
 
@@ -153,6 +154,7 @@ removing per-chunk contextualization calls.
 | Policy-driven runtime gate | mixed-query regressions | latest OpenAI-backed refresh: faithfulness, completeness, context recall, and retrieval hit@k all `1.000`; focused `HYU_T2_010` follow-up and PR #33 `NAV_T2_006` repair both keep core metrics at `1.000` | Policy-backed retrieval, display preservation, task/artifact provenance, and retrieved-driver evidence preservation closed the representative mixed-query failures |
 | Retrieval hint budget canary | NAV query-embedding chars `7,672`, LGE chars `6,120` | NAV chars `2,662`, LGE chars `4,056` with both focused rows at core metrics `1.000` | Reduced executed-query inflation without hiding policy/reranker evidence signals |
 | Query embedding cache replay | 97 executed queries, 100 query-embedding calls, 58 LLM calls, runtime cost `$0.444073` | 88 executed queries, 89 query-embedding calls, 40 LLM calls, runtime cost `$0.407527` | Post-cache replay improved observed runtime pressure while preserving the five-row policy gate |
+| KAB CIR source-visible close | wrong ratio `91.03%` in fresh canary; later numeric pass still displayed stale `4,355.42억원` component | final answer `37.47%` with `4,355억원 / 11,623억원`; grounded rendering `1.000`; fanout audit `2` executed queries, `0` duplicates, estimated runtime cost `$0.056292` | Closed the case through generic direct-support, coherent operand, and trace-first rendering contracts |
 
 ## Failure Analysis
 
@@ -206,6 +208,41 @@ Result:
   the retrieved driver wording gap to faithfulness, completeness, context
   recall, and retrieval hit@k `1.000`. This remains local store-fixed repair
   evidence, not a fresh official benchmark result.
+
+### `KAB_T1_066`: ratio answer with wrong row, over-blocked lookup, and stale display
+
+Failure mode:
+
+- A CIR ratio question could bind the denominator to a plausible but wrong
+  row from a different financial statement surface, producing `91.03%`.
+- A direct-support guard correctly blocked unsupported lookup values, but then
+  over-blocked the correct `11,623억원` because an operation token was embedded
+  inside the metric label.
+- After the calculation trace recovered the right operands, aggregate rendering
+  could still display a stale lookup projection, e.g. `4,355.42억원`, while the
+  canonical trace held source-visible `4,355억원`.
+
+Fix layer:
+
+- direct-support validation checks the exact prompt context shown to numeric
+  extraction
+- aggregate-operation detection requires a token boundary, so metric labels are
+  not rejected merely because they contain an operation-like substring
+- ratio operand assembly probes retrieved/seed docs for a coherent table/source
+  context when dependency outputs already cover the required operands
+- late aggregate rendering refreshes ratio answers from resolved calculation
+  trace components when the percentage is present but component displays differ
+
+Result:
+
+- Final answer:
+  `2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.`
+- Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`.
+- The final focused eval-only reports numeric `PASS`, faithfulness `1.000`,
+  completeness `1.000`, context recall `1.000`, retrieval hit@k `1.000`, and
+  grounded rendering correctness `1.000`.
+- The fix did not add company names, benchmark IDs, or metric-specific runtime
+  branches.
 
 ### `KBF_T2_018` and `SAM_T3_028`: concept lookup and composition residuals
 

@@ -230,6 +230,42 @@ retrieve
 - aggregate projection now preserves subtask `runtime_evidence`, which closed
   evaluator `numeric_retrieval_support` for `NAV_T1_071`
 
+## 4-2-1. ratio는 값만 맞추지 않고 source-visible component display까지 검증한다
+
+최근 `KAB_T1_066` CIR repair는 numeric tolerance만으로는 부족하다는 점을
+보여준다.
+
+핵심 포인트:
+
+- wrong row: denominator가 다른 재무제표 surface의 plausible row로 묶이면
+  ratio는 크게 틀리지만 답변 구조는 그럴듯해 보인다
+- over-blocking: aggregate-result guard가 metric label 내부의 operation-like
+  substring을 보고 correct lookup을 reject할 수 있다
+- stale display: 계산 trace가 맞아도 final prose가 이전 lookup projection의
+  display를 가져오면 grounded rendering이 깨진다
+
+현재 contract:
+
+- numeric lookup direct-support는 LLM prompt context와 source/evidence
+  surface를 함께 본다
+- aggregate token은 left-boundary를 확인해 explicit operation phrase와 metric
+  label 내부 substring을 구분한다
+- ratio dependency outputs가 이미 operands를 채웠더라도, retrieved/seed docs
+  안의 한 table/context가 모든 required operands를 직접 제공하면 그 coherent
+  rows를 우선한다
+- final answer는 result percent만 보지 않고 resolved calculation trace의
+  component display와 맞지 않으면 compact ratio answer를 다시 만든다
+
+결과 예:
+
+```text
+2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
+```
+
+두 operand 모두 `IV. 이사의 경영진단 및 분석의견::table:3`에서 온다. 이
+변경은 KAB 전용 rule이 아니라 provenance, coherent operand selection, rendering
+contract를 강화한 것이다.
+
 ## 4-3. planner는 metric recipe보다 concept 조합과 재료 수집 쪽으로 이동 중이다
 
 최근 ontology / planner 정리는 “질문 하나마다 metric family를 늘리는” 방향을
