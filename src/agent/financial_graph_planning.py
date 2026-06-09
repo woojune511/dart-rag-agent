@@ -1784,7 +1784,12 @@ class FinancialAgentPlanningMixin:
         rows: List[Dict[str, Any]] = []
 
         def _walk(current: Dict[str, Any]) -> None:
-            for child in list(current.get("subtask_results") or []):
+            answer_slots = dict(current.get("answer_slots") or {})
+            nested_children = [
+                *list(current.get("subtask_results") or []),
+                *list(answer_slots.get("subtask_results") or []),
+            ]
+            for child in nested_children:
                 if not isinstance(child, dict):
                     continue
                 child_row = dict(child)
@@ -2193,4 +2198,3 @@ class FinancialAgentPlanningMixin:
         )
         digit_count = len(re.findall(r"\d", answer_text))
         return status_rank, has_material, has_structured_payload, source_count, digit_count, len(answer_text)
-

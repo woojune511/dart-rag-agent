@@ -892,6 +892,97 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(result["selected_claim_ids"], ["ev_001"])
 
+    def test_lookup_numeric_extractor_accepts_period_scope_qualified_direct_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2022",
+                consolidation_check="consolidated",
+                unit="units",
+                raw_value="(100)",
+                final_value="The prior-period total base is (100) units.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find the prior-period total base.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="total base | (120) | (100) | (80)",
+                            metadata={"company": "ExampleCo", "year": 2023},
+                        ),
+                        1.0,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023년 연결기준 2022년 total base",
+                    "required_operands": [
+                        {
+                            "label": "2023년 연결기준 2022년 total base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(result["selected_claim_ids"], ["ev_001"])
+
+    def test_lookup_numeric_extractor_accepts_direct_seed_row_when_visible_docs_lack_support(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2022",
+                consolidation_check="consolidated",
+                unit="units",
+                raw_value="(100)",
+                final_value="The prior-period total base is (100) units.",
+            )
+        )
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find the prior-period total base.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="Narrative context without the requested operand row.",
+                            metadata={"company": "ExampleCo", "year": 2023, "chunk_uid": "visible_001"},
+                        ),
+                        1.0,
+                    )
+                ],
+                "seed_retrieved_docs": [
+                    (
+                        Document(
+                            page_content="total base | (120) | (100) | (80)",
+                            metadata={"company": "ExampleCo", "year": 2023, "chunk_uid": "seed_001"},
+                        ),
+                        0.9,
+                    )
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023년 연결기준 2022년 total base",
+                    "required_operands": [
+                        {
+                            "label": "2023년 연결기준 2022년 total base",
+                            "role": "denominator",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(result["selected_claim_ids"], ["ev_001"])
+
     def test_lookup_numeric_extractor_rejects_substring_numeric_match(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm = _StubLLM(

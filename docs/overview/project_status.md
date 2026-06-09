@@ -202,6 +202,14 @@ role-separated multi-agent system using a task ledger and artifact store.
   - validation: focused growth/aggregate regression `4` tests OK, broader
     structured operand / semantic plan / operation contract / subtask-loop
     suite `417` tests OK, and runtime domain-language audit passed
+  - latest `KBF_T2_018` trace-consistency follow-up keeps focused store-fixed
+    eval-only numeric `PASS` with average score `0.924`; the serialized
+    `resolved_calculation_trace` and `structured_result` now show
+    `task_1 = 70.28%` and `task_4 = 1,847,775백만원`, with `0` stale nested
+    hits for `(303)` / `-1138.28%`
+  - latest local validation after this trace cleanup: `python -m
+    src.ops.audit_runtime_domain_terms --summary` passed with `215` reviewed
+    literals, and `python -m unittest discover -s tests` ran `1019` tests OK
 - Latest representative local output:
   `benchmarks/results/concept_gate_refresh_after_answer_composition_2026-06-04/`
 - Result:

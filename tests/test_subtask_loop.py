@@ -83,6 +83,60 @@ class SubtaskLoopTests(unittest.TestCase):
             )
         )
 
+    def test_nested_promotion_reads_answer_slot_subtask_results(self) -> None:
+        stale_prior = {
+            "task_id": "task_prior",
+            "operation_family": "lookup",
+            "answer": "(303) units",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "(303) units",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "raw_value": "(303)",
+                        "raw_unit": "units",
+                    },
+                },
+                "source_row_ids": ["visible_row"],
+            },
+        }
+        stronger_prior = {
+            "task_id": "task_prior",
+            "operation_family": "lookup",
+            "answer": "(1,847,775) units",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "(1,847,775) units",
+                "answer_slots": {
+                    "operation_family": "lookup",
+                    "primary_value": {
+                        "status": "ok",
+                        "raw_value": "(1,847,775)",
+                        "raw_unit": "units",
+                    },
+                },
+                "source_row_ids": ["seed_row"],
+            },
+        }
+        narrative = {
+            "task_id": "task_narrative",
+            "operation_family": "aggregate_subtasks",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [stronger_prior],
+                },
+            },
+        }
+
+        promoted = self.agent._promote_stronger_nested_aggregate_results([stale_prior, narrative])
+
+        self.assertEqual(promoted[0]["calculation_result"]["rendered_value"], "(1,847,775) units")
+        self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
+
     def test_aggregate_subtasks_preserves_supported_quantitative_impact_answer(self) -> None:
         self.agent.llm = None
         state = {
@@ -11149,6 +11203,178 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(
             growth_row["calculation_result"]["answer_slots"]["prior_value"]["raw_value"],
             "1,801,079",
+        )
+        structured_rows = updated["structured_result"]["subtask_results"]
+        structured_growth_row = next(row for row in structured_rows if row["task_id"] == "task_1")
+        structured_prior_row = next(row for row in structured_rows if row["task_id"] == "task_4")
+        self.assertEqual(structured_growth_row["calculation_result"]["rendered_value"], "41.4%")
+        self.assertEqual(
+            structured_growth_row["calculation_result"]["answer_slots"]["prior_value"]["raw_value"],
+            "1,801,079",
+        )
+        self.assertEqual(
+            structured_prior_row["calculation_result"]["answer_slots"]["primary_value"]["raw_value"],
+            "1,801,079",
+        )
+
+    def test_projection_subtask_consistency_uses_full_nested_projection_rows(self) -> None:
+        def _lookup_row(task_id, period, raw_value, source_id):
+            return {
+                "task_id": task_id,
+                "metric_family": "concept_lookup",
+                "metric_label": f"{period} segment revenue",
+                "operation_family": "lookup",
+                "answer": f"{raw_value} million",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": f"{raw_value} million",
+                    "formatted_result": f"{raw_value} million",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "period": period,
+                            "raw_value": raw_value,
+                            "raw_unit": "million",
+                            "normalized_value": float(raw_value.replace(",", "")) * 1000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": f"{raw_value} million",
+                            "source_row_id": source_id,
+                        },
+                    },
+                    "source_row_ids": [source_id],
+                },
+            }
+
+        current_row = _lookup_row("task_current", "2023", "2,546,649", "ev_current")
+        stale_prior_row = _lookup_row("task_prior", "2022", "303", "ev_weak_prior")
+        correct_prior_row = _lookup_row("task_prior", "2022", "1,801,079", "ev_prior")
+        stale_growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "segment revenue growth rate",
+            "operation_family": "growth_rate",
+            "answer": "840478.88%",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "840478.88%",
+                "formatted_result": "840478.88%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment revenue growth rate",
+                        "normalized_value": 840478.88,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "840478.88%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "raw_value": "2,546,649",
+                        "raw_unit": "million",
+                        "normalized_value": 2546649000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "2,546,649 million",
+                        "source_row_id": "task_output:task_current",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment revenue",
+                        "concept": "revenue",
+                        "period": "2022",
+                        "raw_value": "303",
+                        "raw_unit": "million",
+                        "normalized_value": 303000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "303 million",
+                        "source_row_id": "task_output:task_prior",
+                    },
+                },
+            },
+        }
+        summary_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "metric_label": "growth narrative",
+            "operation_family": "aggregate_subtasks",
+            "answer": "Segment revenue increased 41.4%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "Segment revenue increased 41.4%.",
+                "answer_slots": {"operation_family": "aggregate_subtasks"},
+                "subtask_results": [stale_prior_row, stale_growth_row, correct_prior_row],
+            },
+        }
+        compact_summary_row = {
+            **summary_row,
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"operation_family": "aggregate_subtasks"},
+            },
+        }
+        state = {
+            "query": "Calculate segment revenue growth and summarize the change.",
+            "calc_subtasks": [
+                {"task_id": "task_current", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_prior", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_growth", "metric_family": "concept_growth_rate", "operation_family": "growth_rate"},
+                {"task_id": "task_summary", "metric_family": "narrative_summary", "operation_family": "aggregate_subtasks"},
+            ],
+        }
+        ordered_results = [current_row, stale_prior_row, stale_growth_row, compact_summary_row]
+        aggregate_projection = {
+            "calculation_result": {
+                "status": "ok",
+                "subtask_results": [current_row, stale_prior_row, stale_growth_row, summary_row],
+            },
+        }
+
+        synced_results, synced_projection = self.agent._sync_projection_subtask_results_with_nested_promotions(
+            ordered_results,
+            state,
+            aggregate_projection,
+            "Segment revenue increased 41.4%.",
+        )
+
+        prior_row = next(row for row in synced_results if row["task_id"] == "task_prior")
+        growth_row = next(row for row in synced_results if row["task_id"] == "task_growth")
+        projected_rows = synced_projection["calculation_result"]["subtask_results"]
+        projected_growth_row = next(row for row in projected_rows if row["task_id"] == "task_growth")
+        projected_summary_row = next(row for row in projected_rows if row["task_id"] == "task_summary")
+        projected_summary_nested = projected_summary_row["calculation_result"]["subtask_results"]
+        projected_summary_growth_row = next(
+            row for row in projected_summary_nested if row["task_id"] == "task_growth"
+        )
+        projected_summary_prior_rows = [
+            row for row in projected_summary_nested if row["task_id"] == "task_prior"
+        ]
+        self.assertTrue(prior_row.get("promoted_from_nested_aggregate"))
+        self.assertEqual(
+            prior_row["calculation_result"]["answer_slots"]["primary_value"]["raw_value"],
+            "1,801,079",
+        )
+        self.assertTrue(growth_row.get("aligned_from_source_task_slots"))
+        self.assertEqual(growth_row["calculation_result"]["rendered_value"], "41.4%")
+        self.assertEqual(
+            growth_row["calculation_result"]["answer_slots"]["prior_value"]["raw_value"],
+            "1,801,079",
+        )
+        self.assertEqual(projected_growth_row["calculation_result"]["rendered_value"], "41.4%")
+        self.assertEqual(projected_summary_growth_row["calculation_result"]["rendered_value"], "41.4%")
+        self.assertTrue(projected_summary_prior_rows)
+        self.assertTrue(
+            all(
+                row["calculation_result"]["answer_slots"]["primary_value"]["raw_value"] == "1,801,079"
+                for row in projected_summary_prior_rows
+            )
         )
 
     def test_dependency_slot_alignment_dedupes_stale_operand_ids(self) -> None:

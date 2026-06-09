@@ -676,7 +676,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 0)
         self.assertGreater(focus_trace["selected_count"], 0)
 
-    def test_focused_operand_retrieval_runs_when_narrative_sibling_task_exists(self) -> None:
+    def test_focused_operand_retrieval_skips_complete_primary_coverage_with_narrative_sibling(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 4
         agent.retrieval_query_budget = 0
@@ -732,11 +732,12 @@ class RetrievalScopeTests(unittest.TestCase):
         )
 
         focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
-        self.assertFalse(focus_trace["skipped"])
+        self.assertTrue(focus_trace["skipped"])
+        self.assertEqual(focus_trace["skip_reason"], "primary_required_operand_coverage_complete")
         self.assertEqual(focus_trace["skip_blocked_reason"], "narrative_sibling_subtask_present")
         self.assertEqual(focus_trace["duplicate_drop_blocked_reason"], "narrative_sibling_subtask_present")
         self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 2)
-        self.assertGreater(focus_trace["selected_count"], 0)
+        self.assertEqual(focus_trace["selected_count"], 0)
 
     def test_focused_operand_retrieval_drops_primary_duplicate_queries_without_narrative_sibling(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

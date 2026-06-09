@@ -131,6 +131,17 @@
   `215` reviewed literals, and `python -m unittest
   tests.test_structured_operand_extraction tests.test_subtask_loop
   tests.test_operation_contracts` ran `358` tests OK.
+- A later `KBF_T2_018` trace-consistency follow-up kept the focused numeric
+  `PASS` while removing stale nested calculation displays from the serialized
+  trace. The runtime now reuses the final aggregate projection's full
+  `subtask_results` as a generic consistency source, promotes stronger nested
+  lookup rows, realigns dependent growth rows, and recursively syncs nested
+  aggregate child rows to the final task rows. Focused store-fixed eval-only
+  reported numeric `PASS`, average score `0.924`, and final trace checks found
+  `0` stale hits for `(303)` / `-1138.28%` under
+  `resolved_calculation_trace` and `structured_result`. Validation:
+  `python -m src.ops.audit_runtime_domain_terms --summary` passed, and
+  `python -m unittest discover -s tests` ran `1019` tests OK.
 
 ## MAS Smoke Outcome Refresh (2026-06-07)
 

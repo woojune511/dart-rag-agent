@@ -265,19 +265,23 @@ def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> 
         for token in (assembly_policy.get("lookup_surface_blocked_tokens") or ())
         if str(token)
     }
+    period_prefix_pattern = str(assembly_policy.get("lookup_surface_period_prefix_pattern") or "")
+    year_token_pattern = str(QUERY_FOCUS_MARKER_POLICY.get("year_pattern") or "")
     compact_line = re.sub(r"\s+", "", _normalise_spaces(line))
     for needle in _operand_needles(operand):
-        needle = re.sub(
-            str(REQUIRED_OPERAND_ASSEMBLY_POLICY.get("lookup_surface_period_prefix_pattern") or r"^(?:20\d{2}\s*년?)\s+"),
-            "",
-            _normalise_spaces(needle),
-        )
+        needle = _normalise_spaces(needle)
+        if period_prefix_pattern:
+            needle = re.sub(period_prefix_pattern, "", needle)
         tokens = [
             token
             for token in re.split(token_split_pattern, needle)
-            if token and token not in blocked_tokens
+            if token
+            and not (year_token_pattern and re.fullmatch(year_token_pattern, token))
+            and not any(blocked in token for blocked in blocked_tokens)
         ]
         if len(tokens) >= 2 and all(re.sub(r"\s+", "", token) in compact_line for token in tokens):
+            return True
+        if len(tokens) == 1 and len(re.sub(r"\s+", "", tokens[0])) >= 4 and re.sub(r"\s+", "", tokens[0]) in compact_line:
             return True
     return False
 
@@ -318,8 +322,31 @@ def _lookup_numeric_extraction_has_direct_support(
     if not re.sub(r"[\s,]", "", raw_value):
         return False
 
+    support_doc_scores: List[Any] = list(docs[: min(8, len(docs))])
+    seen_support_docs: set[tuple[str, str]] = set()
+    for doc_score in support_doc_scores:
+        doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+        metadata = dict(getattr(doc, "metadata", {}) or {})
+        seen_support_docs.add(
+            (
+                str(metadata.get("chunk_uid") or metadata.get("chunk_id") or metadata.get("id") or ""),
+                str(getattr(doc, "page_content", "") or ""),
+            )
+        )
+    for doc_score in list(state.get("seed_retrieved_docs") or [])[:32]:
+        doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+        metadata = dict(getattr(doc, "metadata", {}) or {})
+        doc_key = (
+            str(metadata.get("chunk_uid") or metadata.get("chunk_id") or metadata.get("id") or ""),
+            str(getattr(doc, "page_content", "") or ""),
+        )
+        if doc_key in seen_support_docs:
+            continue
+        seen_support_docs.add(doc_key)
+        support_doc_scores.append(doc_score)
+
     support_lines: List[str] = []
-    for doc_score in docs[: min(8, len(docs))]:
+    for doc_score in support_doc_scores:
         doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
         metadata = dict(getattr(doc, "metadata", {}) or {})
         page_content = str(getattr(doc, "page_content", "") or "")
@@ -2134,9 +2161,11 @@ class FinancialAgentEvidenceMixin:
             query_budget_trace["operand_focus"]["selected_count"] = len(focused_operand_queries)
         else:
             query_budget_trace["operand_focus"]["duplicate_drop_blocked_reason"] = skip_blocked_reason
-        if focused_operand_queries and bool(primary_operand_coverage.get("complete")) and not skip_blocked_reason:
+        if focused_operand_queries and bool(primary_operand_coverage.get("complete")):
             query_budget_trace["operand_focus"]["skipped"] = True
             query_budget_trace["operand_focus"]["skip_reason"] = "primary_required_operand_coverage_complete"
+            if skip_blocked_reason:
+                query_budget_trace["operand_focus"]["skip_blocked_reason"] = skip_blocked_reason
             query_budget_trace["operand_focus"]["selected_count_before_skip"] = query_budget_trace["operand_focus"].get(
                 "selected_count",
                 0,

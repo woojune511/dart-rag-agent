@@ -1545,6 +1545,17 @@ class FinancialAgentReconciliationMixin:
                                 selected_cell=current_cell,
                                 report_scope=report_scope,
                             )
+                        if not direct_accept and same_block_keys:
+                            candidate_block_key = _candidate_row_block_signature(current_candidate)
+                            value_role = str(current_metadata.get("value_role") or "").strip()
+                            aggregation_stage = str(current_metadata.get("aggregation_stage") or "").strip()
+                            direct_accept = (
+                                bool(candidate_block_key and candidate_block_key in same_block_keys)
+                                and (
+                                    value_role == "aggregate"
+                                    or aggregation_stage in {"final", "subtotal", "direct"}
+                                )
+                            )
                         if not direct_accept:
                             continue
                         candidate = current_candidate
