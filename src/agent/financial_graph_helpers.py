@@ -7834,7 +7834,17 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
 
     value_role = _candidate_value_role(candidate)
     aggregation_stage = _candidate_aggregation_stage(candidate)
-    aggregate_like = value_role == "aggregate" or aggregation_stage in {"final", "subtotal", "direct"}
+    direct_row_like = (
+        candidate_kind in {"table_row", "evidence_row"}
+        and selected_cell is not None
+        and _candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell)
+        and _candidate_direct_match_strength(candidate, operand) >= 1.0
+    )
+    aggregate_like = (
+        value_role == "aggregate"
+        or aggregation_stage in {"final", "subtotal", "direct"}
+        or direct_row_like
+    )
     if not aggregate_like:
         return False
     if not _binding_policy_allows_candidate_shape(

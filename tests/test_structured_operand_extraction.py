@@ -2346,6 +2346,107 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[1]["matched_operand_label"], "total base")
         self.assertEqual(rows[1]["raw_value"], "100")
 
+    def test_ratio_uses_active_reconciliation_artifact_refs_for_table_rows(self) -> None:
+        table_text = "\n".join(
+            [
+                "label | 2023 | 2022",
+                "selected expense | 40 | 35",
+                "total base (A=B+C) | 100 | 80",
+            ]
+        )
+        metadata = {
+            "chunk_uid": "chunk_ratio_rows",
+            "company": "ExampleCo",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "mda",
+            "consolidation_scope": "unknown",
+            "period_labels": ["2023", "2022"],
+            "period_focus": "multi_period",
+            "unit_hint": "units",
+            "table_source_id": "table_ratio_rows",
+            "table_header_context": "label | 2023 | 2022",
+            "table_summary_text": table_text,
+            "table_row_labels_text": "selected expense total base",
+            "table_value_labels_text": "selected expense 40 total base 100",
+        }
+        state = {
+            "query": "Calculate selected expense over total base for 2023.",
+            "years": [2023],
+            "report_scope": {"company": "ExampleCo", "year": "2023"},
+            "intent": "comparison",
+            "topic": "selected expense over total base",
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [(Document(page_content=table_text, metadata=metadata), 1.0)],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "active_subtask": {
+                "task_id": "task_ratio_rows",
+                "metric_family": "concept_ratio",
+                "metric_label": "selected expense over total base",
+                "query": "Calculate selected expense over total base for 2023.",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "selected expense",
+                        "role": "numerator",
+                        "required": True,
+                        "surface_contract": {"positive": ["selected expense"], "negative": []},
+                    },
+                    {
+                        "label": "total base",
+                        "role": "denominator",
+                        "required": True,
+                        "surface_contract": {"positive": ["total base"], "negative": []},
+                    },
+                ],
+                "constraints": {
+                    "consolidation_scope": "unknown",
+                    "period_focus": "current",
+                    "entity_scope": "company",
+                    "segment_scope": "none",
+                },
+            },
+            "reconciliation_result": {
+                "status": "ready",
+                "task_id": "task_ratio_rows",
+                "matched_operands": [
+                    {
+                        "label": "selected expense",
+                        "role": "numerator",
+                        "matched": True,
+                        "candidate_ids": ["chunk_ratio_rows::row:1"],
+                        "reason": "matched_candidates",
+                    }
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": [],
+            },
+            "tasks": [],
+            "artifacts": [
+                {
+                    "artifact_id": "reconcile:task_ratio_rows:001",
+                    "task_id": "task_ratio_rows",
+                    "kind": "reconciliation_result",
+                    "status": "ready",
+                    "evidence_refs": ["chunk_ratio_rows::row:2"],
+                    "payload": {"reconciliation_result": {"status": "ready"}},
+                }
+            ],
+        }
+
+        result = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(result)
+
+        self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
+        self.assertEqual(len(trace["calculation_operands"]), 2)
+        self.assertEqual(trace["calculation_operands"][0]["matched_operand_label"], "selected expense")
+        self.assertEqual(trace["calculation_operands"][0]["raw_value"], "40")
+        self.assertEqual(trace["calculation_operands"][1]["matched_operand_label"], "total base")
+        self.assertEqual(trace["calculation_operands"][1]["raw_value"], "100")
+
 
 if __name__ == "__main__":
     unittest.main()

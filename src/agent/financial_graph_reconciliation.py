@@ -1147,6 +1147,83 @@ class FinancialAgentReconciliationMixin:
         }
         items: List[Dict[str, Any]] = []
         seen: set[str] = set()
+
+        def candidate_supports_operand(current: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+            if not operand:
+                return False
+            if _candidate_is_direct_grounding_candidate(
+                current,
+                operand=operand,
+                constraints=constraints,
+                query_years=query_years,
+                report_scope=report_scope,
+            ):
+                return True
+            if operation_family != "ratio":
+                return False
+            metadata = dict(current.get("metadata") or {})
+            cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+            if not cells and str(current.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
+                cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+            period_focus = str(dict(active_subtask.get("constraints") or {}).get("period_focus") or "unknown").strip()
+            for cell in cells:
+                enriched_cell = {**dict(cell), "_report_year": metadata.get("year")}
+                selected_cell = _select_structured_cell(
+                    [enriched_cell],
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus=_operand_period_focus(operand, period_focus),
+                )
+                if not selected_cell:
+                    continue
+                if _candidate_satisfies_ratio_component_acceptance_contract(
+                    current,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    selected_cell=selected_cell,
+                    report_scope=report_scope,
+                ):
+                    return True
+            return False
+
+        def append_candidate_evidence(candidate_id: str, operand: Dict[str, Any]) -> None:
+            current = self._structured_candidate_from_id(candidate_id, candidate_map)
+            if not current:
+                return
+            if operand and not candidate_supports_operand(current, operand):
+                return
+            evidence_id = f"recon::{candidate_id}"
+            if evidence_id in seen:
+                return
+            seen.add(evidence_id)
+            metadata = dict(current.get("metadata") or {})
+            raw_row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
+            if not raw_row_text and str(current.get("candidate_kind") or "") in {"structured_value", "structured_row", "structured_column_value"}:
+                row_label = str(metadata.get("row_label") or "").strip()
+                values = [
+                    str(cell.get("value_text") or "").strip()
+                    for cell in (metadata.get("structured_cells") or [])
+                    if str(cell.get("value_text") or "").strip()
+                ]
+                raw_row_text = " | ".join([part for part in [row_label, *values] if part])
+            claim = _normalise_spaces(raw_row_text or str(current.get("text") or ""))
+            quote_span = _normalise_spaces(str(raw_row_text or current.get("text") or ""))[:240]
+            items.append(
+                {
+                    "evidence_id": evidence_id,
+                    "source_anchor": str(current.get("source_anchor") or "").strip(),
+                    "claim": claim[:1200],
+                    "quote_span": quote_span,
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                    "allowed_terms": [],
+                    "source_context": str(metadata.get("table_header_context") or metadata.get("section_path") or "").strip(),
+                    "raw_row_text": raw_row_text or None,
+                    "metadata": metadata,
+                }
+            )
+
         for operand_match in (reconciliation_result.get("matched_operands") or []):
             operand = (
                 operand_map.get((str(operand_match.get("label") or "").strip(), str(operand_match.get("role") or "").strip()))
@@ -1154,47 +1231,25 @@ class FinancialAgentReconciliationMixin:
                 or {}
             )
             for candidate_id in (operand_match.get("candidate_ids") or [])[:2]:
-                current = candidate_map.get(str(candidate_id).strip())
-                if not current:
+                append_candidate_evidence(str(candidate_id).strip(), operand)
+        if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
+            artifact_evidence_refs = list(reconciliation_result.get("evidence_refs") or [])
+            active_task_id = str(active_subtask.get("task_id") or "").strip()
+            for artifact in list(state.get("artifacts") or []):
+                artifact_data = dict(artifact or {})
+                if active_task_id and str(artifact_data.get("task_id") or "").strip() != active_task_id:
                     continue
-                if operand and not _candidate_is_direct_grounding_candidate(
-                    current,
-                    operand=operand,
-                    constraints=constraints,
-                    query_years=query_years,
-                    report_scope=report_scope,
-                ):
+                if "reconciliation_result" not in str(artifact_data.get("kind") or ""):
                     continue
-                evidence_id = f"recon::{candidate_id}"
-                if evidence_id in seen:
-                    continue
-                seen.add(evidence_id)
-                metadata = dict(current.get("metadata") or {})
-                raw_row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
-                if not raw_row_text and str(current.get("candidate_kind") or "") in {"structured_value", "structured_row", "structured_column_value"}:
-                    row_label = str(metadata.get("row_label") or "").strip()
-                    values = [
-                        str(cell.get("value_text") or "").strip()
-                        for cell in (metadata.get("structured_cells") or [])
-                        if str(cell.get("value_text") or "").strip()
-                    ]
-                    raw_row_text = " | ".join([part for part in [row_label, *values] if part])
-                claim = _normalise_spaces(raw_row_text or str(current.get("text") or ""))
-                quote_span = _normalise_spaces(str(raw_row_text or current.get("text") or ""))[:240]
-                items.append(
-                    {
-                        "evidence_id": evidence_id,
-                        "source_anchor": str(current.get("source_anchor") or "").strip(),
-                        "claim": claim[:1200],
-                        "quote_span": quote_span,
-                        "support_level": "direct",
-                        "question_relevance": "high",
-                        "allowed_terms": [],
-                        "source_context": str(metadata.get("table_header_context") or metadata.get("section_path") or "").strip(),
-                        "raw_row_text": raw_row_text or None,
-                        "metadata": metadata,
-                    }
-                )
+                artifact_evidence_refs.extend(list(artifact_data.get("evidence_refs") or []))
+            for evidence_ref in self._expand_structured_candidate_ids(
+                [str(item).strip() for item in artifact_evidence_refs if str(item).strip()],
+                candidate_map,
+            ):
+                for operand in required_operands:
+                    if candidate_supports_operand(candidate_map.get(evidence_ref, {}), operand):
+                        append_candidate_evidence(evidence_ref, operand)
+                        break
         return items
 
     def _extract_structured_operands_from_reconciliation(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
