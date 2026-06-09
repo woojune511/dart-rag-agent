@@ -55,6 +55,8 @@
 - `kab_t1_066_aggregate_compact_canary_2026-06-09`: summarized then deleted
 - `kab_t1_066_numeric_prompt_diag_canary_2026-06-09`: local artifact,
   summarized then deleted
+- `kab_t1_066_numeric_reject_reuse_canary_2026-06-09`: local artifact,
+  summarized then deleted
 
 ### 무엇을 검증했나
 
@@ -74,6 +76,7 @@
 | Phase usage canary | `KAB_T1_066` numeric `PASS`; total agent LLM tokens `258,333`; top phase `aggregate_synthesis` `186,310` tokens |
 | Aggregate compact projection | numeric `PASS`; total agent LLM tokens `76,252`; `aggregate_synthesis` `4,064` tokens; largest remaining phase `numeric_extraction` `51,556` tokens |
 | Numeric prompt history eval-only | numeric `PASS`; latency `416.0s`; agent LLM tokens `190,990`; `numeric_extraction` `106,483` tokens / `6` calls |
+| Numeric result/rejection reuse eval-only | numeric `PASS`; latency `232.7s`; agent LLM tokens `108,158`; `numeric_extraction` `50,224` tokens / `3` calls |
 
 The final history canary preserved all `6` numeric extraction prompt
 diagnostics. Each call selected `8` docs; formatted context size ranged from
@@ -81,30 +84,33 @@ diagnostics. Each call selected `8` docs; formatted context size ranged from
 `경비차감전영업이익` lookup as `missing_direct_lookup_operand_support`, then
 reflection/retry re-entered the same expensive extraction pattern.
 
+The follow-up reuse canary preserved the same `6` history entries but skipped
+`3` of them without LLM calls: `2` duplicate direct-support rejections and `1`
+duplicate supported result. This reduced numeric extraction from `6` to `3`
+LLM calls while keeping the final CIR answer at `37.47%`.
+
 ### 해석
 
 - Aggregate prompt compaction was the right first cost-control fix because it
   removed a large prompt payload without changing answer behavior.
-- After that, the remaining cost problem is not just prompt size. It is
-  repeated numeric extraction over equivalent lookup objectives after a
-  value-visible candidate fails the direct operand support contract.
-- The next runtime change should therefore target duplicate extraction/retry
-  suppression generically:
-  - cache or reuse failed/supported numeric lookup attempts within a task/replan
-    cycle when the objective, source scope, and prompt candidate window are
-    equivalent
-  - apply a bounded retry policy after repeated
-    `missing_direct_lookup_operand_support` rejections
-  - keep value preservation and direct-support validation intact
+- After that, the remaining cost problem was not just prompt size. It was
+  repeated numeric extraction over equivalent query + candidate windows.
+- The reuse change is generic: successful numeric extraction results and
+  `missing_direct_lookup_operand_support` rejections are reused only when the
+  normalized numeric query and selected candidate window fingerprint match.
+  Value preservation and direct-support validation remain intact.
+- The next runtime change should target retry/replan retrieval fanout. The
+  latest reuse canary still executed `34` retrieval queries with `8` duplicate
+  executed queries and `26` query embedding API calls.
 - This is a runtime-cost contract, not a benchmark answer rule. No company,
   question ID, or metric-specific branch should be introduced for the follow-up.
 
-Validation for the final history change:
+Validation for the final reuse change:
 
-- focused projection/serialization tests: `3` OK
-- related runtime/evaluator suites: `234` OK
+- focused numeric reuse tests: `3` OK
+- related runtime/evaluator suites: `236` OK
 - runtime domain-term audit: passed with `215` reviewed literals
-- full unittest discovery: `1023` OK
+- full unittest discovery: `1025` OK
 
 ## Concept Gate Focused Hardening (2026-06-08)
 

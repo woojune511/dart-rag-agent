@@ -11,6 +11,46 @@
 
 ## 최신 상태
 
+- 2026-06-09 duplicate numeric extraction result/rejection reuse를 추가했다.
+  - `numeric_extraction_prompt` diagnostic에 prompt text 대신
+    `query_fingerprint`, `candidate_window_fingerprint`,
+    `extraction_fingerprint`를 남긴다.
+  - 같은 extraction fingerprint에서 이미 direct-supported numeric result가
+    있으면 `duplicate_numeric_extraction_result`로 LLM 호출 없이 재사용한다.
+  - 같은 extraction fingerprint에서 이미
+    `missing_direct_lookup_operand_support` reject가 있으면
+    `duplicate_missing_direct_lookup_operand_support`로 LLM 호출 없이 같은
+    missing evidence 상태를 재사용한다.
+  - 이는 같은 query + candidate window의 repeated extraction만 줄이는
+    generic cost-control contract다. 회사명, benchmark ID, metric-specific
+    branch는 추가하지 않았다.
+  - live canary:
+    `benchmarks/results/kab_t1_066_numeric_reject_reuse_canary_2026-06-09/`는
+    local artifact이며 요약 후 삭제 대상이다. Fresh store canary 후 같은
+    store에서 eval-only를 다시 실행해 최종 수치를 확인했다. `KAB_T1_066`
+    결과는 numeric `PASS`, faithfulness/completeness `1.000 / 1.000`,
+    context recall/retrieval hit@k `1.000 / 1.000`, latency `232.7s`,
+    estimated runtime cost `$0.084768`.
+  - 이전 numeric history canary 대비 agent LLM total은
+    `190,990 -> 108,158` tokens, agent calls는 `25 -> 18`,
+    `numeric_extraction`은 `106,483 / 6 calls -> 50,224 / 3 calls`로
+    줄었다. history는 `6` entries를 보존하되 `3` entries가 skipped trace로
+    남는다: failed direct-support reject reuse `2`, supported result reuse
+    `1`.
+  - 남은 병목:
+    retrieval/replan side는 still noisy하다. 최종 canary도 executed queries
+    `34`, duplicate executed queries `8`, query embedding calls `26`을
+    기록했다. 다음 cost-control 타깃은 retry/replan query fanout과
+    equivalent lookup objective canonicalization이다.
+  - 검증:
+    - `python -m unittest tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_reuses_duplicate_direct_support_rejection tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_reuses_duplicate_supported_result tests.test_operation_contracts.OperationContractTests.test_numeric_extractor_records_prompt_size_diagnostics`:
+      `3` tests OK.
+    - `python -m unittest tests.test_operation_contracts tests.test_benchmark_runner_runtime_projection tests.test_financial_agent_run_projection tests.test_evaluator_progress`:
+      `236` tests OK.
+    - `python -m src.ops.audit_runtime_domain_terms --summary`: passed
+      (`215` reviewed literals).
+    - `python -m unittest discover -s tests`: `1025` tests OK.
+
 - 2026-06-09 `numeric_debug_trace_history` / benchmark
   `agent_numeric_debug_trace_history`를 추가했다.
   - 직전 live canary에서 `numeric_extraction`이 여러 번 호출되는데

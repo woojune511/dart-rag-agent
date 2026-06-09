@@ -44,41 +44,53 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Runtime/API Cost Control
 
-- Current status: observation surface is now good enough to target the next
-  runtime-cost fix without guessing.
+- Current status: numeric-extraction LLM fanout has been reduced; retry/replan
+  retrieval fanout is the next visible cost target.
 - Latest source change, 2026-06-09:
+  - `numeric_extraction_prompt` diagnostics now include stable fingerprints for
+    the normalized numeric query and selected candidate window without storing
+    prompt text.
+  - When the same extraction fingerprint already produced a direct-supported
+    result, the runtime reuses it as `duplicate_numeric_extraction_result`.
+  - When the same extraction fingerprint already failed direct operand support,
+    the runtime reuses that missing evidence state as
+    `duplicate_missing_direct_lookup_operand_support`.
+  - The reuse only applies to equivalent query + candidate-window attempts; no
+    company, benchmark ID, or metric-specific branch was added.
+- Latest focused canary, `KAB_T1_066` eval-only on the reused local store after
+  the reuse change:
+  - numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, context
+    recall/retrieval hit@k `1.000 / 1.000`
+  - latency `232.7s`, estimated runtime cost `$0.084768`
+  - agent LLM tokens `108,158` across `18` calls
+  - `numeric_extraction` reduced to `50,224` tokens across `3` calls
+  - history preserved `6` entries, with `3` skipped entries:
+    `2` failed direct-support reject reuses and `1` supported result reuse
+- Previous diagnostic baseline for the same question:
+  - latency `416.0s`, estimated runtime cost `$0.150280`
+  - agent LLM tokens `190,990` across `25` calls
+  - `numeric_extraction` `106,483` tokens across `6` calls
+- Next cost-control target:
+  - reduce retry/replan query fanout; latest canary still has executed queries
+    `34`, duplicate executed queries `8`, and query embedding API calls `26`
+  - canonicalize equivalent lookup objectives across replan wording changes
+    without weakening direct-support validation
+- Validation for the reuse change:
+  - focused numeric reuse tests: `3` OK
+  - related runtime/evaluator suites: `236` OK
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - full unittest discovery: `1025` OK
+
+- Earlier observability layer:
   - `numeric_debug_trace_history` is preserved in agent state and public
     `FinancialAgent.run()` output.
   - Evaluator and benchmark rows serialize the same call-level history as
-    `agent_numeric_debug_trace_history`.
-  - The existing single `agent_numeric_debug_trace` remains as the latest-call
-    compatibility snapshot.
-  - This is observability-only; it does not alter retrieval, evidence
-    selection, calculation, or answer composition.
-- Latest focused canary, `KAB_T1_066` eval-only on a reused local store:
-  - numeric `PASS`, faithfulness/completeness `1.000 / 1.000`, context
-    recall/retrieval hit@k `1.000 / 1.000`
-  - latency `416.0s`, estimated runtime cost `$0.150280`
-  - agent LLM tokens `190,990` across `25` calls
-  - `numeric_extraction` is the largest phase: `106,483` tokens across `6`
-    calls
-  - the new history confirms `6` numeric extraction prompt diagnostics, with
-    selected docs `8` each and context size `19,823-25,901` chars
-  - repeated `경비차감전영업이익` lookup attempts are rejected as
-    `missing_direct_lookup_operand_support`, then reflection/retry repeats the
-    same expensive extraction pattern
-- Next cost-control target:
-  - suppress duplicate numeric extraction for equivalent lookup objectives
-    within the same task/replan cycle
-  - stop or downgrade retries after a value-visible lookup repeatedly fails the
-    direct operand support contract
-  - keep the fix generic: no company, benchmark ID, or metric-specific runtime
-    branch
-- Validation for the history change:
-  - focused projection/serialization tests: `3` OK
-  - related runtime/evaluator suites: `234` OK
-  - runtime domain-term audit: passed with `215` reviewed literals
-  - full unittest discovery: `1023` OK
+    `agent_numeric_debug_trace_history`; the existing single
+    `agent_numeric_debug_trace` remains as the latest-call compatibility
+    snapshot.
+  - The diagnostic baseline for `KAB_T1_066` showed the problem before reuse:
+    numeric `PASS`, latency `416.0s`, agent LLM tokens `190,990`, and
+    `numeric_extraction` `106,483` tokens across `6` calls.
 
 ### Structural Capability Gates
 

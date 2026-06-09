@@ -8,6 +8,7 @@ This module owns document retrieval and evidence shaping:
 - run the narrative answer path for non-calculation questions
 """
 
+import hashlib
 import json
 import logging
 import re
@@ -2682,6 +2683,7 @@ class FinancialAgentEvidenceMixin:
         parent_context_count = 0
         table_context_count = 0
         graph_relation_count = 0
+        fingerprint_docs: List[Dict[str, Any]] = []
         for doc_score in selected_docs:
             doc = doc_score[0] if isinstance(doc_score, (tuple, list)) and doc_score else doc_score
             metadata = dict(getattr(doc, "metadata", {}) or {})
@@ -2703,6 +2705,33 @@ class FinancialAgentEvidenceMixin:
                     "page_content_chars": len(page_content),
                 }
             )
+            fingerprint_docs.append(
+                {
+                    "chunk_uid": str(metadata.get("chunk_uid") or ""),
+                    "parent_id": str(metadata.get("parent_id") or ""),
+                    "section_path": str(metadata.get("section_path") or metadata.get("section") or ""),
+                    "statement_type": str(metadata.get("statement_type") or ""),
+                    "consolidation_scope": str(metadata.get("consolidation_scope") or ""),
+                    "rcept_no": str(metadata.get("rcept_no") or ""),
+                    "year": str(metadata.get("year") or ""),
+                    "content_hash": hashlib.sha256(page_content.encode("utf-8")).hexdigest(),
+                }
+            )
+        normalized_query = _normalise_spaces(numeric_query).lower()
+        query_fingerprint = hashlib.sha256(normalized_query.encode("utf-8")).hexdigest()
+        candidate_window_fingerprint = hashlib.sha256(
+            json.dumps(fingerprint_docs, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        extraction_fingerprint = hashlib.sha256(
+            json.dumps(
+                {
+                    "query": normalized_query,
+                    "candidate_window": candidate_window_fingerprint,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
         return {
             "selected_doc_count": len(selected_docs),
             "context_chars": len(context or ""),
@@ -2711,6 +2740,9 @@ class FinancialAgentEvidenceMixin:
             "parent_context_candidate_count": parent_context_count,
             "table_context_doc_count": table_context_count,
             "graph_relation_doc_count": graph_relation_count,
+            "query_fingerprint": query_fingerprint,
+            "candidate_window_fingerprint": candidate_window_fingerprint,
+            "extraction_fingerprint": extraction_fingerprint,
             "doc_summaries": metadata_rows,
         }
 
@@ -6262,34 +6294,96 @@ class FinancialAgentEvidenceMixin:
             numeric_query=numeric_query,
             context=context,
         )
-        structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
-        prompt = ChatPromptTemplate.from_template(
-            str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
-        )
+        extraction_fingerprint = str(prompt_diagnostics.get("extraction_fingerprint") or "")
+        reused_debug_trace: Optional[Dict[str, Any]] = None
+        reused_answer = ""
+        for trace_index, prior_trace in reversed(list(enumerate(prior_numeric_debug_history))):
+            prior_prompt = dict(prior_trace.get("numeric_extraction_prompt") or {})
+            prior_fingerprint = str(
+                prior_trace.get("numeric_extraction_fingerprint")
+                or prior_prompt.get("extraction_fingerprint")
+                or ""
+            )
+            if (
+                extraction_fingerprint
+                and prior_fingerprint == extraction_fingerprint
+                and prior_trace.get("rejected_reason") == "missing_direct_lookup_operand_support"
+            ):
+                debug_trace = {
+                    **prior_trace,
+                    "raw_value": "",
+                    "rejected_reason": "missing_direct_lookup_operand_support",
+                    "skipped_reason": "duplicate_missing_direct_lookup_operand_support",
+                    "duplicate_of_trace_index": trace_index,
+                    "numeric_extraction_fingerprint": extraction_fingerprint,
+                    "numeric_extraction_prompt": prompt_diagnostics,
+                }
+                return {
+                    "answer": empty_result["answer"],
+                    "compressed_answer": "",
+                    "selected_claim_ids": [],
+                    "draft_points": [],
+                    "kept_claim_ids": [],
+                    "dropped_claim_ids": [],
+                    "unsupported_sentences": [],
+                    "sentence_checks": [],
+                    "evidence_items": [],
+                    "evidence_bullets": [],
+                    "evidence_status": "missing",
+                    "numeric_debug_trace": debug_trace,
+                    "numeric_debug_trace_history": [*prior_numeric_debug_history, debug_trace],
+                }
+            if (
+                extraction_fingerprint
+                and prior_fingerprint == extraction_fingerprint
+                and prior_trace.get("raw_value")
+                and not prior_trace.get("rejected_reason")
+                and not prior_trace.get("error")
+            ):
+                reused_debug_trace = {
+                    **prior_trace,
+                    "skipped_reason": "duplicate_numeric_extraction_result",
+                    "duplicate_of_trace_index": trace_index,
+                    "numeric_extraction_fingerprint": extraction_fingerprint,
+                    "numeric_extraction_prompt": prompt_diagnostics,
+                }
+                reused_answer = str(prior_trace.get("final_value") or empty_result["answer"])
+                break
 
-        try:
-            result: NumericExtraction = (prompt | structured_llm).invoke(
-                {"query": numeric_query, "context": context}
+        if reused_debug_trace is not None:
+            debug_trace = reused_debug_trace
+            answer = reused_answer
+        else:
+            structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
+            prompt = ChatPromptTemplate.from_template(
+                str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
             )
-            debug_trace = {
-                **result.model_dump(),
-                "numeric_extraction_prompt": prompt_diagnostics,
-            }
-            logger.info(
-                "[numeric_extractor] period=%s consolidation=%s unit=%s raw=%s",
-                (result.period_check or "")[:60],
-                (result.consolidation_check or "")[:60],
-                result.unit,
-                result.raw_value,
-            )
-            answer = result.final_value if result.final_value else empty_result["answer"]
-        except Exception as exc:
-            logger.warning("[numeric_extractor] structured output failed: %s", exc)
-            debug_trace = {
-                "error": str(exc),
-                "numeric_extraction_prompt": prompt_diagnostics,
-            }
-            answer = empty_result["answer"]
+
+            try:
+                result: NumericExtraction = (prompt | structured_llm).invoke(
+                    {"query": numeric_query, "context": context}
+                )
+                debug_trace = {
+                    **result.model_dump(),
+                    "numeric_extraction_fingerprint": extraction_fingerprint,
+                    "numeric_extraction_prompt": prompt_diagnostics,
+                }
+                logger.info(
+                    "[numeric_extractor] period=%s consolidation=%s unit=%s raw=%s",
+                    (result.period_check or "")[:60],
+                    (result.consolidation_check or "")[:60],
+                    result.unit,
+                    result.raw_value,
+                )
+                answer = result.final_value if result.final_value else empty_result["answer"]
+            except Exception as exc:
+                logger.warning("[numeric_extractor] structured output failed: %s", exc)
+                debug_trace = {
+                    "error": str(exc),
+                    "numeric_extraction_fingerprint": extraction_fingerprint,
+                    "numeric_extraction_prompt": prompt_diagnostics,
+                }
+                answer = empty_result["answer"]
 
         if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(state, debug_trace, docs):
             logger.info(
@@ -6307,6 +6401,7 @@ class FinancialAgentEvidenceMixin:
                 evidence_bullets = list(deterministic.get("evidence_bullets") or [])
                 deterministic_trace = {
                     **dict(deterministic.get("numeric_debug_trace") or {}),
+                    "numeric_extraction_fingerprint": extraction_fingerprint,
                     "numeric_extraction_prompt": prompt_diagnostics,
                 }
                 return {

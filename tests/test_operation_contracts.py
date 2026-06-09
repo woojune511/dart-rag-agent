@@ -117,6 +117,27 @@ class _CapturingLLM:
         return self.structured
 
 
+class _CountingStructuredLLM:
+    def __init__(self, response):
+        self._response = response
+        self.invoke_count = 0
+
+    def __call__(self, prompt_value):
+        return self.invoke(prompt_value)
+
+    def invoke(self, _prompt_value):
+        self.invoke_count += 1
+        return self._response
+
+
+class _CountingLLM:
+    def __init__(self, response):
+        self.structured = _CountingStructuredLLM(response)
+
+    def with_structured_output(self, _schema):
+        return self.structured
+
+
 class _FailingStructuredLLM:
     def __call__(self, _prompt_value):
         raise RuntimeError("structured output disabled for test")
@@ -750,6 +771,122 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["evidence_status"], "missing")
         self.assertEqual(result["selected_claim_ids"], [])
         self.assertEqual(result["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
+
+    def test_numeric_extractor_reuses_duplicate_direct_support_rejection(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        counting_llm = _CountingLLM(
+            NumericExtraction(
+                period_check="2024년",
+                consolidation_check="연결",
+                unit="백만원",
+                raw_value="638,217",
+                final_value="DX 부문과 DS 부문의 2024년 매출액 차이는 638,217백만원입니다.",
+            )
+        )
+        agent.llm = counting_llm
+        base_state = {
+            "query": "DX 부문과 DS 부문의 2024년 매출액 차이를 계산해 줘.",
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content="DX 부문과 DS 부문의 2024년 매출액 차이는 638,217 백만원입니다.",
+                        metadata={"company": "삼성전자", "year": 2024, "chunk_uid": "chunk-1"},
+                    ),
+                    1.0,
+                )
+            ],
+            "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "lookup",
+                "metric_label": "DX 부문 매출액",
+                "required_operands": [
+                    {
+                        "label": "DX 부문 매출액",
+                        "concept": "revenue",
+                        "role": "minuend",
+                        "required": True,
+                    }
+                ],
+            },
+        }
+
+        first = agent._extract_numeric_fact(base_state)
+        second = agent._extract_numeric_fact(
+            {
+                **base_state,
+                "numeric_debug_trace_history": first["numeric_debug_trace_history"],
+            }
+        )
+
+        self.assertEqual(counting_llm.structured.invoke_count, 1)
+        self.assertEqual(second["evidence_status"], "missing")
+        self.assertEqual(second["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
+        self.assertEqual(
+            second["numeric_debug_trace"]["skipped_reason"],
+            "duplicate_missing_direct_lookup_operand_support",
+        )
+        self.assertEqual(len(second["numeric_debug_trace_history"]), 2)
+
+    def test_numeric_extractor_reuses_duplicate_supported_result(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        counting_llm = _CountingLLM(
+            NumericExtraction(
+                period_check="2024년",
+                consolidation_check="연결",
+                unit="백만원",
+                raw_value="174,887,683",
+                final_value="DX 부문의 2024년 매출액은 174,887,683백만원입니다.",
+            )
+        )
+        agent.llm = counting_llm
+        base_state = {
+            "query": "DX 부문과 DS 부문의 2024년 매출액 차이를 계산해 줘.",
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=(
+                            "매출액 | 기업 전체 총계 / 영업부문 / DX 부문 "
+                            "174,887,683 백만원 | 기업 전체 총계 / 영업부문 / DS 부문 "
+                            "111,065,950 백만원"
+                        ),
+                        metadata={"company": "삼성전자", "year": 2024, "chunk_uid": "chunk-1"},
+                    ),
+                    1.0,
+                )
+            ],
+            "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+            "active_subtask": {
+                "task_id": "task_1",
+                "operation_family": "lookup",
+                "metric_label": "DX 부문 매출액",
+                "required_operands": [
+                    {
+                        "label": "DX 부문 매출액",
+                        "concept": "revenue",
+                        "role": "minuend",
+                        "required": True,
+                    }
+                ],
+            },
+        }
+
+        first = agent._extract_numeric_fact(base_state)
+        second = agent._extract_numeric_fact(
+            {
+                **base_state,
+                "numeric_debug_trace_history": first["numeric_debug_trace_history"],
+            }
+        )
+
+        self.assertEqual(counting_llm.structured.invoke_count, 1)
+        self.assertEqual(second["evidence_status"], "sufficient")
+        self.assertEqual(second["selected_claim_ids"], ["ev_001"])
+        self.assertEqual(
+            second["numeric_debug_trace"]["skipped_reason"],
+            "duplicate_numeric_extraction_result",
+        )
+        self.assertEqual(len(second["numeric_debug_trace_history"]), 2)
 
     def test_numeric_extractor_records_prompt_size_diagnostics(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
