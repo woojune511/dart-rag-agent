@@ -4,6 +4,11 @@ This outline is for a short portfolio presentation, interview walkthrough, or
 project review. It focuses on the engineering story: turning a financial RAG
 prototype into a contract-driven runtime where answers are inspectable.
 
+Assume the audience already knows the basics of LLM/RAG systems, embeddings,
+agent workflows, and grounding/evaluation. The talk should therefore spend time
+on problem formulation, runtime boundaries, traces, and gates rather than on
+introductory RAG definitions.
+
 ## Slide 1. Title
 
 **DART Multi-Agent Financial Analysis Lab**

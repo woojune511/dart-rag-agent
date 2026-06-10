@@ -1,5 +1,12 @@
 # Project Status
 
+> Internal running log, not a first-read portfolio document. Start with
+> [../../README.md](../../README.md),
+> [portfolio_one_pager.md](portfolio_one_pager.md), and
+> [portfolio_experiment_report.md](portfolio_experiment_report.md). This file is
+> kept long so handoff state, gate results, and experiment details remain
+> traceable.
+
 Last updated: 2026-06-09
 
 ## Positioning

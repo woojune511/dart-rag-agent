@@ -1,5 +1,11 @@
 # Benchmarking Guide
 
+> Internal benchmark operations log, not a first-read portfolio document. Start
+> with [../../README.md](../../README.md) and
+> [../overview/portfolio_experiment_report.md](../overview/portfolio_experiment_report.md)
+> for the reviewer-facing experiment summary. This file keeps the detailed gate,
+> replay, and artifact interpretation history.
+
 이 문서는 **현재 기준의 benchmark 운영 방식**과 **retrospective scorecard 실험 계획/결과**를 정리하는 문서다.  
 과거 ingest candidate 실험과 오래된 tuning 기록은 [../history/experiment_history.md](../history/experiment_history.md)로 보낸다.
 

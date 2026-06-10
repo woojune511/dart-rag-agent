@@ -1,5 +1,11 @@
 ﻿# Experiment History
 
+> Internal experiment log, not a first-read portfolio document. Start with
+> [../../README.md](../../README.md) and
+> [../overview/portfolio_experiment_report.md](../overview/portfolio_experiment_report.md)
+> for the compressed experiment story. This file preserves detailed historical
+> runs and should stay append-oriented.
+
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
 ## At a Glance

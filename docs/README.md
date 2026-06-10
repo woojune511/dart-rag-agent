@@ -1,76 +1,77 @@
 # Docs Index
 
-`docs/`는 역할별로 나눠 관리한다.
+`docs/`는 reviewer-facing 문서와 appendix/internal log를 분리해서 읽는다.
+이 프로젝트는 단순 DART QA 앱보다 **DART 재무 공시 위에서
+contract-driven Agentic RAG runtime을 설계/검증하는 프로젝트**로 보는 것이
+맞다.
 
-현재 이 저장소는 단순한 DART QA 앱보다 **DART 도메인 위에서 multi-agent financial analysis system을 설계/검증하는 프로젝트**로 읽는 것이 맞다.
+## Target Reader
 
-## 읽는 순서
+포트폴리오/아키텍처 문서는 LLM, RAG, embedding retrieval, agent workflow,
+grounding/evaluation에 익숙한 독자를 기준으로 한다. 입문 설명보다 다음을
+우선한다.
 
-| 순서 | 문서 | 용도 |
+- 어떤 financial-RAG failure mode를 다루는가
+- 어떤 runtime state / artifact / trace가 그 문제를 표현하는가
+- 어떤 gate나 실험이 claim을 검증하는가
+- 어떤 기능은 아직 의도적으로 disabled 상태인가
+
+용어와 claim boundary는
+[overview/documentation_claim_boundaries.md](overview/documentation_claim_boundaries.md)를
+따른다.
+
+## Quick Review Path
+
+리뷰어가 실제로 먼저 읽을 문서는 아래 5개면 충분하다.
+
+| 순서 | 문서 | 역할 |
 | --- | --- | --- |
-| 1 | [overview/portfolio_one_pager.md](overview/portfolio_one_pager.md) | 포트폴리오용 1페이지 서사 |
-| 2 | [overview/portfolio_presentation_outline.md](overview/portfolio_presentation_outline.md) | 발표/면접용 슬라이드 구조 |
-| 3 | [overview/portfolio_readme_blueprint.md](overview/portfolio_readme_blueprint.md) | 제출용 README 재구성 가이드 |
-| 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 포트폴리오용 핵심 기술 요약 |
-| 5 | [architecture/architecture_direction.md](architecture/architecture_direction.md) | MAS 방향성과 topology / communication / memory 설계 |
-| 6 | [architecture/retrieval_policy_schema.md](architecture/retrieval_policy_schema.md) | retrieval policy / ontology / runtime keyword boundary |
-| 7 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 기준 + retrospective scorecard |
-| 8 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | benchmark를 왜 직접 만들었는지와 dataset track rationale |
-| 9 | [evaluation/evaluator_design_rationale.md](evaluation/evaluator_design_rationale.md) | evaluator를 왜 분리했는지와 numeric contract rationale |
-| 10 | [evaluation/dataset_curation_log.md](evaluation/dataset_curation_log.md) | active curated asset과 gate question 선정 기록 |
-| 11 | [../CONTEXT.md](../CONTEXT.md) | 현재 기준 상태 snapshot |
-| 12 | [../PLAN.md](../PLAN.md) | 현재 active work |
-| 13 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
+| 1 | [../README.md](../README.md) | 프로젝트 한 장 요약과 실행 가능한 reviewer commands |
+| 2 | [overview/portfolio_one_pager.md](overview/portfolio_one_pager.md) | 문제, 방법, 현재 evidence를 가장 짧게 정리 |
+| 3 | [overview/portfolio_experiment_report.md](overview/portfolio_experiment_report.md) | 실험 설계, 결과, 대표 failure analysis |
+| 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 핵심 technical claims와 구현 surface |
+| 5 | [overview/portfolio_demo_walkthrough.md](overview/portfolio_demo_walkthrough.md) | fixture-backed demo 출력과 검토 순서 |
 
-## 폴더 역할
+발표가 필요하면
+[overview/portfolio_presentation_outline.md](overview/portfolio_presentation_outline.md)를
+추가로 본다.
 
-### `overview/`
-- 프로젝트를 빠르게 설명할 때 먼저 보는 요약 문서
+## Appendix
 
-### `architecture/`
-- 현재 아키텍처 설계, schema, routing, numeric reasoning 관련 문서
+깊게 검토할 때 보는 문서다.
 
-### `evaluation/`
-- benchmark 운영 방식, 단일 문서 평가 기준, metric spec
-- retrospective scorecard 실험 설계는 `evaluation/benchmarking.md` 안에서 함께 관리
-- dataset design rationale, evaluator rationale, curation log도 포함
-
-### `planning/`
-- backlog, next epics, 향후 구조 과제
-
-### `history/`
-- 과거 실험 흐름, 회고성 refactor plan, 버전별 변화 기록
-
-## Source Of Truth
-
-| 질문 | 먼저 볼 문서 |
+| 문서 | 역할 |
 | --- | --- |
-| 이 프로젝트를 어떤 시스템으로 봐야 하나? | [architecture/architecture_direction.md](architecture/architecture_direction.md) |
-| 지금 시스템 상태가 어떤가? | [../CONTEXT.md](../CONTEXT.md) |
-| 지금 무엇을 구현 중인가? | [../PLAN.md](../PLAN.md) |
-| 왜 이런 구조를 택했나? | [../DECISIONS.md](../DECISIONS.md) |
-| benchmark를 어떻게 돌리고 해석하나? | [evaluation/benchmarking.md](evaluation/benchmarking.md) |
-| metric 정의는 무엇인가? | [evaluation/evaluation_metrics_v1.md](evaluation/evaluation_metrics_v1.md) |
-| 과거 실험은 어떻게 흘러왔나? | [history/experiment_history.md](history/experiment_history.md) |
+| [overview/codebase_map.md](overview/codebase_map.md) | 코드 ownership과 실행 경로 |
+| [overview/question_trace_walkthrough.md](overview/question_trace_walkthrough.md) | 질문 하나가 runtime graph를 통과하는 흐름 |
+| [architecture/agent_runtime_contract.md](architecture/agent_runtime_contract.md) | agent/task/artifact runtime contract |
+| [architecture/architecture_direction.md](architecture/architecture_direction.md) | MAS topology와 장기 구조 방향 |
+| [architecture/retrieval_policy_schema.md](architecture/retrieval_policy_schema.md) | retrieval policy / ontology / runtime keyword boundary |
+| [architecture/evidence_schema.md](architecture/evidence_schema.md) | evidence object와 provenance schema |
+| [evaluation/evaluation_metrics_v1.md](evaluation/evaluation_metrics_v1.md) | evaluator metric 정의 |
+| [evaluation/evaluator_design_rationale.md](evaluation/evaluator_design_rationale.md) | numeric evaluator 분리 이유 |
+| [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | curated dataset track rationale |
+| [evaluation/runtime_contract_gate.md](evaluation/runtime_contract_gate.md) | runtime gate 운영 기록 |
 
-## 문서 성격 구분
+## Internal Logs
 
-- 최신 상태를 유지하는 문서:
-  - [../CONTEXT.md](../CONTEXT.md)
-  - [../PLAN.md](../PLAN.md)
-  - [planning/backlog_and_next_epics.md](planning/backlog_and_next_epics.md)
-- 누적 기록 문서:
-  - [../DECISIONS.md](../DECISIONS.md)
-  - [history/experiment_history.md](history/experiment_history.md)
-- 설계 / 기준 문서:
-  - `architecture/`
-  - `evaluation/`
+아래 문서는 최신 handoff와 과거 실험을 보존하는 internal running log다. 리뷰어
+first-read 문서가 아니며, 필요한 근거를 추적할 때만 본다.
 
-## 현재 문서 읽기 관점
-
-| 관점 | 먼저 볼 문서 |
+| 문서 | 역할 |
 | --- | --- |
-| MAS topology / role / memory 설계 | [architecture/architecture_direction.md](architecture/architecture_direction.md) |
-| 현재 구현 상태 | [../CONTEXT.md](../CONTEXT.md) |
-| 현재 구현 우선순위 | [../PLAN.md](../PLAN.md) |
-| 왜 이런 방향으로 바뀌었는가 | [../DECISIONS.md](../DECISIONS.md) |
+| [../CONTEXT.md](../CONTEXT.md) | 최신 작업 상태 snapshot |
+| [../PLAN.md](../PLAN.md) | active work와 다음 작업 |
+| [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
+| [overview/project_status.md](overview/project_status.md) | 긴 구현/gate 상태 로그 |
+| [history/experiment_history.md](history/experiment_history.md) | 과거 실험 흐름 |
+| [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 상세 로그 |
+| [planning/backlog_and_next_epics.md](planning/backlog_and_next_epics.md) | backlog와 future epics |
+
+## Maintenance Rule
+
+- reviewer-facing 문서는 짧게 유지한다.
+- 긴 수치/실험 로그는 `project_status`, `experiment_history`,
+  `benchmarking`에 남긴다.
+- 새 claim을 README나 portfolio 문서에 넣기 전에 appendix/internal log에
+  근거가 있는지 확인한다.

@@ -4,24 +4,28 @@ Evidence-backed numeric QA over Korean DART filings with multi-agent RAG,
 explicit calculation traces, critic acceptance gates, and reviewer-ready runtime
 contracts.
 
-Current gate and portfolio status: [docs/overview/project_status.md](docs/overview/project_status.md)
+This README is written for reviewers who already know LLM/RAG basics:
+embeddings, hybrid retrieval, reranking, RAG evaluation, and agent/workflow
+state. The claim is applied systems work, not a new model or SOTA TableQA
+result: make financial RAG answers inspectable, testable, and harder to
+overfit.
 
-## Why This Exists
+## Problem
 
-Financial-document RAG fails in ways that are easy to miss:
+Financial-document RAG often fails in ways that look small but change the
+answer:
 
-- the answer uses the wrong row, subtotal, segment, or period
-- a calculated value is treated as a directly stated value
-- citations survive in prose but not in structured runtime state
-- evaluator score improvements come from brittle benchmark-specific rules
-- stale compatibility fields override the canonical calculation trace
+- wrong row, subtotal, segment, entity, or reporting period
+- calculated value presented as if it were directly stated
+- citation preserved in prose but missing from structured runtime state
+- stale compatibility fields overriding the canonical calculation trace
+- benchmark improvements caused by brittle question-specific runtime rules
 
-This project treats those failures as runtime contract problems. The goal is not
-just to generate a plausible answer, but to expose the evidence, calculation
-trace, critic decision, and benchmark/review gate that explain why the answer
-was accepted.
+This project treats those as **runtime contract failures**. An accepted answer
+must expose the evidence, operands, formula, critic decision, and gate result
+that justify it.
 
-## What The System Builds
+## Runtime Shape
 
 ```text
 User question
@@ -33,114 +37,65 @@ User question
   -> Final answer + task_artifact_trace
 ```
 
-The runtime uses shared ledger-style state instead of free-form agent chat:
+Shared state is typed rather than free-form chat:
 
 - `tasks`: planned work and ownership
-- `artifacts`: typed outputs such as operand sets, calculation plans, results,
-  retrieval bundles, reflection reports, critic reports, and aggregated answers
+- `artifacts`: operand sets, calculation plans/results, retrieval bundles,
+  reflection reports, critic reports, aggregated answers
 - `evidence_pool`: source-grounded evidence records
-- `critic_reports`: acceptance/rejection reports with target refs and reasons
-- `task_artifact_trace`: compact integrity projection for callers and reviewers
+- `critic_reports`: verdicts, target refs, reasons, and blocking issues
+- `task_artifact_trace`: compact integrity projection for callers/reviewers
 
-## Key Engineering Decisions
+## Design Claims
 
-### LLMs For Semantics, Code For Execution
-
-LLMs can help interpret intent, concepts, and narrative context. Deterministic
-code owns arithmetic, unit handling, dependency binding, dedupe, provenance
-checks, and final acceptance rules.
-
-### Runtime Code Stays Generic
-
-DART and financial-domain vocabulary belongs in ontology, retrieval policy,
-config, or reviewed data artifacts. Runtime control flow implements generic
-mechanisms such as required operands, evidence coverage, target refs, and
-artifact integrity.
-
-### Numeric Answers Are Structured Artifacts
-
-Numeric paths publish `answer_slots`, `structured_result`, and
-`resolved_calculation_trace`. Answer text is the presentation layer; the
-contract is the structured trace.
-
-### Critic Acceptance Is Not A Score Threshold
-
-Runtime critic acceptance is based on verdict, target refs, acceptance reasons,
-and blocking issues. Rejected critic reports block final close even when a
-diagnostic score is high, and the rejection reasons are surfaced to planner
-feedback and smoke summaries.
-
-### Reflection Is A Bounded Capability
-
-Self-reflection is modeled as `ReflectionRequest -> ReflectionPlan ->
-ReflectionAction -> ReflectionReport`. Retry preparation records the report as a
-`reflection_report` artifact on a `reflection` task, so reviewers can inspect
-what action was proposed without giving reflection authority to accept final
-answers.
-
-### Report Cache Is Candidate-Only
-
-Report-scoped cache work is intentionally staged. The repo can inspect local
-cache-index candidates, validate rehydration/projection contracts, and provide a
-reviewer handoff summary, but cache serving, cache writes, ledger insertion, and
-retrieval bypass remain disabled.
-
-## Portfolio Entry Points
-
-| Document | Purpose |
+| Claim | Concrete repo surface |
 | --- | --- |
-| [docs/overview/project_status.md](docs/overview/project_status.md) | Current implementation and gate status |
-| [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | One-page portfolio summary |
-| [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | Problem, experiment design, quantitative comparison, and interpretation |
-| [docs/overview/portfolio_readme_blueprint.md](docs/overview/portfolio_readme_blueprint.md) | Suggested README/story structure |
-| [docs/overview/portfolio_presentation_outline.md](docs/overview/portfolio_presentation_outline.md) | Interview or presentation slide outline |
-| [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | Fixture-backed demo output and reviewer notes |
-| [docs/overview/codebase_map.md](docs/overview/codebase_map.md) | Codebase ownership and execution map |
-| [docs/overview/question_trace_walkthrough.md](docs/overview/question_trace_walkthrough.md) | Example question trace |
-| [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | Deeper technical notes |
-| [docs/architecture/agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md) | Runtime and MAS contract |
-| [docs/architecture/report_cache_capability_contract.md](docs/architecture/report_cache_capability_contract.md) | Disabled report-cache capability boundary |
-| [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | Benchmark and review gate notes |
+| LLMs handle semantics; code handles execution | arithmetic, unit handling, dependency binding, dedupe, validation, and final acceptance are deterministic |
+| Numeric answers are structured artifacts | `answer_slots`, `structured_result`, `resolved_calculation_trace` |
+| Domain terms stay out of runtime branches | vocabulary belongs in ontology, retrieval policy, config, or reviewed data |
+| Agent handoff is inspectable | `tasks`, `artifacts`, `critic_reports`, `task_artifact_trace` |
+| Reflection is bounded | `ReflectionRequest -> ReflectionPlan -> ReflectionAction -> ReflectionReport` |
+| Cache is candidate-only | serving, writes, retrieval bypass, and ledger insertion remain disabled |
+
+See [docs/overview/documentation_claim_boundaries.md](docs/overview/documentation_claim_boundaries.md)
+for terminology and novelty boundaries.
 
 ## Representative Case
 
-The latest focused close-out is `KAB_T1_066`, a CIR ratio question that
-previously exposed three common financial-RAG failures at once:
+`KAB_T1_066` is the compact close-out case. It exposed three financial-RAG
+failures at once:
 
-- a plausible but wrong denominator row could be selected from a different
-  financial statement surface
-- a guard against calculated aggregate values could falsely reject a metric
-  label containing an operation-like substring
-- final prose could preserve the right percentage while displaying a component
-  from a stale lookup projection instead of the canonical calculation trace
+- plausible but wrong denominator row from another financial statement surface
+- direct-support guard over-blocking a correct value because an operation-like
+  token appeared inside the metric label
+- final prose using stale component display instead of the calculation trace
 
-The current runtime answers:
+Current answer:
 
 ```text
 2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
 ```
 
 Both operands are resolved from
-`IV. 이사의 경영진단 및 분석의견::table:3`, and the verified store-fixed
-eval-only run reports numeric `PASS`, faithfulness `1.000`, completeness
-`1.000`, context recall `1.000`, retrieval hit@k `1.000`, and grounded
-rendering correctness `1.000`. The fanout audit for that run recorded `2`
-executed queries, `0` duplicate executed queries, `8` agent LLM calls, and an
-estimated runtime cost of `$0.056292`.
+`IV. 이사의 경영진단 및 분석의견::table:3`. The verified store-fixed eval-only
+run reports numeric `PASS`, faithfulness/completeness/context recall/retrieval
+hit@k/grounded rendering correctness all `1.000`, `2` executed queries, `0`
+duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
+`$0.056292`.
 
-## Repository Guide
+## Quick Review Path
 
-```text
-src/
-  agent/       runtime graph, MAS nodes, task/artifact contracts
-  config/      ontology, retrieval policy, cache classification
-  ops/         evaluator, benchmark runner, smoke/review commands
-  processing/  DART parsing and chunk preparation
-  storage/     vector/BM25 storage and retrieval support
-tests/         contract and regression tests
-docs/          architecture, evaluation, planning, and portfolio notes
-benchmarks/    profiles and local result bundles
-```
+| Step | Document / command | Purpose |
+| --- | --- | --- |
+| 1 | `python -m src.ops.portfolio_review_gates` | aggregate ready/not-ready reviewer gate |
+| 2 | `python -m src.ops.portfolio_demo` | compact answer/evidence/trace/integrity demo |
+| 3 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
+| 4 | [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | problem, method, results, failure analysis |
+| 5 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | core technical claims |
+| 6 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | fixture-backed demo details |
+
+Everything else is appendix or internal log. Start with
+[docs/README.md](docs/README.md) for the full document map.
 
 ## Representative Checks
 
@@ -156,25 +111,9 @@ benchmarks/    profiles and local result bundles
 .\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
 ```
 
-The report-cache reviewer command should report:
-
-- `status = ok`
-- `reviewer_handoff.status = ready`
-- `reviewer_handoff.mode = candidate_only`
-- `retrieval_bypass_enabled = false`
-- `write_enabled = false`
-- `serving_enabled = false`
-- `ledger_insertion_enabled = false`
-
-The portfolio demo command should report `Readiness: ready` and show the final
-answer, citations, calculation trace, task/artifact integrity summary, critic
-acceptance, and cache reviewer handoff in one compact terminal view. See
-[docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md).
-The portfolio review gates command should report aggregate `status = ready`
-when the demo, cache reviewer, and reflection promotion gates all pass.
-The report-cache promotion evidence gate should report fixture plus trace
-summary coverage, with ready and fallback cases and disabled serving,
-retrieval-bypass, ledger-insertion, and final-acceptance flags.
+`portfolio_review_gates` should report aggregate `status = ready`. The cache
+reviewer path should remain `candidate_only` with retrieval bypass, writes,
+serving, and ledger insertion disabled.
 
 ## Current Status
 
@@ -182,24 +121,13 @@ Implemented and validated:
 
 - section/table-aware retrieval and structured numeric traces
 - source-visible ratio operand recovery from coherent table context
-- MAS skeleton with Orchestrator, Analyst, Researcher, Critic, and final merge
+- MAS skeleton with Orchestrator, Analyst, Researcher, Critic, and merge
 - task/artifact integrity projection and final close blocking
 - critic runtime acceptance boundary and rejection feedback surface
-- bounded self-reflection request/action/report handoff through the ledger
-- reflection promotion gate with report-contract checks for budget, target refs,
-  stop blocking issues, and final acceptance authority
-- candidate-only report-cache reviewer handoff with bypass, writes, serving,
-  and ledger insertion disabled
-- code-backed report-cache producer policy that maps future cache-derived
-  candidates to the existing calculation task/artifact contract
-- fixture plus trace-summary report-cache promotion evidence gate for ready,
-  incomplete, and ambiguous local-index entries without enabling cache behavior
-- fixture-backed portfolio demo command for answer, evidence, trace, integrity,
-  critic, and cache handoff surfaces
-- aggregate portfolio review gate bundle for demo, cache, and reflection
-  promotion proof
-- runtime domain-term audit to keep domain vocabulary out of runtime branches
-- focused KAB CIR close with source-visible operands and grounded rendering
+- bounded reflection request/action/report handoff through the ledger
+- candidate-only report-cache reviewer handoff
+- aggregate portfolio review gate bundle
+- runtime domain-term audit
 
 Intentionally disabled:
 
@@ -209,23 +137,21 @@ Intentionally disabled:
 - LLM critic as an acceptance authority
 - benchmark-specific runtime routing branches
 
-## Reviewer Path
+Internal logs such as [docs/overview/project_status.md](docs/overview/project_status.md),
+[docs/history/experiment_history.md](docs/history/experiment_history.md), and
+[docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) are preserved
+for traceability, but they are not first-read portfolio documents.
 
-For a quick review:
+## Repository Guide
 
-1. Run `python -m src.ops.portfolio_review_gates` to confirm the aggregate
-   reviewer proof bundle.
-2. Run `python -m src.ops.portfolio_demo` to scan the answer, citation,
-   calculation, integrity, critic, and cache-handoff surfaces.
-3. Read [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md)
-   for the concise engineering story.
-4. Use [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
-   for the problem, method, quantitative comparison, and failure analysis.
-
-The current reviewer claim is narrow: canonical runtime state is carried by
-typed traces and artifacts, reflection retry decisions are recorded as bounded
-handoff reports, `REFERENCE_NOTE` traversal remains Researcher graph-expansion
-context rather than cache serving, promotion trace summaries are checked for
-material source/action/fallback diversity before expansion, and legacy
-calculation/debug mirrors are optional compatibility bridges that are not
-seeded into new live runs.
+```text
+src/
+  agent/       runtime graph, MAS nodes, task/artifact contracts
+  config/      ontology, retrieval policy, cache classification
+  ops/         evaluator, benchmark runner, smoke/review commands
+  processing/  DART parsing and chunk preparation
+  storage/     vector/BM25 storage and retrieval support
+tests/         contract and regression tests
+docs/          reviewer docs, architecture appendix, evaluation/internal logs
+benchmarks/    profiles and local result bundles
+```

@@ -1,476 +1,219 @@
 # Technical Highlights
 
-이 문서는 프로젝트를 빠르게 훑을 때 먼저 봐야 할 핵심 기술 포인트를 요약한다.
+이 문서는 reviewer-facing 핵심 기술 요약이다. 상세 실험 로그는
+[project_status.md](project_status.md),
+[../evaluation/benchmarking.md](../evaluation/benchmarking.md),
+[../history/experiment_history.md](../history/experiment_history.md)에 둔다.
 
-현재 이 저장소는 단순한 DART QA 앱보다, **DART 도메인 위에서 multi-agent financial analysis system을 설계/검증하는 실험 프로젝트**로 읽는 것이 맞다.  
-아래 기술 포인트들은 그 MAS 실험의 기반 자산이다.
+독자는 RAG, embedding retrieval, agent workflow, grounding/evaluation에
+익숙하다고 가정한다. `neuro-symbolic`, `ontology`, `grounding`,
+`agentic` 같은 용어는 repo의 구체적인 state field, policy file, evaluator,
+gate와 연결해서만 사용한다.
 
-## 0. 강한 single-agent 자산을 MAS building block으로 재사용한다
+## 1. Structure-Aware DART Ingestion
 
-이 프로젝트는 처음부터 MAS로 시작한 것은 아니다. 먼저 아래 자산을 단단하게 만들었다.
+일반 웹문서 splitter 대신 DART XML의 문서 구조를 복원한다.
 
-| 자산 | 앞으로의 역할 |
-| --- | --- |
-| structure-aware parser | 공통 retrieval substrate |
-| hybrid retrieval + graph expansion | Analyst / Researcher 공용 retrieval layer |
-| formula planner + safe AST | Analyst core |
-| operand grounding evaluator | Critic / evaluator core |
-| benchmark / replay infra | offline scorecard / regression layer |
+핵심 surface:
 
-즉 현재 방향은 “새 MAS를 백지에서 다시 짠다”가 아니라,  
-**이미 검증된 single-agent 자산을 role-separated MAS로 이식하는 것**이다.
-
-## 0-1. 병렬 worker + critic loop + merge를 갖춘 walking MAS skeleton을 실제로 개통했다
-
-최근에는 single-agent 자산을 설명용으로만 두지 않고, 실제 MAS topology 안으로 이식했다.
-
-핵심 포인트:
-
-- `Orchestrator_Plan -> Analyst / Researcher -> Critic -> Orchestrator_Merge`
-- communication은 자유 채팅이 아니라 `tasks`, `artifacts`, `evidence_pool`, `critic_reports` 기반 task ledger
-- real-store smoke 기준
-  - Analyst migration: `numeric_result_match_rate = 1.000`
-  - Researcher migration: `citation_match_rate = 1.000`, `critic_pass_rate = 1.000`
-  - E2E MAS smoke: mixed-intent 질의 `2/2`에서 최종 report 생성, `1/2`에서 critic-triggered analyst retry 관측
+- `SECTION-*`, `TITLE`, `P`, `TABLE`, `TABLE-GROUP` parsing
+- `section_path`, block type, table context metadata
+- high-value section에만 보수적인 `local_heading` 복원
+- wide table의 `column_window`, `row_window`, `column_row_window` split
+- narrative-heavy table row의 추가 split
 
 의미:
 
-- 이 프로젝트는 더 이상 “MAS를 설계할 예정”인 상태가 아니라,
-  **실제 worker migration과 critic loop까지 개통된 walking skeleton**을 갖고 있다.
-- 이후 Researcher/Orchestrator 품질 튜닝은 모두 이 E2E baseline 위에서 delta로 측정할 수 있다.
+- 공시 문서는 표, 섹션, 주석 문맥이 답의 일부다.
+- retrieval chunk가 semantic하게 비슷해도 row/period/table context가 틀리면
+  numeric QA는 실패한다.
 
-## 1. 비표준 공시 문서를 구조적으로 읽는 ingestion
+## 2. Value-Cell-First Table Metadata
 
-이 프로젝트는 일반 웹 문서를 대상으로 한 splitter 대신, DART XML의 구조를 직접 해석하는 parser를 사용한다.
+표를 row text로만 펴지 않고, 값 셀 중심의 structured metadata로 정규화하는
+방향으로 이동했다.
 
-핵심 포인트:
+핵심 surface:
 
-- `SECTION-*`, `TITLE`, `P`, `TABLE`, `TABLE-GROUP`를 직접 파싱
-- section path, block type, table context를 retrieval metadata로 유지
-- chunking을 문자 길이보다 **문서 구조 보존** 중심으로 설계
-
-의미:
-
-- 공시 문서처럼 표와 문단, 섹션 경계가 중요한 도메인에서 retrieval 품질과 citation 품질을 동시에 확보하기 위한 결정이다.
-
-## 1-1. raw XML을 직접 LLM에 주지 않고, high-value section만 soft heading으로 정규화한다
-
-최근 확인된 핵심 문제는 DART 원문이 항상 nested `SECTION-*`로 하위 구조를 주지 않는다는 점이다.
-
-핵심 포인트:
-
-- `IV. 이사의 경영진단 및 분석의견`의 하위 제목들은 `SECTION-*`가 아니라 bold `SPAN` 내부에 묻혀 있음
-- parser는 `SECTION-* + TITLE(ATOC="Y")`의 canonical `section_path`를 유지하고,
-  `local_heading`은 LLM 안내용 soft metadata로만 복원한다
-- high-value section만 보수적으로 heading을 복원해
-  - `3. 재무상태 및 영업실적 > 나. 영업실적`
-  - `[클라우드] > (가) 영업 개요`
-  같은 문맥 라벨을 준다
-- low-value corporate/governance section은 coarse section 단위로 남겨 오탐 heading을 줄인다
+- parser가 `table_value_records_json` 생성
+- 각 값 셀에 `semantic_label`, `row_headers`, `column_headers`,
+  `aggregate_label`, `aggregate_role`, `period_text`, `unit_hint` 저장
+- unit-only standalone table을 다음 실제 표의 context hint로 승격
+- runtime은 value record에서 `structured_value` reconciliation candidate를
+  만들고 direct operand extraction에 사용
 
 의미:
 
-- 문제의 본질은 “LLM이 XML을 못 읽는다”보다, **invalid XML-like markup와 과한 hidden-heading 복원이 동시에 parser를 복잡하게 만든다**는 데 있다.
-- 따라서 parser는 raw source를 직접 고치지 않고 sanitize를 먼저 적용하고,
-  high-value section만 soft heading으로 복원하는 단순한 RAG-friendly contract를 택한다.
+- merged header / multi-period note table에서 row label만으로는 부족하다.
+- 현재 claim은 "cell-level embedding"이 아니라 **value-cell-first structured
+  metadata**다.
 
-## 1-2. 대형 표는 full-table 하나로 두지 않고 column/row/narrative split을 함께 쓴다
+## 3. LLM Semantics, Deterministic Execution
 
-공시 주석의 표는 단순 row split만으로는 충분하지 않았다.
+숫자 질문은 free-form generation이 아니라 계획, 근거, 실행, 렌더링을 분리한다.
 
-핵심 포인트:
+핵심 surface:
 
-- wide table은 먼저 `column window`로 자른다
-- 그래도 크면 `row split`을 추가 적용한다
-- `1. 분할방법 | 아주 긴 설명 ...` 같은 서술형 표 row는
-  - header로 오판하지 않고
-  - 값 셀 안의 `(1)`, `(2)` 같은 번호를 기준으로 추가 분할한다
-- chunk metadata에 `table_view`를 남겨
-  - `full`
-  - `row_window`
-  - `column_window`
-  - `column_row_window`
-  를 구분한다
+- LLM: intent, concept, narrative meaning, formula planning support
+- code: arithmetic, unit handling, dependency binding, dedupe, ordering,
+  validation
+- numeric state: `answer_slots`, `structured_result`,
+  `resolved_calculation_trace`
+- execution path: `formula planner -> safe AST calculator -> grounded renderer`
 
-의미:
+Retrospective numeric-only architecture comparison:
 
-- 이 프로젝트의 table handling은 “표를 텍스트로만 펴서 넣는다”가 아니라,
-  **numeric retrieval에 필요한 구조는 유지하면서 oversized chunk를 줄이는 width-aware / narrative-aware splitting**으로 발전했다.
-- 실제로 POSCO 대형 표의 `5985` char chunk는 이 단계에서 해소됐다.
-
-## 1-3. 표 해석은 row-first/column-first를 넘어서 value-cell-first 계약으로 이동 중이다
-
-최근 wide note table 문제를 해결하면서, 표를 row candidate와 column candidate로 따로 특수처리하는 대신
-**값 셀 하나를 중심으로 의미를 복원하는 `structured_value` 경로**를 추가했다.
-
-핵심 포인트:
-
-- parser가 `table_value_records_json`을 생성한다
-- 각 값 셀마다
-  - `semantic_label`
-  - `row_headers`
-  - `column_headers`
-  - `aggregate_label`
-  - `aggregate_role`
-  - `period_text`
-  - `unit_hint`
-  를 저장한다
-- `TBODY` 내부 `TE` 셀도 실제 value cell로 읽는다
-- `(단위 : 백만원)` 같은 unit-only standalone table은 다음 실제 표의 context hint로 승격한다
-- runtime은 이 value record에서 `structured_value` reconciliation candidate를 만들고 direct operand extraction에 바로 사용한다
+| Path | Strict correctness |
+| --- | ---: |
+| direct LLM calculation baseline | `0.556` |
+| formula planner + AST executor | `1.000` |
 
 의미:
 
-- debt note처럼 merged-header가 많은 wide table도 더 이상 row label만 보고 읽지 않는다.
-- 여전히 완전한 일반화는 남아 있지만, **표 처리 계약이 row/column heuristic에서 value-cell-first 정규화로 이동하기 시작했다**는 점이 중요하다.
+- `neuro-symbolic`은 새 알고리즘 이름이 아니라, LLM semantic planning과
+  deterministic numeric execution의 역할 분리를 설명하는 shorthand다.
+- arithmetic hallucination을 "완전히 제거"했다고 주장하지 않고, 산술/단위
+  실행을 free-form generation 밖으로 옮겼다고 설명한다.
 
-## 2. retrieval granularity와 reasoning context를 분리한 parent-child retrieval
+## 4. Required-Operand Grounding
 
-검색은 child chunk로 하고, 답변은 parent section을 우선 컨텍스트로 삼는다.
+재무 비율/차이/증감률은 최종 숫자만 맞아도 충분하지 않다. 필요한 operands가
+올바른 source/table/period에서 왔는지 검증해야 한다.
 
-핵심 포인트:
+핵심 surface:
 
-- child chunk는 검색 정밀도 확보
-- parent section은 answer generation의 맥락 안정화
-- contextual ingest는 child chunk 앞에 설명용 context를 붙여 retrieval 신호를 보강
+- reconciliation candidates: `chunk`, `structured_row`, `table_row`,
+  `evidence_row`, `structured_value`
+- scoring signals: row label match, statement type, period, scope, table
+  source, numeric value signal
+- same-table current/prior pairing
+- source-visible display preservation
+- fallback보다 direct numeric grounding을 우선하는 lookup/difference/ratio
+  contracts
 
-의미:
+KAB CIR repair에서 닫힌 failure:
 
-- “잘 찾는 것”과 “잘 설명하는 것”의 요구가 다르다는 점을 구조로 분리한 설계다.
+- denominator가 다른 financial statement surface의 plausible row로 묶임
+- operation-like substring이 metric label 안에 있어 correct lookup이
+  over-blocked됨
+- calculation trace는 맞지만 final prose가 stale lookup display를 사용함
 
-## 3. answer generation을 evidence compression 문제로 재정의
-
-이 프로젝트의 핵심 전환점은 answer generation을 자유 생성에서 evidence compression으로 다시 정의한 것이다.
-
-현재 구조:
-
-```text
-retrieve
-  -> build_structured_evidence
-  -> compress
-  -> validate
-  -> cite
-```
-
-핵심 포인트:
-
-- runtime evidence를 structured object로 기록
-- `selected_claim_ids`, `kept_claim_ids`, `dropped_claim_ids`, `unsupported_sentences`를 결과물에 남김
-- validator가 unsupported / redundant / overextended 문장을 후단에서 걸러낼 수 있게 함
-
-의미:
-
-- 답변이 왜 그렇게 나왔는지 설명 가능하게 만들고, benchmark tuning을 넘어 agent의 controllability를 높이기 위한 방향이다.
-
-## 4. 숫자 질문은 generic judge에서 분리
-
-`300조 8,709억원`과 `300,870,903 백만원`은 같은 값이지만, generic `faithfulness` judge는 이를 종종 false fail로 처리한다.
-
-그래서 숫자 질문은 별도 evaluator path로 분리했다.
-
-핵심 포인트:
-
-- `numeric_equivalence`
-- `numeric_grounding`
-- `numeric_retrieval_support`
-- `numeric_final_judgement`
-- `absolute_error_rate`
-- `calculation_correctness`
-
-의미:
-
-- 하나의 LLM judge에 모든 채점을 맡기지 않고, 숫자 동치성 / grounding / retrieval support를 병렬로 해석하는 방향이다.
-- retrospective evaluator 실험에서 `operand grounding` 판정으로 바꾼 뒤, human-correct positive set 기준 false negative rate를 `12.5% -> 0.0%`로 줄였다.
-
-## 4-1. 계산은 LLM에게 맡기지 않고 planner/executor로 분리
-
-단순 RAG에서 LLM이 직접 계산까지 하게 두면, retrieval이 충분해도 단위/표현/부호 처리에서 흔들리는 경우가 반복됐다.
-
-핵심 포인트:
-
-- direct-calc baseline은 같은 retrieval evidence를 주고 LLM에게 바로 계산/답변을 시킴
-- proposed path는 `formula planner -> safe AST calculator -> grounded renderer`
-- retrospective architecture 실험에서 numeric-only 9문항 기준:
-  - direct calc strict correctness: `0.556`
-  - formula planner + AST strict correctness: `1.000`
-
-의미:
-
-- 이 프로젝트의 계산 경로는 단순한 prompt tuning이 아니라, **LLM의 역할을 “수식/답안 계획”으로 제한하고 실행은 symbolic engine으로 넘기는 neuro-symbolic 분리**라는 점이 정량적으로 입증됐다.
-
-## 4-2. numeric reconciliation은 deterministic scoring을 기본으로 하고, 애매한 top candidate만 LLM이 보조 판정한다
-
-최근 병목은 retrieval miss 자체보다, retrieval 이후 어떤 row/chunk를 실제 operand 후보로 채택하느냐에 더 가까웠다.
-
-핵심 포인트:
-
-- reconciliation candidate는 `chunk`, `structured_row`, `table_row`, `evidence_row`로 구분한다
-- 점수는
-  - row label exact/partial match
-  - statement type
-  - 연결/별도
-  - 기간
-  - table source
-  - numeric value signal
-  을 합쳐 deterministic하게 계산한다
-- `범위`, `하위범위`, `상위범위` 같은 descriptor structured row는 penalty를 준다
-- `유형자산`, `무형자산`, `자산총계`, `부채총계`, `자본총계` 계열은 `summary_financials / balance_sheet` row를 더 강하게 우대한다
-- single-year query는 `current` period focus로 해석해 `당기` aggregate가 `전기` aggregate보다 앞서도록 보정한다
-- `LLM rerank`는 top candidate가 애매할 때만 보조적으로 호출한다
-
-추가로 최근에는 direct-first numeric close를 위해 다음이 더해졌다.
-
-- raw `table_row` candidates are retained even when `table_row_records_json` or
-  `table_value_records_json` already exists
-- `lookup` and same-concept `difference` tasks can require direct numeric
-  grounding and skip generic context fallback
-- acceptance contract is not score-only:
-  - surrogate metrics can be rejected even if they look numerically plausible
-  - split same-table rows can be paired into `current` / `prior` operands
-- aggregate projection now preserves subtask `runtime_evidence`, which closed
-  evaluator `numeric_retrieval_support` for `NAV_T1_071`
-
-## 4-2-1. ratio는 값만 맞추지 않고 source-visible component display까지 검증한다
-
-최근 `KAB_T1_066` CIR repair는 numeric tolerance만으로는 부족하다는 점을
-보여준다.
-
-핵심 포인트:
-
-- wrong row: denominator가 다른 재무제표 surface의 plausible row로 묶이면
-  ratio는 크게 틀리지만 답변 구조는 그럴듯해 보인다
-- over-blocking: aggregate-result guard가 metric label 내부의 operation-like
-  substring을 보고 correct lookup을 reject할 수 있다
-- stale display: 계산 trace가 맞아도 final prose가 이전 lookup projection의
-  display를 가져오면 grounded rendering이 깨진다
-
-현재 contract:
-
-- numeric lookup direct-support는 LLM prompt context와 source/evidence
-  surface를 함께 본다
-- aggregate token은 left-boundary를 확인해 explicit operation phrase와 metric
-  label 내부 substring을 구분한다
-- ratio dependency outputs가 이미 operands를 채웠더라도, retrieved/seed docs
-  안의 한 table/context가 모든 required operands를 직접 제공하면 그 coherent
-  rows를 우선한다
-- final answer는 result percent만 보지 않고 resolved calculation trace의
-  component display와 맞지 않으면 compact ratio answer를 다시 만든다
-
-결과 예:
+최종 answer:
 
 ```text
 2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
 ```
 
-두 operand 모두 `IV. 이사의 경영진단 및 분석의견::table:3`에서 온다. 이
-변경은 KAB 전용 rule이 아니라 provenance, coherent operand selection, rendering
-contract를 강화한 것이다.
+두 operand 모두 `IV. 이사의 경영진단 및 분석의견::table:3`에서 온다.
 
-## 4-3. planner는 metric recipe보다 concept 조합과 재료 수집 쪽으로 이동 중이다
+## 5. Artifact-Ledger Agent Runtime
 
-최근 ontology / planner 정리는 “질문 하나마다 metric family를 늘리는” 방향을
-줄이고, concept-only ontology와 operation-based planner로 옮겨가는 데 초점이
-있다.
+agentic workflow는 자유 채팅 transcript가 아니라 typed ledger state로 유지한다.
 
-핵심 포인트:
+핵심 surface:
 
-- ontology v3 draft는 `metric_families`보다:
-  - `concepts`
-  - `concept_groups`
-  - statement / section prior
-  - binding prior
-  중심으로 구성된다
-- planner는 질문을:
-  - `lookup`
-  - `sum`
-  - `difference`
-  - `ratio`
-  - `growth_rate`
-  같은 제한된 operation과 concept operand 집합으로 분해한다
-- implicit query도 LLM concept planner가 처리하고, validator는 허용 concept /
-  operation / role contract만 얇게 검사한다
-- `유·무형자산`, `차입금` 같은 DART 공통 shorthand는 group concept을 통해
-  explicit operand set으로 확장한다
+- `Orchestrator -> Analyst / Researcher -> Critic -> Merge`
+- shared state: `tasks`, `artifacts`, `evidence_pool`, `critic_reports`,
+  `task_artifact_trace`
+- `Analyst`: numeric extraction, formula planning, calculation
+- `Researcher`: narrative/context retrieval
+- `Critic`: grounding, target refs, acceptance reasons, blocking issues
+- `Orchestrator`: decomposition and final merge
 
 의미:
 
-- ontology가 benchmark answer book이 되는 것을 막고,
-- planner가 unseen numeric question을 explicit concept composition으로 풀 수
-  있게 한다는 점이 중요하다.
+- agent handoff는 "agent가 생각했다"가 아니라 artifact contract로 검토된다.
+- final answer text는 presentation layer이고, reviewer-facing contract는 trace와
+  artifact integrity다.
 
-## 4-4. 최종 답변 completeness는 planner가 아니라 final synthesizer가 책임진다
+## 6. Bounded Reflection And Critic Acceptance
 
-최근 numeric path는 “planner가 답변 문장을 설계한다”보다,
-“planner가 필요한 재료를 모두 모으고 final synthesizer가 원본 질문을 충족하는
-답을 조합한다”는 쪽으로 경계가 바뀌고 있다.
+retry/reflection은 final answer authority가 아니라 budgeted handoff artifact다.
 
-핵심 포인트:
+핵심 surface:
 
-- planner는 raw value task와 derived calculation task를 함께 만들 수 있다
-- `aggregate_subtasks`는 원본 질문과 `subtask_results`를 함께 읽고 최종 답을 쓴다
-- 재료가 부족하면 synthesizer가 `planner_feedback`를 남기고, 같은
-  `pre_calc_planner`를 replan mode로 다시 태운다
-- replan budget을 모두 써도 부족하면 aggregate 단계가 partial answer 또는
-  최종 refusal을 사용자-facing 형태로 확정한다
+- `ReflectionRequest -> ReflectionPlan -> ReflectionAction -> ReflectionReport`
+- `reflection_report` artifact records retry action, budget use, targets, and
+  blocking issues
+- critic acceptance checks verdict, target refs, reasons, and blocking issues
+- rejected critic reports can block final close even when a diagnostic score is
+  high
 
 의미:
 
-- local calculator failure와 최종 refusal을 분리해,
-  multi-step numeric 질문에서 복구 여지를 유지할 수 있다.
+- generic Reflexion/ReAct claim이 아니라, bounded retry contract다.
+- LLM critic은 아직 final acceptance authority로 쓰지 않는다.
+
+## 7. Evaluation Is Trace-Based
+
+RAGAS-style metrics are useful as generic baseline signals, but this project
+needs numeric QA metrics that inspect internal runtime state.
+
+핵심 metrics:
+
+- `numeric_equivalence`
+- `numeric_grounding`
+- `numeric_retrieval_support`
+- `numeric_final_judgement`
+- `calculation_correctness`
+- faithfulness / completeness / context recall / retrieval hit@k
+- task/artifact integrity
+- critic acceptance
+- grounded rendering correctness
 
 의미:
 
-- reconciliation을 전부 LLM에 맡기지 않고, **대부분은 deterministic ranking으로 처리하고 hard case만 LLM으로 보정하는 hybrid policy**를 채택했다.
-- 이는 비용과 재현성을 유지하면서도 `structured row > chunk` 원칙을 더 안정적으로 강제하기 위한 결정이다.
+- final answer exact match만으로는 wrong operand, wrong unit, stale display를
+  잡기 어렵다.
+- evaluator는 operands, formula, source references, and rendered displays를
+  함께 본다.
 
-## 4-3. runtime/evaluator는 top-level `calculation_*`를 source of truth로 보지 않고 ledger projection으로 다시 읽는다
+## 8. Structural Selective Ingestion For Cost/Quality
 
-multi-subtask numeric path에서는 마지막 subtask의 계산 흔적만 top-level에 남는 문제가 있었다.
+LLM-written chunk context를 많이 붙이는 것이 유일한 해법은 아니다.
 
-핵심 포인트:
+비교 해석:
 
-- runtime은 `tasks`, `artifacts`, `subtask_results`를 함께 기록한다
-- evaluator는 top-level `calculation_*`를 그대로 읽지 않고,
-  - single-task면 `tasks + artifacts`
-  - multi-subtask면 `subtask_results`
-  에서 operand/plan/result를 다시 투영한다
-- aggregate path에서는 `aggregate_subtasks` mode의 calculation projection을 별도로 만든다
+| Method | Role | Interpretation |
+| --- | --- | --- |
+| `plain_prefix_8000_400` | speed/cost baseline | representative runtime-contract row를 놓침 |
+| `contextual_selective_v2_prefix_2500_320` | historical quality baseline | quality reference지만 selected chunks에 LLM-written context 필요 |
+| `structural_selective_v2_prefix_2500_320` | current operating default | deterministic structural prefix로 gate 품질 유지 |
 
-의미:
+핵심 surface:
 
-- 이 프로젝트는 legacy `calculation_*` 필드를 완전히 지우진 않았지만, **이미 source of truth에서 projection 계층으로 강등하는 방향**으로 이동 중이다.
-- 포트폴리오 관점에서는 “최종 답뿐 아니라 multi-step calculation trace도 artifact ledger 기준으로 복원한다”는 점이 중요하다.
-
-## 5. 평가를 먼저 고정하고 시스템을 바꾸는 방식
-
-최근 방향 전환의 핵심은 “시스템을 더 고치기 전에 평가 기준을 먼저 고정한다”는 것이다.
-
-핵심 포인트:
-
-- 삼성전자 2024 사업보고서 기준 single-document Golden Dataset 구축
-- category별 metric 분리
-- `single_document_dev` benchmark profile 추가
-- multi-company benchmark는 그 이후 단계로 후순위화
+- ingest-time prefix markers: `[섹션]`, `[분류]`, `[키워드]`
+- parser/config/policy-managed section/category aliases
+- `statement_type`, `consolidation_scope`, `period_focus`, `table_context`,
+  `table_row_labels_text`
 
 의미:
 
-- retrieval / generation tweak를 계속 쌓는 대신, 무엇을 실제 개선으로 볼지 기준선을 먼저 만든다.
+- 핵심은 semantic summary의 양이 아니라, 어떤 구조 신호를 어떤 chunk와
+  evidence state에 남기느냐다.
 
-## 6. seed retrieval을 싸게 보강하는 zero-cost prefix
+## 9. Runtime/API Cost Control
 
-graph expansion만으로는 잘못 잡힌 seed retrieval을 복구하기 어렵다는 점이 micro benchmark에서 드러났다.
+품질 gate를 유지하면서 query fanout과 provider calls를 관찰/축소한다.
 
-그래서 `plain` 인덱싱에는 LLM 없이도 semantic hint를 주는 `Zero-Cost Prefix`를 도입했다.
+핵심 surface:
 
-핵심 포인트:
+- executed retrieval-query count
+- duplicate query signatures
+- query-embedding calls and input volume
+- LLM call count
+- estimated runtime cost
+- exact-text query embedding cache
+- same-trace duplicate guard
 
-- 원문 앞에 `[섹션]`, `[분류]`, `[키워드]`를 hardcoded 문자열로 삽입
-- `위험관리 및 파생거래 -> 리스크 / 시장위험 / 신용위험 / 유동성위험` 같은 alias를 같이 주입
-- `plain + graph expansion`과 조합해 seed retrieval miss를 줄임
+대표 evidence:
 
-의미:
-
-- `contextual_ingest`처럼 청크마다 LLM 요약을 붙이지 않고도, vocabulary mismatch를 크게 완화할 수 있다.
-- 비용을 거의 0으로 유지하면서도 retrieval recall을 회복하는 **도메인 특화 RAG 엔지니어링 결정**이다.
-
-## 7. 재무 온톨로지로 ratio/percent source miss를 복구
-
-일반 semantic retrieval은 질문에 `매출`, `비중`, `%` 같은 고빈도 단어가 섞이면 `연구개발활동`처럼 정답 row가 있는 section을 놓칠 수 있었다.
-
-핵심 포인트:
-
-- `financial_ontology.json`에 metric family별
-  - `preferred_sections`
-  - `supplement_sections`
-  - `query_hints`
-  를 분리
-- retrieval 단계에서만 ontology hook을 켠 retrospective 실험에서:
-  - `operand_grounding_score` `0.50 -> 1.00`
-  - `calc_success_rate` `0.33 -> 1.00`
-  - `row_candidate_recovery_rate` `0.00 -> 0.67`
-- 특히 `comparison_005`, `comparison_006`에서 `연구개발활동` row를 다시 끌어오며 `insufficient_operands`를 해소
+- KAB CIR final focused run: `2` executed queries, `0` duplicate executed
+  queries, `8` agent LLM calls, estimated runtime cost `$0.056292`
+- policy-gate replay after exact-text embedding cache preserved core metrics at
+  `1.000` while lowering observed query/API pressure
 
 의미:
 
-- 이 프로젝트의 ontology는 단순 라벨링 파일이 아니라, **재무 ratio 질문에서 source miss를 복구하는 retrieval control layer**로 작동한다.
-- 포트폴리오 관점에서는 “semantic search만으로는 부족한 도메인에서, 선언적 도메인 지식으로 operand 회수율을 복구했다”는 스토리를 만든다.
-
-## 8. structural selective ingestion으로 품질-비용 중간 지점을 만든다
-
-`plain + prefix`는 seed retrieval 복구에는 강했지만, 표 내부 의미가 중요한 숫자 질문에서는 한계가 드러났다.
-
-현재 active ingest 비교의 해석은 다음과 같다.
-
-- `plain_prefix_8000_400`
-  - speed / cost baseline
-  - 대표 gate에서 `SKH_T1_060`를 놓친다
-- `contextual_selective_v2_prefix_2500_320`
-  - quality baseline
-  - runtime contract gate와 multi-entity gate를 모두 통과한다
-- `structural_selective_v2_prefix_2500_320`
-  - selective chunk filter는 유지
-  - Gemini-written chunk context는 제거
-  - 대신 section / statement / row-label 기반 structural prefix만 붙인다
-  - 현재 gate 기준으로 품질을 유지하면서 ingest 비용을 크게 줄인 operating candidate다
-
-핵심 포인트:
-
-- `Zero-Cost Prefix`로 seed retrieval vocabulary mismatch 완화
-- `selective_v2` chunk filter로 중요한 구조 chunk만 유지
-- `structural_selective_v2`는 LLM contextualization 없이
-  - `statement_type`
-  - `consolidation_scope`
-  - `period_focus`
-  - `table_context`
-  - `table_row_labels_text`
-  같은 deterministic structural prefix를 붙인다
-- 공식 gate 결과:
-  - `runtime_contract_gate`
-    - `structural_selective_v2`: PASS
-    - `contextual_selective_v2`: PASS
-    - `plain`: FAIL
-  - `multi_entity_grounding_gate`
-    - `structural_selective_v2`: PASS
-    - `contextual_selective_v2`: PASS
-
-의미:
-
-- 무조건 모든 selected chunk에 Gemini context를 붙이지 않아도,
-  구조 prefix만으로 gate 품질을 유지할 수 있다는 점을 보여준다.
-- 따라서 현재 retrieval/ingest 설계의 핵심은 “semantic summary를 얼마나 많이 붙이느냐”가 아니라,
-  **어떤 구조 신호를 어떤 chunk에 남기느냐**에 더 가깝다.
-
-## 9. 비용 통제를 고려한 benchmark 운영
-
-benchmark는 model quality만이 아니라 실험 비용과 반복 속도까지 함께 다룬다.
-
-핵심 포인트:
-
-- `dev_fast` / `release_generalization` 프로파일 분리
-- `Hybrid Cache`
-  - `stores/...`
-  - `context_cache/...`
-- screening -> full evaluation 2단계 운영
-
-의미:
-
-- 실험 비용을 통제하면서도 품질 하한선을 유지하는 실험 운영 구조 자체가 이 프로젝트의 중요한 엔지니어링 결정이다.
-
-## 10. query routing을 retrieval 정책과 분리한 cascade 설계
-
-최근에는 retrieval 품질 저하의 일부 원인이 검색기 자체보다 query routing variance라는 점이 드러났다.
-
-핵심 포인트:
-
-- `query_type` 하나로 모든 정책을 결정하지 않음
-- `intent`
-- `format_preference`
-를 분리해 state로 유지
-- semantic router fast-path
-- few-shot LLM fallback
-- rerank / retrieval block-type 정책은 `format_preference` 기준으로 적용
-
-의미:
-
-- 질문의 의도와 evidence 형식 선호를 분리하면서 table penalty 같은 정책 충돌을 줄인다.
-- 쉬운 질문은 빠르고 저렴하게, 애매한 질문은 fallback으로 정교하게 처리하는 cascade routing은 포트폴리오 관점에서도 설명력이 높은 설계다.
+- 비용 최적화는 evidence를 숨기는 dedupe가 아니라, trace를 유지한 상태에서
+  불필요한 query/API fanout을 줄이는 방향이어야 한다.

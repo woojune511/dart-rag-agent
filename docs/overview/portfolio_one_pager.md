@@ -9,6 +9,14 @@ project focuses on numeric answers that can be traced back to source evidence,
 structured calculation artifacts, and reproducible benchmark gates instead of
 free-form LLM text alone.
 
+## Reader And Claim Boundary
+
+This one-pager assumes the reader already understands RAG, embeddings, agentic
+workflows, and grounding/evaluation terminology. The claim is not a new LLM
+architecture or a general TableQA algorithm; it is a research-engineering system
+for making financial RAG answers inspectable through representation, runtime
+contracts, deterministic numeric execution, and trace-based gates.
+
 ## Problem
 
 General-purpose RAG systems often fail on financial filings for reasons that
@@ -153,5 +161,5 @@ not in a company or benchmark-id branch.
 For a quick review, start with
 [portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md), then scan the
 runtime cleanup row above to understand why stale top-level calculation mirrors
-are no longer treated as the source of truth. For an interview or project
+are no longer treated as canonical state. For an interview or project
 presentation, use [portfolio_presentation_outline.md](portfolio_presentation_outline.md).

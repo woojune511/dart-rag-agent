@@ -4,6 +4,10 @@ This walkthrough shows the smallest reviewer-facing demo for the current
 runtime contract. It is fixture-backed, so it can run without DART downloads,
 vector-store setup, API keys, or benchmark result bundles.
 
+The expected reviewer already understands RAG and agent-workflow basics; the
+demo is meant to expose the runtime contract surfaces rather than teach those
+concepts from scratch.
+
 ## Run It
 
 ```powershell
@@ -42,7 +46,7 @@ contract to look for is:
   not cache serving, retrieval bypass, ledger insertion, or final acceptance
   authority
 - legacy top-level calculation/debug fields are compatibility bridges, not the
-  source of truth for new live runs
+  canonical state for new live runs
 
 ## Expected Output
 
