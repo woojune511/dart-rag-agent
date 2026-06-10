@@ -2517,7 +2517,8 @@ class FinancialAgentCalculationMixin:
         self,
         ordered_results: List[Dict[str, Any]],
     ) -> str:
-        for row in reversed(ordered_results):
+        answer_parts: List[str] = []
+        for row in ordered_results:
             operation_family = self._aggregate_result_operation_family(row)
             if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
                 continue
@@ -2532,11 +2533,9 @@ class FinancialAgentCalculationMixin:
                     continue
                 answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
                 if answer:
-                    return answer
-            if operation_family == "ratio" and self._ratio_component_consolidation_scope(
-                calculation_result,
-                list(row.get("calculation_operands") or []),
-            ):
+                    answer_parts.append(answer)
+                    continue
+            if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
                 answer = self._compact_ratio_answer(
                     {
                         "active_subtask": {
@@ -2551,7 +2550,8 @@ class FinancialAgentCalculationMixin:
                     calculation_result,
                 )
                 if answer:
-                    return answer
+                    answer_parts.append(answer)
+                    continue
             answer = _normalise_spaces(
                 str(
                     calculation_result.get("formatted_result")
@@ -2561,8 +2561,100 @@ class FinancialAgentCalculationMixin:
                 )
             )
             if answer:
-                return answer
-        return ""
+                answer_parts.append(answer)
+        return _normalise_spaces(" ".join(dict.fromkeys(part for part in answer_parts if part)))
+
+    def _numeric_projection_coverage_targets(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> List[str]:
+        targets: List[str] = []
+        for row in ordered_results:
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
+                continue
+            status = _normalise_spaces(
+                str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            if operation_family == "ratio":
+                answer_slots = dict(calculation_result.get("answer_slots") or {})
+                components_by_group = dict(answer_slots.get("components_by_group") or {})
+                numerator_slots = [
+                    item for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)
+                ]
+                denominator_slots = [
+                    item for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
+                ]
+                if (
+                    self._ratio_components_are_complete(calculation_result)
+                    and numerator_slots
+                    and denominator_slots
+                    and (len(numerator_slots) > 1 or len(denominator_slots) > 1)
+                ):
+                    target = self._compact_ratio_answer(
+                        {
+                            "active_subtask": {
+                                "metric_label": row.get("metric_label")
+                                or calculation_result.get("metric_label")
+                                or "",
+                            },
+                            "resolved_calculation_trace": {
+                                "calculation_operands": list(row.get("calculation_operands") or []),
+                                "calculation_plan": dict(row.get("calculation_plan") or {}),
+                                "calculation_result": calculation_result,
+                            },
+                        },
+                        calculation_result,
+                    )
+                else:
+                    target = _normalise_spaces(
+                        str(
+                            calculation_result.get("rendered_value")
+                            or (dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})).get(
+                                "rendered_value"
+                            )
+                            or ""
+                        )
+                    )
+                if target:
+                    targets.append(target)
+                continue
+            if operation_family == "growth_rate":
+                answer_slots = dict(calculation_result.get("answer_slots") or {})
+                target_parts = []
+                for slot_name in ("primary_value", "current_value"):
+                    slot = dict(answer_slots.get(slot_name) or {})
+                    rendered_value = _normalise_spaces(str(slot.get("rendered_value") or ""))
+                    if rendered_value:
+                        target_parts.append(rendered_value)
+                target = _normalise_spaces(" ".join(dict.fromkeys(target_parts)))
+                if target:
+                    targets.append(target)
+                    continue
+            target = _normalise_spaces(
+                str(
+                    calculation_result.get("formatted_result")
+                    or calculation_result.get("rendered_value")
+                    or row.get("answer")
+                    or ""
+                )
+            )
+            if target:
+                targets.append(target)
+        return list(dict.fromkeys(target for target in targets if target))
+
+    def _answer_covers_numeric_projection(
+        self,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        targets = self._numeric_projection_coverage_targets(ordered_results)
+        if not targets:
+            return True
+        return all(self._answer_covers_numeric_answer(answer, target) for target in targets)
 
     def _aggregate_results_include_dependency_numeric_result(
         self,
@@ -3980,6 +4072,25 @@ class FinancialAgentCalculationMixin:
         else:
             tolerance = max(abs(left_value) * 1e-6, 0.5)
         return abs(left_value - right_value) <= tolerance
+
+    def _answer_covers_numeric_answer(
+        self,
+        answer: str,
+        numeric_answer: str,
+    ) -> bool:
+        answer_candidates = self._answer_evidence_numeric_candidates(_normalise_spaces(str(answer or "")))
+        numeric_candidates = self._answer_evidence_numeric_candidates(_normalise_spaces(str(numeric_answer or "")))
+        if not numeric_candidates:
+            return True
+        if not answer_candidates:
+            return False
+        return all(
+            any(
+                self._numeric_candidates_equivalent_for_evidence(answer_candidate, numeric_candidate)
+                for answer_candidate in answer_candidates
+            )
+            for numeric_candidate in numeric_candidates
+        )
 
     def _evidence_text_for_final_support(self, evidence: Dict[str, Any]) -> str:
         metadata = dict(evidence.get("metadata") or {})
@@ -8624,15 +8735,19 @@ class FinancialAgentCalculationMixin:
         if scope and str(scope_prefixes.get(scope) or ""):
             period_prefix = f"{period_prefix}{scope_prefixes[scope]}"
         components_by_group = dict(answer_slots.get("components_by_group") or {})
-        numerator_slot = next(
-            (dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)),
-            {},
-        )
-        denominator_slot = next(
-            (dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)),
-            {},
-        )
-        component_slots = [slot for slot in (numerator_slot, denominator_slot) if slot]
+        numerator_slots = [
+            dict(item)
+            for item in list(components_by_group.get("numerator") or [])
+            if isinstance(item, dict)
+        ]
+        denominator_slots = [
+            dict(item)
+            for item in list(components_by_group.get("denominator") or [])
+            if isinstance(item, dict)
+        ]
+        numerator_slot = numerator_slots[0] if numerator_slots else {}
+        denominator_slot = denominator_slots[0] if denominator_slots else {}
+        component_slots = [*numerator_slots, *denominator_slots]
 
         def _shared_krw_component_unit(slots: List[Dict[str, Any]]) -> str:
             if len(slots) < 2:
@@ -8676,6 +8791,35 @@ class FinancialAgentCalculationMixin:
         denominator_value = _component_value(denominator_slot)
         numerator_label = _display_operand_label(str(numerator_slot.get("label") or ""))
         denominator_label = _display_operand_label(str(denominator_slot.get("label") or ""))
+        if (
+            metric_label
+            and rendered_value
+            and numerator_slots
+            and denominator_slots
+            and (len(numerator_slots) > 1 or len(denominator_slots) > 1)
+        ):
+            def _component_expression(slots: List[Dict[str, Any]]) -> str:
+                terms: List[str] = []
+                for slot in slots:
+                    label = _display_operand_label(str(slot.get("label") or ""))
+                    value = _component_value(slot)
+                    if not (label and value):
+                        continue
+                    terms.append(_normalise_spaces(f"{label} {value}"))
+                return " + ".join(dict.fromkeys(terms))
+
+            numerator_expression = _component_expression(numerator_slots)
+            denominator_expression = _component_expression(denominator_slots)
+            if numerator_expression and denominator_expression:
+                return _normalise_spaces(
+                    str(render_policy.get("ratio_multi_component_answer_template") or "").format(
+                        period_prefix=period_prefix,
+                        metric_label=metric_label,
+                        rendered_value=rendered_value,
+                        numerator_expression=numerator_expression,
+                        denominator_expression=denominator_expression,
+                    )
+                )
         component_template = str(render_policy.get("ratio_component_answer_template") or "")
         if (
             component_template
@@ -13315,6 +13459,34 @@ class FinancialAgentCalculationMixin:
                 )
             else:
                 final_answer = runtime_numeric_answer
+        final_complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+        if (
+            final_complete_numeric_answer
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            and not self._answer_covers_numeric_projection(final_answer, ordered_results)
+        ):
+            refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
+                query=str(state.get("query") or ""),
+                current_answer=final_answer,
+                numeric_answer=final_complete_numeric_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+            final_answer = _normalise_spaces(
+                str(refreshed_answer.get("answer") or final_complete_numeric_answer)
+            )
+            selected_claim_ids = list(
+                dict.fromkeys(
+                    [
+                        *selected_claim_ids,
+                        *[
+                            str(claim_id).strip()
+                            for claim_id in (refreshed_answer.get("selected_claim_ids") or [])
+                            if str(claim_id).strip()
+                        ],
+                    ]
+                )
+            )
         final_answer = self._enforce_source_stated_growth_answer_contract(
             final_answer,
             ordered_results,

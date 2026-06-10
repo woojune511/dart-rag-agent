@@ -126,6 +126,20 @@ class CompositeKrwParsingTests(unittest.TestCase):
         self.assertEqual(debug["reason"], "equivalent_value")
         self.assertEqual(debug["unsupported_answer_candidates"], [])
 
+    def test_numeric_equivalence_allows_unitless_table_cell_with_context_unit(self) -> None:
+        score, debug = _compute_numeric_equivalence(
+            answer="The ratio is 258.77% from current assets 195,936,557백만원 and current liabilities 75,719,452백만원.",
+            answer_key="The ratio is approximately 258.8%.",
+            canonical_evidence=[],
+            support_texts=[
+                "[unit_hint: 백만원] current assets 195,936,557 ; current liabilities 75,719,452",
+            ],
+        )
+
+        self.assertEqual(score, 1.0)
+        self.assertEqual(debug["reason"], "equivalent_value")
+        self.assertEqual(debug["unsupported_answer_candidates"], [])
+
     def test_numeric_equivalence_requires_all_multi_value_answer_claims_to_match(self) -> None:
         score, debug = _compute_numeric_equivalence(
             answer="재고자산평가손실은 (1,124,562,480,391)원, 환입은 (106,656)천원, 폐기손실은 25,163,510천원입니다.",

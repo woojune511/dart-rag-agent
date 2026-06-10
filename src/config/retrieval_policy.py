@@ -605,6 +605,10 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
         "{period_prefix}{metric_label}은 {rendered_value}입니다. "
         "계산: {numerator_label} {numerator_value} / {denominator_label} {denominator_value}."
     ),
+    "ratio_multi_component_answer_template": (
+        "{period_prefix}{metric_label}은 {rendered_value}입니다. "
+        "계산: ({numerator_expression}) / ({denominator_expression})."
+    ),
     "lookup_list_item_template": "{label} {value}",
     "lookup_list_separator": ", ",
     "lookup_list_answer_template": "{items}입니다.",

@@ -958,10 +958,13 @@ def _numeric_candidate_supported_by_texts(
     candidate: Dict[str, Any],
     support_texts: Iterable[str],
 ) -> bool:
+    kind = str(candidate.get("kind") or "")
     for text in support_texts:
         if not str(text or "").strip():
             continue
-        for support_candidate in _extract_numeric_candidates(str(text)):
+        support_candidates = list(_extract_numeric_candidates(str(text)))
+        support_candidates.extend(_extract_unitless_number_candidates(str(text), kind))
+        for support_candidate in support_candidates:
             if _numeric_values_equivalent(candidate, support_candidate):
                 return True
     return False
@@ -2382,11 +2385,21 @@ def _should_override_numeric_grounding(
         return False
     if numeric_result_correctness is not None and numeric_result_correctness != 1.0:
         return False
-    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
-        return False
     if operand_selection_correctness is not None and operand_selection_correctness < 1.0:
         return False
     if not calculation_operands:
+        return False
+
+    operand_grounding_debug = dict((numeric_eval.get("numeric_debug") or {}).get("operand_grounding") or {})
+    deterministic_operand_grounding_pass = (
+        not list(operand_grounding_debug.get("unmatched_operands") or [])
+        and len(list(operand_grounding_debug.get("matched_operands") or [])) == len(calculation_operands)
+    )
+    if (
+        grounded_rendering_correctness is not None
+        and grounded_rendering_correctness != 1.0
+        and not deterministic_operand_grounding_pass
+    ):
         return False
 
     def _has_direct_or_resolved_source(operand: Dict[str, Any]) -> bool:
@@ -3614,6 +3627,14 @@ class RAGEvaluator:
             )
             numeric_eval["numeric_final_judgement"] = final_judgement
             numeric_eval["numeric_confidence"] = confidence
+            if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
+                grounded_rendering_correctness = 1.0
+                grounded_reason = "deterministic_override_from_direct_resolved_operands"
+                calculation_correctness = _compute_calculation_correctness(
+                    numeric_result_correctness=numeric_result_correctness,
+                    trend_interpretation_correctness=trend_interpretation_correctness,
+                    grounded_rendering_correctness=grounded_rendering_correctness,
+                )
         elif _should_override_numeric_grounding_from_runtime_evidence(
             answer=answer,
             numeric_eval=numeric_eval,
@@ -3639,6 +3660,14 @@ class RAGEvaluator:
             )
             numeric_eval["numeric_final_judgement"] = final_judgement
             numeric_eval["numeric_confidence"] = confidence
+            if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
+                grounded_rendering_correctness = 1.0
+                grounded_reason = "deterministic_override_from_runtime_evidence_derivation"
+                calculation_correctness = _compute_calculation_correctness(
+                    numeric_result_correctness=numeric_result_correctness,
+                    trend_interpretation_correctness=trend_interpretation_correctness,
+                    grounded_rendering_correctness=grounded_rendering_correctness,
+                )
         if _should_override_numeric_faithfulness(numeric_eval):
             faithfulness = 1.0
             faithfulness_override_reason = (

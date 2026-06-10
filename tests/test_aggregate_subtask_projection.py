@@ -579,6 +579,95 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(refined["raw_unit"], "천원")
         self.assertEqual(refined["normalized_value"], 2_546_649_000)
 
+    def test_compact_ratio_answer_lists_all_component_slots(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "42.02%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "asset funding ratio",
+                "primary_value": {"status": "ok", "rendered_value": "42.02%"},
+                "components_by_group": {
+                    "numerator": [
+                        {"label": "short borrowing", "rendered_value": "4,145백만원", "normalized_value": 4_145_000_000, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                        {"label": "long borrowing", "rendered_value": "10,121백만원", "normalized_value": 10_121_000_000, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                        {"label": "bonds", "rendered_value": "9,490백만원", "normalized_value": 9_490_000_000, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                    ],
+                    "denominator": [
+                        {"label": "tangible assets", "rendered_value": "52,704백만원", "normalized_value": 52_704_000_000, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                        {"label": "intangible assets", "rendered_value": "3,834백만원", "normalized_value": 3_834_000_000, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                    ],
+                },
+            },
+        }
+
+        answer = agent._compact_ratio_answer({"active_subtask": {"metric_label": "asset funding ratio"}}, calculation_result)
+
+        self.assertIn("asset funding ratio", answer)
+        self.assertIn("short borrowing 4,145백만원", answer)
+        self.assertIn("long borrowing 10,121백만원", answer)
+        self.assertIn("bonds 9,490백만원", answer)
+        self.assertIn("tangible assets 52,704백만원", answer)
+        self.assertIn("intangible assets 3,834백만원", answer)
+
+    def test_preferred_complete_numeric_answer_joins_multiple_ratio_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        def ratio_row(task_id: str, label: str, value: str, numerator: str, denominator: str) -> dict:
+            return {
+                "task_id": task_id,
+                "metric_family": "concept_ratio",
+                "metric_label": label,
+                "operation_family": "ratio",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": value,
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": label,
+                        "primary_value": {"status": "ok", "rendered_value": value},
+                        "components_by_group": {
+                            "numerator": [
+                                {"label": f"{label} numerator", "rendered_value": numerator, "normalized_value": 1, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                            ],
+                            "denominator": [
+                                {"label": f"{label} denominator", "rendered_value": denominator, "normalized_value": 1, "normalized_unit": "KRW", "raw_unit": "백만원"},
+                            ],
+                        },
+                    },
+                },
+            }
+
+        answer = agent._preferred_complete_numeric_answer(
+            [
+                ratio_row("task_a", "debt ratio", "25.36%", "10백만원", "40백만원"),
+                ratio_row("task_b", "current ratio", "258.77%", "259백만원", "100백만원"),
+            ]
+        )
+
+        self.assertIn("debt ratio", answer)
+        self.assertIn("25.36%", answer)
+        self.assertIn("current ratio", answer)
+        self.assertIn("258.77%", answer)
+
+    def test_numeric_answer_coverage_requires_all_trace_values(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        self.assertFalse(
+            agent._answer_covers_numeric_answer(
+                "The final answer is 258.77% using 259백만원 and 100백만원.",
+                "Debt ratio is 25.36%. Current ratio is 258.77%.",
+            )
+        )
+        self.assertTrue(
+            agent._answer_covers_numeric_answer(
+                "Debt ratio is 25.4%. Current ratio is 258.77%.",
+                "Debt ratio is 25.36%. Current ratio is 258.77%.",
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

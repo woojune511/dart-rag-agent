@@ -340,6 +340,87 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_should_override_numeric_grounding_when_llm_rendering_misses_grounded_operands(self) -> None:
+        calculation_operands = [
+            {
+                "operand_id": "op_current_assets",
+                "label": "current assets",
+                "raw_value": "195,936,557",
+                "raw_unit": "백만원",
+                "source_row_id": "row_assets",
+                "source_anchor": "structured balance sheet",
+            },
+            {
+                "operand_id": "op_current_liabilities",
+                "label": "current liabilities",
+                "raw_value": "75,719,452",
+                "raw_unit": "백만원",
+                "source_row_id": "row_liabilities",
+                "source_anchor": "structured balance sheet",
+            },
+        ]
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+            "numeric_debug": {
+                "operand_grounding": {
+                    "matched_operands": [
+                        {"operand_id": "op_current_assets"},
+                        {"operand_id": "op_current_liabilities"},
+                    ],
+                    "unmatched_operands": [],
+                }
+            },
+        }
+
+        self.assertTrue(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=0.0,
+            )
+        )
+
+    def test_should_not_override_numeric_grounding_when_rendering_fails_without_operand_grounding(self) -> None:
+        calculation_operands = [
+            {
+                "operand_id": "op_current_assets",
+                "label": "current assets",
+                "source_row_id": "row_assets",
+                "source_anchor": "structured balance sheet",
+            },
+            {
+                "operand_id": "op_current_liabilities",
+                "label": "current liabilities",
+                "source_row_id": "row_liabilities",
+                "source_anchor": "structured balance sheet",
+            },
+        ]
+        numeric_eval = {
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 0.0,
+            "numeric_retrieval_support": 1.0,
+            "numeric_debug": {
+                "operand_grounding": {
+                    "matched_operands": [{"operand_id": "op_current_assets"}],
+                    "unmatched_operands": [{"operand_id": "op_current_liabilities"}],
+                }
+            },
+        }
+
+        self.assertFalse(
+            _should_override_numeric_grounding(
+                numeric_eval=numeric_eval,
+                calculation_operands=calculation_operands,
+                operand_selection_correctness=1.0,
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=0.0,
+            )
+        )
+
     def test_should_override_numeric_grounding_for_runtime_evidence_difference_and_growth(self) -> None:
         numeric_eval = {
             "numeric_equivalence": 1.0,
