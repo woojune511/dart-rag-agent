@@ -9,6 +9,10 @@ agent workflows, and grounding/evaluation. The talk should therefore spend time
 on problem formulation, runtime boundaries, traces, and gates rather than on
 introductory RAG definitions.
 
+For a shorter spoken version, start from
+[portfolio_interview_narrative.md](portfolio_interview_narrative.md) and use
+this file only as slide structure.
+
 ## Slide 1. Title
 
 **DART Multi-Agent Financial Analysis Lab**
