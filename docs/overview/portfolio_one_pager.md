@@ -119,7 +119,7 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
-| Test coverage | full unittest discovery passed `1042` tests after the closed-structural ablation refresh; runtime domain-term audit passed with `217` reviewed literals |
+| Test coverage | full unittest discovery passed `1048` tests after the expanded structural refresh source fix; runtime domain-term audit passed |
 
 ## Representative Commands
 
