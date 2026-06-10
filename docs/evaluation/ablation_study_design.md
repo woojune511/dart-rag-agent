@@ -286,3 +286,56 @@ the representation layer can be compared without changing the evaluator or
 question set. It is not yet strong enough to claim a broad success-rate lift.
 The next canary should add more questions where structure, unit normalization,
 and operand binding are known to be independently observable.
+
+## Expanded Candidate Slice
+
+The next expansion step uses locally available reports and questions that have
+prior full-system pass evidence from the closed structural, concept-runtime, or
+runtime-contract gates.
+
+Profiles:
+
+- `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+
+Question set:
+
+| Question id | Company | Prior evidence | Structural pressure |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | 카카오뱅크 | closed structural PASS | source-visible ratio from one profitability table |
+| `POS_T1_057` | POSCO홀딩스 | closed structural PASS | operating profit / interest expense provenance and unit preservation |
+| `SAM_T3_028` | 삼성전자 | closed structural PASS | inventory valuation row preservation and source-visible display stability |
+| `CEL_T1_013` | 셀트리온 | closed structural PASS | R&D capitalization ratio across business and note evidence |
+| `KBF_T2_018` | KB금융 | concept-runtime gate PASS | current/prior comparison plus narrative cause evidence |
+| `SKH_T3_080` | SK하이닉스 | concept-runtime gate PASS | gain/loss sign handling and same-note operand pairing |
+| `KBF_T1_017` | KB금융 | runtime-contract gate PASS | current/prior percentage-point change from ratio table |
+| `SKH_T1_060` | SK하이닉스 | runtime-contract gate PASS | multi-operand debt aggregation plus asset denominator |
+| `MIX_T1_021` | 삼성전자 | runtime-contract gate PASS | two balance-sheet ratios from four row/period-bound values |
+
+Execution rule:
+
+1. Run the full-system profile first.
+2. Run the plain-retrieval counterpart only if the full-system profile keeps at
+   least `7/9` numeric PASS and does not show a systemic integrity regression.
+3. Use monitored runs:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json `
+  --output-dir benchmarks/results/ablation_expanded_candidate_full_system_YYYY-MM-DD `
+  --progress-heartbeat-sec 60 `
+  --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_YYYY-MM-DD/heartbeat.jsonl
+```
+
+4. Record pass rate, failed question ids, failure taxonomy, latency, retrieval
+   query count, LLM call count, token use, and estimated runtime cost.
+5. Keep raw result bundles local unless explicitly publishing experiment
+   artifacts.
+
+Interpretation rule:
+
+- This slice is a candidate expansion, not a portfolio result yet.
+- If full-system quality drops, classify residual failure modes before spending
+  on the plain baseline.
+- If both variants pass most questions, focus the write-up on trace quality,
+  unit/display stability, and failure taxonomy rather than pass-rate delta.
