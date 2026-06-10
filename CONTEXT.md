@@ -11,6 +11,38 @@
 
 ## 최신 상태
 
+- 2026-06-10 expanded structural-vs-plain ablation refresh를 문서화했다.
+  - Commit `8070da8` (`Fix aggregate numeric projection coverage`)는 이미
+    `origin/main`에 push됐다.
+  - 동일 9문항 / 6회사 expanded candidate set 기준:
+    - structural full-system:
+      `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+      - avg numeric `1.000`, faithfulness `1.000`, completeness `0.867`,
+        recall `0.889`
+    - plain retrieval:
+      `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
+      - avg numeric `0.833`, faithfulness `0.875`, completeness `0.875`,
+        recall `0.861`
+  - separating numeric failures:
+    - `KBF_T1_017`: plain `FAIL`, structural `PASS`
+    - `SKH_T3_080`: plain `FAIL`, structural `PASS`
+      - plain answer used `868,767` and `906,120` -> `-37,353백만원`
+      - structural answer used `573,884백만원` and `906,120백만원` ->
+        `-332,236백만원`
+  - caveat: cross-company `Full Eval Fails` also counts completeness threshold
+    misses, so both variants still show `3` fail notes. Portfolio claim should
+    focus on numeric grounding / operand binding / faithfulness, not a blanket
+    win on every evaluator dimension.
+  - updated docs:
+    - `docs/overview/project_status.md`
+    - `docs/overview/portfolio_experiment_report.md`
+    - `docs/overview/portfolio_one_pager.md`
+    - `docs/evaluation/ablation_study_design.md`
+    - `docs/evaluation/structural_trace_diagnostics.md`
+    - `docs/history/experiment_history.md`
+  - raw `benchmarks/results/**` remain local artifacts and should not be
+    staged.
+
 - 2026-06-09 `KAB_T1_066` CIR ratio evidence/display path를 닫았다.
   - root cause는 두 층이었다.
     1. lookup direct-support guard가 `경비차감전영업이익` 안의 `차감`을

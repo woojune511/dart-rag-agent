@@ -19,9 +19,10 @@ calculation traces, critic reports, and reproducible reviewer gates.
 - Separated LLM semantic planning from deterministic execution: LLMs handle
   intent/concept interpretation, while code handles operand binding, arithmetic,
   unit handling, dedupe, validation, and final rendering.
-- Validated the design with trace-based gates and a closed structural ablation:
-  structural full-system `4/4` numeric PASS vs plain retrieval `3/4`, with the
-  separating failure caused by unit/provenance drift in the plain path.
+- Validated the design with trace-based gates and an expanded structural
+  ablation: structural full-system avg numeric `1.000` / faithfulness `1.000`
+  vs plain retrieval avg numeric `0.833` / faithfulness `0.875`, with
+  separating failures caused by operand-binding drift in the plain path.
 
 ## Technical Portfolio Version
 
@@ -47,7 +48,7 @@ Built and evaluated an evidence-first RAG prototype for DART financial filings,
 focused on making numeric answers auditable. The project combines
 structure-aware retrieval, deterministic numeric execution, multi-agent artifact
 handoff, and reviewer-facing gates. Current results support a narrow claim:
-structured provenance reduces operand/unit drift on representative closed
+structured provenance reduces operand/unit drift on representative expanded
 structural cases, while broader benchmark generalization remains future work.
 
 ## Korean Short Version

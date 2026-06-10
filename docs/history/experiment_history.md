@@ -41,6 +41,7 @@
 | [Numeric Extractor Node (2026-04-26)](#numeric-extractor-node-2026-04-26) | numeric generation path 분리 | numeric 질문은 extractor 기반 path가 더 안정적 |
 | [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual과 후속 full replay 확인 | ratio peer-unit binding, growth+narrative repair, narrative-summary aggregate guard 이후 monitored full 7 eval-only가 7 / 7 PASS |
 | [KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)](#kab_t1_066-cir-direct-support-and-coherent-ratio-close-2026-06-09) | KAB CIR denominator support, coherent ratio operands, source display rendering | 최종 답변이 `4,355억원 / 11,623억원 = 37.47%`로 source-visible하게 닫힘 |
+| [Expanded Structural Ablation Refresh (2026-06-10)](#expanded-structural-ablation-refresh-2026-06-10) | 9문항 structural-vs-plain ablation | structural은 numeric `1.000`, plain은 `0.833`; `KBF_T1_017`, `SKH_T3_080`가 separating numeric failures |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -124,6 +125,63 @@
 - Intermediate diagnostic result bundles are local artifacts. Keep the final
   verified bundle and the source fresh store only if reproducible handoff is
   needed.
+
+## Expanded Structural Ablation Refresh (2026-06-10)
+
+참조:
+
+- `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
+- `docs/evaluation/ablation_study_design.md`
+- `docs/evaluation/structural_trace_diagnostics.md`
+
+### Context
+
+- Earlier closed-structural ablation evidence was useful but narrow: the main
+  separator was `POS_T1_057`.
+- The follow-up expanded the candidate set to `9` curated questions across
+  `6` company runs while keeping the same evaluator, retrieval budgets, chunk
+  size, and question ids for both variants.
+- The controlled difference was representation: structural selective chunks
+  with deterministic prefixes versus plain chunks without structural prefixes.
+
+### Result
+
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Avg numeric pass rate | `1.000` | `0.833` |
+| Avg completeness | `0.867` | `0.875` |
+| Avg faithfulness | `1.000` | `0.875` |
+| Avg context recall | `0.889` | `0.861` |
+
+Separating cases:
+
+- `KBF_T1_017`: structural numeric `PASS`, plain numeric `FAIL`.
+  - The plain answer surfaced `1.83%`, `1.73%`, and `0.1%p`, but operand
+    selection and numeric grounding failed.
+  - The structural path recovered a numeric-passable difference, although
+    completeness remained weak.
+- `SKH_T3_080`: structural numeric `PASS`, plain numeric `FAIL`.
+  - Plain answer: `868,767백만원 - 906,120백만원 = -37,353백만원`.
+  - Structural answer: `573,884백만원 - 906,120백만원 = -332,236백만원`.
+  - This is the cleanest row-binding example because both variants found
+    plausible values, but only the structural path bound the right gain row.
+
+### Interpretation
+
+- The expanded run strengthens the numeric-grounding claim: structural stayed
+  at `1.000` average numeric pass rate while plain retrieval dropped to
+  `0.833`.
+- It does not prove an across-the-board evaluator win. The cross-company
+  summary still reports `Full Eval Fails` for both variants because that field
+  also includes completeness threshold misses.
+- The portfolio narrative should therefore state the result precisely:
+  structural representation and provenance-aware operand binding reduce
+  numeric grounding failures; explanation completeness remains a separate
+  residual quality target.
+- Raw result bundles remain local artifacts and should not be staged.
 
 ## Runtime Cost-Control Diagnostics (2026-06-09)
 

@@ -53,7 +53,7 @@ Notes:
 
 ## Interpretation
 
-The current closed-structural slice supports a narrow measured claim:
+The earlier closed-structural slice supported a narrow measured claim:
 
 - structural full-system: `4/4` numeric PASS
 - plain retrieval baseline: `3/4` numeric PASS
@@ -65,3 +65,40 @@ structural path reduces one concrete failure mode: correct numeric evidence can
 be present somewhere in the run, but final operand selection and unit rendering
 can still drift without structured provenance and dependency-preservation
 contracts.
+
+## Expanded Candidate Refresh: 2026-06-10
+
+Result directories:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10`
+
+Run-level comparison:
+
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Avg numeric pass rate | `1.000` | `0.833` |
+| Avg faithfulness | `1.000` | `0.875` |
+| Avg completeness | `0.867` | `0.875` |
+| Avg context recall | `0.889` | `0.861` |
+
+Key question-level deltas:
+
+| Question | Structural judgement | Plain judgement | Structural answer shape | Plain answer shape | Diagnostic read |
+| --- | --- | --- | --- | --- | --- |
+| `KBF_T1_017` | PASS | FAIL | `1.83%`, `1.73%`, `0.1%p` difference | same visible values, but operand selection `0.5` and numeric grounding `0` | plain representation could surface values but did not pass grounding/operand acceptance |
+| `SKH_T3_080` | PASS | FAIL | `573,884백만원 - 906,120백만원 = -332,236백만원` | `868,767백만원 - 906,120백만원 = -37,353백만원` | structural row binding selected the correct foreign-currency translation gain surface |
+| `SKH_T1_060` | PASS | PASS | `42.02%` debt-to-asset ratio | `42.02%` debt-to-asset ratio | hard aggregate case now passes both variants; useful positive control, not a separator |
+| `MIX_T1_021` | PASS | PASS | debt ratio `25.36%`; current ratio `258.77%` | same final values | balance-sheet ratio control case |
+
+Notes:
+
+- The expanded refresh replaces the earlier four-question slice as the
+  portfolio-facing structural ablation evidence.
+- `Full Eval Fails` in the cross-company summary is not identical to numeric
+  failure. It also reflects completeness threshold misses. For this experiment,
+  the reliable comparison is numeric grounding/faithfulness plus the
+  per-question operand traces above.
+- `SKH_T3_080` is the strongest narrative example because the plain path did
+  not merely omit a value; it selected a plausible but wrong gain row and then
+  produced a wrong deterministic difference.

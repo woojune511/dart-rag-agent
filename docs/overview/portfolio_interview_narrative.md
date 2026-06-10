@@ -25,11 +25,11 @@ The system represents agent handoff as a typed artifact ledger:
 which operands were used, where they came from, which formula ran, and whether
 the final answer followed the trace.
 
-The strongest current evidence is narrow but defensible. A closed structural
-ablation shows the structural full-system path at `4/4` numeric PASS versus a
-plain retrieval counterpart at `3/4`. The separating case is not "better prose";
-it is unit/provenance drift in the plain path. The structural path preserves the
-expected operands through final calculation.
+The strongest current evidence is narrow but defensible. An expanded
+structural ablation shows the structural full-system path at avg numeric
+`1.000` / faithfulness `1.000` versus a plain retrieval counterpart at avg
+numeric `0.833` / faithfulness `0.875`. The separating cases are not "better
+prose"; they are operand-binding and row/unit drift in the plain path.
 
 ## Problem Framing
 
@@ -75,12 +75,12 @@ The main experiment claim is deliberately scoped:
 > operand/unit drift when relevant numeric evidence is available but can be
 > rebound or rendered at the wrong scale.
 
-Current closed structural ablation:
+Current expanded structural ablation:
 
-| Variant | Numeric result | Interpretation |
+| Variant | Numeric / faithfulness result | Interpretation |
 | --- | ---: | --- |
-| Structural full-system | `4/4` PASS | Preserves structural provenance and dependency operands through final calculation. |
-| Plain retrieval counterpart | `3/4` PASS | Fails the separating case through unit/provenance drift. |
+| Structural full-system | `1.000` / `1.000` | Preserves structural provenance and dependency operands through final calculation. |
+| Plain retrieval counterpart | `0.833` / `0.875` | Fails `KBF_T1_017` and `SKH_T3_080` through operand-binding or row/unit drift. |
 
 The point is not that every question needs more structure or that a baseline was
 artificially weakened. The point is that financial RAG needs trace-preserving

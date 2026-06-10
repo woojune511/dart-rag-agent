@@ -51,26 +51,42 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Latest Portfolio Ablation Refresh
 
-- Commit `739f418` added the closed-structural ablation profiles, structural
-  trace diagnostics, and runtime fixes for task-output operand preservation,
-  contextual row-label specificity, and structured provenance unit realignment.
-- Closed structural result, 2026-06-10:
-  - structural full-system: `4/4` numeric PASS
-  - plain retrieval baseline: `3/4` numeric PASS
-  - separating case: `POS_T1_057`, where the plain path preserved only one
-    expected value and rendered the operating-profit operand at the wrong
-    scale, while the structural path kept both expected operands through final
-    calculation.
+- Commit `8070da8` fixed aggregate numeric projection coverage and was pushed
+  to `origin/main`.
+- Expanded structural-vs-plain ablation refresh, 2026-06-10:
+  - profiles:
+    - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+    - `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+  - local result bundles:
+    - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+    - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
+  - question set: `9` curated questions across `6` company runs
+  - structural full-system: average numeric `1.000`, faithfulness `1.000`,
+    completeness `0.867`, recall `0.889`
+  - plain retrieval baseline: average numeric `0.833`, faithfulness `0.875`,
+    completeness `0.875`, recall `0.861`
+  - main separating cases:
+    - `KBF_T1_017`: plain numeric `FAIL`; structural numeric `PASS`
+    - `SKH_T3_080`: plain numeric `FAIL`; structural numeric `PASS`
+  - strongest trace: `SKH_T3_080` plain selected `868,767` and `906,120`
+    then answered `-37,353백만원`; structural selected `573,884백만원` and
+    `906,120백만원` then answered `-332,236백만원`.
+- Important caveat:
+  - run-level `Full Eval Fails` still counts completeness threshold misses, so
+    both variants show `3` full-eval fail notes. The portfolio claim should be
+    framed around numeric grounding, operand binding, and faithfulness rather
+    than a blanket end-to-end win on every evaluator dimension.
 - Portfolio-facing summaries:
   - `docs/evaluation/ablation_study_design.md`
   - `docs/evaluation/structural_trace_diagnostics.md`
   - `docs/overview/portfolio_experiment_report.md`
   - `docs/overview/portfolio_one_pager.md`
-- Validation after the refresh:
-  - `.venv/bin/python -m unittest discover -s tests`: `1042` tests OK
-  - `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with
-    `217` reviewed literals
-  - `git diff --check`: passed
+- Validation before the pushed source commit:
+  - `.venv/bin/python -m unittest discover -s tests`: `1048` tests OK
+  - `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed
+  - focused `MIX_T1_021` eval-only: PASS
+  - full-system expanded candidate summary before refresh: numeric `1.000`,
+    completeness `1.000`, faithfulness `1.000`
 - Raw `benchmarks/results/**` ablation bundles remain local artifacts and are
   not part of the published source commit.
 

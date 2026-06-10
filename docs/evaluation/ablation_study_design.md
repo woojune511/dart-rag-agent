@@ -248,6 +248,66 @@ Interpretation:
   portfolio narrative should emphasize failure-mode isolation rather than a
   large pass-rate gap.
 
+## Expanded Candidate Slice: 2026-06-10
+
+After the narrow four-question slice, the ablation was expanded to the current
+candidate set of nine curated questions across six company runs. The goal was
+to check whether the structural representation advantage survives beyond the
+single `POS_T1_057` separating case.
+
+Profiles:
+
+- `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+
+Local artifact directories:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10`
+
+Question set:
+
+| Question id | Company | Role in slice |
+| --- | --- | --- |
+| `KAB_T1_066` | 카카오뱅크 | positive control; source-visible CIR ratio |
+| `POS_T1_057` | POSCO홀딩스 | interest coverage ratio and unit/provenance stress |
+| `SAM_T3_028` | 삼성전자 | inventory valuation row plus cost denominator |
+| `CEL_T1_013` | 셀트리온 | R&D capitalization ratio and source-unit preservation |
+| `KBF_T2_018` | KB금융 | multi-report growth rate plus narrative driver |
+| `KBF_T1_017` | KB금융 | multi-report NIM difference and operand grounding |
+| `SKH_T3_080` | SK하이닉스 | foreign-currency gain/loss row binding |
+| `SKH_T1_060` | SK하이닉스 | debt component aggregation over asset denominator |
+| `MIX_T1_021` | 삼성전자 | two balance-sheet ratios from four rows |
+
+Run-level readout:
+
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Avg numeric pass rate | `1.000` | `0.833` |
+| Avg completeness | `0.867` | `0.875` |
+| Avg faithfulness | `1.000` | `0.875` |
+| Avg context recall | `0.889` | `0.861` |
+
+Separating observations:
+
+| Question id | Structural | Plain | Observation |
+| --- | --- | --- | --- |
+| `KBF_T1_017` | PASS | FAIL | The plain run surfaced NIM values but failed operand selection/grounding; the structural run recovered a numeric-passable `0.1%p` difference. |
+| `SKH_T3_080` | PASS | FAIL | Plain selected `868,767` and `906,120`, answering `-37,353백만원`; structural selected `573,884백만원` and `906,120백만원`, answering `-332,236백만원`. |
+
+Interpretation:
+
+- The expanded result is stronger than the earlier four-question slice for the
+  numeric-grounding claim: structural keeps numeric pass rate at `1.000`, while
+  plain falls to `0.833`.
+- It is not an across-the-board evaluator victory. `Full Eval Fails` still
+  appears for both variants because the runner also flags completeness
+  threshold misses. The portfolio claim should therefore focus on operand
+  binding, numeric grounding, and faithfulness.
+- `SKH_T3_080` is the clearest case-study trace because both variants retrieve
+  plausible values, but only the structural path binds the right
+  foreign-currency translation gain row.
+
 ## Smoke Run: 2026-06-10
 
 Local artifact directories:

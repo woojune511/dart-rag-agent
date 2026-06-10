@@ -94,7 +94,7 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Closed structural ablation | structural full-system `4/4` numeric PASS vs plain retrieval `3/4`; separating failure is `POS_T1_057` unit/provenance drift |
+| Expanded structural ablation | structural full-system avg numeric `1.000` / faithfulness `1.000` vs plain retrieval avg numeric `0.833` / faithfulness `0.875`; separating numeric failures are `KBF_T1_017` and `SKH_T3_080` |
 
 Representative KAB answer:
 
@@ -106,28 +106,43 @@ Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`. 
 fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 `8` agent LLM calls, and estimated runtime cost `$0.056292`.
 
-### Closed Structural Ablation
+### Expanded Structural Ablation
 
-The closed structural slice compares the current structural-selective runtime
-against a plain-retrieval counterpart on four questions that had focused
-full-system PASS evidence after the dependency/provenance fixes.
+The expanded structural slice compares the current structural-selective runtime
+against a plain-retrieval counterpart on nine curated questions across six
+company runs. Both variants use the same questions, evaluator, retrieval
+budgets, and chunk size; the controlled difference is the retrieval
+representation: structural selective chunks with deterministic prefixes versus
+plain chunks without structural prefixes.
 
-| Question | Full system | Plain retrieval | Interpretation |
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Avg numeric pass rate | `1.000` | `0.833` |
+| Avg faithfulness | `1.000` | `0.875` |
+| Avg completeness | `0.867` | `0.875` |
+| Avg context recall | `0.889` | `0.861` |
+
+Separating numeric cases:
+
+| Question | Structural | Plain | Interpretation |
 | --- | --- | --- | --- |
-| `KAB_T1_066` | PASS | PASS | Positive control; both variants solve the source-visible CIR ratio. |
-| `POS_T1_057` | PASS | FAIL | Plain retrieval preserves only one expected value and renders operating profit at the wrong scale; structural runtime keeps both expected operands through final calculation. |
-| `SAM_T3_028` | PASS | PASS | Both pass final numeric judgement; structural trace keeps expected operands visible in final operands. |
-| `CEL_T1_013` | PASS | PASS | Both pass final numeric judgement; structural trace preserves source-visible `천원` units. |
+| `KBF_T1_017` | PASS | FAIL | Plain retrieval found visible NIM values but the final answer failed operand selection/grounding; structural reconciliation recovered a numeric-passable difference. |
+| `SKH_T3_080` | PASS | FAIL | Plain retrieval selected the wrong foreign-currency translation gain surface and answered `-37,353백만원`; structural binding selected `573,884백만원` and `906,120백만원`, yielding `-332,236백만원`. |
 
-This is a narrow ablation, not a broad SOTA claim. The measured delta supports a
-specific engineering claim: structured provenance plus dependency-operand
-preservation reduces final operand/unit drift when the relevant numeric
-evidence is available but can be rebound or rendered at the wrong scale.
+This is still a narrow systems ablation, not a broad SOTA claim. The measured
+delta supports a specific engineering claim: structural representation and
+provenance-aware operand binding reduce numeric failures when relevant values
+are present but can be rebound to the wrong row, unit, or table surface.
 
 Reproduction profiles:
 
-- `benchmarks/profiles/curated_ablation_closed_structural_full_system.json`
-- `benchmarks/profiles/curated_ablation_closed_structural_plain_retrieval.json`
+- `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+
+Local result bundles:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
 
 Trace summary:
 
