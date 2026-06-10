@@ -402,6 +402,11 @@ For each P0 record, classify it as one of:
   keeps the generic mechanics: remove period text from metric labels, preserve
   source-stated growth values, and render numeric values in the requested
   display unit.
+- 2026-06-10: the reviewed baseline now includes two
+  `financial_graph_evidence.py` regex records that use Hangul character ranges
+  for generic token-boundary and result-surface extraction. These are not
+  financial-domain concepts or benchmark-specific vocabulary; they are
+  parser/evidence mechanics for mixed Korean/Latin document text.
 
 ## Calculation Hotspots
 

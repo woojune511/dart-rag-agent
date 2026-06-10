@@ -10847,6 +10847,235 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows[0]["normalized_value"], 2546649000000.0)
         self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_current", "ev_current"])
 
+    def test_dependency_alignment_preserves_task_output_when_direct_value_has_distinct_provenance(self) -> None:
+        dependency_rows = [
+            {
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "100",
+                "raw_unit": "unit",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+                "source_task_id": "task_lookup",
+                "source_row_id": "task_output:task_lookup",
+                "source_row_ids": ["task_output:task_lookup", "ev_lookup"],
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "ev_direct_num",
+                "source_row_id": "ev_direct_num",
+                "source_row_ids": ["ev_direct_num"],
+                "table_source_id": "table_a",
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "80",
+                "raw_unit": "unit",
+                "normalized_value": 80.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "evidence_id": "ev_direct_den",
+                "source_row_id": "ev_direct_den",
+                "source_row_ids": ["ev_direct_den"],
+                "table_source_id": "table_a",
+                "label": "base value",
+                "matched_operand_label": "base value",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "40",
+                "raw_unit": "unit",
+                "normalized_value": 40.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "100")
+        self.assertEqual(rows[0]["normalized_value"], 100.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup", "ev_lookup"])
+        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
+        self.assertNotIn("sibling_table_context_realigned", rows[0])
+
+    def test_dependency_alignment_still_realigns_unanchored_row_to_complete_direct_context(self) -> None:
+        dependency_rows = [
+            {
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "100",
+                "raw_unit": "unit",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+                "source_row_id": "ev_lookup",
+                "source_row_ids": ["ev_lookup"],
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "ev_direct_num",
+                "source_row_id": "ev_direct_num",
+                "source_row_ids": ["ev_direct_num"],
+                "table_source_id": "table_a",
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "80",
+                "raw_unit": "unit",
+                "normalized_value": 80.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "evidence_id": "ev_direct_den",
+                "source_row_id": "ev_direct_den",
+                "source_row_ids": ["ev_direct_den"],
+                "table_source_id": "table_a",
+                "label": "base value",
+                "matched_operand_label": "base value",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "40",
+                "raw_unit": "unit",
+                "normalized_value": 40.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "80")
+        self.assertEqual(rows[0]["normalized_value"], 80.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["ev_direct_num"])
+        self.assertTrue(rows[0]["sibling_table_context_realigned"])
+
+    def test_precision_refinement_prefers_more_specific_contextual_row_label(self) -> None:
+        row = {
+            "label": "2023년 목표조정(환입) 등",
+            "matched_operand_label": "목표조정(환입) 등",
+            "matched_operand_role": "numerator_1",
+            "raw_value": "62,964",
+            "raw_unit": "백만원",
+            "normalized_value": 62964000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "evidence_id": "ev_table",
+            "source_anchor": "[ExampleCo | 2023 | note]",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "백만원",
+                "table_row_labels_text": "부분조정(환입)\n목표조정(환입) 등",
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_label": "부분조정(환입)",
+                            "cells": [{"value_text": "62,964", "unit_hint": "백만원"}],
+                        },
+                        {
+                            "row_label": "목표조정(환입) 등",
+                            "cells": [{"value_text": "5,037,579", "unit_hint": "백만원"}],
+                        },
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = self.agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "5,037,579")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 5037579000000.0)
+        self.assertEqual(refined["precision_source"], "contextual_note_structured_table_cell")
+
+    def test_dependency_row_realigns_unit_from_structured_graph_provenance(self) -> None:
+        self.agent.vsm = type(
+            "VectorStoreStub",
+            (),
+            {
+                "_structure_graph": {
+                    "nodes": {
+                        "node_1": {
+                            "text": "target value 100",
+                            "metadata": {
+                                "company": "ExampleCo",
+                                "year": 2023,
+                                "report_type": "annual report",
+                                "rcept_no": "r1",
+                                "section_path": "Financial statements",
+                                "table_value_labels_text": "target value 100",
+                                "unit_hint": "백만원",
+                                "statement_type": "income_statement",
+                                "consolidation_scope": "consolidated",
+                                "table_source_id": "table_income",
+                            },
+                        }
+                    }
+                }
+            },
+        )()
+        state = {
+            "report_scope": {"year": 2023, "rcept_no": "r1"},
+            "query": "target value ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "operation_family": "ratio",
+                "inputs": [
+                    {
+                        "role": "denominator_1",
+                        "concept": "target_metric",
+                        "label": "target value",
+                        "preferred_task_id": "task_lookup",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    }
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_label": "target value",
+                    "operation_family": "lookup",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "100",
+                                "raw_unit": "천원",
+                                "normalized_value": 100000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "100천원",
+                                "source_row_id": "ev_lookup",
+                                "source_row_ids": ["ev_lookup"],
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_lookup",
+                    "claim": "target value 100 (천원)",
+                    "quote_span": "100",
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "100")
+        self.assertEqual(rows[0]["raw_unit"], "백만원")
+        self.assertEqual(rows[0]["normalized_value"], 100000000.0)
+        self.assertTrue(rows[0]["unit_realigned_from_structured_provenance"])
+        self.assertIn("node_1", rows[0]["source_row_ids"])
+
     def test_lookup_recovery_prefers_table_unit_hint_when_source_surface_has_no_unit(self) -> None:
         state = {
             "calc_subtasks": [

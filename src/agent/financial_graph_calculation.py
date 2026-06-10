@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _operand_row_has_material_numeric_payload
+from src.agent.financial_graph_helpers import _operand_row_has_material_numeric_payload, _surface_match_variants
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
     CalculationPlan,
@@ -5074,6 +5074,20 @@ class FinancialAgentCalculationMixin:
                         dependency_row.get("source_row_ids"),
                         structured_chunk_uid,
                     ])
+                structured_unit_hint = _normalise_spaces(str(structured_provenance.get("unit_hint") or ""))
+                if structured_unit_hint and structured_unit_hint != _normalise_spaces(str(dependency_row.get("raw_unit") or "")):
+                    structured_value, structured_unit = _normalise_operand_value(
+                        str(dependency_row.get("raw_value") or ""),
+                        structured_unit_hint,
+                    )
+                    if structured_value is not None and structured_unit:
+                        dependency_row["raw_unit"] = structured_unit_hint
+                        dependency_row["normalized_value"] = structured_value
+                        dependency_row["normalized_unit"] = structured_unit
+                        dependency_row["rendered_value"] = _normalise_spaces(
+                            f"{dependency_row.get('raw_value')}{structured_unit_hint}"
+                        )
+                        dependency_row["unit_realigned_from_structured_provenance"] = True
                 for key in ("consolidation_scope", "statement_type", "table_source_id"):
                     value = _normalise_spaces(str(structured_provenance.get(key) or ""))
                     if value:
@@ -5153,6 +5167,7 @@ class FinancialAgentCalculationMixin:
             payload = {
                 "source_anchor": self._build_source_anchor(metadata),
                 "chunk_uid": str(chunk_uid),
+                "unit_hint": _normalise_spaces(str(metadata.get("unit_hint") or "")),
                 "consolidation_scope": node_scope,
                 "statement_type": statement_type,
                 "table_source_id": _normalise_spaces(str(metadata.get("table_source_id") or "")),
@@ -7381,11 +7396,14 @@ class FinancialAgentCalculationMixin:
     ) -> Dict[str, Any]:
         updated = dict(row)
         raw_value = str(updated.get("raw_value") or "")
-        coerced_unit = self._coerce_operand_unit_from_evidence(
-            raw_value=raw_value,
-            raw_unit=str(updated.get("raw_unit") or ""),
-            evidence_item=evidence_item,
-        )
+        if updated.get("unit_realigned_from_structured_provenance") and updated.get("normalized_value") is not None:
+            coerced_unit = str(updated.get("raw_unit") or "")
+        else:
+            coerced_unit = self._coerce_operand_unit_from_evidence(
+                raw_value=raw_value,
+                raw_unit=str(updated.get("raw_unit") or ""),
+                evidence_item=evidence_item,
+            )
         if coerced_unit != str(updated.get("raw_unit") or "") or updated.get("normalized_value") is None:
             normalized_value, normalized_unit = _normalise_operand_value(raw_value, coerced_unit)
             if normalized_value is not None:
@@ -7590,22 +7608,59 @@ class FinancialAgentCalculationMixin:
                 cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
                 return cell_value is not None and cell_unit == "KRW"
 
+            alias_variants = [
+                variant
+                for alias in operand_aliases
+                for variant in _surface_match_variants(alias)
+                if variant
+            ]
+
+            def _label_match_score(label_text: str) -> int:
+                label_variants = _surface_match_variants(label_text)
+                if not label_variants or not alias_variants:
+                    return 0
+                best = 0
+                for label_variant in label_variants:
+                    label_compact = re.sub(r"\s+", "", label_variant)
+                    for alias_variant in alias_variants:
+                        alias_compact = re.sub(r"\s+", "", alias_variant)
+                        if not label_compact or not alias_compact:
+                            continue
+                        if label_variant == alias_variant or label_compact == alias_compact:
+                            best = max(best, 10000 + len(label_compact))
+                        elif label_variant in alias_variant or label_compact in alias_compact:
+                            best = max(best, 5000 + len(label_compact))
+                        elif alias_variant in label_variant or alias_compact in label_compact:
+                            best = max(best, 3000 + len(alias_compact))
+                if best:
+                    return best
+                if _operand_text_match(label_text, operand_spec):
+                    return max(len(re.sub(r"\s+", "", variant)) for variant in label_variants)
+                return 0
+
+            best_label_index = -1
+            best_label_score = 0
             for index, label_text in enumerate(row_labels):
-                if not _operand_text_match(label_text, operand_spec):
+                label_score = _label_match_score(label_text)
+                if label_score <= best_label_score:
                     continue
+                best_label_index = index
+                best_label_score = label_score
+
+            if best_label_index >= 0:
+                label_text = row_labels[best_label_index]
                 current_record = records_by_label.get(label_text)
                 if current_record:
                     cell_data = _select_period_aware_cell(current_record)
                     if cell_data and _is_krw_cell(cell_data):
                         return cell_data
-                for previous_label in reversed(row_labels[:index]):
+                for previous_label in reversed(row_labels[:best_label_index]):
                     record = records_by_label.get(previous_label)
                     if not record:
                         continue
                     cell_data = _select_period_aware_cell(record)
                     if cell_data and _is_krw_cell(cell_data):
                         return cell_data
-                break
             return None
 
         surface = _normalise_spaces(
@@ -7908,6 +7963,20 @@ class FinancialAgentCalculationMixin:
             if not candidate_slot or candidate_score <= 0:
                 aligned.append(current_row)
                 continue
+            candidate_identity_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        candidate_slot.get("matched_operand_label"),
+                        candidate_slot.get("label"),
+                        candidate_slot.get("matched_operand_concept"),
+                        candidate_slot.get("concept"),
+                    )
+                )
+            )
+            if candidate_identity_surface and not _operand_text_match(candidate_identity_surface, operand):
+                aligned.append(current_row)
+                continue
             if not _candidate_has_other_operand_context(candidate_slot, current_row):
                 aligned.append(current_row)
                 continue
@@ -7949,6 +8018,52 @@ class FinancialAgentCalculationMixin:
             unit_aligned = self._align_ratio_operand_units_with_shared_table_context(aligned)
             return unit_aligned
         return self._align_ratio_operand_units_with_shared_table_context(ordered_operands)
+
+    def _operand_row_source_id_set(self, row: Dict[str, Any]) -> set[str]:
+        return {
+            source_id
+            for source_id in _clean_source_row_ids([
+                row.get("evidence_id"),
+                row.get("source_row_id"),
+                row.get("source_row_ids"),
+            ])
+            if source_id
+        }
+
+    def _operand_row_value_differs(self, left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+        left_value = left.get("normalized_value")
+        right_value = right.get("normalized_value")
+        try:
+            if left_value is not None and right_value is not None:
+                return abs(float(left_value) - float(right_value)) > 1e-6
+        except (TypeError, ValueError):
+            pass
+        left_raw = _normalise_spaces(str(left.get("raw_value") or ""))
+        right_raw = _normalise_spaces(str(right.get("raw_value") or ""))
+        if left_raw and right_raw:
+            return left_raw != right_raw
+        return left_value != right_value
+
+    def _task_output_operand_row_should_keep_value(
+        self,
+        row: Dict[str, Any],
+        replacement: Dict[str, Any],
+    ) -> bool:
+        if not row.get("dependency_resolved"):
+            return False
+        if not _normalise_spaces(str(row.get("source_task_id") or "")):
+            return False
+        if not self._operand_row_value_differs(row, replacement):
+            return False
+        row_source_ids = self._operand_row_source_id_set(row)
+        if not any(source_id.startswith("task_output:") for source_id in row_source_ids):
+            return False
+        if not any(not source_id.startswith("task_output:") for source_id in row_source_ids):
+            return False
+        replacement_source_ids = self._operand_row_source_id_set(replacement)
+        if row_source_ids.intersection(replacement_source_ids):
+            return False
+        return True
 
     def _align_dependency_rows_with_sibling_direct_context(
         self,
@@ -7995,18 +8110,18 @@ class FinancialAgentCalculationMixin:
                 aligned.append(dependency_row)
                 continue
             candidate = candidates[0]
-            dep_value = dependency_row.get("normalized_value")
-            candidate_value = candidate.get("normalized_value")
-            try:
-                value_differs = (
-                    dep_value is not None
-                    and candidate_value is not None
-                    and abs(float(dep_value) - float(candidate_value)) > 1e-6
-                )
-            except (TypeError, ValueError):
-                value_differs = dep_value != candidate_value
-            if not value_differs:
+            if not self._operand_row_value_differs(dependency_row, candidate):
                 aligned.append(dependency_row)
+                continue
+            if self._task_output_operand_row_should_keep_value(dependency_row, candidate):
+                aligned.append(
+                    {
+                        **dependency_row,
+                        "sibling_table_context_realignment_blocked": True,
+                        "sibling_table_context_realignment_blocked_reason": "task_output_value_provenance_mismatch",
+                    }
+                )
+                changed = True
                 continue
             aligned.append(
                 {
@@ -8081,6 +8196,18 @@ class FinancialAgentCalculationMixin:
         for row in operand_rows:
             row_key = _row_key(row)
             replacement = direct_by_key.get(row_key)
+            if replacement and self._task_output_operand_row_should_keep_value(row, replacement):
+                preferred.append(
+                    {
+                        **row,
+                        "complete_ratio_direct_context_preference_blocked": True,
+                        "complete_ratio_direct_context_preference_blocked_reason": "task_output_value_provenance_mismatch",
+                    }
+                )
+                changed = True
+                if all(row_key):
+                    seen_keys.add(row_key)
+                continue
             if replacement and (direct_has_coherent_context or bool(row.get("dependency_resolved"))):
                 preferred.append(replacement)
                 changed = True
@@ -9568,8 +9695,25 @@ class FinancialAgentCalculationMixin:
             and dependency_rows
             and not _missing_required_operands(required_operands, dependency_rows)
         )
+        def _rows_have_single_table_context(rows: List[Dict[str, Any]]) -> bool:
+            contexts = {
+                _normalise_spaces(
+                    str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
+                )
+                for row in rows
+                if _normalise_spaces(
+                    str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
+                )
+            }
+            return len(contexts) == 1
+
+        direct_rows_have_coherent_context = bool(
+            direct_rows_cover_required_operands
+            and _rows_have_single_table_context(direct_structured_rows)
+        )
         if operation_family == "ratio" and required_operands and (
-            direct_rows_cover_required_operands or dependency_rows_cover_required_operands
+            (direct_rows_cover_required_operands and not direct_rows_have_coherent_context)
+            or dependency_rows_cover_required_operands
         ):
             ratio_context_docs = list(retrieved_docs or [])
             seen_ratio_doc_ids = {

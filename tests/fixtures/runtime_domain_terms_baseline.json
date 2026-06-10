@@ -13,7 +13,7 @@
       "fingerprint": "767bc6f818fc96e2",
       "count": 1,
       "first_lines": [
-        559
+        663
       ]
     },
     {
@@ -23,7 +23,7 @@
       "fingerprint": "6606787fbeb83141",
       "count": 1,
       "first_lines": [
-        5646
+        6527
       ]
     },
     {
@@ -33,7 +33,7 @@
       "fingerprint": "a8a093c7e803f64e",
       "count": 1,
       "first_lines": [
-        568
+        672
       ]
     },
     {
@@ -43,7 +43,7 @@
       "fingerprint": "856229ecec7673f5",
       "count": 1,
       "first_lines": [
-        5037
+        5918
       ]
     },
     {
@@ -53,7 +53,7 @@
       "fingerprint": "7eedf3c80dbfb201",
       "count": 1,
       "first_lines": [
-        8470
+        10031
       ]
     },
     {
@@ -63,7 +63,7 @@
       "fingerprint": "07925292e7605acd",
       "count": 1,
       "first_lines": [
-        520
+        624
       ]
     },
     {
@@ -73,7 +73,7 @@
       "fingerprint": "e0672f42e76a8987",
       "count": 1,
       "first_lines": [
-        10174
+        11974
       ]
     },
     {
@@ -83,7 +83,7 @@
       "fingerprint": "dfdd54a0011319cd",
       "count": 1,
       "first_lines": [
-        627
+        911
       ]
     },
     {
@@ -93,7 +93,7 @@
       "fingerprint": "7bbeb54c9d720cd2",
       "count": 1,
       "first_lines": [
-        629
+        913
       ]
     },
     {
@@ -103,7 +103,7 @@
       "fingerprint": "17fe383876fff52a",
       "count": 1,
       "first_lines": [
-        11969
+        14046
       ]
     },
     {
@@ -113,7 +113,7 @@
       "fingerprint": "8c7e3ede0fa967ac",
       "count": 1,
       "first_lines": [
-        11173
+        13075
       ]
     },
     {
@@ -123,8 +123,8 @@
       "fingerprint": "5b9aca9efa1cb642",
       "count": 2,
       "first_lines": [
-        6769,
-        9631
+        7704,
+        11264
       ]
     },
     {
@@ -134,7 +134,7 @@
       "fingerprint": "00537036c11979e5",
       "count": 1,
       "first_lines": [
-        7841
+        9275
       ]
     },
     {
@@ -144,7 +144,7 @@
       "fingerprint": "7ca792d9bb061cde",
       "count": 1,
       "first_lines": [
-        6865
+        7800
       ]
     },
     {
@@ -154,7 +154,7 @@
       "fingerprint": "de4d14c45b9e10fd",
       "count": 1,
       "first_lines": [
-        7823
+        9257
       ]
     },
     {
@@ -164,7 +164,7 @@
       "fingerprint": "cb4958652000269f",
       "count": 1,
       "first_lines": [
-        7471
+        8774
       ]
     },
     {
@@ -174,7 +174,7 @@
       "fingerprint": "5cc7250da5f208a1",
       "count": 1,
       "first_lines": [
-        10175
+        11975
       ]
     },
     {
@@ -184,7 +184,7 @@
       "fingerprint": "0b992c4a6917dad0",
       "count": 1,
       "first_lines": [
-        9944
+        11741
       ]
     },
     {
@@ -194,7 +194,7 @@
       "fingerprint": "23ab25b3ab77e604",
       "count": 1,
       "first_lines": [
-        11178
+        13080
       ]
     },
     {
@@ -204,8 +204,8 @@
       "fingerprint": "9e011f27d9f7b129",
       "count": 2,
       "first_lines": [
-        6769,
-        9631
+        7704,
+        11264
       ]
     },
     {
@@ -215,8 +215,8 @@
       "fingerprint": "bd1699610adad626",
       "count": 2,
       "first_lines": [
-        7803,
-        10204
+        9237,
+        12004
       ]
     },
     {
@@ -226,7 +226,7 @@
       "fingerprint": "b58bee8eb37c98a0",
       "count": 1,
       "first_lines": [
-        459
+        153
       ]
     },
     {
@@ -236,11 +236,11 @@
       "fingerprint": "09aadfd07ef92e69",
       "count": 5,
       "first_lines": [
-        3244,
-        3350,
-        3353,
-        3451,
-        3647
+        3389,
+        3495,
+        3498,
+        3596,
+        3792
       ]
     },
     {
@@ -250,7 +250,17 @@
       "fingerprint": "ff18e0673e70c35a",
       "count": 1,
       "first_lines": [
-        3915
+        4060
+      ]
+    },
+    {
+      "path": "src/agent/financial_graph_evidence.py",
+      "text": "[A-Za-z0-9가-힣_]",
+      "category": "regex_or_pattern",
+      "fingerprint": "c441f78f71f2d4f8",
+      "count": 1,
+      "first_lines": [
+        215
       ]
     },
     {
@@ -260,8 +270,18 @@
       "fingerprint": "4ec5a8e849d0dfb3",
       "count": 2,
       "first_lines": [
-        4529,
-        4548
+        4674,
+        4693
+      ]
+    },
+    {
+      "path": "src/agent/financial_graph_evidence.py",
+      "text": "[A-Za-z가-힣][A-Za-z가-힣0-9_]{5,}",
+      "category": "regex_or_pattern",
+      "fingerprint": "ff164d9b9ddf32ee",
+      "count": 1,
+      "first_lines": [
+        545
       ]
     },
     {
@@ -271,7 +291,7 @@
       "fingerprint": "19bc2a3b9de117cd",
       "count": 1,
       "first_lines": [
-        1896
+        1831
       ]
     },
     {
@@ -281,8 +301,8 @@
       "fingerprint": "38804614940659cb",
       "count": 2,
       "first_lines": [
-        488,
-        1213
+        182,
+        1148
       ]
     },
     {
@@ -292,8 +312,8 @@
       "fingerprint": "babae2ce22724407",
       "count": 2,
       "first_lines": [
-        3283,
-        3395
+        3428,
+        3540
       ]
     },
     {
@@ -303,7 +323,7 @@
       "fingerprint": "659b99dfd4b27fb1",
       "count": 1,
       "first_lines": [
-        3283
+        3428
       ]
     },
     {
@@ -313,7 +333,7 @@
       "fingerprint": "b8454cb1cc28f184",
       "count": 1,
       "first_lines": [
-        3401
+        3546
       ]
     },
     {
@@ -323,7 +343,7 @@
       "fingerprint": "3f225931bf63dfdf",
       "count": 1,
       "first_lines": [
-        2764
+        2832
       ]
     },
     {
@@ -333,7 +353,7 @@
       "fingerprint": "066d947debd8d926",
       "count": 1,
       "first_lines": [
-        5643
+        5788
       ]
     },
     {
@@ -343,11 +363,11 @@
       "fingerprint": "64b3b3b42c1c1156",
       "count": 7,
       "first_lines": [
-        732,
-        954,
-        3464,
-        3679,
-        3774
+        667,
+        889,
+        3609,
+        3824,
+        3919
       ]
     },
     {
@@ -357,7 +377,7 @@
       "fingerprint": "60ec60244136737d",
       "count": 1,
       "first_lines": [
-        3697
+        3842
       ]
     },
     {
@@ -367,7 +387,7 @@
       "fingerprint": "3aa50a1e3dd9f9bb",
       "count": 1,
       "first_lines": [
-        2894
+        2908
       ]
     },
     {
@@ -377,7 +397,7 @@
       "fingerprint": "564f631ce587bad3",
       "count": 1,
       "first_lines": [
-        2648
+        2662
       ]
     },
     {
@@ -387,7 +407,7 @@
       "fingerprint": "d0a68f122e79f782",
       "count": 1,
       "first_lines": [
-        4193
+        4207
       ]
     },
     {
@@ -397,7 +417,7 @@
       "fingerprint": "8d15177a51f8ea8a",
       "count": 1,
       "first_lines": [
-        6203
+        6218
       ]
     },
     {
@@ -407,7 +427,7 @@
       "fingerprint": "3f041c51b081a96d",
       "count": 1,
       "first_lines": [
-        299
+        300
       ]
     },
     {
@@ -417,7 +437,7 @@
       "fingerprint": "dcaf0fd6f11dfe0e",
       "count": 1,
       "first_lines": [
-        2642
+        2656
       ]
     },
     {
@@ -427,7 +447,7 @@
       "fingerprint": "579e64c9085b58f1",
       "count": 1,
       "first_lines": [
-        1799
+        1813
       ]
     },
     {
@@ -437,7 +457,7 @@
       "fingerprint": "fb88d9b6042a4ab8",
       "count": 1,
       "first_lines": [
-        1806
+        1820
       ]
     },
     {
@@ -447,7 +467,7 @@
       "fingerprint": "83911fa4e645ea8f",
       "count": 1,
       "first_lines": [
-        6621
+        6643
       ]
     },
     {
@@ -457,7 +477,7 @@
       "fingerprint": "5eba65865611eed0",
       "count": 1,
       "first_lines": [
-        6231
+        6246
       ]
     },
     {
@@ -467,7 +487,7 @@
       "fingerprint": "76ace638702d5adb",
       "count": 1,
       "first_lines": [
-        6182
+        6197
       ]
     },
     {
@@ -477,7 +497,7 @@
       "fingerprint": "f2804fadf9da1dbe",
       "count": 1,
       "first_lines": [
-        198
+        199
       ]
     },
     {
@@ -487,8 +507,8 @@
       "fingerprint": "9cf50dedd1cb1438",
       "count": 2,
       "first_lines": [
-        2763,
-        3254
+        2777,
+        3268
       ]
     },
     {
@@ -498,7 +518,7 @@
       "fingerprint": "c5b5314c80a4a20a",
       "count": 1,
       "first_lines": [
-        6143
+        6158
       ]
     },
     {
@@ -508,7 +528,7 @@
       "fingerprint": "b3a08ce09d2c8846",
       "count": 1,
       "first_lines": [
-        191
+        192
       ]
     },
     {
@@ -518,7 +538,7 @@
       "fingerprint": "508662ee99ee39e5",
       "count": 1,
       "first_lines": [
-        6207
+        6222
       ]
     },
     {
@@ -528,7 +548,7 @@
       "fingerprint": "892b7fc8fe5550be",
       "count": 1,
       "first_lines": [
-        6194
+        6209
       ]
     },
     {
@@ -538,7 +558,7 @@
       "fingerprint": "04e17ed82b398fc3",
       "count": 1,
       "first_lines": [
-        6153
+        6168
       ]
     },
     {
@@ -548,7 +568,7 @@
       "fingerprint": "a06423b14a7b545a",
       "count": 1,
       "first_lines": [
-        6430
+        6452
       ]
     },
     {
@@ -558,7 +578,7 @@
       "fingerprint": "9d38cab54d22f5c5",
       "count": 1,
       "first_lines": [
-        2029
+        2043
       ]
     },
     {
@@ -568,7 +588,7 @@
       "fingerprint": "67d9a377415a4102",
       "count": 1,
       "first_lines": [
-        4487
+        4501
       ]
     },
     {
@@ -578,8 +598,8 @@
       "fingerprint": "35a271eee58bd814",
       "count": 2,
       "first_lines": [
-        3270,
-        4486
+        3284,
+        4500
       ]
     },
     {
@@ -589,7 +609,7 @@
       "fingerprint": "f22c656be12d3f6d",
       "count": 1,
       "first_lines": [
-        1986
+        2000
       ]
     },
     {
@@ -599,8 +619,8 @@
       "fingerprint": "745a89e03fd65f22",
       "count": 2,
       "first_lines": [
-        3666,
-        3667
+        3680,
+        3681
       ]
     },
     {
@@ -610,10 +630,10 @@
       "fingerprint": "3df3bf753756b486",
       "count": 4,
       "first_lines": [
-        6018,
-        6029,
-        6080,
-        6107
+        6032,
+        6043,
+        6095,
+        6122
       ]
     },
     {
@@ -623,7 +643,7 @@
       "fingerprint": "25f17ac6aad50c38",
       "count": 1,
       "first_lines": [
-        6190
+        6205
       ]
     },
     {
@@ -633,7 +653,7 @@
       "fingerprint": "3b842ac261c59c9e",
       "count": 1,
       "first_lines": [
-        1988
+        2002
       ]
     },
     {
@@ -643,7 +663,7 @@
       "fingerprint": "d65f8e3db10c2030",
       "count": 1,
       "first_lines": [
-        5698
+        5712
       ]
     },
     {
@@ -653,7 +673,7 @@
       "fingerprint": "29c0f2198b3be826",
       "count": 1,
       "first_lines": [
-        6190
+        6205
       ]
     },
     {
@@ -663,7 +683,7 @@
       "fingerprint": "94aa3d2d8aebe64d",
       "count": 1,
       "first_lines": [
-        4487
+        4501
       ]
     },
     {
@@ -673,7 +693,7 @@
       "fingerprint": "a047042ed1b71ebd",
       "count": 1,
       "first_lines": [
-        8410
+        8502
       ]
     },
     {
@@ -683,8 +703,8 @@
       "fingerprint": "f6848141f3363895",
       "count": 2,
       "first_lines": [
-        8408,
-        8409
+        8500,
+        8501
       ]
     },
     {
@@ -694,7 +714,7 @@
       "fingerprint": "0141ae748d184abe",
       "count": 1,
       "first_lines": [
-        286
+        289
       ]
     },
     {
@@ -704,7 +724,7 @@
       "fingerprint": "9586b0bb222fdbd8",
       "count": 1,
       "first_lines": [
-        489
+        492
       ]
     },
     {
@@ -714,7 +734,7 @@
       "fingerprint": "cedf362f1581cc23",
       "count": 1,
       "first_lines": [
-        536
+        539
       ]
     },
     {
@@ -724,7 +744,7 @@
       "fingerprint": "a1a5a23304f2e2f1",
       "count": 1,
       "first_lines": [
-        181
+        184
       ]
     },
     {
@@ -734,7 +754,7 @@
       "fingerprint": "410e019a7fcd6113",
       "count": 1,
       "first_lines": [
-        520
+        523
       ]
     },
     {
@@ -744,7 +764,7 @@
       "fingerprint": "f4fc62339d34967c",
       "count": 1,
       "first_lines": [
-        576
+        579
       ]
     },
     {
@@ -754,7 +774,7 @@
       "fingerprint": "deda3f29289c4726",
       "count": 1,
       "first_lines": [
-        593
+        596
       ]
     },
     {
@@ -764,7 +784,7 @@
       "fingerprint": "fdf5a4640453ec46",
       "count": 1,
       "first_lines": [
-        590
+        593
       ]
     },
     {
@@ -774,7 +794,7 @@
       "fingerprint": "0d539cc5ea9686a5",
       "count": 1,
       "first_lines": [
-        588
+        591
       ]
     },
     {
@@ -784,7 +804,7 @@
       "fingerprint": "3463f799f2656c89",
       "count": 1,
       "first_lines": [
-        589
+        592
       ]
     },
     {
@@ -794,7 +814,7 @@
       "fingerprint": "48df41cb7f46befe",
       "count": 1,
       "first_lines": [
-        591
+        594
       ]
     },
     {
@@ -804,7 +824,7 @@
       "fingerprint": "dce6e05c351991cf",
       "count": 1,
       "first_lines": [
-        553
+        556
       ]
     },
     {
@@ -814,7 +834,7 @@
       "fingerprint": "211a2306515ad339",
       "count": 1,
       "first_lines": [
-        541
+        544
       ]
     },
     {
@@ -824,7 +844,7 @@
       "fingerprint": "64cb635ca1630ee9",
       "count": 1,
       "first_lines": [
-        563
+        566
       ]
     },
     {
@@ -834,7 +854,7 @@
       "fingerprint": "adef41d62fd3b4e6",
       "count": 1,
       "first_lines": [
-        479
+        482
       ]
     },
     {
@@ -844,7 +864,7 @@
       "fingerprint": "adb613ab7f917119",
       "count": 1,
       "first_lines": [
-        538
+        541
       ]
     },
     {
@@ -854,7 +874,7 @@
       "fingerprint": "cf8faf8536c79426",
       "count": 1,
       "first_lines": [
-        338
+        341
       ]
     },
     {
@@ -864,7 +884,7 @@
       "fingerprint": "7e34016e64dc8636",
       "count": 1,
       "first_lines": [
-        359
+        362
       ]
     },
     {
@@ -874,7 +894,7 @@
       "fingerprint": "66802846b097f47d",
       "count": 1,
       "first_lines": [
-        212
+        215
       ]
     },
     {
@@ -884,7 +904,7 @@
       "fingerprint": "ea0f03e837103a2f",
       "count": 1,
       "first_lines": [
-        290
+        293
       ]
     },
     {
@@ -894,7 +914,7 @@
       "fingerprint": "cfc7c4a98f002641",
       "count": 1,
       "first_lines": [
-        628
+        631
       ]
     },
     {
@@ -904,7 +924,7 @@
       "fingerprint": "b03e678cbe5fabb3",
       "count": 1,
       "first_lines": [
-        624
+        627
       ]
     },
     {
@@ -914,7 +934,7 @@
       "fingerprint": "37c72737101404f0",
       "count": 1,
       "first_lines": [
-        501
+        504
       ]
     },
     {
@@ -924,7 +944,7 @@
       "fingerprint": "f762f9e8cf99a8cc",
       "count": 1,
       "first_lines": [
-        639
+        642
       ]
     },
     {
@@ -934,7 +954,7 @@
       "fingerprint": "ebcb0def605a476f",
       "count": 1,
       "first_lines": [
-        475
+        478
       ]
     },
     {
@@ -944,7 +964,7 @@
       "fingerprint": "38ac4f3cc5f1a4c5",
       "count": 1,
       "first_lines": [
-        267
+        270
       ]
     },
     {
@@ -954,7 +974,7 @@
       "fingerprint": "e2e2bc2fae4cea6d",
       "count": 1,
       "first_lines": [
-        484
+        487
       ]
     },
     {
@@ -964,7 +984,7 @@
       "fingerprint": "bfe1c0db89b4bb40",
       "count": 1,
       "first_lines": [
-        485
+        488
       ]
     },
     {
@@ -974,7 +994,7 @@
       "fingerprint": "c25fb633acb10c72",
       "count": 1,
       "first_lines": [
-        463
+        466
       ]
     },
     {
@@ -984,7 +1004,7 @@
       "fingerprint": "37f485306cc9387c",
       "count": 1,
       "first_lines": [
-        235
+        238
       ]
     },
     {
@@ -994,7 +1014,7 @@
       "fingerprint": "9e82bab1d7960cca",
       "count": 1,
       "first_lines": [
-        306
+        309
       ]
     },
     {
@@ -1004,7 +1024,7 @@
       "fingerprint": "e025dd192adc38a6",
       "count": 1,
       "first_lines": [
-        163
+        166
       ]
     },
     {
@@ -1014,7 +1034,7 @@
       "fingerprint": "76d67b11853e5342",
       "count": 1,
       "first_lines": [
-        632
+        635
       ]
     },
     {
@@ -1024,7 +1044,7 @@
       "fingerprint": "2513ab0733c5ef60",
       "count": 1,
       "first_lines": [
-        237
+        240
       ]
     },
     {
@@ -1034,7 +1054,7 @@
       "fingerprint": "c4c3bab7a75712ae",
       "count": 1,
       "first_lines": [
-        171
+        174
       ]
     },
     {
@@ -1044,7 +1064,7 @@
       "fingerprint": "adb13527ef0b1006",
       "count": 1,
       "first_lines": [
-        469
+        472
       ]
     },
     {
@@ -1054,7 +1074,7 @@
       "fingerprint": "8f5dfd6ccdcbb6e7",
       "count": 1,
       "first_lines": [
-        270
+        273
       ]
     },
     {
@@ -1064,7 +1084,7 @@
       "fingerprint": "798741e8bf387d15",
       "count": 1,
       "first_lines": [
-        367
+        370
       ]
     },
     {
@@ -1074,7 +1094,7 @@
       "fingerprint": "e94d8d8e72aa7fa5",
       "count": 1,
       "first_lines": [
-        205
+        208
       ]
     },
     {
@@ -1084,7 +1104,7 @@
       "fingerprint": "b8203d07bec9a4d8",
       "count": 1,
       "first_lines": [
-        370
+        373
       ]
     },
     {
@@ -1094,7 +1114,7 @@
       "fingerprint": "99f675b634fc6c8f",
       "count": 1,
       "first_lines": [
-        368
+        371
       ]
     },
     {
@@ -1104,7 +1124,7 @@
       "fingerprint": "76d2261a17f986dc",
       "count": 1,
       "first_lines": [
-        239
+        242
       ]
     },
     {
@@ -1114,7 +1134,7 @@
       "fingerprint": "b8542decc23d86c7",
       "count": 1,
       "first_lines": [
-        227
+        230
       ]
     },
     {
@@ -1124,7 +1144,7 @@
       "fingerprint": "48f9a4d60d7c5668",
       "count": 1,
       "first_lines": [
-        636
+        639
       ]
     },
     {
@@ -1134,7 +1154,7 @@
       "fingerprint": "c008fa327bc4963e",
       "count": 1,
       "first_lines": [
-        521
+        524
       ]
     },
     {
@@ -1144,7 +1164,7 @@
       "fingerprint": "445eedbda8ab91c2",
       "count": 1,
       "first_lines": [
-        498
+        501
       ]
     },
     {
@@ -1154,7 +1174,7 @@
       "fingerprint": "3e874bbd3563e104",
       "count": 1,
       "first_lines": [
-        467
+        470
       ]
     },
     {
@@ -1164,7 +1184,7 @@
       "fingerprint": "6be593de51fb0858",
       "count": 1,
       "first_lines": [
-        360
+        363
       ]
     },
     {
@@ -1174,7 +1194,7 @@
       "fingerprint": "cea0822ca328e6df",
       "count": 1,
       "first_lines": [
-        580
+        583
       ]
     },
     {
@@ -1184,7 +1204,7 @@
       "fingerprint": "97ac0a0ee12a54a7",
       "count": 1,
       "first_lines": [
-        618
+        621
       ]
     },
     {
@@ -1194,7 +1214,7 @@
       "fingerprint": "f445eb5f6c6d2996",
       "count": 1,
       "first_lines": [
-        260
+        263
       ]
     },
     {
@@ -1204,7 +1224,7 @@
       "fingerprint": "53f40bc0cb9a49b1",
       "count": 1,
       "first_lines": [
-        282
+        285
       ]
     },
     {
@@ -1214,7 +1234,7 @@
       "fingerprint": "3c8d777f52bfd827",
       "count": 1,
       "first_lines": [
-        607
+        610
       ]
     },
     {
@@ -1224,7 +1244,7 @@
       "fingerprint": "3b11388102fadb0a",
       "count": 1,
       "first_lines": [
-        330
+        333
       ]
     },
     {
@@ -1234,7 +1254,7 @@
       "fingerprint": "42f95d3a44d593db",
       "count": 1,
       "first_lines": [
-        381
+        384
       ]
     },
     {
@@ -1244,7 +1264,7 @@
       "fingerprint": "da9f09257ed2011d",
       "count": 1,
       "first_lines": [
-        377
+        380
       ]
     },
     {
@@ -1254,7 +1274,7 @@
       "fingerprint": "32d9e1cd6c0f6a37",
       "count": 1,
       "first_lines": [
-        278
+        281
       ]
     },
     {
@@ -1264,7 +1284,7 @@
       "fingerprint": "cff6ba479ac77fb1",
       "count": 1,
       "first_lines": [
-        298
+        301
       ]
     },
     {
@@ -1274,7 +1294,7 @@
       "fingerprint": "bb535d102645359e",
       "count": 1,
       "first_lines": [
-        346
+        349
       ]
     },
     {
@@ -1284,7 +1304,7 @@
       "fingerprint": "e30814637cc5898f",
       "count": 1,
       "first_lines": [
-        185
+        188
       ]
     },
     {
@@ -1294,7 +1314,7 @@
       "fingerprint": "a3cd874b5c566529",
       "count": 1,
       "first_lines": [
-        364
+        367
       ]
     },
     {
@@ -1304,7 +1324,7 @@
       "fingerprint": "d58540515c8566e1",
       "count": 1,
       "first_lines": [
-        363
+        366
       ]
     },
     {
@@ -1314,7 +1334,7 @@
       "fingerprint": "97e2c4141c8e4db6",
       "count": 1,
       "first_lines": [
-        240
+        243
       ]
     },
     {
@@ -1324,7 +1344,7 @@
       "fingerprint": "45ed1478aa30d2ae",
       "count": 1,
       "first_lines": [
-        507
+        510
       ]
     },
     {
@@ -1334,7 +1354,7 @@
       "fingerprint": "86f304d80383c2db",
       "count": 1,
       "first_lines": [
-        374
+        377
       ]
     },
     {
@@ -1344,7 +1364,7 @@
       "fingerprint": "18d86fe81a6c8bfb",
       "count": 1,
       "first_lines": [
-        383
+        386
       ]
     },
     {
@@ -1354,7 +1374,7 @@
       "fingerprint": "569bcf9652f7ac4e",
       "count": 1,
       "first_lines": [
-        369
+        372
       ]
     },
     {
@@ -1364,7 +1384,7 @@
       "fingerprint": "5f81aeef4769a603",
       "count": 1,
       "first_lines": [
-        362
+        365
       ]
     },
     {
@@ -1374,7 +1394,7 @@
       "fingerprint": "ff17b643d7c0fd73",
       "count": 1,
       "first_lines": [
-        261
+        264
       ]
     },
     {
@@ -1384,7 +1404,7 @@
       "fingerprint": "c1d75d6d48696f04",
       "count": 1,
       "first_lines": [
-        249
+        252
       ]
     },
     {
@@ -1394,7 +1414,7 @@
       "fingerprint": "8abd59482439bc8f",
       "count": 1,
       "first_lines": [
-        236
+        239
       ]
     },
     {
@@ -1404,7 +1424,7 @@
       "fingerprint": "56e18292de03d0df",
       "count": 1,
       "first_lines": [
-        357
+        360
       ]
     },
     {
@@ -1414,7 +1434,7 @@
       "fingerprint": "b9a6b81ab24e0f2d",
       "count": 1,
       "first_lines": [
-        302
+        305
       ]
     },
     {
@@ -1424,7 +1444,7 @@
       "fingerprint": "0ee3ac4b8bbbf851",
       "count": 1,
       "first_lines": [
-        540
+        543
       ]
     },
     {
@@ -1434,7 +1454,7 @@
       "fingerprint": "400ff510151ad437",
       "count": 1,
       "first_lines": [
-        322
+        325
       ]
     },
     {
@@ -1444,7 +1464,7 @@
       "fingerprint": "eb2df47a6a3c3533",
       "count": 1,
       "first_lines": [
-        544
+        547
       ]
     },
     {
@@ -1454,7 +1474,7 @@
       "fingerprint": "cf70ecb7899e32b4",
       "count": 1,
       "first_lines": [
-        313
+        316
       ]
     },
     {
@@ -1464,7 +1484,7 @@
       "fingerprint": "d277916b16a913eb",
       "count": 1,
       "first_lines": [
-        342
+        345
       ]
     },
     {
@@ -1474,7 +1494,7 @@
       "fingerprint": "0fd27548600d30a0",
       "count": 1,
       "first_lines": [
-        465
+        468
       ]
     },
     {
@@ -1484,8 +1504,8 @@
       "fingerprint": "c6cc48e4bdb49286",
       "count": 2,
       "first_lines": [
-        247,
-        366
+        250,
+        369
       ]
     },
     {
@@ -1495,7 +1515,7 @@
       "fingerprint": "4bc3e89f90390751",
       "count": 1,
       "first_lines": [
-        365
+        368
       ]
     },
     {
@@ -1505,7 +1525,7 @@
       "fingerprint": "f3b127734b9c914b",
       "count": 1,
       "first_lines": [
-        472
+        475
       ]
     },
     {
@@ -1515,7 +1535,7 @@
       "fingerprint": "9dcedac4edf9628e",
       "count": 1,
       "first_lines": [
-        474
+        477
       ]
     },
     {
@@ -1525,7 +1545,7 @@
       "fingerprint": "146b962f906cdeb8",
       "count": 1,
       "first_lines": [
-        471
+        474
       ]
     },
     {
@@ -1535,7 +1555,7 @@
       "fingerprint": "22a3d4abeadbfd7c",
       "count": 1,
       "first_lines": [
-        254
+        257
       ]
     },
     {
@@ -1545,7 +1565,7 @@
       "fingerprint": "aa3f22bfe527ac95",
       "count": 1,
       "first_lines": [
-        616
+        619
       ]
     },
     {
@@ -1555,7 +1575,7 @@
       "fingerprint": "ab0969f9fedec8ed",
       "count": 1,
       "first_lines": [
-        189
+        192
       ]
     },
     {
@@ -1565,7 +1585,7 @@
       "fingerprint": "da5e56e75af6575c",
       "count": 1,
       "first_lines": [
-        230
+        233
       ]
     },
     {
@@ -1575,7 +1595,7 @@
       "fingerprint": "7032a4a2075ea2e6",
       "count": 1,
       "first_lines": [
-        157
+        160
       ]
     },
     {
@@ -1585,7 +1605,7 @@
       "fingerprint": "0d31b44d3952cb21",
       "count": 1,
       "first_lines": [
-        158
+        161
       ]
     },
     {
@@ -1595,7 +1615,7 @@
       "fingerprint": "62390fa181d3081e",
       "count": 1,
       "first_lines": [
-        179
+        182
       ]
     },
     {
@@ -1605,7 +1625,7 @@
       "fingerprint": "4e19683588a1b363",
       "count": 1,
       "first_lines": [
-        159
+        162
       ]
     },
     {
@@ -1615,7 +1635,7 @@
       "fingerprint": "46b1914b59cc800b",
       "count": 1,
       "first_lines": [
-        221
+        224
       ]
     },
     {
@@ -1625,7 +1645,7 @@
       "fingerprint": "e603ae210366f507",
       "count": 1,
       "first_lines": [
-        218
+        221
       ]
     },
     {
@@ -1635,7 +1655,7 @@
       "fingerprint": "6ee6e86d5f8b9e7e",
       "count": 1,
       "first_lines": [
-        516
+        519
       ]
     },
     {
@@ -1645,7 +1665,7 @@
       "fingerprint": "aecd1ba2cf1504ee",
       "count": 1,
       "first_lines": [
-        466
+        469
       ]
     },
     {
@@ -1655,7 +1675,7 @@
       "fingerprint": "0197dcd805d927f8",
       "count": 1,
       "first_lines": [
-        294
+        297
       ]
     },
     {
@@ -1665,7 +1685,7 @@
       "fingerprint": "2cd0148985b70af0",
       "count": 1,
       "first_lines": [
-        193
+        196
       ]
     },
     {
@@ -1675,7 +1695,7 @@
       "fingerprint": "a9cedee6be461204",
       "count": 1,
       "first_lines": [
-        209
+        212
       ]
     },
     {
@@ -1685,7 +1705,7 @@
       "fingerprint": "7ac51c52490bdecd",
       "count": 1,
       "first_lines": [
-        519
+        522
       ]
     },
     {
@@ -1695,7 +1715,7 @@
       "fingerprint": "e10dab58ac4b5726",
       "count": 1,
       "first_lines": [
-        243
+        246
       ]
     },
     {
@@ -1705,7 +1725,7 @@
       "fingerprint": "2b3b6aa880837822",
       "count": 1,
       "first_lines": [
-        522
+        525
       ]
     },
     {
@@ -1715,7 +1735,7 @@
       "fingerprint": "5e765ebec78b533d",
       "count": 1,
       "first_lines": [
-        274
+        277
       ]
     },
     {
@@ -1725,7 +1745,7 @@
       "fingerprint": "397fdfa40cf96f79",
       "count": 1,
       "first_lines": [
-        468
+        471
       ]
     },
     {
@@ -1735,7 +1755,7 @@
       "fingerprint": "fb707978c40b52c7",
       "count": 1,
       "first_lines": [
-        238
+        241
       ]
     },
     {
@@ -1745,7 +1765,7 @@
       "fingerprint": "2f9f9a61c06462ec",
       "count": 1,
       "first_lines": [
-        175
+        178
       ]
     },
     {
@@ -1755,7 +1775,7 @@
       "fingerprint": "e33a3c96e4ee1749",
       "count": 1,
       "first_lines": [
-        224
+        227
       ]
     },
     {
@@ -1765,7 +1785,7 @@
       "fingerprint": "e31d727ade78a02a",
       "count": 1,
       "first_lines": [
-        518
+        521
       ]
     },
     {
@@ -1775,7 +1795,7 @@
       "fingerprint": "bf63ee5679890bbc",
       "count": 1,
       "first_lines": [
-        494
+        497
       ]
     },
     {
@@ -1785,7 +1805,7 @@
       "fingerprint": "01ee197a51729d5e",
       "count": 1,
       "first_lines": [
-        473
+        476
       ]
     },
     {
@@ -1795,7 +1815,7 @@
       "fingerprint": "e54bc6ccc9dc9b9d",
       "count": 1,
       "first_lines": [
-        470
+        473
       ]
     },
     {
@@ -1805,7 +1825,7 @@
       "fingerprint": "d436a9b4e52efd17",
       "count": 1,
       "first_lines": [
-        511
+        514
       ]
     },
     {
@@ -1815,7 +1835,7 @@
       "fingerprint": "8e9b37c70270f3eb",
       "count": 1,
       "first_lines": [
-        334
+        337
       ]
     },
     {
@@ -1825,7 +1845,7 @@
       "fingerprint": "62d9973edcc6ef74",
       "count": 1,
       "first_lines": [
-        1528
+        1718
       ]
     },
     {
@@ -1835,7 +1855,7 @@
       "fingerprint": "f0a1c35ea3b29ca8",
       "count": 1,
       "first_lines": [
-        1528
+        1718
       ]
     },
     {
@@ -1845,7 +1865,7 @@
       "fingerprint": "c339a6971b0a54e2",
       "count": 1,
       "first_lines": [
-        1530
+        1720
       ]
     },
     {
@@ -1855,7 +1875,7 @@
       "fingerprint": "ce66e1a2fea79914",
       "count": 1,
       "first_lines": [
-        1525
+        1715
       ]
     },
     {
