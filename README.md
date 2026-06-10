@@ -90,10 +90,11 @@ duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
 | 1 | `python -m src.ops.portfolio_review_gates` | aggregate ready/not-ready reviewer gate |
 | 2 | `python -m src.ops.portfolio_demo` | compact answer/evidence/trace/integrity demo |
 | 3 | [docs/overview/portfolio_interview_narrative.md](docs/overview/portfolio_interview_narrative.md) | compact interview talk track and claim boundary |
-| 4 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
-| 5 | [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | problem, method, results, failure analysis |
-| 6 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | core technical claims |
-| 7 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | fixture-backed demo details |
+| 4 | [docs/overview/portfolio_resume_snippets.md](docs/overview/portfolio_resume_snippets.md) | resume and portfolio-ready wording |
+| 5 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
+| 6 | [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | problem, method, results, failure analysis |
+| 7 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | core technical claims |
+| 8 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | fixture-backed demo details |
 
 Everything else is appendix or internal log. Start with
 [docs/README.md](docs/README.md) for the full document map.

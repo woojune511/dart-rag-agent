@@ -121,5 +121,6 @@ Use these commands for a reviewer-facing walkthrough:
 Then open:
 
 - [portfolio_one_pager.md](portfolio_one_pager.md)
+- [portfolio_resume_snippets.md](portfolio_resume_snippets.md)
 - [portfolio_experiment_report.md](portfolio_experiment_report.md)
 - [structural_trace_diagnostics.md](../evaluation/structural_trace_diagnostics.md)
