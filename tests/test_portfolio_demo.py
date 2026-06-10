@@ -20,7 +20,7 @@ class PortfolioDemoTests(unittest.TestCase):
         demo = build_demo()
 
         self.assertEqual(demo["readiness"]["status"], "ready")
-        self.assertEqual(demo["structured_result"]["rendered_value"], "123")
+        self.assertEqual(demo["structured_result"]["rendered_value"], "37.47%")
         self.assertEqual(
             demo["resolved_calculation_trace"]["calculation_result"]["status"],
             "ok",

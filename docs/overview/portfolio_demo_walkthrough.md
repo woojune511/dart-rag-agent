@@ -54,17 +54,18 @@ contract to look for is:
 # Portfolio Runtime Demo
 
 Readiness: ready
-Question: Which selected metric is supported by the available report evidence?
-Answer: The selected metric is 123, grounded in the cited report section.
+Question: 카카오뱅크 2023년 연결기준 CIR(판매비와관리비/경비차감전영업이익)을 계산해 줘.
+Answer: 2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
 
 Citations:
-  - [ACME | 2023 | section]
+  - [카카오뱅크 | 2023 | IV. 이사의 경영진단 및 분석의견::table:3]
 
 Calculation Trace:
-  - operation: lookup
-  - result: 123 (ok)
+  - operation: ratio
+  - result: 37.47% (ok)
   - operands:
-    - selected_metric: 123 from section
+    - 판매비와관리비: 4,355억원 from IV. 이사의 경영진단 및 분석의견::table:3
+    - 경비차감전영업이익: 11,623억원 from IV. 이사의 경영진단 및 분석의견::table:3
 
 Task/Artifact Integrity:
   - status: ok
@@ -76,7 +77,7 @@ Critic Acceptance:
   - status: accepted
   - target_task_id: task_1
   - target_artifact_ids: artifact:calculation_result
-  - reason: Evidence, trace, and target refs are present.
+  - reason: Source-visible operands, ratio trace, and target refs are present.
 
 Cache Reviewer Handoff:
   - status: ready

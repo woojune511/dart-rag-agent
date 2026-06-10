@@ -18,7 +18,7 @@ overfit.
 | What is this? | Financial-document RAG runtime with typed multi-agent artifacts and trace-based numeric acceptance. |
 | What problem does it address? | Answers that look grounded while using the wrong row, period, unit, subtotal, or provenance path. |
 | What is the key design? | LLMs handle semantic planning; deterministic code handles operand binding, arithmetic, unit handling, validation, and final rendering. |
-| What is the current evidence? | `portfolio_review_gates` reports `ready`; closed structural ablation: structural full-system `4/4` numeric PASS vs plain retrieval `3/4`. |
+| What is the current evidence? | `portfolio_review_gates` reports `ready`; expanded structural ablation: structural avg numeric `1.000` / faithfulness `1.000` vs plain avg numeric `0.833` / faithfulness `0.875`. |
 | What is intentionally disabled? | Cache serving, retrieval bypass, automatic cache writes, cache-ledger insertion, LLM critic as final acceptance authority, and benchmark-specific runtime branches. |
 
 ## Problem
