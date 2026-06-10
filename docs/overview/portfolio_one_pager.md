@@ -115,10 +115,11 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | REFERENCE_NOTE boundary | `reference_note_capability_gate` keeps note traversal as Researcher graph-expansion context, not cache serving or final acceptance authority |
 | Promotion trace materiality | `promotion_trace_materiality_gate` proves reviewed trace summaries cover distinct source/action/fallback surfaces before adding more summary evidence |
 | Source-visible ratio close | `KAB_T1_066` resolves CIR from one MDA table: `4,355억원 / 11,623억원 = 37.47%`, numeric `PASS`, grounded rendering `1.000` |
+| Closed structural ablation | structural full-system `4/4` numeric PASS vs plain retrieval `3/4`; `POS_T1_057` isolates unit/provenance drift in the plain path |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
-| Test coverage | latest focused runtime validation passed `362` operation/subtask contract tests after the KAB CIR close; runtime domain-term audit passed with `217` reviewed literals |
+| Test coverage | full unittest discovery passed `1042` tests after the closed-structural ablation refresh; runtime domain-term audit passed with `217` reviewed literals |
 
 ## Representative Commands
 
@@ -142,11 +143,13 @@ handoff between retrieval, structured evidence, deterministic calculation,
 bounded reflection, critic acceptance, and benchmark review so that
 improvements remain auditable and hard to overfit.
 
-The KAB CIR repair is the compact example: the system had to reject a plausible
+The compact example starts with KAB CIR: the system had to reject a plausible
 wrong row, avoid overzealous aggregate-result blocking, recover both operands
 from the same source table, and force final prose to follow the canonical
-calculation trace. The fix lives in generic provenance and rendering contracts,
-not in a company or benchmark-id branch.
+calculation trace. The follow-up closed structural ablation keeps the claim
+narrow: the structural path outperforms plain retrieval on `POS_T1_057` because
+provenance-aware operand handling prevents unit-scale drift, not because the
+baseline is artificially weak.
 
 ## What Is Still Intentionally Disabled
 

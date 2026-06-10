@@ -94,6 +94,7 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
+| Closed structural ablation | structural full-system `4/4` numeric PASS vs plain retrieval `3/4`; separating failure is `POS_T1_057` unit/provenance drift |
 
 Representative KAB answer:
 
@@ -104,6 +105,33 @@ Representative KAB answer:
 Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`. The
 fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 `8` agent LLM calls, and estimated runtime cost `$0.056292`.
+
+### Closed Structural Ablation
+
+The closed structural slice compares the current structural-selective runtime
+against a plain-retrieval counterpart on four questions that had focused
+full-system PASS evidence after the dependency/provenance fixes.
+
+| Question | Full system | Plain retrieval | Interpretation |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS | PASS | Positive control; both variants solve the source-visible CIR ratio. |
+| `POS_T1_057` | PASS | FAIL | Plain retrieval preserves only one expected value and renders operating profit at the wrong scale; structural runtime keeps both expected operands through final calculation. |
+| `SAM_T3_028` | PASS | PASS | Both pass final numeric judgement; structural trace keeps expected operands visible in final operands. |
+| `CEL_T1_013` | PASS | PASS | Both pass final numeric judgement; structural trace preserves source-visible `천원` units. |
+
+This is a narrow ablation, not a broad SOTA claim. The measured delta supports a
+specific engineering claim: structured provenance plus dependency-operand
+preservation reduces final operand/unit drift when the relevant numeric
+evidence is available but can be rebound or rendered at the wrong scale.
+
+Reproduction profiles:
+
+- `benchmarks/profiles/curated_ablation_closed_structural_full_system.json`
+- `benchmarks/profiles/curated_ablation_closed_structural_plain_retrieval.json`
+
+Trace summary:
+
+- [../evaluation/structural_trace_diagnostics.md](../evaluation/structural_trace_diagnostics.md)
 
 ## Focused Failure Analysis
 

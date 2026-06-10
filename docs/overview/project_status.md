@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ## Positioning
 
@@ -48,6 +48,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest Portfolio Ablation Refresh
+
+- Commit `739f418` added the closed-structural ablation profiles, structural
+  trace diagnostics, and runtime fixes for task-output operand preservation,
+  contextual row-label specificity, and structured provenance unit realignment.
+- Closed structural result, 2026-06-10:
+  - structural full-system: `4/4` numeric PASS
+  - plain retrieval baseline: `3/4` numeric PASS
+  - separating case: `POS_T1_057`, where the plain path preserved only one
+    expected value and rendered the operating-profit operand at the wrong
+    scale, while the structural path kept both expected operands through final
+    calculation.
+- Portfolio-facing summaries:
+  - `docs/evaluation/ablation_study_design.md`
+  - `docs/evaluation/structural_trace_diagnostics.md`
+  - `docs/overview/portfolio_experiment_report.md`
+  - `docs/overview/portfolio_one_pager.md`
+- Validation after the refresh:
+  - `.venv/bin/python -m unittest discover -s tests`: `1042` tests OK
+  - `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with
+    `217` reviewed literals
+  - `git diff --check`: passed
+- Raw `benchmarks/results/**` ablation bundles remain local artifacts and are
+  not part of the published source commit.
 
 ### Runtime/API Cost Control
 
