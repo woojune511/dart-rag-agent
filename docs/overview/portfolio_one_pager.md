@@ -111,11 +111,11 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | MAS smoke | real Orchestrator + Analyst + Researcher + Critic + Merge path is covered by smoke tests |
 | Runtime cleanup | canonical calculation state lives in `resolved_calculation_trace` / artifacts; legacy top-level calculation/debug fields are optional compatibility bridges |
 | Cache safety | `review_report_cache_index_contract` reports `reviewer_handoff.status = ready` while bypass, writes, serving, and ledger insertion remain disabled |
-| Cache promotion evidence | `report_cache_promotion_evidence_gate` covers fixture plus trace-summary ready, incomplete, and ambiguous cache-index entries without enabling cache behavior |
+| Cache promotion evidence | fixture plus reviewed trace-summary cases without enabling cache behavior |
 | REFERENCE_NOTE boundary | `reference_note_capability_gate` keeps note traversal as Researcher graph-expansion context, not cache serving or final acceptance authority |
-| Promotion trace materiality | `promotion_trace_materiality_gate` proves reviewed trace summaries cover distinct source/action/fallback surfaces before adding more summary evidence |
+| Promotion trace materiality | reviewed trace summaries cover distinct source/action/fallback surfaces |
 | Source-visible ratio close | `KAB_T1_066` resolves CIR from one MDA table: `4,355억원 / 11,623억원 = 37.47%`, numeric `PASS`, grounded rendering `1.000` |
-| Expanded structural ablation | structural full-system avg numeric `1.000` / faithfulness `1.000` vs plain retrieval avg numeric `0.833` / faithfulness `0.875`; `KBF_T1_017` and `SKH_T3_080` isolate operand-binding failures in the plain path |
+| Expanded structural ablation | structural avg numeric / faithfulness `1.000 / 1.000` vs plain `0.833 / 0.875`; `KBF_T1_017` and `SKH_T3_080` isolate operand-binding failures |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |

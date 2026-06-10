@@ -94,7 +94,7 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Expanded structural ablation | structural full-system avg numeric `1.000` / faithfulness `1.000` vs plain retrieval avg numeric `0.833` / faithfulness `0.875`; separating numeric failures are `KBF_T1_017` and `SKH_T3_080` |
+| Expanded structural ablation | structural avg numeric / faithfulness `1.000 / 1.000` vs plain `0.833 / 0.875`; separating failures are `KBF_T1_017` and `SKH_T3_080` |
 
 Representative KAB answer:
 
@@ -126,8 +126,8 @@ Separating numeric cases:
 
 | Question | Structural | Plain | Interpretation |
 | --- | --- | --- | --- |
-| `KBF_T1_017` | PASS | FAIL | Plain retrieval found visible NIM values but the final answer failed operand selection/grounding; structural reconciliation recovered a numeric-passable difference. |
-| `SKH_T3_080` | PASS | FAIL | Plain retrieval selected the wrong foreign-currency translation gain surface and answered `-37,353백만원`; structural binding selected `573,884백만원` and `906,120백만원`, yielding `-332,236백만원`. |
+| `KBF_T1_017` | PASS | FAIL | Plain surfaced NIM values but failed operand grounding; structural recovered a numeric-passable difference. |
+| `SKH_T3_080` | PASS | FAIL | Plain used the wrong gain row and answered `-37,353백만원`; structural answered `-332,236백만원`. |
 
 This is still a narrow systems ablation, not a broad SOTA claim. The measured
 delta supports a specific engineering claim: structural representation and
