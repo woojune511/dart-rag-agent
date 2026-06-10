@@ -1,14 +1,25 @@
 # DART Multi-Agent Financial Analysis Lab
 
-Evidence-backed numeric QA over Korean DART filings with multi-agent RAG,
-explicit calculation traces, critic acceptance gates, and reviewer-ready runtime
-contracts.
+A contract-driven Agentic RAG runtime for numeric QA over Korean DART filings.
+The project focuses on making financial answers inspectable through structured
+evidence, deterministic calculation traces, critic reports, and reviewer-ready
+runtime gates.
 
 This README is written for reviewers who already know LLM/RAG basics:
 embeddings, hybrid retrieval, reranking, RAG evaluation, and agent/workflow
 state. The claim is applied systems work, not a new model or SOTA TableQA
 result: make financial RAG answers inspectable, testable, and harder to
 overfit.
+
+## At A Glance
+
+| Question | Short answer |
+| --- | --- |
+| What is this? | Financial-document RAG runtime with typed multi-agent artifacts and trace-based numeric acceptance. |
+| What problem does it address? | Answers that look grounded while using the wrong row, period, unit, subtotal, or provenance path. |
+| What is the key design? | LLMs handle semantic planning; deterministic code handles operand binding, arithmetic, unit handling, validation, and final rendering. |
+| What is the current evidence? | `portfolio_review_gates` reports `ready`; closed structural ablation: structural full-system `4/4` numeric PASS vs plain retrieval `3/4`. |
+| What is intentionally disabled? | Cache serving, retrieval bypass, automatic cache writes, cache-ledger insertion, LLM critic as final acceptance authority, and benchmark-specific runtime branches. |
 
 ## Problem
 
@@ -85,6 +96,10 @@ duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
 
 ## Quick Review Path
 
+For a fast review, run the first two commands and then read the compact
+narrative/snippet documents. The longer experiment and technical documents are
+appendix material unless deeper validation is needed.
+
 | Step | Document / command | Purpose |
 | --- | --- | --- |
 | 1 | `python -m src.ops.portfolio_review_gates` | aggregate ready/not-ready reviewer gate |
@@ -100,6 +115,9 @@ Everything else is appendix or internal log. Start with
 [docs/README.md](docs/README.md) for the full document map.
 
 ## Representative Checks
+
+Use the first three commands for normal review. The remaining commands are
+capability-specific gates that the aggregate portfolio gate also covers.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests
