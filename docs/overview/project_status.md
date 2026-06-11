@@ -81,9 +81,14 @@ role-separated multi-agent system using a task ledger and artifact store.
     the final alignment guard: `389` OK
   - runtime domain-language audit: passed with `217` reviewed literals
   - hard profile eval-only replay: `5 / 5` numeric PASS
-- Next experiment:
-  - inspect `SKH_T1_060` traces to identify which structural row/header fields
-    separate the correct borrowing rows from the lower plain-retrieval rows.
+- Follow-up trace analysis:
+  - `SKH_T1_060` was inspected in
+    `docs/evaluation/structural_trace_diagnostics.md`.
+  - Structural bound borrowing operands to `period_focus=current`,
+    `period_labels=["당기"]`, `::table:93`.
+  - Plain bound borrowing operands to `period_focus=prior`,
+    `period_labels=["전기"]`, `::table:94`, while keeping the current-period
+    asset denominator.
 - Raw `benchmarks/results/**` hard bundles remain local artifacts and are not
   part of the source commit.
 
@@ -116,6 +121,10 @@ role-separated multi-agent system using a task ledger and artifact store.
   - The portfolio claim should be precise: structural metadata is not a blanket
     win on every metric, but it prevents specific ambiguous-table operand
     selection failures that deterministic calculation alone cannot correct.
+- Next documentation target:
+  - fold the `SKH_T1_060` trace into the portfolio report as the concrete
+    period-ambiguous row-binding example, while keeping the broader claim
+    scoped to numeric grounding rather than general QA quality.
 
 ### Latest Portfolio Ablation Refresh
 

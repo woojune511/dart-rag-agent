@@ -102,3 +102,63 @@ Notes:
 - `SKH_T3_080` is the strongest narrative example because the plain path did
   not merely omit a value; it selected a plausible but wrong gain row and then
   produced a wrong deterministic difference.
+
+## Hard Replay Separator: `SKH_T1_060` (2026-06-11)
+
+Result directories:
+
+- structural:
+  `benchmarks/results/hard_current_evalonly_2026-06-10`
+- plain:
+  `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11`
+
+Run-level comparison on the five-question hard set:
+
+| Variant | Numeric pass | Avg completeness | Avg faithfulness | Avg recall |
+| --- | ---: | ---: | ---: | ---: |
+| Structural full-system | `5 / 5` | `0.938` | `1.000` | `0.827` |
+| Plain retrieval | `4 / 5` | `0.812` | `0.875` | `0.932` |
+
+`SKH_T1_060` is the separating case:
+
+| Field | Structural | Plain |
+| --- | --- | --- |
+| Final judgement | PASS | FAIL |
+| Final answer | `42.02%` | `34.32%` |
+| Operand selection correctness | `1.0` | `0.4` |
+| Faithfulness / completeness | `1.0 / 1.0` | `0.5 / 0.5` |
+| Numerator rows | `4,145,647 + 10,121,033 + 9,490,410` | `3,833,263 + 9,073,567 + 6,497,790` |
+| Denominator rows | `52,704,853 + 3,834,567` | `52,704,853 + 3,834,567` |
+
+Trace-level read:
+
+| Trace field | Structural path | Plain path |
+| --- | --- | --- |
+| borrowing summary table | `::table:93` | `::table:94` |
+| `period_focus` | `current` | `prior` |
+| `period_labels` | `["당기"]` | `["전기"]` |
+| `table_value_labels_text` | `단기차입금 4,145,647`, `장기차입금 10,121,033`, `사채 9,490,410`, `공시금액 29,468,632` | `단기차입금 3,833,263`, `장기차입금 9,073,567`, `사채 6,497,790`, `공시금액 22,994,604` |
+
+Important nuance:
+
+- The plain run did retrieve both current and prior-looking chunks near the top
+  of the candidate window. Its previews included the current aggregate borrowing
+  row with `차입금 (D) 29,468,632` and the prior aggregate borrowing row with
+  `차입금 (D) 22,994,604`.
+- The failure occurred when numeric extraction bound the numerator operands to
+  the prior borrowing table (`period_focus=prior`, `period_labels=["전기"]`) while
+  the denominator operands still came from current-period asset rows.
+- The deterministic calculator then faithfully computed the wrong operand set.
+  This is why the failure is not an arithmetic problem and cannot be fixed by
+  the formula layer alone.
+
+Interpretation:
+
+- This trace supports a narrower and stronger claim than "structural retrieval
+  is always better." The actual measured advantage is row binding under
+  period-ambiguous note tables.
+- Structural metadata made the current/prior distinction explicit enough for
+  the runtime to preserve the current borrowing rows through final calculation.
+- Plain text still contained the relevant numbers, but without reliable
+  period-aware row selection it produced a plausible, grounded, and internally
+  consistent answer for the wrong period.
