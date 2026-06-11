@@ -95,6 +95,7 @@ normalization, source references, and rendered displays.
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
 | Expanded structural ablation | structural avg numeric / faithfulness `1.000 / 1.000` vs plain `0.833 / 0.875`; separating failures are `KBF_T1_017` and `SKH_T3_080` |
+| Hard structural-vs-plain replay | structural `5 / 5` numeric PASS vs plain `4 / 5`; `SKH_T1_060` isolates a current/prior period row-binding failure |
 
 Representative KAB answer:
 
@@ -134,15 +135,65 @@ delta supports a specific engineering claim: structural representation and
 provenance-aware operand binding reduce numeric failures when relevant values
 are present but can be rebound to the wrong row, unit, or table surface.
 
+### Hard Structural-vs-Plain Replay
+
+After the ontology and runtime-contract fixes, the same five hard numeric
+questions were replayed under structural and plain retrieval profiles. This
+run is useful because it separates formula/period-contract improvements from
+retrieval-representation effects: several hard questions now pass even with
+plain retrieval, but one ambiguous note-table case still depends on structural
+row metadata.
+
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Numeric pass | `5 / 5` | `4 / 5` |
+| Avg completeness | `0.938` | `0.812` |
+| Avg faithfulness | `1.000` | `0.875` |
+| Avg context recall | `0.827` | `0.932` |
+
+Question-level read:
+
+| Question | Structural | Plain | What it shows |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS, `37.47%` | PASS, `37.47%` | coherent-ratio and direct-support contracts carry both variants |
+| `MIX_T1_021` | PASS, `25.36%` / `258.77%` | PASS, same | explicit balance-sheet operands are robust |
+| `SAM_T1_026` | PASS, `4.31%` | PASS, `4.31%` | ROE improvement is mainly ontology/period binding |
+| `CEL_T1_038` | PASS, `8.36%p` / `29.93%` | PASS, same | late slot alignment can recover aggregate rows even under plain retrieval |
+| `SKH_T1_060` | PASS, `42.02%` | FAIL, `34.32%` | structural metadata prevents current/prior borrowing-row confusion |
+
+The `SKH_T1_060` trace is the clearest period-binding example. Structural
+retrieval bound the borrowing operands to `period_focus=current`,
+`period_labels=["당기"]`, `::table:93`:
+
+```text
+4,145,647 + 10,121,033 + 9,490,410
+```
+
+Plain retrieval bound the numerator to the prior-period table
+`period_focus=prior`, `period_labels=["전기"]`, `::table:94`, while keeping the
+current-period asset denominator:
+
+```text
+3,833,263 + 9,073,567 + 6,497,790
+```
+
+The deterministic calculator then correctly computed the wrong operand set.
+This is not an arithmetic failure; it is a row/period binding failure that
+answer-level faithfulness alone can miss.
+
 Reproduction profiles:
 
 - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
 - `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+- `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
+- `benchmarks/profiles/curated_ablation_structural_hard_plain_retrieval.json`
 
 Local result bundles:
 
 - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
 - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
+- `benchmarks/results/hard_current_evalonly_2026-06-10/`
+- `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11/`
 
 Trace summary:
 
@@ -152,15 +203,18 @@ Trace summary:
 
 ### `SKH_T1_060`: wrong numerator or subtotal row
 
-Failure: a ratio question could bind a plausible but wrong numerator/subtotal
-row, and the cheap baseline missed the representative row.
+Failure: a ratio question could bind plausible borrowing rows from the wrong
+reporting period. In the hard replay, plain retrieval selected prior-period
+borrowing rows while keeping current-period asset rows in the denominator.
 
-Fix layer: structured evidence selection, direct row/semantic-label preference,
-and dependency projection alignment from producer lookup tasks into downstream
-ratio tasks.
+Fix layer: period-aware structural metadata, structured evidence selection,
+direct row/semantic-label preference, and dependency projection alignment from
+producer lookup tasks into downstream ratio tasks.
 
 Result: the structural path passes this row without adding a company or
-benchmark-id branch.
+benchmark-id branch. The difference is visible in trace metadata:
+`period_focus=current` / `["당기"]` for structural versus `period_focus=prior`
+/ `["전기"]` for plain.
 
 ### `NAV_T2_006`: mixed numeric and narrative growth answer
 
@@ -197,6 +251,9 @@ The strongest result is the pattern across gates:
   default
 - deterministic structural prefixes can preserve the needed document-shape
   signal without per-chunk contextualization calls
+- ontology and runtime contracts carry formula and period-binding improvements
+  across retrieval variants; structural metadata still matters when similar
+  current/prior rows compete inside note tables
 - numeric QA needs operand/formula/rendering traces, not only answer-level
   faithfulness
 - agentic behavior is useful only when task handoff, retry, critic reports, and

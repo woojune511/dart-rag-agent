@@ -116,6 +116,7 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Promotion trace materiality | reviewed trace summaries cover distinct source/action/fallback surfaces |
 | Source-visible ratio close | `KAB_T1_066` resolves CIR from one MDA table: `4,355억원 / 11,623억원 = 37.47%`, numeric `PASS`, grounded rendering `1.000` |
 | Expanded structural ablation | structural avg numeric / faithfulness `1.000 / 1.000` vs plain `0.833 / 0.875`; `KBF_T1_017` and `SKH_T3_080` isolate operand-binding failures |
+| Hard structural replay | structural `5 / 5` numeric PASS vs plain `4 / 5`; `SKH_T1_060` shows current/prior borrowing-row confusion in plain retrieval |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
@@ -148,8 +149,13 @@ wrong row, avoid overzealous aggregate-result blocking, recover both operands
 from the same source table, and force final prose to follow the canonical
 calculation trace. The follow-up expanded structural ablation keeps the claim
 narrow: the structural path improves numeric grounding on `KBF_T1_017` and
-`SKH_T3_080` because provenance-aware operand binding prevents row/unit drift,
-not because the baseline is artificially weak.
+`SKH_T3_080` because provenance-aware operand binding prevents row/unit drift.
+The hard replay adds a second concrete failure shape: in `SKH_T1_060`, plain
+retrieval selected prior-period borrowing rows while using current-period asset
+rows, producing `34.32%`; structural metadata preserved the current-period
+borrowing rows and produced `42.02%`. The baseline is not a strawman. It passes
+four of five hard questions after the ontology/runtime fixes, which makes the
+remaining separator a cleaner row-binding result.
 
 ## What Is Still Intentionally Disabled
 

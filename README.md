@@ -21,7 +21,9 @@ overfit.
   operand binding, arithmetic, unit handling, validation, and final rendering.
 - **Current evidence:** `portfolio_review_gates` reports `ready`. Expanded
   structural ablation: structural avg numeric / faithfulness `1.000 / 1.000`
-  vs plain retrieval `0.833 / 0.875`.
+  vs plain retrieval `0.833 / 0.875`. Hard replay: structural `5 / 5` numeric
+  PASS vs plain `4 / 5`, with `SKH_T1_060` isolating a current/prior
+  row-binding failure.
 - **Disabled by design:** cache serving, retrieval bypass, automatic cache
   writes, cache-ledger insertion, LLM critic as final acceptance authority, and
   benchmark-specific runtime branches.
@@ -98,6 +100,15 @@ run reports numeric `PASS`, faithfulness/completeness/context recall/retrieval
 hit@k/grounded rendering correctness all `1.000`, `2` executed queries, `0`
 duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
 `$0.056292`.
+
+The structural ablation has a separate row-binding example. In `SKH_T1_060`,
+plain retrieval selected prior-period borrowing rows
+`3,833,263 + 9,073,567 + 6,497,790` while keeping current-period asset rows in
+the denominator, producing `34.32%`. The structural path preserved
+current-period borrowing rows `4,145,647 + 10,121,033 + 9,490,410` and produced
+`42.02%`. The point is narrow: structural metadata helps when similar current
+and prior rows compete in financial note tables; formula execution is still
+deterministic in both variants.
 
 ## Quick Review Path
 
