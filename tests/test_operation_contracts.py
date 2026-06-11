@@ -32,6 +32,7 @@ from src.agent.financial_graph_helpers import (
     _candidate_selected_cell_for_operand,
     _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
+    _score_operand_candidate,
     _coerce_lookup_magnitude_value,
     _desired_consolidation_scope,
     _desired_statement_types,
@@ -1946,6 +1947,43 @@ class OperationContractTests(unittest.TestCase):
             },
         }
         self.assertFalse(_candidate_matches_operand(candidate, operand))
+
+    def test_count_candidate_prefers_location_sentence_with_entity_subject(self) -> None:
+        operand = {
+            "label": "지역 시장 판매대수",
+            "role": "current_period",
+            "unit_family": "COUNT",
+            "period_hint": "2023",
+        }
+        market_total = {
+            "candidate_kind": "chunk",
+            "text": "2023년 지역시장에서는 전년 대비 12.3% 증가한 1,560.8만 대가 판매되었습니다.",
+            "metadata": {"year": 2023, "section_path": "business section"},
+        }
+        entity_sales = {
+            "candidate_kind": "chunk",
+            "text": "2023년 지역시장에서 대상회사는 전년 대비 11.5% 증가한 87.0만 대를 판매했습니다.",
+            "metadata": {"year": 2023, "section_path": "business section"},
+        }
+
+        market_score = _score_operand_candidate(
+            market_total,
+            operand=operand,
+            preferred_statement_types=[],
+            constraints={"entity_scope": "company"},
+            query_years=[2023, 2022],
+            report_scope={},
+        )
+        entity_score = _score_operand_candidate(
+            entity_sales,
+            operand=operand,
+            preferred_statement_types=[],
+            constraints={"entity_scope": "company"},
+            query_years=[2023, 2022],
+            report_scope={},
+        )
+
+        self.assertGreater(entity_score, market_score)
 
     def test_table_object_rows_expand_to_reconciliation_candidates(self) -> None:
         metadata = {

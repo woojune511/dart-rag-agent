@@ -10,9 +10,46 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import _build_semantic_numeric_plan
+from src.agent.financial_graph_planning import FinancialAgentPlanningMixin, _non_numeric_operation_intent_override
 
 
 class SemanticNumericPlannerTests(unittest.TestCase):
+    def test_summary_only_query_does_not_promote_to_numeric_fact(self) -> None:
+        intent, note = _non_numeric_operation_intent_override(
+            query="2023년 전동화 플랫폼의 주요 성과를 요약해 줘.",
+            topic="전동화 플랫폼 성과 요약",
+            intent="business_overview",
+        )
+
+        self.assertEqual(intent, "business_overview")
+        self.assertEqual(note, "")
+
+    def test_lookup_and_summary_query_can_promote_to_numeric_fact(self) -> None:
+        intent, note = _non_numeric_operation_intent_override(
+            query="2023년 연결기준 매출액 규모를 알려주고 사업 성과를 요약해 줘.",
+            topic="매출액 규모와 사업 성과",
+            intent="business_overview",
+        )
+
+        self.assertEqual(intent, "numeric_fact")
+        self.assertEqual(note, "non_numeric_operation_promoted_by_ontology")
+
+    def test_single_report_scope_collapses_company_aliases_to_metadata_company(self) -> None:
+        mixin = FinancialAgentPlanningMixin()
+
+        companies, years = mixin._align_scope_hints(
+            companies=["Hyundai Motor Company"],
+            years=[],
+            report_scope={
+                "company": "현대자동차",
+                "year": 2023,
+                "rcept_no": "20240313001451",
+            },
+        )
+
+        self.assertEqual(companies, ["현대자동차"])
+        self.assertEqual(years, [2023])
+
     def test_single_metric_ratio_plan(self) -> None:
         plan = _build_semantic_numeric_plan(
             query="2023년 연결기준 부채비율을 계산해 줘.",

@@ -207,15 +207,88 @@ class SubtaskLoopTests(unittest.TestCase):
                         "period_focus": "current",
                     },
                 },
+                {
+                    "evidence_id": "ev_relation",
+                    "claim": "동 비용에는 평가손실 금액이 포함되어 있습니다.",
+                    "metadata": {
+                        "statement_type": "notes",
+                        "consolidation_scope": "consolidated",
+                        "period_focus": "current",
+                    },
+                },
             ],
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
         self.assertIn("평가손실은 2,000백만원입니다", updated["answer"])
-        self.assertIn("영업비용 대비 규모", updated["answer"])
+        self.assertIn("영업비용에 포함되어 비용을 증가시키고 매출총이익을 압박하는 요인", updated["answer"])
         self.assertIn("영업비용 100,000백만원 대비 약 2.00%", updated["answer"])
         self.assertEqual(set(updated["selected_claim_ids"]), {"ev_cost", "ev_loss"})
+
+    def test_quantitative_impact_relation_chunk_is_promoted_as_section_seed(self) -> None:
+        self.agent.vsm = type(
+            "_VSM",
+            (),
+            {
+                "bm25_docs": [
+                    "영업실적 일반 설명입니다.",
+                    "수익인식 정책상 반품 권리와 관련된 금액만큼 매출원가를 조정합니다.",
+                    "기간동안 비용으로 인식한 재고자산의 원가에 대한 기술\n동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
+                ],
+                "bm25_metadatas": [
+                    {
+                        "chunk_uid": "mda::1",
+                        "company": "테스트",
+                        "year": 2023,
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                        "block_type": "paragraph",
+                        "statement_type": "mda",
+                    },
+                    {
+                        "chunk_uid": "note::false_positive",
+                        "company": "테스트",
+                        "year": 2023,
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "block_type": "table",
+                        "statement_type": "notes",
+                        "table_row_labels_text": (
+                            "수익인식 정책상 반품 권리와 관련된 금액만큼 매출원가를 조정합니다."
+                        ),
+                    },
+                    {
+                        "chunk_uid": "note::1",
+                        "company": "테스트",
+                        "year": 2023,
+                        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                        "block_type": "table",
+                        "statement_type": "notes",
+                        "table_row_labels_text": (
+                            "기간동안 비용으로 인식한 재고자산의 원가에 대한 기술 "
+                            "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다."
+                        ),
+                    },
+                ],
+            },
+        )()
+        state = {
+            "query": "2023년 재무제표 주석에서 재고자산평가손실 규모와 매출원가 영향을 분석해 줘.",
+            "topic": "재고자산평가손실 매출원가 영향",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "companies": ["테스트"],
+            "years": [2023],
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+                "preferred_sections": ["IV. 이사의 경영진단 및 분석의견"],
+            },
+        }
+
+        docs = self.agent._supplement_section_seed_docs(state)
+
+        self.assertGreaterEqual(len(docs), 1)
+        self.assertEqual(docs[0][0].metadata["chunk_uid"], "note::1")
+        self.assertIn("포함", docs[0][0].page_content)
 
     def test_aggregate_subtasks_prefers_supported_aggregate_answer_over_weaker_growth_trace(self) -> None:
         self.agent.llm = None

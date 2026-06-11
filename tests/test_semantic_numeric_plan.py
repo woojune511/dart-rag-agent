@@ -22,7 +22,11 @@ from src.agent.financial_graph import (
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_graph_evidence import _ensure_period_count_operand_docs, _focused_operand_surface_queries
-from src.agent.financial_graph_helpers import _build_generic_retrieval_queries, _extract_segment_labels_from_query
+from src.agent.financial_graph_helpers import (
+    _active_preferred_sections,
+    _build_generic_retrieval_queries,
+    _extract_segment_labels_from_query,
+)
 from src.agent.financial_graph_helpers import _annotate_task_dependencies
 from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
@@ -45,6 +49,22 @@ class _StubLLM:
 
 
 class SemanticNumericPlanTests(unittest.TestCase):
+    def test_active_preferred_sections_preserve_explicit_query_section_hints(self) -> None:
+        sections = _active_preferred_sections(
+            {
+                "active_subtask": {
+                    "operation_family": "narrative_summary",
+                    "preferred_sections": ["IV. 이사의 경영진단 및 분석의견", "나. 영업실적"],
+                }
+            },
+            "2023년 재무제표 주석에서 평가손실 규모와 매출원가 영향을 분석해 줘.",
+            "평가손실 매출원가 영향",
+            "comparison",
+        )
+
+        self.assertLess(sections.index("연결재무제표 주석"), sections.index("IV. 이사의 경영진단 및 분석의견"))
+        self.assertLess(sections.index("재무제표 주석"), sections.index("IV. 이사의 경영진단 및 분석의견"))
+
     def test_hybrid_numeric_query_appends_narrative_summary_subtask(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
@@ -2031,6 +2051,30 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(rows[1]["raw_unit"], "만 대")
         self.assertEqual(rows[1]["normalized_value"], 781000.0)
 
+    def test_period_comparison_count_rejects_location_market_total_without_subject(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_market_total",
+                    "source_anchor": "[테스트 | 2023 | II. 사업의 내용]",
+                    "claim": "2023년 지역 시장 판매대수는 전년 대비 12.3% 증가한 1,560.8만 대를 기록했습니다.",
+                    "quote_span": "2023년 지역시장에서는 전년 대비 12.3% 증가한 1,560.8만 대가 판매되었습니다.",
+                    "metadata": {
+                        "section_path": "II. 사업의 내용",
+                        "statement_type": "mda",
+                    },
+                }
+            ],
+            required_operands=[
+                {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
+            ],
+            query="2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"company": "테스트", "year": 2023},
+        )
+
+        self.assertEqual(rows, [])
+
     def test_count_operand_rejects_currency_table_values(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         rows = agent._build_required_operands_from_candidates(
@@ -2045,6 +2089,34 @@ class SemanticNumericPlanTests(unittest.TestCase):
                         "section_path": "II. 사업의 내용",
                         "table_header_context": "수주잔고 | 금액",
                         "unit_hint": "백만원",
+                    },
+                },
+            ],
+            required_operands=[
+                {
+                    "label": "2023년 지역 시장 판매대수",
+                    "role": "current_period",
+                    "period_hint": "2023",
+                    "unit_family": "COUNT",
+                },
+            ],
+            query="2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
+            report_scope={"company": "테스트", "year": 2023},
+        )
+
+        self.assertEqual(rows, [])
+
+    def test_count_operand_rejects_unknown_unit_when_raw_unit_is_present(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "evidence_id": "ev_wrong_unit",
+                    "source_anchor": "[테스트 | 2023 | I. 회사의 개요]",
+                    "claim": "변경일 | 사업목적 | 수정 | 2023.03.23 | 금융상품판매대리 중개업",
+                    "metadata": {
+                        "section_path": "I. 회사의 개요",
+                        "table_header_context": "변경일 | 사업목적",
                     },
                 },
             ],

@@ -24,7 +24,12 @@ from src.agent.financial_graph_models import (
     ReflectionRequest,
 )
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import RECONCILIATION_POLICY
+from src.config.retrieval_policy import (
+    QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
+    QUANTITATIVE_IMPACT_QUERY_TERMS,
+    QUERY_FOCUS_MARKER_POLICY,
+    RECONCILIATION_POLICY,
+)
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -1801,6 +1806,64 @@ class FinancialAgentReconciliationMixin:
         for spec in ontology.component_specs(query, topic, intent):
             metric_patterns.extend(re.escape(keyword) for keyword in spec.get("keywords", []))
         metric_patterns = list(dict.fromkeys(metric_patterns))
+        operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+        quantitative_impact_query = operation_family == "narrative_summary" and any(
+            marker in query for marker in QUANTITATIVE_IMPACT_QUERY_TERMS
+        )
+        quantitative_relation_policy = dict(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY)
+        quantitative_focus_stopwords = {
+            str(item)
+            for item in (quantitative_relation_policy.get("focus_stopwords") or ())
+            if str(item)
+        }
+        focus_token_pattern = str(QUERY_FOCUS_MARKER_POLICY.get("generic_token_pattern") or "")
+        quantitative_relation_markers = tuple(
+            str(item)
+            for item in (quantitative_relation_policy.get("relation_markers") or ())
+            if str(item)
+        )
+        quantitative_relation_context_markers = tuple(
+            str(item)
+            for item in (
+                tuple(quantitative_relation_policy.get("primary_denominator_markers") or ())
+                + tuple(quantitative_relation_policy.get("denominator_markers") or ())
+                + tuple(quantitative_relation_policy.get("cost_relation_context_markers") or ())
+            )
+            if str(item)
+        )
+        quantitative_focus_exclusion_terms = tuple(
+            str(item)
+            for item in (
+                quantitative_relation_markers
+                + quantitative_relation_context_markers
+                + tuple(quantitative_relation_policy.get("primary_denominator_markers") or ())
+                + tuple(quantitative_relation_policy.get("denominator_markers") or ())
+            )
+            if str(item)
+        )
+        quantitative_focus_terms = [
+            term
+            for term in (re.findall(focus_token_pattern, query) if focus_token_pattern else [])
+            if len(term) >= 3
+            and term not in quantitative_focus_stopwords
+            and not any(
+                term == excluded or term in excluded or (len(excluded) >= 3 and term.startswith(excluded))
+                for excluded in quantitative_focus_exclusion_terms
+            )
+        ]
+        quantitative_focus_terms = list(dict.fromkeys(quantitative_focus_terms))
+
+        def _matches_quantitative_relation_contract(text: str) -> bool:
+            if not (quantitative_impact_query and quantitative_focus_terms and quantitative_relation_markers):
+                return False
+            return (
+                any(term in text for term in quantitative_focus_terms)
+                and any(marker in text for marker in quantitative_relation_markers)
+                and (
+                    not quantitative_relation_context_markers
+                    or any(marker in text for marker in quantitative_relation_context_markers)
+                )
+            )
 
         supplemented: List[tuple[Document, float]] = []
         seen_chunk_uids: set[str] = set()
@@ -1857,6 +1920,11 @@ class FinancialAgentReconciliationMixin:
             if active_operand_needles:
                 covered_needles = sum(1 for needle in active_operand_needles if needle in text)
                 score += min(0.06, covered_needles * 0.01)
+            if _matches_quantitative_relation_contract(text):
+                try:
+                    score += float(quantitative_relation_policy.get("relation_seed_bonus") or 0.0)
+                except (TypeError, ValueError):
+                    pass
 
             supplemented.append((Document(page_content=str(body or ""), metadata=metadata), score))
 

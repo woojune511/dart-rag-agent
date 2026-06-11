@@ -8210,6 +8210,61 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
     return best
 
 
+def _candidate_location_entity_subject_score(candidate: Dict[str, Any], *, operand: Dict[str, Any]) -> float:
+    """Prefer count candidates where a location context has an explicit subject."""
+    unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+    operation_family = _normalise_spaces(str(operand.get("operation_family") or ""))
+    role = _normalise_spaces(str(operand.get("role") or ""))
+    if unit_family and unit_family != "COUNT":
+        return 0.0
+    if operation_family not in {"", "growth_rate", "lookup", "single_value"} and role not in {"current_period", "prior_period"}:
+        return 0.0
+
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    subject_pattern = str(scoring_policy.get("location_entity_subject_pattern") or "")
+    temporal_subject_pattern = str(scoring_policy.get("location_entity_temporal_subject_pattern") or "")
+    if not subject_pattern:
+        return 0.0
+
+    metadata = dict(candidate.get("metadata") or {})
+    text = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in (
+                metadata.get("row_text"),
+                metadata.get("semantic_label"),
+                metadata.get("row_label"),
+                metadata.get("table_context"),
+                candidate.get("text"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    if not text:
+        return 0.0
+
+    compact = re.sub(r"\s+", "", text)
+    matches = list(re.finditer(subject_pattern, compact))
+    if not matches:
+        return 0.0
+
+    def _subject_is_temporal(subject: str) -> bool:
+        if not subject:
+            return True
+        return bool(temporal_subject_pattern and re.search(temporal_subject_pattern, subject))
+
+    if any(not _subject_is_temporal(str(match.groupdict().get("subject") or "")) for match in matches):
+        try:
+            return float(scoring_policy.get("location_entity_subject_bonus") or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    try:
+        return float(scoring_policy.get("location_entity_context_penalty") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _score_operand_candidate(
     candidate: Dict[str, Any],
     *,
@@ -8292,6 +8347,8 @@ def _score_operand_candidate(
 
     if _candidate_has_numeric_value_signal(candidate):
         score += 1.0
+
+    score += _candidate_location_entity_subject_score(candidate, operand=operand)
 
     if _candidate_is_descriptor_row(candidate):
         score -= 3.0
@@ -9020,14 +9077,13 @@ def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> 
 
 def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, intent: str) -> List[str]:
     """Resolve section hints for the active task or top-level query."""
-    sections = [
+    _statement_types, query_sections = _infer_statement_and_section_hints(query)
+    sections = list(query_sections)
+    sections.extend(
         str(item).strip()
         for item in (dict(state.get("active_subtask") or {}).get("preferred_sections") or [])
         if str(item).strip()
-    ]
-    if not sections:
-        _statement_types, query_sections = _infer_statement_and_section_hints(query)
-        sections.extend(query_sections)
+    )
     sections.extend(_preferred_calc_sections(query, topic, intent))
     return list(dict.fromkeys(sections))
 

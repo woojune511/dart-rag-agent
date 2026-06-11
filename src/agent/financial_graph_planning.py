@@ -48,6 +48,16 @@ _LOOKUP_YEAR_RE = re.compile(str(PLANNING_POLICY.get("year_token_pattern") or r"
 _LOOKUP_YEAR_LABEL_RE = re.compile(str(PLANNING_POLICY.get("year_label_token_pattern") or r"$^"))
 
 
+def _has_single_report_scope(report_scope: Dict[str, Any]) -> bool:
+    scope = dict(report_scope or {})
+    if str(scope.get("rcept_no") or "").strip():
+        return True
+    try:
+        return len(_report_scope_source_receipts(scope)) <= 1
+    except Exception:
+        return False
+
+
 def _slot_has_material(slot: Dict[str, Any]) -> bool:
     if not isinstance(slot, dict) or not slot:
         return False
@@ -881,7 +891,9 @@ class FinancialAgentPlanningMixin:
                 normalized_years.append(value)
 
         if scope_company:
-            if not normalized_companies:
+            if _has_single_report_scope(report_scope):
+                normalized_companies = [scope_company]
+            elif not normalized_companies:
                 normalized_companies = [scope_company]
             elif scope_company not in normalized_companies:
                 normalized_companies = [scope_company, *normalized_companies]

@@ -288,6 +288,10 @@ OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
         "consolidated": ("연결",),
         "separate": ("별도",),
     },
+    "location_entity_subject_pattern": r"(?:에서|에서는)(?P<subject>[가-힣A-Za-z0-9]+)(?:은|는)",
+    "location_entity_temporal_subject_pattern": rf"^(?:{KOREAN_PERIOD_COMPARISON_RE_FRAGMENT}|20\d{{2}}년?|전년|전기|당기)",
+    "location_entity_subject_bonus": 2.0,
+    "location_entity_context_penalty": -1.0,
 }
 
 VALUE_NEAR_MATCH_POLICY: Dict[str, Any] = {
@@ -450,6 +454,7 @@ REQUIRED_OPERAND_ASSEMBLY_POLICY: Dict[str, Any] = {
     "ratio_row_fallback_patterns": (r"비율", r"비중", r"이익률"),
     "ratio_period_pattern": r"(20\d{2}년|제\d+기|당기|전기)",
     "ratio_component_percent_value_allowed_concepts": ("revenue",),
+    "location_context_pattern": r"(?:에서|에서는)",
     "subject_after_context_pattern": r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
 }
 
@@ -859,7 +864,22 @@ PLANNING_POLICY: Dict[str, Any] = {
         "target_intent": "numeric_fact",
         "operation_families": ("lookup", "single_value", "sum", "difference", "ratio", "growth_rate"),
         "unit_families": ("KRW", "USD", "COUNT", "PERCENT"),
-        "query_markers": ("금액", "수치", "규모", "값", "찾", "알려", "제시", "보여", "추출", "요약"),
+        "query_markers": (
+            "금액",
+            "수치",
+            "규모",
+            "값",
+            "찾",
+            "알려",
+            "제시",
+            "보여",
+            "추출",
+            "계산",
+            "비율",
+            "증가율",
+            "성장률",
+            "전년 대비",
+        ),
         "minimum_concepts": 1,
         "allow_generic_numeric_plan": True,
         "planner_note": "non_numeric_operation_promoted_by_ontology",
@@ -1179,7 +1199,19 @@ NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
 QUANTITATIVE_IMPACT_QUERY_TERMS = ("영향", "분석", "비중", "대비", "차지")
 
 QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "focus_stopwords": ("2023년", "규모를", "찾고", "이것이", "미친", "분석해"),
+    "focus_stopwords": (
+        "2023년",
+        "재무제표",
+        "주석",
+        "주석에서",
+        "규모를",
+        "찾고",
+        "이것이",
+        "미친",
+        "영향",
+        "영향을",
+        "분석해",
+    ),
     "primary_denominator_markers": ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계"),
     "denominator_markers": ("자산", "부채", "자본"),
     "label_drop_terms": ("등",),
@@ -1188,6 +1220,7 @@ QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
     "relation_markers": ("포함", "반영", "인식", "영향"),
     "cost_relation_context_markers": ("원가", "비용", "손익"),
     "relation_query_template": "{focus_terms} {relation_terms} {context_terms}",
+    "relation_seed_bonus": 1.0,
     "caveat_trigger_terms": ("등", "환입"),
     "caveat_exception_terms": ("세부",),
     "consolidated_scope_prefix": "연결 기준 ",

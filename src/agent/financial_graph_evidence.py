@@ -1826,10 +1826,36 @@ class FinancialAgentEvidenceMixin:
                 for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("focus_stopwords") or ())
                 if str(item)
             }
+            relation_markers = tuple(
+                str(item)
+                for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("relation_markers") or ())
+                if str(item)
+            )
+            relation_context_markers = tuple(
+                str(item)
+                for item in (
+                    tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("primary_denominator_markers") or ())
+                    + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("denominator_markers") or ())
+                    + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("cost_relation_context_markers") or ())
+                )
+                if str(item)
+            )
+            focus_token_pattern = str(QUERY_FOCUS_MARKER_POLICY.get("generic_token_pattern") or "")
             focus_terms = [
                 term
-                for term in re.findall(r"[가-힣A-Za-z0-9]+", query)
-                if len(term) >= 3 and term not in quantitative_focus_stopwords
+                for term in (re.findall(focus_token_pattern, query) if focus_token_pattern else [])
+                if len(term) >= 3
+                and term not in quantitative_focus_stopwords
+                and not any(
+                    term == excluded or term in excluded or (len(excluded) >= 3 and term.startswith(excluded))
+                    for excluded in (
+                        relation_markers
+                        + relation_context_markers
+                        + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("primary_denominator_markers") or ())
+                        + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("denominator_markers") or ())
+                    )
+                    if str(excluded)
+                )
             ]
             for focus_term in list(dict.fromkeys(focus_terms))[:6]:
                 if any(focus_term in _doc_surface(item[0] if isinstance(item, (tuple, list)) else item) for item in selected):
@@ -1848,20 +1874,6 @@ class FinancialAgentEvidenceMixin:
                     if chunk_id:
                         seen_chunk_ids.add(chunk_id)
                     break
-            relation_markers = tuple(
-                str(item)
-                for item in (QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("relation_markers") or ())
-                if str(item)
-            )
-            relation_context_markers = tuple(
-                str(item)
-                for item in (
-                    tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("primary_denominator_markers") or ())
-                    + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("denominator_markers") or ())
-                    + tuple(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY.get("cost_relation_context_markers") or ())
-                )
-                if str(item)
-            )
             if relation_markers and focus_terms:
                 def _has_quantitative_relation_doc(doc: Document) -> bool:
                     surface = _doc_surface(doc)
@@ -3873,6 +3885,7 @@ class FinancialAgentEvidenceMixin:
                             str(metadata.get("table_summary_text") or ""),
                             str(metadata.get("local_heading") or ""),
                             str(metadata.get("section_path") or metadata.get("section") or ""),
+                            str(item.get("quote_span") or ""),
                             raw_row,
                         )
                         if part
@@ -3925,6 +3938,16 @@ class FinancialAgentEvidenceMixin:
                     bool(re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, context_text or raw_row))
                     and bool(re.search(_COUNT_VALUE_UNIT_RE, context_text or raw_row))
                     and _sentence_matches_operand_context(context_text or raw_row, operand)
+                )
+                location_context_pattern = str(assembly_policy.get("location_context_pattern") or "")
+                period_count_location_context = bool(
+                    location_context_pattern
+                    and re.search(location_context_pattern, re.sub(r"\s+", "", context_text or raw_row))
+                )
+                period_count_requires_subject_binding = (
+                    period_count_context_match
+                    and period_count_location_context
+                    and str(operand.get("role") or "").strip() in {"current_period", "prior_period"}
                 )
                 parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
                 target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
@@ -4054,17 +4077,25 @@ class FinancialAgentEvidenceMixin:
                                     )
 
                 if not raw_value:
-                    prose_value = _period_scoped_count_value_from_text(
-                        context_text or raw_row,
-                        operand,
-                        query_years=query_years,
-                        report_scope=report_scope,
-                    ) or _period_comparison_count_value_from_text(
-                        context_text or raw_row,
-                        operand,
-                        query_years=query_years,
-                        report_scope=report_scope,
-                    )
+                    if period_count_requires_subject_binding:
+                        prose_value = _period_comparison_count_value_from_text(
+                            context_text or raw_row,
+                            operand,
+                            query_years=query_years,
+                            report_scope=report_scope,
+                        )
+                    else:
+                        prose_value = _period_scoped_count_value_from_text(
+                            context_text or raw_row,
+                            operand,
+                            query_years=query_years,
+                            report_scope=report_scope,
+                        ) or _period_comparison_count_value_from_text(
+                            context_text or raw_row,
+                            operand,
+                            query_years=query_years,
+                            report_scope=report_scope,
+                        )
                     if prose_value:
                         raw_value = prose_value["raw_value"]
                         raw_unit = prose_value["raw_unit"]
@@ -4072,7 +4103,7 @@ class FinancialAgentEvidenceMixin:
                         stated_change_raw_value = str(prose_value.get("stated_change_raw_value") or "")
                         stated_change_raw_unit = str(prose_value.get("stated_change_raw_unit") or "")
 
-                if not raw_value and (
+                if not raw_value and not period_count_requires_subject_binding and (
                     not period_count_context_match
                     or raw_row_direct_match
                     or surface_contract_match
@@ -4116,6 +4147,12 @@ class FinancialAgentEvidenceMixin:
                     and observed_unit_family != desired_unit_family
                 ):
                     continue
+                if (
+                    desired_unit_family in {"KRW", "USD", "COUNT", "PERCENT"}
+                    and observed_unit_family == "UNKNOWN"
+                    and _normalise_spaces(str(raw_unit or ""))
+                ):
+                    continue
 
                 row_payload = {
                     "operand_id": f"op_{len(operand_rows) + 1:03d}",
@@ -4145,6 +4182,14 @@ class FinancialAgentEvidenceMixin:
                         assembly_policy.get("stated_change_default_unit") or ""
                     )
                 row_payload = self._coerce_operand_row_from_evidence(row_payload, item)
+                observed_unit_family = _normalise_spaces(str(row_payload.get("normalized_unit") or "")).upper()
+                observed_raw_unit = _normalise_spaces(str(row_payload.get("raw_unit") or ""))
+                if (
+                    desired_unit_family in {"KRW", "USD", "COUNT", "PERCENT"}
+                    and observed_unit_family == "UNKNOWN"
+                    and observed_raw_unit
+                ):
+                    continue
                 if not _operand_row_matches_requirement(row_payload, operand):
                     continue
                 key = (
