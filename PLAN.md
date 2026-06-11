@@ -1,9 +1,43 @@
 # 실행 계획
 
 > 이 문서는 **현재 active plan만 유지하는 실행 문서**다.  
-> 과거 실험과 장기 방향은 [DECISIONS.md](C:/Users/geonj/Desktop/research%20agent/DECISIONS.md)와 [docs/planning/backlog_and_next_epics.md](C:/Users/geonj/Desktop/research%20agent/docs/planning/backlog_and_next_epics.md)로 보낸다.
+> 과거 실험과 장기 방향은 [DECISIONS.md](DECISIONS.md)와
+> [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md)로 보낸다.
 
 ## Active Snapshot
+
+## 2026-06-11 제출 전 상태와 broader benchmark 계획
+
+- Current checkpoint:
+  - reviewer-facing docs updated and pushed through commit
+    `3b075aa Align reviewer docs with hard ablation`.
+  - sanity gates passed:
+    - `portfolio_review_gates`: `Status: ready`
+    - `portfolio_demo`: readiness `ready`
+    - `audit_runtime_domain_terms`: passed with `217` reviewed literals
+  - worktree is clean and `main` is synced with `origin/main`.
+- Current official evidence:
+  - expanded structural ablation: structural avg numeric / faithfulness
+    `1.000 / 1.000` vs plain `0.833 / 0.875`
+  - hard structural-vs-plain replay: structural `5 / 5`, plain `4 / 5`
+  - `SKH_T1_060` is the concrete hard separator: plain used prior-period
+    borrowing rows with a current-period denominator; structural preserved
+    current-period borrowing rows.
+- Artifact note:
+  - latest hard structural eval-only raw bundle
+    `benchmarks/results/hard_current_evalonly_2026-06-10/` was summarized in
+    docs and then deleted under benchmark artifact hygiene. Do not treat that
+    path as an available local result.
+- Full benchmark preflight:
+  - `curated_single_doc_core` is the safest broader source-controlled profile
+    to run next. Scope: 삼성전자/네이버/현대자동차 2023, `37` filtered questions.
+  - 로컬에는 삼성전자 2023 report가 있고, 네이버/현대자동차 2023 report는 없다.
+    Running this profile will require fresh fetch/ingest for the missing
+    reports.
+  - If proceeding, run with heartbeat:
+    `python -m ops.benchmark_runner --config benchmarks/profiles/curated_single_doc_core.json --output-dir benchmarks/results/curated_single_doc_core_2026-06-11 --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/curated_single_doc_core_2026-06-11/_logs/run.jsonl`
+  - Do not stage `benchmarks/results/**`; summarize results in docs after the
+    run.
 
 ## 2026-06-02 HYU_T2_010 Evidence-Stated Growth Display Closure
 

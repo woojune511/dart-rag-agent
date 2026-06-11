@@ -190,7 +190,7 @@ not from an ever-growing metric answer catalog.
 
 The new draft file is:
 
-- [financial_ontology_concepts_v3.draft.json](/C:/Users/admin/Desktop/dart-rag-agent/src/config/financial_ontology_concepts_v3.draft.json)
+- [financial_ontology_concepts_v3.draft.json](../../src/config/financial_ontology_concepts_v3.draft.json)
 
 Top-level structure:
 

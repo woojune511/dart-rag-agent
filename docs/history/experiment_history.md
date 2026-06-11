@@ -62,8 +62,9 @@
 참조:
 
 - `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
-- local result bundle:
-  `benchmarks/results/hard_current_evalonly_2026-06-10/`
+- local eval-only bundle was summarized from
+  `benchmarks/results/hard_current_evalonly_2026-06-10/` and then deleted under
+  benchmark artifact hygiene.
 
 ### Context
 
@@ -127,16 +128,17 @@ Aggregate hard result: `5 / 5` numeric PASS.
   metadata is not only useful at retrieval time, but also at late runtime
   alignment time, where final/detail row disambiguation determines whether a
   recovered lookup can safely update a ratio answer.
-- The next experimental step is a controlled ablation of the aggregate/final
-  structural alignment contract, using the same hard profile, before paying for
-  a larger full benchmark refresh.
+- The follow-up structural-vs-plain replay below is the controlled hard-set
+  comparison. Broader full benchmark work should start from a monitored
+  `curated_single_doc_core` run if more coverage is needed.
 
 ## Hard Structural-vs-Plain Replay (2026-06-11)
 
 참조:
 
 - structural:
-  `benchmarks/results/hard_current_evalonly_2026-06-10/`
+  summarized from `benchmarks/results/hard_current_evalonly_2026-06-10/`
+  before that local raw bundle was deleted under artifact hygiene
 - plain:
   `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11/`
 - profiles:

@@ -866,24 +866,24 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 | 항목 | 내용 |
 | --- | --- |
 | 목적 | `FinancialAgent.run()`을 MAS Analyst worker로 감쌌을 때 numeric parity가 유지되는지 확인 |
-| 스크립트 | [src/ops/mas_analyst_smoke.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/mas_analyst_smoke.py) |
+| 스크립트 | [src/ops/mas_analyst_smoke.py](../../src/ops/mas_analyst_smoke.py) |
 | store | `reference-note-plain-graph-2500-320` on `삼성전자 2024` |
 | 질문 | `comparison_001`, `comparison_004`, `trend_002` |
 | 주요 결과 | `calc_status_match_rate = 1.000`, `numeric_result_match_rate = 1.000`, `operand_count_match_rate = 0.667`, `answer_match_rate = 0.333` |
 | 해석 | exact wording은 흔들리지만 계산 결과와 계산 상태는 direct engine과 MAS wrapper가 일치했다. 즉 Analyst migration은 **numeric correctness를 유지한 채 task ledger / artifact store로 옮겨졌다**. |
-| Evidence | [mas_analyst_smoke_2026-04-30.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/mas_analyst_smoke_2026-04-30.json) |
+| Evidence | local artifact path: `benchmarks/results/mas_analyst_smoke_2026-04-30.json` |
 
 ### Researcher wrapper smoke
 
 | 항목 | 내용 |
 | --- | --- |
 | 목적 | scoped narrative retrieval + summarization core가 MAS Researcher worker로 이식됐는지 확인 |
-| 스크립트 | [src/ops/mas_researcher_smoke.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/mas_researcher_smoke.py) |
+| 스크립트 | [src/ops/mas_researcher_smoke.py](../../src/ops/mas_researcher_smoke.py) |
 | store | `reference-note-plain-graph-2500-320` on `삼성전자 2024` |
 | 질문 | `business_overview_001`, `risk_analysis_001`, `r_and_d_investment_002` |
 | 주요 결과 | `citation_match_rate = 1.000`, `evidence_link_nonempty_rate = 1.000`, `critic_pass_rate = 1.000`, `answer_match_rate = 0.333` |
 | 해석 | citation과 grounding wiring은 direct narrative core와 MAS wrapper가 일치했다. answer wording/quality는 아직 tuning 여지가 있지만, **Researcher migration과 deterministic critic 연동 자체는 성공**했다. |
-| Evidence | [mas_researcher_smoke_2026-04-30.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/mas_researcher_smoke_2026-04-30.json) |
+| Evidence | local artifact path: `benchmarks/results/mas_researcher_smoke_2026-04-30.json` |
 
 ### E2E MAS smoke
 
@@ -1081,8 +1081,8 @@ default-store restoration:
 | 항목 | 내용 |
 | --- | --- |
 | 목적 | `SECTION-*` 밖에 숨어 있는 bold sub-heading을 `local_heading`으로 복원하고, parser가 어디까지 구조를 잃는지 확인 |
-| 스크립트 | [src/ops/dump_report_structure.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/dump_report_structure.py) |
-| 산출물 | [naver_2023_structure_outline.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/naver_2023_structure_outline.json) |
+| 스크립트 | [src/ops/dump_report_structure.py](../../src/ops/dump_report_structure.py) |
+| 산출물 | local artifact path: `benchmarks/results/naver_2023_structure_outline.json` |
 | 성공 신호 | sanitize 이후 `IV. 이사의 경영진단 및 분석의견`과 `II > 7. 기타 참고사항`의 핵심 hidden heading이 soft `local_heading`으로 복원 |
 | 실패 신호 | noisy inline heading이 일부 남거나, low-value section에서 coarse parsing 대신 오탐 heading이 늘어나는 경우 |
 | 해석 | parser는 deep hierarchy 복원기보다, sanitize + high-value-section soft heading 복원기 쪽이 RAG 목적에 더 적합함 |
@@ -1168,14 +1168,14 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | --- | --- |
 | Decision | numeric support 판정을 `expected_sections` 기반 section hit 중심에서, 실제 계산에 사용한 operand의 grounded 여부 중심으로 재정의 |
 | Type | evaluator meta-experiment |
-| Source bundle | [dev_math_focus_evalonly_2026-04-28](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_2026-04-28/삼성전자-2024/results.json) |
-| Replay script | [src/ops/retrospective_operand_grounding_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_operand_grounding_eval.py) |
+| Source bundle | local artifact path: `benchmarks/results/dev_math_focus_evalonly_2026-04-28/삼성전자-2024/results.json` |
+| Replay script | [src/ops/retrospective_operand_grounding_eval.py](../../src/ops/retrospective_operand_grounding_eval.py) |
 | Adjudication set | positive-only 8문항 (`comparison_001`, `comparison_002`, `comparison_004`, `trend_002`, `trend_003`, `comparison_005`, `comparison_006`, `comparison_007`) |
 | Excluded | `comparison_003` (`display-aware equivalence` 영향 혼입), `trend_001` (`numeric_final_judgement` 없음) |
 | Primary metric | human-correct numeric questions 기준 false negative rate |
 | Result | `0.125 -> 0.000`, recovered case: `comparison_001` |
 | Interpretation | section-based support는 같은 숫자가 다른 유효 섹션에 있을 때 억울한 FAIL을 만들 수 있었다. operand grounding support는 금융 문서처럼 수치가 여러 섹션에 반복되는 도메인에서 사람 판정과 더 잘 맞는다. |
-| Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_operand_grounding_2026-04-29/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_operand_grounding_2026-04-29/summary.json) |
+| Evidence | local artifact paths: `benchmarks/results/retrospective_operand_grounding_2026-04-29/summary.md`, `benchmarks/results/retrospective_operand_grounding_2026-04-29/summary.json` |
 
 ### Result 2. `Direct Calc -> Formula Planner + AST`
 
@@ -1183,8 +1183,8 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | --- | --- |
 | Decision | 수치 질문에서 LLM이 직접 계산한 답을 쓰게 하지 않고, LLM은 수식 planner 역할만 맡기고 실제 연산은 symbolic executor(AST)로 분리 |
 | Type | system architecture retrospective experiment |
-| Source bundle | [dev_math_focus_evalonly_operandgrounding_v2_2026-04-29](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json) |
-| Replay script | [src/ops/retrospective_math_architecture_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_math_architecture_eval.py) |
+| Source bundle | local artifact path: `benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json` |
+| Replay script | [src/ops/retrospective_math_architecture_eval.py](../../src/ops/retrospective_math_architecture_eval.py) |
 | Slice | numeric-only 9문항 (`comparison_001`~`comparison_007`, `trend_002`, `trend_003`) |
 | Excluded | `trend_001` (정성적 추이 서술형) |
 | Primary metric | strict correctness rate (`numeric_equivalence == 1.0` and `numeric_grounding == 1.0`) |
@@ -1192,7 +1192,7 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | Secondary metrics | direct calc equivalence `0.556`, grounding `0.778`; formula+AST equivalence / grounding `1.000 / 1.000`; legacy operation-path overlap `0.500` |
 | Interpretation | retrieval과 evidence는 고정한 채 answer generation만 바꿨을 때, direct calc baseline은 9문항 중 4문항에서 단위/표현/부호 처리에 흔들렸다. 같은 evidence 기반에서 formula planner + AST 경로는 9문항을 모두 통과했다. |
 | Representative failures | `comparison_002` `43조 4,327억원 -> 475,963억원`, `comparison_003` `81조 9,082억원 -> 819,082 백만원`, `comparison_004` `10.9% -> 10.88%`, `trend_003` `-24.55% 변했습니다` |
-| Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_math_architecture_2026-04-29/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_math_architecture_2026-04-29/summary.json) |
+| Evidence | local artifact paths: `benchmarks/results/retrospective_math_architecture_2026-04-29/summary.md`, `benchmarks/results/retrospective_math_architecture_2026-04-29/summary.json` |
 
 ### Result 3. `Standard Retrieval -> Ontology-Guided Retrieval`
 
@@ -1200,8 +1200,8 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | --- | --- |
 | Decision | retrieval-side ontology hook (`preferred_sections`, `supplement_sections`, `query_hints`)을 사용해 ratio/percent 질문의 source miss를 보완 |
 | Type | system retrieval retrospective experiment |
-| Source bundle | [dev_math_focus_evalonly_operandgrounding_v2_2026-04-29](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json) |
-| Replay script | [src/ops/retrospective_ontology_retrieval_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_ontology_retrieval_eval.py) |
+| Source bundle | local artifact path: `benchmarks/results/dev_math_focus_evalonly_operandgrounding_v2_2026-04-29/삼성전자-2024/results.json` |
+| Replay script | [src/ops/retrospective_ontology_retrieval_eval.py](../../src/ops/retrospective_ontology_retrieval_eval.py) |
 | Slice | `comparison_004`, `comparison_005`, `comparison_006` |
 | Ablation scope | ontology retrieval hook만 on/off. planner prior와 evaluator는 고정 |
 | Primary metrics | `operand_grounding_score`, `calc_success_rate`, `row_candidate_recovery_rate` |
@@ -1209,7 +1209,7 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | Secondary metrics | section match `0.458 -> 0.583`, avg operand count `1.000 -> 1.667`, component recovery `0.333 -> 0.333` |
 | Interpretation | 일반 semantic retrieval은 정답 section을 스쳐도 `연구개발활동` row를 놓쳐 ratio 질문이 `insufficient_operands`로 끝났다. ontology-guided retrieval은 `연구개발활동` / `연구개발실적` 계열 seed를 보강해 ratio row 회수와 최종 계산 성공을 복구했다. |
 | Representative recoveries | `comparison_005`: `rows 0 -> 1`, `calc insufficient_operands -> ok`; `comparison_006`: `rows 0 -> 1`, `operands 0 -> 2`, `calc insufficient_operands -> ok` |
-| Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.json) |
+| Evidence | local artifact paths: `benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.md`, `benchmarks/results/retrospective_ontology_retrieval_2026-04-29/summary.json` |
 
 ### Result 4. `Evaluator sub-decision replay audit (Decisions 73 / 75 / 76)`
 
@@ -1217,14 +1217,14 @@ raw artifact는 각 run directory의 `summary.md`, `summary.json`, `results.json
 | --- | --- |
 | Decision | early evaluator 결정 중 `eval-only` 재실행 근거에 기대던 항목을 fixed historical output replay로 재검증 |
 | Type | evaluator meta-experiment / evidence-quality audit |
-| Source bundle | [dev_math_focus_evalonly_datasetfix_2026-04-29](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/dev_math_focus_evalonly_datasetfix_2026-04-29/삼성전자-2024/results.json) |
-| Replay script | [src/ops/retrospective_evaluator_ablation_eval.py](/C:/Users/admin/Desktop/dart-rag-agent/src/ops/retrospective_evaluator_ablation_eval.py) |
+| Source bundle | local artifact path: `benchmarks/results/dev_math_focus_evalonly_datasetfix_2026-04-29/삼성전자-2024/results.json` |
+| Replay script | [src/ops/retrospective_evaluator_ablation_eval.py](../../src/ops/retrospective_evaluator_ablation_eval.py) |
 | Slice | `comparison_001`, `comparison_004`, `trend_002`, `comparison_005` |
 | Primary finding 1 | `comparison_001` strict equivalence `0.0 -> 1.0` |
 | Primary finding 2 | `comparison_004` legacy label matcher `0.0 -> 1.0` |
 | Primary finding 3 | `trend_002`, `comparison_005` operand override 전 `0.0 -> 1.0` |
 | Interpretation | 결정 75와 76의 핵심 효과는 fixed historical outputs에서도 재현된다. 반면 결정 73은 “전역 1e-4 tolerance” 자체보다 현재의 `display-aware equivalence`가 durable fix라는 점이 더 정확했다. |
-| Evidence | [retrospective summary.md](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.md), [retrospective summary.json](/C:/Users/admin/Desktop/dart-rag-agent/benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.json) |
+| Evidence | local artifact paths: `benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.md`, `benchmarks/results/retrospective_evaluator_ablation_2026-04-30/summary.json` |
 
 ## 이 문서에 더 이상 쌓지 않을 것
 

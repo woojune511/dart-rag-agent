@@ -108,7 +108,8 @@ Notes:
 Result directories:
 
 - structural:
-  `benchmarks/results/hard_current_evalonly_2026-06-10`
+  summarized from `benchmarks/results/hard_current_evalonly_2026-06-10`
+  before that local raw bundle was deleted under benchmark artifact hygiene
 - plain:
   `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11`
 

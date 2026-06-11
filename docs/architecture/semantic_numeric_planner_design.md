@@ -818,7 +818,7 @@ The next version should extend that structure instead of replacing it.
 
 ### File
 
-- [src/config/financial_ontology.json](</C:/Users/geonj/Desktop/research agent/src/config/financial_ontology.json>)
+- [src/config/financial_ontology.json](../../src/config/financial_ontology.json)
 
 ### New metric-family fields
 
@@ -897,7 +897,7 @@ The planner should answer:
 
 ### File
 
-- [src/agent/financial_graph.py](</C:/Users/geonj/Desktop/research agent/src/agent/financial_graph.py>)
+- [src/agent/financial_graph.py](../../src/agent/financial_graph.py)
 
 ### New state fields
 
@@ -1184,9 +1184,11 @@ Example:
 
 ## Recommended Implementation Order
 
-1. Extend ontology schema in [financial_ontology.json](</C:/Users/geonj/Desktop/research agent/src/config/financial_ontology.json>)
-2. Extend [ontology.py](</C:/Users/geonj/Desktop/research agent/src/config/ontology.py>) helper methods
-3. Add semantic plan state fields in [financial_graph.py](</C:/Users/geonj/Desktop/research agent/src/agent/financial_graph.py>)
+1. Extend ontology schema in
+   [financial_ontology.json](../../src/config/financial_ontology.json)
+2. Extend [ontology.py](../../src/config/ontology.py) helper methods
+3. Add semantic plan state fields in
+   [financial_graph.py](../../src/agent/financial_graph.py)
 4. Implement `pre_calc_planner`
 5. Make `retrieve` consume `retrieval_queries`
 6. Implement `reconcile_plan`

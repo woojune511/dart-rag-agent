@@ -192,8 +192,11 @@ Local result bundles:
 
 - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
 - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
-- `benchmarks/results/hard_current_evalonly_2026-06-10/`
 - `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11/`
+
+The structural hard replay was summarized from the local eval-only bundle
+`benchmarks/results/hard_current_evalonly_2026-06-10/`; that raw bundle was
+deleted after documentation under benchmark artifact hygiene.
 
 Trace summary:
 

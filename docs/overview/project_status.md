@@ -54,8 +54,9 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 - Hard structural profile replay, 2026-06-11:
   - profile: `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
-  - local result bundle:
-    `benchmarks/results/hard_current_evalonly_2026-06-10/`
+  - local eval-only bundle was summarized from
+    `benchmarks/results/hard_current_evalonly_2026-06-10/` and then deleted
+    under benchmark artifact hygiene
   - result: `5 / 5` numeric PASS
   - passing cases:
     - `KAB_T1_066`: CIR `37.47%`
@@ -89,8 +90,9 @@ role-separated multi-agent system using a task ledger and artifact store.
   - Plain bound borrowing operands to `period_focus=prior`,
     `period_labels=["전기"]`, `::table:94`, while keeping the current-period
     asset denominator.
-- Raw `benchmarks/results/**` hard bundles remain local artifacts and are not
-  part of the source commit.
+- Raw `benchmarks/results/**` hard bundles are local artifacts and are not part
+  of the source commit. The latest structural hard eval-only raw bundle was
+  deleted after the result was summarized in docs.
 
 ### Latest Hard Structural-vs-Plain Replay
 
@@ -121,10 +123,28 @@ role-separated multi-agent system using a task ledger and artifact store.
   - The portfolio claim should be precise: structural metadata is not a blanket
     win on every metric, but it prevents specific ambiguous-table operand
     selection failures that deterministic calculation alone cannot correct.
-- Next documentation target:
-  - fold the `SKH_T1_060` trace into the portfolio report as the concrete
-    period-ambiguous row-binding example, while keeping the broader claim
-    scoped to numeric grounding rather than general QA quality.
+- Documentation status:
+  - the `SKH_T1_060` trace has been folded into README, one-pager, experiment
+    report, interview narrative, resume snippets, and technical highlights.
+
+### Broader Full Benchmark Preflight
+
+- Candidate profile:
+  `benchmarks/profiles/curated_single_doc_core.json`
+- Scope:
+  - 삼성전자 2023, 네이버 2023, 현대자동차 2023
+  - `37` filtered questions from
+    `benchmarks/datasets/single_doc_eval_full.curated.json`
+- Input/store state:
+  - 삼성전자 2023 report exists locally.
+  - 네이버 2023 and 현대자동차 2023 report HTML files are not currently local.
+  - The profile has `auto_fetch_missing_report=true`, so running it will require
+    fresh fetch/ingest for missing reports.
+- Recommended execution if broader validation is needed:
+  - run `curated_single_doc_core` as a monitored full run with
+    `--progress-heartbeat-sec 60` and a heartbeat log.
+  - do not stage `benchmarks/results/**`; summarize the result in docs after
+    the run.
 
 ### Latest Portfolio Ablation Refresh
 
