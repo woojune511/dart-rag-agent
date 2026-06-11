@@ -34,6 +34,35 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("지배기업주주지분순이익", keywords)
         self.assertIn("자본총계", keywords)
 
+    def test_roe_operand_spec_requires_current_and_prior_equity_for_average_denominator(self) -> None:
+        metric = self.ontology.metric_family("roe")
+        self.assertEqual(metric["denominator_aggregation"], "average")
+
+        specs = self.ontology.build_operand_spec("roe")
+        self.assertEqual([spec["role"] for spec in specs], ["numerator", "denominator_1", "denominator_2"])
+
+        denominator_1 = next(spec for spec in specs if spec["role"] == "denominator_1")
+        denominator_2 = next(spec for spec in specs if spec["role"] == "denominator_2")
+        self.assertEqual(denominator_1["concept"], "total_equity")
+        self.assertEqual(denominator_2["concept"], "total_equity")
+        self.assertEqual(denominator_1["period_hint"], "current")
+        self.assertEqual(denominator_2["period_hint"], "prior")
+        self.assertEqual(denominator_1["binding_policy"]["prefer_period_focus"], "current")
+        self.assertEqual(denominator_2["binding_policy"]["prefer_period_focus"], "prior")
+
+    def test_operating_margin_drag_uses_amortization_over_aggregate_revenue(self) -> None:
+        specs = self.ontology.build_operand_spec("operating_margin_drag")
+        self.assertEqual([spec["role"] for spec in specs], ["numerator", "denominator"])
+
+        numerator = next(spec for spec in specs if spec["role"] == "numerator")
+        denominator = next(spec for spec in specs if spec["role"] == "denominator")
+        self.assertEqual(numerator["concept"], "amortization_expense")
+        self.assertEqual(denominator["concept"], "revenue")
+        self.assertEqual(numerator["binding_policy"]["prefer_value_roles"], ["aggregate"])
+        self.assertEqual(denominator["binding_policy"]["prefer_value_roles"], ["aggregate"])
+        self.assertEqual(numerator["binding_policy"]["prefer_aggregation_stages"], ["final", "subtotal", "direct"])
+        self.assertEqual(denominator["binding_policy"]["prefer_aggregation_stages"], ["final", "subtotal", "direct"])
+
     def test_default_constraints_are_normalised(self) -> None:
         constraints = self.ontology.default_constraints_for_metric("current_ratio")
         self.assertEqual(constraints["period_focus"], "current")

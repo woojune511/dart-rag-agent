@@ -410,6 +410,8 @@ class FinancialOntologyManager:
                     "aliases": _dedupe_preserve_order(payload.get("aliases", []) or []),
                     "keywords": _dedupe_preserve_order(payload.get("keywords", []) or []),
                     "required": bool(payload.get("required", True)),
+                    "period_hint": str(payload.get("period_hint") or "").strip(),
+                    "period_focus": str(payload.get("period_focus") or "").strip(),
                     "preferred_sections": _dedupe_preserve_order(payload.get("preferred_sections", []) or []),
                     "preferred_statement_types": _dedupe_preserve_order(payload.get("preferred_statement_types", []) or []),
                     "binding_policy": dict(payload.get("binding_policy") or {}),
@@ -470,6 +472,8 @@ class FinancialOntologyManager:
                         "aliases": _dedupe_preserve_order(payload.get("aliases", []) or []),
                         "keywords": [str(keyword).strip() for keyword in payload.get("keywords", []) if str(keyword).strip()],
                         "required": bool(payload.get("required", True)),
+                        "period_hint": str(payload.get("period_hint") or "").strip(),
+                        "period_focus": str(payload.get("period_focus") or "").strip(),
                         "preferred_sections": [str(section).strip() for section in payload.get("preferred_sections", []) if str(section).strip()],
                         "preferred_statement_types": [
                             str(item).strip()

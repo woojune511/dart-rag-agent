@@ -158,6 +158,7 @@ GENERIC_METRIC_ALIAS_SUBSTITUTIONS: Tuple[Dict[str, Any], ...] = (
 
 OPERATION_FAMILY_QUERY_POLICIES: Tuple[Dict[str, Any], ...] = (
     {"operation_family": "growth_rate", "markers": ("증감률", "증가율", "감소율", "성장률", "변화율")},
+    {"operation_family": "ratio", "markers": ("영업이익률을 얼마나 낮추", "이익률을 얼마나 낮추", "이익률에 미친 영향")},
     {"operation_family": "difference", "markers": ("차이", "얼마나 더", "보다 얼마나", "더 큰가", "더 높은가", "더 많은가")},
 )
 
@@ -232,8 +233,8 @@ CONCEPT_METRIC_LABEL_POLICY: Dict[str, Any] = {
 GENERIC_PERIOD_OPERAND_POLICY: Dict[str, Any] = {
     "current_period_hint": "당기",
     "prior_period_hint": "전기",
-    "current_period_hints": ("당기", "현재"),
-    "prior_period_hints": ("전기", "전년", "직전 연도", "이전 연도", "이전"),
+    "current_period_hints": ("current", "당기", "현재"),
+    "prior_period_hints": ("prior", "전기", "전년", "직전 연도", "이전 연도", "이전"),
     "current_label_template": "{period_hint} {label}",
     "prior_label_template": "{period_hint} {label}",
     "year_label_template": "{year}년 {label}",

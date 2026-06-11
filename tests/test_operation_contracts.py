@@ -3697,6 +3697,181 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
+    def test_direct_lookup_row_uses_aggregate_cell_when_operand_policy_prefers_aggregate(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = agent._lookup_row_from_direct_structured_evidence(
+            {
+                "label": "매출액",
+                "concept": "revenue",
+                "role": "denominator",
+                "binding_policy": {
+                    "prefer_value_roles": ["aggregate"],
+                    "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                },
+            },
+            {
+                "evidence_id": "table::value:0",
+                "source_anchor": "[example]",
+                "metadata": {
+                    "year": 2023,
+                    "unit_hint": "천원",
+                    "row_label": "매출액",
+                    "semantic_label": "매출액",
+                    "structured_cells": [
+                        {
+                            "value_text": "100",
+                            "unit_hint": "천원",
+                            "column_headers": ["Segment A"],
+                            "value_role": "detail",
+                            "aggregation_stage": "none",
+                        },
+                        {
+                            "value_text": "300",
+                            "unit_hint": "천원",
+                            "column_headers": ["제품과 용역 합계"],
+                            "value_role": "detail",
+                            "aggregation_stage": "none",
+                            "aggregate_label": "제품과 용역 합계",
+                        },
+                    ],
+                },
+            },
+            index=1,
+        )
+
+        self.assertEqual(row["raw_value"], "300")
+        self.assertEqual(row["aggregate_label"], "제품과 용역 합계")
+
+    def test_table_label_lookup_requires_structured_context_for_aggregate_policy(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operand = {
+            "label": "selected cost",
+            "concept": "selected_cost",
+            "role": "numerator",
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+            },
+        }
+
+        cell_less = agent._lookup_value_from_table_label_metadata(
+            operand,
+            {
+                "evidence_id": "ev_text_only",
+                "source_anchor": "[example]",
+                "metadata": {
+                    "year": 2023,
+                    "unit_hint": "천원",
+                    "table_value_labels_text": "\n".join(
+                        [
+                            "selected cost 100",
+                            "selected cost 200",
+                            "selected cost 300",
+                        ]
+                    ),
+                },
+            },
+        )
+        self.assertEqual(cell_less, {})
+
+        structured = agent._lookup_value_from_table_label_metadata(
+            operand,
+            {
+                "evidence_id": "ev_structured",
+                "source_anchor": "[example]",
+                "metadata": {
+                    "year": 2023,
+                    "unit_hint": "천원",
+                    "row_label": "other metric",
+                    "semantic_label": "other metric",
+                    "table_value_labels_text": "\n".join(
+                        [
+                            "selected cost 100",
+                            "selected cost 200",
+                            "selected cost 300",
+                        ]
+                    ),
+                    "structured_cells": [
+                        {
+                            "value_text": "10",
+                            "unit_hint": "천원",
+                            "column_headers": ["Segment A"],
+                        }
+                    ],
+                },
+            },
+        )
+
+        self.assertEqual(structured["raw_value"], "300")
+        self.assertEqual(structured["value_role"], "aggregate")
+        self.assertEqual(structured["aggregation_stage"], "final")
+
+    def test_required_operand_assembly_prefers_aggregate_table_label_value_with_structured_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "selected cost",
+                "concept": "selected_cost",
+                "role": "numerator",
+                "binding_policy": {
+                    "prefer_value_roles": ["aggregate"],
+                    "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                },
+            }
+        ]
+        text_only_rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "candidate_id": "text_only",
+                    "evidence_id": "text_only",
+                    "claim": "other metric 10",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "천원",
+                        "table_value_labels_text": "\n".join(
+                            ["selected cost 100", "selected cost 200", "selected cost 300"]
+                        ),
+                    },
+                }
+            ],
+            required_operands=required_operands,
+            query="2023년 selected cost를 계산해 줘.",
+            topic="selected cost",
+            report_scope={"year": 2023},
+        )
+        self.assertEqual(text_only_rows, [])
+
+        structured_rows = agent._build_required_operands_from_candidates(
+            [
+                {
+                    "candidate_id": "structured",
+                    "evidence_id": "structured",
+                    "claim": "other metric 10",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "천원",
+                        "row_label": "other metric",
+                        "semantic_label": "other metric",
+                        "table_value_labels_text": "\n".join(
+                            ["selected cost 100", "selected cost 200", "selected cost 300"]
+                        ),
+                        "structured_cells": [
+                            {"value_text": "10", "unit_hint": "천원", "column_headers": ["Segment A"]}
+                        ],
+                    },
+                }
+            ],
+            required_operands=required_operands,
+            query="2023년 selected cost를 계산해 줘.",
+            topic="selected cost",
+            report_scope={"year": 2023},
+        )
+
+        self.assertEqual(len(structured_rows), 1)
+        self.assertEqual(structured_rows[0]["raw_value"], "300")
+        self.assertEqual(structured_rows[0]["value_role"], "aggregate")
+        self.assertEqual(structured_rows[0]["aggregation_stage"], "final")
+
     def test_generic_ratio_retrieval_queries_include_combined_numerator_denominator_terms(self) -> None:
         queries = _build_generic_retrieval_queries(
             query="2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
@@ -4785,6 +4960,47 @@ class OperationContractTests(unittest.TestCase):
         self.assertTrue(_operand_row_matches_requirement(row, current_req))
         self.assertFalse(_operand_row_matches_requirement(row, prior_req))
 
+    def test_dependency_slot_match_respects_symbolic_prior_period_hint(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        binding = {
+            "label": "자본총계",
+            "concept": "total_equity",
+            "role": "denominator_2",
+            "period": "prior",
+        }
+        sibling_row = {"metric_label": "자본총계"}
+        state = {"report_scope": {"year": 2023}}
+
+        current_slot = {
+            "label": "자본총계",
+            "concept": "total_equity",
+            "period": "2023",
+            "raw_value": "363,677,865",
+        }
+        prior_slot = {
+            "label": "자본총계",
+            "concept": "total_equity",
+            "period": "2022",
+            "raw_value": "354,749,604",
+        }
+
+        self.assertFalse(
+            agent._dependency_slot_matches_input(
+                binding,
+                current_slot,
+                sibling_row=sibling_row,
+                state=state,
+            )
+        )
+        self.assertTrue(
+            agent._dependency_slot_matches_input(
+                binding,
+                prior_slot,
+                sibling_row=sibling_row,
+                state=state,
+            )
+        )
+
     def test_formula_plan_no_operands_omits_compatibility_mirrors(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._plan_formula_calculation(
@@ -5141,6 +5357,164 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan["operation"], "subtract")
         self.assertEqual(plan["formula"], "A + B")
         self.assertEqual(plan["ordered_operand_ids"], ["op_001", "op_002"])
+
+    def test_roe_ontology_ratio_uses_average_current_and_prior_equity_denominator(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
+        required_operands = ontology.build_operand_spec("roe")
+        state = {
+            "query": "2023년 연결기준 자기자본이익률(ROE)을 계산해 줘. (당기순이익 / 평균 자본총계)",
+            "active_subtask": {
+                "task_id": "task_roe",
+                "metric_family": "roe",
+                "metric_label": "자기자본이익률",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_income",
+                    "evidence_id": "row_income",
+                    "label": "2023년 연결총당기순이익",
+                    "matched_operand_label": "당기순이익",
+                    "matched_operand_concept": "net_income",
+                    "matched_operand_role": "numerator",
+                    "raw_value": "15,487,100",
+                    "raw_unit": "백만원",
+                    "normalized_value": 15487100000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+                {
+                    "operand_id": "op_equity_current",
+                    "evidence_id": "row_equity_current",
+                    "label": "2023년 자본총계",
+                    "matched_operand_label": "자본총계",
+                    "matched_operand_concept": "total_equity",
+                    "matched_operand_role": "denominator_1",
+                    "raw_value": "363,677,865",
+                    "raw_unit": "백만원",
+                    "normalized_value": 363677865000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+                {
+                    "operand_id": "op_equity_prior",
+                    "evidence_id": "row_equity_prior",
+                    "label": "2022년 자본총계",
+                    "matched_operand_label": "자본총계",
+                    "matched_operand_concept": "total_equity",
+                    "matched_operand_role": "denominator_2",
+                    "raw_value": "354,749,604",
+                    "raw_unit": "백만원",
+                    "normalized_value": 354749604000000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2022",
+                },
+            ],
+            "artifacts": [],
+            "tasks": [],
+        }
+
+        plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
+        plan_trace = _resolve_runtime_calculation_trace(plan_result)
+        plan = plan_trace["calculation_plan"]
+        self.assertEqual(plan["status"], "ok")
+        self.assertEqual(plan["operation"], "ratio")
+        self.assertEqual(plan["ordered_operand_ids"], ["op_income", "op_equity_current", "op_equity_prior"])
+        self.assertEqual(plan["formula"], "((A) / (((B + C) / 2))) * 100")
+
+        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+        trace = _resolve_runtime_calculation_trace(execution_result)
+        calc = trace["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertAlmostEqual(calc["result_value"], 4.3113887664, places=6)
+        self.assertEqual(calc["rendered_value"], "4.31%")
+        self.assertEqual(len(calc["series"]), 3)
+
+    def test_operating_margin_drag_ratio_renders_percent_point(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
+        required_operands = ontology.build_operand_spec("operating_margin_drag")
+        state = {
+            "query": "무형자산상각비가 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+            "active_subtask": {
+                "task_id": "task_margin_drag",
+                "metric_family": "operating_margin_drag",
+                "metric_label": "영업이익률 감소 영향",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_amortization",
+                    "evidence_id": "row_amortization",
+                    "label": "무형자산상각비",
+                    "matched_operand_label": "무형자산상각비",
+                    "matched_operand_concept": "amortization_expense",
+                    "matched_operand_role": "numerator",
+                    "raw_value": "182,049,824",
+                    "raw_unit": "천원",
+                    "normalized_value": 182049824000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+                {
+                    "operand_id": "op_revenue",
+                    "evidence_id": "row_revenue",
+                    "label": "매출액",
+                    "matched_operand_label": "매출액",
+                    "matched_operand_concept": "revenue",
+                    "matched_operand_role": "denominator",
+                    "raw_value": "2,176,431,531",
+                    "raw_unit": "천원",
+                    "normalized_value": 2176431531000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+            ],
+            "artifacts": [],
+            "tasks": [],
+        }
+
+        plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
+        plan = _resolve_runtime_calculation_trace(plan_result)["calculation_plan"]
+        self.assertEqual(plan["status"], "ok")
+        self.assertEqual(plan["formula"], "((A) / (B)) * 100")
+        self.assertEqual(plan["result_unit"], "%p")
+
+        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+        calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertAlmostEqual(calc["result_value"], 8.3646014776, places=6)
+        self.assertEqual(calc["rendered_value"], "8.36%p")
+
+    def test_dependency_aggregate_policy_blocks_detail_context_replacement(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "dependency_resolved": True,
+            "source_task_id": "task_revenue",
+            "evidence_id": "task_output:task_revenue",
+            "source_row_ids": ["task_output:task_revenue", "summary_total_value"],
+            "matched_operand_label": "매출액",
+            "matched_operand_role": "denominator",
+            "raw_value": "2,176,431,531",
+            "normalized_value": 2176431531000.0,
+            "aggregation_stage": "final",
+            "binding_policy": {"prefer_aggregation_stages": ["final", "subtotal"]},
+        }
+        replacement = {
+            "evidence_id": "segment_detail_value",
+            "source_row_ids": ["segment_detail_value", "summary_total_value"],
+            "matched_operand_label": "매출액",
+            "matched_operand_role": "denominator",
+            "raw_value": "1,873,430,064",
+            "normalized_value": 1873430064000.0,
+            "value_role": "detail",
+            "aggregation_stage": "none",
+        }
+
+        self.assertTrue(agent._task_output_operand_row_should_keep_value(row, replacement))
 
     def test_formula_planner_prefers_resolved_runtime_trace_over_stale_flat_fields(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

@@ -42,6 +42,7 @@
 | [Concept Gate Focused Hardening (2026-06-08)](#concept-gate-focused-hardening-2026-06-08) | POS/KBF/KAB focused eval-only residual과 후속 full replay 확인 | ratio peer-unit binding, growth+narrative repair, narrative-summary aggregate guard 이후 monitored full 7 eval-only가 7 / 7 PASS |
 | [KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)](#kab_t1_066-cir-direct-support-and-coherent-ratio-close-2026-06-09) | KAB CIR denominator support, coherent ratio operands, source display rendering | 최종 답변이 `4,355억원 / 11,623억원 = 37.47%`로 source-visible하게 닫힘 |
 | [Expanded Structural Ablation Refresh (2026-06-10)](#expanded-structural-ablation-refresh-2026-06-10) | 9문항 structural-vs-plain ablation | structural은 numeric `1.000`, plain은 `0.833`; `KBF_T1_017`, `SKH_T3_080`가 separating numeric failures |
+| [Hard Numeric Runtime Closure (2026-06-11)](#hard-numeric-runtime-closure-2026-06-11) | 5문항 hard numeric replay | ROE average-equity, margin-drag aggregate binding, late ratio refresh 이후 hard set 5 / 5 numeric PASS |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -54,6 +55,80 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Hard Numeric Runtime Closure (2026-06-11)
+
+참조:
+
+- `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
+- local result bundle:
+  `benchmarks/results/hard_current_evalonly_2026-06-10/`
+
+### Context
+
+- The hard numeric set still had two meaningful runtime gaps after the broader
+  structural ablation work:
+  - `SAM_T1_026`: ROE was calculated against a single equity period instead of
+    average current/prior equity.
+  - `CEL_T1_038`: the margin-drag question needed an aggregate/final
+    amortization expense row, but detail rows could still override the stronger
+    structured aggregate slot during late lookup alignment.
+- Both failures were treated as contract gaps, not as company/question-specific
+  exceptions.
+
+### Code / Contract Change
+
+- `roe` now declares current/prior equity operands and an average denominator in
+  the ontology. Period hints flow through operand specs, lookup input bindings,
+  and dependency task outputs.
+- `operating_margin_drag` is represented as a policy/ontology-driven ratio:
+  amortization expense over revenue, rendered in percentage points.
+- Numeric lookup rows preserve structural metadata such as `value_role`,
+  `aggregation_stage`, and `aggregate_label`.
+- Aggregate-preferred lookups avoid cell-less text-only sibling fallback when a
+  structured table context is required, and prefer aggregate/final/subtotal
+  candidates generically.
+- Late source-task/lookup alignment can refresh planless ratio answers from
+  stronger structured slots, but it does not let weaker detail lookups replace
+  already dependency-backed arithmetic operands.
+- No company name, benchmark id, or report-specific runtime branch was added.
+
+### Result
+
+Store-fixed hard replay, eval-only on the existing bundle:
+
+| Question | Result | Final numeric answer |
+| --- | --- | --- |
+| `KAB_T1_066` | PASS | CIR `37.47%` from `4,355.42억원 / 11,623억원` |
+| `MIX_T1_021` | PASS | debt ratio `25.36%`, current ratio `258.77%` |
+| `SAM_T1_026` | PASS | ROE `4.31%` using average equity |
+| `CEL_T1_038` | PASS | margin drag `8.36%p`, operating margin `29.93%` |
+| `SKH_T1_060` | PASS | borrowing over tangible+intangible assets `42.02%` |
+
+Aggregate hard result: `5 / 5` numeric PASS.
+
+### Validation
+
+- Focused runtime tests:
+  `tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment`,
+  `tests.test_aggregate_subtask_projection.AggregateSubtaskProjectionTests.test_dependency_projection_recalculates_planless_ratio_from_best_lookup_slot`,
+  and
+  `tests.test_aggregate_subtask_projection.AggregateSubtaskProjectionTests.test_dependency_projection_recalculates_from_stronger_source_task_slot`:
+  `3` tests OK.
+- Related ontology / planner / operation / structured extraction suites before
+  the final alignment guard: `389` tests OK.
+- Runtime domain-language audit: passed with `217` reviewed literals.
+- Full hard eval-only replay: `5 / 5` numeric PASS.
+
+### Interpretation
+
+- The hard-set result now supports a stronger design claim: structural cell
+  metadata is not only useful at retrieval time, but also at late runtime
+  alignment time, where final/detail row disambiguation determines whether a
+  recovered lookup can safely update a ratio answer.
+- The next experimental step is a controlled ablation of the aggregate/final
+  structural alignment contract, using the same hard profile, before paying for
+  a larger full benchmark refresh.
 
 ## KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)
 

@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## Positioning
 
@@ -41,6 +41,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Gate | Scope | Latest Status |
 | --- | --- | --- |
 | Runtime contract gate | 5 core numeric/runtime questions | PASS |
+| Hard structural numeric gate | 5 curated hard numeric questions | PASS, 5 / 5 |
 | Concept runtime gap gate | 7 ontology-driven concept questions | PASS, 7 / 7 |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
 | Reflection promotion gate | base fixture, store-fixed candidate surface, two reviewed trace summaries | READY |
@@ -48,6 +49,45 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest Hard Numeric Runtime Closure
+
+- Hard structural profile replay, 2026-06-11:
+  - profile: `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
+  - local result bundle:
+    `benchmarks/results/hard_current_evalonly_2026-06-10/`
+  - result: `5 / 5` numeric PASS
+  - passing cases:
+    - `KAB_T1_066`: CIR `37.47%`
+    - `MIX_T1_021`: debt ratio `25.36%`, current ratio `258.77%`
+    - `SAM_T1_026`: ROE `4.31%` using average equity
+    - `CEL_T1_038`: margin drag `8.36%p`, operating margin `29.93%`
+    - `SKH_T1_060`: borrowing over tangible+intangible assets `42.02%`
+- Source change:
+  - `roe` is now represented in ontology as net income over average
+    current/prior equity, with period hints propagated through operand specs
+    and task bindings.
+  - `operating_margin_drag` is represented in ontology/policy as amortization
+    expense over revenue, rendered in percentage points.
+  - Runtime lookup rows now preserve aggregate/final structural metadata and
+    use it during late lookup-to-ratio alignment.
+  - Late alignment can refresh planless ratio answers from stronger structured
+    slots, but it blocks weaker detail lookups from replacing already
+    dependency-backed arithmetic operands.
+  - No company name, benchmark id, or report-specific runtime branch was added.
+- Validation:
+  - focused late-alignment runtime tests: `3` OK
+  - related ontology / planner / operation / structured extraction suites before
+    the final alignment guard: `389` OK
+  - runtime domain-language audit: passed with `217` reviewed literals
+  - hard profile eval-only replay: `5 / 5` numeric PASS
+- Next experiment:
+  - run a small controlled ablation on the same hard profile, disabling or
+    bypassing aggregate/final structural alignment, to quantify whether the new
+    contract is carrying measurable performance rather than only fixing one
+    observed trace.
+- Raw `benchmarks/results/**` hard bundles remain local artifacts and are not
+  part of the source commit.
 
 ### Latest Portfolio Ablation Refresh
 

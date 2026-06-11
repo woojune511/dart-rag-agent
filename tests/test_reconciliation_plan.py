@@ -1875,6 +1875,46 @@ class ReconciliationPlanTests(unittest.TestCase):
         self.assertTrue(any("장기차입금 합계" in query for query in retrieval_queries))
         self.assertTrue(any("차감 계, 장기차입금" in query for query in retrieval_queries))
 
+    def test_lookup_producer_preserves_explicit_dependency_aggregate_policy(self) -> None:
+        consumer_task = {
+            "query": "2023년 무형자산상각비가 영업이익률을 얼마나 낮추었는지 계산해 줘.",
+            "metric_label": "영업이익률 감소 영향",
+            "operation_family": "ratio",
+            "required_operands": [
+                {
+                    "label": "매출액",
+                    "concept": "revenue",
+                    "role": "denominator",
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate"],
+                        "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+                    },
+                }
+            ],
+            "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+        }
+        binding = {
+            "role": "denominator",
+            "concept": "revenue",
+            "period": "2023",
+            "label": "매출액",
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "subtotal", "direct"],
+            },
+        }
+
+        task = _build_lookup_producer_task_from_binding(
+            binding=binding,
+            consumer_task=consumer_task,
+            next_task_id="task_lookup",
+            report_scope={"year": 2023, "company": "셀트리온"},
+        )
+
+        policy = task["required_operands"][0]["binding_policy"]
+        self.assertEqual(policy["prefer_value_roles"], ["aggregate"])
+        self.assertEqual(policy["prefer_aggregation_stages"], ["final", "subtotal", "direct"])
+
     def test_balance_sheet_aggregate_prefers_canonical_statement_aggregate_over_note_detail(self) -> None:
         operand = {
             "label": "유형자산",

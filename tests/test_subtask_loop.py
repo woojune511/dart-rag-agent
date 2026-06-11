@@ -2387,6 +2387,142 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("37.47%", trace["calculation_result"]["rendered_value"])
         self.assertNotIn("0.04%", trace["calculation_result"]["formatted_result"])
 
+    def test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment(self) -> None:
+        state = {
+            "query": "Calculate the margin drag from a numerator over revenue.",
+            "calc_subtasks": [
+                {"task_id": "task_num", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_den", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_num",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "answer": "target numerator 180 million",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 180_000_000.0,
+                        "result_unit": "million",
+                        "rendered_value": "180 million",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "numerator",
+                                "label": "target numerator",
+                                "concept": "target_numerator",
+                                "raw_value": "180",
+                                "raw_unit": "million",
+                                "normalized_value": 180_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "180 million",
+                                "source_row_id": "row_num_total",
+                                "source_row_ids": ["row_num_total"],
+                                "value_role": "aggregate",
+                                "aggregation_stage": "final",
+                            },
+                        },
+                    },
+                    "source_row_ids": ["row_num_total"],
+                },
+                {
+                    "task_id": "task_den",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "answer": "target denominator 2,000 million",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 2_000_000_000.0,
+                        "result_unit": "million",
+                        "rendered_value": "2,000 million",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "denominator",
+                                "label": "target denominator",
+                                "concept": "target_denominator",
+                                "raw_value": "2,000",
+                                "raw_unit": "million",
+                                "normalized_value": 2_000_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,000 million",
+                                "source_row_id": "row_den",
+                                "source_row_ids": ["row_den"],
+                            },
+                        },
+                    },
+                    "source_row_ids": ["row_den"],
+                },
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "margin drag",
+                    "operation_family": "ratio",
+                    "answer": "margin drag is 7.50%p.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 7.5,
+                        "result_unit": "%p",
+                        "rendered_value": "7.50%p",
+                        "formatted_result": "margin drag is 7.50%p.",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "margin drag",
+                            "components_by_role": {
+                                "numerator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator",
+                                        "label": "target numerator",
+                                        "concept": "target_numerator",
+                                        "raw_value": "150",
+                                        "raw_unit": "million",
+                                        "normalized_value": 150_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "150 million",
+                                        "source_row_id": "row_num_detail",
+                                    }
+                                ],
+                                "denominator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "denominator",
+                                        "label": "target denominator",
+                                        "concept": "target_denominator",
+                                        "raw_value": "2,000",
+                                        "raw_unit": "million",
+                                        "normalized_value": 2_000_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "2,000 million",
+                                        "source_row_id": "row_den",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "artifacts": [],
+            "tasks": [],
+        }
+        self.agent.llm = None
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("9.00%p", updated["answer"])
+        self.assertNotIn("7.50%p", updated["answer"])
+        self.assertIn("9.00%p", trace["calculation_result"]["formatted_result"])
+        ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
+        self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+
     def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
         original_execute = self.agent._execute_calculation
         calls = []

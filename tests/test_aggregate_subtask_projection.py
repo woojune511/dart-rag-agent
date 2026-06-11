@@ -388,6 +388,150 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "3.5314배")
         self.assertIn("recon::source", numerator["source_row_ids"])
 
+    def test_dependency_projection_recalculates_planless_ratio_from_best_lookup_slot(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_other_numerator",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator",
+                            "label": "other numerator",
+                            "concept": "other_numerator",
+                            "raw_value": "900",
+                            "raw_unit": "million",
+                            "normalized_value": 900_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_other",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_numerator",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator",
+                            "label": "target numerator",
+                            "concept": "target_numerator",
+                            "raw_value": "180",
+                            "raw_unit": "million",
+                            "normalized_value": 180_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_strong_numerator",
+                            "source_row_ids": ["row_strong_numerator"],
+                            "value_role": "aggregate",
+                            "aggregation_stage": "final",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_denominator",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "denominator",
+                            "label": "target denominator",
+                            "concept": "target_denominator",
+                            "raw_value": "2,000",
+                            "raw_unit": "million",
+                            "normalized_value": 2_000_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_denominator",
+                            "source_row_ids": ["row_denominator"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "margin drag",
+                "operation_family": "ratio",
+                "answer": "margin drag is 7.50%p.",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 7.5,
+                    "result_unit": "%p",
+                    "rendered_value": "7.50%p",
+                    "formatted_result": "margin drag is 7.50%p.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "margin drag",
+                        "components_by_role": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator",
+                                    "label": "target numerator",
+                                    "concept": "target_numerator",
+                                    "raw_value": "150",
+                                    "raw_unit": "million",
+                                    "normalized_value": 150_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_detail_numerator",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator",
+                                    "label": "target denominator",
+                                    "concept": "target_denominator",
+                                    "raw_value": "2,000",
+                                    "raw_unit": "million",
+                                    "normalized_value": 2_000_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_denominator",
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate margin drag",
+                "calc_subtasks": [
+                    {"task_id": "task_other_numerator", "operation_family": "lookup"},
+                    {"task_id": "task_numerator", "operation_family": "lookup"},
+                    {"task_id": "task_denominator", "operation_family": "lookup"},
+                    {"task_id": "task_ratio", "operation_family": "ratio", "metric_label": "margin drag"},
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = aligned[-1]
+        self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "9.00%p")
+        numerator = ratio_row["calculation_operands"][0]
+        self.assertEqual(numerator["raw_value"], "180")
+        self.assertIn("task_output:task_numerator", numerator["source_row_ids"])
+        self.assertNotIn("900", ratio_row["answer"])
+
     def test_lookup_execution_applies_ontology_magnitude_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {

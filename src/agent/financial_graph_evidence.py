@@ -3901,6 +3901,17 @@ class FinancialAgentEvidenceMixin:
                     and not _text_has_negative_surface(context_text or raw_row, operand)
                 )
                 binding_policy = dict(operand.get("binding_policy") or {})
+                prefer_value_roles = {
+                    str(item).strip().lower()
+                    for item in (binding_policy.get("prefer_value_roles") or [])
+                    if str(item).strip()
+                }
+                prefer_aggregation_stages = {
+                    str(item).strip().lower()
+                    for item in (binding_policy.get("prefer_aggregation_stages") or [])
+                    if str(item).strip()
+                }
+                prefers_aggregate = bool("aggregate" in prefer_value_roles or prefer_aggregation_stages)
                 requires_surface_contract = bool(
                     binding_policy.get("require_surface_contract_for_direct_match")
                     or binding_policy.get("require_surface_contract_for_direct_lookup")
@@ -3967,27 +3978,43 @@ class FinancialAgentEvidenceMixin:
                 raw_unit = str(item.get("matched_unit") or "")
                 stated_change_raw_value = ""
                 stated_change_raw_unit = ""
+                inferred_value_role = ""
+                inferred_aggregation_stage = ""
 
                 if not raw_value:
                     if table_value_context_match:
-                        for context_line in table_value_context_raw.splitlines():
-                            normalized_line = _normalise_spaces(context_line)
-                            if not normalized_line:
-                                continue
-                            line_matches_operand = (
-                                _text_has_positive_surface(normalized_line, operand)
-                                if requires_surface_contract
-                                else (
-                                    _operand_text_match(normalized_line, operand)
-                                    or _text_has_positive_surface(normalized_line, operand)
+                        structured_context_cells = [
+                            dict(cell)
+                            for cell in (metadata.get("structured_cells") or [])
+                            if isinstance(cell, dict)
+                        ]
+                        if prefers_aggregate and not structured_context_cells and not raw_row_direct_match:
+                            table_value_context_match = False
+                        matched_context_values: List[str] = []
+                        if table_value_context_match:
+                            for context_line in table_value_context_raw.splitlines():
+                                normalized_line = _normalise_spaces(context_line)
+                                if not normalized_line:
+                                    continue
+                                line_matches_operand = (
+                                    _text_has_positive_surface(normalized_line, operand)
+                                    if requires_surface_contract
+                                    else (
+                                        _operand_text_match(normalized_line, operand)
+                                        or _text_has_positive_surface(normalized_line, operand)
+                                    )
                                 )
-                            )
-                            if not line_matches_operand:
-                                continue
-                            raw_value = _extract_numeric_value_after_operand_text(normalized_line, operand)
-                            if raw_value:
-                                break
-                        if not raw_value:
+                                if not line_matches_operand:
+                                    continue
+                                line_value = _extract_numeric_value_after_operand_text(normalized_line, operand)
+                                if line_value:
+                                    matched_context_values.append(line_value)
+                        if matched_context_values:
+                            raw_value = matched_context_values[-1] if prefers_aggregate else matched_context_values[0]
+                            if prefers_aggregate and len(matched_context_values) > 1:
+                                inferred_value_role = "aggregate"
+                                inferred_aggregation_stage = "final"
+                        if table_value_context_match and not raw_value:
                             raw_value = _extract_numeric_value_after_operand_text(table_value_context, operand)
                         if raw_value and not raw_unit:
                             raw_unit = str(metadata.get("unit_hint") or "") or _fallback_unit(
@@ -4106,7 +4133,12 @@ class FinancialAgentEvidenceMixin:
                     "table_source_id": (item.get("metadata") or {}).get("table_source_id"),
                     "statement_type": (item.get("metadata") or {}).get("statement_type"),
                     "consolidation_scope": (item.get("metadata") or {}).get("consolidation_scope"),
+                    "binding_policy": dict(operand.get("binding_policy") or {}),
                 }
+                if inferred_value_role:
+                    row_payload["value_role"] = inferred_value_role
+                if inferred_aggregation_stage:
+                    row_payload["aggregation_stage"] = inferred_aggregation_stage
                 if stated_change_raw_value:
                     row_payload["stated_change_raw_value"] = stated_change_raw_value
                     row_payload["stated_change_raw_unit"] = stated_change_raw_unit or str(

@@ -178,6 +178,132 @@
         }
       }
     },
+    "operating_margin_drag": {
+      "display_name": "영업이익률 감소 영향",
+      "intent_keywords": [
+        "영업이익률을 얼마나 낮추",
+        "이익률을 얼마나 낮추",
+        "영업이익률에 미친 영향",
+        "영업이익률 영향",
+        "margin impact"
+      ],
+      "aliases": [
+        "영업이익률 감소 영향",
+        "영업이익률 영향",
+        "이익률 영향"
+      ],
+      "preferred_sections": [
+        "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+        "IV. 이사의 경영진단 및 분석의견"
+      ],
+      "supplement_sections": [
+        "요약재무정보",
+        "연결재무제표 주석",
+        "비용의 성격별 분류",
+        "이사의 경영진단 및 분석의견"
+      ],
+      "query_hints": [
+        "무형자산상각비",
+        "매출액",
+        "영업이익률"
+      ],
+      "retrieval_keywords": [
+        "무형자산상각비",
+        "매출액",
+        "영업이익",
+        "비용의 성격별 분류"
+      ],
+      "statement_type_hints": [
+        "notes",
+        "summary_financials",
+        "mda",
+        "income_statement"
+      ],
+      "row_patterns": [
+        "영업이익률.*영향",
+        "이익률.*영향"
+      ],
+      "formula_template": "(numerator / denominator) * 100",
+      "formula_family": "ratio",
+      "result_unit": "PERCENT_POINT",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
+      "components": {
+        "numerator": {
+          "concept_ref": "amortization_expense",
+          "name": "무형자산상각비",
+          "aliases": [
+            "무형자산 상각비",
+            "상각비"
+          ],
+          "keywords": [
+            "무형자산상각비",
+            "무형자산 상각비",
+            "상각비"
+          ],
+          "required": true,
+          "binding_policy_override": {
+            "prefer_value_roles": [
+              "aggregate"
+            ],
+            "prefer_aggregation_stages": [
+              "final",
+              "subtotal",
+              "direct"
+            ]
+          },
+          "preferred_sections": [
+            "연결재무제표 주석",
+            "비용의 성격별 분류",
+            "포괄손익계산서"
+          ],
+          "preferred_statement_types": [
+            "notes",
+            "income_statement"
+          ]
+        },
+        "denominator": {
+          "concept_ref": "revenue",
+          "name": "매출액",
+          "aliases": [
+            "매출",
+            "영업수익",
+            "수익"
+          ],
+          "keywords": [
+            "매출액",
+            "매출",
+            "영업수익",
+            "수익"
+          ],
+          "required": true,
+          "binding_policy_override": {
+            "prefer_value_roles": [
+              "aggregate"
+            ],
+            "prefer_aggregation_stages": [
+              "final",
+              "subtotal",
+              "direct"
+            ]
+          },
+          "preferred_sections": [
+            "요약재무정보",
+            "이사의 경영진단 및 분석의견",
+            "손익계산서"
+          ],
+          "preferred_statement_types": [
+            "summary_financials",
+            "mda",
+            "income_statement"
+          ]
+        }
+      }
+    },
     "debt_ratio": {
       "display_name": "부채비율",
       "intent_keywords": [
@@ -449,8 +575,9 @@
         "ROE",
         "자기자본이익률"
       ],
-      "formula_template": "(numerator / denominator) * 100",
+      "formula_template": "(numerator / average(denominator_1, denominator_2)) * 100",
       "formula_family": "ratio",
+      "denominator_aggregation": "average",
       "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
@@ -459,6 +586,7 @@
       },
       "components": {
         "numerator": {
+          "concept_ref": "net_income",
           "name": "당기순이익",
           "aliases": [
             "연결총당기순이익",
@@ -475,7 +603,8 @@
             "손익계산서"
           ]
         },
-        "denominator": {
+        "denominator_1": {
+          "concept_ref": "total_equity",
           "name": "자본총계",
           "aliases": [
             "총자본",
@@ -487,6 +616,32 @@
             "평균자본"
           ],
           "required": true,
+          "period_hint": "current",
+          "binding_policy_override": {
+            "prefer_period_focus": "current"
+          },
+          "preferred_sections": [
+            "요약재무정보",
+            "재무상태표"
+          ]
+        },
+        "denominator_2": {
+          "concept_ref": "total_equity",
+          "name": "자본총계",
+          "aliases": [
+            "총자본",
+            "평균자본"
+          ],
+          "keywords": [
+            "자본총계",
+            "총자본",
+            "평균자본"
+          ],
+          "required": true,
+          "period_hint": "prior",
+          "binding_policy_override": {
+            "prefer_period_focus": "prior"
+          },
           "preferred_sections": [
             "요약재무정보",
             "재무상태표"

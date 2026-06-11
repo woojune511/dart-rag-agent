@@ -1291,6 +1291,68 @@ def _trace_has_material(trace: Mapping[str, Any]) -> bool:
     )
 
 
+def _trace_operands_cover_plan(
+    trace: Mapping[str, Any],
+    plan: Mapping[str, Any],
+) -> bool:
+    operands = [
+        dict(item)
+        for item in (trace.get("calculation_operands") or [])
+        if isinstance(item, Mapping)
+    ]
+    if not operands:
+        return False
+    operand_ids = {
+        str(row.get("operand_id") or "").strip()
+        for row in operands
+        if str(row.get("operand_id") or "").strip()
+    }
+    if not operand_ids:
+        return False
+    required_ids = [
+        str(operand_id or "").strip()
+        for operand_id in (plan.get("ordered_operand_ids") or [])
+        if str(operand_id or "").strip()
+    ]
+    if not required_ids:
+        required_ids = [
+            str(binding.get("operand_id") or "").strip()
+            for binding in (plan.get("variable_bindings") or [])
+            if isinstance(binding, Mapping) and str(binding.get("operand_id") or "").strip()
+        ]
+    return bool(required_ids) and all(operand_id in operand_ids for operand_id in required_ids)
+
+
+def _fill_projected_trace_from_canonical(
+    projected: Mapping[str, Any],
+    canonical: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Fill missing task-projected trace parts from canonical runtime trace."""
+    merged = {
+        "calculation_operands": list(projected.get("calculation_operands") or []),
+        "calculation_plan": dict(projected.get("calculation_plan") or {}),
+        "calculation_result": dict(projected.get("calculation_result") or {}),
+    }
+    canonical_plan = dict(canonical.get("calculation_plan") or {})
+    projected_plan = dict(merged.get("calculation_plan") or {})
+    active_plan = projected_plan or canonical_plan
+    if (
+        not merged["calculation_operands"]
+        and active_plan
+        and _trace_operands_cover_plan(canonical, active_plan)
+    ):
+        merged["calculation_operands"] = [
+            dict(item)
+            for item in (canonical.get("calculation_operands") or [])
+            if isinstance(item, Mapping)
+        ]
+    if not merged["calculation_plan"] and canonical_plan:
+        merged["calculation_plan"] = canonical_plan
+    if not merged["calculation_result"] and canonical.get("calculation_result"):
+        merged["calculation_result"] = dict(canonical.get("calculation_result") or {})
+    return merged
+
+
 def _attach_runtime_projection_metadata(
     trace: Dict[str, Any],
     *,
@@ -1611,6 +1673,8 @@ def _resolve_runtime_calculation_trace(
 
     if active_task_id:
         projected = _project_task_trace_from_runtime(result, active_task_id)
+        if normalised:
+            projected = _fill_projected_trace_from_canonical(projected, normalised)
         if (
             projected["calculation_operands"]
             or projected["calculation_plan"]
@@ -4451,6 +4515,7 @@ def _task_output_slots_for_dependency(
                 "period": _task_binding_period_hint(dict(operand), task=task, report_scope=report_scope),
                 "label": _normalise_spaces(str(operand.get("label") or task.get("metric_label") or "")),
                 "segment_label": _task_binding_segment_label(dict(operand)),
+                "binding_policy": dict(operand.get("binding_policy") or {}),
             }
         )
     return outputs
@@ -4479,6 +4544,7 @@ def _task_input_bindings_for_dependency(
                 "source_slot": "primary_value",
                 "source_preference": ["retrieval"],
                 "segment_label": _task_binding_segment_label(dict(operand)),
+                "binding_policy": dict(operand.get("binding_policy") or {}),
             }
         )
     return bindings
@@ -5007,11 +5073,17 @@ def _build_lookup_producer_task_from_binding(
         concept_spec = _concept_spec_for_key(get_financial_ontology(), binding_concept)
         if concept_spec:
             operand = _augment_generic_operand_with_concept(operand, concept_spec=concept_spec)
+    explicit_binding_policy = dict(binding.get("binding_policy") or {})
     binding_policy = dict(operand.get("binding_policy") or {})
-    # Producer lookups should be free to bind to canonical statement rows even
-    # when the downstream derived task prefers aggregate note-table shapes.
-    binding_policy.pop("prefer_value_roles", None)
-    binding_policy.pop("prefer_aggregation_stages", None)
+    if explicit_binding_policy:
+        binding_policy.update(explicit_binding_policy)
+    else:
+        # Producer lookups should be free to bind to canonical statement rows
+        # when only concept-default aggregate preferences are present. If the
+        # consumer dependency binding explicitly carries aggregate policy, keep
+        # it because that is part of the downstream operand contract.
+        binding_policy.pop("prefer_value_roles", None)
+        binding_policy.pop("prefer_aggregation_stages", None)
     binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
     if binding_segment:
         binding_policy["segment_label"] = binding_segment
@@ -5582,9 +5654,12 @@ def _build_semantic_numeric_plan(
                         "keywords": list(spec.get("keywords") or []),
                         "role": str(spec.get("role") or ""),
                         "required": bool(spec.get("required", True)),
+                        "period_hint": str(spec.get("period_hint") or ""),
+                        "period_focus": str(spec.get("period_focus") or ""),
                         "preferred_sections": list(spec.get("preferred_sections") or []),
                         "preferred_statement_types": list(spec.get("preferred_statement_types") or []),
                         "binding_policy": dict(spec.get("binding_policy") or {}),
+                        "unit_family": str(spec.get("unit_family") or ""),
                         "surface_contract": dict(spec.get("surface_contract") or {}),
                     }
                     for spec in operand_specs

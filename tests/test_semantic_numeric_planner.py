@@ -43,6 +43,29 @@ class SemanticNumericPlannerTests(unittest.TestCase):
         self.assertIn("debt_ratio", metric_families)
         self.assertIn("current_ratio", metric_families)
 
+    def test_percent_point_margin_impact_plans_ratio_derived_drag_metric(self) -> None:
+        plan = _build_semantic_numeric_plan(
+            query="2023년 무형자산상각비 총액을 찾고, 이것이 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+            topic="영업이익률 영향 계산",
+            intent="numeric_fact",
+            report_scope={"company": "셀트리온", "year": "2023", "consolidation": "연결"},
+            target_metric_family="",
+        )
+
+        self.assertEqual(plan["status"], "ok")
+        metric_families = [task["metric_family"] for task in plan["tasks"]]
+        self.assertIn("operating_margin_drag", metric_families)
+        self.assertIn("operating_margin", metric_families)
+        drag_task = next(task for task in plan["tasks"] if task["metric_family"] == "operating_margin_drag")
+        self.assertEqual(drag_task["operation_family"], "ratio")
+        self.assertEqual(
+            [(row["role"], row["concept"]) for row in drag_task["required_operands"]],
+            [("numerator", "amortization_expense"), ("denominator", "revenue")],
+        )
+        for row in drag_task["required_operands"]:
+            self.assertEqual(row["binding_policy"]["prefer_value_roles"], ["aggregate"])
+            self.assertEqual(row["binding_policy"]["prefer_aggregation_stages"], ["final", "subtotal", "direct"])
+
     def test_implicit_fcf_plan(self) -> None:
         plan = _build_semantic_numeric_plan(
             query="2023년 FCF를 계산해 줘.",
