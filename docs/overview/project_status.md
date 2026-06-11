@@ -82,12 +82,40 @@ role-separated multi-agent system using a task ledger and artifact store.
   - runtime domain-language audit: passed with `217` reviewed literals
   - hard profile eval-only replay: `5 / 5` numeric PASS
 - Next experiment:
-  - run a small controlled ablation on the same hard profile, disabling or
-    bypassing aggregate/final structural alignment, to quantify whether the new
-    contract is carrying measurable performance rather than only fixing one
-    observed trace.
+  - inspect `SKH_T1_060` traces to identify which structural row/header fields
+    separate the correct borrowing rows from the lower plain-retrieval rows.
 - Raw `benchmarks/results/**` hard bundles remain local artifacts and are not
   part of the source commit.
+
+### Latest Hard Structural-vs-Plain Replay
+
+- Plain hard profile replay, 2026-06-11:
+  - profile: `benchmarks/profiles/curated_ablation_structural_hard_plain_retrieval.json`
+  - local result bundle:
+    `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11/`
+  - result: `4 / 5` numeric PASS
+  - aggregate metrics: numeric `0.750`, completeness `0.812`,
+    faithfulness `0.875`, recall `0.932`
+- Comparison to structural hard replay:
+  - structural: `5 / 5` numeric PASS, completeness `0.938`,
+    faithfulness `1.000`, recall `0.827`
+  - plain: `4 / 5` numeric PASS, completeness `0.812`,
+    faithfulness `0.875`, recall `0.932`
+- Separating case:
+  - `SKH_T1_060` structural answered `42.02%` using borrowing operands
+    `4,145,647`, `10,121,033`, and `9,490,410` 백만원.
+  - Plain answered `34.32%` using lower borrowing operands `3,833,263`,
+    `9,073,567`, and `6,497,790` 백만원.
+  - Both variants used the same denominator
+    `52,704,853 + 3,834,567` 백만원.
+- Interpretation:
+  - The recent ontology/period/runtime-contract changes now carry many hard
+    cases even under plain retrieval.
+  - Structural representation still gives a measurable row-binding advantage
+    when multiple plausible borrowing rows share similar labels and periods.
+  - The portfolio claim should be precise: structural metadata is not a blanket
+    win on every metric, but it prevents specific ambiguous-table operand
+    selection failures that deterministic calculation alone cannot correct.
 
 ### Latest Portfolio Ablation Refresh
 

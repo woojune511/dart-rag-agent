@@ -43,6 +43,7 @@
 | [KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)](#kab_t1_066-cir-direct-support-and-coherent-ratio-close-2026-06-09) | KAB CIR denominator support, coherent ratio operands, source display rendering | 최종 답변이 `4,355억원 / 11,623억원 = 37.47%`로 source-visible하게 닫힘 |
 | [Expanded Structural Ablation Refresh (2026-06-10)](#expanded-structural-ablation-refresh-2026-06-10) | 9문항 structural-vs-plain ablation | structural은 numeric `1.000`, plain은 `0.833`; `KBF_T1_017`, `SKH_T3_080`가 separating numeric failures |
 | [Hard Numeric Runtime Closure (2026-06-11)](#hard-numeric-runtime-closure-2026-06-11) | 5문항 hard numeric replay | ROE average-equity, margin-drag aggregate binding, late ratio refresh 이후 hard set 5 / 5 numeric PASS |
+| [Hard Structural-vs-Plain Replay (2026-06-11)](#hard-structural-vs-plain-replay-2026-06-11) | 같은 hard set의 structural vs plain 비교 | structural 5 / 5, plain 4 / 5; `SKH_T1_060` row binding이 separating failure |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -129,6 +130,58 @@ Aggregate hard result: `5 / 5` numeric PASS.
 - The next experimental step is a controlled ablation of the aggregate/final
   structural alignment contract, using the same hard profile, before paying for
   a larger full benchmark refresh.
+
+## Hard Structural-vs-Plain Replay (2026-06-11)
+
+참조:
+
+- structural:
+  `benchmarks/results/hard_current_evalonly_2026-06-10/`
+- plain:
+  `benchmarks/results/ablation_structural_hard_plain_retrieval_2026-06-11/`
+- profiles:
+  - `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
+  - `benchmarks/profiles/curated_ablation_structural_hard_plain_retrieval.json`
+
+### Setup
+
+- Same `5` hard numeric questions were replayed across the same `4` company
+  runs.
+- Structural variant used `structural_selective_v2` plus deterministic prefix.
+- Plain variant used plain chunks without zero-cost prefix.
+- Runtime code, ontology, evaluator, retrieval budgets, and question ids were
+  otherwise the same. The plain run built fresh local stores with heartbeat
+  monitoring.
+
+### Result
+
+| Variant | Numeric pass | Avg completeness | Avg faithfulness | Avg recall | Full eval fail notes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Structural | `5 / 5` | `0.938` | `1.000` | `0.827` | `1` |
+| Plain | `4 / 5` | `0.812` | `0.875` | `0.932` | `2` |
+
+Question-level comparison:
+
+| Question | Structural | Plain | Interpretation |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS, `37.47%` | PASS, `37.47%` | Direct-support and coherent-ratio runtime contract is enough for both variants. |
+| `MIX_T1_021` | PASS, `25.36%` / `258.77%` | PASS, `25.36%` / `258.77%` | Balance-sheet ratios are robust once ontology operands are explicit. |
+| `SAM_T1_026` | PASS, `4.31%` | PASS, `4.31%` | The recent improvement is mainly ontology/period-binding, not structural ingest alone. |
+| `CEL_T1_038` | PASS, `8.36%p` / `29.93%` | PASS, `8.36%p` / `29.93%` | Plain initially calculated a weaker `6.58%p` path, but late structural-slot alignment recovered the aggregate answer. |
+| `SKH_T1_060` | PASS, `42.02%` | FAIL, `34.32%` | Plain selected lower borrowing operands: `3,833,263`, `9,073,567`, `6,497,790` instead of structural's `4,145,647`, `10,121,033`, `9,490,410`. |
+
+### Interpretation
+
+- The experiment separates two claims:
+  - Ontology/planner/runtime contract fixes are now strong enough that plain
+    retrieval can pass several previously hard numeric cases.
+  - Structural representation still matters for row binding when multiple
+    semantically plausible rows share the same labels, as in `SKH_T1_060`.
+- This is a better portfolio narrative than a broad claim that structural
+  retrieval always wins. The defensible claim is narrower: structural metadata
+  provides a measurable row-binding advantage on ambiguous financial tables,
+  while deterministic ontology/runtime contracts carry formula and period
+  binding across both retrieval variants.
 
 ## KAB_T1_066 CIR Direct-Support And Coherent Ratio Close (2026-06-09)
 
