@@ -31,6 +31,12 @@ structural ablation shows the structural full-system path at avg numeric
 numeric `0.833` / faithfulness `0.875`. The separating cases are not "better
 prose"; they are operand-binding and row/unit drift in the plain path.
 
+A later hard replay makes the boundary sharper: after ontology/runtime fixes,
+plain retrieval passed `4 / 5` hard numeric questions, but failed
+`SKH_T1_060` by binding prior-period borrowing rows to a current-period asset
+denominator. Structural metadata preserved the current-period borrowing rows,
+so the structural path passed `5 / 5`.
+
 ## Problem Framing
 
 The project treats financial-document RAG failures as runtime contract failures.
@@ -82,9 +88,22 @@ Current expanded structural ablation:
 | Structural full-system | `1.000` / `1.000` | Preserves structural provenance and dependency operands through final calculation. |
 | Plain retrieval counterpart | `0.833` / `0.875` | Fails `KBF_T1_017` and `SKH_T3_080` through operand-binding or row/unit drift. |
 
+Hard structural replay:
+
+| Variant | Result | Interpretation |
+| --- | ---: | --- |
+| Structural full-system | `5 / 5` numeric PASS | Current-period borrowing rows stayed bound in `SKH_T1_060`. |
+| Plain retrieval counterpart | `4 / 5` numeric PASS | Formula/runtime fixes carried most cases, but `SKH_T1_060` used prior-period borrowing rows. |
+
 The point is not that every question needs more structure or that a baseline was
 artificially weakened. The point is that financial RAG needs trace-preserving
 runtime contracts because answer-level text can hide operand and unit mistakes.
+
+If asked why structure matters after adding ontology and deterministic
+calculation, use `SKH_T1_060`: both variants had a deterministic formula and
+the same denominator, but plain selected `3,833,263 + 9,073,567 + 6,497,790`
+from `period_focus=prior`, while structural selected
+`4,145,647 + 10,121,033 + 9,490,410` from `period_focus=current`.
 
 ## What I Would Emphasize In An Interview
 

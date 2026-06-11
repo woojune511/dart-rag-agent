@@ -23,6 +23,9 @@ calculation traces, critic reports, and reproducible reviewer gates.
   ablation: structural full-system avg numeric `1.000` / faithfulness `1.000`
   vs plain retrieval avg numeric `0.833` / faithfulness `0.875`, with
   separating failures caused by operand-binding drift in the plain path.
+- Ran a hard structural-vs-plain replay after ontology/runtime fixes:
+  structural `5 / 5` numeric PASS vs plain `4 / 5`, isolating a current/prior
+  period row-binding failure in `SKH_T1_060`.
 
 ## Technical Portfolio Version
 
@@ -41,6 +44,9 @@ mirrors, or missing operand provenance. Built a value-cell-first structured
 metadata and runtime-contract approach that preserves table/row context through
 retrieval, extraction, calculation, and final rendering. Evaluation uses
 trace-based numeric grounding rather than final-text exact match alone.
+In the hard replay, the plain baseline passed four of five hard questions but
+failed a period-ambiguous borrowing ratio by selecting prior-period rows;
+structural metadata preserved the current-period rows and closed the case.
 
 ## Conservative Version
 
@@ -48,8 +54,9 @@ Built and evaluated an evidence-first RAG prototype for DART financial filings,
 focused on making numeric answers auditable. The project combines
 structure-aware retrieval, deterministic numeric execution, multi-agent artifact
 handoff, and reviewer-facing gates. Current results support a narrow claim:
-structured provenance reduces operand/unit drift on representative expanded
-structural cases, while broader benchmark generalization remains future work.
+structured provenance reduces operand, unit, and period-row drift on
+representative expanded and hard structural cases, while broader benchmark
+generalization remains future work.
 
 ## Korean Short Version
 
@@ -75,3 +82,6 @@ Safer alternatives:
 - "Preserved value-cell-first structured metadata through retrieval and
   extraction"
 - "Used trace-based numeric grounding gates for acceptance"
+- "Measured a hard replay where structural retrieval passed `5 / 5` numeric
+  questions versus plain retrieval `4 / 5`, with the delta traced to
+  current/prior row binding"
