@@ -8,6 +8,8 @@
 2. 파일을 나열해서 읽는 대신, **실행 경로**와 **책임 경계** 기준으로 내려간다.
 
 대표 질문 1개를 끝까지 추적한 예시는 [Question Trace Walkthrough](question_trace_walkthrough.md)를 같이 보면 된다.
+핵심 class/function 역할을 실행 흐름 중심으로 압축한 문서는
+[Runtime Flow And Roles](runtime_flow_roles.md)를 보면 된다.
 
 ---
 
@@ -423,5 +425,4 @@ rg -n "run_screening_experiment|_run_company_bundle|def main" src/ops/benchmark_
 - “MAS 실험은 기존 single-agent 위에 어떻게 얹혀 있는가?”
 
 이 두 질문에 답이 되면, 그 다음부터는 세부 함수 파악이 훨씬 쉬워진다.
-
 
