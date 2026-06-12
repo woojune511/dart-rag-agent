@@ -4725,6 +4725,146 @@ class FinancialAgentCalculationMixin:
             )
         return updated, selected_ids
 
+    def _append_missing_decision_context_evidence(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        *,
+        final_answer: str,
+        selected_claim_ids: List[str],
+        query: str,
+        docs: List[Any],
+        limit: int = 2,
+    ) -> tuple[List[Dict[str, Any]], List[str]]:
+        answer_text = _normalise_spaces(str(final_answer or ""))
+        missing_markers = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
+            if str(item)
+        )
+        if (
+            not docs
+            or not answer_text
+            or not any(marker and marker in answer_text for marker in missing_markers)
+            or selected_claim_ids
+        ):
+            return [dict(item or {}) for item in (evidence_items or [])], []
+
+        updated = [dict(item or {}) for item in (evidence_items or [])]
+        existing_ids = {
+            str(item.get("evidence_id") or "").strip()
+            for item in updated
+            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+        }
+        seen_surfaces = {
+            _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        item.get("source_anchor"),
+                        item.get("claim"),
+                        item.get("quote_span"),
+                    )
+                )
+            )
+            for item in updated
+            if isinstance(item, dict)
+        }
+
+        focus_terms = [
+            _normalise_spaces(str(term or ""))
+            for term in self._query_focus_markers(query)
+            if _normalise_spaces(str(term or ""))
+        ]
+        focus_terms_lower = {term.lower() for term in focus_terms if len(term) >= 2}
+
+        scored_candidates: List[tuple[float, int, Dict[str, Any]]] = []
+        for rank, item in enumerate(docs):
+            doc = item[0] if isinstance(item, (tuple, list)) and item else item
+            page_content = _normalise_spaces(
+                str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
+            )
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            surface = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        page_content,
+                        str(metadata.get("table_context") or ""),
+                        str(metadata.get("table_row_labels_text") or ""),
+                        str(metadata.get("table_value_labels_text") or ""),
+                        str(metadata.get("table_summary_text") or ""),
+                    )
+                    if part
+                )
+            )
+            surface = _strip_rerank_metadata(surface) or surface
+            if not surface:
+                continue
+            surface_lower = surface.lower()
+            matched_terms = sorted(term for term in focus_terms_lower if term in surface_lower)
+            snippet_terms = matched_terms or list(focus_terms_lower)
+            snippet = self._extract_driver_snippet(surface, snippet_terms) if snippet_terms else ""
+            snippet = _normalise_spaces(snippet or surface[:360])
+            if not snippet:
+                continue
+            anchor = self._build_source_anchor(metadata)
+            dedupe_key = _normalise_spaces(f"{anchor} {snippet}")
+            if dedupe_key and dedupe_key in seen_surfaces:
+                continue
+            score = float(len(matched_terms) * 4)
+            block_type = str(metadata.get("block_type") or "").strip().lower()
+            if block_type == "table":
+                score += 1.0
+            try:
+                score += min(float(item[1] or 0.0), 1.0) if isinstance(item, (tuple, list)) and len(item) > 1 else 0.0
+            except (TypeError, ValueError):
+                pass
+            scored_candidates.append(
+                (
+                    score,
+                    rank,
+                    {
+                        "source_anchor": anchor,
+                        "claim": snippet,
+                        "quote_span": snippet,
+                        "support_level": "context",
+                        "question_relevance": "medium" if matched_terms else "low",
+                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                        "metadata": {
+                            **metadata,
+                            "missing_decision_context": True,
+                            "query_focus_hits": matched_terms,
+                        },
+                    },
+                )
+            )
+
+        scored_candidates.sort(key=lambda row: (-row[0], row[1]))
+        selected_ids: List[str] = []
+        for _score, _rank, candidate in scored_candidates[: max(1, limit)]:
+            dedupe_key = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        candidate.get("source_anchor"),
+                        candidate.get("claim"),
+                        candidate.get("quote_span"),
+                    )
+                )
+            )
+            if dedupe_key and dedupe_key in seen_surfaces:
+                continue
+            if dedupe_key:
+                seen_surfaces.add(dedupe_key)
+            evidence_id = f"missing_decision_context::{len(selected_ids) + 1:03d}"
+            while evidence_id in existing_ids:
+                evidence_id = f"missing_decision_context::{len(selected_ids) + len(existing_ids) + 1:03d}"
+            existing_ids.add(evidence_id)
+            selected_ids.append(evidence_id)
+            candidate["evidence_id"] = evidence_id
+            updated.append(candidate)
+        return updated, selected_ids
+
     def _append_retrieved_growth_driver_evidence_for_query(
         self,
         evidence_items: List[Dict[str, Any]],
@@ -14258,6 +14398,15 @@ class FinancialAgentCalculationMixin:
                     )
                 )
             aggregate_projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
+        aggregate_evidence_items, missing_context_claim_ids = self._append_missing_decision_context_evidence(
+            aggregate_evidence_items,
+            final_answer=final_answer,
+            selected_claim_ids=selected_claim_ids,
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
+        )
+        if missing_context_claim_ids:
+            selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *missing_context_claim_ids]))
         aggregate_evidence_items = self._filter_aggregate_evidence_for_final_answer(
             aggregate_evidence_items,
             final_answer=final_answer,

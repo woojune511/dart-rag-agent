@@ -116,7 +116,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             company = str(metadata.get("company") or "").strip()
             year = str(metadata.get("year") or "").strip()
             citation = anchor
-            if company or year:
+            if (company or year) and not anchor.startswith("["):
                 citation = "[{}]".format(" | ".join(part for part in (company, year, anchor) if part))
             key = _normalise_spaces(citation).lower()
             if key in seen:

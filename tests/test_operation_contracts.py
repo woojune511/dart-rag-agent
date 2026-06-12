@@ -7261,6 +7261,59 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(supplemented, [])
 
+    def test_missing_decision_context_preserves_search_scope_for_unanswered_lookup(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        docs = [
+            (
+                Document(
+                    page_content="Target capacity is discussed qualitatively, but no 2026 numeric forecast is stated.",
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "II. Business Overview",
+                        "block_type": "paragraph",
+                    },
+                ),
+                0.82,
+            )
+        ]
+
+        evidence_items, selected_ids = agent._append_missing_decision_context_evidence(
+            [],
+            final_answer="질문에 필요한 값을 충분히 확보하지 못했습니다.",
+            selected_claim_ids=[],
+            query="Find the 2026 target capacity numeric forecast.",
+            docs=docs,
+        )
+
+        self.assertEqual(selected_ids, ["missing_decision_context::001"])
+        self.assertEqual(evidence_items[-1]["support_level"], "context")
+        self.assertEqual(evidence_items[-1]["metadata"]["missing_decision_context"], True)
+        self.assertIn("Target capacity", evidence_items[-1]["quote_span"])
+
+    def test_missing_decision_context_does_not_add_when_selected_evidence_exists(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        docs = [
+            (
+                Document(
+                    page_content="Target capacity is discussed qualitatively.",
+                    metadata={"company": "ExampleCo", "year": 2023},
+                ),
+                0.82,
+            )
+        ]
+
+        evidence_items, selected_ids = agent._append_missing_decision_context_evidence(
+            [{"evidence_id": "ev_001", "claim": "existing", "quote_span": "existing"}],
+            final_answer="질문에 필요한 값을 충분히 확보하지 못했습니다.",
+            selected_claim_ids=["ev_001"],
+            query="Find the 2026 target capacity numeric forecast.",
+            docs=docs,
+        )
+
+        self.assertEqual(selected_ids, [])
+        self.assertEqual([item["evidence_id"] for item in evidence_items], ["ev_001"])
+
     def test_exclusive_narrative_policy_augments_refusal_with_support_sentence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 
