@@ -8893,6 +8893,76 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("2023년 법인세비용차감전순이익은 1조 4,813억원입니다.", updated["answer"])
         self.assertIn("원하신 답을 완전히 확정할 수는 없습니다.", updated["answer"])
 
+    def test_aggregate_subtasks_drops_unsupported_partial_when_final_refusal_is_exhausted(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": "Unrelated sustainability initiatives are described in the report.",
+                    "planner_feedback": "The requested numeric facts are still missing.",
+                }
+            )
+        )
+        state = {
+            "query": "How many owned trucks and deliveries are disclosed?",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "owned truck count and delivery count",
+                    "operation_family": "single_value",
+                }
+            ],
+            "active_subtask_index": 0,
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "generic_numeric",
+                "metric_label": "owned truck count and delivery count",
+                "operation_family": "single_value",
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_1",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "owned truck count and delivery count",
+                    "operation_family": "single_value",
+                    "answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+                    "status": "insufficient_operands",
+                    "calculation_result": {
+                        "status": "insufficient_operands",
+                        "rendered_value": "",
+                        "answer_slots": {
+                            "operation_family": "single_value",
+                            "primary_value": {
+                                "status": "missing",
+                                "label": "owned truck count and delivery count",
+                                "rendered_value": "",
+                                "source_row_ids": [],
+                            },
+                        },
+                    },
+                    "source_row_ids": [],
+                    "source_evidence_ids": [],
+                }
+            ],
+            "answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+            "compressed_answer": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
+            "selected_claim_ids": [],
+            "tasks": [],
+            "artifacts": [],
+            "calculation_result": {"status": "insufficient_operands"},
+            "reconciliation_result": {"status": "insufficient_operands"},
+            "planner_feedback": "",
+            "planner_mode": "initial",
+            "plan_loop_count": 2,
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(updated["planner_mode"], "initial")
+        self.assertNotIn("Unrelated sustainability", updated["answer"])
+        self.assertIn("owned truck count and delivery count 정보를 찾을 수 없습니다.", updated["answer"])
+        self.assertIn("원하신 답을 완전히 확정할 수는 없습니다.", updated["answer"])
+
     def test_aggregate_subtasks_blocks_replan_after_duplicate_direct_lookup_rejection(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(
@@ -10308,6 +10378,26 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("PolicyA requires an active response", selected["claim"])
         self.assertEqual(selected["metadata"]["section_path"], "Management discussion")
 
+    def test_retrieved_doc_narrative_evidence_skips_missing_answer_sentences(self) -> None:
+        docs = [
+            (
+                Document(
+                    page_content="The report discusses unrelated sustainability initiatives.",
+                    metadata={"company": "ExampleCo", "year": 2023, "section_path": "Sustainability"},
+                ),
+                0.9,
+            )
+        ]
+
+        updated, selected_ids = self.agent._append_retrieved_narrative_evidence_for_final_answer(
+            [],
+            final_answer="요청한 수치는 제공된 보고서에서 찾을 수 없습니다.",
+            docs=docs,
+        )
+
+        self.assertEqual(updated, [])
+        self.assertEqual(selected_ids, [])
+
     def test_retrieved_narrative_source_surface_replaces_overstated_paraphrase(self) -> None:
         answer = (
             "2023 regional sales volume was 870,000 units, up 11.5%. "
@@ -10328,6 +10418,22 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("11.5%", updated)
         self.assertIn("PolicyA requires an active response from management.", updated)
         self.assertNotIn("The company stated", updated)
+
+    def test_retrieved_narrative_source_surface_keeps_missing_answer_sentence(self) -> None:
+        answer = "요청한 수치는 제공된 보고서에서 찾을 수 없습니다."
+
+        updated = self.agent._preserve_retrieved_narrative_source_surface(
+            answer,
+            [
+                {
+                    "evidence_id": "retrieved_narrative::001",
+                    "claim": "요청한 수치는 제공된 보고서에서 찾을 수 없습니다.",
+                    "quote_span": "The report discusses unrelated sustainability initiatives.",
+                }
+            ],
+        )
+
+        self.assertEqual(updated, answer)
 
     def test_growth_narrative_composition_uses_evidence_quote_driver_groups(self) -> None:
         original_policy = {

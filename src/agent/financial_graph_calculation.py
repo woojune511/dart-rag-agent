@@ -4602,6 +4602,12 @@ class FinancialAgentCalculationMixin:
                 if len(term) >= 3
             }
 
+        missing_markers = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
+            if str(item)
+        )
+
         def _sentence_already_supported(sentence: str) -> bool:
             sentence_terms = _content_terms(sentence)
             if not sentence_terms:
@@ -4677,7 +4683,12 @@ class FinancialAgentCalculationMixin:
         for sentence in _split_narrative_sentences(answer_text):
             cleaned = _normalise_spaces(sentence)
             sentence_terms = _content_terms(cleaned)
-            if not cleaned or not sentence_terms or _sentence_already_supported(cleaned):
+            if (
+                not cleaned
+                or any(marker in cleaned for marker in missing_markers)
+                or not sentence_terms
+                or _sentence_already_supported(cleaned)
+            ):
                 continue
             if self._text_supports_final_answer_numeric_material(cleaned, answer_numeric_candidates):
                 continue
@@ -6787,6 +6798,11 @@ class FinancialAgentCalculationMixin:
                 if len(term) >= 3
             }
 
+        missing_markers = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
+            if str(item)
+        )
         replacements: Dict[str, str] = {}
         for item in evidence_items or []:
             evidence = dict(item or {})
@@ -6796,6 +6812,8 @@ class FinancialAgentCalculationMixin:
             claim = _normalise_spaces(str(evidence.get("claim") or ""))
             quote = _normalise_spaces(str(evidence.get("quote_span") or evidence.get("raw_row_text") or ""))
             if not claim or not quote or claim == quote:
+                continue
+            if any(marker in claim for marker in missing_markers):
                 continue
             claim_terms = _content_terms(claim)
             if not claim_terms:
@@ -6818,6 +6836,8 @@ class FinancialAgentCalculationMixin:
                 continue
             for sentence in sentences:
                 if not sentence or sentence in replacements:
+                    continue
+                if any(marker in sentence for marker in missing_markers):
                     continue
                 if self._text_supports_final_answer_numeric_material(sentence, answer_numeric_candidates):
                     continue
@@ -13498,11 +13518,81 @@ class FinancialAgentCalculationMixin:
         should_replan = bool(planner_feedback) and plan_loop_count < max_plan_loops and not replan_blocked_reason
         if planner_feedback and not should_replan:
             refusal_suffix = "다만 질문에 필요한 수치를 끝내 모두 확보하지 못해 원하신 답을 완전히 확정할 수는 없습니다."
-            visible_partial_answer = _normalise_spaces(final_answer or fallback_answer)
+            visible_partial_answer = _normalise_spaces(
+                self._safe_partial_answer_for_numeric_gap(ordered_results)
+                or self._preferred_complete_numeric_answer(ordered_results)
+                or self._supported_aggregate_subtask_answer(ordered_results)
+            )
+            state_calculation_status = _normalise_spaces(
+                str((state.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            has_traceable_partial_material = bool(
+                selected_claim_ids_for_integrity
+                or ordered_result_source_refs
+                or any(
+                    str((artifact or {}).get("status") or "").strip().lower() == "ok"
+                    for artifact in ledger_artifacts
+                )
+                or state_calculation_status == "ok"
+            )
+            has_subtask_result_numeric_gap = any(
+                not self._row_is_narrative_summary(row)
+                and (
+                    self._material_gap_feedback_for_subtask_result(row)
+                    or str(
+                        row.get("status")
+                        or (row.get("calculation_result") or {}).get("status")
+                        or ""
+                    ).strip().lower()
+                    not in {"", "ok"}
+                )
+                for row in (state.get("subtask_results") or [])
+                if isinstance(row, dict)
+            )
+            if not visible_partial_answer:
+                candidate_partial_answer = _normalise_spaces(
+                    state.get("answer")
+                    or state.get("compressed_answer")
+                    or fallback_answer
+                    or final_answer
+                )
+                if (
+                    candidate_partial_answer
+                    and re.search(r"\d", candidate_partial_answer)
+                    and has_traceable_partial_material
+                    and not has_subtask_result_numeric_gap
+                ):
+                    visible_partial_answer = candidate_partial_answer
             if visible_partial_answer:
                 final_answer = _normalise_spaces(f"{visible_partial_answer} {refusal_suffix}")
             else:
-                final_answer = "질문에 필요한 수치를 끝내 충분히 확보하지 못했습니다."
+                focus_candidates: List[str] = []
+                generic_result_label = str(CALCULATION_NARRATIVE_POLICY.get("generic_result_label") or "")
+                for source in [
+                    *ordered_results,
+                    state.get("active_subtask") or {},
+                    *(state.get("calc_subtasks") or []),
+                ]:
+                    if not isinstance(source, dict):
+                        continue
+                    if self._row_is_narrative_summary(source):
+                        continue
+                    candidate_label = _normalise_spaces(
+                        str(source.get("metric_label") or source.get("label") or source.get("query") or "")
+                    )
+                    if candidate_label and candidate_label not in {"-", "metric", generic_result_label}:
+                        focus_candidates.append(candidate_label)
+                unique_focus_candidates = list(dict.fromkeys(focus_candidates))
+                missing_focus = unique_focus_candidates[0] if len(unique_focus_candidates) == 1 else ""
+                if missing_focus:
+                    final_answer = _normalise_spaces(
+                        str(CALCULATION_NARRATIVE_POLICY.get("missing_focus_answer_template") or "").format(
+                            missing_focus=missing_focus,
+                            refusal_suffix=refusal_suffix,
+                        )
+                    )
+                else:
+                    final_answer = "질문에 필요한 수치를 끝내 충분히 확보하지 못했습니다."
         selected_claim_ids = list(
             dict.fromkeys(
                 [

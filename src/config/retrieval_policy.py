@@ -536,6 +536,8 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
         "누락",
         "필요한 값",
     ),
+    "missing_focus_answer_template": "{missing_focus} 정보를 찾을 수 없습니다. {refusal_suffix}",
+    "generic_result_label": "계산 결과",
     "growth_query_pattern": r"(성장률|증감률|증가율|전년\s*대비)",
     "percent_display_pattern": r"\d+(?:\.\d+)?\s*%",
     "growth_impact_markers": ("영향", "기여", "기인", "개선", "인수", "편입", "성장", "강화", "증가"),
