@@ -8821,6 +8821,18 @@ class SubtaskLoopTests(unittest.TestCase):
             "cite",
         )
 
+    def test_exclusive_narrative_aggregate_feedback_does_not_replan(self) -> None:
+        self.assertEqual(
+            self.agent._route_after_aggregate_subtasks(
+                {
+                    "semantic_plan": {"status": "narrative_policy_exclusive"},
+                    "planner_feedback": "직접 근거가 부족하므로 추가 계획이 필요합니다.",
+                    "plan_loop_count": 0,
+                }
+            ),
+            "cite",
+        )
+
     def test_aggregate_subtasks_emits_final_refusal_when_replan_budget_is_exhausted(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(

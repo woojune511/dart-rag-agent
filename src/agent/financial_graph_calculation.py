@@ -14559,6 +14559,11 @@ class FinancialAgentCalculationMixin:
         return "reconcile_plan"
 
     def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
+        semantic_status = _normalise_spaces(
+            str((state.get("semantic_plan") or {}).get("status") or "")
+        ).lower()
+        if semantic_status == "narrative_policy_exclusive":
+            return "cite"
         planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
         if (
             planner_feedback
